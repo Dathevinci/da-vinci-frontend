@@ -37,7 +37,8 @@ export default function AnimeCarousel({ title, animes }: AnimeCarouselProps) {
 
         <div 
           ref={rowRef}
-          className="flex gap-2 md:gap-4 overflow-x-auto hide-scrollbar scroll-smooth px-2 pb-8 pt-4"
+          style={{ willChange: "scroll-position, transform" }}
+          className="flex gap-2 md:gap-4 overflow-x-auto hide-scrollbar scroll-smooth px-2 pb-8 pt-4 snap-x snap-mandatory"
         >
           {animes.map(a => <AnimeCard key={a.id} anime={a} />)}
         </div>

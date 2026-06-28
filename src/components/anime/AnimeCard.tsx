@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from 'framer-motion';
+
 import Link from 'next/link';
 import { Info, Clock } from 'lucide-react';
 import { AniListAnime } from '@/lib/anilist';
@@ -20,9 +20,9 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
 
   return (
     <Link href={`/anime/${anime.id}`}>
-      <motion.div 
-        whileHover={{ scale: 1.05, zIndex: 50 }}
-        className="relative group w-[160px] md:w-[220px] aspect-[2/3] rounded-xl overflow-hidden cursor-pointer flex-shrink-0 transition-all shadow-xl border border-white/5 bg-[#141414]"
+      <div 
+        style={{ willChange: "transform" }}
+        className="relative group w-[160px] md:w-[220px] aspect-[2/3] rounded-xl overflow-hidden cursor-pointer flex-shrink-0 transition-transform duration-300 hover:scale-105 hover:z-50 shadow-xl border border-white/5 bg-[#141414] snap-start"
       >
         <img 
           src={imageUrl} 
@@ -64,7 +64,7 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
             Details
           </button>
         </div>
-      </motion.div>
+      </div>
     </Link>
   );
 }
