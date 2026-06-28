@@ -3,9 +3,16 @@
 import { Bell, Check, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { useNotifications, Notification } from '@/hooks/useNotifications';
+import { useEffect } from 'react';
 
 export default function NotificationDropdown() {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+
+  useEffect(() => {
+    if (unreadCount > 0) {
+      markAllAsRead();
+    }
+  }, [unreadCount, markAllAsRead]);
 
   return (
     <div className="absolute right-0 top-full mt-2 w-80 bg-[#141414] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50">
