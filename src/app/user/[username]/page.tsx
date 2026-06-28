@@ -95,7 +95,9 @@ export default function PublicProfilePage() {
 
             <div className="text-center md:text-left z-10 mb-2 flex-1">
               <div className="flex items-center gap-3 justify-center md:justify-start mb-2">
-                <h1 className="text-4xl font-black text-white drop-shadow-lg">{profileUser.username}</h1>
+                <h1 className={`text-4xl font-black drop-shadow-lg ${profileUser.username.toLowerCase() === 'dejavuh' ? 'text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-fuchsia-500 to-indigo-400 drop-shadow-[0_0_15px_rgba(217,70,239,0.8)]' : 'text-white'}`}>
+                  {profileUser.username}
+                </h1>
                 {profileUser.username.toLowerCase() === 'dejavuh' && (
                   <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-3 py-1 rounded-full flex items-center gap-1 shadow-lg shadow-indigo-500/20 border border-indigo-400">
                     <Code2 className="w-4 h-4 text-white" />
