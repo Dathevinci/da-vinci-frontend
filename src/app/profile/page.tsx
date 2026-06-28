@@ -143,6 +143,7 @@ export default function ProfileTrackerPage() {
                   >
                     <span>{(user.following || []).length} Following</span>
                   </button>
+                  <span className="text-purple-400 ml-2">✧ {user.arisePoints || 0} Arise Points</span>
                 </div>
               </div>
             </div>

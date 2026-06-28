@@ -9,6 +9,7 @@ export interface User {
   avatar?: string;
   bannerUrl?: string;
   bio?: string;
+  arisePoints?: number;
   followers?: any[];
   following?: any[];
 }

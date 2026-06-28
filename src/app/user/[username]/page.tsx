@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useUser, User } from "@/hooks/useUser";
 import { Compass, UserPlus, UserMinus, Eye, Heart, Clock, Check, ListFilter, Code2 } from "lucide-react";
 import FollowListModal from "@/components/profile/FollowListModal";
+import HollowPurple from "@/components/ui/HollowPurple";
 import Link from "next/link";
 
 export default function PublicProfilePage() {
@@ -68,6 +69,7 @@ export default function PublicProfilePage() {
 
   return (
     <div className="bg-[#09090b] min-h-screen pt-24 pb-12 px-4 md:px-12 text-white">
+      {profileUser.username.toLowerCase() === 'dejavuh' && <HollowPurple />}
       <div className="max-w-7xl mx-auto">
         
         {/* Profile Header */}
@@ -119,6 +121,7 @@ export default function PublicProfilePage() {
                 >
                   <span>{(profileUser.following || []).length} Following</span>
                 </button>
+                <span className="text-purple-400 ml-2">✧ {profileUser.arisePoints || 0} Arise Points</span>
               </div>
             </div>
             
