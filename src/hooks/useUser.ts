@@ -7,7 +7,10 @@ export interface User {
   username: string;
   email: string;
   avatar?: string;
+  bannerUrl?: string;
   bio?: string;
+  followers?: any[];
+  following?: any[];
 }
 
 export function useUser() {
@@ -72,10 +75,56 @@ export function useUser() {
     }
   };
 
+  const followUser = async (followingId: string) => {
+    if (!user) return { success: false };
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+    try {
+      const res = await fetch(`${API_URL}/api/users/${followingId}/follow`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ followerId: user.id })
+      });
+      const result = await res.json();
+      
+      // Update local user state
+      if (result.success) {
+        const newUser = { ...user, following: [...(user.following || []), result.data] };
+        setUser(newUser);
+        localStorage.setItem("davinci_user", JSON.stringify(newUser));
+      }
+      return result;
+    } catch (err) {
+      return { success: false, message: "Network error" };
+    }
+  };
+
+  const unfollowUser = async (followingId: string) => {
+    if (!user) return { success: false };
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+    try {
+      const res = await fetch(`${API_URL}/api/users/${followingId}/follow`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ followerId: user.id })
+      });
+      const result = await res.json();
+      
+      // Update local user state
+      if (result.success) {
+        const newUser = { ...user, following: (user.following || []).filter((f: any) => f.followingId !== followingId) };
+        setUser(newUser);
+        localStorage.setItem("davinci_user", JSON.stringify(newUser));
+      }
+      return result;
+    } catch (err) {
+      return { success: false, message: "Network error" };
+    }
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem("davinci_user");
   };
 
-  return { user, isLoaded, loginOrRegister, updateProfile, logout };
+  return { user, isLoaded, loginOrRegister, updateProfile, followUser, unfollowUser, logout };
 }

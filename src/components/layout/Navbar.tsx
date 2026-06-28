@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut } from 'lucide-react';
+import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut, Users } from 'lucide-react';
 import LoginModal from './LoginModal';
 import { useUser } from '@/hooks/useUser';
 
@@ -37,6 +37,9 @@ export default function Navbar() {
               <Link href="/search?status=RELEASING" className="hover:text-white hover:text-indigo-400 transition">Airing Now</Link>
               <Link href="/search?status=NOT_YET_RELEASED" className="hover:text-white hover:text-indigo-400 transition">Upcoming</Link>
               <Link href="/calendar" className="hover:text-white hover:text-indigo-400 transition">Schedule</Link>
+              <Link href="/community" className="hover:text-white hover:text-indigo-400 transition flex items-center gap-2">
+                <Users className="w-4 h-4" /> Community
+              </Link>
             </nav>
           </div>
           
