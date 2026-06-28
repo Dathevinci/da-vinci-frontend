@@ -5,7 +5,7 @@ import { Volume2, VolumeX, Pause, Play } from "lucide-react";
 
 interface Props {
   trailerId: string;
-  bannerUrl: string;
+  bannerUrl?: string;
 }
 
 export default function AnimeBackgroundTrailer({ trailerId, bannerUrl }: Props) {
