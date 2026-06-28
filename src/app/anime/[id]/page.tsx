@@ -1,5 +1,6 @@
 import { getAnimeDetails } from "@/lib/anilist";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { Clock, ExternalLink, Calendar as CalendarIcon, Hash } from "lucide-react";
 import AnimeStatusBadge from "@/components/anime/AnimeStatusBadge";
 import AnimeTrackerPanel from "@/components/anime/AnimeTrackerPanel";
