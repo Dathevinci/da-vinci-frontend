@@ -1,40 +1,14 @@
-import { fetchAniList, AniListAnime } from "@/lib/anilist";
+import { getCalendarData } from "@/lib/anilist";
 import Link from "next/link";
 import { Clock } from "lucide-react";
 
 export const revalidate = 3600;
 
 export default async function CalendarPage() {
-  // We fetch airing schedule for the next 7 days
-  const now = Math.floor(Date.now() / 1000);
-  const nextWeek = now + (7 * 24 * 60 * 60);
-
-  const query = `
-    query AiringSchedule($notYetAired: Boolean, $airingAt_greater: Int, $airingAt_lesser: Int) {
-      Page(page: 1, perPage: 50) {
-        airingSchedules(notYetAired: $notYetAired, airingAt_greater: $airingAt_greater, airingAt_lesser: $airingAt_lesser, sort: TIME) {
-          id
-          airingAt
-          episode
-          media {
-            id
-            title { romaji english }
-            coverImage { large }
-            siteUrl
-          }
-        }
-      }
-    }
-  `;
-
   let schedules: any[] = [];
   try {
-    const data = await fetchAniList<{ Page: { airingSchedules: any[] } }>(query, {
-      notYetAired: true,
-      airingAt_greater: now,
-      airingAt_lesser: nextWeek
-    });
-    schedules = data.Page.airingSchedules;
+    const data = await getCalendarData();
+    schedules = data?.Page?.airingSchedules || [];
   } catch (error) {
     console.error(error);
   }
