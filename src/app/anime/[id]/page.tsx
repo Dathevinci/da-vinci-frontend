@@ -69,6 +69,42 @@ export default async function AnimeDetails({ params }: { params: Promise<{ id: s
             <h2 className="text-2xl font-bold mb-4">Synopsis</h2>
             <div className="text-slate-300 leading-relaxed text-lg bg-white/5 p-6 rounded-2xl border border-white/5" dangerouslySetInnerHTML={{ __html: anime.description || "No synopsis available." }} />
             
+            {/* Characters & Cast */}
+            {anime.characters && anime.characters.edges.length > 0 && (
+              <div className="mt-10">
+                <h2 className="text-2xl font-bold mb-6">Characters & Cast</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {anime.characters.edges.map((edge, idx) => {
+                    const character = edge.node;
+                    const va = edge.voiceActors?.[0]; // Get the main Japanese VA
+                    return (
+                      <div key={idx} className="bg-white/5 border border-white/10 rounded-xl overflow-hidden flex justify-between h-24">
+                        {/* Character Side */}
+                        <div className="flex flex-1 min-w-0">
+                          <img src={character.image.large} alt={character.name.full} className="w-16 h-full object-cover" />
+                          <div className="p-3 flex flex-col justify-center min-w-0">
+                            <span className="font-bold text-sm truncate block text-white">{character.name.full}</span>
+                            <span className="text-xs text-indigo-400 capitalize">{edge.role.toLowerCase()}</span>
+                          </div>
+                        </div>
+                        
+                        {/* Voice Actor Side */}
+                        {va && (
+                          <div className="flex flex-1 min-w-0 flex-row-reverse text-right bg-black/20">
+                            <img src={va.image.large} alt={va.name.full} className="w-16 h-full object-cover" />
+                            <div className="p-3 flex flex-col justify-center min-w-0">
+                              <span className="font-bold text-sm truncate block text-white">{va.name.full}</span>
+                              <span className="text-xs text-slate-500">Japanese</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {nextEp && (
               <div className="mt-8 bg-indigo-600/10 border border-indigo-500/30 rounded-2xl p-6 flex items-center gap-6">
                 <Clock className="w-10 h-10 text-indigo-400" />

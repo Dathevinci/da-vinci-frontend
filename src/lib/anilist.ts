@@ -45,6 +45,21 @@ export interface AniListAnime {
     site: string;
     thumbnail: string;
   };
+  characters?: {
+    edges: {
+      role: string;
+      node: {
+        id: number;
+        name: { full: string };
+        image: { large: string };
+      };
+      voiceActors: {
+        id: number;
+        name: { full: string };
+        image: { large: string };
+      }[];
+    }[];
+  };
 }
 
 async function fetchFromBackend<T>(endpoint: string): Promise<T> {
