@@ -60,6 +60,19 @@ export interface AniListAnime {
       }[];
     }[];
   };
+  relations?: {
+    edges: {
+      relationType: string;
+      node: {
+        id: number;
+        type: string;
+        format: string;
+        status: string;
+        title: { romaji: string; english?: string };
+        coverImage: { large: string };
+      };
+    }[];
+  };
 }
 
 async function fetchFromBackend<T>(endpoint: string): Promise<T> {

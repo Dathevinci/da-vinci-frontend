@@ -105,6 +105,41 @@ export default async function AnimeDetails({ params }: { params: Promise<{ id: s
               </div>
             )}
 
+            {/* Related Media */}
+            {anime.relations && anime.relations.edges.length > 0 && (
+              <div className="mt-10">
+                <h2 className="text-2xl font-bold mb-6">Related Media</h2>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {anime.relations.edges.map((edge, idx) => {
+                    const relation = edge.node;
+                    // Format relation type (e.g., "SIDE_STORY" -> "Side Story")
+                    const typeLabel = edge.relationType.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+                    
+                    return (
+                      <Link href={relation.type === 'ANIME' ? `/anime/${relation.id}` : '#'} key={idx}>
+                        <div className="bg-white/5 border border-white/10 hover:border-indigo-500/50 rounded-xl overflow-hidden transition group h-full flex flex-col">
+                          <div className="aspect-[2/3] w-full relative bg-slate-800">
+                            <img src={relation.coverImage.large} alt={relation.title.english || relation.title.romaji} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                            <div className="absolute top-2 left-2 bg-indigo-600/90 backdrop-blur text-white text-[10px] font-black px-2 py-1 rounded shadow-lg uppercase">
+                              {typeLabel}
+                            </div>
+                            <div className="absolute bottom-2 right-2 bg-black/80 backdrop-blur text-slate-300 text-[10px] font-bold px-2 py-1 rounded">
+                              {relation.format}
+                            </div>
+                          </div>
+                          <div className="p-3 flex-1 flex flex-col justify-center">
+                            <span className="font-bold text-sm line-clamp-2 text-slate-200 group-hover:text-indigo-300 transition">
+                              {relation.title.english || relation.title.romaji}
+                            </span>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {nextEp && (
               <div className="mt-8 bg-indigo-600/10 border border-indigo-500/30 rounded-2xl p-6 flex items-center gap-6">
                 <Clock className="w-10 h-10 text-indigo-400" />
