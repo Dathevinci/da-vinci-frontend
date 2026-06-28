@@ -2,15 +2,19 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut, Users, Palette, Menu, X } from 'lucide-react';
+import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut, Users, Palette, Menu, X, Bell } from 'lucide-react';
 import LoginModal from './LoginModal';
+import NotificationDropdown from './NotificationDropdown';
 import { useUser } from '@/hooks/useUser';
+import { useNotifications } from '@/hooks/useNotifications';
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const { user, isLoaded, logout } = useUser();
+  const { unreadCount } = useNotifications();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -49,7 +53,20 @@ export default function Navbar() {
             
             {isLoaded && (
               user ? (
-                <div className="hidden lg:flex items-center gap-4">
+                <div className="hidden lg:flex items-center gap-4 relative">
+                  <div className="relative">
+                    <button 
+                      onClick={() => setShowNotifications(!showNotifications)}
+                      className="p-2 text-slate-300 hover:text-white transition relative hover:bg-white/10 rounded-full"
+                    >
+                      <Bell className="w-5 h-5" />
+                      {unreadCount > 0 && (
+                        <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 border-2 border-[#09090b] rounded-full"></span>
+                      )}
+                    </button>
+                    {showNotifications && <NotificationDropdown />}
+                  </div>
+
                   <Link href="/profile" className="flex items-center gap-2 text-sm font-bold bg-white/10 hover:bg-white/20 px-4 py-2 border border-white/10 rounded-full transition shadow-lg text-white">
                     <Compass className="w-4 h-4 text-indigo-400" />
                     My Tracker
@@ -117,11 +134,29 @@ export default function Navbar() {
                 <Compass className="w-5 h-5 text-indigo-400" /> My Tracker
               </Link>
               <button 
+                onClick={() => { setIsMobileMenuOpen(false); setShowNotifications(!showNotifications); }}
+                className="w-full bg-white/5 hover:bg-white/10 text-white font-bold py-4 rounded-xl text-lg transition flex justify-center items-center gap-2 border border-white/10 relative"
+              >
+                <Bell className="w-5 h-5" /> Notifications
+                {unreadCount > 0 && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{unreadCount}</span>}
+              </button>
+              <button 
                 onClick={() => { logout(); setIsMobileMenuOpen(false); }}
                 className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold py-4 rounded-xl text-lg transition flex justify-center items-center gap-2 border border-red-500/20"
               >
                 <LogOut className="w-5 h-5" /> Logout
               </button>
+            </div>
+          )}
+          
+          {showNotifications && (
+            <div className="fixed inset-0 z-[110] bg-black/80 flex items-center justify-center p-4">
+              <div className="w-full max-w-md relative">
+                <button onClick={() => setShowNotifications(false)} className="absolute -top-10 right-0 text-white">
+                  <X className="w-8 h-8" />
+                </button>
+                <NotificationDropdown />
+              </div>
             </div>
           )}
         </div>

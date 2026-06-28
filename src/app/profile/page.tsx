@@ -4,6 +4,7 @@ import { useAnimeStatus, AnimeUserStatus } from "@/hooks/useAnimeStatus";
 import { useUser } from "@/hooks/useUser";
 import AnimeCard from "@/components/anime/AnimeCard";
 import { Compass, Eye, Heart, Clock, Check, ListFilter, Settings, Camera, UploadCloud, AlertCircle, Image as ImageIcon } from "lucide-react";
+import FollowListModal from "@/components/profile/FollowListModal";
 import { useState, useRef } from "react";
 import Link from "next/link";
 
@@ -13,6 +14,7 @@ export default function ProfileTrackerPage() {
   
   const [activeTab, setActiveTab] = useState<"Watchlist" | "Settings">("Watchlist");
   const [filter, setFilter] = useState<AnimeUserStatus | "All">("All");
+  const [modalData, setModalData] = useState<{ title: string; users: any[] } | null>(null);
 
   // Settings State
   const [bio, setBio] = useState(user?.bio || "");
@@ -118,8 +120,18 @@ export default function ProfileTrackerPage() {
                 <h1 className="text-4xl font-black text-white mb-2 drop-shadow-lg">{user.username}</h1>
                 <p className="text-indigo-200 font-medium drop-shadow-md max-w-xl">{user.bio || "No bio set. Update your settings to add one!"}</p>
                 <div className="flex items-center gap-4 mt-3 text-sm font-bold text-slate-300">
-                  <span>{(user.followers || []).length} Followers</span>
-                  <span>{(user.following || []).length} Following</span>
+                  <button 
+                    onClick={() => setModalData({ title: 'Followers', users: (user.followers || []).map((f: any) => f.follower) })}
+                    className="hover:text-white hover:underline transition"
+                  >
+                    <span>{(user.followers || []).length} Followers</span>
+                  </button>
+                  <button 
+                    onClick={() => setModalData({ title: 'Following', users: (user.following || []).map((f: any) => f.following) })}
+                    className="hover:text-white hover:underline transition"
+                  >
+                    <span>{(user.following || []).length} Following</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -271,6 +283,14 @@ export default function ProfileTrackerPage() {
         )}
 
       </div>
+      
+      {modalData && (
+        <FollowListModal
+          title={modalData.title}
+          users={modalData.users}
+          onClose={() => setModalData(null)}
+        />
+      )}
     </div>
   );
 }
