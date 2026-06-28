@@ -6,6 +6,7 @@ import { useUser } from "@/hooks/useUser";
 
 export default function LoginModal({ onClose }: { onClose: () => void }) {
   const { loginOrRegister } = useUser();
+  const [mode, setMode] = useState<"login" | "signup">("login");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -32,8 +33,35 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
           <X className="w-6 h-6" />
         </button>
         
-        <h2 className="text-3xl font-black mb-2 text-white">Join Da Vinci</h2>
-        <p className="text-slate-400 mb-6">Create an account to track your anime journey.</p>
+        {/* Logo */}
+        <div className="flex justify-center mb-6">
+          <img src="/logo.png" alt="Da Vinci Logo" className="w-16 h-16 rounded-full border-2 border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.5)]" />
+        </div>
+
+        {/* Tabs */}
+        <div className="flex bg-white/5 rounded-lg p-1 mb-6">
+          <button 
+            type="button"
+            className={`flex-1 py-2 rounded-md text-sm font-bold transition ${mode === 'login' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+            onClick={() => setMode('login')}
+          >
+            Log In
+          </button>
+          <button 
+            type="button"
+            className={`flex-1 py-2 rounded-md text-sm font-bold transition ${mode === 'signup' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+            onClick={() => setMode('signup')}
+          >
+            Sign Up
+          </button>
+        </div>
+
+        <h2 className="text-2xl font-black mb-2 text-white text-center">
+          {mode === 'login' ? 'Welcome Back' : 'Join Da Vinci'}
+        </h2>
+        <p className="text-slate-400 mb-6 text-center text-sm">
+          {mode === 'login' ? 'Enter your details to access your account.' : 'Create an account to track your anime journey.'}
+        </p>
         
         {error && <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-lg text-sm mb-4">{error}</div>}
         
@@ -63,9 +91,9 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg transition disabled:opacity-50 mt-4"
+            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg transition disabled:opacity-50 mt-4 shadow-lg shadow-indigo-500/20"
           >
-            {loading ? "Connecting..." : "Get Started"}
+            {loading ? "Connecting..." : mode === 'login' ? "Log In" : "Create Account"}
           </button>
         </form>
       </div>

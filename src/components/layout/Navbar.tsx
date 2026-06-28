@@ -28,9 +28,7 @@ export default function Navbar() {
         <div className="container mx-auto px-4 flex justify-between items-center">
           <div className="flex items-center gap-8">
             <Link href="/" className="text-3xl font-black text-white tracking-tighter flex items-center gap-3 drop-shadow-md">
-              <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center border-2 border-indigo-400 shadow-lg shadow-indigo-500/20">
-                <Palette className="w-6 h-6 text-white" />
-              </div>
+              <img src="/logo.png" alt="Da Vinci Logo" className="w-10 h-10 rounded-full border-2 border-indigo-400 shadow-lg shadow-indigo-500/20 object-cover" />
               Da <span className="text-indigo-500">Vinci</span>
             </Link>
             <nav className="hidden lg:flex gap-6 font-medium text-sm text-slate-300">
@@ -51,7 +49,7 @@ export default function Navbar() {
             
             {isLoaded && (
               user ? (
-                <div className="flex items-center gap-4">
+                <div className="hidden lg:flex items-center gap-4">
                   <Link href="/profile" className="flex items-center gap-2 text-sm font-bold bg-white/10 hover:bg-white/20 px-4 py-2 border border-white/10 rounded-full transition shadow-lg text-white">
                     <Compass className="w-4 h-4 text-indigo-400" />
                     My Tracker
@@ -63,7 +61,7 @@ export default function Navbar() {
               ) : (
                 <button 
                   onClick={() => setShowLogin(true)}
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-1.5 px-6 border border-indigo-500/50 rounded-full text-sm transition shadow-lg shadow-indigo-500/20"
+                  className="hidden lg:block bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-1.5 px-6 border border-indigo-500/50 rounded-full text-sm transition shadow-lg shadow-indigo-500/20"
                 >
                   Sign In
                 </button>
@@ -110,6 +108,19 @@ export default function Navbar() {
                 className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl text-lg transition"
               >
                 Sign In
+              </button>
+            </div>
+          )}
+          {isLoaded && user && (
+            <div className="mt-auto p-6 border-t border-white/10 flex flex-col gap-4">
+              <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)} className="w-full bg-white/10 hover:bg-white/20 text-white font-bold py-4 rounded-xl text-lg transition flex justify-center items-center gap-2 border border-white/10">
+                <Compass className="w-5 h-5 text-indigo-400" /> My Tracker
+              </Link>
+              <button 
+                onClick={() => { logout(); setIsMobileMenuOpen(false); }}
+                className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold py-4 rounded-xl text-lg transition flex justify-center items-center gap-2 border border-red-500/20"
+              >
+                <LogOut className="w-5 h-5" /> Logout
               </button>
             </div>
           )}
