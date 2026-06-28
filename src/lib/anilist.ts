@@ -110,6 +110,9 @@ export async function searchAnime(variables: any) {
   if (variables.season) params.append("season", variables.season);
   if (variables.seasonYear) params.append("year", variables.seasonYear.toString());
   if (variables.page) params.append("page", variables.page.toString());
+  if (variables.genre_in) params.append("genre", Array.isArray(variables.genre_in) ? variables.genre_in.join(",") : variables.genre_in);
+  if (variables.sort) params.append("sort", Array.isArray(variables.sort) ? variables.sort[0] : variables.sort);
+  if (variables.format) params.append("format", variables.format);
 
   return fetchFromBackend<{ Page: { media: AniListAnime[], pageInfo: any } }>(`/api/search?${params.toString()}`);
 }

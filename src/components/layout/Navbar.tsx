@@ -37,8 +37,8 @@ export default function Navbar() {
             </Link>
             <nav className="hidden lg:flex gap-6 font-medium text-sm text-slate-300">
               <Link href="/" className="hover:text-white hover:text-indigo-400 transition">Dashboard</Link>
-              <Link href="/search?status=RELEASING" className="hover:text-white hover:text-indigo-400 transition">Airing Now</Link>
-              <Link href="/search?status=NOT_YET_RELEASED" className="hover:text-white hover:text-indigo-400 transition">Upcoming</Link>
+              <Link href="/explore?status=RELEASING" className="hover:text-white hover:text-indigo-400 transition">Airing Now</Link>
+              <Link href="/explore?status=NOT_YET_RELEASED" className="hover:text-white hover:text-indigo-400 transition">Upcoming</Link>
               <Link href="/calendar" className="hover:text-white hover:text-indigo-400 transition">Schedule</Link>
               <Link href="/community" className="hover:text-white hover:text-indigo-400 transition flex items-center gap-2">
                 <Users className="w-4 h-4" /> Community
@@ -47,7 +47,7 @@ export default function Navbar() {
           </div>
           
           <div className="flex items-center gap-6 text-slate-300">
-            <Link href="/search" className="hover:text-indigo-400 transition transform hover:scale-110">
+            <Link href="/explore" className="hover:text-indigo-400 transition transform hover:scale-110">
               <Search className="w-5 h-5" />
             </Link>
             
@@ -110,8 +110,8 @@ export default function Navbar() {
           
           <div className="flex flex-col p-6 gap-6 text-xl font-bold text-slate-300">
             <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-indigo-400">Dashboard</Link>
-            <Link href="/search?status=RELEASING" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-indigo-400">Airing Now</Link>
-            <Link href="/search?status=NOT_YET_RELEASED" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-indigo-400">Upcoming</Link>
+            <Link href="/explore?status=RELEASING" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-indigo-400">Airing Now</Link>
+            <Link href="/explore?status=NOT_YET_RELEASED" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-indigo-400">Upcoming</Link>
             <Link href="/calendar" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-indigo-400">Schedule</Link>
             <Link href="/community" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-indigo-400 flex items-center gap-3">
               <Users className="w-6 h-6" /> Community
