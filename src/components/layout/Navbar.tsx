@@ -40,6 +40,7 @@ export default function Navbar() {
               <Link href="/search?status=RELEASING" className="hover:text-white hover:text-indigo-400 transition">Airing Now</Link>
               <Link href="/search?status=NOT_YET_RELEASED" className="hover:text-white hover:text-indigo-400 transition">Upcoming</Link>
               <Link href="/calendar" className="hover:text-white hover:text-indigo-400 transition">Schedule</Link>
+              <Link href="/manhwa" className="hover:text-white hover:text-purple-400 transition font-bold drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]">Manhwa</Link>
               <Link href="/community" className="hover:text-white hover:text-indigo-400 transition flex items-center gap-2">
                 <Users className="w-4 h-4" /> Community
               </Link>
@@ -113,6 +114,7 @@ export default function Navbar() {
             <Link href="/search?status=RELEASING" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-indigo-400">Airing Now</Link>
             <Link href="/search?status=NOT_YET_RELEASED" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-indigo-400">Upcoming</Link>
             <Link href="/calendar" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-indigo-400">Schedule</Link>
+            <Link href="/manhwa" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-purple-400 font-bold">Manhwa</Link>
             <Link href="/community" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-indigo-400 flex items-center gap-3">
               <Users className="w-6 h-6" /> Community
             </Link>
