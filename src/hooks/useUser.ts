@@ -6,6 +6,8 @@ export interface User {
   id: string;
   username: string;
   email: string;
+  avatar?: string;
+  bio?: string;
 }
 
 export function useUser() {
@@ -27,8 +29,6 @@ export function useUser() {
   const loginOrRegister = async (username: string, email: string) => {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
     
-    // We try to register first. If the username/email exists, we'll pretend it's a "login" 
-    // for this simple mock auth flow. In a real app, you'd have passwords.
     try {
       const res = await fetch(`${API_URL}/api/users`, {
         method: "POST",
@@ -50,10 +50,32 @@ export function useUser() {
     }
   };
 
+  const updateProfile = async (data: Partial<User>) => {
+    if (!user) return { success: false };
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+    try {
+      const res = await fetch(`${API_URL}/api/users/${user.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+      const result = await res.json();
+      if (result.success) {
+        const newUser = { ...user, ...data };
+        setUser(newUser);
+        localStorage.setItem("anipulse_user", JSON.stringify(newUser));
+        return { success: true };
+      }
+      return { success: false, message: result.message };
+    } catch (err) {
+      return { success: false, message: "Network error" };
+    }
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem("anipulse_user");
   };
 
-  return { user, isLoaded, loginOrRegister, logout };
+  return { user, isLoaded, loginOrRegister, updateProfile, logout };
 }
