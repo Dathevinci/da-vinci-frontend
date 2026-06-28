@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useUser, User } from "@/hooks/useUser";
-import { Compass, UserPlus, UserMinus, Eye, Heart, Clock, Check, ListFilter } from "lucide-react";
+import { Compass, UserPlus, UserMinus, Eye, Heart, Clock, Check, ListFilter, Code2 } from "lucide-react";
 import FollowListModal from "@/components/profile/FollowListModal";
 import Link from "next/link";
 
@@ -94,7 +94,15 @@ export default function PublicProfilePage() {
             </div>
 
             <div className="text-center md:text-left z-10 mb-2 flex-1">
-              <h1 className="text-4xl font-black text-white mb-2 drop-shadow-lg">{profileUser.username}</h1>
+              <div className="flex items-center gap-3 justify-center md:justify-start mb-2">
+                <h1 className="text-4xl font-black text-white drop-shadow-lg">{profileUser.username}</h1>
+                {profileUser.username.toLowerCase() === 'dejavuh' && (
+                  <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-3 py-1 rounded-full flex items-center gap-1 shadow-lg shadow-indigo-500/20 border border-indigo-400">
+                    <Code2 className="w-4 h-4 text-white" />
+                    <span className="text-xs font-black text-white tracking-wider">LEAD DEV</span>
+                  </div>
+                )}
+              </div>
               <p className="text-indigo-200 font-medium drop-shadow-md max-w-xl">{profileUser.bio || "This user prefers to keep an air of mystery."}</p>
               <div className="flex items-center gap-4 mt-3 text-sm font-bold text-slate-300">
                 <button 

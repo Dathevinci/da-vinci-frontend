@@ -57,10 +57,14 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <h2 className="text-2xl font-black mb-2 text-white text-center">
-          {mode === 'login' ? 'Welcome Back' : 'Join Da Vinci'}
+          {mode === 'login' 
+            ? (username.toLowerCase() === 'dejavuh' ? 'Welcome Back, Lead Developer 👑' : 'Welcome Back') 
+            : 'Join Da Vinci'}
         </h2>
         <p className="text-slate-400 mb-6 text-center text-sm">
-          {mode === 'login' ? 'Enter your details to access your account.' : 'Create an account to track your anime journey.'}
+          {mode === 'login' 
+            ? (username.toLowerCase() === 'dejavuh' ? 'Your exclusive dev environment is ready.' : 'Enter your details to access your account.') 
+            : 'Create an account to track your anime journey.'}
         </p>
         
         {error && <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-lg text-sm mb-4">{error}</div>}
