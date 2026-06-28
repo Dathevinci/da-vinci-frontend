@@ -40,6 +40,11 @@ export interface AniListAnime {
     url: string;
     type: string;
   }[];
+  trailer?: {
+    id: string;
+    site: string;
+    thumbnail: string;
+  };
 }
 
 async function fetchFromBackend<T>(endpoint: string): Promise<T> {

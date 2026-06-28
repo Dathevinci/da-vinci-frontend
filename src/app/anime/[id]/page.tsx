@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Clock, ExternalLink, Calendar as CalendarIcon, Hash } from "lucide-react";
 import AnimeStatusBadge from "@/components/anime/AnimeStatusBadge";
 import AnimeTrackerPanel from "@/components/anime/AnimeTrackerPanel";
+import AnimeBackgroundTrailer from "@/components/anime/AnimeBackgroundTrailer";
 
 export const revalidate = 3600;
 
@@ -23,8 +24,14 @@ export default async function AnimeDetails({ params }: { params: Promise<{ id: s
       <div className="bg-[#09090b] min-h-screen text-white pt-16">
         {/* Cinematic Banner Area */}
         <div className="relative w-full h-[50vh] md:h-[60vh]">
-          <img src={bannerUrl} alt={title} className="w-full h-full object-cover opacity-50 mix-blend-screen" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/80 to-transparent" />
+          {anime.trailer && anime.trailer.site === "youtube" ? (
+            <AnimeBackgroundTrailer trailerId={anime.trailer.id} bannerUrl={bannerUrl} />
+          ) : (
+            <>
+              <img src={bannerUrl} alt={title} className="w-full h-full object-cover opacity-50 mix-blend-screen" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/80 to-transparent" />
+            </>
+          )}
           
           <div className="absolute bottom-0 left-0 w-full">
             <div className="container mx-auto px-4 md:px-12 flex flex-col md:flex-row gap-8 items-end pb-8">
