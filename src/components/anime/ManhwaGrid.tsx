@@ -5,7 +5,7 @@ import { ServerCrash, Loader2, BookOpen } from "lucide-react";
 
 interface ManhwaItem {
   title: string;
-  url: string;
+  manga_url: string;
   cover: string;
 }
 
@@ -20,7 +20,8 @@ export default function ManhwaGrid() {
         const res = await fetch("http://localhost:5000/manga/popular");
         if (!res.ok) throw new Error("Failed to fetch");
         const data = await res.json();
-        setManhwa(data);
+        // The python API returns { value: [...] } instead of a direct array
+        setManhwa(data.value || data);
       } catch (err) {
         setError("Could not connect to the Python Manga Server.");
       } finally {
@@ -63,20 +64,27 @@ export default function ManhwaGrid() {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
       {manhwa.map((m, idx) => (
-        <div key={idx} className="group relative aspect-[2/3] rounded-xl overflow-hidden bg-[#141414] border border-white/5 shadow-xl transition-transform duration-300 hover:scale-105 hover:z-50 cursor-pointer">
+        <a 
+          key={idx} 
+          href={m.manga_url} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="group relative aspect-[2/3] rounded-xl overflow-hidden bg-[#141414] border border-white/5 shadow-xl transition-transform duration-300 hover:scale-105 hover:z-50 cursor-pointer block"
+        >
           <img 
-            src={m.cover} 
+            src={m.cover.startsWith('http') ? m.cover : `https://www.mangabats.com${m.cover}`} 
             alt={m.title} 
             className="w-full h-full object-cover"
+            referrerPolicy="no-referrer"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
             <h3 className="font-bold text-white text-sm md:text-base line-clamp-2 mb-3">{m.title}</h3>
-            <button className="w-full py-2 flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-500 text-white rounded font-bold transition-colors">
+            <div className="w-full py-2 flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-500 text-white rounded font-bold transition-colors">
               <BookOpen className="w-4 h-4" />
               Read
-            </button>
+            </div>
           </div>
-        </div>
+        </a>
       ))}
     </div>
   );
