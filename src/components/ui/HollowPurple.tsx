@@ -25,33 +25,37 @@ export default function HollowPurple() {
         >
           {/* Blue Orb (Attraction) */}
           <motion.div
-            initial={{ x: -500, y: -200, scale: 0.5, opacity: 0 }}
+            initial={{ x: -300, y: -100, scale: 0.2, opacity: 0 }}
             animate={{ x: 0, y: 0, scale: 1, opacity: 1 }}
             transition={{ duration: 1.5, ease: "easeOut" }}
-            className="absolute w-64 h-64 bg-blue-600 rounded-full blur-[100px] opacity-80"
+            style={{ willChange: "transform, opacity" }}
+            className="absolute w-64 h-64 bg-blue-500 rounded-full blur-[60px] opacity-80"
           />
           
           {/* Red Orb (Repulsion) */}
           <motion.div
-            initial={{ x: 500, y: 200, scale: 0.5, opacity: 0 }}
+            initial={{ x: 300, y: 100, scale: 0.2, opacity: 0 }}
             animate={{ x: 0, y: 0, scale: 1, opacity: 1 }}
             transition={{ duration: 1.5, ease: "easeOut" }}
-            className="absolute w-64 h-64 bg-red-600 rounded-full blur-[100px] opacity-80"
+            style={{ willChange: "transform, opacity" }}
+            className="absolute w-64 h-64 bg-red-500 rounded-full blur-[60px] opacity-80"
           />
 
           {/* Hollow Purple Expansion */}
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: [0, 1.5, 15], opacity: [0, 1, 0] }}
-            transition={{ delay: 1.5, duration: 2.5, ease: "easeIn" }}
-            className="absolute w-96 h-96 bg-purple-600 rounded-full blur-[80px]"
+            animate={{ scale: [0, 1.5, 8], opacity: [0, 1, 0] }}
+            transition={{ delay: 1.5, duration: 2, ease: "easeIn" }}
+            style={{ willChange: "transform, opacity" }}
+            className="absolute w-96 h-96 bg-purple-500 rounded-full blur-[60px]"
           />
           
           {/* Core flash */}
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: [0, 5], opacity: [0, 1, 0] }}
-            transition={{ delay: 1.5, duration: 1.5, ease: "easeOut" }}
+            animate={{ scale: [0, 3], opacity: [0, 1, 0] }}
+            transition={{ delay: 1.5, duration: 1, ease: "easeOut" }}
+            style={{ willChange: "transform, opacity" }}
             className="absolute w-32 h-32 bg-white rounded-full blur-[20px]"
           />
         </motion.div>

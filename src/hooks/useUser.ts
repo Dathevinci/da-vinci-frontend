@@ -89,9 +89,17 @@ export function useUser() {
       
       // Update local user state
       if (result.success) {
-        const newUser = { ...user, following: [...(user.following || []), result.data] };
-        setUser(newUser);
-        localStorage.setItem("davinci_user", JSON.stringify(newUser));
+        // Refetch user to get updated arisePoints
+        const userRes = await fetch(`${API_URL}/api/users/${user.id}`);
+        const userData = await userRes.json();
+        if (userData.success) {
+          setUser(userData.data);
+          localStorage.setItem("davinci_user", JSON.stringify(userData.data));
+        } else {
+          const newUser = { ...user, following: [...(user.following || []), result.data] };
+          setUser(newUser);
+          localStorage.setItem("davinci_user", JSON.stringify(newUser));
+        }
       }
       return result;
     } catch (err) {
