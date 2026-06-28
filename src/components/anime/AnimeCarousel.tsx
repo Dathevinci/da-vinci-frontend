@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import AnimeCard from './AnimeCard';
 import { AniListAnime } from '@/lib/anilist';
+import Link from 'next/link';
 
 interface AnimeCarouselProps {
   title: string;
@@ -43,14 +44,16 @@ export default function AnimeCarousel({ title, animes }: AnimeCarouselProps) {
           {animes.map(a => <AnimeCard key={a.id} anime={a} />)}
           
           {/* See More Card */}
-          <div className="relative w-[160px] md:w-[220px] aspect-[2/3] rounded-xl flex-shrink-0 flex items-center justify-center bg-[#141414]/30 border border-white/5 hover:bg-[#141414]/80 transition-colors cursor-pointer group/card snap-start hover:scale-105 duration-300 hover:shadow-[0_0_30px_rgba(99,102,241,0.2)] hover:border-indigo-500/30">
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-14 h-14 rounded-full border-2 border-white/10 flex items-center justify-center group-hover/card:border-indigo-400 transition-colors bg-black/40 shadow-lg">
-                <ChevronRight className="w-8 h-8 text-white group-hover/card:translate-x-1 group-hover/card:text-indigo-400 transition-all" />
+          <Link href="/search" className="snap-start">
+            <div className="relative w-[160px] md:w-[220px] aspect-[2/3] rounded-xl flex-shrink-0 flex items-center justify-center bg-[#141414]/30 border border-white/5 hover:bg-[#141414]/80 transition-colors cursor-pointer group/card hover:scale-105 duration-300 hover:shadow-[0_0_30px_rgba(99,102,241,0.2)] hover:border-indigo-500/30">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-14 h-14 rounded-full border-2 border-white/10 flex items-center justify-center group-hover/card:border-indigo-400 transition-colors bg-black/40 shadow-lg">
+                  <ChevronRight className="w-8 h-8 text-white group-hover/card:translate-x-1 group-hover/card:text-indigo-400 transition-all" />
+                </div>
+                <span className="text-slate-400 font-bold tracking-widest uppercase text-xs md:text-sm group-hover/card:text-white transition-colors">See All</span>
               </div>
-              <span className="text-slate-400 font-bold tracking-widest uppercase text-xs md:text-sm group-hover/card:text-white transition-colors">See All</span>
             </div>
-          </div>
+          </Link>
         </div>
 
         <button 

@@ -2,6 +2,7 @@
 
 import { useRef } from 'react';
 import { PlayCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import Link from "next/link";
 
 export default function AMVSection() {
   const rowRef = useRef<HTMLDivElement>(null);
@@ -15,23 +16,23 @@ export default function AMVSection() {
   };
 
   const amvs = [
-    { id: "Jv1Zq32eD-Q", title: "Jujutsu Kaisen - Hollow Purple" },
-    { id: "MGRm4IzK1SQ", title: "Attack on Titan - Warriors" },
-    { id: "pmanD_s7G3U", title: "Demon Slayer - Thunder" },
-    { id: "v7BddpYYNGk", title: "Naruto - Path of the Ninja" },
-    { id: "fRCAoY_y-D8", title: "Demon Slayer - Zenitsu" },
-    { id: "tXQ-Fm1H-Lg", title: "Attack on Titan - The Rumbling" },
-    { id: "rYElZzUeP2M", title: "Dragon Ball Z - Limit Break" },
-    { id: "uH2K2gYkPQA", title: "One Piece - Drums of Liberation" },
-    { id: "e8IJUuehHnE", title: "Hunter x Hunter - Final Strike" },
-    { id: "L1v2X5x5E9Y", title: "Bleach - Bankai" },
+    { id: "O6q5ITceSPA", title: "Jujutsu Kaisen S2 Official Trailer" },
+    { id: "VQGCKyvzIG4", title: "Demon Slayer Official Trailer" },
+    { id: "SlNpRThS9t8", title: "Attack on Titan Final Season" },
+    { id: "cXeb9cb6k0I", title: "Naruto Shippuden Op 16" },
+    { id: "mhnjEIf3dIQ", title: "One Piece Gear 5 Trailer" },
+    { id: "e8YBescmvVU", title: "Bleach TYBW Trailer" },
+    { id: "OAYs6r1x9U0", title: "Spy x Family Trailer" },
+    { id: "q15CRdE5Bv0", title: "Chainsaw Man Trailer" },
+    { id: "e-oVbJ7s5z4", title: "Solo Leveling Trailer" },
+    { id: "qQxJkYl2IEM", title: "Frieren Trailer" },
   ];
 
   return (
     <div className="mb-8 md:mb-16 relative group pl-4 md:pl-12 z-30">
       <div className="flex items-center gap-3 mb-2 md:mb-4 px-2">
         <PlayCircle className="w-6 h-6 md:w-8 md:h-8 text-secondary animate-pulse" />
-        <h2 className="text-xl md:text-2xl font-bold text-[#e5e5e5]">Epic AMVs & Edits</h2>
+        <h2 className="text-xl md:text-2xl font-bold text-[#e5e5e5]">Epic AMVs & Trailers</h2>
       </div>
       
       <div className="relative">
@@ -66,14 +67,16 @@ export default function AMVSection() {
           ))}
 
           {/* See All Button */}
-          <div className="relative w-[280px] md:w-[400px] aspect-video rounded-xl flex-shrink-0 flex items-center justify-center bg-[#141414]/30 border border-white/5 hover:bg-[#141414]/80 transition-colors cursor-pointer group/card snap-start hover:scale-105 duration-300 hover:shadow-[0_0_30px_rgba(229,9,20,0.2)] hover:border-secondary/30">
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-14 h-14 rounded-full border-2 border-white/10 flex items-center justify-center group-hover/card:border-secondary transition-colors bg-black/40 shadow-lg">
-                <ChevronRight className="w-8 h-8 text-white group-hover/card:translate-x-1 group-hover/card:text-secondary transition-all" />
+          <Link href="https://www.youtube.com/results?search_query=epic+anime+amv" target="_blank" rel="noopener noreferrer" className="snap-start">
+            <div className="relative w-[280px] md:w-[400px] aspect-video rounded-xl flex-shrink-0 flex items-center justify-center bg-[#141414]/30 border border-white/5 hover:bg-[#141414]/80 transition-colors cursor-pointer group/card hover:scale-105 duration-300 hover:shadow-[0_0_30px_rgba(229,9,20,0.2)] hover:border-secondary/30">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-14 h-14 rounded-full border-2 border-white/10 flex items-center justify-center group-hover/card:border-secondary transition-colors bg-black/40 shadow-lg">
+                  <ChevronRight className="w-8 h-8 text-white group-hover/card:translate-x-1 group-hover/card:text-secondary transition-all" />
+                </div>
+                <span className="text-slate-400 font-bold tracking-widest uppercase text-xs md:text-sm group-hover/card:text-white transition-colors">See All AMVs</span>
               </div>
-              <span className="text-slate-400 font-bold tracking-widest uppercase text-xs md:text-sm group-hover/card:text-white transition-colors">See All AMVs</span>
             </div>
-          </div>
+          </Link>
         </div>
 
         <button 
