@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut, Users, Palette } from 'lucide-react';
+import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut, Users, Palette, Menu, X } from 'lucide-react';
 import LoginModal from './LoginModal';
 import { useUser } from '@/hooks/useUser';
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, isLoaded, logout } = useUser();
 
   useEffect(() => {
@@ -68,9 +69,52 @@ export default function Navbar() {
                 </button>
               )
             )}
+            {/* Mobile Menu Toggle */}
+            <button 
+              className="lg:hidden text-slate-300 hover:text-white ml-2"
+              onClick={() => setIsMobileMenuOpen(true)}
+            >
+              <Menu className="w-6 h-6" />
+            </button>
           </div>
         </div>
       </header>
+
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-[100] bg-[#09090b] flex flex-col">
+          <div className="flex justify-between items-center p-4 border-b border-white/10">
+            <Link href="/" className="text-2xl font-black text-white flex items-center gap-2" onClick={() => setIsMobileMenuOpen(false)}>
+              <Palette className="w-6 h-6 text-indigo-500" />
+              Da Vinci
+            </Link>
+            <button onClick={() => setIsMobileMenuOpen(false)} className="text-slate-400 hover:text-white p-2">
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+          
+          <div className="flex flex-col p-6 gap-6 text-xl font-bold text-slate-300">
+            <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-indigo-400">Dashboard</Link>
+            <Link href="/search?status=RELEASING" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-indigo-400">Airing Now</Link>
+            <Link href="/search?status=NOT_YET_RELEASED" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-indigo-400">Upcoming</Link>
+            <Link href="/calendar" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-indigo-400">Schedule</Link>
+            <Link href="/community" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-indigo-400 flex items-center gap-3">
+              <Users className="w-6 h-6" /> Community
+            </Link>
+          </div>
+          
+          {isLoaded && !user && (
+            <div className="mt-auto p-6 border-t border-white/10">
+              <button 
+                onClick={() => { setIsMobileMenuOpen(false); setShowLogin(true); }}
+                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl text-lg transition"
+              >
+                Sign In
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
     </>
