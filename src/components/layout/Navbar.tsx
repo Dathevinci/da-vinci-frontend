@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut, Users } from 'lucide-react';
+import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut, Users, Palette } from 'lucide-react';
 import LoginModal from './LoginModal';
 import { useUser } from '@/hooks/useUser';
 
@@ -28,7 +28,7 @@ export default function Navbar() {
           <div className="flex items-center gap-8">
             <Link href="/" className="text-3xl font-black text-white tracking-tighter flex items-center gap-3 drop-shadow-md">
               <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center border-2 border-indigo-400 shadow-lg shadow-indigo-500/20">
-                <Compass className="w-6 h-6 text-white" />
+                <Palette className="w-6 h-6 text-white" />
               </div>
               Da <span className="text-indigo-500">Vinci</span>
             </Link>

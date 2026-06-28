@@ -12,6 +12,7 @@ export default function AnimeBackgroundTrailer({ trailerId, bannerUrl }: Props) 
   const [isMuted, setIsMuted] = useState(true);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [volume, setVolume] = useState(50);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
@@ -50,6 +51,16 @@ export default function AnimeBackgroundTrailer({ trailerId, bannerUrl }: Props) 
     }
   };
 
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVolume = parseInt(e.target.value);
+    setVolume(newVolume);
+    sendCommand('setVolume', [newVolume]);
+    if (isMuted && newVolume > 0) {
+      sendCommand('unMute');
+      setIsMuted(false);
+    }
+  };
+
   return (
     <div className="absolute inset-0 w-full h-full overflow-hidden bg-[#09090b]">
       {/* Fallback Banner */}
@@ -75,14 +86,7 @@ export default function AnimeBackgroundTrailer({ trailerId, bannerUrl }: Props) 
 
       {/* Controls Overlay */}
       {isLoaded && (
-        <div className="absolute top-24 right-4 md:right-12 z-20 flex flex-col gap-2">
-          <button 
-            onClick={toggleMute}
-            className="bg-black/40 hover:bg-black/60 backdrop-blur border border-white/10 text-white p-3 rounded-full transition"
-            title={isMuted ? "Unmute Trailer" : "Mute Trailer"}
-          >
-            {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-          </button>
+        <div className="absolute top-24 right-4 md:right-12 z-20 flex flex-col gap-2 items-end">
           <button 
             onClick={togglePlay}
             className="bg-black/40 hover:bg-black/60 backdrop-blur border border-white/10 text-white p-3 rounded-full transition"
@@ -90,6 +94,23 @@ export default function AnimeBackgroundTrailer({ trailerId, bannerUrl }: Props) 
           >
             {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
           </button>
+          <div className="group flex items-center gap-2 bg-black/40 hover:bg-black/60 backdrop-blur border border-white/10 rounded-full p-2 pr-4 transition-all">
+            <button 
+              onClick={toggleMute}
+              className="text-white p-1 rounded-full transition"
+              title={isMuted ? "Unmute Trailer" : "Mute Trailer"}
+            >
+              {isMuted || volume === 0 ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+            </button>
+            <input 
+              type="range" 
+              min="0" 
+              max="100" 
+              value={isMuted ? 0 : volume}
+              onChange={handleVolumeChange}
+              className="w-0 opacity-0 group-hover:w-24 group-hover:opacity-100 transition-all duration-300 cursor-pointer accent-indigo-500"
+            />
+          </div>
         </div>
       )}
     </div>
