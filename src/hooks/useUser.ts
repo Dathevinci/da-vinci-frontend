@@ -15,7 +15,7 @@ export function useUser() {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem("anipulse_user");
+    const stored = localStorage.getItem("davinci_user");
     if (stored) {
       try {
         setUser(JSON.parse(stored));
@@ -40,7 +40,7 @@ export function useUser() {
       if (data.success) {
         const newUser = data.data;
         setUser(newUser);
-        localStorage.setItem("anipulse_user", JSON.stringify(newUser));
+        localStorage.setItem("davinci_user", JSON.stringify(newUser));
         return { success: true };
       } else {
         return { success: false, message: data.message };
@@ -63,7 +63,7 @@ export function useUser() {
       if (result.success) {
         const newUser = { ...user, ...data };
         setUser(newUser);
-        localStorage.setItem("anipulse_user", JSON.stringify(newUser));
+        localStorage.setItem("davinci_user", JSON.stringify(newUser));
         return { success: true };
       }
       return { success: false, message: result.message };
@@ -74,7 +74,7 @@ export function useUser() {
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem("anipulse_user");
+    localStorage.removeItem("davinci_user");
   };
 
   return { user, isLoaded, loginOrRegister, updateProfile, logout };

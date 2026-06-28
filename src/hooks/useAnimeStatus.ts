@@ -51,7 +51,7 @@ export function useAnimeStatus() {
         }
       } else {
         // Fallback to local storage if guest
-        const data = localStorage.getItem("anipulse_status");
+        const data = localStorage.getItem("davinci_status");
         if (data) {
           try {
             setTracked(JSON.parse(data));
@@ -83,7 +83,7 @@ export function useAnimeStatus() {
           updatedAt: Date.now(),
         };
       }
-      if (!user) localStorage.setItem("anipulse_status", JSON.stringify(updated));
+      if (!user) localStorage.setItem("davinci_status", JSON.stringify(updated));
       return updated;
     });
 

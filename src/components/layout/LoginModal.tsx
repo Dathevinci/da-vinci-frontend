@@ -32,7 +32,7 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
           <X className="w-6 h-6" />
         </button>
         
-        <h2 className="text-3xl font-black mb-2 text-white">Join AniPulse</h2>
+        <h2 className="text-3xl font-black mb-2 text-white">Join Da Vinci</h2>
         <p className="text-slate-400 mb-6">Create an account to track your anime journey.</p>
         
         {error && <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-lg text-sm mb-4">{error}</div>}
