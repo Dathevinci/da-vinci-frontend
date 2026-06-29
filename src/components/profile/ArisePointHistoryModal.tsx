@@ -54,6 +54,17 @@ export default function ArisePointHistoryModal({ userId, onClose }: { userId: st
         </div>
 
         <div className="p-6 overflow-y-auto flex-1">
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 mb-6 flex items-start gap-4 shadow-lg relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
+            <Sparkles className="w-8 h-8 text-yellow-400 shrink-0 mt-1" />
+            <div>
+              <h3 className="font-black text-yellow-400 mb-1">Global Supply Cap: 50,000 ✧</h3>
+              <p className="text-sm text-yellow-200/80 leading-relaxed">
+                There are only 50,000 Arise Points in existence across the entire platform. Once they are fully distributed, no more can be earned!
+              </p>
+            </div>
+          </div>
+
           {loading ? (
             <div className="flex justify-center py-12">
               <div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" />

@@ -135,8 +135,22 @@ export default function AdminDashboard() {
           <div className="bg-[#141414] border border-white/5 rounded-2xl p-6 shadow-xl relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/10 rounded-full blur-3xl -mr-10 -mt-10 group-hover:bg-yellow-500/20 transition-all"></div>
             <Star className="w-8 h-8 text-yellow-400 mb-4" />
-            <div className="text-4xl font-black text-white mb-1">{totalPoints.toLocaleString()}</div>
+            <div className="text-4xl font-black text-white mb-1 flex items-baseline gap-2">
+              {totalPoints.toLocaleString()}
+              <span className="text-lg text-slate-500 font-bold">/ 50k</span>
+            </div>
             <div className="text-slate-400 font-medium">Total Arise Points Circulating</div>
+            
+            {/* Progress Bar for Scarcity */}
+            <div className="mt-4 w-full bg-black/50 rounded-full h-2 overflow-hidden border border-white/5">
+              <div 
+                className="bg-gradient-to-r from-yellow-500 to-amber-500 h-full rounded-full transition-all duration-1000"
+                style={{ width: `${Math.min(100, (totalPoints / 50000) * 100)}%` }}
+              ></div>
+            </div>
+            <div className="text-xs text-yellow-500/70 mt-2 text-right font-bold tracking-widest uppercase">
+              {((totalPoints / 50000) * 100).toFixed(1)}% Claimed
+            </div>
           </div>
 
           <div className="bg-[#141414] border border-white/5 rounded-2xl p-6 shadow-xl relative overflow-hidden group">

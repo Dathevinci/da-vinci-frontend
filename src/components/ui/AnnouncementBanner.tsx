@@ -185,6 +185,33 @@ const announcements = [
         </ul>
       </div>
     )
+  },
+  {
+    id: 6,
+    tag: "Economy Update",
+    icon: <Sparkles className="w-4 h-4 text-amber-400" />,
+    theme: "from-amber-900/80 to-yellow-900/80",
+    border: "border-amber-500/50",
+    shadow: "shadow-[0_0_30px_rgba(245,158,11,0.25)]",
+    tagBg: "bg-amber-600 shadow-amber-500/50",
+    title: "The Great Arise Scarcity ✧",
+    author: null,
+    shortMessage: "There is a strict global cap of exactly 50,000 Arise Points in existence. Once they are gone, they are gone forever!",
+    link: null,
+    buttonText: null,
+    content: (
+      <div className="space-y-4 text-amber-100">
+        <h3 className="text-lg font-bold text-amber-300">The 50k Global Limit</h3>
+        <p className="pl-4 text-sm leading-relaxed border-l-2 border-amber-500/30">
+          To make Arise Points truly meaningful and rare, we have instituted a hard cap on the economy. <strong className="text-white">There will only ever be 50,000 Arise Points distributed across the entire platform.</strong>
+        </p>
+        <ul className="pl-4 text-sm leading-relaxed space-y-2 list-disc list-inside mt-4">
+          <li><strong className="text-white">True Scarcity:</strong> Every point you earn brings the total economy closer to the limit. Make sure you claim yours early!</li>
+          <li><strong className="text-white">The Infinity Exception:</strong> As the creator, Lead Developer <Link href="/user/dejavuh" className="text-yellow-400 hover:underline">dejavuh</Link> possesses <strong className="text-white font-black italic">Infinity (∞)</strong> Arise Points. His points do not count towards the 50,000 limit.</li>
+          <li><strong className="text-white">Value Over Time:</strong> As the remaining points dwindle, earning a single Arise Point will become significantly harder. High-tier ranks will become incredibly prestigious.</li>
+        </ul>
+      </div>
+    )
   }
 ];
 
