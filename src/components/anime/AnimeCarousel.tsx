@@ -25,7 +25,7 @@ export default function AnimeCarousel({ title, animes }: AnimeCarouselProps) {
   if (!animes || animes.length === 0) return null;
 
   return (
-    <div className="mb-8 md:mb-12 relative group pl-4 md:pl-12">
+    <div className="mb-8 md:mb-12 relative group pl-4 md:pl-12 hover:z-50 z-10 transition-all duration-300">
       <h2 className="text-xl md:text-2xl font-bold text-[#e5e5e5] mb-2 md:mb-4 px-2">{title}</h2>
       
       <div className="relative">
@@ -39,7 +39,7 @@ export default function AnimeCarousel({ title, animes }: AnimeCarouselProps) {
         <div 
           ref={rowRef}
           style={{ willChange: "scroll-position, transform" }}
-          className="flex gap-2 md:gap-4 overflow-x-auto hide-scrollbar scroll-smooth px-2 pb-8 pt-4 snap-x snap-mandatory"
+          className="flex gap-2 md:gap-4 overflow-x-auto hide-scrollbar scroll-smooth px-2 pt-28 pb-32 -mt-24 -mb-24 snap-x snap-mandatory"
         >
           {animes.map(a => <AnimeCard key={a.id} anime={a} />)}
           
