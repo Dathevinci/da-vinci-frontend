@@ -5,6 +5,7 @@ import { useUser } from '@/hooks/useUser';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, ArrowUp, ArrowDown, Trash2, Send, CornerDownRight } from 'lucide-react';
 import Link from 'next/link';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 import { getRankTheme } from '@/lib/ranks';
 import * as Icons from 'lucide-react';
 
@@ -261,6 +262,7 @@ export default function CommunityFeed({ animeId, animeTitle }: { animeId?: numbe
   const [replyingToId, setReplyingToId] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState("");
   const [isReplying, setIsReplying] = useState(false);
+  const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -371,12 +373,16 @@ export default function CommunityFeed({ animeId, animeTitle }: { animeId?: numbe
     }
   };
 
-  const handleDelete = async (commentId: string) => {
+  const handleDelete = (commentId: string) => {
     if (!user) return;
-    if (!confirm("Are you sure you want to delete this post?")) return;
+    setCommentToDelete(commentId);
+  };
+
+  const executeDelete = async () => {
+    if (!user || !commentToDelete) return;
 
     try {
-      const res = await fetch(`${API_URL}/api/comments/${commentId}`, {
+      const res = await fetch(`${API_URL}/api/comments/${commentToDelete}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: user.id })
@@ -384,11 +390,13 @@ export default function CommunityFeed({ animeId, animeTitle }: { animeId?: numbe
       if (!res.ok) throw new Error("Failed to delete");
       const data = await res.json();
       if (data.success) {
-        setComments(comments.filter(c => c.id !== commentId));
+        setComments(comments.filter(c => c.id !== commentToDelete));
       }
     } catch (err) {
       console.error(err);
       setError("Failed to delete post.");
+    } finally {
+      setCommentToDelete(null);
     }
   };
 
@@ -472,6 +480,16 @@ export default function CommunityFeed({ animeId, animeTitle }: { animeId?: numbe
           </AnimatePresence>
         </div>
       )}
+
+      <ConfirmModal 
+        isOpen={!!commentToDelete}
+        title="Delete View"
+        message="Are you sure you want to permanently delete this comment? This action cannot be undone and your Arise Points will be adjusted."
+        confirmText="Delete"
+        cancelText="Keep it"
+        onConfirm={executeDelete}
+        onCancel={() => setCommentToDelete(null)}
+      />
     </div>
   );
 }
