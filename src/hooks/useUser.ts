@@ -22,7 +22,20 @@ export function useUser() {
     const stored = localStorage.getItem("davinci_user");
     if (stored) {
       try {
-        setUser(JSON.parse(stored));
+        const parsedUser = JSON.parse(stored);
+        setUser(parsedUser);
+        
+        // Background sync to ensure relations and points are fresh
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+        fetch(`${API_URL}/api/users/${parsedUser.id}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+               setUser(data.data);
+               localStorage.setItem("davinci_user", JSON.stringify(data.data));
+            }
+          })
+          .catch(err => console.error("Failed to sync user data", err));
       } catch (e) {
         console.error("Failed to parse user", e);
       }

@@ -58,10 +58,10 @@ export default function PublicProfilePage() {
     }
     if (isFollowing) {
       await unfollowUser(profileUser.id);
-      setProfileUser(prev => prev ? { ...prev, followers: prev.followers?.slice(0, -1) } : prev);
+      setProfileUser(prev => prev ? { ...prev, followers: prev.followers?.filter((f: any) => f.followerId !== currentUser.id) } : prev);
     } else {
       await followUser(profileUser.id);
-      setProfileUser(prev => prev ? { ...prev, followers: [...(prev.followers || []), { followerId: currentUser.id }] } : prev);
+      setProfileUser(prev => prev ? { ...prev, followers: [...(prev.followers || []), { followerId: currentUser.id, follower: currentUser }] } : prev);
     }
   };
 

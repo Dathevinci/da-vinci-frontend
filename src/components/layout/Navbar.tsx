@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut, Users, Palette, Menu, X, Bell } from 'lucide-react';
 import LoginModal from './LoginModal';
 import NotificationDropdown from './NotificationDropdown';
+import SearchModal from './SearchModal';
 import { useUser } from '@/hooks/useUser';
 import { useNotifications } from '@/hooks/useNotifications';
 
@@ -13,6 +14,7 @@ export default function Navbar() {
   const [showLogin, setShowLogin] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showSearchModal, setShowSearchModal] = useState(false);
   const { user, isLoaded, logout } = useUser();
   const { unreadCount } = useNotifications();
 
@@ -22,6 +24,18 @@ export default function Navbar() {
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd+K (Mac) or Ctrl+K (Windows)
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowSearchModal(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   return (
@@ -47,9 +61,12 @@ export default function Navbar() {
           </div>
           
           <div className="flex items-center gap-6 text-slate-300">
-            <Link href="/explore" className="hover:text-indigo-400 transition transform hover:scale-110">
+            <button onClick={() => setShowSearchModal(true)} className="hover:text-indigo-400 transition transform hover:scale-110 flex items-center gap-2">
               <Search className="w-5 h-5" />
-            </Link>
+              <span className="hidden lg:flex items-center gap-1 text-xs font-medium bg-white/10 px-2 py-0.5 rounded text-slate-400 border border-white/5 shadow-inner">
+                <kbd>Ctrl</kbd> + <kbd>K</kbd>
+              </span>
+            </button>
             
             {isLoaded && (
               user ? (
@@ -163,6 +180,7 @@ export default function Navbar() {
       )}
 
       {showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
+      {showSearchModal && <SearchModal onClose={() => setShowSearchModal(false)} />}
     </>
   );
 }
