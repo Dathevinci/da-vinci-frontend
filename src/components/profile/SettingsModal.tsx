@@ -3,6 +3,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Moon, Sun, Lock, Unlock, Save } from "lucide-react";
 import { useTheme } from "@/components/providers/ThemeProvider";
+import { useToast } from "@/components/ui/Toast";
 
 interface SettingsModalProps {
   user: any;
@@ -12,6 +13,7 @@ interface SettingsModalProps {
 
 export default function SettingsModal({ user, onClose, onUpdate }: SettingsModalProps) {
   const { theme, toggleTheme } = useTheme();
+  const { toast } = useToast();
   const [isPrivate, setIsPrivate] = useState(user.isPrivate || false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -28,12 +30,13 @@ export default function SettingsModal({ user, onClose, onUpdate }: SettingsModal
       if (data.success) {
         onUpdate({ isPrivate, theme });
         onClose();
+        toast("Settings saved successfully", "success");
       } else {
-        alert(data.message || "Failed to update settings");
+        toast(data.message || "Failed to update settings", "error");
       }
     } catch (err) {
       console.error(err);
-      alert("Error saving settings");
+      toast("Error saving settings", "error");
     } finally {
       setIsSaving(false);
     }

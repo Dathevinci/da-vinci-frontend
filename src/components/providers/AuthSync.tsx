@@ -3,11 +3,13 @@
 import { useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useUser } from '@/hooks/useUser';
+import { useToast } from '@/components/ui/Toast';
 
 export default function AuthSync() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { loginOrRegister } = useUser();
+  const { toast } = useToast();
   const syncAttempted = useRef(false);
 
   useEffect(() => {
@@ -16,7 +18,7 @@ export default function AuthSync() {
 
     if (authError && !syncAttempted.current) {
       syncAttempted.current = true;
-      alert(`Authentication Error: ${authError}`);
+      toast(`Authentication Error: ${authError}`, "error");
       router.replace('/');
       return;
     }
@@ -36,7 +38,7 @@ export default function AuthSync() {
           })
           .catch((err) => {
             console.error("Failed to sync Discord auth:", err);
-            alert("Failed to sign in. Please try again.");
+            toast("Failed to sign in. Please try again.", "error");
           })
           .finally(() => {
             // Clean up the URL

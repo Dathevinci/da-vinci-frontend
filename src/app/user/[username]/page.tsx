@@ -13,10 +13,12 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { getRankTheme } from "@/lib/ranks";
 import * as Icons from "lucide-react";
+import { useToast } from "@/components/ui/Toast";
 
 export default function PublicProfilePage() {
   const { username } = useParams();
   const { user: currentUser, isLoaded: currentUserLoaded, followUser, unfollowUser } = useUser();
+  const { toast } = useToast();
   
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [watchlist, setWatchlist] = useState<any[]>([]);
@@ -67,7 +69,7 @@ export default function PublicProfilePage() {
 
   const handleFollowToggle = async () => {
     if (!currentUser) {
-      alert("You must be logged in to follow users.");
+      toast("You must be logged in to follow users.", "error");
       return;
     }
     if (isFollowing) {

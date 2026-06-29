@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { User, useUser } from "@/hooks/useUser";
 import { Users, UserPlus, UserMinus, Search } from "lucide-react";
 import Link from "next/link";
+import { useToast } from "@/components/ui/Toast";
 
 export default function CommunityPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const { user: currentUser, followUser, unfollowUser } = useUser();
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -31,7 +33,7 @@ export default function CommunityPage() {
 
   const handleFollowToggle = async (targetUser: User, e: React.MouseEvent) => {
     e.preventDefault(); // Prevent navigating to profile when clicking follow
-    if (!currentUser) return alert("Please log in to follow users!");
+    if (!currentUser) return toast("Please log in to follow users!", "error");
     
     const isFollowing = currentUser.following?.some((f: any) => f.followingId === targetUser.id);
     if (isFollowing) {

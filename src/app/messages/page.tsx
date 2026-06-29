@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useUser } from "@/hooks/useUser";
 import { Send, MessageSquare, Search, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { useToast } from "@/components/ui/Toast";
 
 interface Conversation {
   id: string;
@@ -46,6 +47,7 @@ function MessagesContent() {
   const [isSending, setIsSending] = useState(false);
   const [loadingConv, setLoadingConv] = useState(true);
   const [loadingMsgs, setLoadingMsgs] = useState(false);
+  const { toast } = useToast();
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -134,11 +136,11 @@ function MessagesContent() {
           messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
         }, 100);
       } else {
-        alert(data.message || "Failed to send message.");
+        toast(data.message || "Failed to send message.", "error");
       }
     } catch (err) {
       console.error(err);
-      alert("Error sending message. Check backend.");
+      toast("Error sending message. Check backend.", "error");
     } finally {
       setIsSending(false);
     }

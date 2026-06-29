@@ -3,9 +3,11 @@
 import { useUser } from "@/hooks/useUser";
 import { useState, useEffect } from "react";
 import { ShieldAlert, Trash2, Edit2, Check, X } from "lucide-react";
+import { useToast } from "@/components/ui/Toast";
 import LoadingOverlay from "@/components/ui/LoadingOverlay";
 export default function AdminDashboard() {
   const { user, isLoaded } = useUser();
+  const { toast } = useToast();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
@@ -40,13 +42,15 @@ export default function AdminDashboard() {
 
     try {
       const res = await fetch(`${API_URL}/api/users/${id}`, { method: "DELETE" });
-      if (res.ok) {
+      const data = await res.json();
+      if (data.success) {
         setUsers(users.filter(u => u.id !== id));
+        toast("User deleted successfully", "success");
       } else {
-        alert("Failed to delete user");
+        toast("Failed to delete user", "error");
       }
     } catch (err) {
-      console.error(err);
+      toast("Error deleting user", "error");
     }
   };
 
@@ -57,14 +61,16 @@ export default function AdminDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ arisePoints: editPoints })
       });
-      if (res.ok) {
+      const data = await res.json();
+      if (data.success) {
         setUsers(users.map(u => u.id === id ? { ...u, arisePoints: editPoints } : u));
         setEditingUserId(null);
+        toast("Points updated successfully", "success");
       } else {
-        alert("Failed to update points");
+        toast("Failed to update points", "error");
       }
     } catch (err) {
-      console.error(err);
+      toast("Error updating points", "error");
     }
   };
 

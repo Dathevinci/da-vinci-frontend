@@ -15,10 +15,12 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { getRankTheme } from "@/lib/ranks";
 import * as Icons from "lucide-react";
+import { useToast } from "@/components/ui/Toast";
 
 export default function ProfileTrackerPage() {
   const { getTrackedList, isLoaded: trackerLoaded } = useAnimeStatus();
   const { user, isLoaded: userLoaded, updateProfile } = useUser();
+  const { toast } = useToast();
   
   const [activeTab, setActiveTab] = useState<"Watchlist" | "Settings">("Watchlist");
   const [filter, setFilter] = useState<AnimeUserStatus | "All">("All");
@@ -55,7 +57,7 @@ export default function ProfileTrackerPage() {
     const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
     if (!CLOUD_NAME || !UPLOAD_PRESET) {
-      alert("Missing Cloudinary environment variables!");
+      toast("Missing Cloudinary environment variables!", "error");
       return;
     }
 
@@ -78,7 +80,7 @@ export default function ProfileTrackerPage() {
       }
     } catch (err) {
       console.error("Upload failed", err);
-      alert("Failed to upload image.");
+      toast("Failed to upload image.", "error");
     } finally {
       if (isBanner) setUploadingBanner(false);
       else setUploadingImage(false);
@@ -109,7 +111,7 @@ export default function ProfileTrackerPage() {
       await handleImageUpload(croppedFile, isBanner);
     } catch (e) {
       console.error(e);
-      alert("Failed to crop and upload image.");
+      toast("Failed to crop and upload image.", "error");
     }
   };
 
@@ -117,7 +119,7 @@ export default function ProfileTrackerPage() {
     setIsSaving(true);
     await updateProfile({ bio });
     setIsSaving(false);
-    alert("Profile saved successfully!");
+    toast("Profile saved successfully!", "success");
   };
 
   return (
