@@ -1,10 +1,11 @@
 "use client";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Moon, Sun, Lock, Unlock, Save } from "lucide-react";
+import { X, Moon, Sun, Lock, Unlock, Save, PlayCircle, EyeOff, Zap, Wifi } from "lucide-react";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { useToast } from "@/components/ui/Toast";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
+import { usePreferences } from "@/hooks/usePreferences";
 
 interface SettingsModalProps {
   user: any;
@@ -15,6 +16,7 @@ interface SettingsModalProps {
 export default function SettingsModal({ user, onClose, onUpdate }: SettingsModalProps) {
   const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
+  const { preferences, updatePreference, isLoaded } = usePreferences();
   const [isPrivate, setIsPrivate] = useState(user.isPrivate || false);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -102,6 +104,74 @@ export default function SettingsModal({ user, onClose, onUpdate }: SettingsModal
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${isPrivate ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-700'}`}
               >
                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isPrivate ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+
+            {/* Cinematic Mode */}
+            <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5">
+              <div>
+                <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                  <PlayCircle className={`w-4 h-4 ${preferences.autoplayTrailers ? 'text-indigo-400' : 'text-slate-500'}`} />
+                  Cinematic Autoplay
+                </h3>
+                <p className="text-xs text-slate-500 mt-1 max-w-[200px]">Automatically play trailers when you hover over cards.</p>
+              </div>
+              <button 
+                onClick={() => updatePreference('autoplayTrailers', !preferences.autoplayTrailers)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${preferences.autoplayTrailers ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-700'}`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${preferences.autoplayTrailers ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+
+            {/* Safe Browsing */}
+            <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5">
+              <div>
+                <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                  <EyeOff className={`w-4 h-4 ${preferences.blurSensitiveContent ? 'text-red-400' : 'text-slate-500'}`} />
+                  Safe Browsing
+                </h3>
+                <p className="text-xs text-slate-500 mt-1 max-w-[200px]">Automatically blur thumbnails of NSFW or highly sensitive content.</p>
+              </div>
+              <button 
+                onClick={() => updatePreference('blurSensitiveContent', !preferences.blurSensitiveContent)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${preferences.blurSensitiveContent ? 'bg-red-500' : 'bg-slate-300 dark:bg-slate-700'}`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${preferences.blurSensitiveContent ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+
+            {/* Performance Mode */}
+            <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5">
+              <div>
+                <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                  <Zap className={`w-4 h-4 ${preferences.reducedMotion ? 'text-yellow-400' : 'text-slate-500'}`} />
+                  Reduced Motion
+                </h3>
+                <p className="text-xs text-slate-500 mt-1 max-w-[200px]">Disable heavy 3D shuffles and particle effects for lower-end devices.</p>
+              </div>
+              <button 
+                onClick={() => updatePreference('reducedMotion', !preferences.reducedMotion)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${preferences.reducedMotion ? 'bg-yellow-500' : 'bg-slate-300 dark:bg-slate-700'}`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${preferences.reducedMotion ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+
+            {/* Data Saver Mode */}
+            <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5">
+              <div>
+                <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                  <Wifi className={`w-4 h-4 ${preferences.dataSaver ? 'text-green-400' : 'text-slate-500'}`} />
+                  Data Saver
+                </h3>
+                <p className="text-xs text-slate-500 mt-1 max-w-[200px]">Load lower resolution images and disable background pre-fetching.</p>
+              </div>
+              <button 
+                onClick={() => updatePreference('dataSaver', !preferences.dataSaver)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${preferences.dataSaver ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-700'}`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${preferences.dataSaver ? 'translate-x-6' : 'translate-x-1'}`} />
               </button>
             </div>
           </div>
