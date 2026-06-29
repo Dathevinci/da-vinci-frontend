@@ -74,14 +74,6 @@ export default function PublicProfilePage() {
   const rankTheme = getRankTheme(profileUser.arisePoints, profileUser.username);
   const RankIcon = rankTheme.badgeIcon ? (Icons as any)[rankTheme.badgeIcon] : null;
 
-  const filterTabs = [
-    { id: "All", icon: ListFilter },
-    { id: "Watching", icon: Eye },
-    { id: "Interested", icon: Heart },
-    { id: "Waiting", icon: Clock },
-    { id: "Finished", icon: Check },
-  ];
-
   return (
     <div className="relative min-h-screen pt-24 pb-12 text-white overflow-hidden">
       
