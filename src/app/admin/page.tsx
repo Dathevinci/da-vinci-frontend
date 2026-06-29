@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { ShieldAlert, Trash2, Edit2, Check, X, Image as ImageIcon, Unlock, Activity, Users as UsersIcon, Star, Power } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import LoadingOverlay from "@/components/ui/LoadingOverlay";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 export default function AdminDashboard() {
   const { user, isLoaded } = useUser();
@@ -15,6 +16,7 @@ export default function AdminDashboard() {
   const [editPoints, setEditPoints] = useState<number>(0);
   const [isMaintenance, setIsMaintenance] = useState(false);
   const [togglingMaintenance, setTogglingMaintenance] = useState(false);
+  const [showMaintenanceConfirm, setShowMaintenanceConfirm] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -54,8 +56,6 @@ export default function AdminDashboard() {
   };
 
   const toggleMaintenance = async () => {
-    if (!confirm(isMaintenance ? "Turn server back ONLINE for all users?" : "WARNING: This will lock all users out of the platform immediately. Proceed?")) return;
-    
     setTogglingMaintenance(true);
     try {
       const res = await fetch(`${API_URL}/api/system/maintenance`, {
@@ -162,7 +162,7 @@ export default function AdminDashboard() {
           </div>
           
           <button 
-            onClick={toggleMaintenance}
+            onClick={() => setShowMaintenanceConfirm(true)}
             disabled={togglingMaintenance}
             className={`flex items-center gap-3 px-6 py-3 rounded-xl font-black uppercase tracking-widest transition-all shadow-2xl border ${
               isMaintenance 
@@ -312,6 +312,15 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      <ConfirmModal 
+        isOpen={showMaintenanceConfirm}
+        title={isMaintenance ? "Turn Server Online?" : "Enable Maintenance Mode?"}
+        message={isMaintenance ? "This will bring the platform back online for all users." : "WARNING: This will immediately lock all users out of the platform and show the maintenance screen. Only you will remain logged in. Proceed?"}
+        confirmText={isMaintenance ? "Go Online" : "Lock Server"}
+        onConfirm={toggleMaintenance}
+        onCancel={() => setShowMaintenanceConfirm(false)}
+      />
     </div>
   );
 }
