@@ -9,6 +9,8 @@ import HollowPurple from "@/components/ui/HollowPurple";
 import ImagePreviewModal from "@/components/ui/ImagePreviewModal";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { getRankTheme } from "@/lib/ranks";
+import * as Icons from "lucide-react";
 
 export default function PublicProfilePage() {
   const { username } = useParams();
@@ -64,15 +66,24 @@ export default function PublicProfilePage() {
       setProfileUser(prev => prev ? { ...prev, followers: prev.followers?.filter((f: any) => f.followerId !== currentUser.id) } : prev);
     } else {
       await followUser(profileUser.id);
-      setProfileUser(prev => prev ? { ...prev, followers: [...(prev.followers || []), { followerId: currentUser.id, follower: currentUser }] } : prev);
     }
   };
 
-  const filteredWatchlist = filter === "All" ? watchlist : watchlist.filter(w => w.status === filter.toUpperCase());
+  const filteredWatchlist = filter === "All" ? watchlist : watchlist.filter(w => w.status === filter);
+  
+  const rankTheme = getRankTheme(profileUser.arisePoints, profileUser.username);
+  const RankIcon = rankTheme.badgeIcon ? (Icons as any)[rankTheme.badgeIcon] : null;
+
+  const filterTabs = [
+    { id: "All", icon: ListFilter },
+    { id: "Watching", icon: Eye },
+    { id: "Interested", icon: Heart },
+    { id: "Waiting", icon: Clock },
+    { id: "Finished", icon: Check },
+  ];
 
   return (
     <div className="relative min-h-screen pt-24 pb-12 text-white overflow-hidden">
-      {profileUser.username.toLowerCase() === 'dejavuh' && <HollowPurple />}
       
       {/* FIXED BACKGROUND BANNER */}
       <div className="fixed inset-0 z-0 bg-[#09090b]">
@@ -102,51 +113,44 @@ export default function PublicProfilePage() {
       >
         
         {/* Profile Header */}
-        <div className="flex flex-col md:flex-row items-end gap-6 bg-black/40 backdrop-blur-xl border border-white/10 rounded-3xl mb-10 shadow-2xl p-8 pt-32">
+        <div className={`flex flex-col md:flex-row items-end gap-6 rounded-3xl mb-10 shadow-2xl p-8 pt-32 border ${rankTheme.bgCardClass}`}>
           
           <div className="relative z-10 flex flex-col md:flex-row items-end gap-6 w-full">
             <div 
-              className="relative cursor-pointer hover:opacity-90 transition"
-              onClick={() => {
-                if (profileUser.avatar) setPreviewImage(profileUser.avatar);
-              }}
+              className="relative cursor-pointer"
+              onClick={() => profileUser.avatar && setPreviewImage(profileUser.avatar)}
             >
+              {profileUser.username.toLowerCase() === 'dejavuh' && <HollowPurple />}
               {profileUser.avatar ? (
-                <img 
+                <motion.img 
+                  layoutId="profile-avatar"
                   src={profileUser.avatar} 
                   alt="Avatar" 
-                  className={`w-32 h-32 rounded-full object-cover border-4 shadow-xl bg-[#141414] transition-all duration-300 ${
-                    profileUser.username.toLowerCase() === 'dejavuh' 
-                      ? 'border-purple-500 shadow-[0_0_30px_rgba(168,85,247,0.6)]' 
-                      : 'border-[#141414]'
-                  }`}
+                  className={`w-32 h-32 rounded-full object-cover border-4 bg-[#141414] transition-all duration-300 relative z-10 ${rankTheme.borderClass} ${rankTheme.glowClass}`} 
                 />
               ) : (
-                <div 
-                  className={`w-32 h-32 bg-indigo-600 rounded-full flex items-center justify-center text-4xl font-black border-4 shadow-xl transition-all duration-300 ${
-                    profileUser.username.toLowerCase() === 'dejavuh' 
-                      ? 'border-purple-500 shadow-[0_0_30px_rgba(168,85,247,0.6)]' 
-                      : 'border-[#141414]'
-                  }`}
+                <motion.div 
+                  layoutId="profile-avatar" 
+                  className={`w-32 h-32 bg-indigo-600 rounded-full flex items-center justify-center text-4xl font-black border-4 transition-all duration-300 relative z-10 ${rankTheme.borderClass} ${rankTheme.glowClass}`}
                 >
                   {profileUser.username.charAt(0).toUpperCase()}
-                </div>
+                </motion.div>
               )}
             </div>
 
             <div className="text-center md:text-left z-10 mb-2 flex-1">
               <div className="flex items-center gap-3 justify-center md:justify-start mb-2">
-                <h1 className={`text-4xl font-black drop-shadow-lg ${profileUser.username.toLowerCase() === 'dejavuh' ? 'text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-fuchsia-500 to-indigo-400 drop-shadow-[0_0_15px_rgba(217,70,239,0.8)]' : 'text-white'}`}>
+                <h1 className={`text-4xl font-black drop-shadow-lg ${rankTheme.textGradient}`}>
                   {profileUser.username}
                 </h1>
-                {profileUser.username.toLowerCase() === 'dejavuh' && (
-                  <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-3 py-1 rounded-full flex items-center gap-1 shadow-lg shadow-indigo-500/20 border border-indigo-400">
-                    <Code2 className="w-4 h-4 text-white" />
-                    <span className="text-xs font-black text-white tracking-wider">LEAD DEV</span>
+                {rankTheme.title && (
+                  <div className={`px-3 py-1 rounded-full flex items-center gap-1 ${rankTheme.badgeClass}`}>
+                    {RankIcon && <RankIcon className="w-4 h-4" />}
+                    <span className="text-xs font-black tracking-wider uppercase">{rankTheme.title}</span>
                   </div>
                 )}
               </div>
-              <p className="text-indigo-200 font-medium drop-shadow-md max-w-xl">{profileUser.bio || "This user prefers to keep an air of mystery."}</p>
+              <p className="text-indigo-200 font-medium drop-shadow-md max-w-xl">{profileUser.bio || "No bio set."}</p>
               <div className="flex items-center gap-4 mt-3 text-sm font-bold text-slate-300">
                 <button 
                   onClick={() => setModalData({ title: 'Followers', users: (profileUser.followers || []).map((f: any) => f.follower) })}
@@ -160,7 +164,7 @@ export default function PublicProfilePage() {
                 >
                   <span>{(profileUser.following || []).length} Following</span>
                 </button>
-                <span className="text-purple-400 ml-2">✧ {profileUser.arisePoints || 0} Arise Points</span>
+                <span className={`ml-2 drop-shadow-md font-black ${rankTheme.textColorClass}`}>✧ {profileUser.arisePoints || 0} Arise Points</span>
               </div>
             </div>
             

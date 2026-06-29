@@ -82,6 +82,38 @@ export default function AnnouncementBanner() {
                   </ul>
                 </div>
 
+                {/* Section 4 */}
+                <div className="pt-4 border-t border-purple-500/20">
+                  <h3 className="text-lg font-bold text-purple-300 mb-4 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-purple-500" /> Arise Point Tiers & Profile Themes
+                  </h3>
+                  <p className="text-sm text-indigo-200 mb-4">
+                    Reaching new point thresholds automatically unlocks exclusive Titles and completely changes the color theme of your entire profile!
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="bg-emerald-500/10 border border-emerald-500/30 p-3 rounded-lg">
+                      <div className="font-bold text-emerald-400">Medium Demigod</div>
+                      <div className="text-xs text-slate-300">100+ ✧ Points</div>
+                    </div>
+                    <div className="bg-blue-500/10 border border-blue-500/30 p-3 rounded-lg">
+                      <div className="font-bold text-blue-400">Demigod</div>
+                      <div className="text-xs text-slate-300">500+ ✧ Points</div>
+                    </div>
+                    <div className="bg-yellow-500/10 border border-yellow-500/30 p-3 rounded-lg">
+                      <div className="font-bold text-yellow-400">Angel</div>
+                      <div className="text-xs text-slate-300">1,000+ ✧ Points</div>
+                    </div>
+                    <div className="bg-orange-500/10 border border-orange-500/30 p-3 rounded-lg">
+                      <div className="font-bold text-orange-400">King of angel</div>
+                      <div className="text-xs text-slate-300">2,000+ ✧ Points</div>
+                    </div>
+                    <div className="bg-red-900/40 border border-red-600/50 p-3 rounded-lg sm:col-span-2 md:col-span-1 shadow-[0_0_15px_rgba(220,38,38,0.2)]">
+                      <div className="font-bold text-red-500 tracking-wider">Great old one</div>
+                      <div className="text-xs text-red-300/70">10,000+ ✧ Points</div>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </motion.div>
           )}

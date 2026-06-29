@@ -10,6 +10,8 @@ import ImagePreviewModal from "@/components/ui/ImagePreviewModal";
 import { useState, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { getRankTheme } from "@/lib/ranks";
+import * as Icons from "lucide-react";
 
 export default function ProfileTrackerPage() {
   const { getTrackedList, isLoaded: trackerLoaded } = useAnimeStatus();
@@ -32,6 +34,8 @@ export default function ProfileTrackerPage() {
 
   const allTracked = getTrackedList();
   const filteredList = filter === "All" ? allTracked : getTrackedList(filter as AnimeUserStatus);
+  const rankTheme = user ? getRankTheme(user.arisePoints, user.username) : getRankTheme(0, "");
+  const RankIcon = rankTheme.badgeIcon ? (Icons as any)[rankTheme.badgeIcon] : null;
 
   const filterTabs = [
     { id: "All", icon: ListFilter },
@@ -118,7 +122,7 @@ export default function ProfileTrackerPage() {
         
         {/* Profile Header */}
         {user && (
-          <div className="flex flex-col md:flex-row items-end gap-6 bg-black/40 backdrop-blur-xl border border-white/10 rounded-3xl mb-10 shadow-2xl p-8 pt-32">
+          <div className={`flex flex-col md:flex-row items-end gap-6 rounded-3xl mb-10 shadow-2xl p-8 pt-32 border ${rankTheme.bgCardClass}`}>
             <div className="relative z-10 flex flex-col md:flex-row items-end gap-6 w-full">
               <div 
                 className="relative group cursor-pointer" 
@@ -132,20 +136,12 @@ export default function ProfileTrackerPage() {
                     layoutId="profile-avatar"
                     src={user.avatar} 
                     alt="Avatar" 
-                    className={`w-32 h-32 rounded-full object-cover border-4 shadow-xl bg-[#141414] transition-all duration-300 ${
-                      user.username.toLowerCase() === 'dejavuh' 
-                        ? 'border-purple-500 shadow-[0_0_30px_rgba(168,85,247,0.6)]' 
-                        : 'border-[#141414]'
-                    }`} 
+                    className={`w-32 h-32 rounded-full object-cover border-4 bg-[#141414] transition-all duration-300 ${rankTheme.borderClass} ${rankTheme.glowClass}`} 
                   />
                 ) : (
                   <motion.div 
                     layoutId="profile-avatar" 
-                    className={`w-32 h-32 bg-indigo-600 rounded-full flex items-center justify-center text-4xl font-black border-4 shadow-xl transition-all duration-300 ${
-                      user.username.toLowerCase() === 'dejavuh' 
-                        ? 'border-purple-500 shadow-[0_0_30px_rgba(168,85,247,0.6)]' 
-                        : 'border-[#141414]'
-                    }`}
+                    className={`w-32 h-32 bg-indigo-600 rounded-full flex items-center justify-center text-4xl font-black border-4 transition-all duration-300 ${rankTheme.borderClass} ${rankTheme.glowClass}`}
                   >
                     {user.username.charAt(0).toUpperCase()}
                   </motion.div>
@@ -159,13 +155,13 @@ export default function ProfileTrackerPage() {
 
               <div className="text-center md:text-left z-10 mb-2 flex-1">
                 <div className="flex items-center gap-3 justify-center md:justify-start mb-2">
-                  <h1 className={`text-4xl font-black drop-shadow-lg ${user.username.toLowerCase() === 'dejavuh' ? 'text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-fuchsia-500 to-indigo-400 drop-shadow-[0_0_15px_rgba(217,70,239,0.8)]' : 'text-white'}`}>
+                  <h1 className={`text-4xl font-black drop-shadow-lg ${rankTheme.textGradient}`}>
                     {user.username}
                   </h1>
-                  {user.username.toLowerCase() === 'dejavuh' && (
-                    <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-3 py-1 rounded-full flex items-center gap-1 shadow-lg shadow-indigo-500/20 border border-indigo-400">
-                      <Code2 className="w-4 h-4 text-white" />
-                      <span className="text-xs font-black text-white tracking-wider">LEAD DEV</span>
+                  {rankTheme.title && (
+                    <div className={`px-3 py-1 rounded-full flex items-center gap-1 ${rankTheme.badgeClass}`}>
+                      {RankIcon && <RankIcon className="w-4 h-4" />}
+                      <span className="text-xs font-black tracking-wider uppercase">{rankTheme.title}</span>
                     </div>
                   )}
                 </div>
@@ -183,7 +179,7 @@ export default function ProfileTrackerPage() {
                   >
                     <span>{(user.following || []).length} Following</span>
                   </button>
-                  <span className="text-purple-400 ml-2 drop-shadow-md">✧ {user.arisePoints || 0} Arise Points</span>
+                  <span className={`ml-2 drop-shadow-md font-black ${rankTheme.textColorClass}`}>✧ {user.arisePoints || 0} Arise Points</span>
                 </div>
               </div>
             </div>
@@ -198,7 +194,7 @@ export default function ProfileTrackerPage() {
           >
             My Watchlist
             {activeTab === "Watchlist" && (
-              <motion.div layoutId="activeTabUnderline" className="absolute left-0 right-0 bottom-[-17px] h-1 bg-indigo-500" />
+              <motion.div layoutId="activeTabUnderline" className={`absolute left-0 right-0 bottom-[-17px] h-1 ${rankTheme.tabUnderlineClass}`} />
             )}
           </button>
           {user && (
@@ -208,7 +204,7 @@ export default function ProfileTrackerPage() {
             >
               <Settings className="w-5 h-5" /> Settings
               {activeTab === "Settings" && (
-                <motion.div layoutId="activeTabUnderline" className="absolute left-0 right-0 bottom-[-17px] h-1 bg-indigo-500" />
+                <motion.div layoutId="activeTabUnderline" className={`absolute left-0 right-0 bottom-[-17px] h-1 ${rankTheme.tabUnderlineClass}`} />
               )}
             </button>
           )}
