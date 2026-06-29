@@ -8,6 +8,7 @@ import FollowListModal from "@/components/profile/FollowListModal";
 import LoadingOverlay from "@/components/ui/LoadingOverlay";
 import ImagePreviewModal from "@/components/ui/ImagePreviewModal";
 import ImageCropperModal from "@/components/profile/ImageCropperModal";
+import ArisePointHistoryModal from "@/components/profile/ArisePointHistoryModal";
 import getCroppedImg from "@/lib/cropImage";
 import { useState, useRef } from "react";
 import Link from "next/link";
@@ -24,6 +25,7 @@ export default function ProfileTrackerPage() {
   const [modalData, setModalData] = useState<{ title: string; users: any[] } | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [cropModalData, setCropModalData] = useState<{ src: string, isBanner: boolean } | null>(null);
+  const [showPointHistory, setShowPointHistory] = useState(false);
 
   // Settings State
   const [bio, setBio] = useState(user?.bio || "");
@@ -207,7 +209,12 @@ export default function ProfileTrackerPage() {
                   >
                     <span>{(user.following || []).length} Following</span>
                   </button>
-                  <span className={`ml-2 drop-shadow-md font-black ${rankTheme.textColorClass}`}>✧ {user.arisePoints || 0} Arise Points</span>
+                  <button 
+                    onClick={() => setShowPointHistory(true)}
+                    className={`ml-2 drop-shadow-md font-black hover:scale-105 transition cursor-pointer hover:brightness-125 ${rankTheme.textColorClass}`}
+                  >
+                    ✧ {user.arisePoints || 0} Arise Points
+                  </button>
                 </div>
               </div>
             </div>
@@ -424,6 +431,13 @@ export default function ProfileTrackerPage() {
 
       {(isSaving || uploadingImage || uploadingBanner) && (
         <LoadingOverlay message={uploadingImage ? "Uploading Avatar..." : uploadingBanner ? "Uploading Banner..." : "Saving Profile..."} />
+      )}
+
+      {showPointHistory && user && (
+        <ArisePointHistoryModal
+          userId={user.id}
+          onClose={() => setShowPointHistory(false)}
+        />
       )}
     </div>
   );

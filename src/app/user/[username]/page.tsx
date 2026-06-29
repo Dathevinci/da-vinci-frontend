@@ -7,6 +7,7 @@ import { Compass, UserPlus, UserMinus, Eye, Heart, Clock, Check, ListFilter, Cod
 import FollowListModal from "@/components/profile/FollowListModal";
 import HollowPurple from "@/components/ui/HollowPurple";
 import ImagePreviewModal from "@/components/ui/ImagePreviewModal";
+import ArisePointHistoryModal from "@/components/profile/ArisePointHistoryModal";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { getRankTheme } from "@/lib/ranks";
@@ -96,6 +97,7 @@ export default function PublicProfilePage() {
   const [filter, setFilter] = useState("All");
   const [modalData, setModalData] = useState<{ title: string; users: any[] } | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [showPointHistory, setShowPointHistory] = useState(false);
 
   const filterTabs = [
     { id: "All", icon: ListFilter },
@@ -269,9 +271,12 @@ export default function PublicProfilePage() {
                 >
                   <span>{(profileUser.following || []).length} Following</span>
                 </button>
-                <span className={`ml-2 drop-shadow-md font-black ${rankTheme.textColorClass}`}>
+                <button 
+                  onClick={() => setShowPointHistory(true)}
+                  className={`ml-2 drop-shadow-md font-black hover:scale-105 transition cursor-pointer hover:brightness-125 ${rankTheme.textColorClass}`}
+                >
                   ✧ {profileUser.username.toLowerCase() === 'dejavuh' ? '∞' : (profileUser.arisePoints || 0)} Arise Points
-                </span>
+                </button>
               </div>
             </div>
             
@@ -355,6 +360,13 @@ export default function PublicProfilePage() {
           imageUrl={previewImage}
           altText={`${profileUser.username}'s Avatar`}
           onClose={() => setPreviewImage(null)}
+        />
+      )}
+
+      {showPointHistory && (
+        <ArisePointHistoryModal
+          userId={profileUser.id}
+          onClose={() => setShowPointHistory(false)}
         />
       )}
     </div>

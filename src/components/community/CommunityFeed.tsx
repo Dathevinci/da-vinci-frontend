@@ -53,12 +53,18 @@ const buildCommentTree = (comments: Comment[]): CommentNode[] => {
     }
   });
 
-  // Sort roots (newest first), but children (oldest first, reading chronologically)
-  roots.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  // Sort roots by score first, then newest
+  roots.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
   
   const sortChildren = (nodes: CommentNode[]) => {
     nodes.forEach(node => {
-      node.children.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      node.children.sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
       sortChildren(node.children);
     });
   };
