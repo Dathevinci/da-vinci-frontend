@@ -18,7 +18,9 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
+  const [transformOrigin, setTransformOrigin] = useState("center center");
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
   
   const { getStatus, setStatus } = useAnimeStatus();
   const { toast } = useToast();
@@ -29,6 +31,18 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
   const handleMouseEnter = () => {
     // Disable hover popups on touch devices (Android Web / iOS) for a fluid UI
     if (typeof window !== 'undefined' && window.matchMedia('(hover: hover)').matches) {
+      if (cardRef.current) {
+        const rect = cardRef.current.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        if (rect.left < 60) {
+          setTransformOrigin("left center");
+        } else if (rect.right > viewportWidth - 60) {
+          setTransformOrigin("right center");
+        } else {
+          setTransformOrigin("center center");
+        }
+      }
+
       timeoutRef.current = setTimeout(() => {
         setIsHovered(true);
       }, 400); // 400ms delay to prevent chaotic popping
@@ -46,6 +60,7 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
 
   return (
     <div 
+      ref={cardRef}
       className="relative w-[160px] md:w-[220px] aspect-[2/3] flex-shrink-0 snap-start"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -77,7 +92,7 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
             exit={{ opacity: 0, scale: 0.95, zIndex: 50 }}
             transition={{ type: "spring", stiffness: 400, damping: 25 }}
             className="absolute inset-0 bg-white/10 backdrop-blur-2xl rounded-xl overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)] border border-white/20 flex flex-col cursor-pointer"
-            style={{ transformOrigin: 'center center' }}
+            style={{ transformOrigin }}
           >
             <Link href={`/anime/${anime.id}`} className="block w-full h-full relative">
               <img 
@@ -102,13 +117,35 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
                 <div className="flex items-center gap-1.5 mb-2 relative z-50">
                    {/* Play Trailer Button */}
                    <button 
-                     onClick={(e) => {
+                     onClick={async (e) => {
                        e.preventDefault();
                        e.stopPropagation();
+                       
+                       // Fast path: Backend already provided the trailer
                        if (anime.trailer?.id && anime.trailer?.site === "youtube") {
                          setShowTrailer(true);
-                       } else {
-                         toast("No trailer available for this anime.", "error");
+                         return;
+                       }
+                       
+                       // Fallback path: Live fetch from AniList (solves backend caching/deployment delays)
+                       try {
+                         const query = `query ($id: Int) { Media(id: $id, type: ANIME) { trailer { id site } } }`;
+                         const res = await fetch("https://graphql.anilist.co", {
+                           method: "POST",
+                           headers: { "Content-Type": "application/json" },
+                           body: JSON.stringify({ query, variables: { id: anime.id } })
+                         });
+                         const data = await res.json();
+                         const trailer = data?.data?.Media?.trailer;
+                         
+                         if (trailer?.id && trailer?.site === "youtube") {
+                           anime.trailer = trailer; // cache it locally
+                           setShowTrailer(true);
+                         } else {
+                           toast("No trailer available for this anime.", "error");
+                         }
+                       } catch (err) {
+                         toast("Failed to fetch trailer.", "error");
                        }
                      }}
                      className="w-7 h-7 md:w-8 md:h-8 bg-white text-black flex items-center justify-center rounded-full hover:bg-slate-200 transition-colors"
