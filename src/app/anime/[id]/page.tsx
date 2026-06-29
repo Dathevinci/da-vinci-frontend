@@ -123,7 +123,4 @@ export default async function AnimeDetails({ params }: { params: Promise<{ id: s
         </div>
       </div>
     );
-  } catch (error) {
-    return notFound();
-  }
 }
