@@ -105,6 +105,21 @@ export default function ProfileTrackerPage() {
 
     e.target.value = ''; // Reset input so same file can be selected again
     
+    if (file.type === 'image/gif') {
+      if (isBanner) {
+        if (user?.username !== "dejavuh" && (user?.arisePoints || 0) < 500) {
+          toast("Animated GIF banners require 500 Arise Points or Lead Dev status!", "error");
+          return;
+        }
+        // Bypass cropping for GIFs to preserve animation
+        handleImageUpload(file, true);
+        return;
+      } else {
+        toast("GIF avatars are not supported.", "error");
+        return;
+      }
+    }
+
     const reader = new FileReader();
     reader.onload = () => {
       setCropModalData({ src: reader.result as string, isBanner });
