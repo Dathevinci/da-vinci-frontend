@@ -143,5 +143,95 @@ export function useAnimeStatus() {
     return list;
   };
 
-  return { tracked, setStatus, getStatus, getTrackedList, isLoaded };
+  const wipeWatchlist = async () => {
+    if (!user) {
+      setTracked({});
+      localStorage.removeItem("davinci_status");
+      return;
+    }
+    
+    const backendIds = Object.values(tracked).map(t => t.backendId).filter(Boolean);
+    setTracked({});
+    
+    try {
+      for (const id of backendIds) {
+        await fetch(`${API_URL}/api/watchlist/${id}`, { method: "DELETE" });
+      }
+    } catch (e) {
+      console.error("Failed to wipe backend watchlist", e);
+    }
+  };
+
+  const batchSetStatus = async (entries: { anime: AniListAnime, status: AnimeUserStatus }[]) => {
+    // 1. Optimistic UI update
+    setTracked((prev) => {
+      const updated = { ...prev };
+      entries.forEach(({ anime, status }) => {
+        if (status === "None") {
+          delete updated[anime.id];
+        } else {
+          updated[anime.id] = {
+            backendId: updated[anime.id]?.backendId,
+            status,
+            anime,
+            updatedAt: Date.now(),
+          };
+        }
+      });
+      if (!user) localStorage.setItem("davinci_status", JSON.stringify(updated));
+      return updated;
+    });
+
+    if (!user) return;
+
+    // 2. Sync sequentially to avoid blasting the backend
+    for (const { anime, status } of entries) {
+      // We must get the latest backendId directly from state or the closure might be stale
+      // Since we just updated `tracked` optimistically, the backendId hasn't changed yet.
+      // We can use the prev state's backendId, which is fine unless it was just created (which shouldn't happen here)
+      setTracked((currentTrackedState) => {
+         const syncSingle = async () => {
+            const currentTracked = currentTrackedState[anime.id];
+            const newBackendId = currentTracked?.backendId;
+            try {
+              if (status === "None") {
+                if (newBackendId) await fetch(`${API_URL}/api/watchlist/${newBackendId}`, { method: "DELETE" });
+              } else if (newBackendId) {
+                await fetch(`${API_URL}/api/watchlist/${newBackendId}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ status: status.toUpperCase() })
+                });
+              } else {
+                const title = anime.title.english || anime.title.romaji || anime.title.userPreferred;
+                const res = await fetch(`${API_URL}/api/watchlist`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    userId: user.id,
+                    anilistId: anime.id,
+                    title,
+                    coverImage: anime.coverImage.extraLarge || anime.coverImage.large,
+                    status: status.toUpperCase()
+                  })
+                });
+                const data = await res.json();
+                if (data.success) {
+                  setTracked(p => {
+                    if (!p[anime.id]) return p;
+                    return { ...p, [anime.id]: { ...p[anime.id], backendId: data.data.id } };
+                  });
+                }
+              }
+            } catch (e) {
+              console.error(`Failed to sync anime ${anime.id}`, e);
+            }
+         };
+         syncSingle();
+         return currentTrackedState; // don't modify state here, just using it to read the latest
+      });
+    }
+  };
+
+  return { tracked, setStatus, getStatus, getTrackedList, wipeWatchlist, batchSetStatus, isLoaded };
 }

@@ -121,3 +121,44 @@ export async function getCalendarData() {
   return fetchFromBackend<{ Page: { airingSchedules: any[] } }>("/api/calendar");
 }
 
+export async function fetchUserAniList(username: string) {
+  const query = `
+    query ($userName: String) {
+      MediaListCollection(userName: $userName, type: ANIME) {
+        lists {
+          name
+          status
+          entries {
+            status
+            media {
+              id
+              title { romaji english userPreferred }
+              coverImage { extraLarge large color }
+              status
+              genres
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  const response = await fetch('https://graphql.anilist.co', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify({
+      query,
+      variables: { userName: username }
+    })
+  });
+
+  const json = await response.json();
+  if (json.errors) {
+    throw new Error(json.errors[0].message);
+  }
+
+  return json.data.MediaListCollection;
+}

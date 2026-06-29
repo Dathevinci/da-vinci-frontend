@@ -3,7 +3,7 @@
 import { useAnimeStatus, AnimeUserStatus } from "@/hooks/useAnimeStatus";
 import { useUser } from "@/hooks/useUser";
 import AnimeCard from "@/components/anime/AnimeCard";
-import { Compass, Eye, Heart, Clock, Check, ListFilter, Settings, Camera, UploadCloud, AlertCircle, Image as ImageIcon, Code2 } from "lucide-react";
+import { Compass, Eye, Heart, Clock, Check, ListFilter, Settings, Camera, UploadCloud, AlertCircle, Image as ImageIcon, Code2, RefreshCw, Database, Trash2 } from "lucide-react";
 import FollowListModal from "@/components/profile/FollowListModal";
 import LoadingOverlay from "@/components/ui/LoadingOverlay";
 import ImagePreviewModal from "@/components/ui/ImagePreviewModal";
@@ -13,12 +13,13 @@ import getCroppedImg from "@/lib/cropImage";
 import { useState, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { fetchUserAniList } from "@/lib/anilist";
 import { getRankTheme } from "@/lib/ranks";
 import * as Icons from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 
 export default function ProfileTrackerPage() {
-  const { getTrackedList, isLoaded: trackerLoaded } = useAnimeStatus();
+  const { getTrackedList, isLoaded: trackerLoaded, batchSetStatus, wipeWatchlist } = useAnimeStatus();
   const { user, isLoaded: userLoaded, updateProfile } = useUser();
   const { toast } = useToast();
   
@@ -36,6 +37,17 @@ export default function ProfileTrackerPage() {
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
+
+  // AniList Sync State
+  const [anilistUsername, setAnilistUsername] = useState("");
+  const [syncingAnilist, setSyncingAnilist] = useState(false);
+  const [syncOptions, setSyncOptions] = useState({
+    watching: true,
+    interested: true,
+    waiting: true,
+    finished: true,
+    dropped: true,
+  });
 
   if (!trackerLoaded || !userLoaded) return <div className="min-h-screen bg-[#09090b] flex items-center justify-center text-white">Loading Profile...</div>;
 
@@ -120,6 +132,61 @@ export default function ProfileTrackerPage() {
     await updateProfile({ bio });
     setIsSaving(false);
     toast("Profile saved successfully!", "success");
+  };
+
+  const handleAnilistSync = async () => {
+    if (!anilistUsername) return toast("Please enter an AniList username.", "error");
+    setSyncingAnilist(true);
+    try {
+      const data = await fetchUserAniList(anilistUsername);
+      if (!data || !data.lists) throw new Error("Could not fetch data for this user");
+      
+      const entriesToSync: any[] = [];
+      
+      data.lists.forEach((list: any) => {
+        list.entries.forEach((entry: any) => {
+          let targetStatus: AnimeUserStatus | null = null;
+          
+          if (entry.status === "CURRENT" || entry.status === "REPEATING") {
+             if (syncOptions.watching) targetStatus = "Watching";
+          } else if (entry.status === "PLANNING") {
+             if (syncOptions.interested) targetStatus = "Interested";
+          } else if (entry.status === "COMPLETED") {
+             if (syncOptions.finished) targetStatus = "Finished";
+          } else if (entry.status === "DROPPED") {
+             if (syncOptions.dropped) targetStatus = "Dropped";
+          } else if (entry.status === "PAUSED") {
+             if (syncOptions.waiting) targetStatus = "Waiting";
+          }
+          
+          if (targetStatus && entry.media) {
+            entriesToSync.push({ anime: entry.media, status: targetStatus });
+          }
+        });
+      });
+      
+      if (entriesToSync.length === 0) {
+         toast("No entries found to sync with selected options.", "error");
+         setSyncingAnilist(false);
+         return;
+      }
+      
+      await batchSetStatus(entriesToSync);
+      toast(`Successfully imported ${entriesToSync.length} anime from AniList!`, "success");
+      setActiveTab("Watchlist");
+    } catch (e: any) {
+      toast(e.message || "Failed to sync AniList", "error");
+    } finally {
+      setSyncingAnilist(false);
+    }
+  };
+
+  const handleWipe = async () => {
+    if (!confirm("Are you sure you want to completely wipe your Da Vinci watchlist? This action cannot be undone.")) return;
+    setIsSaving(true);
+    await wipeWatchlist();
+    setIsSaving(false);
+    toast("Watchlist completely wiped.", "success");
   };
 
   return (
@@ -395,6 +462,86 @@ export default function ProfileTrackerPage() {
                         className="w-full md:w-auto bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-lg font-bold transition disabled:opacity-50"
                       >
                         {isSaving ? "Saving..." : "Save Changes"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* AniList Sync Component */}
+                <div className="max-w-2xl bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-2xl mt-8">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-12 h-12 rounded-xl bg-[#2b2d42] flex items-center justify-center border border-[#3db4f2]/30 shadow-lg">
+                      <RefreshCw className="w-6 h-6 text-[#3db4f2]" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-black text-white">AniList Sync</h2>
+                      <p className="text-slate-400 text-sm">Import your existing anime list directly into Da Vinci.</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                          <Database className="h-5 w-5 text-slate-500" />
+                        </div>
+                        <input
+                          type="text"
+                          value={anilistUsername}
+                          onChange={(e) => setAnilistUsername(e.target.value)}
+                          placeholder="Enter your AniList Username"
+                          className="w-full bg-black/20 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-[#3db4f2]/50 focus:ring-1 focus:ring-[#3db4f2]/50 transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="bg-black/20 border border-white/5 rounded-xl p-5 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      {[
+                        { id: 'watching', label: 'Watching', color: 'text-indigo-400' },
+                        { id: 'interested', label: 'Interested', color: 'text-pink-400' },
+                        { id: 'waiting', label: 'Waiting', color: 'text-yellow-400' },
+                        { id: 'finished', label: 'Finished', color: 'text-emerald-400' },
+                        { id: 'dropped', label: 'Dropped', color: 'text-red-400' },
+                      ].map((opt) => (
+                        <label key={opt.id} className="flex items-center gap-3 cursor-pointer group">
+                          <div className="relative flex items-center justify-center">
+                            <input
+                              type="checkbox"
+                              checked={syncOptions[opt.id as keyof typeof syncOptions]}
+                              onChange={(e) => setSyncOptions(prev => ({ ...prev, [opt.id]: e.target.checked }))}
+                              className="peer sr-only"
+                            />
+                            <div className="w-5 h-5 border-2 border-slate-500 rounded flex items-center justify-center peer-checked:bg-[#3db4f2] peer-checked:border-[#3db4f2] transition-all">
+                              <Check className="w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100" />
+                            </div>
+                          </div>
+                          <span className={`text-sm font-bold ${opt.color} group-hover:brightness-125 transition`}>{opt.label}</span>
+                        </label>
+                      ))}
+                    </div>
+
+                    <button 
+                      onClick={handleAnilistSync}
+                      disabled={syncingAnilist || !anilistUsername}
+                      className="w-full bg-gradient-to-r from-[#2b2d42] to-[#1a1b26] hover:from-[#3db4f2]/20 hover:to-[#2b2d42] border border-[#3db4f2]/30 text-white px-8 py-3.5 rounded-xl font-bold transition-all disabled:opacity-50 disabled:hover:from-[#2b2d42] shadow-lg flex items-center justify-center gap-2 group"
+                    >
+                      <RefreshCw className={`w-5 h-5 ${syncingAnilist ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
+                      {syncingAnilist ? "Importing from AniList..." : "Connect & Import"}
+                    </button>
+                  </div>
+
+                  {/* Danger Zone */}
+                  <div className="mt-12 pt-8 border-t border-white/5">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 rounded-xl bg-red-500/5 border border-red-500/10">
+                      <div>
+                        <h3 className="font-bold text-red-400 mb-1">Danger Zone</h3>
+                        <p className="text-xs text-slate-400">Permanently wipe your Da Vinci watchlist. Your AniList will not be affected.</p>
+                      </div>
+                      <button 
+                        onClick={handleWipe}
+                        className="w-full sm:w-auto bg-red-500/10 hover:bg-red-500 hover:text-white text-red-500 border border-red-500/20 px-6 py-2.5 rounded-lg font-bold transition flex items-center justify-center gap-2"
+                      >
+                        <Trash2 className="w-4 h-4" /> Wipe List
                       </button>
                     </div>
                   </div>
