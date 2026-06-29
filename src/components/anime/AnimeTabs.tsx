@@ -77,7 +77,7 @@ export default function AnimeTabs({ anime }: { anime: any }) {
                   {anime.relations.edges.map((edge: any, idx: number) => {
                     const relation = edge.node;
                     // Format relation type (e.g., "SIDE_STORY" -> "Side Story")
-                    const typeLabel = edge.relationType.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+                    const typeLabel = edge.relationType.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase());
                     
                     return (
                       <Link href={relation.type === 'ANIME' ? `/anime/${relation.id}` : '#'} key={idx}>
