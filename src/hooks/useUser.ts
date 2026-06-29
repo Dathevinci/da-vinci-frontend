@@ -18,6 +18,16 @@ export function useUser() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
+  const broadcastUpdate = (newUser: User | null) => {
+    if (newUser) {
+      localStorage.setItem("davinci_user", JSON.stringify(newUser));
+    } else {
+      localStorage.removeItem("davinci_user");
+    }
+    setUser(newUser);
+    window.dispatchEvent(new Event("davinci_user_updated"));
+  };
+
   useEffect(() => {
     const stored = localStorage.getItem("davinci_user");
     if (stored) {
@@ -31,8 +41,7 @@ export function useUser() {
           .then(res => res.json())
           .then(data => {
             if (data.success) {
-               setUser(data.data);
-               localStorage.setItem("davinci_user", JSON.stringify(data.data));
+               broadcastUpdate(data.data);
             }
           })
           .catch(err => console.error("Failed to sync user data", err));
@@ -41,6 +50,27 @@ export function useUser() {
       }
     }
     setIsLoaded(true);
+
+    const handleSync = () => {
+      const currentStored = localStorage.getItem("davinci_user");
+      if (currentStored) {
+        try {
+          setUser(JSON.parse(currentStored));
+        } catch (e) {}
+      } else {
+        setUser(null);
+      }
+    };
+
+    window.addEventListener("davinci_user_updated", handleSync);
+    window.addEventListener("storage", (e) => {
+      if (e.key === "davinci_user") handleSync();
+    });
+
+    return () => {
+      window.removeEventListener("davinci_user_updated", handleSync);
+      window.removeEventListener("storage", handleSync);
+    };
   }, []);
 
   const loginOrRegister = async (username: string, email: string) => {
@@ -55,9 +85,7 @@ export function useUser() {
       const data = await res.json();
       
       if (data.success) {
-        const newUser = data.data;
-        setUser(newUser);
-        localStorage.setItem("davinci_user", JSON.stringify(newUser));
+        broadcastUpdate(data.data);
         return { success: true };
       } else {
         return { success: false, message: data.message };
@@ -78,9 +106,7 @@ export function useUser() {
       });
       const result = await res.json();
       if (result.success) {
-        const newUser = { ...user, ...data };
-        setUser(newUser);
-        localStorage.setItem("davinci_user", JSON.stringify(newUser));
+        broadcastUpdate(result.data);
         return { success: true };
       }
       return { success: false, message: result.message };
@@ -100,18 +126,14 @@ export function useUser() {
       });
       const result = await res.json();
       
-      // Update local user state
       if (result.success) {
-        // Refetch user to get updated arisePoints
         const userRes = await fetch(`${API_URL}/api/users/${user.id}`);
         const userData = await userRes.json();
         if (userData.success) {
-          setUser(userData.data);
-          localStorage.setItem("davinci_user", JSON.stringify(userData.data));
+          broadcastUpdate(userData.data);
         } else {
           const newUser = { ...user, following: [...(user.following || []), result.data] };
-          setUser(newUser);
-          localStorage.setItem("davinci_user", JSON.stringify(newUser));
+          broadcastUpdate(newUser);
         }
       }
       return result;
@@ -131,11 +153,9 @@ export function useUser() {
       });
       const result = await res.json();
       
-      // Update local user state
       if (result.success) {
         const newUser = { ...user, following: (user.following || []).filter((f: any) => f.followingId !== followingId) };
-        setUser(newUser);
-        localStorage.setItem("davinci_user", JSON.stringify(newUser));
+        broadcastUpdate(newUser);
       }
       return result;
     } catch (err) {
@@ -144,8 +164,7 @@ export function useUser() {
   };
 
   const logout = () => {
-    setUser(null);
-    localStorage.removeItem("davinci_user");
+    broadcastUpdate(null);
   };
 
   return { user, isLoaded, loginOrRegister, updateProfile, followUser, unfollowUser, logout };
