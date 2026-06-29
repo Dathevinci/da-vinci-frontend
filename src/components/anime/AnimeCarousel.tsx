@@ -31,9 +31,9 @@ export default function AnimeCarousel({ title, animes }: AnimeCarouselProps) {
       <div className="relative">
         <button 
           onClick={() => handleScroll('left')}
-          className="absolute left-0 top-0 bottom-0 z-40 w-12 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-black/80"
+          className="absolute left-0 top-0 bottom-0 z-40 w-16 bg-gradient-to-r from-[#09090b] via-[#09090b]/80 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-start pl-2 hover:w-20 hover:from-[#141414]"
         >
-          <ChevronLeft className="w-8 h-8 text-white scale-150 transition-transform hover:scale-[2]" />
+          <ChevronLeft className="w-8 h-8 text-white transition-transform hover:scale-125 hover:text-indigo-400 drop-shadow-2xl" />
         </button>
 
         <div 
@@ -58,9 +58,9 @@ export default function AnimeCarousel({ title, animes }: AnimeCarouselProps) {
 
         <button 
           onClick={() => handleScroll('right')}
-          className="absolute right-0 top-0 bottom-0 z-40 w-12 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-black/80"
+          className="absolute right-0 top-0 bottom-0 z-40 w-16 bg-gradient-to-l from-[#09090b] via-[#09090b]/80 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-end pr-2 hover:w-20 hover:from-[#141414]"
         >
-          <ChevronRight className="w-8 h-8 text-white scale-150 transition-transform hover:scale-[2]" />
+          <ChevronRight className="w-8 h-8 text-white transition-transform hover:scale-125 hover:text-indigo-400 drop-shadow-2xl" />
         </button>
       </div>
     </div>

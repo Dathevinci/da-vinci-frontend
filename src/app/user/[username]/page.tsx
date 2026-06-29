@@ -77,6 +77,39 @@ export default function PublicProfilePage() {
   return (
     <div className="relative min-h-screen pt-24 pb-12 text-white overflow-hidden">
       
+      {profileUser.username.toLowerCase() === 'dejavuh' && (
+        <style dangerouslySetInnerHTML={{__html: `
+          @keyframes screenGlitch {
+            0% { transform: translate(0) }
+            20% { transform: translate(-4px, 4px); filter: hue-rotate(90deg) contrast(150%); }
+            40% { transform: translate(-4px, -4px); filter: invert(10%); }
+            60% { transform: translate(4px, 4px); filter: hue-rotate(-90deg) contrast(150%); }
+            80% { transform: translate(4px, -4px); filter: invert(0%); }
+            100% { transform: translate(0) }
+          }
+          .dejavu-glitch-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            pointer-events: none;
+            background: repeating-linear-gradient(
+              0deg,
+              rgba(0,0,0,0.2),
+              rgba(0,0,0,0.2) 2px,
+              transparent 2px,
+              transparent 4px
+            );
+            animation: screenGlitch 0.15s infinite;
+            mix-blend-mode: exclusion;
+            opacity: 0.15;
+          }
+        `}} />
+      )}
+      
+      {profileUser.username.toLowerCase() === 'dejavuh' && (
+        <div className="dejavu-glitch-overlay"></div>
+      )}
+
       {/* FIXED BACKGROUND BANNER */}
       <div className="fixed inset-0 z-0 bg-[#09090b]">
         {profileUser?.bannerUrl ? (
@@ -138,7 +171,9 @@ export default function PublicProfilePage() {
                 {rankTheme.title && (
                   <div className={`px-3 py-1 rounded-full flex items-center gap-1 ${rankTheme.badgeClass}`}>
                     {RankIcon && <RankIcon className="w-4 h-4" />}
-                    <span className="text-xs font-black tracking-wider uppercase">{rankTheme.title}</span>
+                    <span className="text-xs font-black tracking-wider uppercase">
+                      {profileUser.username.toLowerCase() === 'dejavuh' ? 'cant comprehed' : rankTheme.title}
+                    </span>
                   </div>
                 )}
               </div>
@@ -156,7 +191,9 @@ export default function PublicProfilePage() {
                 >
                   <span>{(profileUser.following || []).length} Following</span>
                 </button>
-                <span className={`ml-2 drop-shadow-md font-black ${rankTheme.textColorClass}`}>✧ {profileUser.arisePoints || 0} Arise Points</span>
+                <span className={`ml-2 drop-shadow-md font-black ${rankTheme.textColorClass}`}>
+                  ✧ {profileUser.username.toLowerCase() === 'dejavuh' ? '∞' : (profileUser.arisePoints || 0)} Arise Points
+                </span>
               </div>
             </div>
             
