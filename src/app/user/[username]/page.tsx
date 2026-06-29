@@ -5,87 +5,7 @@ import { useParams } from "next/navigation";
 import { useUser, User } from "@/hooks/useUser";
 import { Compass, UserPlus, UserMinus, Eye, Heart, Clock, Check, ListFilter, Code2 } from "lucide-react";
 import FollowListModal from "@/components/profile/FollowListModal";
-import HollowPurple from "@/components/ui/HollowPurple";
-import ImagePreviewModal from "@/components/ui/ImagePreviewModal";
-import ArisePointHistoryModal from "@/components/profile/ArisePointHistoryModal";
-import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
-import { getRankTheme } from "@/lib/ranks";
 import * as Icons from "lucide-react";
-
-const MatrixRain = () => {
-  const [opacity, setOpacity] = useState(0.4);
-
-  useEffect(() => {
-    const canvas = document.getElementById('matrix-canvas') as HTMLCanvasElement;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    const katakana = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプエェケセテネヘメレゲゼデベペオォコソトノホモヨョロゴゾドボポヴッン';
-    const latin = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const nums = '0123456789';
-    const alphabet = katakana + latin + nums;
-    
-    const fontSize = 16;
-    const columns = canvas.width / fontSize;
-    
-    const rainDrops: number[] = [];
-    for (let x = 0; x < columns; x++) {
-      rainDrops[x] = 1;
-    }
-    
-    const draw = () => {
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      ctx.fillStyle = '#0F0';
-      ctx.font = fontSize + 'px monospace';
-      
-      for (let i = 0; i < rainDrops.length; i++) {
-        const text = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
-        ctx.fillText(text, i * fontSize, rainDrops[i] * fontSize);
-        
-        if (rainDrops[i] * fontSize > canvas.height && Math.random() > 0.975) {
-          rainDrops[i] = 0;
-        }
-        rainDrops[i]++;
-      }
-    };
-    
-    const interval = setInterval(draw, 33);
-    
-    const handleResize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-    window.addEventListener('resize', handleResize);
-    
-    // Fade out after 4 seconds
-    const fadeOutStart = setTimeout(() => {
-      setOpacity(0);
-    }, 4000);
-
-    return () => {
-      clearInterval(interval);
-      clearTimeout(fadeOutStart);
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
-
-  if (opacity === 0) return null;
-
-  return (
-    <canvas 
-      id="matrix-canvas" 
-      className="fixed inset-0 z-50 pointer-events-none mix-blend-screen transition-opacity duration-1000 ease-out"
-      style={{ opacity }}
-    />
-  );
-};
 
 export default function PublicProfilePage() {
   const { username } = useParams();
@@ -152,43 +72,6 @@ export default function PublicProfilePage() {
 
   return (
     <div className="relative min-h-screen pt-24 pb-12 text-white overflow-hidden">
-      
-      {profileUser.username.toLowerCase() === 'dejavuh' && (
-        <>
-          <MatrixRain />
-          <style dangerouslySetInnerHTML={{__html: `
-            @keyframes intenseGlitch {
-              0% { transform: translate(0) }
-              10% { transform: translate(-15px, 15px); filter: hue-rotate(90deg) contrast(200%); }
-              20% { transform: translate(15px, -15px); filter: invert(20%); }
-              30% { transform: translate(-15px, -15px); filter: hue-rotate(-90deg) contrast(150%); }
-              40% { transform: translate(15px, 15px); filter: invert(0%); }
-              50% { transform: translate(0) }
-              60% { transform: skewX(20deg); filter: blur(2px) contrast(300%); }
-              70% { transform: skewX(-20deg); filter: blur(0px) }
-              80% { transform: translate(0) }
-              100% { transform: translate(0) }
-            }
-            .dejavu-glitch-overlay {
-              position: fixed;
-              inset: 0;
-              z-index: 100;
-              pointer-events: none;
-              background: repeating-linear-gradient(
-                0deg,
-                rgba(0,0,0,0.5),
-                rgba(0,0,0,0.5) 4px,
-                transparent 4px,
-                transparent 8px
-              );
-              animation: intenseGlitch 0.2s infinite;
-              mix-blend-mode: color-dodge;
-              opacity: 0.6;
-            }
-          `}} />
-          <div className="dejavu-glitch-overlay"></div>
-        </>
-      )}
 
       {/* FIXED BACKGROUND BANNER */}
       <div className="fixed inset-0 z-0 bg-[#09090b]">
@@ -225,7 +108,6 @@ export default function PublicProfilePage() {
               className="relative cursor-pointer"
               onClick={() => profileUser.avatar && setPreviewImage(profileUser.avatar)}
             >
-              {profileUser.username.toLowerCase() === 'dejavuh' && <HollowPurple />}
               {profileUser.avatar ? (
                 <motion.img 
                   layoutId="profile-avatar"
@@ -252,7 +134,7 @@ export default function PublicProfilePage() {
                   <div className={`px-3 py-1 rounded-full flex items-center gap-1 ${rankTheme.badgeClass}`}>
                     {RankIcon && <RankIcon className="w-4 h-4" />}
                     <span className="text-xs font-black tracking-wider uppercase">
-                      {profileUser.username.toLowerCase() === 'dejavuh' ? 'cant comprehed' : rankTheme.title}
+                      {rankTheme.title}
                     </span>
                   </div>
                 )}
@@ -275,7 +157,7 @@ export default function PublicProfilePage() {
                   onClick={() => setShowPointHistory(true)}
                   className={`ml-2 drop-shadow-md font-black hover:scale-105 transition cursor-pointer hover:brightness-125 ${rankTheme.textColorClass}`}
                 >
-                  ✧ {profileUser.username.toLowerCase() === 'dejavuh' ? '∞' : (profileUser.arisePoints || 0)} Arise Points
+                  ✧ {profileUser.arisePoints || 0} Arise Points
                 </button>
               </div>
             </div>
