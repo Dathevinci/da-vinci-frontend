@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import Link from 'next/link';
-import { Info, Clock, Play, Plus, ThumbsUp, ChevronDown, Check } from 'lucide-react';
+import { Play, Plus, ThumbsUp, ChevronDown, Check } from 'lucide-react';
 import { AniListAnime } from '@/lib/anilist';
 import AnimeStatusBadge from './AnimeStatusBadge';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -18,6 +18,7 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
+  const [fetchedTrailer, setFetchedTrailer] = useState<{ id: string; site: string } | null>(null);
   const [transformOrigin, setTransformOrigin] = useState("center center");
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -139,7 +140,7 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
                          const trailer = data?.data?.Media?.trailer;
                          
                          if (trailer?.id && trailer?.site === "youtube") {
-                           anime.trailer = trailer; // cache it locally
+                           setFetchedTrailer(trailer);
                            setShowTrailer(true);
                          } else {
                            toast("No trailer available for this anime.", "error");
@@ -216,7 +217,7 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
 
       {/* Trailer Modal (Portaled outside to avoid stacking context issues) */}
       <TrailerModal 
-        videoId={showTrailer && anime.trailer?.id ? anime.trailer.id : null} 
+        videoId={showTrailer ? (fetchedTrailer?.id || anime.trailer?.id || null) : null} 
         onClose={() => setShowTrailer(false)} 
       />
     </div>
