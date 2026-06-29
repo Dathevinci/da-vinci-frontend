@@ -198,7 +198,8 @@ export default function AnnouncementBanner() {
   };
 
   return (
-    <div className="relative z-30 container mx-auto px-4 md:px-12 mt-8 mb-8" style={{ perspective: 1200 }}>
+    <div className="w-full overflow-x-hidden relative z-30">
+      <div className="container mx-auto px-4 md:px-12 mt-8 mb-8" style={{ perspective: 1200 }}>
       {/* 
         Using popLayout to ensure smooth absolute positioning during the exit phase, 
         giving the physical "Card Shuffle" aesthetic without layout popping.
@@ -280,6 +281,7 @@ export default function AnnouncementBanner() {
 
         </motion.div>
       </AnimatePresence>
+      </div>
     </div>
   );
 }

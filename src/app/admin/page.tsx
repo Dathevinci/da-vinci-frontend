@@ -2,7 +2,7 @@
 
 import { useUser } from "@/hooks/useUser";
 import { useState, useEffect } from "react";
-import { ShieldAlert, Trash2, Edit2, Check, X, Image as ImageIcon, Unlock, Activity, Users as UsersIcon, Star } from "lucide-react";
+import { ShieldAlert, Trash2, Edit2, Check, X, Image as ImageIcon, Unlock, Activity, Users as UsersIcon, Star, Power } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import LoadingOverlay from "@/components/ui/LoadingOverlay";
 
@@ -13,12 +13,15 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editPoints, setEditPoints] = useState<number>(0);
+  const [isMaintenance, setIsMaintenance] = useState(false);
+  const [togglingMaintenance, setTogglingMaintenance] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
   useEffect(() => {
     if (isLoaded && user?.username.toLowerCase() === 'dejavuh') {
       fetchUsers();
+      fetchMaintenanceStatus();
     } else if (isLoaded) {
       setLoading(false);
     }
@@ -35,6 +38,40 @@ export default function AdminDashboard() {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchMaintenanceStatus = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/system/status`);
+      const data = await res.json();
+      if (data.success) {
+        setIsMaintenance(data.maintenance);
+      }
+    } catch (err) {
+      console.error("Failed to fetch maintenance status", err);
+    }
+  };
+
+  const toggleMaintenance = async () => {
+    if (!confirm(isMaintenance ? "Turn server back ONLINE for all users?" : "WARNING: This will lock all users out of the platform immediately. Proceed?")) return;
+    
+    setTogglingMaintenance(true);
+    try {
+      const res = await fetch(`${API_URL}/api/system/maintenance`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: !isMaintenance, username: user?.username })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setIsMaintenance(data.maintenance);
+        toast(data.maintenance ? "Server offline (Under Maintenance)" : "Server is back ONLINE", "success");
+      }
+    } catch (err) {
+      toast("Failed to toggle maintenance", "error");
+    } finally {
+      setTogglingMaintenance(false);
     }
   };
 
@@ -123,6 +160,19 @@ export default function AdminDashboard() {
               <p className="text-slate-400 font-medium tracking-wide">Welcome back, Lead Developer.</p>
             </div>
           </div>
+          
+          <button 
+            onClick={toggleMaintenance}
+            disabled={togglingMaintenance}
+            className={`flex items-center gap-3 px-6 py-3 rounded-xl font-black uppercase tracking-widest transition-all shadow-2xl border ${
+              isMaintenance 
+                ? "bg-red-500/10 text-red-500 border-red-500/50 hover:bg-red-500/20 shadow-[0_0_30px_rgba(239,68,68,0.3)] animate-pulse" 
+                : "bg-emerald-500/10 text-emerald-500 border-emerald-500/50 hover:bg-emerald-500/20"
+            }`}
+          >
+            <Power className="w-5 h-5" />
+            {isMaintenance ? "SERVER OFFLINE" : "SERVER ONLINE"}
+          </button>
         </div>
 
         {/* Global Statistics */}

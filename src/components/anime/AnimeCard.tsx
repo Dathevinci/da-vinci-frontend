@@ -30,24 +30,22 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
   const isInWatchlist = currentStatus !== "None";
 
   const handleMouseEnter = () => {
-    // Disable hover popups on touch devices (Android Web / iOS) for a fluid UI
-    if (typeof window !== 'undefined' && window.matchMedia('(hover: hover)').matches) {
-      if (cardRef.current) {
-        const rect = cardRef.current.getBoundingClientRect();
-        const viewportWidth = window.innerWidth;
-        if (rect.left < 60) {
-          setTransformOrigin("left center");
-        } else if (rect.right > viewportWidth - 60) {
-          setTransformOrigin("right center");
-        } else {
-          setTransformOrigin("center center");
-        }
+    if (cardRef.current) {
+      const rect = cardRef.current.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      // Prevent screen bleeding by dynamically shifting the popout origin
+      if (rect.left < 60) {
+        setTransformOrigin("left center");
+      } else if (rect.right > viewportWidth - 60) {
+        setTransformOrigin("right center");
+      } else {
+        setTransformOrigin("center center");
       }
-
-      timeoutRef.current = setTimeout(() => {
-        setIsHovered(true);
-      }, 400); // 400ms delay to prevent chaotic popping
     }
+
+    timeoutRef.current = setTimeout(() => {
+      setIsHovered(true);
+    }, 400); // 400ms delay to prevent chaotic popping on fast swipes
   };
 
   const handleMouseLeave = () => {
