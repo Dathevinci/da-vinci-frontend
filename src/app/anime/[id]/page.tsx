@@ -14,26 +14,33 @@ export default async function AnimeDetails({ params }: { params: Promise<{ id: s
   const animeId = parseInt(resolvedParams.id, 10);
   if (isNaN(animeId)) return notFound();
 
+  let anime = null;
   try {
-    const anime = await getAnimeDetails(animeId);
-    if (!anime) return notFound();
+    anime = await getAnimeDetails(animeId);
+  } catch (err) {
+    console.error("Anime Details API Error:", err);
+  }
 
-    const title = anime.title.english || anime.title.romaji || anime.title.userPreferred;
-    const bannerUrl = anime.bannerImage || anime.coverImage.extraLarge;
-    const nextEp = anime.nextAiringEpisode;
+  if (!anime) {
+    return <div className="min-h-screen pt-32 text-center text-white">Loading data or API is temporarily unavailable...</div>;
+  }
 
-    return (
-      <div className="bg-[#09090b] min-h-screen text-white pt-16">
-        {/* Cinematic Banner Area */}
-        <div className="relative w-full h-[50vh] md:h-[60vh]">
-          {anime.trailer && anime.trailer.site === "youtube" ? (
-            <AnimeBackgroundTrailer trailerId={anime.trailer.id} bannerUrl={bannerUrl} />
-          ) : (
-            <>
-              <img src={bannerUrl} alt={title} className="w-full h-full object-cover opacity-50 mix-blend-screen" />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/80 to-transparent" />
-            </>
-          )}
+  const title = anime.title.english || anime.title.romaji || anime.title.userPreferred;
+  const bannerUrl = anime.bannerImage || anime.coverImage.extraLarge;
+  const nextEp = anime.nextAiringEpisode;
+
+  return (
+    <div className="bg-[#09090b] min-h-screen text-white pt-16">
+      {/* Cinematic Banner Area */}
+      <div className="relative w-full h-[50vh] md:h-[60vh]">
+        {anime.trailer && anime.trailer.site === "youtube" ? (
+          <AnimeBackgroundTrailer trailerId={anime.trailer.id} bannerUrl={bannerUrl} />
+        ) : (
+          <>
+            <img src={bannerUrl} alt={title} className="w-full h-full object-cover opacity-50 mix-blend-screen" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/80 to-transparent" />
+          </>
+        )}
           
           <div className="absolute bottom-0 left-0 w-full">
             <div className="container mx-auto px-4 md:px-12 flex flex-col md:flex-row gap-8 items-end pb-8">

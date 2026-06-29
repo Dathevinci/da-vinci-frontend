@@ -9,11 +9,11 @@ export default async function CalendarPage() {
   try {
     const data = await getCalendarData();
     schedules = data?.Page?.airingSchedules || [];
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
+    console.error("Calendar API Error:", err);
   }
 
-  // Group by day
+  // Group by day of week
   const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const grouped: Record<string, any[]> = {};
   

@@ -11,8 +11,17 @@ import Link from "next/link";
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  const data = await getDashboardData();
+  let data = null;
+  try {
+    data = await getDashboardData();
+  } catch (err) {
+    console.error("Dashboard API Error:", err);
+  }
   
+  if (!data) {
+    return <div className="min-h-screen pt-32 text-center text-white">Loading data or API is temporarily unavailable...</div>;
+  }
+
   // Shuffle the trending anime for the hero banner so it changes every time
   const shuffledTrending = [...data.trending.media].sort(() => 0.5 - Math.random());
   const heroAnimes = shuffledTrending.slice(0, 5);

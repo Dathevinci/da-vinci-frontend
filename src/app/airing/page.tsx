@@ -5,11 +5,16 @@ import AnimatedGrid from "@/components/ui/AnimatedGrid";
 export const dynamic = 'force-dynamic';
 
 export default async function AiringPage() {
-  const data = await searchAnime({ status: "RELEASING", sort: "POPULARITY_DESC", page: 1 });
-  const animes = data.Page.media;
+  let animes = [];
+  try {
+    const data = await searchAnime({ status: "RELEASING", sort: "POPULARITY_DESC", page: 1 });
+    animes = data?.Page?.media || [];
+  } catch (err) {
+    console.error("Airing API Error:", err);
+  }
 
   if (!animes || animes.length === 0) {
-    return <div className="min-h-screen pt-32 text-center text-white">No data found.</div>;
+    return <div className="min-h-screen pt-32 text-center text-white">Loading data or API is temporarily unavailable...</div>;
   }
 
   const heroAnimes = animes.slice(0, 5);
