@@ -87,7 +87,8 @@ const CommentThread = ({
   handlePost,
   isReplying,
   handleVote,
-  handleDelete
+  handleDelete,
+  showAnimeContext
 }: {
   node: CommentNode;
   depth?: number;
