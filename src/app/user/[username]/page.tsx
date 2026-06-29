@@ -5,6 +5,11 @@ import { useParams } from "next/navigation";
 import { useUser, User } from "@/hooks/useUser";
 import { Compass, UserPlus, UserMinus, Eye, Heart, Clock, Check, ListFilter, Code2 } from "lucide-react";
 import FollowListModal from "@/components/profile/FollowListModal";
+import ImagePreviewModal from "@/components/ui/ImagePreviewModal";
+import ArisePointHistoryModal from "@/components/profile/ArisePointHistoryModal";
+import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
+import { getRankTheme } from "@/lib/ranks";
 import * as Icons from "lucide-react";
 
 export default function PublicProfilePage() {

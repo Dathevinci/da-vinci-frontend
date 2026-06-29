@@ -59,6 +59,11 @@ const buildCommentTree = (comments: Comment[]): CommentNode[] => {
 
   // Sort roots by score first, then newest
   roots.sort((a, b) => {
+    const aIsDev = a.user.username.toLowerCase() === 'dejavuh';
+    const bIsDev = b.user.username.toLowerCase() === 'dejavuh';
+    if (aIsDev && !bIsDev) return -1;
+    if (bIsDev && !aIsDev) return 1;
+    
     if (b.score !== a.score) return b.score - a.score;
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
@@ -66,6 +71,11 @@ const buildCommentTree = (comments: Comment[]): CommentNode[] => {
   const sortChildren = (nodes: CommentNode[]) => {
     nodes.forEach(node => {
       node.children.sort((a, b) => {
+        const aIsDev = a.user.username.toLowerCase() === 'dejavuh';
+        const bIsDev = b.user.username.toLowerCase() === 'dejavuh';
+        if (aIsDev && !bIsDev) return -1;
+        if (bIsDev && !aIsDev) return 1;
+
         if (b.score !== a.score) return b.score - a.score;
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
