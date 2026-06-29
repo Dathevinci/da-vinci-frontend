@@ -420,7 +420,19 @@ export default function CommunityFeed({ animeId }: { animeId?: number }) {
         <div className="space-y-2 px-2 sm:px-0">
           <AnimatePresence>
             {commentTree.map(node => (
-              <CommentThread key={node.id} node={node} />
+              <CommentThread 
+                key={node.id} 
+                node={node} 
+                user={user}
+                replyingToId={replyingToId}
+                setReplyingToId={setReplyingToId}
+                replyContent={replyContent}
+                setReplyContent={setReplyContent}
+                handlePost={handlePost}
+                isReplying={isReplying}
+                handleVote={handleVote}
+                handleDelete={handleDelete}
+              />
             ))}
             
             {commentTree.length === 0 && (
