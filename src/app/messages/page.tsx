@@ -110,7 +110,7 @@ function MessagesContent() {
     // Poll messages every 3s
     const interval = setInterval(fetchMessages, 3000);
     return () => clearInterval(interval);
-  }, [currentUser, activeConversation]);
+  }, [currentUser?.id, activeConversation]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
