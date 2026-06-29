@@ -5,10 +5,13 @@ import { useUser } from '@/hooks/useUser';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, ArrowUp, ArrowDown, Trash2, Send, CornerDownRight } from 'lucide-react';
 import Link from 'next/link';
+import { getRankTheme } from '@/lib/ranks';
+import * as Icons from 'lucide-react';
 
 interface Comment {
   id: string;
   parentId: string | null;
+  animeTitle?: string;
   content: string;
   createdAt: string;
   score: number;
@@ -97,10 +100,15 @@ const CommentThread = ({
   isReplying: boolean;
   handleVote: (id: string, val: number) => void;
   handleDelete: (id: string) => void;
+  showAnimeContext?: boolean;
 }) => {
   const maxDepth = 4;
   const currentDepth = Math.min(depth, maxDepth);
   const isDeep = depth >= maxDepth;
+
+  const isDejavuh = node.user.username.toLowerCase() === 'dejavuh';
+  const rankTheme = getRankTheme(node.user.arisePoints, node.user.username);
+  const RankIcon = rankTheme.badgeIcon ? (Icons as any)[rankTheme.badgeIcon] : null;
 
   return (
     <motion.div
@@ -113,7 +121,7 @@ const CommentThread = ({
         <div className="absolute top-0 -left-4 sm:-left-6 md:-left-8 bottom-0 w-px bg-white/10" />
       )}
       
-      <div className="bg-[#0f0f11] border border-white/5 rounded-xl flex overflow-hidden shadow-lg relative z-10">
+      <div className={`bg-[#0f0f11] rounded-xl flex overflow-hidden shadow-lg relative z-10 border ${isDejavuh ? rankTheme.borderClass + ' ' + rankTheme.glowClass : 'border-white/5'}`}>
         {/* Vote Bar */}
         <div className="bg-black/40 p-2 sm:p-4 flex flex-col items-center gap-1 border-r border-white/5 min-w-[40px] sm:min-w-[60px]">
           <button 
@@ -137,12 +145,23 @@ const CommentThread = ({
         <div className="p-3 sm:p-4 flex-1 overflow-hidden">
           <div className="flex items-center justify-between mb-2">
             <Link href={`/user/${node.user.username}`} className="flex items-center gap-2 group">
-              <img src={node.user.avatar || 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=100&q=80'} className="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover" />
-              <span className="font-bold text-sm sm:text-base text-indigo-300 group-hover:text-indigo-400 transition truncate max-w-[100px] sm:max-w-[200px]">{node.user.username}</span>
+              <img src={node.user.avatar || 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=100&q=80'} className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover ${isDejavuh ? 'ring-2 ring-purple-500 ring-offset-1 ring-offset-[#0f0f11]' : ''}`} />
+              <span className={`font-bold text-sm sm:text-base transition truncate max-w-[100px] sm:max-w-[200px] ${isDejavuh ? rankTheme.textColorClass : 'text-indigo-300 group-hover:text-indigo-400'}`}>{node.user.username}</span>
+              {rankTheme.title && (
+                <div className={`hidden sm:flex px-2 py-0.5 rounded-full items-center gap-1 ${rankTheme.badgeClass}`}>
+                  {RankIcon && <RankIcon className="w-3 h-3" />}
+                  <span className="text-[10px] font-black tracking-wider uppercase">{rankTheme.title}</span>
+                </div>
+              )}
               <span className="text-[10px] sm:text-xs text-slate-500 whitespace-nowrap">• {timeAgo(node.createdAt)}</span>
             </Link>
             
             <div className="flex items-center gap-1 shrink-0">
+              {showAnimeContext && node.animeTitle && (
+                <span className="text-[10px] sm:text-xs bg-white/5 border border-white/10 px-2 py-1 rounded-md text-slate-400 hidden sm:flex items-center gap-1 max-w-[150px] truncate">
+                  on <span className="font-bold text-slate-300 truncate">{node.animeTitle}</span>
+                </span>
+              )}
               {user && (
                 <button 
                   onClick={() => setReplyingToId(replyingToId === node.id ? null : node.id)}
@@ -221,6 +240,7 @@ const CommentThread = ({
               isReplying={isReplying}
               handleVote={handleVote}
               handleDelete={handleDelete}
+              showAnimeContext={showAnimeContext}
             />
           ))}
         </div>
@@ -229,7 +249,7 @@ const CommentThread = ({
   );
 };
 
-export default function CommunityFeed({ animeId }: { animeId?: number }) {
+export default function CommunityFeed({ animeId, animeTitle }: { animeId?: number, animeTitle?: string }) {
   const { user } = useUser();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
@@ -288,6 +308,7 @@ export default function CommunityFeed({ animeId }: { animeId?: number }) {
         body: JSON.stringify({
           userId: user.id,
           animeId,
+          animeTitle,
           content,
           parentId
         })
@@ -438,6 +459,7 @@ export default function CommunityFeed({ animeId }: { animeId?: number }) {
                 isReplying={isReplying}
                 handleVote={handleVote}
                 handleDelete={handleDelete}
+                showAnimeContext={!animeId}
               />
             ))}
             

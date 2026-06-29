@@ -134,7 +134,10 @@ export default function AnimeTabs({ anime }: { anime: any }) {
 
       {activeTab === "discussions" && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <CommunityFeed animeId={anime.id} />
+          <CommunityFeed 
+            animeId={anime.id} 
+            animeTitle={anime.title.english || anime.title.romaji || anime.title.userPreferred} 
+          />
         </div>
       )}
     </div>
