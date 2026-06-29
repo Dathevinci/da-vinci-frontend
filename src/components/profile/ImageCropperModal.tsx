@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import Cropper from 'react-easy-crop';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import { X, Check } from 'lucide-react';
 
 interface ImageCropperModalProps {
@@ -16,6 +17,8 @@ export default function ImageCropperModal({ imageSrc, isBanner, onClose, onCropC
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+
+  useLockBodyScroll();
 
   const onCropCompleteHandler = useCallback((croppedArea: any, croppedAreaPixels: any) => {
     setCroppedAreaPixels(croppedAreaPixels);

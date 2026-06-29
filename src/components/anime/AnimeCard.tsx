@@ -1,70 +1,33 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { Info, Clock, PlayCircle, Plus } from 'lucide-react';
 import { AniListAnime } from '@/lib/anilist';
 import AnimeStatusBadge from './AnimeStatusBadge';
-import { motion, AnimatePresence } from 'framer-motion';
-import { createPortal } from 'react-dom';
+import { motion } from 'framer-motion';
 
 interface AnimeCardProps {
   anime: AniListAnime;
 }
 
 export default function AnimeCard({ anime }: AnimeCardProps) {
-  const [isHovered, setIsHovered] = useState(false);
-  const [rect, setRect] = useState<DOMRect | null>(null);
-  const cardRef = useRef<HTMLDivElement>(null);
-  const hoverTimeout = useRef<NodeJS.Timeout | null>(null);
-  const [mounted, setMounted] = useState(false);
-  const pathname = usePathname();
-
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
-
-  useEffect(() => {
-    setIsHovered(false);
-  }, [pathname]);
-
-  const handleMouseEnter = () => {
-    if (cardRef.current) {
-      setRect(cardRef.current.getBoundingClientRect());
-    }
-    hoverTimeout.current = setTimeout(() => setIsHovered(true), 400); // Netflix 400ms delay
-  };
-
-  const handleMouseLeave = () => {
-    if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
-    setIsHovered(false);
-  };
-
   const title = anime.title.english || anime.title.romaji || anime.title.userPreferred;
   const imageUrl = anime.coverImage.extraLarge || anime.coverImage.large || "https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=500&q=80";
-  const bannerUrl = anime.bannerImage || imageUrl;
   const nextEp = anime.nextAiringEpisode;
 
   return (
-    <div 
-      className="relative group w-[160px] md:w-[220px] aspect-[2/3] flex-shrink-0 snap-start"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-    >
-      {/* Base Card */}
+    <div className="relative group w-[160px] md:w-[220px] aspect-[2/3] flex-shrink-0 snap-start rounded-xl overflow-hidden shadow-lg border border-white/5 bg-[#141414] cursor-pointer">
       <Link href={`/anime/${anime.id}`} className="block w-full h-full">
-        <div 
-          ref={cardRef}
-          className="relative w-full h-full cursor-pointer rounded-xl overflow-hidden shadow-xl border border-white/5 bg-[#141414]"
-        >
+        {/* Background Image with Scale on Hover */}
+        <div className="w-full h-full overflow-hidden relative">
           <img 
             src={imageUrl} 
             alt={title} 
-            className="object-cover w-full h-full"
+            className="object-cover w-full h-full transition-transform duration-700 ease-out group-hover:scale-110"
           />
-          <div className="absolute top-2 left-2 right-2 flex justify-between items-start gap-1">
+          
+          {/* Top Badges (Always visible but fade slightly on hover) */}
+          <div className="absolute top-2 left-2 right-2 flex justify-between items-start gap-1 z-10 transition-opacity duration-300 group-hover:opacity-0">
             <AnimeStatusBadge status={anime.status} />
             {anime.averageScore && (
               <span className="bg-indigo-600/90 text-white px-1.5 py-0.5 rounded text-[10px] font-bold shadow-md backdrop-blur-sm">
@@ -72,109 +35,58 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
               </span>
             )}
           </div>
+
+          {/* Hover Overlay Gradient */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/60 to-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3 md:p-4 z-20">
+            
+            {/* Play Button Center (Slides down slightly) */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 scale-75 group-hover:scale-100">
+              <PlayCircle className="w-12 h-12 text-white/80 hover:text-white drop-shadow-xl" />
+            </div>
+
+            {/* Bottom Info Content (Slides up) */}
+            <div className="translate-y-4 group-hover:translate-y-0 transition-transform duration-300 ease-out">
+              <h3 className="font-black text-sm md:text-base text-white leading-tight drop-shadow-md line-clamp-2 mb-1.5">
+                {title}
+              </h3>
+              
+              <div className="flex items-center gap-2 text-[10px] font-bold text-slate-300 mb-2">
+                {anime.averageScore && <span className="text-green-400">{anime.averageScore}% Match</span>}
+                <span className="border border-white/20 px-1 rounded">{anime.format || "TV"}</span>
+                <span>{anime.episodes ? `${anime.episodes} EPS` : "Ongoing"}</span>
+              </div>
+
+              {nextEp && (
+                <div className="flex items-center gap-1.5 text-[9px] text-indigo-300 font-bold bg-indigo-500/10 p-1 rounded w-fit mb-2 border border-indigo-500/20">
+                  <Clock className="w-3 h-3" />
+                  Ep {nextEp.episode} in {Math.floor(nextEp.timeUntilAiring / 86400)}d
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-1 mb-3">
+                {anime.genres.slice(0, 3).map(g => (
+                  <span key={g} className="text-[9px] uppercase tracking-wider text-slate-400 font-medium">
+                    {g}
+                  </span>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button className="w-full py-1.5 flex items-center justify-center gap-1 bg-white hover:bg-slate-200 text-black rounded text-[10px] font-bold transition">
+                  <Info className="w-3.5 h-3.5" /> Details
+                </button>
+                <button 
+                  onClick={(e) => { e.preventDefault(); /* TODO: Add to list */ }}
+                  className="w-full py-1.5 flex items-center justify-center gap-1 bg-white/10 hover:bg-white/20 text-white rounded text-[10px] font-bold transition backdrop-blur-sm"
+                >
+                  <Plus className="w-3.5 h-3.5" /> List
+                </button>
+              </div>
+            </div>
+
+          </div>
         </div>
       </Link>
-
-      {/* Pop-Out Hover Card (Netflix Style via Portal) */}
-      {/* Because this Portal is a React child of the wrapping div, React's synthetic onMouseLeave 
-          won't fire when the mouse moves from the base card into the Portal! */}
-      {mounted && createPortal(
-        <AnimatePresence>
-          {isHovered && rect && (
-            <div 
-              className="fixed inset-0 z-[100] pointer-events-none" 
-              style={{ pointerEvents: isHovered ? 'auto' : 'none' }}
-            >
-              {/* Global Backdrop Blur */}
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="absolute inset-0 bg-black/60 backdrop-blur-sm pointer-events-auto"
-                onMouseEnter={handleMouseLeave}
-              />
-              
-              {/* The Expanded Card */}
-              <motion.div 
-                initial={{ opacity: 0, scale: 1, y: 0 }}
-                animate={{ opacity: 1, scale: 1.4, y: -10 }}
-                exit={{ opacity: 0, scale: 1 }}
-                transition={{ type: "spring", stiffness: 350, damping: 25 }}
-                className="absolute bg-[#18181b] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden border border-white/10"
-                style={{ 
-                  top: rect.top, 
-                  left: rect.left, 
-                  width: rect.width, 
-                  height: rect.height,
-                  originY: 0.5, 
-                  originX: 0.5,
-                  transformOrigin: "center center",
-                  pointerEvents: "auto"
-                }}
-                onMouseLeave={handleMouseLeave}
-              >
-                {/* Banner/Video Area */}
-                <Link href={`/anime/${anime.id}`}>
-                  <div className="relative w-full aspect-[16/10] bg-black cursor-pointer group/banner">
-                    <img src={bannerUrl} alt={title} className="w-full h-full object-cover opacity-80 transition group-hover/banner:opacity-100" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#18181b] via-[#18181b]/40 to-transparent" />
-                    <div className="absolute bottom-2 left-3 right-3 flex items-end justify-between overflow-visible">
-                      <motion.h3 
-                        initial={{ y: 15, opacity: 0, scale: 0.95 }}
-                        animate={{ y: 0, opacity: 1, scale: 1 }}
-                        transition={{ type: "spring", stiffness: 400, damping: 20, delay: 0.05 }}
-                        className="font-black text-sm md:text-lg text-white leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,1)] line-clamp-2 w-4/5 tracking-tight"
-                      >
-                        {title}
-                      </motion.h3>
-                      <button className="bg-white text-black p-1.5 rounded-full hover:bg-slate-200 transition shadow-lg shrink-0">
-                        <PlayCircle className="w-5 h-5 fill-black" />
-                      </button>
-                    </div>
-                  </div>
-                </Link>
-
-                {/* Info Area */}
-                <div className="p-3 flex flex-col gap-2">
-                  <div className="flex items-center gap-2 text-[10px] md:text-xs font-bold text-slate-300">
-                    <span className="text-green-400">{anime.averageScore ? `${anime.averageScore}% Match` : 'New'}</span>
-                    <span className="border border-white/20 px-1 rounded">{anime.format || "TV"}</span>
-                    <span>{anime.episodes ? `${anime.episodes} EPS` : "Ongoing"}</span>
-                  </div>
-                  
-                  {nextEp && (
-                    <div className="flex items-center gap-1.5 text-[10px] text-indigo-300 font-bold bg-indigo-500/10 p-1.5 rounded">
-                      <Clock className="w-3 h-3" />
-                      Ep {nextEp.episode} airs in {Math.floor(nextEp.timeUntilAiring / 86400)}d
-                    </div>
-                  )}
-
-                  <div className="flex flex-wrap gap-1">
-                    {anime.genres.slice(0, 3).map(g => (
-                      <span key={g} className="text-[9px] uppercase tracking-wider text-slate-400">
-                        {g} •
-                      </span>
-                    ))}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 mt-1">
-                    <Link href={`/anime/${anime.id}`} className="block">
-                      <button className="w-full py-1.5 flex items-center justify-center gap-1.5 bg-white/10 hover:bg-white/20 text-white rounded text-[10px] font-bold transition cursor-pointer">
-                        <Info className="w-3.5 h-3.5" /> Details
-                      </button>
-                    </Link>
-                    <button className="w-full py-1.5 flex items-center justify-center gap-1.5 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 rounded text-[10px] font-bold transition cursor-pointer">
-                      <Plus className="w-3.5 h-3.5" /> List
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>,
-        document.body
-      )}
     </div>
   );
 }

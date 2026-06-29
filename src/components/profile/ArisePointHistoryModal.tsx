@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { formatDistanceToNow } from 'date-fns';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { motion } from "framer-motion";
 import { X, Sparkles, TrendingUp, TrendingDown } from "lucide-react";
 
@@ -14,6 +16,8 @@ interface PointLog {
 export default function ArisePointHistoryModal({ userId, onClose }: { userId: string, onClose: () => void }) {
   const [logs, setLogs] = useState<PointLog[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useLockBodyScroll();
 
   useEffect(() => {
     const fetchLogs = async () => {

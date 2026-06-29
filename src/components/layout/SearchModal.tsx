@@ -6,6 +6,7 @@ import { Search, X, Loader2, Compass } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { searchAnime } from "@/lib/anilist";
 import Link from "next/link";
+import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 
 interface SearchModalProps {
   onClose: () => void;
@@ -17,6 +18,8 @@ export default function SearchModal({ onClose }: SearchModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
+  
+  useLockBodyScroll();
 
   useEffect(() => {
     // Focus input on mount

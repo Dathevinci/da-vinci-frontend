@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Moon, Sun, Lock, Unlock, Save } from "lucide-react";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { useToast } from "@/components/ui/Toast";
+import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 
 interface SettingsModalProps {
   user: any;
@@ -16,6 +17,8 @@ export default function SettingsModal({ user, onClose, onUpdate }: SettingsModal
   const { toast } = useToast();
   const [isPrivate, setIsPrivate] = useState(user.isPrivate || false);
   const [isSaving, setIsSaving] = useState(false);
+  
+  useLockBodyScroll();
 
   const handleSave = async () => {
     setIsSaving(true);

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
+import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 
 export default function LoginModal({ onClose }: { onClose: () => void }) {
   const { loginOrRegister } = useUser();
@@ -11,6 +12,8 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useLockBodyScroll();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
+import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import { X } from "lucide-react";
 
 interface ImagePreviewModalProps {
@@ -9,7 +10,8 @@ interface ImagePreviewModalProps {
   onClose: () => void;
 }
 
-export default function ImagePreviewModal({ imageUrl, altText, onClose }: ImagePreviewModalProps) {
+export default function ImagePreviewModal({ imageUrl, altText = "Image preview", onClose }: ImagePreviewModalProps) {
+  useLockBodyScroll();
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
