@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
-import { signIn } from "next-auth/react";
 
 export default function LoginModal({ onClose }: { onClose: () => void }) {
   const { loginOrRegister } = useUser();
