@@ -7,6 +7,8 @@ import { Compass, Eye, Heart, Clock, Check, ListFilter, Settings, Camera, Upload
 import FollowListModal from "@/components/profile/FollowListModal";
 import LoadingOverlay from "@/components/ui/LoadingOverlay";
 import ImagePreviewModal from "@/components/ui/ImagePreviewModal";
+import ImageCropperModal from "@/components/profile/ImageCropperModal";
+import getCroppedImg from "@/lib/cropImage";
 import { useState, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -21,6 +23,7 @@ export default function ProfileTrackerPage() {
   const [filter, setFilter] = useState<AnimeUserStatus | "All">("All");
   const [modalData, setModalData] = useState<{ title: string; users: any[] } | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [cropModalData, setCropModalData] = useState<{ src: string, isBanner: boolean } | null>(null);
 
   // Settings State
   const [bio, setBio] = useState(user?.bio || "");
@@ -45,10 +48,7 @@ export default function ProfileTrackerPage() {
     { id: "Finished", icon: Check },
   ];
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, isBanner: boolean = false) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const handleImageUpload = async (file: File | Blob, isBanner: boolean = false) => {
     const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
     const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
@@ -80,6 +80,34 @@ export default function ProfileTrackerPage() {
     } finally {
       if (isBanner) setUploadingBanner(false);
       else setUploadingImage(false);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, isBanner: boolean = false) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    e.target.value = ''; // Reset input so same file can be selected again
+    
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropModalData({ src: reader.result as string, isBanner });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCropComplete = async (croppedAreaPixels: any) => {
+    if (!cropModalData) return;
+    const { src, isBanner } = cropModalData;
+    setCropModalData(null); // Close modal
+    
+    try {
+      const croppedFile = await getCroppedImg(src, croppedAreaPixels, isBanner ? 'banner.jpeg' : 'avatar.jpeg');
+      if (!croppedFile) throw new Error("Failed to crop image");
+      await handleImageUpload(croppedFile, isBanner);
+    } catch (e) {
+      console.error(e);
+      alert("Failed to crop and upload image.");
     }
   };
 
@@ -307,7 +335,7 @@ export default function ProfileTrackerPage() {
                       <div>
                         <label className="block text-sm font-medium text-slate-400 mb-2">Profile Picture</label>
                         <div className="flex items-center gap-4">
-                          <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={(e) => handleImageUpload(e, false)} />
+                          <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={(e) => handleFileSelect(e, false)} />
                           <button 
                             onClick={() => fileInputRef.current?.click()}
                             disabled={uploadingImage}
@@ -323,7 +351,7 @@ export default function ProfileTrackerPage() {
                       <div>
                         <label className="block text-sm font-medium text-slate-400 mb-2">Background Banner</label>
                         <div className="flex items-center gap-4">
-                          <input type="file" accept="image/*" className="hidden" ref={bannerInputRef} onChange={(e) => handleImageUpload(e, true)} />
+                          <input type="file" accept="image/*" className="hidden" ref={bannerInputRef} onChange={(e) => handleFileSelect(e, true)} />
                           <button 
                             onClick={() => bannerInputRef.current?.click()}
                             disabled={uploadingBanner}
@@ -382,6 +410,15 @@ export default function ProfileTrackerPage() {
           imageUrl={previewImage}
           altText="Profile Picture Preview"
           onClose={() => setPreviewImage(null)}
+        />
+      )}
+
+      {cropModalData && (
+        <ImageCropperModal
+          imageSrc={cropModalData.src}
+          isBanner={cropModalData.isBanner}
+          onClose={() => setCropModalData(null)}
+          onCropComplete={handleCropComplete}
         />
       )}
 
