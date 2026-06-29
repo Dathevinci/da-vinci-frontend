@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut, Users, Palette, Menu, X, Bell, MessageSquare } from 'lucide-react';
+import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut, Users, Palette, Menu, X, Bell, MessageSquare, Settings } from 'lucide-react';
 import LoginModal from './LoginModal';
 import NotificationDropdown from './NotificationDropdown';
 import SearchModal from './SearchModal';
@@ -116,7 +116,7 @@ export default function Navbar() {
                     My Tracker
                   </Link>
                   <button onClick={() => setShowSettings(true)} className="text-slate-400 hover:text-white transition" title="Settings">
-                    <Icons.Settings className="w-5 h-5" />
+                    <Settings className="w-5 h-5" />
                   </button>
                   <button onClick={logout} className="text-slate-400 hover:text-red-400 transition" title="Logout">
                     <LogOut className="w-5 h-5" />
@@ -199,7 +199,7 @@ export default function Navbar() {
                 onClick={() => { setIsMobileMenuOpen(false); setShowSettings(true); }}
                 className="w-full bg-white/5 hover:bg-white/10 text-white font-bold py-4 rounded-xl text-lg transition flex justify-center items-center gap-2 border border-white/10"
               >
-                <Icons.Settings className="w-5 h-5" /> Settings
+                <Settings className="w-5 h-5" /> Settings
               </button>
               <button 
                 onClick={() => { logout(); setIsMobileMenuOpen(false); }}
