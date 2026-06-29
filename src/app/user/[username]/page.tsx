@@ -181,7 +181,13 @@ export default function PublicProfilePage() {
                   onClick={handleFollowToggle}
                   className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition shadow-xl ${isFollowing ? "bg-white/10 hover:bg-red-500/20 hover:text-red-400 text-white" : "bg-indigo-600 hover:bg-indigo-500 text-white"}`}
                 >
-                  {isFollowing ? <><UserMinus className="w-5 h-5" /> Unfollow</> : <><UserPlus className="w-5 h-5" /> Follow</>}
+                  {isFollowing ? (
+                    <><UserMinus className="w-5 h-5" /> Unfollow</>
+                  ) : profileUser?.following?.some((f: any) => f.followingId === currentUser.id) ? (
+                    <><UserPlus className="w-5 h-5" /> Follow Back</>
+                  ) : (
+                    <><UserPlus className="w-5 h-5" /> Follow</>
+                  )}
                 </button>
               </div>
             )}
