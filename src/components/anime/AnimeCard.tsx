@@ -42,7 +42,7 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
       {/* 
         BASE CARD 
       */}
-      <div className="absolute inset-0 rounded-xl overflow-hidden shadow-lg border border-white/5 bg-[#141414] cursor-pointer">
+      <div className="absolute inset-0 rounded-xl overflow-hidden shadow-lg border border-white/10 bg-white/5 backdrop-blur-md cursor-pointer">
         <img src={imageUrl} alt={title} className="object-cover w-full h-full" />
         <div className="absolute top-2 left-2 right-2 flex justify-between items-start gap-1 z-10">
           <AnimeStatusBadge status={anime.status} />
@@ -64,8 +64,8 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1.15, zIndex: 50 }}
             exit={{ opacity: 0, scale: 0.95, zIndex: 50 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
-            className="absolute inset-0 bg-[#18181b] rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.8)] border border-white/20 flex flex-col cursor-pointer"
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            className="absolute inset-0 bg-white/10 backdrop-blur-2xl rounded-xl overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)] border border-white/20 flex flex-col cursor-pointer"
             style={{ transformOrigin: 'center center' }}
           >
             <Link href={`/anime/${anime.id}`} className="block w-full h-full relative">

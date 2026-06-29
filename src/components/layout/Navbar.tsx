@@ -59,7 +59,7 @@ export default function Navbar() {
   return (
     <>
       <header className={`fixed top-0 w-full z-50 transition-all duration-300 ${
-        isScrolled ? 'bg-[#09090b]/90 backdrop-blur-md border-b border-white/10 py-3 shadow-2xl' : 'bg-gradient-to-b from-[#09090b]/80 to-transparent py-5'
+        isScrolled ? 'bg-white/5 backdrop-blur-2xl border-b border-white/10 py-3 shadow-[0_10px_30px_rgba(0,0,0,0.5)]' : 'bg-gradient-to-b from-black/80 to-transparent py-5'
       }`}>
         <div className="container mx-auto px-4 flex justify-between items-center">
           <div className="flex items-center gap-8">
@@ -144,7 +144,7 @@ export default function Navbar() {
 
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-[100] bg-[#09090b] flex flex-col">
+        <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-3xl flex flex-col">
           <div className="flex justify-between items-center p-4 border-b border-white/10">
             <Link href="/" className="text-2xl font-black text-white flex items-center gap-2" onClick={() => setIsMobileMenuOpen(false)}>
               <Palette className="w-6 h-6 text-indigo-500" />

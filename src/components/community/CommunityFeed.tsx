@@ -205,7 +205,7 @@ const CommentThread = ({
                 exit={{ opacity: 0, height: 0 }}
                 className="mt-4"
               >
-                <div className="bg-[#141414] border border-white/10 rounded-lg p-2 sm:p-3">
+                <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-3 sm:p-4 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
                   <textarea
                     value={replyContent}
                     onChange={(e) => setReplyContent(e.target.value)}
@@ -433,7 +433,7 @@ export default function CommunityFeed({ animeId, animeTitle }: { animeId?: numbe
       </div>
 
       {user ? (
-        <div className="bg-[#141414] border border-white/10 rounded-xl p-3 sm:p-4 mb-8 shadow-xl relative overflow-hidden mx-2 sm:mx-0">
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 sm:p-5 mb-8 shadow-[0_10px_30px_rgba(0,0,0,0.4)] relative overflow-hidden mx-2 sm:mx-0">
           <textarea
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}

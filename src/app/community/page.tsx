@@ -76,7 +76,7 @@ function UserCard({ user, currentUser, handleFollowToggle }: { user: User, curre
       onMouseLeave={handleMouseLeave}
     >
       {/* Base Card */}
-      <div className="bg-[#141414] border border-white/5 rounded-2xl relative overflow-hidden h-full cursor-pointer">
+      <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl relative overflow-hidden h-full cursor-pointer">
         <Link href={`/user/${user.username}`} className="block h-full">
           {cardContent}
         </Link>
@@ -89,8 +89,8 @@ function UserCard({ user, currentUser, handleFollowToggle }: { user: User, curre
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1.15, zIndex: 50 }}
             exit={{ opacity: 0, scale: 0.95, zIndex: 50 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
-            className="absolute inset-0 bg-[#18181b] rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.8)] border border-white/20 z-50 flex flex-col cursor-pointer"
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            className="absolute inset-0 bg-white/10 backdrop-blur-2xl rounded-2xl overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)] border border-white/20 z-50 flex flex-col cursor-pointer"
             style={{ transformOrigin: 'center center' }}
           >
             <Link href={`/user/${user.username}`} className="block h-full">
@@ -154,7 +154,7 @@ export default function CommunityPage() {
         
         {/* Tab Switcher */}
         <div className="flex justify-center">
-          <div className="bg-[#141414] border border-white/10 p-1.5 rounded-full flex gap-2 shadow-xl">
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-1.5 rounded-full flex gap-2 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
             <button 
               onClick={() => setActiveTab('feed')} 
               className={`px-6 md:px-8 py-2.5 rounded-full font-bold text-sm md:text-base transition-all ${activeTab === 'feed' ? 'bg-indigo-600 text-white shadow-md scale-105' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
