@@ -160,7 +160,7 @@ const CommentThread = ({
             
             <div className="flex items-center gap-1 shrink-0">
               {showAnimeContext && node.animeTitle && (
-                <span className="text-[10px] sm:text-xs bg-white/5 border border-white/10 px-2 py-1 rounded-md text-slate-400 hidden sm:flex items-center gap-1 max-w-[150px] truncate">
+                <span className="text-[10px] sm:text-xs bg-white/5 border border-white/10 px-2 py-1 rounded-md text-slate-400 flex items-center gap-1 max-w-[150px] sm:max-w-[200px] truncate">
                   on <span className="font-bold text-slate-300 truncate">{node.animeTitle}</span>
                 </span>
               )}
