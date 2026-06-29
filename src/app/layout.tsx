@@ -15,6 +15,7 @@ const geistMono = Geist_Mono({
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import SplashScreen from "@/components/ui/SplashScreen";
+import { NextAuthProvider } from "@/components/providers/NextAuthProvider";
 
 export const metadata: Metadata = {
   title: "Da Vinci | Anime Tracker",
@@ -29,10 +30,12 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`bg-black text-white antialiased min-h-screen flex flex-col`}>
-        <SplashScreen />
-        <Navbar />
-        <main className="flex-1">{children}</main>
-        <Footer />
+        <NextAuthProvider>
+          <SplashScreen />
+          <Navbar />
+          <main className="flex-1">{children}</main>
+          <Footer />
+        </NextAuthProvider>
       </body>
     </html>
   );
