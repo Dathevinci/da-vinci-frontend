@@ -2,6 +2,7 @@ import { getDashboardData } from "@/lib/anilist";
 import AnimeCarousel from "@/components/anime/AnimeCarousel";
 import AnimeStatusBadge from "@/components/anime/AnimeStatusBadge";
 import AnnouncementBanner from "@/components/ui/AnnouncementBanner";
+import QuoteOfTheDay from "@/components/ui/QuoteOfTheDay";
 import HeroBannerCarousel from "@/components/anime/HeroBannerCarousel";
 import { Info, Clock, PlayCircle } from "lucide-react";
 import Link from "next/link";
@@ -11,17 +12,17 @@ export const dynamic = 'force-dynamic';
 
 export default async function Home() {
   const data = await getDashboardData();
-  const heroAnime = data.trending.media[0];
   
-  const heroTitle = heroAnime?.title.english || heroAnime?.title.romaji || heroAnime?.title.userPreferred;
-  const heroBanner = heroAnime?.bannerImage || heroAnime?.coverImage.extraLarge;
-  const nextEp = heroAnime?.nextAiringEpisode;
+  // Shuffle the trending anime for the hero banner so it changes every time
+  const shuffledTrending = [...data.trending.media].sort(() => 0.5 - Math.random());
+  const heroAnimes = shuffledTrending.slice(0, 5);
 
   return (
     <div className="pb-20 min-h-screen bg-black/40 backdrop-blur-sm">
       {/* Cinematic Dashboard Hero */}
-      <HeroBannerCarousel animes={data.trending.media.slice(0, 5)} />
+      <HeroBannerCarousel animes={heroAnimes} />
 
+      <QuoteOfTheDay />
       <AnnouncementBanner />
 
       {/* Carousels */}
