@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, ChevronLeft, ChevronRight, Megaphone, Zap } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Megaphone, Zap, Sparkles, UserCheck } from "lucide-react";
 import Link from "next/link";
 
 const announcements = [
@@ -22,17 +22,67 @@ const announcements = [
       <div className="space-y-4">
         <h3 className="text-lg font-bold text-blue-300">What's New in the Community?</h3>
         <ul className="pl-4 text-sm leading-relaxed space-y-2 list-disc list-inside text-indigo-100">
-          <li><strong className="text-white">Rank Badges:</strong> Every comment you post now displays your Arise Point rank badge and icon automatically!</li>
+          <li><strong className="text-white">Nested Replies:</strong> You can now reply directly to specific comments, creating Reddit-style discussion threads!</li>
+          <li><strong className="text-white">Rank Badges:</strong> Every comment you post now automatically displays your Arise Point rank badge and icon!</li>
           <li><strong className="text-white">Upvote Rewards:</strong> You automatically earn <span className="text-yellow-400 font-bold">+1 ✧</span> Arise Point when someone upvotes your post!</li>
-          <li><strong className="text-white">Point History:</strong> Click on your Arise Points in your profile to view a complete transaction history of how you earned them.</li>
-          <li><strong className="text-white">Anime Context:</strong> The Global Feed on the Home Page now tells everyone exactly which anime you were discussing!</li>
           <li><strong className="text-white">Score Sorting:</strong> Highly upvoted posts naturally rise to the top of the feed!</li>
+          <li><strong className="text-white">Anime Context:</strong> The Global Feed on the Home Page now tells everyone exactly which anime you were discussing!</li>
         </ul>
       </div>
     )
   },
   {
     id: 2,
+    tag: "New Features",
+    icon: <UserCheck className="w-4 h-4 text-emerald-400" />,
+    theme: "from-emerald-900/80 to-teal-900/80",
+    border: "border-emerald-500/50",
+    shadow: "shadow-[0_0_30px_rgba(16,185,129,0.25)]",
+    tagBg: "bg-emerald-600 shadow-emerald-500/50",
+    title: "Discord Auth & Profiles",
+    author: null,
+    shortMessage: "One-click login with Discord is finally here, along with an advanced Profile Image Cropper!",
+    link: null,
+    buttonText: null,
+    content: (
+      <div className="space-y-4 text-indigo-100">
+        <h3 className="text-lg font-bold text-emerald-300">Identity Upgrades</h3>
+        <ul className="pl-4 text-sm leading-relaxed space-y-2 list-disc list-inside">
+          <li><strong className="text-white">Discord Integration:</strong> You can now register and log in instantly with one click using the new "Continue with Discord" button!</li>
+          <li><strong className="text-white">Avatar Cropper:</strong> Added a sleek image cropper when uploading your profile picture to ensure a perfect 1:1 square.</li>
+          <li><strong className="text-white">Cinematic Banners:</strong> Upload a custom background banner for your profile. The new cropper perfectly locks it into a cinematic 3:1 ratio!</li>
+          <li><strong className="text-white">Netflix-Style Hover Cards:</strong> Hovering over anime posters now features a smoother Apple iOS-style spring animation.</li>
+        </ul>
+      </div>
+    )
+  },
+  {
+    id: 3,
+    tag: "Progression",
+    icon: <Sparkles className="w-4 h-4 text-fuchsia-400" />,
+    theme: "from-fuchsia-900/80 to-pink-900/80",
+    border: "border-fuchsia-500/50",
+    shadow: "shadow-[0_0_30px_rgba(217,70,239,0.25)]",
+    tagBg: "bg-fuchsia-600 shadow-fuchsia-500/50",
+    title: "Arise Point Economy",
+    author: null,
+    shortMessage: "Track exactly how you earn your points with the brand new Point History Modal!",
+    link: null,
+    buttonText: null,
+    content: (
+      <div className="space-y-4 text-pink-100">
+        <h3 className="text-lg font-bold text-fuchsia-300">Track Your Journey</h3>
+        <ul className="pl-4 text-sm leading-relaxed space-y-2 list-disc list-inside">
+          <li><strong className="text-white">Point History Modal:</strong> Click on your Arise Points number inside your profile to open a detailed ledger of every point you've ever earned or spent.</li>
+          <li><strong className="text-white">Point Deductions:</strong> If someone removes their upvote, or if you delete your comment, the associated points are accurately removed from your account.</li>
+          <li><strong className="text-white">Activity Rewards:</strong> Earn points for adding to watchlists, updating your avatar, following the Lead Developer, and sharing views!</li>
+          <li><strong className="text-white">Titles & Colors:</strong> Reaching thresholds (e.g. God-Level) permanently recolors your entire profile to flex your status!</li>
+        </ul>
+      </div>
+    )
+  },
+  {
+    id: 4,
     tag: "Announcement",
     icon: <Megaphone className="w-4 h-4 text-purple-400" />,
     theme: "from-indigo-900/80 to-purple-900/80",
