@@ -393,7 +393,8 @@ export default function ProfileTrackerPage() {
               transition={{ duration: 0.2 }}
             >
               {user && (
-                <div className="max-w-2xl bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-2xl">
+                <>
+                  <div className="max-w-2xl bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-2xl">
                   <h2 className="text-2xl font-bold mb-6 flex items-center gap-3"><Settings className="w-6 h-6 text-indigo-400" /> Profile Settings</h2>
                   
                   {!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME && (
@@ -545,7 +546,7 @@ export default function ProfileTrackerPage() {
                       </button>
                     </div>
                   </div>
-                </div>
+                </>
               )}
             </motion.div>
           )}
