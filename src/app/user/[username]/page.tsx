@@ -37,10 +37,14 @@ export default function PublicProfilePage() {
   ];
 
   useEffect(() => {
+    // Only fetch once currentUserLoaded is true, so we don't fetch without currentUserId
+    if (!currentUserLoaded) return;
+    
     const fetchUser = async () => {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
       try {
-        const res = await fetch(`${API_URL}/api/users/username/${username}`);
+        const url = currentUser ? `${API_URL}/api/users/username/${username}?currentUserId=${currentUser.id}` : `${API_URL}/api/users/username/${username}`;
+        const res = await fetch(url);
         const data = await res.json();
         if (data.success) {
           setProfileUser(data.data);
@@ -53,7 +57,7 @@ export default function PublicProfilePage() {
       }
     };
     if (username) fetchUser();
-  }, [username]);
+  }, [username, currentUserLoaded, currentUser?.id]);
 
   if (loading || !currentUserLoaded) return <div className="min-h-screen bg-[#09090b] flex items-center justify-center text-white">Loading...</div>;
   if (!profileUser) return <div className="min-h-screen bg-[#09090b] flex items-center justify-center text-white">User not found</div>;
