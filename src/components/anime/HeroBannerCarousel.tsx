@@ -30,7 +30,7 @@ export default function HeroBannerCarousel({ animes }: Props) {
   const nextEp = heroAnime.nextAiringEpisode;
 
   return (
-    <div className="relative w-full h-[75vh] flex items-center mb-10 overflow-hidden">
+    <div className="relative w-full min-h-[75vh] flex flex-col justify-center pt-24 pb-20 mb-10 overflow-hidden">
       {/* Background Images with Crossfade */}
       {animes.map((anime, idx) => {
         const banner = anime.bannerImage || anime.coverImage.extraLarge;
@@ -54,7 +54,7 @@ export default function HeroBannerCarousel({ animes }: Props) {
       })}
 
       {/* Content */}
-      <div className="relative z-10 container mx-auto px-4 md:px-12 mt-20 max-w-3xl transition-all duration-700">
+      <div className="relative z-10 container mx-auto px-4 md:px-12 max-w-3xl transition-all duration-700 mt-8">
         <div className="mb-4 flex items-center gap-3">
           <AnimeStatusBadge status={heroAnime.status} />
           <span className="text-indigo-400 font-bold uppercase tracking-widest text-sm flex items-center gap-1">
