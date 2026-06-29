@@ -4,9 +4,8 @@ import { useUser } from "@/hooks/useUser";
 import { useState, useEffect } from "react";
 import { ShieldAlert, Trash2, Edit2, Check, X } from "lucide-react";
 import LoadingOverlay from "@/components/ui/LoadingOverlay";
-
 export default function AdminDashboard() {
-  const { user, userLoaded } = useUser();
+  const { user, isLoaded } = useUser();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
@@ -15,12 +14,12 @@ export default function AdminDashboard() {
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
   useEffect(() => {
-    if (userLoaded && user?.username.toLowerCase() === 'dejavuh') {
+    if (isLoaded && user?.username.toLowerCase() === 'dejavuh') {
       fetchUsers();
-    } else if (userLoaded) {
+    } else if (isLoaded) {
       setLoading(false);
     }
-  }, [user, userLoaded]);
+  }, [user, isLoaded]);
 
   const fetchUsers = async () => {
     try {
@@ -69,7 +68,7 @@ export default function AdminDashboard() {
     }
   };
 
-  if (!userLoaded || loading) return <LoadingOverlay message="Verifying credentials..." />;
+  if (!isLoaded || loading) return <LoadingOverlay message="Verifying credentials..." />;
 
   if (!user || user.username.toLowerCase() !== 'dejavuh') {
     return (
