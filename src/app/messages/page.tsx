@@ -50,6 +50,7 @@ function MessagesContent() {
   const { toast } = useToast();
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
   // Fetch Conversations
@@ -91,12 +92,28 @@ function MessagesContent() {
         const data = await res.json();
         if (data.success) {
           setMessages(prev => {
-            // Only scroll down if new messages arrived, OR if it's the initial load
-            if (initialLoad || prev.length !== data.data.length) {
+            let shouldScroll = false;
+            
+            if (initialLoad) {
+              shouldScroll = true;
+            } else if (prev.length !== data.data.length) {
+              // Only auto-scroll if user is near the bottom
+              if (chatContainerRef.current) {
+                const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+                if (scrollHeight - scrollTop - clientHeight < 150) {
+                  shouldScroll = true;
+                }
+              } else {
+                shouldScroll = true;
+              }
+            }
+
+            if (shouldScroll) {
               setTimeout(() => {
                 messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
               }, 100);
             }
+            
             return data.data;
           });
         }
@@ -276,7 +293,7 @@ function MessagesContent() {
                 </div>
                 
                 {/* Chat Messages */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 space-y-6">
                   {loadingMsgs && messages.length === 0 ? (
                     <div className="flex justify-center mt-10">
                       <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div>
