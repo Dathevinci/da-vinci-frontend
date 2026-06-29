@@ -5,17 +5,18 @@ import Link from 'next/link';
 import { useNotifications, Notification } from '@/hooks/useNotifications';
 import { useEffect } from 'react';
 
-export default function NotificationDropdown() {
+export default function NotificationDropdown({ isMobile }: { isMobile?: boolean }) {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
 
   useEffect(() => {
     if (unreadCount > 0) {
       markAllAsRead();
     }
-  }, [unreadCount, markAllAsRead]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
-    <div className="absolute right-0 top-full mt-2 w-80 bg-[#141414] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50">
+    <div className={isMobile ? "w-full bg-[#141414] border border-white/10 rounded-2xl shadow-2xl overflow-hidden" : "absolute right-0 top-full mt-2 w-80 bg-[#141414] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50"}>
       <div className="p-4 border-b border-white/10 flex justify-between items-center bg-white/5">
         <h3 className="font-bold text-white">Notifications</h3>
         {unreadCount > 0 && (

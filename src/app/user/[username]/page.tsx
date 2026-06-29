@@ -13,6 +13,8 @@ import { getRankTheme } from "@/lib/ranks";
 import * as Icons from "lucide-react";
 
 const MatrixRain = () => {
+  const [opacity, setOpacity] = useState(0.4);
+
   useEffect(() => {
     const canvas = document.getElementById('matrix-canvas') as HTMLCanvasElement;
     if (!canvas) return;
@@ -61,13 +63,27 @@ const MatrixRain = () => {
     };
     window.addEventListener('resize', handleResize);
     
+    // Fade out after 4 seconds
+    const fadeOutStart = setTimeout(() => {
+      setOpacity(0);
+    }, 4000);
+
     return () => {
       clearInterval(interval);
+      clearTimeout(fadeOutStart);
       window.removeEventListener('resize', handleResize);
     };
   }, []);
 
-  return <canvas id="matrix-canvas" className="fixed inset-0 z-50 pointer-events-none opacity-40 mix-blend-screen" />;
+  if (opacity === 0) return null;
+
+  return (
+    <canvas 
+      id="matrix-canvas" 
+      className="fixed inset-0 z-50 pointer-events-none mix-blend-screen transition-opacity duration-1000 ease-out"
+      style={{ opacity }}
+    />
+  );
 };
 
 export default function PublicProfilePage() {

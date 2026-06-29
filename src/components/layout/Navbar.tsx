@@ -198,7 +198,7 @@ export default function Navbar() {
                 <button onClick={() => setShowNotifications(false)} className="absolute -top-10 right-0 text-white">
                   <X className="w-8 h-8" />
                 </button>
-                <NotificationDropdown />
+                <NotificationDropdown isMobile={true} />
               </div>
             </div>
           )}
