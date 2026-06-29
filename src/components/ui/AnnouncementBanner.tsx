@@ -159,6 +159,32 @@ const announcements = [
         </div>
       </div>
     )
+  },
+  {
+    id: 5,
+    tag: "Massive QoL Update",
+    icon: <Sparkles className="w-4 h-4 text-cyan-400" />,
+    theme: "from-cyan-900/80 to-blue-900/80",
+    border: "border-cyan-500/50",
+    shadow: "shadow-[0_0_30px_rgba(34,211,238,0.25)]",
+    tagBg: "bg-cyan-600 shadow-cyan-500/50",
+    title: "Privacy, Fluid UI, & Direct Messaging",
+    author: null,
+    shortMessage: "We've added Private Profiles, Mutual Messaging, Custom Toasts, and ultra-fluid animations across the app!",
+    link: null,
+    buttonText: null,
+    content: (
+      <div className="space-y-4 text-cyan-100">
+        <h3 className="text-lg font-bold text-cyan-300">Huge Quality of Life Improvements</h3>
+        <ul className="pl-4 text-sm leading-relaxed space-y-2 list-disc list-inside">
+          <li><strong className="text-white">Private Profiles:</strong> You can now set your profile to private! Only users who you follow back (mutuals) can see your activity.</li>
+          <li><strong className="text-white">Mutual Direct Messaging:</strong> A brand new, secure Direct Message system. You can only message mutual followers, preventing spam!</li>
+          <li><strong className="text-white">Custom Toasts:</strong> Removed all ugly native browser alerts! We built a gorgeous, non-intrusive Toast Notification system that glides in from the top right.</li>
+          <li><strong className="text-white">Fluid Animations:</strong> Anime cards now feature a premium, inline hover scale effect instead of the clunky portal pop-out. Modal scroll bleed has also been fully locked down!</li>
+          <li><strong className="text-white">Smartphone Upgrades:</strong> A brand new bottom navigation bar for an app-like experience on mobile devices!</li>
+        </ul>
+      </div>
+    )
   }
 ];
 
