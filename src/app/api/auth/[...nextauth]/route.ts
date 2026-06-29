@@ -9,10 +9,15 @@ const handler = NextAuth({
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET || "davinci_super_secret",
+  debug: true,
   callbacks: {
     async session({ session, token }) {
       return session;
     },
+    async signIn({ user, account, profile }) {
+      // Allow sign in even if some profile fields are missing, let DiscordSync handle it
+      return true;
+    }
   },
 });
 
