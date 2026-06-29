@@ -12,6 +12,7 @@ export default function DiscordSync() {
     if (status === 'authenticated' && session?.user && !user && !syncAttempted.current) {
       syncAttempted.current = true;
       const sync = async () => {
+        if (!session?.user) return;
         const { name, email, image } = session.user;
         if (!email) return;
         
