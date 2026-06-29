@@ -95,25 +95,30 @@ export default function ProfileTrackerPage() {
           <>
             <motion.img 
               initial={{ opacity: 0 }}
-              animate={{ opacity: 0.3 }}
-              transition={{ duration: 1 }}
+              animate={{ opacity: 0.6 }}
+              transition={{ duration: 1.5, ease: "easeOut" }}
               src={user.bannerUrl} 
               alt="Background Banner" 
               className="w-full h-full object-cover" 
             />
-            {/* Gradient overlay to ensure text remains readable */}
-            <div className="absolute inset-0 bg-gradient-to-b from-[#09090b]/40 via-[#09090b]/80 to-[#09090b]"></div>
+            {/* Fade to black only at the bottom */}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/50 to-transparent"></div>
           </>
         ) : (
           <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-indigo-500/10 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/4 z-0"></div>
         )}
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-12">
+      <motion.div 
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        className="relative z-10 max-w-7xl mx-auto px-4 md:px-12"
+      >
         
         {/* Profile Header */}
         {user && (
-          <div className="flex flex-col md:flex-row items-end gap-6 bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl mb-10 shadow-2xl p-8 pt-32">
+          <div className="flex flex-col md:flex-row items-end gap-6 bg-black/40 backdrop-blur-xl border border-white/10 rounded-3xl mb-10 shadow-2xl p-8 pt-32">
             <div className="relative z-10 flex flex-col md:flex-row items-end gap-6 w-full">
               <div 
                 className="relative group cursor-pointer" 
@@ -366,7 +371,7 @@ export default function ProfileTrackerPage() {
           )}
         </AnimatePresence>
 
-      </div>
+      </motion.div>
       
       {modalData && (
         <FollowListModal

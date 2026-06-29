@@ -80,23 +80,29 @@ export default function PublicProfilePage() {
           <>
             <motion.img 
               initial={{ opacity: 0 }}
-              animate={{ opacity: 0.3 }}
-              transition={{ duration: 1 }}
+              animate={{ opacity: 0.6 }}
+              transition={{ duration: 1.5, ease: "easeOut" }}
               src={profileUser.bannerUrl} 
               alt="Background Banner" 
               className="w-full h-full object-cover" 
             />
-            <div className="absolute inset-0 bg-gradient-to-b from-[#09090b]/40 via-[#09090b]/80 to-[#09090b]"></div>
+            {/* Fade to black only at the bottom */}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/50 to-transparent"></div>
           </>
         ) : (
           <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-indigo-500/10 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/4 z-0"></div>
         )}
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-12">
+      <motion.div 
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        className="relative z-10 max-w-7xl mx-auto px-4 md:px-12"
+      >
         
         {/* Profile Header */}
-        <div className="flex flex-col md:flex-row items-end gap-6 bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl mb-10 shadow-2xl p-8 pt-32">
+        <div className="flex flex-col md:flex-row items-end gap-6 bg-black/40 backdrop-blur-xl border border-white/10 rounded-3xl mb-10 shadow-2xl p-8 pt-32">
           
           <div className="relative z-10 flex flex-col md:flex-row items-end gap-6 w-full">
             <div 
@@ -194,26 +200,36 @@ export default function PublicProfilePage() {
             This user hasn't tracked any anime yet!
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-            {filteredWatchlist.map(item => (
-              <div key={item.id} className="relative group">
-                <Link href={`/anime/${item.anilistId}`}>
-                  <div className="aspect-[2/3] rounded-xl overflow-hidden cursor-pointer relative bg-slate-800">
-                    <img src={item.coverImage} alt={item.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
-                      <p className="font-bold text-white text-sm line-clamp-2">{item.title}</p>
+          <motion.div layout className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+            <AnimatePresence>
+              {filteredWatchlist.map(item => (
+                <motion.div 
+                  layout
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.2 }}
+                  key={item.id} 
+                  className="relative group"
+                >
+                  <Link href={`/anime/${item.anilistId}`}>
+                    <div className="aspect-[2/3] rounded-xl overflow-hidden cursor-pointer relative bg-slate-800">
+                      <img src={item.coverImage} alt={item.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                        <p className="font-bold text-white text-sm line-clamp-2">{item.title}</p>
+                      </div>
                     </div>
+                  </Link>
+                  <div className="absolute -top-3 -right-3 z-50 bg-[#141414] border border-white/20 px-3 py-1 rounded-full text-xs font-bold text-indigo-300 shadow-xl capitalize">
+                    {item.status.toLowerCase()}
                   </div>
-                </Link>
-                <div className="absolute -top-3 -right-3 z-50 bg-[#141414] border border-white/20 px-3 py-1 rounded-full text-xs font-bold text-indigo-300 shadow-xl capitalize">
-                  {item.status.toLowerCase()}
-                </div>
-              </div>
-            ))}
-          </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
         )}
         
-      </div>
+      </motion.div>
 
       {modalData && (
         <FollowListModal
