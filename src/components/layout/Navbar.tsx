@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut, Users, Palette, Menu, X, Bell } from 'lucide-react';
+import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut, Users, Palette, Menu, X, Bell, MessageSquare } from 'lucide-react';
 import LoginModal from './LoginModal';
 import NotificationDropdown from './NotificationDropdown';
 import SearchModal from './SearchModal';
