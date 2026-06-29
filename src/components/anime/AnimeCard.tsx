@@ -2,10 +2,12 @@
 
 import { useState, useRef } from 'react';
 import Link from 'next/link';
-import { Info, Clock, Play, Plus, ThumbsUp, ChevronDown } from 'lucide-react';
+import { Info, Clock, Play, Plus, ThumbsUp, ChevronDown, Check } from 'lucide-react';
 import { AniListAnime } from '@/lib/anilist';
 import AnimeStatusBadge from './AnimeStatusBadge';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAnimeStatus } from '@/hooks/useAnimeStatus';
+import { useToast } from '@/components/ui/Toast';
 
 interface AnimeCardProps {
   anime: AniListAnime;
@@ -13,7 +15,14 @@ interface AnimeCardProps {
 
 export default function AnimeCard({ anime }: AnimeCardProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const { getStatus, setStatus } = useAnimeStatus();
+  const { toast } = useToast();
+  
+  const currentStatus = getStatus(anime.id);
+  const isInWatchlist = currentStatus !== "None";
 
   const handleMouseEnter = () => {
     // Disable hover popups on touch devices (Android Web / iOS) for a fluid UI
@@ -89,15 +98,43 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
                 
                 {/* Action Buttons */}
                 <div className="flex items-center gap-1.5 mb-2">
+                   {/* Play and Chevron naturally trigger the parent <Link> */}
                    <button className="w-7 h-7 md:w-8 md:h-8 bg-white text-black flex items-center justify-center rounded-full hover:bg-slate-200 transition-colors">
                      <Play className="w-3.5 h-3.5 md:w-4 md:h-4 fill-current ml-0.5" />
                    </button>
-                   <button className="w-7 h-7 md:w-8 md:h-8 border-2 border-slate-400 text-white flex items-center justify-center rounded-full hover:border-white hover:bg-white/10 transition-colors">
-                     <Plus className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                   
+                   <button 
+                     onClick={(e) => {
+                       e.preventDefault();
+                       setStatus(anime, isInWatchlist ? "None" : "Interested");
+                       toast(isInWatchlist ? "Removed from Watchlist" : "Added to Watchlist", "success");
+                     }}
+                     className={`w-7 h-7 md:w-8 md:h-8 border-2 flex items-center justify-center rounded-full transition-colors ${
+                       isInWatchlist 
+                         ? "border-indigo-400 text-indigo-400 bg-indigo-500/10 hover:border-indigo-300 hover:text-indigo-300" 
+                         : "border-slate-400 text-white hover:border-white hover:bg-white/10"
+                     }`}
+                     title="Watchlist"
+                   >
+                     {isInWatchlist ? <Check className="w-3.5 h-3.5 md:w-4 md:h-4" /> : <Plus className="w-3.5 h-3.5 md:w-4 md:h-4" />}
                    </button>
-                   <button className="w-7 h-7 md:w-8 md:h-8 border-2 border-slate-400 text-white flex items-center justify-center rounded-full hover:border-white hover:bg-white/10 transition-colors">
-                     <ThumbsUp className="w-3.5 h-3.5 md:w-4 md:h-4" />
+
+                   <button 
+                     onClick={(e) => {
+                       e.preventDefault();
+                       setIsLiked(!isLiked);
+                       toast(isLiked ? "Removed Like" : "Liked Anime", "success");
+                     }}
+                     className={`w-7 h-7 md:w-8 md:h-8 border-2 flex items-center justify-center rounded-full transition-colors ${
+                       isLiked 
+                         ? "border-green-400 text-green-400 bg-green-500/10 hover:border-green-300 hover:text-green-300" 
+                         : "border-slate-400 text-white hover:border-white hover:bg-white/10"
+                     }`}
+                     title="Like"
+                   >
+                     <ThumbsUp className={`w-3.5 h-3.5 md:w-4 md:h-4 ${isLiked ? "fill-current" : ""}`} />
                    </button>
+
                    <button className="w-7 h-7 md:w-8 md:h-8 border-2 border-slate-400 text-white flex items-center justify-center rounded-full hover:border-white hover:bg-white/10 transition-colors ml-auto">
                      <ChevronDown className="w-3.5 h-3.5 md:w-4 md:h-4" />
                    </button>
