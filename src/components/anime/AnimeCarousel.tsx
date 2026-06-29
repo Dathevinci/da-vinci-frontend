@@ -31,15 +31,15 @@ export default function AnimeCarousel({ title, animes }: AnimeCarouselProps) {
       <div className="relative">
         <button 
           onClick={() => handleScroll('left')}
-          className="absolute left-0 top-0 bottom-0 z-40 w-16 bg-gradient-to-r from-[#09090b] via-[#09090b]/80 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-start pl-2 hover:w-20 hover:from-[#141414]"
+          className="absolute left-0 md:-left-4 top-1/2 -translate-y-1/2 z-40 w-10 h-10 md:w-12 md:h-12 bg-black/60 border border-white/10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-black/80 hover:scale-110 hover:border-indigo-500/50 transition-all backdrop-blur-md shadow-2xl"
         >
-          <ChevronLeft className="w-8 h-8 text-white transition-transform hover:scale-125 hover:text-indigo-400 drop-shadow-2xl" />
+          <ChevronLeft className="w-6 h-6 md:w-8 md:h-8 text-white transition-transform hover:text-indigo-400" />
         </button>
 
         <div 
           ref={rowRef}
           style={{ willChange: "scroll-position, transform" }}
-          className="flex gap-2 md:gap-4 overflow-x-auto hide-scrollbar scroll-smooth px-2 pt-28 pb-32 -mt-24 -mb-24 snap-x snap-mandatory"
+          className="flex gap-2 md:gap-4 overflow-x-auto hide-scrollbar scroll-smooth px-2 pt-8 pb-12 -mt-4 -mb-4 snap-x snap-mandatory"
         >
           {animes.map(a => <AnimeCard key={a.id} anime={a} />)}
           
@@ -58,9 +58,9 @@ export default function AnimeCarousel({ title, animes }: AnimeCarouselProps) {
 
         <button 
           onClick={() => handleScroll('right')}
-          className="absolute right-0 top-0 bottom-0 z-40 w-16 bg-gradient-to-l from-[#09090b] via-[#09090b]/80 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-end pr-2 hover:w-20 hover:from-[#141414]"
+          className="absolute right-0 md:-right-4 top-1/2 -translate-y-1/2 z-40 w-10 h-10 md:w-12 md:h-12 bg-black/60 border border-white/10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-black/80 hover:scale-110 hover:border-indigo-500/50 transition-all backdrop-blur-md shadow-2xl"
         >
-          <ChevronRight className="w-8 h-8 text-white transition-transform hover:scale-125 hover:text-indigo-400 drop-shadow-2xl" />
+          <ChevronRight className="w-6 h-6 md:w-8 md:h-8 text-white transition-transform hover:text-indigo-400" />
         </button>
       </div>
     </div>
