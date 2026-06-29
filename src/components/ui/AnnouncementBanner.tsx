@@ -1,10 +1,27 @@
 "use client";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, ChevronLeft, ChevronRight, Megaphone, Zap, Sparkles, UserCheck, Play } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Megaphone, Zap, Sparkles, UserCheck } from "lucide-react";
 import Link from "next/link";
 
-const announcements = [
+interface Announcement {
+  id: number;
+  tag: string;
+  icon: React.ReactNode;
+  theme: string;
+  border: string;
+  shadow: string;
+  tagBg: string;
+  title: string;
+  author: string | null;
+  authorColor?: string;
+  shortMessage: string;
+  link: string | null;
+  buttonText: string | null;
+  content: React.ReactNode;
+}
+
+const announcements: Announcement[] = [
   {
     id: 0,
     tag: "Massive UI Overhaul",
