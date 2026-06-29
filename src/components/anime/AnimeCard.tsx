@@ -42,37 +42,42 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
   const nextEp = anime.nextAiringEpisode;
 
   return (
-    <>
+    <div 
+      className="relative group w-[160px] md:w-[220px] aspect-[2/3] flex-shrink-0 snap-start"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       {/* Base Card */}
-      <div 
-        ref={cardRef}
-        className="relative group w-[160px] md:w-[220px] aspect-[2/3] rounded-xl overflow-hidden cursor-pointer flex-shrink-0 shadow-xl border border-white/5 bg-[#141414] snap-start"
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-      >
-        <img 
-          src={imageUrl} 
-          alt={title} 
-          className="object-cover w-full h-full"
-        />
-        <div className="absolute top-2 left-2 right-2 flex justify-between items-start gap-1">
-          <AnimeStatusBadge status={anime.status} />
-          {anime.averageScore && (
-            <span className="bg-indigo-600/90 text-white px-1.5 py-0.5 rounded text-[10px] font-bold shadow-md backdrop-blur-sm">
-              ★ {anime.averageScore}
-            </span>
-          )}
+      <Link href={`/anime/${anime.id}`} className="block w-full h-full">
+        <div 
+          ref={cardRef}
+          className="relative w-full h-full cursor-pointer rounded-xl overflow-hidden shadow-xl border border-white/5 bg-[#141414]"
+        >
+          <img 
+            src={imageUrl} 
+            alt={title} 
+            className="object-cover w-full h-full"
+          />
+          <div className="absolute top-2 left-2 right-2 flex justify-between items-start gap-1">
+            <AnimeStatusBadge status={anime.status} />
+            {anime.averageScore && (
+              <span className="bg-indigo-600/90 text-white px-1.5 py-0.5 rounded text-[10px] font-bold shadow-md backdrop-blur-sm">
+                ★ {anime.averageScore}
+              </span>
+            )}
+          </div>
         </div>
-      </div>
+      </Link>
 
       {/* Pop-Out Hover Card (Netflix Style via Portal) */}
+      {/* Because this Portal is a React child of the wrapping div, React's synthetic onMouseLeave 
+          won't fire when the mouse moves from the base card into the Portal! */}
       {mounted && createPortal(
         <AnimatePresence>
           {isHovered && rect && (
             <div 
               className="fixed inset-0 z-[100] pointer-events-none" 
               style={{ pointerEvents: isHovered ? 'auto' : 'none' }}
-              onMouseLeave={handleMouseLeave}
             >
               {/* Global Backdrop Blur */}
               <motion.div 
@@ -101,16 +106,18 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
                 }}
               >
                 {/* Banner/Video Area */}
-                <div className="relative w-full aspect-[16/10] bg-black">
-                  <img src={bannerUrl} alt={title} className="w-full h-full object-cover opacity-80" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#18181b] via-[#18181b]/20 to-transparent" />
-                  <div className="absolute bottom-2 left-3 right-3 flex items-end justify-between">
-                    <h3 className="font-black text-sm md:text-base text-white leading-tight drop-shadow-md line-clamp-2 w-3/4">{title}</h3>
-                    <button className="bg-white text-black p-1.5 rounded-full hover:bg-slate-200 transition shadow-lg shrink-0">
-                      <PlayCircle className="w-5 h-5 fill-black" />
-                    </button>
+                <Link href={`/anime/${anime.id}`}>
+                  <div className="relative w-full aspect-[16/10] bg-black cursor-pointer group/banner">
+                    <img src={bannerUrl} alt={title} className="w-full h-full object-cover opacity-80 transition group-hover/banner:opacity-100" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#18181b] via-[#18181b]/20 to-transparent" />
+                    <div className="absolute bottom-2 left-3 right-3 flex items-end justify-between">
+                      <h3 className="font-black text-sm md:text-base text-white leading-tight drop-shadow-md line-clamp-2 w-3/4">{title}</h3>
+                      <button className="bg-white text-black p-1.5 rounded-full hover:bg-slate-200 transition shadow-lg shrink-0">
+                        <PlayCircle className="w-5 h-5 fill-black" />
+                      </button>
+                    </div>
                   </div>
-                </div>
+                </Link>
 
                 {/* Info Area */}
                 <div className="p-3 flex flex-col gap-2">
@@ -137,11 +144,11 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
 
                   <div className="grid grid-cols-2 gap-2 mt-1">
                     <Link href={`/anime/${anime.id}`} className="block">
-                      <button className="w-full py-1.5 flex items-center justify-center gap-1.5 bg-white/10 hover:bg-white/20 text-white rounded text-[10px] font-bold transition">
+                      <button className="w-full py-1.5 flex items-center justify-center gap-1.5 bg-white/10 hover:bg-white/20 text-white rounded text-[10px] font-bold transition cursor-pointer">
                         <Info className="w-3.5 h-3.5" /> Details
                       </button>
                     </Link>
-                    <button className="w-full py-1.5 flex items-center justify-center gap-1.5 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 rounded text-[10px] font-bold transition">
+                    <button className="w-full py-1.5 flex items-center justify-center gap-1.5 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 rounded text-[10px] font-bold transition cursor-pointer">
                       <Plus className="w-3.5 h-3.5" /> List
                     </button>
                   </div>
@@ -152,6 +159,6 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
         </AnimatePresence>,
         document.body
       )}
-    </>
+    </div>
   );
 }
