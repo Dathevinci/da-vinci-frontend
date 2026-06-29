@@ -5,6 +5,7 @@ import { Clock, ExternalLink, Calendar as CalendarIcon, Hash } from "lucide-reac
 import AnimeStatusBadge from "@/components/anime/AnimeStatusBadge";
 import AnimeTrackerPanel from "@/components/anime/AnimeTrackerPanel";
 import AnimeBackgroundTrailer from "@/components/anime/AnimeBackgroundTrailer";
+import AnimeTabs from "@/components/anime/AnimeTabs";
 
 export const revalidate = 3600;
 
