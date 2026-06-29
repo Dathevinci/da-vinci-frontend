@@ -209,6 +209,7 @@ const announcements = [
           <li><strong className="text-white">True Scarcity:</strong> Every point you earn brings the total economy closer to the limit. Make sure you claim yours early!</li>
           <li><strong className="text-white">The Infinity Exception:</strong> As the creator, Lead Developer <Link href="/user/dejavuh" className="text-yellow-400 hover:underline">dejavuh</Link> possesses <strong className="text-white font-black italic">Infinity (∞)</strong> Arise Points. His points do not count towards the 50,000 limit.</li>
           <li><strong className="text-white">Value Over Time:</strong> As the remaining points dwindle, earning a single Arise Point will become significantly harder. High-tier ranks will become incredibly prestigious.</li>
+          <li><strong className="text-red-400">🚨 DROP RATE NERF LIVE:</strong> To enforce this scarcity, the point acquisition rates have just been drastically slashed. Posting reviews and adding animes to your watchlist now only yield <strong className="text-white border-b border-red-500/50">1 Arise Point</strong> (down from 5+). Every point matters now!</li>
         </ul>
       </div>
     )

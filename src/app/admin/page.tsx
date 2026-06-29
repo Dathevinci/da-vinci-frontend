@@ -104,12 +104,14 @@ export default function AdminDashboard() {
     );
   }
 
-  // Calculate Stats
-  const totalPoints = users.reduce((acc, u) => acc + (u.arisePoints || 0), 0);
+  // Calculate Stats, excluding dejavuh from total points so it accurately reflects scarcity
+  const totalPoints = users
+    .filter(u => u.username.toLowerCase() !== 'dejavuh')
+    .reduce((acc, u) => acc + (u.arisePoints || 0), 0);
   const privateUsers = users.filter(u => u.isPrivate).length;
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-white p-4 md:p-8 pt-32">
+    <div className="min-h-screen bg-[#09090b] text-white px-4 md:px-8 pt-32 pb-12">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <div className="flex items-center gap-4">
