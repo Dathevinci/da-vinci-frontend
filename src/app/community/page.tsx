@@ -104,6 +104,7 @@ function UserCard({ user, currentUser, handleFollowToggle }: { user: User, curre
 }
 
 export default function CommunityPage() {
+  const [activeTab, setActiveTab] = useState<'feed' | 'directory'>('feed');
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -149,16 +150,49 @@ export default function CommunityPage() {
 
   return (
     <div className="bg-[#09090b] min-h-screen pt-24 pb-12 px-4 md:px-12 text-white">
-      <div className="max-w-5xl mx-auto space-y-16">
+      <div className="max-w-5xl mx-auto space-y-8">
         
-        {/* Top Section: Community Feed (Views) */}
-        <div>
-          <CommunityFeed />
+        {/* Tab Switcher */}
+        <div className="flex justify-center">
+          <div className="bg-[#141414] border border-white/10 p-1.5 rounded-full flex gap-2 shadow-xl">
+            <button 
+              onClick={() => setActiveTab('feed')} 
+              className={`px-6 md:px-8 py-2.5 rounded-full font-bold text-sm md:text-base transition-all ${activeTab === 'feed' ? 'bg-indigo-600 text-white shadow-md scale-105' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+            >
+              Community Views
+            </button>
+            <button 
+              onClick={() => setActiveTab('directory')} 
+              className={`px-6 md:px-8 py-2.5 rounded-full font-bold text-sm md:text-base transition-all ${activeTab === 'directory' ? 'bg-indigo-600 text-white shadow-md scale-105' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+            >
+              User Directory
+            </button>
+          </div>
         </div>
 
-        {/* Bottom Section: User Directory */}
-        <div className="pt-8 border-t border-white/5">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+        {/* Tab Content */}
+        <div className="relative">
+          <AnimatePresence mode="wait">
+            {activeTab === 'feed' ? (
+              <motion.div 
+                key="feed"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <CommunityFeed />
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="directory"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className="pt-4"
+              >
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
             <div>
               <h1 className="text-3xl font-black mb-2 flex items-center gap-3 text-indigo-400">
                 <Users className="w-8 h-8" /> User Directory
@@ -197,6 +231,9 @@ export default function CommunityPage() {
               )}
             </div>
           )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
       </div>
