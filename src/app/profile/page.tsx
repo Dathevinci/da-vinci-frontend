@@ -64,7 +64,7 @@ export default function ProfileTrackerPage() {
     { id: "Finished", icon: Check },
   ];
 
-  const handleImageUpload = async (file: File | Blob, isBanner: boolean = false) => {
+  const handleImageUpload = async (file: File | Blob, isBanner: boolean = false, isGif: boolean = false) => {
     const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
     const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
@@ -87,8 +87,12 @@ export default function ProfileTrackerPage() {
       });
       const data = await res.json();
       if (data.secure_url) {
-        if (isBanner) await updateProfile({ bannerUrl: data.secure_url });
-        else await updateProfile({ avatar: data.secure_url });
+        let finalUrl = data.secure_url;
+        if (isGif) {
+          finalUrl = finalUrl.replace(/\.[^/.]+$/, ".gif");
+        }
+        if (isBanner) await updateProfile({ bannerUrl: finalUrl });
+        else await updateProfile({ avatar: finalUrl });
       }
     } catch (err) {
       console.error("Upload failed", err);
@@ -104,20 +108,23 @@ export default function ProfileTrackerPage() {
     if (!file) return;
 
     e.target.value = ''; // Reset input so same file can be selected again
+    const isGif = file.type === 'image/gif';
     
-    if (file.type === 'image/gif') {
-      if (isBanner) {
+    if (isBanner) {
+      if (isGif) {
         if (user?.username !== "dejavuh" && (user?.arisePoints || 0) < 500) {
           toast("Animated GIF banners require 500 Arise Points or Lead Dev status!", "error");
           return;
         }
-        // Bypass cropping for GIFs to preserve animation
-        handleImageUpload(file, true);
-        return;
-      } else {
-        toast("GIF avatars are not supported.", "error");
-        return;
       }
+      // Always bypass cropping for banners (users want to upload raw backgrounds)
+      handleImageUpload(file, true, isGif);
+      return;
+    }
+
+    if (isGif && !isBanner) {
+      toast("GIF avatars are not supported.", "error");
+      return;
     }
 
     const reader = new FileReader();
