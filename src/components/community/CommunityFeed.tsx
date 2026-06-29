@@ -67,6 +67,162 @@ const buildCommentTree = (comments: Comment[]): CommentNode[] => {
   return roots;
 };
 
+const CommentThread = ({
+  node,
+  depth = 0,
+  user,
+  replyingToId,
+  setReplyingToId,
+  replyContent,
+  setReplyContent,
+  handlePost,
+  isReplying,
+  handleVote,
+  handleDelete
+}: {
+  node: CommentNode;
+  depth?: number;
+  user: any;
+  replyingToId: string | null;
+  setReplyingToId: (id: string | null) => void;
+  replyContent: string;
+  setReplyContent: (val: string) => void;
+  handlePost: (parentId: string | null, content: string) => void;
+  isReplying: boolean;
+  handleVote: (id: string, val: number) => void;
+  handleDelete: (id: string) => void;
+}) => {
+  const maxDepth = 4;
+  const currentDepth = Math.min(depth, maxDepth);
+  const isDeep = depth >= maxDepth;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, height: 0 }}
+      className={`relative ${depth > 0 ? 'mt-4' : 'mb-6'}`}
+    >
+      {depth > 0 && !isDeep && (
+        <div className="absolute top-0 -left-4 sm:-left-6 md:-left-8 bottom-0 w-px bg-white/10" />
+      )}
+      
+      <div className="bg-[#0f0f11] border border-white/5 rounded-xl flex overflow-hidden shadow-lg relative z-10">
+        {/* Vote Bar */}
+        <div className="bg-black/40 p-2 sm:p-4 flex flex-col items-center gap-1 border-r border-white/5 min-w-[40px] sm:min-w-[60px]">
+          <button 
+            onClick={() => handleVote(node.id, 1)}
+            className={`p-1 rounded transition ${node.userVote === 1 ? 'text-orange-500 bg-orange-500/10' : 'text-slate-500 hover:text-orange-500 hover:bg-white/5'}`}
+          >
+            <ArrowUp className="w-4 h-4 sm:w-6 sm:h-6" />
+          </button>
+          <span className={`font-black text-xs sm:text-base ${node.userVote === 1 ? 'text-orange-500' : node.userVote === -1 ? 'text-indigo-500' : 'text-white'}`}>
+            {node.score}
+          </span>
+          <button 
+            onClick={() => handleVote(node.id, -1)}
+            className={`p-1 rounded transition ${node.userVote === -1 ? 'text-indigo-500 bg-indigo-500/10' : 'text-slate-500 hover:text-indigo-500 hover:bg-white/5'}`}
+          >
+            <ArrowDown className="w-4 h-4 sm:w-6 sm:h-6" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-3 sm:p-4 flex-1 overflow-hidden">
+          <div className="flex items-center justify-between mb-2">
+            <Link href={`/user/${node.user.username}`} className="flex items-center gap-2 group">
+              <img src={node.user.avatar || 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=100&q=80'} className="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover" />
+              <span className="font-bold text-sm sm:text-base text-indigo-300 group-hover:text-indigo-400 transition truncate max-w-[100px] sm:max-w-[200px]">{node.user.username}</span>
+              <span className="text-[10px] sm:text-xs text-slate-500 whitespace-nowrap">• {timeAgo(node.createdAt)}</span>
+            </Link>
+            
+            <div className="flex items-center gap-1 shrink-0">
+              {user && (
+                <button 
+                  onClick={() => setReplyingToId(replyingToId === node.id ? null : node.id)}
+                  className="text-slate-500 hover:text-indigo-400 p-1 sm:p-1.5 rounded hover:bg-indigo-500/10 transition flex items-center gap-1 text-xs font-bold"
+                >
+                  <CornerDownRight className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Reply</span>
+                </button>
+              )}
+              {user?.id === node.user.id && (
+                <button 
+                  onClick={() => handleDelete(node.id)}
+                  className="text-slate-500 hover:text-red-500 p-1 sm:p-1.5 rounded hover:bg-red-500/10 transition"
+                  title="Delete Post"
+                >
+                  <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+          
+          <p className="text-slate-200 text-sm sm:text-base leading-relaxed whitespace-pre-wrap break-words">{node.content}</p>
+
+          {/* Reply Input Box */}
+          <AnimatePresence>
+            {replyingToId === node.id && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-4"
+              >
+                <div className="bg-[#141414] border border-white/10 rounded-lg p-2 sm:p-3">
+                  <textarea
+                    value={replyContent}
+                    onChange={(e) => setReplyContent(e.target.value)}
+                    placeholder={`Replying to @${node.user.username}...`}
+                    className="w-full bg-transparent text-white placeholder-slate-500 text-sm sm:text-base resize-none outline-none min-h-[60px]"
+                    autoFocus
+                  />
+                  <div className="flex justify-end gap-2 mt-2 pt-2 border-t border-white/5">
+                    <button
+                      onClick={() => setReplyingToId(null)}
+                      className="text-slate-400 hover:text-white px-3 py-1.5 rounded text-xs sm:text-sm font-bold transition"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => handlePost(node.id, replyContent)}
+                      disabled={isReplying || !replyContent.trim()}
+                      className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold transition"
+                    >
+                      {isReplying ? 'Replying...' : 'Reply'}
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* Render Children (Replies) */}
+      {node.children.length > 0 && (
+        <div className={isDeep ? "ml-0 mt-4" : "ml-4 sm:ml-8 md:ml-12 mt-4"}>
+          {node.children.map(child => (
+            <CommentThread 
+              key={child.id} 
+              node={child} 
+              depth={currentDepth + 1}
+              user={user}
+              replyingToId={replyingToId}
+              setReplyingToId={setReplyingToId}
+              replyContent={replyContent}
+              setReplyContent={setReplyContent}
+              handlePost={handlePost}
+              isReplying={isReplying}
+              handleVote={handleVote}
+              handleDelete={handleDelete}
+            />
+          ))}
+        </div>
+      )}
+    </motion.div>
+  );
+};
+
 export default function CommunityFeed({ animeId }: { animeId?: number }) {
   const { user } = useUser();
   const [comments, setComments] = useState<Comment[]>([]);
@@ -209,126 +365,6 @@ export default function CommunityFeed({ animeId }: { animeId?: number }) {
   };
 
   const commentTree = buildCommentTree(comments);
-
-  const CommentThread = ({ node, depth = 0 }: { node: CommentNode; depth?: number }) => {
-    // Max indentation depth to prevent mobile squish
-    const maxDepth = 4;
-    const currentDepth = Math.min(depth, maxDepth);
-    const isDeep = depth >= maxDepth;
-
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, height: 0 }}
-        className={`relative ${depth > 0 ? 'mt-4' : 'mb-6'}`}
-      >
-        {depth > 0 && !isDeep && (
-          <div className="absolute top-0 -left-4 sm:-left-6 md:-left-8 bottom-0 w-px bg-white/10" />
-        )}
-        
-        <div className="bg-[#0f0f11] border border-white/5 rounded-xl flex overflow-hidden shadow-lg relative z-10">
-          {/* Vote Bar */}
-          <div className="bg-black/40 p-2 sm:p-4 flex flex-col items-center gap-1 border-r border-white/5 min-w-[40px] sm:min-w-[60px]">
-            <button 
-              onClick={() => handleVote(node.id, 1)}
-              className={`p-1 rounded transition ${node.userVote === 1 ? 'text-orange-500 bg-orange-500/10' : 'text-slate-500 hover:text-orange-500 hover:bg-white/5'}`}
-            >
-              <ArrowUp className="w-4 h-4 sm:w-6 sm:h-6" />
-            </button>
-            <span className={`font-black text-xs sm:text-base ${node.userVote === 1 ? 'text-orange-500' : node.userVote === -1 ? 'text-indigo-500' : 'text-white'}`}>
-              {node.score}
-            </span>
-            <button 
-              onClick={() => handleVote(node.id, -1)}
-              className={`p-1 rounded transition ${node.userVote === -1 ? 'text-indigo-500 bg-indigo-500/10' : 'text-slate-500 hover:text-indigo-500 hover:bg-white/5'}`}
-            >
-              <ArrowDown className="w-4 h-4 sm:w-6 sm:h-6" />
-            </button>
-          </div>
-
-          {/* Content */}
-          <div className="p-3 sm:p-4 flex-1">
-            <div className="flex items-center justify-between mb-2">
-              <Link href={`/user/${node.user.username}`} className="flex items-center gap-2 group">
-                <img src={node.user.avatar || 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=100&q=80'} className="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover" />
-                <span className="font-bold text-sm sm:text-base text-indigo-300 group-hover:text-indigo-400 transition truncate max-w-[100px] sm:max-w-[200px]">{node.user.username}</span>
-                <span className="text-[10px] sm:text-xs text-slate-500 whitespace-nowrap">• {timeAgo(node.createdAt)}</span>
-              </Link>
-              
-              <div className="flex items-center gap-1">
-                {user && (
-                  <button 
-                    onClick={() => setReplyingToId(replyingToId === node.id ? null : node.id)}
-                    className="text-slate-500 hover:text-indigo-400 p-1 sm:p-1.5 rounded hover:bg-indigo-500/10 transition flex items-center gap-1 text-xs font-bold"
-                  >
-                    <CornerDownRight className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Reply</span>
-                  </button>
-                )}
-                {user?.id === node.user.id && (
-                  <button 
-                    onClick={() => handleDelete(node.id)}
-                    className="text-slate-500 hover:text-red-500 p-1 sm:p-1.5 rounded hover:bg-red-500/10 transition"
-                    title="Delete Post"
-                  >
-                    <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  </button>
-                )}
-              </div>
-            </div>
-            
-            <p className="text-slate-200 text-sm sm:text-base leading-relaxed whitespace-pre-wrap break-words">{node.content}</p>
-
-            {/* Reply Input Box */}
-            <AnimatePresence>
-              {replyingToId === node.id && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="mt-4"
-                >
-                  <div className="bg-[#141414] border border-white/10 rounded-lg p-2 sm:p-3">
-                    <textarea
-                      value={replyContent}
-                      onChange={(e) => setReplyContent(e.target.value)}
-                      placeholder={`Replying to @${node.user.username}...`}
-                      className="w-full bg-transparent text-white placeholder-slate-500 text-sm sm:text-base resize-none outline-none min-h-[60px]"
-                      autoFocus
-                    />
-                    <div className="flex justify-end gap-2 mt-2 pt-2 border-t border-white/5">
-                      <button
-                        onClick={() => setReplyingToId(null)}
-                        className="text-slate-400 hover:text-white px-3 py-1.5 rounded text-xs sm:text-sm font-bold transition"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={() => handlePost(node.id, replyContent)}
-                        disabled={isReplying || !replyContent.trim()}
-                        className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold transition"
-                      >
-                        {isReplying ? 'Replying...' : 'Reply'}
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-
-        {/* Render Children (Replies) */}
-        {node.children.length > 0 && (
-          <div className={isDeep ? "ml-0 mt-4" : "ml-4 sm:ml-8 md:ml-12 mt-4"}>
-            {node.children.map(child => (
-              <CommentThread key={child.id} node={child} depth={currentDepth + 1} />
-            ))}
-          </div>
-        )}
-      </motion.div>
-    );
-  };
 
   return (
     <div className="w-full max-w-4xl mx-auto px-2 sm:px-4 py-8 relative z-20">
