@@ -8,6 +8,7 @@ import FollowListModal from "@/components/profile/FollowListModal";
 import ImagePreviewModal from "@/components/ui/ImagePreviewModal";
 import ArisePointHistoryModal from "@/components/profile/ArisePointHistoryModal";
 import UnlimitedVoid from "@/components/ui/UnlimitedVoid";
+import SettingsModal from "@/components/profile/SettingsModal";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { getRankTheme } from "@/lib/ranks";
@@ -25,6 +26,7 @@ export default function PublicProfilePage() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [showPointHistory, setShowPointHistory] = useState(false);
   const [showDomainExpansion, setShowDomainExpansion] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   const filterTabs = [
     { id: "All", icon: ListFilter },
@@ -176,7 +178,14 @@ export default function PublicProfilePage() {
             </div>
             
             {!isSelf && currentUser && (
-              <div className="z-10 mb-2">
+              <div className="z-10 mb-2 flex gap-2">
+                {isFollowing && profileUser?.following?.some((f: any) => f.followingId === currentUser.id) && (
+                  <Link href={`/messages?user=${profileUser.username}`}>
+                    <button className="flex items-center gap-2 px-6 py-3 rounded-full font-bold transition shadow-xl bg-slate-800 hover:bg-slate-700 text-white border border-white/10">
+                      <Icons.MessageSquare className="w-5 h-5" /> Message
+                    </button>
+                  </Link>
+                )}
                 <button 
                   onClick={handleFollowToggle}
                   className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition shadow-xl ${isFollowing ? "bg-white/10 hover:bg-red-500/20 hover:text-red-400 text-white" : "bg-indigo-600 hover:bg-indigo-500 text-white"}`}
@@ -188,6 +197,21 @@ export default function PublicProfilePage() {
                   ) : (
                     <><UserPlus className="w-5 h-5" /> Follow</>
                   )}
+                </button>
+              </div>
+            )}
+            {isSelf && (
+              <div className="z-10 mb-2 flex gap-2">
+                <Link href={`/messages`}>
+                  <button className="flex items-center gap-2 px-6 py-3 rounded-full font-bold transition shadow-xl bg-slate-800 hover:bg-slate-700 text-white border border-white/10">
+                    <Icons.MessageSquare className="w-5 h-5" /> Messages
+                  </button>
+                </Link>
+                <button 
+                  onClick={() => setShowSettings(true)}
+                  className="flex items-center gap-2 px-6 py-3 rounded-full font-bold transition shadow-xl bg-indigo-600 hover:bg-indigo-500 text-white"
+                >
+                  <Icons.Settings className="w-5 h-5" /> Settings
                 </button>
               </div>
             )}
@@ -268,6 +292,14 @@ export default function PublicProfilePage() {
         <ArisePointHistoryModal
           userId={profileUser.id}
           onClose={() => setShowPointHistory(false)}
+        />
+      )}
+
+      {showSettings && (
+        <SettingsModal
+          user={profileUser}
+          onClose={() => setShowSettings(false)}
+          onUpdate={(data: any) => setProfileUser({ ...profileUser, ...data })}
         />
       )}
 
