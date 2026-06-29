@@ -3,11 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '@/hooks/useUser';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, ArrowUp, ArrowDown, Trash2, Send } from 'lucide-react';
+import { MessageSquare, ArrowUp, ArrowDown, Trash2, Send, CornerDownRight } from 'lucide-react';
 import Link from 'next/link';
 
 interface Comment {
   id: string;
+  parentId: string | null;
   content: string;
   createdAt: string;
   score: number;
@@ -18,6 +19,10 @@ interface Comment {
     avatar: string;
     arisePoints: number;
   };
+}
+
+interface CommentNode extends Comment {
+  children: CommentNode[];
 }
 
 const timeAgo = (dateStr: string) => {
@@ -32,18 +37,50 @@ const timeAgo = (dateStr: string) => {
   return `${days}d`;
 };
 
+const buildCommentTree = (comments: Comment[]): CommentNode[] => {
+  const commentMap = new Map<string, CommentNode>();
+  const roots: CommentNode[] = [];
+
+  comments.forEach(c => {
+    commentMap.set(c.id, { ...c, children: [] });
+  });
+
+  comments.forEach(c => {
+    if (c.parentId && commentMap.has(c.parentId)) {
+      commentMap.get(c.parentId)!.children.push(commentMap.get(c.id)!);
+    } else {
+      roots.push(commentMap.get(c.id)!);
+    }
+  });
+
+  // Sort roots (newest first), but children (oldest first, reading chronologically)
+  roots.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  
+  const sortChildren = (nodes: CommentNode[]) => {
+    nodes.forEach(node => {
+      node.children.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      sortChildren(node.children);
+    });
+  };
+  sortChildren(roots);
+
+  return roots;
+};
+
 export default function CommunityFeed({ animeId }: { animeId?: number }) {
   const { user } = useUser();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [isPosting, setIsPosting] = useState(false);
   const [loading, setLoading] = useState(true);
-
   const [error, setError] = useState<string | null>(null);
+
+  const [replyingToId, setReplyingToId] = useState<string | null>(null);
+  const [replyContent, setReplyContent] = useState("");
+  const [isReplying, setIsReplying] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
-  // Auto-hide error after 5 seconds
   useEffect(() => {
     if (error) {
       const timer = setTimeout(() => setError(null), 5000);
@@ -65,7 +102,6 @@ export default function CommunityFeed({ animeId }: { animeId?: number }) {
       }
     } catch (err) {
       console.error(err);
-      // Don't show error toast for fetch, just leave it empty
     } finally {
       setLoading(false);
     }
@@ -75,11 +111,13 @@ export default function CommunityFeed({ animeId }: { animeId?: number }) {
     fetchComments();
   }, [animeId, user?.id]);
 
-  const handlePost = async () => {
+  const handlePost = async (parentId: string | null = null, content: string) => {
     if (!user) return setError("You must be logged in to post.");
-    if (!newComment.trim()) return;
+    if (!content.trim()) return;
 
-    setIsPosting(true);
+    if (parentId) setIsReplying(true);
+    else setIsPosting(true);
+
     setError(null);
     try {
       const res = await fetch(`${API_URL}/api/comments`, {
@@ -88,7 +126,8 @@ export default function CommunityFeed({ animeId }: { animeId?: number }) {
         body: JSON.stringify({
           userId: user.id,
           animeId,
-          content: newComment
+          content,
+          parentId
         })
       });
       
@@ -96,16 +135,22 @@ export default function CommunityFeed({ animeId }: { animeId?: number }) {
       
       const data = await res.json();
       if (data.success) {
-        setNewComment("");
         setComments([data.data, ...comments]);
+        if (parentId) {
+          setReplyingToId(null);
+          setReplyContent("");
+        } else {
+          setNewComment("");
+        }
       } else {
-        throw new Error(data.message || "Failed to post view.");
+        throw new Error(data.message || "Failed to post.");
       }
     } catch (err) {
       console.error(err);
-      setError("Failed to post. Is your backend database synced?");
+      setError("Failed to post. Ensure backend is updated.");
     } finally {
       setIsPosting(false);
+      setIsReplying(false);
     }
   };
 
@@ -117,14 +162,9 @@ export default function CommunityFeed({ animeId }: { animeId?: number }) {
 
     const comment = comments[commentIndex];
     let newValue = value;
-    
-    if (comment.userVote === value) {
-      newValue = 0;
-    }
+    if (comment.userVote === value) newValue = 0;
 
-    const oldVote = comment.userVote;
-    const voteDiff = newValue - oldVote;
-    
+    const voteDiff = newValue - comment.userVote;
     const newComments = [...comments];
     newComments[commentIndex] = {
       ...comment,
@@ -168,48 +208,171 @@ export default function CommunityFeed({ animeId }: { animeId?: number }) {
     }
   };
 
+  const commentTree = buildCommentTree(comments);
+
+  const CommentThread = ({ node, depth = 0 }: { node: CommentNode; depth?: number }) => {
+    // Max indentation depth to prevent mobile squish
+    const maxDepth = 4;
+    const currentDepth = Math.min(depth, maxDepth);
+    const isDeep = depth >= maxDepth;
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, height: 0 }}
+        className={`relative ${depth > 0 ? 'mt-4' : 'mb-6'}`}
+      >
+        {depth > 0 && !isDeep && (
+          <div className="absolute top-0 -left-4 sm:-left-6 md:-left-8 bottom-0 w-px bg-white/10" />
+        )}
+        
+        <div className="bg-[#0f0f11] border border-white/5 rounded-xl flex overflow-hidden shadow-lg relative z-10">
+          {/* Vote Bar */}
+          <div className="bg-black/40 p-2 sm:p-4 flex flex-col items-center gap-1 border-r border-white/5 min-w-[40px] sm:min-w-[60px]">
+            <button 
+              onClick={() => handleVote(node.id, 1)}
+              className={`p-1 rounded transition ${node.userVote === 1 ? 'text-orange-500 bg-orange-500/10' : 'text-slate-500 hover:text-orange-500 hover:bg-white/5'}`}
+            >
+              <ArrowUp className="w-4 h-4 sm:w-6 sm:h-6" />
+            </button>
+            <span className={`font-black text-xs sm:text-base ${node.userVote === 1 ? 'text-orange-500' : node.userVote === -1 ? 'text-indigo-500' : 'text-white'}`}>
+              {node.score}
+            </span>
+            <button 
+              onClick={() => handleVote(node.id, -1)}
+              className={`p-1 rounded transition ${node.userVote === -1 ? 'text-indigo-500 bg-indigo-500/10' : 'text-slate-500 hover:text-indigo-500 hover:bg-white/5'}`}
+            >
+              <ArrowDown className="w-4 h-4 sm:w-6 sm:h-6" />
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="p-3 sm:p-4 flex-1">
+            <div className="flex items-center justify-between mb-2">
+              <Link href={`/user/${node.user.username}`} className="flex items-center gap-2 group">
+                <img src={node.user.avatar || 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=100&q=80'} className="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover" />
+                <span className="font-bold text-sm sm:text-base text-indigo-300 group-hover:text-indigo-400 transition truncate max-w-[100px] sm:max-w-[200px]">{node.user.username}</span>
+                <span className="text-[10px] sm:text-xs text-slate-500 whitespace-nowrap">• {timeAgo(node.createdAt)}</span>
+              </Link>
+              
+              <div className="flex items-center gap-1">
+                {user && (
+                  <button 
+                    onClick={() => setReplyingToId(replyingToId === node.id ? null : node.id)}
+                    className="text-slate-500 hover:text-indigo-400 p-1 sm:p-1.5 rounded hover:bg-indigo-500/10 transition flex items-center gap-1 text-xs font-bold"
+                  >
+                    <CornerDownRight className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Reply</span>
+                  </button>
+                )}
+                {user?.id === node.user.id && (
+                  <button 
+                    onClick={() => handleDelete(node.id)}
+                    className="text-slate-500 hover:text-red-500 p-1 sm:p-1.5 rounded hover:bg-red-500/10 transition"
+                    title="Delete Post"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            <p className="text-slate-200 text-sm sm:text-base leading-relaxed whitespace-pre-wrap break-words">{node.content}</p>
+
+            {/* Reply Input Box */}
+            <AnimatePresence>
+              {replyingToId === node.id && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mt-4"
+                >
+                  <div className="bg-[#141414] border border-white/10 rounded-lg p-2 sm:p-3">
+                    <textarea
+                      value={replyContent}
+                      onChange={(e) => setReplyContent(e.target.value)}
+                      placeholder={`Replying to @${node.user.username}...`}
+                      className="w-full bg-transparent text-white placeholder-slate-500 text-sm sm:text-base resize-none outline-none min-h-[60px]"
+                      autoFocus
+                    />
+                    <div className="flex justify-end gap-2 mt-2 pt-2 border-t border-white/5">
+                      <button
+                        onClick={() => setReplyingToId(null)}
+                        className="text-slate-400 hover:text-white px-3 py-1.5 rounded text-xs sm:text-sm font-bold transition"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => handlePost(node.id, replyContent)}
+                        disabled={isReplying || !replyContent.trim()}
+                        className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold transition"
+                      >
+                        {isReplying ? 'Replying...' : 'Reply'}
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Render Children (Replies) */}
+        {node.children.length > 0 && (
+          <div className={isDeep ? "ml-0 mt-4" : "ml-4 sm:ml-8 md:ml-12 mt-4"}>
+            {node.children.map(child => (
+              <CommentThread key={child.id} node={child} depth={currentDepth + 1} />
+            ))}
+          </div>
+        )}
+      </motion.div>
+    );
+  };
+
   return (
-    <div className="w-full max-w-4xl mx-auto px-4 py-8 relative z-20">
+    <div className="w-full max-w-4xl mx-auto px-2 sm:px-4 py-8 relative z-20">
       <AnimatePresence>
         {error && (
           <motion.div 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="absolute top-0 right-4 bg-red-600/90 backdrop-blur-md border border-red-400 text-white px-4 py-2 rounded-lg font-bold shadow-2xl z-50 flex items-center gap-2"
+            className="fixed top-20 right-4 bg-red-600/90 backdrop-blur-md border border-red-400 text-white px-4 py-2 rounded-lg font-bold shadow-2xl z-50 flex items-center gap-2"
           >
             <span>⚠️</span> {error}
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="flex items-center gap-3 mb-8">
-        <MessageSquare className="w-8 h-8 text-indigo-500" />
-        <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight">Community Views</h2>
+      <div className="flex items-center gap-3 mb-6 sm:mb-8 pl-2 sm:pl-0">
+        <MessageSquare className="w-6 h-6 sm:w-8 sm:h-8 text-indigo-500" />
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight">Community Views</h2>
       </div>
 
       {user ? (
-        <div className="bg-[#141414] border border-white/10 rounded-xl p-4 mb-8 shadow-xl relative overflow-hidden">
+        <div className="bg-[#141414] border border-white/10 rounded-xl p-3 sm:p-4 mb-8 shadow-xl relative overflow-hidden mx-2 sm:mx-0">
           <textarea
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Share your views or review..."
-            className="w-full bg-transparent text-white placeholder-slate-500 resize-none outline-none min-h-[100px]"
+            className="w-full bg-transparent text-white placeholder-slate-500 text-sm sm:text-base resize-none outline-none min-h-[80px] sm:min-h-[100px]"
           />
           <div className="flex justify-end mt-2 pt-2 border-t border-white/5">
             <button
-              onClick={handlePost}
+              onClick={() => handlePost(null, newComment)}
               disabled={isPosting || !newComment.trim()}
-              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white px-6 py-2 rounded-full font-bold transition shadow-lg"
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white px-4 sm:px-6 py-2 rounded-full text-sm sm:text-base font-bold transition shadow-lg"
             >
               <Send className="w-4 h-4" />
-              {isPosting ? 'Posting...' : 'Post View'}
+              <span className="hidden sm:inline">Post View</span>
+              <span className="inline sm:hidden">Post</span>
             </button>
           </div>
         </div>
       ) : (
-        <div className="bg-indigo-600/10 border border-indigo-500/20 rounded-xl p-6 mb-8 text-center">
-          <p className="text-indigo-200 font-medium">Log in to share your views with the community!</p>
+        <div className="bg-indigo-600/10 border border-indigo-500/20 rounded-xl p-4 sm:p-6 mb-8 text-center mx-2 sm:mx-0">
+          <p className="text-indigo-200 text-sm sm:text-base font-medium">Log in to share your views with the community!</p>
         </div>
       )}
 
@@ -218,62 +381,14 @@ export default function CommunityFeed({ animeId }: { animeId?: number }) {
           <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-2 px-2 sm:px-0">
           <AnimatePresence>
-            {comments.map(comment => (
-              <motion.div
-                key={comment.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                className="bg-[#0f0f11] border border-white/5 rounded-xl flex overflow-hidden shadow-lg"
-              >
-                {/* Vote Bar */}
-                <div className="bg-black/40 p-2 sm:p-4 flex flex-col items-center gap-1 border-r border-white/5 min-w-[50px] sm:min-w-[60px]">
-                  <button 
-                    onClick={() => handleVote(comment.id, 1)}
-                    className={`p-1.5 rounded transition ${comment.userVote === 1 ? 'text-orange-500 bg-orange-500/10' : 'text-slate-500 hover:text-orange-500 hover:bg-white/5'}`}
-                  >
-                    <ArrowUp className="w-5 h-5 sm:w-6 sm:h-6" />
-                  </button>
-                  <span className={`font-black text-sm sm:text-base ${comment.userVote === 1 ? 'text-orange-500' : comment.userVote === -1 ? 'text-indigo-500' : 'text-white'}`}>
-                    {comment.score}
-                  </span>
-                  <button 
-                    onClick={() => handleVote(comment.id, -1)}
-                    className={`p-1.5 rounded transition ${comment.userVote === -1 ? 'text-indigo-500 bg-indigo-500/10' : 'text-slate-500 hover:text-indigo-500 hover:bg-white/5'}`}
-                  >
-                    <ArrowDown className="w-5 h-5 sm:w-6 sm:h-6" />
-                  </button>
-                </div>
-
-                {/* Content */}
-                <div className="p-4 flex-1">
-                  <div className="flex items-center justify-between mb-3">
-                    <Link href={`/user/${comment.user.username}`} className="flex items-center gap-2 group">
-                      <img src={comment.user.avatar || 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=100&q=80'} className="w-6 h-6 rounded-full object-cover" />
-                      <span className="font-bold text-indigo-300 group-hover:text-indigo-400 transition">{comment.user.username}</span>
-                      <span className="text-xs text-slate-500">• {timeAgo(comment.createdAt)} ago</span>
-                    </Link>
-                    
-                    {user?.id === comment.user.id && (
-                      <button 
-                        onClick={() => handleDelete(comment.id)}
-                        className="text-slate-500 hover:text-red-500 p-1.5 rounded hover:bg-red-500/10 transition"
-                        title="Delete Post"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                  
-                  <p className="text-slate-200 leading-relaxed whitespace-pre-wrap">{comment.content}</p>
-                </div>
-              </motion.div>
+            {commentTree.map(node => (
+              <CommentThread key={node.id} node={node} />
             ))}
             
-            {comments.length === 0 && (
-              <div className="text-center py-20 text-slate-500 font-medium">
+            {commentTree.length === 0 && (
+              <div className="text-center py-10 sm:py-20 text-slate-500 text-sm sm:text-base font-medium">
                 No views have been posted yet. Be the first to start the discussion!
               </div>
             )}

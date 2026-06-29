@@ -70,33 +70,33 @@ export default function HeroBannerCarousel({ animes }: Props) {
               </span>
             </div>
             
-            <h1 className="text-5xl md:text-7xl font-black mb-4 text-white drop-shadow-2xl tracking-tight leading-tight line-clamp-2">
+            <h1 className="text-4xl md:text-7xl font-black mb-2 md:mb-4 text-white drop-shadow-2xl tracking-tight leading-tight line-clamp-2 sm:line-clamp-3">
               {heroTitle}
             </h1>
             
-            <div className="flex items-center gap-4 text-sm font-bold text-white mb-6 drop-shadow">
-              {heroAnime.averageScore && <span className="text-green-400 text-lg">★ {heroAnime.averageScore}% Score</span>}
+            <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs md:text-sm font-bold text-white mb-4 md:mb-6 drop-shadow">
+              {heroAnime.averageScore && <span className="text-green-400 text-base md:text-lg">★ {heroAnime.averageScore}%</span>}
               <span className="text-slate-300">{heroAnime.season} {heroAnime.seasonYear}</span>
-              <span className="border border-white/20 bg-white/10 px-2 rounded text-xs">{heroAnime.format || "TV"}</span>
-              <span className="text-slate-400">{heroAnime.episodes ? `${heroAnime.episodes} Episodes` : "Unknown Episodes"}</span>
+              <span className="border border-white/20 bg-white/10 px-2 rounded">{heroAnime.format || "TV"}</span>
+              <span className="text-slate-400">{heroAnime.episodes ? `${heroAnime.episodes} Eps` : "Unknown Eps"}</span>
             </div>
 
             {nextEp && (
-              <div className="bg-indigo-600/20 border border-indigo-500/30 text-indigo-100 p-4 rounded-lg inline-flex items-center gap-4 mb-6 shadow-lg backdrop-blur-md">
-                <Clock className="w-6 h-6 text-indigo-400" />
+              <div className="bg-indigo-600/20 border border-indigo-500/30 text-indigo-100 p-3 md:p-4 rounded-lg inline-flex items-center gap-3 md:gap-4 mb-4 md:mb-6 shadow-lg backdrop-blur-md">
+                <Clock className="w-5 h-5 md:w-6 md:h-6 text-indigo-400" />
                 <div>
-                  <div className="text-xs text-indigo-300 uppercase font-bold tracking-wider">Next Episode {nextEp.episode}</div>
-                  <div className="text-lg font-bold">Airs in {Math.floor(nextEp.timeUntilAiring / 86400)}d {Math.floor((nextEp.timeUntilAiring % 86400) / 3600)}h</div>
+                  <div className="text-[10px] md:text-xs text-indigo-300 uppercase font-bold tracking-wider">Next Ep {nextEp.episode}</div>
+                  <div className="text-base md:text-lg font-bold">In {Math.floor(nextEp.timeUntilAiring / 86400)}d {Math.floor((nextEp.timeUntilAiring % 86400) / 3600)}h</div>
                 </div>
               </div>
             )}
 
-            <p className="text-lg text-slate-300 mb-8 line-clamp-3 leading-relaxed max-w-2xl font-medium" dangerouslySetInnerHTML={{ __html: heroAnime.description || "" }} />
+            <p className="text-sm md:text-lg text-slate-300 mb-6 md:mb-8 line-clamp-3 leading-relaxed max-w-2xl font-medium" dangerouslySetInnerHTML={{ __html: heroAnime.description || "" }} />
 
             <div className="flex items-center gap-4">
               <Link href={`/anime/${heroAnime.id}`}>
-                <button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-full text-lg font-bold transition shadow-xl shadow-indigo-600/20">
-                  <Info className="w-5 h-5" />
+                <button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 md:px-8 md:py-3 rounded-full text-base md:text-lg font-bold transition shadow-xl shadow-indigo-600/20">
+                  <Info className="w-4 h-4 md:w-5 md:h-5" />
                   View Details
                 </button>
               </Link>
