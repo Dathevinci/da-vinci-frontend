@@ -546,6 +546,7 @@ export default function ProfileTrackerPage() {
                       </button>
                     </div>
                   </div>
+                </div>
                 </>
               )}
             </motion.div>
