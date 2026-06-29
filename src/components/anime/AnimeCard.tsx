@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Info, Clock, PlayCircle, Plus } from 'lucide-react';
 import { AniListAnime } from '@/lib/anilist';
 import AnimeStatusBadge from './AnimeStatusBadge';
@@ -18,11 +19,16 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const hoverTimeout = useRef<NodeJS.Timeout | null>(null);
   const [mounted, setMounted] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     setMounted(true);
     return () => setMounted(false);
   }, []);
+
+  useEffect(() => {
+    setIsHovered(false);
+  }, [pathname]);
 
   const handleMouseEnter = () => {
     if (cardRef.current) {
@@ -92,10 +98,10 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
               {/* The Expanded Card */}
               <motion.div 
                 initial={{ opacity: 0, scale: 1, y: 0 }}
-                animate={{ opacity: 1, scale: 1.25, y: -10 }}
+                animate={{ opacity: 1, scale: 1.4, y: -10 }}
                 exit={{ opacity: 0, scale: 1 }}
                 transition={{ type: "spring", stiffness: 350, damping: 25 }}
-                className="absolute bg-[#18181b] rounded-xl shadow-2xl overflow-hidden border border-white/10"
+                className="absolute bg-[#18181b] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden border border-white/10"
                 style={{ 
                   top: rect.top, 
                   left: rect.left, 
@@ -103,16 +109,25 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
                   height: rect.height,
                   originY: 0.5, 
                   originX: 0.5,
-                  transformOrigin: "center center"
+                  transformOrigin: "center center",
+                  pointerEvents: "auto"
                 }}
+                onMouseLeave={handleMouseLeave}
               >
                 {/* Banner/Video Area */}
                 <Link href={`/anime/${anime.id}`}>
                   <div className="relative w-full aspect-[16/10] bg-black cursor-pointer group/banner">
                     <img src={bannerUrl} alt={title} className="w-full h-full object-cover opacity-80 transition group-hover/banner:opacity-100" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#18181b] via-[#18181b]/20 to-transparent" />
-                    <div className="absolute bottom-2 left-3 right-3 flex items-end justify-between">
-                      <h3 className="font-black text-sm md:text-base text-white leading-tight drop-shadow-md line-clamp-2 w-3/4">{title}</h3>
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#18181b] via-[#18181b]/40 to-transparent" />
+                    <div className="absolute bottom-2 left-3 right-3 flex items-end justify-between overflow-visible">
+                      <motion.h3 
+                        initial={{ y: 15, opacity: 0, scale: 0.95 }}
+                        animate={{ y: 0, opacity: 1, scale: 1 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 20, delay: 0.05 }}
+                        className="font-black text-sm md:text-lg text-white leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,1)] line-clamp-2 w-4/5 tracking-tight"
+                      >
+                        {title}
+                      </motion.h3>
                       <button className="bg-white text-black p-1.5 rounded-full hover:bg-slate-200 transition shadow-lg shrink-0">
                         <PlayCircle className="w-5 h-5 fill-black" />
                       </button>
