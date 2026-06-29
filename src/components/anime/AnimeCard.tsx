@@ -46,7 +46,7 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
       {/* Base Card */}
       <div 
         ref={cardRef}
-        className="relative w-full aspect-[2/3] cursor-pointer rounded-xl overflow-hidden shadow-xl border border-white/5 bg-[#141414]"
+        className="relative group w-[160px] md:w-[220px] aspect-[2/3] rounded-xl overflow-hidden cursor-pointer flex-shrink-0 shadow-xl border border-white/5 bg-[#141414] snap-start"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
