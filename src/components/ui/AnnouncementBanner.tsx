@@ -1,10 +1,35 @@
 "use client";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, ChevronLeft, ChevronRight, Megaphone, Zap, Sparkles, UserCheck } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Megaphone, Zap, Sparkles, UserCheck, Play } from "lucide-react";
 import Link from "next/link";
 
 const announcements = [
+  {
+    id: 0,
+    tag: "Massive UI Overhaul",
+    icon: <Sparkles className="w-4 h-4 text-pink-400" />,
+    theme: "from-pink-900/80 to-rose-900/80",
+    border: "border-pink-500/50",
+    shadow: "shadow-[0_0_40px_rgba(244,63,94,0.3)]",
+    tagBg: "bg-pink-600 shadow-pink-500/50",
+    title: "Cinematic Trailers & Liquid Glass UI",
+    author: null,
+    shortMessage: "We've overhauled the platform's aesthetics with fluid spring animations, a built-in Cinematic Trailer Player, and Watchlist integration directly on hover cards!",
+    link: null,
+    buttonText: null,
+    content: (
+      <div className="space-y-4 text-pink-100">
+        <h3 className="text-lg font-bold text-pink-300">What's New in this Update?</h3>
+        <ul className="pl-4 text-sm leading-relaxed space-y-2 list-disc list-inside">
+          <li><strong className="text-white">Cinematic Trailer Player:</strong> Instantly watch anime trailers without leaving the app! The new trailer modal pops up with a beautiful glassmorphic backdrop.</li>
+          <li><strong className="text-white">Liquid Glass Aesthetics:</strong> The entire interface has been upgraded to a premium translucent glass aesthetic with edge-to-edge backdrop blurs.</li>
+          <li><strong className="text-white">Dynamic Card Tracking:</strong> Hovering edge cards in the carousel now dynamically adjusts origin points to perfectly prevent clipping.</li>
+          <li><strong className="text-white">Interactive Hover Actions:</strong> Add to Watchlist, Like, and Play trailers directly from the Netflix-style popout cards without navigating away!</li>
+        </ul>
+      </div>
+    )
+  },
   {
     id: 1,
     tag: "Major Update",
@@ -105,112 +130,6 @@ const announcements = [
             I am the Lead Developer of the Da Vinci platform. My goal is to build the ultimate cinematic tracker experience for anime enthusiasts. Visit my profile to see my exclusive Hollow Purple animation!
           </p>
         </div>
-
-        <div>
-          <h3 className="text-lg font-bold text-purple-300 mb-2 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-purple-500" /> What are Arise Points?
-          </h3>
-          <p className="pl-4 text-sm leading-relaxed">
-            Arise Points (✧) are the official progression currency of the Da Vinci platform. They show off your dedication and activity within the community.
-          </p>
-        </div>
-
-        <div>
-          <h3 className="text-lg font-bold text-purple-300 mb-2 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-purple-500" /> How can we get Arise Points?
-          </h3>
-          <ul className="pl-4 text-sm leading-relaxed space-y-2 list-disc list-inside">
-            <li><strong className="text-white">Follow the Lead Developer:</strong> Earn <span className="text-purple-400 font-bold">10 ✧</span> immediately upon following <Link href="/user/dejavuh" className="text-purple-400 hover:underline">dejavuh</Link>.</li>
-            <li><strong className="text-white">Update your Profile Picture:</strong> Personalize your avatar to earn <span className="text-purple-400 font-bold">2 ✧</span> (one-time reward).</li>
-            <li><strong className="text-white">Update your Banner:</strong> Decorate your profile banner to earn <span className="text-purple-400 font-bold">2 ✧</span> (one-time reward).</li>
-            <li><strong className="text-white">Add Anime to Watchlist:</strong> Start tracking your anime! Earn <span className="text-purple-400 font-bold">2 ✧</span> every time you add an anime to your list.</li>
-          </ul>
-        </div>
-
-        <div className="pt-4 border-t border-purple-500/20">
-          <h3 className="text-lg font-bold text-purple-300 mb-4 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-purple-500" /> Arise Point Tiers & Profile Themes
-          </h3>
-          <p className="text-sm text-indigo-200 mb-4">
-            Reaching new point thresholds automatically unlocks exclusive Titles and completely changes the color theme of your entire profile!
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            <div className="bg-emerald-500/10 border border-emerald-500/30 p-3 rounded-lg">
-              <div className="font-bold text-emerald-400">Medium Demigod</div>
-              <div className="text-xs text-slate-300">100+ ✧ Points</div>
-            </div>
-            <div className="bg-blue-500/10 border border-blue-500/30 p-3 rounded-lg">
-              <div className="font-bold text-blue-400">Demigod</div>
-              <div className="text-xs text-slate-300">500+ ✧ Points</div>
-            </div>
-            <div className="bg-yellow-500/10 border border-yellow-500/30 p-3 rounded-lg">
-              <div className="font-bold text-yellow-400">Angel</div>
-              <div className="text-xs text-slate-300">1,000+ ✧ Points</div>
-            </div>
-            <div className="bg-orange-500/10 border border-orange-500/30 p-3 rounded-lg">
-              <div className="font-bold text-orange-400">King of angel</div>
-              <div className="text-xs text-slate-300">2,000+ ✧ Points</div>
-            </div>
-            <div className="bg-red-900/40 border border-red-600/50 p-3 rounded-lg sm:col-span-2 md:col-span-1 shadow-[0_0_15px_rgba(220,38,38,0.2)]">
-              <div className="font-bold text-red-500 tracking-wider">Great old one</div>
-              <div className="text-xs text-red-300/70">10,000+ ✧ Points</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  },
-  {
-    id: 5,
-    tag: "Massive QoL Update",
-    icon: <Sparkles className="w-4 h-4 text-cyan-400" />,
-    theme: "from-cyan-900/80 to-blue-900/80",
-    border: "border-cyan-500/50",
-    shadow: "shadow-[0_0_30px_rgba(34,211,238,0.25)]",
-    tagBg: "bg-cyan-600 shadow-cyan-500/50",
-    title: "Privacy, Fluid UI, & Direct Messaging",
-    author: null,
-    shortMessage: "We've added Private Profiles, Mutual Messaging, Custom Toasts, and ultra-fluid animations across the app!",
-    link: null,
-    buttonText: null,
-    content: (
-      <div className="space-y-4 text-cyan-100">
-        <h3 className="text-lg font-bold text-cyan-300">Huge Quality of Life Improvements</h3>
-        <ul className="pl-4 text-sm leading-relaxed space-y-2 list-disc list-inside">
-          <li><strong className="text-white">Private Profiles:</strong> You can now set your profile to private! Only users who you follow back (mutuals) can see your activity.</li>
-          <li><strong className="text-white">Mutual Direct Messaging:</strong> A brand new, secure Direct Message system. You can only message mutual followers, preventing spam!</li>
-          <li><strong className="text-white">Custom Toasts:</strong> Removed all ugly native browser alerts! We built a gorgeous, non-intrusive Toast Notification system that glides in from the top right.</li>
-          <li><strong className="text-white">Fluid Animations:</strong> Anime cards now feature a premium, inline hover scale effect instead of the clunky portal pop-out. Modal scroll bleed has also been fully locked down!</li>
-          <li><strong className="text-white">Smartphone Upgrades:</strong> A brand new bottom navigation bar for an app-like experience on mobile devices!</li>
-        </ul>
-      </div>
-    )
-  },
-  {
-    id: 6,
-    tag: "Economy Update",
-    icon: <Sparkles className="w-4 h-4 text-amber-400" />,
-    theme: "from-amber-900/80 to-yellow-900/80",
-    border: "border-amber-500/50",
-    shadow: "shadow-[0_0_30px_rgba(245,158,11,0.25)]",
-    tagBg: "bg-amber-600 shadow-amber-500/50",
-    title: "The Great Arise Scarcity ✧",
-    author: null,
-    shortMessage: "There is a strict global cap of exactly 50,000 Arise Points in existence. Once they are gone, they are gone forever!",
-    link: null,
-    buttonText: null,
-    content: (
-      <div className="space-y-4 text-amber-100">
-        <h3 className="text-lg font-bold text-amber-300">The 50k Global Limit</h3>
-        <p className="pl-4 text-sm leading-relaxed border-l-2 border-amber-500/30">
-          To make Arise Points truly meaningful and rare, we have instituted a hard cap on the economy. <strong className="text-white">There will only ever be 50,000 Arise Points distributed across the entire platform.</strong>
-        </p>
-        <ul className="pl-4 text-sm leading-relaxed space-y-2 list-disc list-inside mt-4">
-          <li><strong className="text-white">True Scarcity:</strong> Every point you earn brings the total economy closer to the limit. Make sure you claim yours early!</li>
-          <li><strong className="text-white">The Infinity Exception:</strong> As the creator, Lead Developer <Link href="/user/dejavuh" className="text-yellow-400 hover:underline">dejavuh</Link> possesses <strong className="text-white font-black italic">Infinity (∞)</strong> Arise Points. His points do not count towards the 50,000 limit.</li>
-          <li><strong className="text-white">Value Over Time:</strong> As the remaining points dwindle, earning a single Arise Point will become significantly harder. High-tier ranks will become incredibly prestigious.</li>
-          <li><strong className="text-red-400">🚨 DROP RATE NERF LIVE:</strong> To enforce this scarcity, the point acquisition rates have just been drastically slashed. Posting reviews and adding animes to your watchlist now only yield <strong className="text-white border-b border-red-500/50">1 Arise Point</strong> (down from 5+). Every point matters now!</li>
-        </ul>
       </div>
     )
   }
@@ -218,107 +137,132 @@ const announcements = [
 
 export default function AnnouncementBanner() {
   const [isOpen, setIsOpen] = useState(false);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [[currentIndex, direction], setPage] = useState([0, 0]);
 
-  const nextSlide = (e?: React.MouseEvent) => {
+  const paginate = (newDirection: number, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    setCurrentIndex((prev) => (prev + 1) % announcements.length);
-  };
-
-  const prevSlide = (e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    setCurrentIndex((prev) => (prev - 1 + announcements.length) % announcements.length);
+    let nextIndex = currentIndex + newDirection;
+    if (nextIndex < 0) nextIndex = announcements.length - 1;
+    if (nextIndex >= announcements.length) nextIndex = 0;
+    
+    setPage([nextIndex, newDirection]);
+    setIsOpen(false); // Close expanded view when shuffling cards
   };
 
   const current = announcements[currentIndex];
 
+  const variants = {
+    enter: (direction: number) => ({
+      x: direction > 0 ? 150 : -150,
+      y: 20,
+      scale: 0.8,
+      opacity: 0,
+      rotateY: direction > 0 ? 15 : -15,
+      rotateZ: direction > 0 ? 4 : -4,
+    }),
+    center: {
+      x: 0,
+      y: 0,
+      scale: 1,
+      opacity: 1,
+      rotateY: 0,
+      rotateZ: 0,
+      zIndex: 10,
+    },
+    exit: (direction: number) => ({
+      x: direction < 0 ? 150 : -150,
+      y: -20,
+      scale: 1.05,
+      opacity: 0,
+      rotateY: direction < 0 ? 15 : -15,
+      rotateZ: direction < 0 ? -4 : 4,
+      zIndex: 0,
+    })
+  };
+
   return (
-    <div className="relative z-30 container mx-auto px-4 md:px-12 mt-8 mb-8">
-      <div className={`bg-gradient-to-r ${current.theme} backdrop-blur-xl border ${current.border} rounded-2xl ${current.shadow} relative overflow-hidden transition-all duration-500`}>
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 via-purple-500 to-fuchsia-500 animate-pulse" />
-        
-        {/* Banner Header (Always visible) */}
-        <div 
-          className="p-4 sm:p-6 flex flex-col md:flex-row items-start md:items-center gap-4 sm:gap-6 cursor-pointer group"
-          onClick={() => setIsOpen(!isOpen)}
+    <div className="relative z-30 container mx-auto px-4 md:px-12 mt-8 mb-8" style={{ perspective: 1200 }}>
+      {/* 
+        Using popLayout to ensure smooth absolute positioning during the exit phase, 
+        giving the physical "Card Shuffle" aesthetic without layout popping.
+      */}
+      <AnimatePresence mode="popLayout" custom={direction} initial={false}>
+        <motion.div
+          key={currentIndex}
+          custom={direction}
+          variants={variants}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          transition={{ type: "spring", stiffness: 350, damping: 30 }}
+          className={`w-full bg-gradient-to-r ${current.theme} backdrop-blur-xl border ${current.border} rounded-2xl ${current.shadow} overflow-hidden shadow-2xl relative`}
         >
-          {/* Slider Controls */}
-          <div className="flex items-center gap-2 shrink-0 bg-black/30 p-1.5 rounded-full border border-white/5" onClick={(e) => e.stopPropagation()}>
-            <button onClick={prevSlide} className="p-2 hover:bg-white/10 rounded-full transition text-slate-300 hover:text-white">
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <div className="flex gap-1.5 px-2">
-              {announcements.map((_, i) => (
-                <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${currentIndex === i ? 'w-4 bg-white' : 'w-1.5 bg-white/30'}`} />
-              ))}
-            </div>
-            <button onClick={nextSlide} className="p-2 hover:bg-white/10 rounded-full transition text-slate-300 hover:text-white">
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </div>
-
-          <div className="flex-1 min-w-0 px-2 sm:px-0 overflow-hidden">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentIndex}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-              >
-                <h2 className="text-lg sm:text-xl md:text-2xl font-black text-white mb-2 flex flex-wrap items-center gap-2 sm:gap-3">
-                  <span className={`${current.tagBg} text-white text-[10px] sm:text-xs px-2 py-1 rounded tracking-widest uppercase shadow-lg flex items-center gap-1`}>
-                    {current.icon} {current.tag}
-                  </span>
-                  <span className="truncate">{current.title}</span>
-                  {current.author && <span className={current.authorColor}>{current.author}</span>}
-                </h2>
-                <p className="text-indigo-100 font-medium text-xs sm:text-sm md:text-base pr-4 sm:pr-8">
-                  {current.shortMessage}
-                </p>
-              </motion.div>
-            </AnimatePresence>
-          </div>
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 via-purple-500 to-fuchsia-500 animate-pulse" />
           
-          <div className="flex items-center gap-4 shrink-0 mt-2 md:mt-0 self-end md:self-auto px-2 sm:px-0">
-            {current.link && current.buttonText && (
-              <Link href={current.link} onClick={(e) => e.stopPropagation()}>
-                <button className={`whitespace-nowrap bg-gradient-to-r ${current.theme.split(' ')[0].replace('from-', 'from-')} to-indigo-600 text-white px-6 sm:px-8 py-2 sm:py-3 rounded-full font-bold shadow-xl transition hover:scale-105 active:scale-95 text-sm sm:text-base border border-white/10`}>
-                  {current.buttonText}
-                </button>
-              </Link>
-            )}
-            <ChevronDown className={`w-6 h-6 sm:w-8 sm:h-8 text-white/50 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
-          </div>
-        </div>
-
-        {/* Expandable Content */}
-        <AnimatePresence>
-          {isOpen && (
-            <motion.div 
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="overflow-hidden border-t border-white/10 bg-black/20"
-            >
-              <div className="p-4 sm:p-6 md:pl-[140px] border-t border-black/20">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={currentIndex}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    {current.content}
-                  </motion.div>
-                </AnimatePresence>
+          {/* Banner Header (Always visible) */}
+          <div 
+            className="p-4 sm:p-6 flex flex-col md:flex-row items-start md:items-center gap-4 sm:gap-6 cursor-pointer group"
+            onClick={() => setIsOpen(!isOpen)}
+          >
+            {/* Slider Controls */}
+            <div className="flex items-center gap-2 shrink-0 bg-black/40 backdrop-blur-md p-1.5 rounded-full border border-white/10 shadow-inner" onClick={(e) => e.stopPropagation()}>
+              <button onClick={(e) => paginate(-1, e)} className="p-2 hover:bg-white/20 rounded-full transition text-slate-300 hover:text-white">
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <div className="flex gap-1.5 px-2">
+                {announcements.map((_, i) => (
+                  <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${currentIndex === i ? 'w-5 bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]' : 'w-1.5 bg-white/20'}`} />
+                ))}
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+              <button onClick={(e) => paginate(1, e)} className="p-2 hover:bg-white/20 rounded-full transition text-slate-300 hover:text-white">
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 min-w-0 px-2 sm:px-0 overflow-hidden">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-black text-white mb-2 flex flex-wrap items-center gap-2 sm:gap-3">
+                <span className={`${current.tagBg} text-white text-[10px] sm:text-xs px-2 py-1 rounded tracking-widest uppercase shadow-lg flex items-center gap-1`}>
+                  {current.icon} {current.tag}
+                </span>
+                <span className="truncate drop-shadow-md">{current.title}</span>
+                {current.author && <span className={current.authorColor}>{current.author}</span>}
+              </h2>
+              <p className="text-indigo-100 font-medium text-xs sm:text-sm md:text-base pr-4 sm:pr-8 opacity-90">
+                {current.shortMessage}
+              </p>
+            </div>
+            
+            <div className="flex items-center gap-4 shrink-0 mt-2 md:mt-0 self-end md:self-auto px-2 sm:px-0">
+              {current.link && current.buttonText && (
+                <Link href={current.link} onClick={(e) => e.stopPropagation()}>
+                  <button className={`whitespace-nowrap bg-gradient-to-r ${current.theme.split(' ')[0].replace('from-', 'from-')} to-indigo-600 text-white px-6 sm:px-8 py-2 sm:py-3 rounded-full font-bold shadow-xl transition hover:scale-105 active:scale-95 text-sm sm:text-base border border-white/20`}>
+                    {current.buttonText}
+                  </button>
+                </Link>
+              )}
+              <ChevronDown className={`w-6 h-6 sm:w-8 sm:h-8 text-white/50 transition-transform duration-300 ${isOpen ? 'rotate-180 text-white' : ''}`} />
+            </div>
+          </div>
+
+          {/* Expandable Content */}
+          <AnimatePresence>
+            {isOpen && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="overflow-hidden border-t border-white/10 bg-black/30 backdrop-blur-sm"
+              >
+                <div className="p-4 sm:p-6 md:pl-[140px] border-t border-black/20">
+                  {current.content}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
