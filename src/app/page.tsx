@@ -7,7 +7,7 @@ import { Info, Clock, PlayCircle } from "lucide-react";
 import Link from "next/link";
 
 // Revalidate dashboard every hour
-export const revalidate = 3600;
+export const dynamic = 'force-dynamic';
 
 export default async function Home() {
   const data = await getDashboardData();

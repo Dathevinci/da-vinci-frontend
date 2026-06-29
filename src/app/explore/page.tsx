@@ -4,7 +4,7 @@ import ExploreFilters from "@/components/explore/ExploreFilters";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-export const revalidate = 3600;
+export const dynamic = 'force-dynamic';
 
 export default async function ExplorePage({
   searchParams,

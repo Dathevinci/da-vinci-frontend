@@ -2,7 +2,7 @@ import { getCalendarData } from "@/lib/anilist";
 import Link from "next/link";
 import { Clock } from "lucide-react";
 
-export const revalidate = 3600;
+export const dynamic = 'force-dynamic';
 
 export default async function CalendarPage() {
   let schedules: any[] = [];

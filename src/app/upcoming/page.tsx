@@ -2,7 +2,7 @@ import { searchAnime } from "@/lib/anilist";
 import HeroBannerCarousel from "@/components/anime/HeroBannerCarousel";
 import AnimatedGrid from "@/components/ui/AnimatedGrid";
 
-export const revalidate = 3600;
+export const dynamic = 'force-dynamic';
 
 export default async function UpcomingPage() {
   const data = await searchAnime({ status: "NOT_YET_RELEASED", sort: "POPULARITY_DESC", page: 1 });

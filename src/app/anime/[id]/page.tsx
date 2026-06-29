@@ -7,7 +7,7 @@ import AnimeTrackerPanel from "@/components/anime/AnimeTrackerPanel";
 import AnimeBackgroundTrailer from "@/components/anime/AnimeBackgroundTrailer";
 import AnimeTabs from "@/components/anime/AnimeTabs";
 
-export const revalidate = 3600;
+export const dynamic = 'force-dynamic';
 
 export default async function AnimeDetails({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
