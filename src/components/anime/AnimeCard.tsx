@@ -8,6 +8,7 @@ import AnimeStatusBadge from './AnimeStatusBadge';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAnimeStatus } from '@/hooks/useAnimeStatus';
 import { useToast } from '@/components/ui/Toast';
+import TrailerModal from '../ui/TrailerModal';
 
 interface AnimeCardProps {
   anime: AniListAnime;
@@ -16,6 +17,7 @@ interface AnimeCardProps {
 export default function AnimeCard({ anime }: AnimeCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
+  const [showTrailer, setShowTrailer] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const { getStatus, setStatus } = useAnimeStatus();
@@ -97,9 +99,21 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
                 </h3>
                 
                 {/* Action Buttons */}
-                <div className="flex items-center gap-1.5 mb-2">
-                   {/* Play and Chevron naturally trigger the parent <Link> */}
-                   <button className="w-7 h-7 md:w-8 md:h-8 bg-white text-black flex items-center justify-center rounded-full hover:bg-slate-200 transition-colors">
+                <div className="flex items-center gap-1.5 mb-2 relative z-50">
+                   {/* Play Trailer Button */}
+                   <button 
+                     onClick={(e) => {
+                       e.preventDefault();
+                       e.stopPropagation();
+                       if (anime.trailer?.id && anime.trailer?.site === "youtube") {
+                         setShowTrailer(true);
+                       } else {
+                         toast("No trailer available for this anime.", "error");
+                       }
+                     }}
+                     className="w-7 h-7 md:w-8 md:h-8 bg-white text-black flex items-center justify-center rounded-full hover:bg-slate-200 transition-colors"
+                     title="Play Trailer"
+                   >
                      <Play className="w-3.5 h-3.5 md:w-4 md:h-4 fill-current ml-0.5" />
                    </button>
                    
@@ -162,6 +176,12 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Trailer Modal (Portaled outside to avoid stacking context issues) */}
+      <TrailerModal 
+        videoId={showTrailer && anime.trailer?.id ? anime.trailer.id : null} 
+        onClose={() => setShowTrailer(false)} 
+      />
     </div>
   );
 }
