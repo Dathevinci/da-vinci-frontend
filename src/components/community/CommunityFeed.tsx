@@ -39,7 +39,17 @@ export default function CommunityFeed({ animeId }: { animeId?: number }) {
   const [isPosting, setIsPosting] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  const [error, setError] = useState<string | null>(null);
+
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+  // Auto-hide error after 5 seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
   const fetchComments = async () => {
     try {
@@ -48,12 +58,14 @@ export default function CommunityFeed({ animeId }: { animeId?: number }) {
       if (user) url.searchParams.set('userId', user.id);
       
       const res = await fetch(url.toString());
+      if (!res.ok) throw new Error("Failed to fetch comments");
       const data = await res.json();
       if (data.success) {
         setComments(data.data);
       }
     } catch (err) {
       console.error(err);
+      // Don't show error toast for fetch, just leave it empty
     } finally {
       setLoading(false);
     }
@@ -64,10 +76,11 @@ export default function CommunityFeed({ animeId }: { animeId?: number }) {
   }, [animeId, user?.id]);
 
   const handlePost = async () => {
-    if (!user) return alert("You must be logged in to post.");
+    if (!user) return setError("You must be logged in to post.");
     if (!newComment.trim()) return;
 
     setIsPosting(true);
+    setError(null);
     try {
       const res = await fetch(`${API_URL}/api/comments`, {
         method: "POST",
@@ -78,21 +91,26 @@ export default function CommunityFeed({ animeId }: { animeId?: number }) {
           content: newComment
         })
       });
+      
+      if (!res.ok) throw new Error(`Backend Error ${res.status}`);
+      
       const data = await res.json();
       if (data.success) {
         setNewComment("");
         setComments([data.data, ...comments]);
+      } else {
+        throw new Error(data.message || "Failed to post view.");
       }
     } catch (err) {
       console.error(err);
-      alert("Failed to post");
+      setError("Failed to post. Is your backend database synced?");
     } finally {
       setIsPosting(false);
     }
   };
 
   const handleVote = async (commentId: string, value: number) => {
-    if (!user) return alert("You must be logged in to vote.");
+    if (!user) return setError("You must be logged in to vote.");
 
     const commentIndex = comments.findIndex(c => c.id === commentId);
     if (commentIndex === -1) return;
@@ -116,14 +134,16 @@ export default function CommunityFeed({ animeId }: { animeId?: number }) {
     setComments(newComments);
 
     try {
-      await fetch(`${API_URL}/api/comments/${commentId}/vote`, {
+      const res = await fetch(`${API_URL}/api/comments/${commentId}/vote`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: user.id, value: newValue })
       });
+      if (!res.ok) throw new Error("Vote failed");
     } catch (err) {
       console.error(err);
-      fetchComments();
+      setError("Failed to cast vote.");
+      fetchComments(); // revert optimistic update
     }
   };
 
@@ -137,17 +157,32 @@ export default function CommunityFeed({ animeId }: { animeId?: number }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: user.id })
       });
+      if (!res.ok) throw new Error("Failed to delete");
       const data = await res.json();
       if (data.success) {
         setComments(comments.filter(c => c.id !== commentId));
       }
     } catch (err) {
       console.error(err);
+      setError("Failed to delete post.");
     }
   };
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-8 relative z-20">
+      <AnimatePresence>
+        {error && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="absolute top-0 right-4 bg-red-600/90 backdrop-blur-md border border-red-400 text-white px-4 py-2 rounded-lg font-bold shadow-2xl z-50 flex items-center gap-2"
+          >
+            <span>⚠️</span> {error}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="flex items-center gap-3 mb-8">
         <MessageSquare className="w-8 h-8 text-indigo-500" />
         <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight">Community Views</h2>
