@@ -6,6 +6,7 @@ import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut, Users, P
 import LoginModal from './LoginModal';
 import NotificationDropdown from './NotificationDropdown';
 import SearchModal from './SearchModal';
+import ArisePointPopup from '../ui/ArisePointPopup';
 import { useUser } from '@/hooks/useUser';
 import { useNotifications } from '@/hooks/useNotifications';
 
@@ -15,8 +16,23 @@ export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
+  
   const { user, isLoaded, logout } = useUser();
   const { unreadCount } = useNotifications();
+
+  const [prevPoints, setPrevPoints] = useState<number | null>(null);
+  const [popupData, setPopupData] = useState<{ amount: number } | null>(null);
+
+  useEffect(() => {
+    if (user && user.arisePoints !== undefined) {
+      if (prevPoints !== null && user.arisePoints > prevPoints) {
+        const gained = user.arisePoints - prevPoints;
+        setPopupData({ amount: gained });
+        setTimeout(() => setPopupData(null), 4000);
+      }
+      setPrevPoints(user.arisePoints);
+    }
+  }, [user?.arisePoints]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -181,6 +197,7 @@ export default function Navbar() {
 
       {showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
       {showSearchModal && <SearchModal onClose={() => setShowSearchModal(false)} />}
+      {popupData && <ArisePointPopup amount={popupData.amount} />}
     </>
   );
 }
