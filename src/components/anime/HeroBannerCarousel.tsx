@@ -30,7 +30,7 @@ export default function HeroBannerCarousel({ animes }: Props) {
   const nextEp = heroAnime.nextAiringEpisode;
 
   return (
-    <div className="relative w-full min-h-[75vh] flex flex-col justify-center pt-24 pb-20 mb-10 overflow-hidden bg-[#09090b]">
+    <div className="relative w-full h-[75vh] md:h-[85vh] overflow-hidden bg-[#09090b] mb-10">
       
       {/* Background Images with AnimatePresence for smooth crossfade */}
       <AnimatePresence initial={false}>
@@ -54,14 +54,15 @@ export default function HeroBannerCarousel({ animes }: Props) {
       </AnimatePresence>
 
       {/* Content */}
-      <div className="relative z-10 container mx-auto px-4 md:px-12 max-w-3xl mt-8">
-        <AnimatePresence mode="wait">
+      <div className="relative z-10 container mx-auto h-full max-w-4xl">
+        <AnimatePresence>
           <motion.div
             key={currentIndex}
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            exit={{ opacity: 0, y: -30 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="absolute inset-0 flex flex-col justify-center px-4 md:px-12 mt-10 md:mt-16"
           >
             <div className="mb-4 flex items-center gap-3">
               <AnimeStatusBadge status={heroAnime.status} />
@@ -91,7 +92,7 @@ export default function HeroBannerCarousel({ animes }: Props) {
               </div>
             )}
 
-            <p className="text-sm md:text-lg text-slate-300 mb-6 md:mb-8 line-clamp-3 leading-relaxed max-w-2xl font-medium" dangerouslySetInnerHTML={{ __html: heroAnime.description || "" }} />
+            <p className="text-sm md:text-lg text-slate-300 mb-6 md:mb-8 line-clamp-3 leading-relaxed font-medium" dangerouslySetInnerHTML={{ __html: heroAnime.description || "" }} />
 
             <div className="flex items-center gap-4">
               <Link href={`/anime/${heroAnime.id}`}>
