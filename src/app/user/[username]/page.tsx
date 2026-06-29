@@ -7,6 +7,7 @@ import { Compass, UserPlus, UserMinus, Eye, Heart, Clock, Check, ListFilter, Cod
 import FollowListModal from "@/components/profile/FollowListModal";
 import ImagePreviewModal from "@/components/ui/ImagePreviewModal";
 import ArisePointHistoryModal from "@/components/profile/ArisePointHistoryModal";
+import UnlimitedVoid from "@/components/ui/UnlimitedVoid";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { getRankTheme } from "@/lib/ranks";
@@ -23,6 +24,7 @@ export default function PublicProfilePage() {
   const [modalData, setModalData] = useState<{ title: string; users: any[] } | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [showPointHistory, setShowPointHistory] = useState(false);
+  const [showDomainExpansion, setShowDomainExpansion] = useState(false);
 
   const filterTabs = [
     { id: "All", icon: ListFilter },
@@ -67,6 +69,12 @@ export default function PublicProfilePage() {
       setProfileUser(prev => prev ? { ...prev, followers: prev.followers?.filter((f: any) => f.followerId !== currentUser.id) } : prev);
     } else {
       await followUser(profileUser.id);
+      setProfileUser(prev => prev ? { ...prev, followers: [...(prev.followers || []), { followerId: currentUser.id }] } : prev);
+      
+      // TRIGGER UNLIMITED VOID FOR DEJAVUH
+      if (profileUser.username.toLowerCase() === 'dejavuh') {
+        setShowDomainExpansion(true);
+      }
     }
   };
 
@@ -255,6 +263,10 @@ export default function PublicProfilePage() {
           userId={profileUser.id}
           onClose={() => setShowPointHistory(false)}
         />
+      )}
+
+      {showDomainExpansion && (
+        <UnlimitedVoid onComplete={() => setShowDomainExpansion(false)} />
       )}
     </div>
   );
