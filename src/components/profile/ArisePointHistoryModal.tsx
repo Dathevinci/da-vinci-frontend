@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { formatDistanceToNow } from 'date-fns';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { motion } from "framer-motion";
 import { X, Sparkles, TrendingUp, TrendingDown } from "lucide-react";
