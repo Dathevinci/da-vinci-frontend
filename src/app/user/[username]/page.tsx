@@ -6,7 +6,9 @@ import { useUser, User } from "@/hooks/useUser";
 import { Compass, UserPlus, UserMinus, Eye, Heart, Clock, Check, ListFilter, Code2 } from "lucide-react";
 import FollowListModal from "@/components/profile/FollowListModal";
 import HollowPurple from "@/components/ui/HollowPurple";
+import ImagePreviewModal from "@/components/ui/ImagePreviewModal";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function PublicProfilePage() {
   const { username } = useParams();
@@ -17,6 +19,7 @@ export default function PublicProfilePage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("All");
   const [modalData, setModalData] = useState<{ title: string; users: any[] } | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const filterTabs = [
     { id: "All", icon: ListFilter },
@@ -68,28 +71,58 @@ export default function PublicProfilePage() {
   const filteredWatchlist = filter === "All" ? watchlist : watchlist.filter(w => w.status === filter.toUpperCase());
 
   return (
-    <div className="bg-[#09090b] min-h-screen pt-24 pb-12 px-4 md:px-12 text-white">
+    <div className="relative min-h-screen pt-24 pb-12 text-white overflow-hidden">
       {profileUser.username.toLowerCase() === 'dejavuh' && <HollowPurple />}
-      <div className="max-w-7xl mx-auto">
+      
+      {/* FIXED BACKGROUND BANNER */}
+      <div className="fixed inset-0 z-0 bg-[#09090b]">
+        {profileUser?.bannerUrl ? (
+          <>
+            <motion.img 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.3 }}
+              transition={{ duration: 1 }}
+              src={profileUser.bannerUrl} 
+              alt="Background Banner" 
+              className="w-full h-full object-cover" 
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-[#09090b]/40 via-[#09090b]/80 to-[#09090b]"></div>
+          </>
+        ) : (
+          <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-indigo-500/10 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/4 z-0"></div>
+        )}
+      </div>
+
+      <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-12">
         
         {/* Profile Header */}
-        <div className="flex flex-col md:flex-row items-end gap-6 bg-[#141414] border border-white/10 rounded-3xl mb-10 shadow-2xl relative overflow-hidden pb-8 px-8" style={{ minHeight: '300px' }}>
-          {/* Banner */}
-          {profileUser.bannerUrl ? (
-            <div className="absolute inset-0 z-0">
-              <img src={profileUser.bannerUrl} alt="Banner" className="w-full h-full object-cover opacity-50" />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#141414] to-transparent"></div>
-            </div>
-          ) : (
-            <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/4 z-0"></div>
-          )}
+        <div className="flex flex-col md:flex-row items-end gap-6 bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl mb-10 shadow-2xl p-8 pt-32">
           
-          <div className="relative z-10 flex flex-col md:flex-row items-end gap-6 w-full pt-32">
-            <div className="relative">
+          <div className="relative z-10 flex flex-col md:flex-row items-end gap-6 w-full">
+            <div 
+              className="relative cursor-pointer hover:opacity-90 transition"
+              onClick={() => {
+                if (profileUser.avatar) setPreviewImage(profileUser.avatar);
+              }}
+            >
               {profileUser.avatar ? (
-                <img src={profileUser.avatar} alt="Avatar" className="w-32 h-32 rounded-full object-cover border-4 border-[#141414] shadow-xl bg-[#141414]" />
+                <img 
+                  src={profileUser.avatar} 
+                  alt="Avatar" 
+                  className={`w-32 h-32 rounded-full object-cover border-4 shadow-xl bg-[#141414] transition-all duration-300 ${
+                    profileUser.username.toLowerCase() === 'dejavuh' 
+                      ? 'border-purple-500 shadow-[0_0_30px_rgba(168,85,247,0.6)]' 
+                      : 'border-[#141414]'
+                  }`}
+                />
               ) : (
-                <div className="w-32 h-32 bg-indigo-600 rounded-full flex items-center justify-center text-4xl font-black border-4 border-[#141414] shadow-xl">
+                <div 
+                  className={`w-32 h-32 bg-indigo-600 rounded-full flex items-center justify-center text-4xl font-black border-4 shadow-xl transition-all duration-300 ${
+                    profileUser.username.toLowerCase() === 'dejavuh' 
+                      ? 'border-purple-500 shadow-[0_0_30px_rgba(168,85,247,0.6)]' 
+                      : 'border-[#141414]'
+                  }`}
+                >
                   {profileUser.username.charAt(0).toUpperCase()}
                 </div>
               )}
@@ -187,6 +220,14 @@ export default function PublicProfilePage() {
           title={modalData.title}
           users={modalData.users}
           onClose={() => setModalData(null)}
+        />
+      )}
+
+      {previewImage && (
+        <ImagePreviewModal
+          imageUrl={previewImage}
+          altText={`${profileUser.username}'s Avatar`}
+          onClose={() => setPreviewImage(null)}
         />
       )}
     </div>

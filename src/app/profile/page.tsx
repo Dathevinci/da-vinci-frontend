@@ -6,6 +6,7 @@ import AnimeCard from "@/components/anime/AnimeCard";
 import { Compass, Eye, Heart, Clock, Check, ListFilter, Settings, Camera, UploadCloud, AlertCircle, Image as ImageIcon, Code2 } from "lucide-react";
 import FollowListModal from "@/components/profile/FollowListModal";
 import LoadingOverlay from "@/components/ui/LoadingOverlay";
+import ImagePreviewModal from "@/components/ui/ImagePreviewModal";
 import { useState, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -17,6 +18,7 @@ export default function ProfileTrackerPage() {
   const [activeTab, setActiveTab] = useState<"Watchlist" | "Settings">("Watchlist");
   const [filter, setFilter] = useState<AnimeUserStatus | "All">("All");
   const [modalData, setModalData] = useState<{ title: string; users: any[] } | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   // Settings State
   const [bio, setBio] = useState(user?.bio || "");
@@ -113,16 +115,33 @@ export default function ProfileTrackerPage() {
         {user && (
           <div className="flex flex-col md:flex-row items-end gap-6 bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl mb-10 shadow-2xl p-8 pt-32">
             <div className="relative z-10 flex flex-col md:flex-row items-end gap-6 w-full">
-              <div className="relative group cursor-pointer" onClick={() => activeTab === "Settings" && fileInputRef.current?.click()}>
+              <div 
+                className="relative group cursor-pointer" 
+                onClick={() => {
+                  if (activeTab === "Settings") fileInputRef.current?.click();
+                  else if (user.avatar) setPreviewImage(user.avatar);
+                }}
+              >
                 {user.avatar ? (
                   <motion.img 
                     layoutId="profile-avatar"
                     src={user.avatar} 
                     alt="Avatar" 
-                    className="w-32 h-32 rounded-full object-cover border-4 border-[#141414] shadow-xl bg-[#141414]" 
+                    className={`w-32 h-32 rounded-full object-cover border-4 shadow-xl bg-[#141414] transition-all duration-300 ${
+                      user.username.toLowerCase() === 'dejavuh' 
+                        ? 'border-purple-500 shadow-[0_0_30px_rgba(168,85,247,0.6)]' 
+                        : 'border-[#141414]'
+                    }`} 
                   />
                 ) : (
-                  <motion.div layoutId="profile-avatar" className="w-32 h-32 bg-indigo-600 rounded-full flex items-center justify-center text-4xl font-black border-4 border-[#141414] shadow-xl">
+                  <motion.div 
+                    layoutId="profile-avatar" 
+                    className={`w-32 h-32 bg-indigo-600 rounded-full flex items-center justify-center text-4xl font-black border-4 shadow-xl transition-all duration-300 ${
+                      user.username.toLowerCase() === 'dejavuh' 
+                        ? 'border-purple-500 shadow-[0_0_30px_rgba(168,85,247,0.6)]' 
+                        : 'border-[#141414]'
+                    }`}
+                  >
                     {user.username.charAt(0).toUpperCase()}
                   </motion.div>
                 )}
@@ -354,6 +373,14 @@ export default function ProfileTrackerPage() {
           title={modalData.title}
           users={modalData.users}
           onClose={() => setModalData(null)}
+        />
+      )}
+
+      {previewImage && (
+        <ImagePreviewModal
+          imageUrl={previewImage}
+          altText="Profile Picture Preview"
+          onClose={() => setPreviewImage(null)}
         />
       )}
 
