@@ -2,7 +2,6 @@ import { getDashboardData } from "@/lib/anilist";
 import AnimeCarousel from "@/components/anime/AnimeCarousel";
 import AnimeStatusBadge from "@/components/anime/AnimeStatusBadge";
 import AnnouncementBanner from "@/components/ui/AnnouncementBanner";
-import CommunityFeed from "@/components/community/CommunityFeed";
 import HeroBannerCarousel from "@/components/anime/HeroBannerCarousel";
 import { Info, Clock, PlayCircle } from "lucide-react";
 import Link from "next/link";
@@ -33,9 +32,6 @@ export default async function Home() {
         <AnimeCarousel title="Highly Anticipated" animes={data.upcoming.media} />
         <AnimeCarousel title="Recently Finished" animes={data.finished.media} />
       </div>
-
-      {/* Community Discussion Feed */}
-      <CommunityFeed />
     </div>
   );
 }

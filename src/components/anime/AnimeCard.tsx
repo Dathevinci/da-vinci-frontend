@@ -16,9 +16,12 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleMouseEnter = () => {
-    timeoutRef.current = setTimeout(() => {
-      setIsHovered(true);
-    }, 400); // 400ms delay to prevent chaotic popping
+    // Disable hover popups on touch devices (Android Web / iOS) for a fluid UI
+    if (typeof window !== 'undefined' && window.matchMedia('(hover: hover)').matches) {
+      timeoutRef.current = setTimeout(() => {
+        setIsHovered(true);
+      }, 400); // 400ms delay to prevent chaotic popping
+    }
   };
 
   const handleMouseLeave = () => {
