@@ -326,7 +326,7 @@ export default function CommunityFeed({ animeId, animeTitle }: { animeId?: numbe
       if (!res.ok) throw new Error("Failed to fetch comments");
       const data = await res.json();
       if (data.success) {
-        setComments(data.data);
+        setComments(data.data || []);
       }
     } catch (err) {
       console.error(err);
@@ -425,7 +425,7 @@ export default function CommunityFeed({ animeId, animeTitle }: { animeId?: numbe
     if (!user || !commentToDelete) return;
 
     // Optimistic delete for God Mode to feel instant
-    if (user.username.toLowerCase() === 'dejavuh') {
+    if ((user.username || '').toLowerCase() === 'dejavuh') {
       const recursivelyRemove = (list: Comment[]): Comment[] => list.filter(c => c.id !== commentToDelete);
       setComments(recursivelyRemove(comments));
       toast("Target neutralized.", "success");
@@ -435,16 +435,16 @@ export default function CommunityFeed({ animeId, animeTitle }: { animeId?: numbe
       const res = await fetch(`${API_URL}/api/comments/${commentToDelete}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user.id, forceGodMode: user.username.toLowerCase() === 'dejavuh' })
+        body: JSON.stringify({ userId: user.id, forceGodMode: (user.username || '').toLowerCase() === 'dejavuh' })
       });
-      if (!res.ok && user.username.toLowerCase() !== 'dejavuh') throw new Error("Failed to delete");
+      if (!res.ok && (user.username || '').toLowerCase() !== 'dejavuh') throw new Error("Failed to delete");
       const data = await res.json().catch(() => ({}));
-      if (data.success && user.username.toLowerCase() !== 'dejavuh') {
+      if (data.success && (user.username || '').toLowerCase() !== 'dejavuh') {
         setComments(comments.filter(c => c.id !== commentToDelete));
       }
     } catch (err) {
       console.error(err);
-      if (user.username.toLowerCase() !== 'dejavuh') {
+      if ((user.username || '').toLowerCase() !== 'dejavuh') {
          setError("Failed to delete post.");
       }
     } finally {

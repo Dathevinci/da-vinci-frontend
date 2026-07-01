@@ -43,11 +43,11 @@ function UserCard({ user, currentUser, handleFollowToggle }: { user: User, curre
             <img src={user.avatar} alt="Avatar" className="w-16 h-16 rounded-full object-cover border-2 border-[#18181b] shadow-lg" />
           ) : (
             <div className="w-16 h-16 bg-indigo-600 rounded-full flex items-center justify-center text-xl font-black border-2 border-[#18181b] shadow-lg">
-              {user.username.charAt(0).toUpperCase()}
+              {(user.username || 'U').charAt(0).toUpperCase()}
             </div>
           )}
           <div className="flex-1 mt-2">
-            <h3 className="font-bold text-lg text-white group-hover:text-indigo-400 transition">{user.username}</h3>
+            <h3 className="font-bold text-lg text-white group-hover:text-indigo-400 transition">{user.username || 'Unknown User'}</h3>
             <p className="text-xs text-slate-400 font-medium">{(user.followers || []).length} Followers</p>
           </div>
         </div>
@@ -119,7 +119,7 @@ export default function CommunityPage() {
         const res = await fetch(`${API_URL}/api/users`);
         const data = await res.json();
         if (data.success) {
-          setUsers(data.data);
+          setUsers(data.data || []);
         }
       } catch (err) {
         console.error("Failed to fetch users", err);
@@ -145,7 +145,7 @@ export default function CommunityPage() {
   };
 
   const filteredUsers = users.filter(u => 
-    u.username.toLowerCase().includes(search.toLowerCase()) && 
+    (u.username || '').toLowerCase().includes(search.toLowerCase()) && 
     u.id !== currentUser?.id
   );
 
