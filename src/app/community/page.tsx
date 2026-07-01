@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useToast } from "@/components/ui/Toast";
 import CommunityFeed from "@/components/community/CommunityFeed";
 import { motion, AnimatePresence } from "framer-motion";
+import PageTransition from "@/components/layout/PageTransition";
 
 function UserCard({ user, currentUser, handleFollowToggle }: { user: User, currentUser: any, handleFollowToggle: (u: User, e: React.MouseEvent) => void }) {
   const [isHovered, setIsHovered] = useState(false);
@@ -149,7 +150,8 @@ export default function CommunityPage() {
   );
 
   return (
-    <div className="bg-[#09090b] min-h-screen pt-24 pb-12 px-4 md:px-12 text-white">
+    <PageTransition>
+      <div className="bg-[#09090b] min-h-screen pt-24 pb-12 px-4 md:px-12 text-white">
       <div className="max-w-5xl mx-auto space-y-8">
         
         {/* Tab Switcher */}
@@ -237,6 +239,7 @@ export default function CommunityPage() {
         </div>
 
       </div>
-    </div>
+      </div>
+    </PageTransition>
   );
 }

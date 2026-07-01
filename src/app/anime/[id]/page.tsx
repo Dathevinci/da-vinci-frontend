@@ -6,6 +6,7 @@ import AnimeTrackerPanel from "@/components/anime/AnimeTrackerPanel";
 import AnimeBackgroundTrailer from "@/components/anime/AnimeBackgroundTrailer";
 import AnimeTabs from "@/components/anime/AnimeTabs";
 import { getYouTubeId } from "@/lib/jikan";
+import PageTransition from "@/components/layout/PageTransition";
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +31,8 @@ export default async function AnimeDetails({ params }: { params: Promise<{ id: s
   const trailerId = getYouTubeId(anime.trailer);
 
   return (
-    <div className="bg-[#09090b] min-h-screen text-white pt-16">
+    <PageTransition>
+      <div className="bg-[#09090b] min-h-screen text-white pt-16">
       {/* Cinematic Banner Area */}
       <div className="relative w-full h-[50vh] md:h-[60vh]">
         {trailerId ? (
@@ -122,5 +124,6 @@ export default async function AnimeDetails({ params }: { params: Promise<{ id: s
 
         </div>
       </div>
+    </PageTransition>
     );
 }

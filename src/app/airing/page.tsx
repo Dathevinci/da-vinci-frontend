@@ -1,6 +1,7 @@
 import { searchAnime } from "@/lib/jikan";
 import HeroBannerCarousel from "@/components/anime/HeroBannerCarousel";
 import AnimatedGrid from "@/components/ui/AnimatedGrid";
+import PageTransition from "@/components/layout/PageTransition";
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +22,8 @@ export default async function AiringPage() {
   const gridAnimes = animes.slice(5);
 
   return (
-    <div className="pb-20 min-h-screen bg-black/40 backdrop-blur-sm">
+    <PageTransition>
+      <div className="pb-20 min-h-screen bg-black/40 backdrop-blur-sm">
       <HeroBannerCarousel animes={heroAnimes} />
       
       <div className="relative z-20 max-w-7xl mx-auto px-4 md:px-12 mt-12">
@@ -34,6 +36,7 @@ export default async function AiringPage() {
         </div>
         <AnimatedGrid animes={gridAnimes} />
       </div>
-    </div>
+      </div>
+    </PageTransition>
   );
 }

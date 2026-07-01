@@ -3,6 +3,7 @@ import AnimeCard from "@/components/anime/AnimeCard";
 import ExploreFilters from "@/components/explore/ExploreFilters";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import PageTransition from "@/components/layout/PageTransition";
 
 export const dynamic = 'force-dynamic';
 
@@ -47,7 +48,8 @@ export default async function ExplorePage({
   };
 
   return (
-    <div className="bg-[#09090b] min-h-screen pt-24 pb-12 px-4 md:px-8 text-white">
+    <PageTransition>
+      <div className="bg-[#09090b] min-h-screen pt-24 pb-12 px-4 md:px-8 text-white">
       <div className="max-w-[1600px] mx-auto flex flex-col lg:flex-row gap-8">
         
         {/* Left Sidebar Filters */}
@@ -122,5 +124,6 @@ export default async function ExplorePage({
         </div>
       </div>
     </div>
+    </PageTransition>
   );
 }

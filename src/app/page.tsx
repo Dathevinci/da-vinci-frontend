@@ -6,6 +6,7 @@ import QuoteOfTheDay from "@/components/ui/QuoteOfTheDay";
 import HeroBannerCarousel from "@/components/anime/HeroBannerCarousel";
 import { Info, Clock, PlayCircle } from "lucide-react";
 import Link from "next/link";
+import PageTransition from "@/components/layout/PageTransition";
 
 // Revalidate dashboard every hour
 export const dynamic = 'force-dynamic';
@@ -27,7 +28,8 @@ export default async function Home() {
   const heroAnimes = shuffledTrending.slice(0, 5);
 
   return (
-    <div className="pb-20 min-h-screen bg-black/40 backdrop-blur-sm">
+    <PageTransition>
+      <div className="pb-20 min-h-screen bg-black/40 backdrop-blur-sm">
       {/* Cinematic Dashboard Hero */}
       <HeroBannerCarousel animes={heroAnimes} />
 
@@ -43,5 +45,6 @@ export default async function Home() {
         <AnimeCarousel title="Recently Finished" animes={data.finished.media} />
       </div>
     </div>
+    </PageTransition>
   );
 }

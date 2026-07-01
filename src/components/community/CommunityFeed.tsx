@@ -59,8 +59,8 @@ const buildCommentTree = (comments: Comment[]): CommentNode[] => {
 
   // Sort roots by score first, then newest
   roots.sort((a, b) => {
-    const aIsDev = a.user.username.toLowerCase() === 'dejavuh';
-    const bIsDev = b.user.username.toLowerCase() === 'dejavuh';
+    const aIsDev = a.user?.username?.toLowerCase() === 'dejavuh';
+    const bIsDev = b.user?.username?.toLowerCase() === 'dejavuh';
     if (aIsDev && !bIsDev) return -1;
     if (bIsDev && !aIsDev) return 1;
     
@@ -71,8 +71,8 @@ const buildCommentTree = (comments: Comment[]): CommentNode[] => {
   const sortChildren = (nodes: CommentNode[]) => {
     nodes.forEach(node => {
       node.children.sort((a, b) => {
-        const aIsDev = a.user.username.toLowerCase() === 'dejavuh';
-        const bIsDev = b.user.username.toLowerCase() === 'dejavuh';
+        const aIsDev = a.user?.username?.toLowerCase() === 'dejavuh';
+        const bIsDev = b.user?.username?.toLowerCase() === 'dejavuh';
         if (aIsDev && !bIsDev) return -1;
         if (bIsDev && !aIsDev) return 1;
 
@@ -119,10 +119,10 @@ const CommentThread = ({
   const currentDepth = Math.min(depth, maxDepth);
   const isDeep = depth >= maxDepth;
 
-  const isDejavuh = node.user.username.toLowerCase() === 'dejavuh';
+  const isDejavuh = node.user?.username?.toLowerCase() === 'dejavuh';
   const isViewerDev = user?.username?.toLowerCase() === 'dejavuh';
   
-  const rankTheme = getRankTheme(node.user.arisePoints, node.user.username);
+  const rankTheme = getRankTheme(node.user?.arisePoints || 0, node.user?.username || 'Unknown');
   const RankIcon = rankTheme.badgeIcon ? (Icons as any)[rankTheme.badgeIcon] : null;
 
   return (
@@ -164,9 +164,9 @@ const CommentThread = ({
         {/* Content */}
         <div className="p-3 sm:p-4 flex-1 overflow-hidden">
           <div className="flex items-center justify-between mb-2">
-            <Link href={`/user/${node.user.username}`} className="flex items-center gap-2 group">
-              <img src={node.user.avatar || 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=100&q=80'} className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover ${isDejavuh ? 'ring-2 ring-amber-500 ring-offset-1 ring-offset-[#0f0f11]' : ''}`} />
-              <span className={`font-bold text-sm sm:text-base transition truncate max-w-[100px] sm:max-w-[200px] ${isDejavuh ? 'text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]' : 'text-indigo-300 group-hover:text-indigo-400'}`}>{node.user.username}</span>
+            <Link href={`/user/${node.user?.username || 'unknown'}`} className="flex items-center gap-2 group">
+              <img src={node.user?.avatar || 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=100&q=80'} className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover ${isDejavuh ? 'ring-2 ring-amber-500 ring-offset-1 ring-offset-[#0f0f11]' : ''}`} />
+              <span className={`font-bold text-sm sm:text-base transition truncate max-w-[100px] sm:max-w-[200px] ${isDejavuh ? 'text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]' : 'text-indigo-300 group-hover:text-indigo-400'}`}>{node.user?.username || 'Unknown User'}</span>
               {isDejavuh ? (
                 <div className="hidden sm:flex px-2 py-0.5 rounded-full items-center gap-1 bg-gradient-to-r from-amber-500 to-purple-600 text-white shadow-[0_0_10px_rgba(251,191,36,0.5)]">
                   <Crown className="w-3 h-3" />
@@ -198,7 +198,7 @@ const CommentThread = ({
               {isViewerDev && !isDejavuh && (
                 <>
                   <button 
-                    onClick={() => handleBless(node.user.username)}
+                    onClick={() => handleBless(node.user?.username || 'Unknown')}
                     className="text-amber-500 hover:text-amber-400 p-1 sm:p-1.5 rounded hover:bg-amber-500/10 transition flex items-center gap-1 text-xs font-bold"
                     title="Bless with Arise Points"
                   >
@@ -213,7 +213,7 @@ const CommentThread = ({
                   </button>
                 </>
               )}
-              {user?.id === node.user.id && !isViewerDev && (
+              {user?.id === node.user?.id && !isViewerDev && (
                 <button 
                   onClick={() => handleDelete(node.id)}
                   className="text-slate-500 hover:text-red-500 p-1 sm:p-1.5 rounded hover:bg-red-500/10 transition"
@@ -240,7 +240,7 @@ const CommentThread = ({
                   <textarea
                     value={replyContent}
                     onChange={(e) => setReplyContent(e.target.value)}
-                    placeholder={`Replying to @${node.user.username}...`}
+                    placeholder={`Replying to @${node.user?.username || 'Unknown'}...`}
                     className="w-full bg-transparent text-white placeholder-slate-500 text-sm sm:text-base resize-none outline-none min-h-[60px]"
                     autoFocus
                   />

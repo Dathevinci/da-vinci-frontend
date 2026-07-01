@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getRankTheme } from "@/lib/ranks";
 import * as Icons from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
+import PageTransition from "@/components/layout/PageTransition";
 
 export default function PublicProfilePage() {
   const { username } = useParams();
@@ -92,7 +93,8 @@ export default function PublicProfilePage() {
   const RankIcon = rankTheme.badgeIcon ? (Icons as any)[rankTheme.badgeIcon] : null;
 
   return (
-    <div className="relative min-h-screen pt-24 pb-12 text-white overflow-hidden">
+    <PageTransition>
+      <div className="relative min-h-screen pt-24 pb-12 text-white overflow-hidden">
 
       {/* FIXED BACKGROUND BANNER */}
       <div className="fixed inset-0 z-0 bg-[#09090b]">
@@ -302,5 +304,6 @@ export default function PublicProfilePage() {
         <UnlimitedVoid onComplete={() => setShowDomainExpansion(false)} />
       )}
     </div>
+    </PageTransition>
   );
 }

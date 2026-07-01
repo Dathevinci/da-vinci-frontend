@@ -17,6 +17,7 @@ import { fetchUserMAL } from "@/lib/jikan";
 import { getRankTheme } from "@/lib/ranks";
 import * as Icons from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
+import PageTransition from "@/components/layout/PageTransition";
 
 export default function ProfileTrackerPage() {
   const { getTrackedList, isLoaded: trackerLoaded, batchSetStatus, wipeWatchlist } = useAnimeStatus();
@@ -210,7 +211,8 @@ export default function ProfileTrackerPage() {
   };
 
   return (
-    <div className="relative min-h-screen pt-24 pb-12 text-white overflow-hidden">
+    <PageTransition>
+      <div className="relative min-h-screen pt-24 pb-12 text-white overflow-hidden">
       
       {/* FIXED BACKGROUND BANNER */}
       <div className="fixed inset-0 z-0 bg-[#09090b]">
@@ -611,5 +613,6 @@ export default function ProfileTrackerPage() {
         />
       )}
     </div>
+    </PageTransition>
   );
 }
