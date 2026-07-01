@@ -139,10 +139,10 @@ const CommentThread = ({
       
       {/* Supreme Glow for Dejavuh */}
       {isDejavuh && (
-        <div className="absolute -inset-[2px] bg-gradient-to-r from-amber-500 via-purple-500 to-amber-500 rounded-xl blur-sm opacity-70 animate-pulse pointer-events-none" />
+        <div className="absolute -inset-[2px] bg-gradient-to-r from-fuchsia-500 via-purple-600 to-indigo-500 rounded-xl blur-[6px] opacity-80 animate-pulse pointer-events-none" />
       )}
 
-      <div className={`bg-[#0f0f11] rounded-xl flex overflow-hidden shadow-lg relative z-10 border ${isDejavuh ? 'border-amber-400/50' : 'border-white/5'}`}>
+      <div className={`bg-[#0f0f11] rounded-xl flex overflow-hidden shadow-lg relative z-10 border ${isDejavuh ? 'border-purple-400/50' : 'border-white/5'}`}>
         {/* Vote Bar */}
         <div className="bg-black/40 p-2 sm:p-4 flex flex-col items-center gap-1 border-r border-white/5 min-w-[40px] sm:min-w-[60px]">
           <button 
@@ -166,10 +166,10 @@ const CommentThread = ({
         <div className="p-3 sm:p-4 flex-1 overflow-hidden">
           <div className="flex items-center justify-between mb-2">
             <Link href={`/user/${node.user?.username || 'unknown'}`} className="flex items-center gap-2 group">
-              <img src={node.user?.avatar || 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=100&q=80'} className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover ${isDejavuh ? 'ring-2 ring-amber-500 ring-offset-1 ring-offset-[#0f0f11]' : ''}`} />
-              <span className={`font-bold text-sm sm:text-base transition truncate max-w-[100px] sm:max-w-[200px] ${isDejavuh ? 'text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]' : 'text-indigo-300 group-hover:text-indigo-400'}`}>{node.user?.username || 'Unknown User'}</span>
+              <img src={node.user?.avatar || 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=100&q=80'} className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover ${isDejavuh ? 'ring-2 ring-fuchsia-500 ring-offset-1 ring-offset-[#0f0f11] shadow-[0_0_15px_rgba(217,70,239,0.5)]' : ''}`} />
+              <span className={`font-bold text-sm sm:text-base transition truncate max-w-[100px] sm:max-w-[200px] ${isDejavuh ? 'text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-fuchsia-400 drop-shadow-[0_0_8px_rgba(192,132,252,0.8)]' : 'text-indigo-300 group-hover:text-indigo-400'}`}>{node.user?.username || 'Unknown User'}</span>
               {isDejavuh ? (
-                <div className="hidden sm:flex px-2 py-0.5 rounded-full items-center gap-1 bg-gradient-to-r from-amber-500 to-purple-600 text-white shadow-[0_0_10px_rgba(251,191,36,0.5)]">
+                <div className="hidden sm:flex px-2 py-0.5 rounded-full items-center gap-1 bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.6)]">
                   <Crown className="w-3 h-3" />
                   <span className="text-[10px] font-black tracking-wider uppercase">Lead Developer</span>
                 </div>
@@ -200,7 +200,7 @@ const CommentThread = ({
                 <>
                   <button 
                     onClick={() => handleBless(node.user?.username || 'Unknown')}
-                    className="text-amber-500 hover:text-amber-400 p-1 sm:p-1.5 rounded hover:bg-amber-500/10 transition flex items-center gap-1 text-xs font-bold"
+                    className="text-fuchsia-500 hover:text-fuchsia-400 p-1 sm:p-1.5 rounded hover:bg-fuchsia-500/10 transition flex items-center gap-1 text-xs font-bold"
                     title="Bless with Arise Points"
                   >
                     <Zap className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Bless</span>

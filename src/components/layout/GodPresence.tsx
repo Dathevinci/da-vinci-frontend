@@ -26,12 +26,12 @@ export default function GodPresence() {
       });
     }, 800);
 
-    // Add custom cursor
-    document.body.classList.add('god-mode-cursor');
+    // Add custom cursor and global active class
+    document.body.classList.add('god-mode-cursor', 'god-mode-active');
 
     return () => {
       clearInterval(interval);
-      document.body.classList.remove('god-mode-cursor');
+      document.body.classList.remove('god-mode-cursor', 'god-mode-active');
     };
   }, [user, isLoaded]);
 
@@ -49,12 +49,12 @@ export default function GodPresence() {
           style={{
             width: p.size,
             height: p.size,
-            background: Math.random() > 0.5 ? "radial-gradient(circle, rgba(251,191,36,0.8) 0%, rgba(251,191,36,0) 70%)" : "radial-gradient(circle, rgba(168,85,247,0.8) 0%, rgba(168,85,247,0) 70%)",
-            boxShadow: Math.random() > 0.5 ? "0 0 20px rgba(251,191,36,0.5)" : "0 0 20px rgba(168,85,247,0.5)"
+            background: Math.random() > 0.5 ? "radial-gradient(circle, rgba(168,85,247,0.8) 0%, rgba(168,85,247,0) 70%)" : "radial-gradient(circle, rgba(217,70,239,0.8) 0%, rgba(217,70,239,0) 70%)",
+            boxShadow: Math.random() > 0.5 ? "0 0 20px rgba(168,85,247,0.5)" : "0 0 20px rgba(217,70,239,0.5)"
           }}
         />
       ))}
-      <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/5 to-purple-600/5 pointer-events-none mix-blend-screen" />
+      <div className="absolute inset-0 bg-gradient-to-tr from-purple-900/10 to-fuchsia-600/10 pointer-events-none mix-blend-screen" />
     </div>
   );
 }

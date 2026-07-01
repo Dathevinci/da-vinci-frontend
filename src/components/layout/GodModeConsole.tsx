@@ -177,7 +177,7 @@ export default function GodModeConsole() {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => setIsOpen(true)}
-            className="fixed z-[9999] bottom-24 right-6 w-14 h-14 bg-gradient-to-tr from-purple-600 to-amber-500 rounded-full shadow-[0_0_30px_rgba(168,85,247,0.6)] cursor-pointer flex items-center justify-center border-2 border-amber-300/50"
+            className="fixed z-[9999] bottom-24 right-6 w-14 h-14 bg-gradient-to-tr from-purple-600 to-fuchsia-500 rounded-full shadow-[0_0_30px_rgba(217,70,239,0.6)] cursor-pointer flex items-center justify-center border-2 border-fuchsia-300/50"
           >
             <Terminal className="w-6 h-6 text-white" />
           </motion.div>
@@ -193,10 +193,10 @@ export default function GodModeConsole() {
             <div className="w-full max-w-6xl max-h-[90vh] bg-[#09090b]/95 backdrop-blur-xl border border-purple-500/30 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_20px_rgba(168,85,247,0.2)] flex flex-col overflow-hidden">
               
               {/* Header */}
-              <div className="bg-gradient-to-r from-purple-900/40 to-amber-900/40 border-b border-purple-500/20 px-6 py-4 flex items-center justify-between">
+              <div className="bg-gradient-to-r from-purple-900/40 to-fuchsia-900/40 border-b border-purple-500/20 px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <ShieldAlert className="w-6 h-6 text-amber-400" />
-                  <span className="font-bold text-lg tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-purple-400 uppercase">God Mode Console</span>
+                  <ShieldAlert className="w-6 h-6 text-fuchsia-400" />
+                  <span className="font-bold text-lg tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 to-purple-400 uppercase">God Mode Console</span>
                 </div>
                 <div className="flex items-center gap-4">
                   <button 
@@ -252,7 +252,7 @@ export default function GodModeConsole() {
                   <div className="bg-[#141414] border border-white/5 rounded-2xl p-6 shadow-xl relative overflow-hidden flex flex-col justify-center gap-3">
                      <button 
                       onClick={grantPoints}
-                      className="flex items-center justify-center gap-3 w-full px-4 py-4 bg-gradient-to-r from-amber-500/10 to-amber-500/5 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 rounded-xl font-bold transition-all"
+                      className="flex items-center justify-center gap-3 w-full px-4 py-4 bg-gradient-to-r from-fuchsia-500/10 to-purple-500/5 border border-fuchsia-500/20 text-fuchsia-400 hover:bg-fuchsia-500/20 rounded-xl font-bold transition-all"
                     >
                       <Zap className="w-5 h-5" />
                       Grant +10K Arise

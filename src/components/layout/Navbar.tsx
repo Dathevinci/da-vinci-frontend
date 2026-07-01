@@ -22,6 +22,8 @@ export default function Navbar() {
   const [prevPoints, setPrevPoints] = useState<number | null>(null);
   const [popupData, setPopupData] = useState<{ amount: number } | null>(null);
 
+  const isDejavuh = user?.username?.toLowerCase() === 'dejavuh';
+
   useEffect(() => {
     if (user && user.arisePoints !== undefined) {
       if (prevPoints !== null && user.arisePoints > prevPoints) {
@@ -56,7 +58,9 @@ export default function Navbar() {
   return (
     <>
       <header className={`fixed top-0 w-full z-50 transition-all duration-300 ${
-        isScrolled ? 'bg-white/5 backdrop-blur-2xl border-b border-white/10 py-3 shadow-[0_10px_30px_rgba(0,0,0,0.5)]' : 'bg-gradient-to-b from-black/80 to-transparent py-5'
+        isScrolled 
+          ? `bg-white/5 backdrop-blur-2xl border-b ${isDejavuh ? 'border-purple-500/30 shadow-[0_4px_30px_rgba(168,85,247,0.15)]' : 'border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.5)]'}` 
+          : 'bg-gradient-to-b from-black/80 to-transparent py-5'
       }`}>
         <div className="container mx-auto px-4 flex justify-between items-center">
           <div className="flex items-center gap-8">
