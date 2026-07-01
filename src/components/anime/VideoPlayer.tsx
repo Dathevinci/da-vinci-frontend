@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Play, Loader2, AlertCircle, X, Maximize, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import ReactPlayer from 'react-player';
 
 interface VideoPlayerProps {
   animeTitle: string;
@@ -127,8 +128,16 @@ export default function VideoPlayer({ animeTitle }: VideoPlayerProps) {
         )}
 
         {!loading && !error && currentLink && (
-          currentLink.endsWith('.mp4') || currentLink.endsWith('.webm') ? (
-            <video src={currentLink} controls autoPlay className="w-full h-full outline-none" />
+          currentLink.includes('.m3u8') || currentLink.endsWith('.mp4') || currentLink.endsWith('.webm') ? (
+            <ReactPlayer 
+              url={currentLink} 
+              controls 
+              playing 
+              width="100%" 
+              height="100%" 
+              className="absolute top-0 left-0"
+              config={{ file: { forceHLS: currentLink.includes('.m3u8') } }}
+            />
           ) : (
             <iframe 
               src={currentLink} 
