@@ -187,7 +187,7 @@ export default function PublicProfilePage() {
                   title={profileUser.username === 'dejavuh' ? "Something that can't be measured because the user is the honorable one" : undefined}
                   className={`ml-2 drop-shadow-md font-black hover:scale-105 transition cursor-pointer hover:brightness-125 ${rankTheme.textColorClass}`}
                 >
-                  ✧ {profileUser.username === 'dejavuh' ? '∞' : (profileUser.arisePoints || 0)} Arise Points
+                  ✧ {profileUser.username === 'dejavuh' ? '∞' : ((profileUser.arisePoints || 0) >= 50000 ? '50,000 (MAX)' : (profileUser.arisePoints || 0))} Arise Points
                 </button>
               </div>
             </div>
