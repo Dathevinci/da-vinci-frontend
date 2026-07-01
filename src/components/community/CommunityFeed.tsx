@@ -3,12 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '@/hooks/useUser';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, ArrowUp, ArrowDown, Trash2, Send, CornerDownRight, Zap, Flame, Crown } from 'lucide-react';
+import { MessageSquare, ArrowUp, ArrowDown, Trash2, Send, CornerDownRight, Zap, Flame, Crown, Code2, Sparkles, Feather, Leaf, User as UserIcon } from 'lucide-react';
 import Link from 'next/link';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { getRankTheme } from '@/lib/ranks';
-import { Code2, Sparkles, Crown, Feather, Zap, Leaf, User as UserIcon } from 'lucide-react';
-
 const RankIcons: Record<string, any> = {
   Code2,
   Sparkles,
