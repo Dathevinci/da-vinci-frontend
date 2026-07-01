@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Compass, Github, Twitter, Disc, Heart, ExternalLink, ShieldCheck, Mail } from "lucide-react";
+import { Compass, Code2, MessageCircle, Radio, Heart, ExternalLink, ShieldCheck, Mail } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -26,13 +26,13 @@ export default function Footer() {
             </p>
             <div className="flex items-center gap-4 pt-2">
               <a href="#" className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-indigo-500 hover:border-indigo-500 transition-all duration-300 shadow-lg">
-                <Github className="w-4 h-4" />
+                <Code2 className="w-4 h-4" />
               </a>
               <a href="#" className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-blue-400 hover:border-blue-400 transition-all duration-300 shadow-lg">
-                <Twitter className="w-4 h-4" />
+                <MessageCircle className="w-4 h-4" />
               </a>
               <a href="#" className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-indigo-600 hover:border-indigo-600 transition-all duration-300 shadow-lg">
-                <Disc className="w-4 h-4" />
+                <Radio className="w-4 h-4" />
               </a>
             </div>
           </div>
