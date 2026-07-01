@@ -117,6 +117,28 @@ export function useUser() {
     }
   };
 
+  const loginOrRegister = async (username: string, email: string, avatar?: string) => {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+    
+    try {
+      const res = await fetch(`${API_URL}/api/users`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, email, avatar })
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        broadcastUpdate(data.data);
+        return { success: true };
+      } else {
+        return { success: false, message: data.message };
+      }
+    } catch (err) {
+      return { success: false, message: "Network error" };
+    }
+  };
+
   const setDiscordUser = (userData: User) => {
     broadcastUpdate(userData);
   };
@@ -193,5 +215,5 @@ export function useUser() {
     broadcastUpdate(null);
   };
 
-  return { user, isLoaded, login, signup, setDiscordUser, updateProfile, followUser, unfollowUser, logout };
+  return { user, isLoaded, login, signup, loginOrRegister, setDiscordUser, updateProfile, followUser, unfollowUser, logout };
 }
