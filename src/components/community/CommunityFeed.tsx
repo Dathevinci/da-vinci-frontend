@@ -8,6 +8,7 @@ import Link from 'next/link';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { getRankTheme } from '@/lib/ranks';
 import * as Icons from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
 
 interface Comment {
   id: string;
@@ -305,7 +306,7 @@ export default function CommunityFeed({ animeId, animeTitle }: { animeId?: numbe
   const [replyContent, setReplyContent] = useState("");
   const [isReplying, setIsReplying] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
-  const { toast } = (require('@/components/ui/Toast') as any).useToast();
+  const { toast } = useToast();
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 

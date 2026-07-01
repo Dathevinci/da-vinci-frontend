@@ -18,7 +18,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 // Global state for pub/sub to sync across all components
 let globalTracked: Record<number, TrackedAnime> = {};
 let globalIsLoaded = false;
-let globalLoadInitiated = false;
+let lastUserId: string | null = null;
+let fetchInProgress = false;
 const listeners = new Set<() => void>();
 
 function emitChange() {
@@ -42,8 +43,8 @@ export function useAnimeStatus() {
     listeners.add(handleStoreChange);
 
     const loadData = async () => {
-      if (globalLoadInitiated) return;
-      globalLoadInitiated = true;
+      if (fetchInProgress) return;
+      fetchInProgress = true;
       
       if (user) {
         // Fetch from backend if logged in
@@ -85,10 +86,12 @@ export function useAnimeStatus() {
         }
       }
       globalIsLoaded = true;
+      lastUserId = user?.id || null;
+      fetchInProgress = false;
       emitChange();
     };
 
-    if (!globalIsLoaded) {
+    if (!globalIsLoaded || lastUserId !== (user?.id || null)) {
       loadData();
     }
 

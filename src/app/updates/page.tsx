@@ -57,6 +57,10 @@ export default function UpdatesPage() {
     setShowCreateModal(false);
   };
 
+  const handleDelete = (id: string) => {
+    setUpdates(prev => prev.filter(p => p.id !== id));
+  };
+
   return (
     <PageTransition>
       <div className="min-h-screen bg-[#09090b] pt-24 pb-24 text-white relative">
@@ -93,6 +97,7 @@ export default function UpdatesPage() {
                   key={update.id} 
                   post={update} 
                   onLikeToggle={handleLikeToggle}
+                  onDelete={handleDelete}
                 />
               ))}
             </div>

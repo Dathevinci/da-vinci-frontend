@@ -42,9 +42,10 @@ interface UpdatePostProps {
     };
   };
   onLikeToggle: (id: string, newLikedState: boolean) => void;
+  onDelete?: (id: string) => void;
 }
 
-export default function UpdatePost({ post, onLikeToggle }: UpdatePostProps) {
+export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostProps) {
   const { user } = useUser();
   const { toast } = useToast();
   const [isLiked, setIsLiked] = useState(post.hasLiked);
@@ -59,6 +60,28 @@ export default function UpdatePost({ post, onLikeToggle }: UpdatePostProps) {
 
   const authorRank = getRankTheme(post.author.arisePoints, post.author.username);
   const RankIcon = authorRank.badgeIcon ? (Icons as any)[authorRank.badgeIcon] : null;
+
+  const isDev = user?.username?.toLowerCase() === "dejavuh";
+
+  const handleDeletePost = async () => {
+    if (!confirm("Are you sure you want to delete this update?")) return;
+    
+    try {
+      const res = await fetch(`${API_URL}/api/announcements/${post.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user?.id })
+      });
+      if (res.ok) {
+        toast("Update deleted", "success");
+        onDelete?.(post.id);
+      } else {
+        toast("Failed to delete", "error");
+      }
+    } catch (err) {
+      toast("Error deleting post", "error");
+    }
+  };
 
   const handleLike = async () => {
     if (!user) {
@@ -167,9 +190,11 @@ export default function UpdatePost({ post, onLikeToggle }: UpdatePostProps) {
             <span className="text-xs text-slate-500 font-medium">{timeAgo(post.createdAt)}</span>
           </div>
         </Link>
-        <button className="text-slate-500 hover:text-white transition">
-          <MoreHorizontal className="w-5 h-5" />
-        </button>
+        {isDev && (
+          <button onClick={handleDeletePost} className="text-slate-500 hover:text-red-500 transition px-2 py-1 bg-red-500/10 rounded-lg text-xs font-bold">
+            Delete
+          </button>
+        )}
       </div>
 
       {/* Media/Banner */}
