@@ -177,10 +177,17 @@ export default function PublicProfilePage() {
                   <span>{(profileUser.following || []).length} Following</span>
                 </button>
                 <button 
-                  onClick={() => setShowPointHistory(true)}
+                  onClick={() => {
+                    if (profileUser.username === 'dejavuh') {
+                      toast("Something that can't be measured because the user is the honorable one.", "info");
+                    } else {
+                      setShowPointHistory(true);
+                    }
+                  }}
+                  title={profileUser.username === 'dejavuh' ? "Something that can't be measured because the user is the honorable one" : undefined}
                   className={`ml-2 drop-shadow-md font-black hover:scale-105 transition cursor-pointer hover:brightness-125 ${rankTheme.textColorClass}`}
                 >
-                  ✧ {profileUser.arisePoints || 0} Arise Points
+                  ✧ {profileUser.username === 'dejavuh' ? '∞' : (profileUser.arisePoints || 0)} Arise Points
                 </button>
               </div>
             </div>
