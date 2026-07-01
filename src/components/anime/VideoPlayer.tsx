@@ -8,9 +8,10 @@ interface VideoPlayerProps {
   animeImage?: string;
   episode?: number;
   animeId?: number;
+  animeStatus?: string;
 }
 
-export default function VideoPlayer({ animeTitle, animeImage, episode = 1, animeId }: VideoPlayerProps) {
+export default function VideoPlayer({ animeTitle, animeImage, episode = 1, animeId, animeStatus }: VideoPlayerProps) {
   const [hasStarted, setHasStarted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,31 +29,54 @@ export default function VideoPlayer({ animeTitle, animeImage, episode = 1, anime
       const availableServers: {name: string, url: string}[] = [];
       const slug = animeTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
-      // 1. Fetch MAL ID from Jikan (MyAnimeList API) for Vidlink (Most reliable)
-      try {
-        const jikanRes = await fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(animeTitle)}&limit=1`);
-        const jikanData = await jikanRes.json();
-        
-        if (jikanData.data && jikanData.data.length > 0) {
-          const malId = jikanData.data[0].mal_id;
-          availableServers.push({
-            name: "VidLink (HD)",
-            url: `https://vidlink.pro/anime/${malId}/${episode}/sub?primaryColor=4f46e5&autoplay=true`
-          });
+      let malId = null;
+      let tmdbId = null;
+
+      // 1. Fetch EXACT ID mappings from ani.zip using Anilist ID
+      if (animeId) {
+        try {
+          const mapRes = await fetch(`https://api.ani.zip/mappings?anilist_id=${animeId}`);
+          if (mapRes.ok) {
+            const mapData = await mapRes.json();
+            malId = mapData?.mappings?.mal_id;
+            tmdbId = mapData?.mappings?.themoviedb_id;
+          }
+        } catch (e) {
+          console.warn("Failed to fetch ID mappings");
         }
-      } catch (e) {
-        console.warn("Could not fetch MAL ID from Jikan");
       }
 
-      // 2. Add AutoEmbed (Uses Anilist ID natively)
-      if (animeId) {
+      // 2. Add Servers based on available IDs
+      if (malId) {
+        availableServers.push({
+          name: "VidLink (HD)",
+          url: `https://vidlink.pro/anime/${malId}/${episode}/sub?primaryColor=4f46e5&autoplay=true`
+        });
+      }
+
+      if (tmdbId) {
+        availableServers.push({
+          name: "Vidsrc",
+          url: `https://vidsrc.cc/v3/embed/tv/${tmdbId}/1/${episode}`
+        });
+        availableServers.push({
+          name: "Embed.su",
+          url: `https://embed.su/embed/tv/${tmdbId}/1/${episode}`
+        });
         availableServers.push({
           name: "AutoEmbed",
+          url: `https://player.autoembed.cc/embed/tv/${tmdbId}/1/${episode}`
+        });
+      }
+
+      // 3. Fallbacks
+      if (animeId) {
+        availableServers.push({
+          name: "Anilist Server",
           url: `https://anime.autoembed.cc/embed/anilist/${animeId}-episode-${episode}`
         });
       }
 
-      // 3. Add Anime-World fallback (Uses slug, might be blocked by some ISPs)
       availableServers.push({
         name: "AnimeWorld",
         url: `https://anime-world.in/player/${slug}-episode-${episode}`
@@ -74,6 +98,20 @@ export default function VideoPlayer({ animeTitle, animeImage, episode = 1, anime
   };
 
   if (!hasStarted) {
+    if (animeStatus === "NOT_YET_RELEASED") {
+      return (
+        <div className="w-full aspect-video bg-[#0a0a0c] border border-white/10 rounded-2xl flex flex-col items-center justify-center relative shadow-2xl p-8 text-center">
+          <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mb-4">
+            <AlertCircle className="w-8 h-8 text-slate-400" />
+          </div>
+          <h3 className="text-xl font-bold text-white mb-2">Not Yet Released</h3>
+          <p className="text-slate-400 max-w-md">
+            This anime has not aired yet. Video episodes will become available here once the season officially begins broadcasting.
+          </p>
+        </div>
+      );
+    }
+
     return (
       <div 
         className="w-full aspect-video bg-black/40 border border-white/10 rounded-2xl flex items-center justify-center group cursor-pointer overflow-hidden relative shadow-2xl" 
