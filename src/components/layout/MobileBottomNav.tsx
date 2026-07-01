@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Compass, Users, MessageSquare, User as UserIcon } from "lucide-react";
+import { Home, Compass, Users, User as UserIcon } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 
 export default function MobileBottomNav() {
@@ -13,7 +13,6 @@ export default function MobileBottomNav() {
     { label: "Home", href: "/", icon: <Home className="w-6 h-6" /> },
     { label: "Explore", href: "/explore", icon: <Compass className="w-6 h-6" /> },
     { label: "Community", href: "/community", icon: <Users className="w-6 h-6" /> },
-    { label: "Messages", href: "/messages", icon: <MessageSquare className="w-6 h-6" />, authRequired: true },
     { label: "Profile", href: user ? "/profile" : "/user/login", icon: <UserIcon className="w-6 h-6" />, action: !user ? "login" : undefined }
   ];
 

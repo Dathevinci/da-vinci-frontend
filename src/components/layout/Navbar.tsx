@@ -2,25 +2,21 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut, Users, Palette, Menu, X, Bell, MessageSquare, Settings } from 'lucide-react';
+import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut, Users, Palette, Menu, X, Settings } from 'lucide-react';
 import LoginModal from './LoginModal';
-import NotificationDropdown from './NotificationDropdown';
 import SearchModal from './SearchModal';
 import ArisePointPopup from '../ui/ArisePointPopup';
 import SettingsModal from '../profile/SettingsModal';
 import { useUser } from '@/hooks/useUser';
-import { useNotifications } from '@/hooks/useNotifications';
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   
   const { user, isLoaded, logout } = useUser();
-  const { unreadCount } = useNotifications();
 
   const [prevPoints, setPrevPoints] = useState<number | null>(null);
   const [popupData, setPopupData] = useState<{ amount: number } | null>(null);
@@ -89,23 +85,6 @@ export default function Navbar() {
             {isLoaded && (
               user ? (
                 <div className="hidden lg:flex items-center gap-4 relative">
-                  <div className="relative">
-                    <button 
-                      onClick={() => setShowNotifications(!showNotifications)}
-                      className="p-2 text-slate-300 hover:text-white transition relative hover:bg-white/10 rounded-full"
-                    >
-                      <Bell className="w-5 h-5" />
-                      {unreadCount > 0 && (
-                        <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 border-2 border-[#09090b] rounded-full"></span>
-                      )}
-                    </button>
-                    {showNotifications && <NotificationDropdown />}
-                  </div>
-
-                  <Link href="/messages" className="p-2 text-slate-300 hover:text-white transition relative hover:bg-white/10 rounded-full" title="Messages">
-                    <MessageSquare className="w-5 h-5" />
-                  </Link>
-
                   {user.username.toLowerCase() === 'dejavuh' && (
                     <Link href="/admin" className="flex items-center gap-2 text-sm font-bold bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 px-4 py-2 border border-yellow-500/20 rounded-full transition shadow-lg whitespace-nowrap">
                       👑 God Mode
@@ -185,16 +164,6 @@ export default function Navbar() {
               <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)} className="w-full bg-white/10 hover:bg-white/20 text-white font-bold py-4 rounded-xl text-lg transition flex justify-center items-center gap-2 border border-white/10 shadow-lg">
                 <Compass className="w-5 h-5 text-indigo-400" /> My Tracker
               </Link>
-              <Link href="/messages" onClick={() => setIsMobileMenuOpen(false)} className="w-full bg-white/5 hover:bg-white/10 text-white font-bold py-4 rounded-xl text-lg transition flex justify-center items-center gap-2 border border-white/10">
-                <MessageSquare className="w-5 h-5" /> Messages
-              </Link>
-              <button 
-                onClick={() => { setIsMobileMenuOpen(false); setShowNotifications(!showNotifications); }}
-                className="w-full bg-white/5 hover:bg-white/10 text-white font-bold py-4 rounded-xl text-lg transition flex justify-center items-center gap-2 border border-white/10 relative"
-              >
-                <Bell className="w-5 h-5" /> Notifications
-                {unreadCount > 0 && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{unreadCount}</span>}
-              </button>
               <button 
                 onClick={() => { setIsMobileMenuOpen(false); setShowSettings(true); }}
                 className="w-full bg-white/5 hover:bg-white/10 text-white font-bold py-4 rounded-xl text-lg transition flex justify-center items-center gap-2 border border-white/10"
@@ -207,17 +176,6 @@ export default function Navbar() {
               >
                 <LogOut className="w-5 h-5" /> Logout
               </button>
-            </div>
-          )}
-          
-          {showNotifications && (
-            <div className="fixed inset-0 z-[110] bg-black/80 flex items-center justify-center p-4">
-              <div className="w-full max-w-md relative">
-                <button onClick={() => setShowNotifications(false)} className="absolute -top-10 right-0 text-white">
-                  <X className="w-8 h-8" />
-                </button>
-                <NotificationDropdown isMobile={true} />
-              </div>
             </div>
           )}
         </div>
