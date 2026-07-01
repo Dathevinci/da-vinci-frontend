@@ -14,6 +14,7 @@
     "date-fns": "^4.4.0",
     "framer-motion": "^12.42.0",
     "gogoanime-api-new": "^1.0.27",
+    "hianime": "^1.5.1",
     "lucide-react": "^1.22.0",
     "next": "16.2.9",
     "react": "19.2.4",

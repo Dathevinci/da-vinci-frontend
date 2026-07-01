@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Play, Loader2, AlertCircle, Server } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Play, Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import ReactPlayer from 'react-player';
 
 interface VideoPlayerProps {
   animeTitle: string;
@@ -15,83 +16,54 @@ export default function VideoPlayer({ animeTitle, animeImage, episode = 1, anime
   const [hasStarted, setHasStarted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // We will store multiple servers here so the user can switch if one is blocked or missing an episode
-  const [servers, setServers] = useState<{name: string, url: string}[]>([]);
-  const [currentServerIdx, setCurrentServerIdx] = useState(0);
+  const [videoSrc, setVideoSrc] = useState<string | null>(null);
+  const [tracks, setTracks] = useState<any[]>([]);
 
   const startStream = async () => {
     setHasStarted(true);
     setLoading(true);
     setError(null);
+    setVideoSrc(null);
 
     try {
-      const availableServers: {name: string, url: string}[] = [];
-      const slug = animeTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      // Hit our own backend API to scrape Hianime
+      const res = await fetch(`/api/stream/hianime?title=${encodeURIComponent(animeTitle)}&episode=${episode}`);
+      const json = await res.json();
 
-      let malId = null;
-      let tmdbId = null;
-
-      // 1. Fetch EXACT ID mappings from ani.zip using Anilist ID
-      if (animeId) {
-        try {
-          const mapRes = await fetch(`https://api.ani.zip/mappings?anilist_id=${animeId}`);
-          if (mapRes.ok) {
-            const mapData = await mapRes.json();
-            malId = mapData?.mappings?.mal_id;
-            tmdbId = mapData?.mappings?.themoviedb_id;
-          }
-        } catch (e) {
-          console.warn("Failed to fetch ID mappings");
-        }
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || "Failed to fetch stream");
       }
 
-      // 2. Add Servers based on available IDs
-      if (malId) {
-        availableServers.push({
-          name: "VidLink (HD)",
-          url: `https://vidlink.pro/anime/${malId}/${episode}/sub?primaryColor=4f46e5&autoplay=true`
-        });
+      const data = json.data;
+      if (!data || !data.sources || data.sources.length === 0) {
+        throw new Error("No video sources found");
       }
 
-      if (tmdbId) {
-        availableServers.push({
-          name: "Vidsrc",
-          url: `https://vidsrc.cc/v3/embed/tv/${tmdbId}/1/${episode}`
-        });
-        availableServers.push({
-          name: "Embed.su",
-          url: `https://embed.su/embed/tv/${tmdbId}/1/${episode}`
-        });
-        availableServers.push({
-          name: "AutoEmbed",
-          url: `https://player.autoembed.cc/embed/tv/${tmdbId}/1/${episode}`
-        });
+      // Find the highest quality source or default to first (usually auto/1080p)
+      const defaultSource = data.sources.find((s: any) => s.isM3U8) || data.sources[0];
+      setVideoSrc(defaultSource.url);
+
+      if (data.tracks && data.tracks.length > 0) {
+        const formattedTracks = data.tracks
+          .filter((t: any) => t.kind === 'captions')
+          .map((t: any) => ({
+            kind: 'subtitles',
+            src: t.file,
+            srcLang: t.label.toLowerCase().slice(0, 2),
+            label: t.label,
+            default: t.default || false,
+          }));
+        setTracks(formattedTracks);
       }
-
-      // 3. Fallbacks
-      if (animeId) {
-        availableServers.push({
-          name: "Anilist Server",
-          url: `https://anime.autoembed.cc/embed/anilist/${animeId}-episode-${episode}`
-        });
-      }
-
-      availableServers.push({
-        name: "AnimeWorld",
-        url: `https://anime-world.in/player/${slug}-episode-${episode}`
-      });
-
-      if (availableServers.length === 0) {
-        throw new Error("Could not find any stream servers.");
-      }
-
-      setServers(availableServers);
-      setCurrentServerIdx(0);
 
     } catch (err: any) {
-      console.error(err);
-      setError("Failed to load stream servers. Please try again.");
+      console.error("Stream Error:", err);
+      // Detailed error if it might be Cloudflare
+      if (err.message.includes("522") || err.message.includes("timeout")) {
+         setError("Cloudflare blocked the streaming server. Hianime is currently unreachable.");
+      } else {
+         setError(err.message || "Failed to load stream. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -129,13 +101,12 @@ export default function VideoPlayer({ animeTitle, animeImage, episode = 1, anime
   }
 
   return (
-    <div className="w-full bg-[#0a0a0c] border border-white/10 rounded-2xl overflow-hidden shadow-2xl flex flex-col">
-      {/* Video Container */}
+    <div className="w-full bg-[#0a0a0c] border border-white/10 rounded-2xl overflow-hidden shadow-2xl flex flex-col relative">
       <div className="w-full aspect-video relative bg-black flex items-center justify-center">
         {loading && (
           <div className="flex flex-col items-center gap-4 text-indigo-400">
             <Loader2 className="w-10 h-10 animate-spin" />
-            <p className="text-sm font-semibold animate-pulse">Finding stream sources...</p>
+            <p className="text-sm font-semibold animate-pulse">Scraping Hianime API...</p>
           </div>
         )}
 
@@ -144,47 +115,32 @@ export default function VideoPlayer({ animeTitle, animeImage, episode = 1, anime
             <AlertCircle className="w-10 h-10" />
             <p className="font-bold">Stream Error</p>
             <p className="text-sm opacity-80">{error}</p>
-            <button onClick={startStream} className="mt-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-full transition-colors">
-              Try Again
+            <button onClick={startStream} className="mt-4 px-6 py-2 bg-white/10 hover:bg-white/20 text-white text-sm font-bold rounded-full transition-colors flex items-center gap-2">
+              <RefreshCw className="w-4 h-4" /> Retry Hianime
             </button>
           </div>
         )}
 
-        {!loading && !error && servers.length > 0 && (
-          <iframe 
-            key={servers[currentServerIdx].url}
-            src={servers[currentServerIdx].url} 
-            allowFullScreen 
-            allow="autoplay; fullscreen"
-            className="w-full h-full border-none absolute top-0 left-0"
-          />
+        {!loading && !error && videoSrc && (
+          <div className="w-full h-full absolute inset-0 player-wrapper">
+             <ReactPlayer 
+               url={videoSrc}
+               controls
+               width="100%"
+               height="100%"
+               playing
+               config={{
+                 file: {
+                   attributes: {
+                     crossOrigin: 'anonymous'
+                   },
+                   tracks: tracks
+                 }
+               }}
+             />
+          </div>
         )}
       </div>
-
-      {/* Server Selector */}
-      {!loading && !error && servers.length > 1 && (
-        <div className="p-4 bg-white/5 border-t border-white/10 flex items-center gap-4 overflow-x-auto">
-          <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-wider flex-shrink-0">
-            <Server className="w-4 h-4" />
-            Servers
-          </div>
-          <div className="flex gap-2">
-            {servers.map((server, idx) => (
-              <button
-                key={idx}
-                onClick={() => setCurrentServerIdx(idx)}
-                className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors whitespace-nowrap ${
-                  currentServerIdx === idx 
-                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/25' 
-                    : 'bg-white/5 text-slate-300 hover:bg-white/10'
-                }`}
-              >
-                {server.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
