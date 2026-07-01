@@ -87,11 +87,6 @@ export default function Navbar() {
             {isLoaded && (
               user ? (
                 <div className="hidden lg:flex items-center gap-4 relative">
-                  {user.username.toLowerCase() === 'dejavuh' && (
-                    <Link href="/admin" className="flex items-center gap-2 text-sm font-bold bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 px-4 py-2 border border-yellow-500/20 rounded-full transition shadow-lg whitespace-nowrap">
-                      👑 God Mode
-                    </Link>
-                  )}
                   <Link href="/profile" className="flex items-center gap-2 text-sm font-bold bg-white/10 hover:bg-white/20 px-4 py-2 border border-white/10 rounded-full transition shadow-lg text-white whitespace-nowrap">
                     <Compass className="w-4 h-4 text-indigo-400" />
                     My Tracker
@@ -159,11 +154,6 @@ export default function Navbar() {
           )}
           {isLoaded && user && (
             <div className="mt-auto p-6 border-t border-white/10 flex flex-col gap-4 overflow-y-auto max-h-[50vh]">
-              {user.username.toLowerCase() === 'dejavuh' && (
-                <Link href="/admin" onClick={() => setIsMobileMenuOpen(false)} className="w-full bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 font-bold py-4 rounded-xl text-lg transition flex justify-center items-center gap-2 border border-yellow-500/20 shadow-lg">
-                  👑 God Mode
-                </Link>
-              )}
               <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)} className="w-full bg-white/10 hover:bg-white/20 text-white font-bold py-4 rounded-xl text-lg transition flex justify-center items-center gap-2 border border-white/10 shadow-lg">
                 <Compass className="w-5 h-5 text-indigo-400" /> My Tracker
               </Link>
