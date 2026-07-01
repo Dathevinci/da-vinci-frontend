@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { Play, Plus, ThumbsUp, ChevronDown, Check } from 'lucide-react';
-import { AniListAnime } from '@/lib/anilist';
+import { Anime } from '@tutkli/jikan-ts';
 import AnimeStatusBadge from './AnimeStatusBadge';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAnimeStatus } from '@/hooks/useAnimeStatus';
@@ -11,14 +11,13 @@ import { useToast } from '@/components/ui/Toast';
 import TrailerModal from '../ui/TrailerModal';
 
 interface AnimeCardProps {
-  anime: AniListAnime;
+  anime: Anime;
 }
 
 export default function AnimeCard({ anime }: AnimeCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
-  const [fetchedTrailer, setFetchedTrailer] = useState<{ id: string; site: string } | null>(null);
   const [transformOrigin, setTransformOrigin] = useState("center center");
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -26,7 +25,7 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
   const { getStatus, setStatus } = useAnimeStatus();
   const { toast } = useToast();
   
-  const currentStatus = getStatus(anime.id);
+  const currentStatus = getStatus(anime.mal_id);
   const isInWatchlist = currentStatus !== "None";
 
   const handleMouseEnter = () => {
@@ -53,9 +52,8 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
     setIsHovered(false);
   };
 
-  const title = anime.title.english || anime.title.romaji || anime.title.userPreferred;
-  const imageUrl = anime.coverImage.extraLarge || anime.coverImage.large || "https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=500&q=80";
-  const nextEp = anime.nextAiringEpisode;
+  const title = anime.title_english || anime.title;
+  const imageUrl: string = (anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url || "https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=500&q=80") as string;
 
   return (
     <div 
@@ -70,10 +68,10 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
       <div className="absolute inset-0 rounded-xl overflow-hidden shadow-lg border border-white/10 bg-white/5 backdrop-blur-md cursor-pointer">
         <img src={imageUrl} alt={title} className="object-cover w-full h-full" />
         <div className="absolute top-2 left-2 right-2 flex justify-between items-start gap-1 z-10">
-          <AnimeStatusBadge status={anime.status} />
-          {anime.averageScore && (
+          <AnimeStatusBadge status={anime.status || "Unknown"} />
+          {anime.score && (
             <span className="bg-indigo-600/90 text-white px-1.5 py-0.5 rounded text-[10px] font-bold shadow-md backdrop-blur-sm">
-              ★ {anime.averageScore}
+              ★ {anime.score}
             </span>
           )}
         </div>
@@ -81,7 +79,6 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
 
       {/* 
         NETFLIX POP-OUT CARD 
-        Overlays exactly on top of the base card and scales slightly.
       */}
       <AnimatePresence>
         {isHovered && (
@@ -93,7 +90,7 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
             className="absolute inset-0 bg-white/10 backdrop-blur-2xl rounded-xl overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)] border border-white/20 flex flex-col cursor-pointer"
             style={{ transformOrigin }}
           >
-            <Link href={`/anime/${anime.id}`} className="block w-full h-full relative">
+            <Link href={`/anime/${anime.mal_id}`} className="block w-full h-full relative">
               <img 
                 src={imageUrl} 
                 alt={title} 
@@ -102,7 +99,7 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
               
               {/* Inner Badges */}
               <div className="absolute top-2 left-2 right-2 flex justify-between items-start gap-1 z-10">
-                <AnimeStatusBadge status={anime.status} />
+                <AnimeStatusBadge status={anime.status || "Unknown"} />
               </div>
 
               {/* Gradient Overlay for Content */}
@@ -116,35 +113,14 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
                 <div className="flex items-center gap-1.5 mb-2 relative z-50">
                    {/* Play Trailer Button */}
                    <button 
-                     onClick={async (e) => {
+                     onClick={(e) => {
                        e.preventDefault();
                        e.stopPropagation();
                        
-                       // Fast path: Backend already provided the trailer
-                       if (anime.trailer?.id && anime.trailer?.site === "youtube") {
+                       if (anime.trailer?.youtube_id) {
                          setShowTrailer(true);
-                         return;
-                       }
-                       
-                       // Fallback path: Live fetch from AniList (solves backend caching/deployment delays)
-                       try {
-                         const query = `query ($id: Int) { Media(id: $id, type: ANIME) { trailer { id site } } }`;
-                         const res = await fetch("https://graphql.anilist.co", {
-                           method: "POST",
-                           headers: { "Content-Type": "application/json" },
-                           body: JSON.stringify({ query, variables: { id: anime.id } })
-                         });
-                         const data = await res.json();
-                         const trailer = data?.data?.Media?.trailer;
-                         
-                         if (trailer?.id && trailer?.site === "youtube") {
-                           setFetchedTrailer(trailer);
-                           setShowTrailer(true);
-                         } else {
-                           toast("No trailer available for this anime.", "error");
-                         }
-                       } catch (err) {
-                         toast("Failed to fetch trailer.", "error");
+                       } else {
+                         toast("No trailer available for this anime.", "error");
                        }
                      }}
                      className="w-7 h-7 md:w-8 md:h-8 bg-white text-black flex items-center justify-center rounded-full hover:bg-slate-200 transition-colors"
@@ -156,6 +132,7 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
                    <button 
                      onClick={(e) => {
                        e.preventDefault();
+                       // @ts-ignore - Temporary bypass for useAnimeStatus AniList types
                        setStatus(anime, isInWatchlist ? "None" : "Interested");
                        toast(isInWatchlist ? "Removed from Watchlist" : "Added to Watchlist", "success");
                      }}
@@ -192,16 +169,16 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
                 
                 {/* Metadata */}
                 <div className="flex items-center gap-1.5 text-[9px] md:text-[10px] font-bold mb-1.5">
-                  {anime.averageScore && <span className="text-green-400">{anime.averageScore}% Match</span>}
-                  <span className="border border-white/20 px-1 py-0.5 rounded text-slate-200">{anime.format || "TV"}</span>
+                  {anime.score && <span className="text-green-400">{anime.score} Score</span>}
+                  <span className="border border-white/20 px-1 py-0.5 rounded text-slate-200">{anime.type || "TV"}</span>
                   <span className="text-slate-200">{anime.episodes ? `${anime.episodes} EPS` : "Ongoing"}</span>
                 </div>
 
                 {/* Genres */}
                 <div className="flex flex-wrap items-center gap-1">
-                  {anime.genres.slice(0, 3).map((g, i) => (
-                    <div key={g} className="flex items-center gap-1">
-                      <span className="text-[9px] md:text-[10px] text-slate-300 font-medium">{g}</span>
+                  {anime.genres.slice(0, 3).map((g: any, i: number) => (
+                    <div key={g.name} className="flex items-center gap-1">
+                      <span className="text-[9px] md:text-[10px] text-slate-300 font-medium">{g.name}</span>
                       {i < Math.min(anime.genres.length, 3) - 1 && <span className="text-slate-600 text-[8px]">●</span>}
                     </div>
                   ))}
@@ -215,7 +192,7 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
 
       {/* Trailer Modal (Portaled outside to avoid stacking context issues) */}
       <TrailerModal 
-        videoId={showTrailer ? (fetchedTrailer?.id || anime.trailer?.id || null) : null} 
+        videoId={showTrailer ? anime.trailer?.youtube_id : null} 
         onClose={() => setShowTrailer(false)} 
       />
     </div>

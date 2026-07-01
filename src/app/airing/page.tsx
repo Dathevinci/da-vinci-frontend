@@ -1,13 +1,13 @@
-import { searchAnime } from "@/lib/anilist";
+import { searchAnime } from "@/lib/jikan";
 import HeroBannerCarousel from "@/components/anime/HeroBannerCarousel";
 import AnimatedGrid from "@/components/ui/AnimatedGrid";
 
 export const dynamic = 'force-dynamic';
 
 export default async function AiringPage() {
-  let animes = [];
+  let animes: any[] = [];
   try {
-    const data = await searchAnime({ status: "RELEASING", sort: "POPULARITY_DESC", page: 1 });
+    const data = await searchAnime({ status: "airing", page: 1 });
     animes = data?.Page?.media || [];
   } catch (err) {
     console.error("Airing API Error:", err);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { AniListAnime } from "@/lib/anilist";
+import { Anime } from "@tutkli/jikan-ts";
 import { useUser } from "./useUser";
 
 export type AnimeUserStatus = "Interested" | "Watching" | "Waiting" | "Finished" | "Dropped" | "None";
@@ -9,7 +9,7 @@ export type AnimeUserStatus = "Interested" | "Watching" | "Waiting" | "Finished"
 export interface TrackedAnime {
   backendId?: string; // The UUID from the backend database
   status: AnimeUserStatus;
-  anime: AniListAnime;
+  anime: Anime;
   updatedAt: number;
 }
 
@@ -36,9 +36,11 @@ export function useAnimeStatus() {
                 status: (item.status.charAt(0).toUpperCase() + item.status.slice(1).toLowerCase()) as AnimeUserStatus,
                 updatedAt: new Date(item.updatedAt).getTime(),
                 anime: {
-                  id: item.anilistId,
-                  title: { romaji: item.title, userPreferred: item.title },
-                  coverImage: { extraLarge: item.coverImage, large: item.coverImage },
+                  mal_id: item.anilistId,
+                  title: item.title,
+                  images: {
+                    jpg: { image_url: item.coverImage, small_image_url: item.coverImage, large_image_url: item.coverImage }
+                  },
                   status: "UNKNOWN",
                   genres: [],
                 } as any // Mocking the rest of the object for the tracker list
@@ -66,17 +68,17 @@ export function useAnimeStatus() {
     loadData();
   }, [user]);
 
-  const setStatus = async (anime: AniListAnime, status: AnimeUserStatus) => {
+  const setStatus = async (anime: Anime, status: AnimeUserStatus) => {
     // 1. Optimistic UI update
-    const currentTracked = tracked[anime.id];
+    const currentTracked = tracked[anime.mal_id];
     let newBackendId = currentTracked?.backendId;
 
     setTracked((prev) => {
       const updated = { ...prev };
       if (status === "None") {
-        delete updated[anime.id];
+        delete updated[anime.mal_id];
       } else {
-        updated[anime.id] = {
+        updated[anime.mal_id] = {
           backendId: newBackendId,
           status,
           anime,
@@ -104,15 +106,15 @@ export function useAnimeStatus() {
           });
         } else {
           // POST
-          const title = anime.title.english || anime.title.romaji || anime.title.userPreferred;
+          const title = anime.title_english || anime.title;
           const res = await fetch(`${API_URL}/api/watchlist`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               userId: user.id,
-              anilistId: anime.id,
+              anilistId: anime.mal_id, // we keep the field name anilistId on backend for now to avoid breaking it
               title,
-              coverImage: anime.coverImage.extraLarge || anime.coverImage.large,
+              coverImage: anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url,
               status: status.toUpperCase()
             })
           });
@@ -121,7 +123,7 @@ export function useAnimeStatus() {
             // Update the state with the newly created backend UUID so we can delete/patch it later
             setTracked(prev => ({
               ...prev,
-              [anime.id]: { ...prev[anime.id], backendId: data.data.id }
+              [anime.mal_id]: { ...prev[anime.mal_id], backendId: data.data.id }
             }));
           }
         }
@@ -162,16 +164,16 @@ export function useAnimeStatus() {
     }
   };
 
-  const batchSetStatus = async (entries: { anime: AniListAnime, status: AnimeUserStatus }[]) => {
+  const batchSetStatus = async (entries: { anime: Anime, status: AnimeUserStatus }[]) => {
     // 1. Optimistic UI update
     setTracked((prev) => {
       const updated = { ...prev };
       entries.forEach(({ anime, status }) => {
         if (status === "None") {
-          delete updated[anime.id];
+          delete updated[anime.mal_id];
         } else {
-          updated[anime.id] = {
-            backendId: updated[anime.id]?.backendId,
+          updated[anime.mal_id] = {
+            backendId: updated[anime.mal_id]?.backendId,
             status,
             anime,
             updatedAt: Date.now(),
@@ -186,12 +188,9 @@ export function useAnimeStatus() {
 
     // 2. Sync sequentially to avoid blasting the backend
     for (const { anime, status } of entries) {
-      // We must get the latest backendId directly from state or the closure might be stale
-      // Since we just updated `tracked` optimistically, the backendId hasn't changed yet.
-      // We can use the prev state's backendId, which is fine unless it was just created (which shouldn't happen here)
       setTracked((currentTrackedState) => {
          const syncSingle = async () => {
-            const currentTracked = currentTrackedState[anime.id];
+            const currentTracked = currentTrackedState[anime.mal_id];
             const newBackendId = currentTracked?.backendId;
             try {
               if (status === "None") {
@@ -203,32 +202,32 @@ export function useAnimeStatus() {
                   body: JSON.stringify({ status: status.toUpperCase() })
                 });
               } else {
-                const title = anime.title.english || anime.title.romaji || anime.title.userPreferred;
+                const title = anime.title_english || anime.title;
                 const res = await fetch(`${API_URL}/api/watchlist`, {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     userId: user.id,
-                    anilistId: anime.id,
+                    anilistId: anime.mal_id, // keep naming for backend compatibility
                     title,
-                    coverImage: anime.coverImage.extraLarge || anime.coverImage.large,
+                    coverImage: anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url,
                     status: status.toUpperCase()
                   })
                 });
                 const data = await res.json();
                 if (data.success) {
                   setTracked(p => {
-                    if (!p[anime.id]) return p;
-                    return { ...p, [anime.id]: { ...p[anime.id], backendId: data.data.id } };
+                    if (!p[anime.mal_id]) return p;
+                    return { ...p, [anime.mal_id]: { ...p[anime.mal_id], backendId: data.data.id } };
                   });
                 }
               }
             } catch (e) {
-              console.error(`Failed to sync anime ${anime.id}`, e);
+              console.error(`Failed to sync anime ${anime.mal_id}`, e);
             }
          };
          syncSingle();
-         return currentTrackedState; // don't modify state here, just using it to read the latest
+         return currentTrackedState;
       });
     }
   };

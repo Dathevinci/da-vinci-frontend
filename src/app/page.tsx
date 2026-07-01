@@ -1,4 +1,4 @@
-import { getDashboardData } from "@/lib/anilist";
+import { getDashboardData } from "@/lib/jikan";
 import AnimeCarousel from "@/components/anime/AnimeCarousel";
 import AnimeStatusBadge from "@/components/anime/AnimeStatusBadge";
 import AnnouncementBanner from "@/components/ui/AnnouncementBanner";

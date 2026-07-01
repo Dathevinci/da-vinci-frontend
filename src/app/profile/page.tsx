@@ -13,7 +13,7 @@ import getCroppedImg from "@/lib/cropImage";
 import { useState, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { fetchUserAniList } from "@/lib/anilist";
+import { fetchUserMAL } from "@/lib/jikan";
 import { getRankTheme } from "@/lib/ranks";
 import * as Icons from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
@@ -156,35 +156,33 @@ export default function ProfileTrackerPage() {
     toast("Profile saved successfully!", "success");
   };
 
-  const handleAnilistSync = async () => {
-    if (!anilistUsername) return toast("Please enter an AniList username.", "error");
+  const handleMALSync = async () => {
+    if (!anilistUsername) return toast("Please enter a MyAnimeList username.", "error");
     setSyncingAnilist(true);
     try {
-      const data = await fetchUserAniList(anilistUsername);
-      if (!data || !data.lists) throw new Error("Could not fetch data for this user");
+      const entries = await fetchUserMAL(anilistUsername);
+      if (!entries || entries.length === 0) throw new Error("Could not fetch data for this user or list is empty.");
       
       const entriesToSync: any[] = [];
       
-      data.lists.forEach((list: any) => {
-        list.entries.forEach((entry: any) => {
-          let targetStatus: AnimeUserStatus | null = null;
-          
-          if (entry.status === "CURRENT" || entry.status === "REPEATING") {
-             if (syncOptions.watching) targetStatus = "Watching";
-          } else if (entry.status === "PLANNING") {
-             if (syncOptions.interested) targetStatus = "Interested";
-          } else if (entry.status === "COMPLETED") {
-             if (syncOptions.finished) targetStatus = "Finished";
-          } else if (entry.status === "DROPPED") {
-             if (syncOptions.dropped) targetStatus = "Dropped";
-          } else if (entry.status === "PAUSED") {
-             if (syncOptions.waiting) targetStatus = "Waiting";
-          }
-          
-          if (targetStatus && entry.media) {
-            entriesToSync.push({ anime: entry.media, status: targetStatus });
-          }
-        });
+      entries.forEach((entry: any) => {
+        let targetStatus: AnimeUserStatus | null = null;
+        
+        if (entry.watching_status === 1) {
+           if (syncOptions.watching) targetStatus = "Watching";
+        } else if (entry.watching_status === 2) {
+           if (syncOptions.finished) targetStatus = "Finished";
+        } else if (entry.watching_status === 3) {
+           if (syncOptions.waiting) targetStatus = "Waiting";
+        } else if (entry.watching_status === 4) {
+           if (syncOptions.dropped) targetStatus = "Dropped";
+        } else if (entry.watching_status === 6) {
+           if (syncOptions.interested) targetStatus = "Interested";
+        }
+        
+        if (targetStatus && entry.anime) {
+          entriesToSync.push({ anime: entry.anime, status: targetStatus });
+        }
       });
       
       if (entriesToSync.length === 0) {
@@ -194,10 +192,10 @@ export default function ProfileTrackerPage() {
       }
       
       await batchSetStatus(entriesToSync);
-      toast(`Successfully imported ${entriesToSync.length} anime from AniList!`, "success");
+      toast(`Successfully imported ${entriesToSync.length} anime from MAL!`, "success");
       setActiveTab("Watchlist");
     } catch (e: any) {
-      toast(e.message || "Failed to sync AniList", "error");
+      toast(e.message || "Failed to sync MAL", "error");
     } finally {
       setSyncingAnilist(false);
     }
@@ -387,7 +385,7 @@ export default function ProfileTrackerPage() {
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.9 }}
                         transition={{ duration: 0.2 }}
-                        key={item.anime.id} 
+                        key={item.anime.mal_id || Math.random()} 
                         className="relative group"
                       >
                         <AnimeCard anime={item.anime} />
@@ -497,7 +495,7 @@ export default function ProfileTrackerPage() {
                       <RefreshCw className="w-6 h-6 text-[#3db4f2]" />
                     </div>
                     <div>
-                      <h2 className="text-2xl font-black text-white">AniList Sync</h2>
+                      <h2 className="text-2xl font-black text-white">MyAnimeList Sync</h2>
                       <p className="text-slate-400 text-sm">Import your existing anime list directly into Da Vinci.</p>
                     </div>
                   </div>
@@ -512,7 +510,7 @@ export default function ProfileTrackerPage() {
                           type="text"
                           value={anilistUsername}
                           onChange={(e) => setAnilistUsername(e.target.value)}
-                          placeholder="Enter your AniList Username"
+                          placeholder="Enter your MyAnimeList Username"
                           className="w-full bg-black/20 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-[#3db4f2]/50 focus:ring-1 focus:ring-[#3db4f2]/50 transition-all"
                         />
                       </div>
@@ -544,12 +542,12 @@ export default function ProfileTrackerPage() {
                     </div>
 
                     <button 
-                      onClick={handleAnilistSync}
+                      onClick={handleMALSync}
                       disabled={syncingAnilist || !anilistUsername}
                       className="w-full bg-gradient-to-r from-[#2b2d42] to-[#1a1b26] hover:from-[#3db4f2]/20 hover:to-[#2b2d42] border border-[#3db4f2]/30 text-white px-8 py-3.5 rounded-xl font-bold transition-all disabled:opacity-50 disabled:hover:from-[#2b2d42] shadow-lg flex items-center justify-center gap-2 group"
                     >
                       <RefreshCw className={`w-5 h-5 ${syncingAnilist ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
-                      {syncingAnilist ? "Importing from AniList..." : "Connect & Import"}
+                      {syncingAnilist ? "Importing from MAL..." : "Connect & Import"}
                     </button>
                   </div>
 
@@ -558,7 +556,7 @@ export default function ProfileTrackerPage() {
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 rounded-xl bg-red-500/5 border border-red-500/10">
                       <div>
                         <h3 className="font-bold text-red-400 mb-1">Danger Zone</h3>
-                        <p className="text-xs text-slate-400">Permanently wipe your Da Vinci watchlist. Your AniList will not be affected.</p>
+                        <p className="text-xs text-slate-400">Permanently wipe your Da Vinci watchlist. Your MAL will not be affected.</p>
                       </div>
                       <button 
                         onClick={handleWipe}

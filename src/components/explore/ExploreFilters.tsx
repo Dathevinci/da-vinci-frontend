@@ -11,26 +11,24 @@ const GENRES = [
 ];
 
 const SORTS = [
-  { label: "Trending", value: "TRENDING_DESC" },
-  { label: "Popularity", value: "POPULARITY_DESC" },
-  { label: "Highest Rated", value: "SCORE_DESC" },
-  { label: "Newest First", value: "START_DATE_DESC" },
-  { label: "Oldest First", value: "START_DATE" },
+  { label: "Popularity", value: "popularity" },
+  { label: "Highest Rated", value: "score" },
+  { label: "Newest First", value: "newest" },
+  { label: "Oldest First", value: "oldest" },
 ];
 
 const FORMATS = [
-  { label: "TV Show", value: "TV" },
-  { label: "Movie", value: "MOVIE" },
-  { label: "TV Short", value: "TV_SHORT" },
-  { label: "Special", value: "SPECIAL" },
-  { label: "OVA", value: "OVA" },
-  { label: "ONA", value: "ONA" },
+  { label: "TV Show", value: "tv" },
+  { label: "Movie", value: "movie" },
+  { label: "Special", value: "special" },
+  { label: "OVA", value: "ova" },
+  { label: "ONA", value: "ona" },
 ];
 
 const STATUSES = [
-  { label: "Airing Now", value: "RELEASING" },
-  { label: "Finished", value: "FINISHED" },
-  { label: "Upcoming", value: "NOT_YET_RELEASED" },
+  { label: "Airing Now", value: "airing" },
+  { label: "Finished", value: "complete" },
+  { label: "Upcoming", value: "upcoming" },
 ];
 
 export default function ExploreFilters() {
@@ -40,7 +38,7 @@ export default function ExploreFilters() {
 
   const currentQuery = searchParams.get("q") || "";
   const currentGenres = searchParams.get("genre")?.split(",") || [];
-  const currentSort = searchParams.get("sort") || "POPULARITY_DESC";
+  const currentSort = searchParams.get("sort") || "popularity";
   const currentFormat = searchParams.get("format") || "";
   const currentStatus = searchParams.get("status") || "";
 

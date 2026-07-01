@@ -4,9 +4,10 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, Loader2, Compass } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { searchAnime } from "@/lib/anilist";
+import { searchAnime } from "@/lib/jikan";
 import Link from "next/link";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
+import { Anime } from "@tutkli/jikan-ts";
 
 interface SearchModalProps {
   onClose: () => void;
@@ -14,7 +15,7 @@ interface SearchModalProps {
 
 export default function SearchModal({ onClose }: SearchModalProps) {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<Anime[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -116,22 +117,22 @@ export default function SearchModal({ onClose }: SearchModalProps) {
               <div className="p-2">
                 {results.map((anime) => (
                   <Link
-                    href={`/anime/${anime.id}`}
-                    key={anime.id}
+                    href={`/anime/${anime.mal_id}`}
+                    key={anime.mal_id}
                     onClick={onClose}
                     className="flex items-center gap-4 p-4 hover:bg-white/5 rounded-xl transition cursor-pointer"
                   >
                     <img
-                      src={anime.coverImage.large}
-                      alt={anime.title.romaji}
+                      src={anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url}
+                      alt={anime.title_english || anime.title}
                       className="w-12 h-16 object-cover rounded-md"
                     />
                     <div className="flex-1 min-w-0">
                       <h3 className="text-white font-bold truncate">
-                        {anime.title.english || anime.title.romaji}
+                        {anime.title_english || anime.title}
                       </h3>
                       <p className="text-sm text-slate-400 truncate">
-                        {anime.format?.replace("_", " ")} • {anime.seasonYear || "?"}
+                        {anime.type} • {anime.year || "?"}
                       </p>
                     </div>
                   </Link>
@@ -150,7 +151,7 @@ export default function SearchModal({ onClose }: SearchModalProps) {
               </div>
             ) : (
               <div className="p-8 text-center text-slate-500 text-sm">
-                Type something to search the AniList database.
+                Type something to search the Jikan database.
               </div>
             )}
           </div>

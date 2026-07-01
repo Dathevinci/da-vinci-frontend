@@ -26,8 +26,8 @@ export default function ControlCenter({ isOpen, onClose }: ControlCenterProps) {
   const [isPrivate, setIsPrivate] = useState(false);
   
   useEffect(() => {
-    if (user && user.isPrivate !== undefined) {
-      setIsPrivate(user.isPrivate);
+    if (user && (user as any).isPrivate !== undefined) {
+      setIsPrivate((user as any).isPrivate);
     }
   }, [user]);
 

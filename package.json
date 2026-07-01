@@ -9,18 +9,18 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@tutkli/jikan-ts": "^3.0.0",
     "cheerio": "^1.2.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
     "framer-motion": "^12.42.0",
     "gogoanime-api-new": "^1.0.27",
-    "hianime": "^1.5.1",
+    "ky": "^1.14.3",
     "lucide-react": "^1.22.0",
     "next": "16.2.9",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-easy-crop": "^5.5.7",
-    "react-player": "^3.4.0",
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {

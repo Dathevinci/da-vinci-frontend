@@ -1,18 +1,18 @@
 "use client";
 
 import { useAnimeStatus, AnimeUserStatus } from "@/hooks/useAnimeStatus";
-import { AniListAnime } from "@/lib/anilist";
+import { Anime } from '@tutkli/jikan-ts';
 import { Check, Clock, Eye, Heart, X, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { clsx } from "clsx";
 
-export default function AnimeTrackerPanel({ anime }: { anime: AniListAnime }) {
+export default function AnimeTrackerPanel({ anime }: { anime: Anime }) {
   const { getStatus, setStatus, isLoaded } = useAnimeStatus();
   const [isOpen, setIsOpen] = useState(false);
   
   if (!isLoaded) return <div className="h-12 w-48 bg-white/5 animate-pulse rounded-full" />;
 
-  const currentStatus = getStatus(anime.id);
+  const currentStatus = getStatus(anime.mal_id);
 
   const statusConfig: Record<AnimeUserStatus, { icon: any, label: string, color: string }> = {
     Watching: { icon: Eye, label: "Watching", color: "text-green-400 bg-green-500/10 border-green-500/50" },

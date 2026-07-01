@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { AniListAnime } from "@/lib/anilist";
+import { Anime } from "@tutkli/jikan-ts";
 import { Info, Clock, PlayCircle } from "lucide-react";
 import Link from "next/link";
 import AnimeStatusBadge from "./AnimeStatusBadge";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface Props {
-  animes: AniListAnime[];
+  animes: Anime[];
 }
 
 export default function HeroBannerCarousel({ animes }: Props) {
@@ -26,8 +26,7 @@ export default function HeroBannerCarousel({ animes }: Props) {
   if (!animes || animes.length === 0) return null;
 
   const heroAnime = animes[currentIndex];
-  const heroTitle = heroAnime.title.english || heroAnime.title.romaji || heroAnime.title.userPreferred;
-  const nextEp = heroAnime.nextAiringEpisode;
+  const heroTitle = heroAnime.title_english || heroAnime.title;
 
   return (
     <div className="relative w-full h-[75vh] md:h-[85vh] overflow-hidden bg-[#09090b] mb-10">
@@ -43,7 +42,7 @@ export default function HeroBannerCarousel({ animes }: Props) {
           className="absolute inset-0 z-0"
         >
           <img 
-            src={heroAnime.bannerImage || heroAnime.coverImage.extraLarge} 
+            src={(heroAnime.trailer?.images?.maximum_image_url || heroAnime.images?.jpg?.large_image_url || heroAnime.images?.jpg?.image_url || "") as string} 
             alt="Banner" 
             className="w-full h-full object-cover opacity-60 mix-blend-screen"
           />
@@ -65,7 +64,7 @@ export default function HeroBannerCarousel({ animes }: Props) {
             className="absolute inset-0 flex flex-col justify-center px-4 md:px-12 mt-10 md:mt-16"
           >
             <div className="mb-4 flex items-center gap-3">
-              <AnimeStatusBadge status={heroAnime.status} />
+              <AnimeStatusBadge status={heroAnime.status || "Unknown"} />
               <span className="text-indigo-400 font-bold uppercase tracking-widest text-sm flex items-center gap-1">
                 <PlayCircle className="w-4 h-4" /> #{currentIndex + 1} Trending
               </span>
@@ -74,26 +73,18 @@ export default function HeroBannerCarousel({ animes }: Props) {
               {heroTitle}
             </h1>
             <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs md:text-sm font-bold text-white mb-4 md:mb-6 drop-shadow">
-              {heroAnime.averageScore && <span className="text-green-400 text-base md:text-lg">★ {heroAnime.averageScore}%</span>}
-              <span className="text-slate-300">{heroAnime.season} {heroAnime.seasonYear}</span>
-              <span className="border border-white/20 bg-white/10 px-2 rounded">{heroAnime.format || "TV"}</span>
+              {heroAnime.score && <span className="text-green-400 text-base md:text-lg">★ {heroAnime.score}</span>}
+              <span className="text-slate-300">{heroAnime.season} {heroAnime.year}</span>
+              <span className="border border-white/20 bg-white/10 px-2 rounded">{heroAnime.type || "TV"}</span>
               <span className="text-slate-400">{heroAnime.episodes ? `${heroAnime.episodes} Eps` : "Unknown Eps"}</span>
             </div>
 
-            {nextEp && (
-              <div className="bg-indigo-600/20 border border-indigo-500/30 text-indigo-100 p-3 md:p-4 rounded-lg inline-flex items-center gap-3 md:gap-4 mb-4 md:mb-6 shadow-lg backdrop-blur-md">
-                <Clock className="w-5 h-5 md:w-6 md:h-6 text-indigo-400" />
-                <div>
-                  <div className="text-[10px] md:text-xs text-indigo-300 uppercase font-bold tracking-wider">Next Ep {nextEp.episode}</div>
-                  <div className="text-base md:text-lg font-bold">In {Math.floor(nextEp.timeUntilAiring / 86400)}d {Math.floor((nextEp.timeUntilAiring % 86400) / 3600)}h</div>
-                </div>
-              </div>
-            )}
-
-            <p className="text-sm md:text-lg text-slate-300 mb-6 md:mb-8 line-clamp-3 leading-relaxed font-medium" dangerouslySetInnerHTML={{ __html: heroAnime.description || "" }} />
+            <p className="text-sm md:text-lg text-slate-300 mb-6 md:mb-8 line-clamp-3 leading-relaxed font-medium">
+              {heroAnime.synopsis || "No synopsis available."}
+            </p>
 
             <div className="flex items-center gap-4">
-              <Link href={`/anime/${heroAnime.id}`}>
+              <Link href={`/anime/${heroAnime.mal_id}`}>
                 <button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 md:px-8 md:py-3 rounded-full text-base md:text-lg font-bold transition shadow-xl shadow-indigo-600/20">
                   <Info className="w-4 h-4 md:w-5 md:h-5" />
                   View Details

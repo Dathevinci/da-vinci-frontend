@@ -1,4 +1,4 @@
-import { searchAnime } from "@/lib/anilist";
+import { searchAnime } from "@/lib/jikan";
 import AnimeCard from "@/components/anime/AnimeCard";
 import ExploreFilters from "@/components/explore/ExploreFilters";
 import Link from "next/link";
@@ -76,8 +76,8 @@ export default async function ExplorePage({
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-6">
-            {media.map(anime => (
-              <div key={anime.id} className="w-full flex justify-center">
+            {media.map((anime: any) => (
+              <div key={anime.mal_id || anime.id} className="w-full flex justify-center">
                 <AnimeCard anime={anime} />
               </div>
             ))}

@@ -3,12 +3,12 @@
 import { useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import AnimeCard from './AnimeCard';
-import { AniListAnime } from '@/lib/anilist';
+import { Anime } from '@tutkli/jikan-ts';
 import Link from 'next/link';
 
 interface AnimeCarouselProps {
   title: string;
-  animes: AniListAnime[];
+  animes: Anime[];
 }
 
 export default function AnimeCarousel({ title, animes }: AnimeCarouselProps) {
@@ -41,7 +41,7 @@ export default function AnimeCarousel({ title, animes }: AnimeCarouselProps) {
           style={{ willChange: "scroll-position, transform" }}
           className="flex gap-2 md:gap-4 overflow-x-auto hide-scrollbar scroll-smooth px-2 pt-8 pb-12 -mt-4 -mb-4 snap-x snap-mandatory"
         >
-          {animes.map(a => <AnimeCard key={a.id} anime={a} />)}
+          {animes.map(a => <AnimeCard key={a.mal_id} anime={a} />)}
           
           {/* See More Card */}
           <Link href="/explore" className="snap-start">
