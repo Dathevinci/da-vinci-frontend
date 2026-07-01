@@ -72,7 +72,7 @@ export default function ControlCenter({ isOpen, onClose }: ControlCenterProps) {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: -10, transition: { duration: 0.15 } }}
           transition={{ type: "spring", stiffness: 400, damping: 30 }}
-          className="absolute top-16 right-4 md:right-8 w-80 sm:w-96 bg-black/70 backdrop-blur-3xl border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.8)] rounded-3xl p-4 z-50 flex flex-col gap-4 text-white overflow-hidden max-h-[85vh]"
+          className="fixed top-20 right-4 md:right-8 w-80 sm:w-96 bg-black/70 backdrop-blur-3xl border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.8)] rounded-3xl p-4 z-[100] flex flex-col gap-4 text-white overflow-hidden max-h-[85vh]"
         >
           {/* Quick Toggles Grid */}
           <div className="grid grid-cols-2 gap-3">
