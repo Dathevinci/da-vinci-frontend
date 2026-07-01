@@ -73,14 +73,14 @@ export function useUser() {
     };
   }, []);
 
-  const loginOrRegister = async (username: string, email: string, avatar?: string) => {
+  const signup = async (username: string, email: string, password: string) => {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
     
     try {
-      const res = await fetch(`${API_URL}/api/users`, {
+      const res = await fetch(`${API_URL}/api/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, email, avatar })
+        body: JSON.stringify({ username, email, password })
       });
       const data = await res.json();
       
@@ -93,6 +93,32 @@ export function useUser() {
     } catch (err) {
       return { success: false, message: "Network error" };
     }
+  };
+
+  const login = async (identifier: string, password: string) => {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+    
+    try {
+      const res = await fetch(`${API_URL}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier, password })
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        broadcastUpdate(data.data);
+        return { success: true };
+      } else {
+        return { success: false, message: data.message };
+      }
+    } catch (err) {
+      return { success: false, message: "Network error" };
+    }
+  };
+
+  const setDiscordUser = (userData: User) => {
+    broadcastUpdate(userData);
   };
 
   const updateProfile = async (data: Partial<User>) => {
@@ -167,5 +193,5 @@ export function useUser() {
     broadcastUpdate(null);
   };
 
-  return { user, isLoaded, loginOrRegister, updateProfile, followUser, unfollowUser, logout };
+  return { user, isLoaded, login, signup, setDiscordUser, updateProfile, followUser, unfollowUser, logout };
 }
