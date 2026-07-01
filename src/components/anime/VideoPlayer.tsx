@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Play } from "lucide-react";
+import { Play, Loader2, AlertCircle } from "lucide-react";
 
 interface VideoPlayerProps {
   animeTitle: string;
@@ -11,22 +11,37 @@ interface VideoPlayerProps {
 
 export default function VideoPlayer({ animeTitle, animeImage, episode = 1 }: VideoPlayerProps) {
   const [hasStarted, setHasStarted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [iframeSrc, setIframeSrc] = useState<string | null>(null);
 
-  const startStream = () => {
-    // Generate a URL slug from the title (e.g., "One Piece" -> "one-piece")
-    // This removes special characters and converts spaces to dashes for the iframe provider
-    const slug = animeTitle
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
-    
-    // We use a direct frontend iframe to bypass Vercel server Cloudflare blocks entirely!
-    // The user's browser will load this streaming source natively.
-    const url = `https://anime-world.in/player/${slug}-episode-${episode}`;
-    
-    setIframeSrc(url);
+  const startStream = async () => {
     setHasStarted(true);
+    setLoading(true);
+    setError(null);
+
+    try {
+      // 1. Fetch MAL ID from Jikan (MyAnimeList API)
+      const jikanRes = await fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(animeTitle)}&limit=1`);
+      const jikanData = await jikanRes.json();
+      
+      if (!jikanData.data || jikanData.data.length === 0) {
+        throw new Error("Could not find Anime ID for streaming.");
+      }
+
+      const malId = jikanData.data[0].mal_id;
+      
+      // 2. Generate vidlink.pro iframe URL using MAL ID
+      // This provider is extremely stable and doesn't get DNS blocked as easily
+      const url = `https://vidlink.pro/anime/${malId}/${episode}/sub?primaryColor=4f46e5&autoplay=true`;
+      
+      setIframeSrc(url);
+    } catch (err: any) {
+      console.error(err);
+      setError("Failed to load stream. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!hasStarted) {
@@ -49,7 +64,25 @@ export default function VideoPlayer({ animeTitle, animeImage, episode = 1 }: Vid
   return (
     <div className="w-full bg-[#0a0a0c] border border-white/10 rounded-2xl overflow-hidden shadow-2xl flex flex-col">
       <div className="w-full aspect-video relative bg-black flex items-center justify-center">
-        {iframeSrc && (
+        {loading && (
+          <div className="flex flex-col items-center gap-4 text-indigo-400">
+            <Loader2 className="w-10 h-10 animate-spin" />
+            <p className="text-sm font-semibold animate-pulse">Finding stream source...</p>
+          </div>
+        )}
+
+        {error && (
+          <div className="flex flex-col items-center gap-3 text-red-400 px-6 text-center max-w-md">
+            <AlertCircle className="w-10 h-10" />
+            <p className="font-bold">Stream Error</p>
+            <p className="text-sm opacity-80">{error}</p>
+            <button onClick={startStream} className="mt-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-full transition-colors">
+              Try Again
+            </button>
+          </div>
+        )}
+
+        {!loading && !error && iframeSrc && (
           <iframe 
             src={iframeSrc} 
             allowFullScreen 
