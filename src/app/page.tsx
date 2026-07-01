@@ -1,7 +1,6 @@
 import { getDashboardData } from "@/lib/jikan";
 import AnimeCarousel from "@/components/anime/AnimeCarousel";
 import AnimeStatusBadge from "@/components/anime/AnimeStatusBadge";
-import AnnouncementBanner from "@/components/ui/AnnouncementBanner";
 import QuoteOfTheDay from "@/components/ui/QuoteOfTheDay";
 import HeroBannerCarousel from "@/components/anime/HeroBannerCarousel";
 import { Info, Clock, PlayCircle } from "lucide-react";
@@ -34,7 +33,6 @@ export default async function Home() {
       <HeroBannerCarousel animes={heroAnimes} />
 
       <QuoteOfTheDay />
-      <AnnouncementBanner />
 
       {/* Carousels */}
       <div className="relative z-20 space-y-4">
