@@ -76,7 +76,7 @@ export default async function AnimeDetails({ params }: { params: Promise<{ id: s
           
           {/* Main Info */}
           <div className="flex-1 flex flex-col gap-8">
-            <VideoPlayer animeTitle={title} />
+            <VideoPlayer animeTitle={title} animeId={animeId} />
             <AnimeTabs anime={anime} />
           </div>
 
