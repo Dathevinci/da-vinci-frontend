@@ -7,7 +7,17 @@ import { MessageSquare, ArrowUp, ArrowDown, Trash2, Send, CornerDownRight, Zap, 
 import Link from 'next/link';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { getRankTheme } from '@/lib/ranks';
-import * as Icons from 'lucide-react';
+import { Code2, Sparkles, Crown, Feather, Zap, Leaf, User as UserIcon } from 'lucide-react';
+
+const RankIcons: Record<string, any> = {
+  Code2,
+  Sparkles,
+  Crown,
+  Feather,
+  Zap,
+  Leaf,
+  User: UserIcon
+};
 import { useToast } from '@/components/ui/Toast';
 
 interface Comment {
@@ -124,7 +134,7 @@ const CommentThread = ({
   const isViewerDev = user?.username?.toLowerCase() === 'dejavuh';
   
   const rankTheme = getRankTheme(node.user?.arisePoints || 0, node.user?.username || 'Unknown');
-  const RankIcon = rankTheme.badgeIcon ? (Icons as any)[rankTheme.badgeIcon] : null;
+  const RankIcon = rankTheme.badgeIcon ? RankIcons[rankTheme.badgeIcon] : null;
 
   return (
     <motion.div
