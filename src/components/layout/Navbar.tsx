@@ -69,6 +69,7 @@ export default function Navbar() {
               <Link href="/airing" className="hover:text-white hover:text-indigo-400 transition">Airing Now</Link>
               <Link href="/upcoming" className="hover:text-white hover:text-indigo-400 transition">Upcoming</Link>
               <Link href="/calendar" className="hover:text-white hover:text-indigo-400 transition">Schedule</Link>
+              <Link href="/updates" className="hover:text-white hover:text-indigo-400 transition">Updates</Link>
               <Link href="/community" className="hover:text-white hover:text-indigo-400 transition flex items-center gap-2">
                 <Users className="w-4 h-4" /> Community
               </Link>
@@ -140,6 +141,7 @@ export default function Navbar() {
             <Link href="/airing" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-indigo-400">Airing Now</Link>
             <Link href="/upcoming" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-indigo-400">Upcoming</Link>
             <Link href="/calendar" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-indigo-400">Schedule</Link>
+            <Link href="/updates" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-indigo-400">Updates</Link>
             <Link href="/community" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-indigo-400 flex items-center gap-3">
               <Users className="w-6 h-6" /> Community
             </Link>

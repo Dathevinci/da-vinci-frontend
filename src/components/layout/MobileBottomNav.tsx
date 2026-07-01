@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Compass, Users, User as UserIcon } from "lucide-react";
+import { Home, Compass, Users, User as UserIcon, Megaphone } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 
 export default function MobileBottomNav() {
@@ -12,6 +12,7 @@ export default function MobileBottomNav() {
   const navItems = [
     { label: "Home", href: "/", icon: <Home className="w-6 h-6" /> },
     { label: "Explore", href: "/explore", icon: <Compass className="w-6 h-6" /> },
+    { label: "Updates", href: "/updates", icon: <Megaphone className="w-6 h-6" /> },
     { label: "Community", href: "/community", icon: <Users className="w-6 h-6" /> },
     { label: "Profile", href: user ? "/profile" : "/user/login", icon: <UserIcon className="w-6 h-6" />, action: !user ? "login" : undefined }
   ];
