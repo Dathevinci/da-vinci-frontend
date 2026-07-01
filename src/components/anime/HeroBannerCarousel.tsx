@@ -70,7 +70,7 @@ export default function HeroBannerCarousel({ animes }: Props) {
                 <PlayCircle className="w-4 h-4" /> #{currentIndex + 1} Trending
               </span>
             </div>
-            <h1 className="text-4xl md:text-7xl font-black mb-2 md:mb-4 text-white drop-shadow-2xl tracking-tight leading-snug pb-2 line-clamp-2 sm:line-clamp-3">
+            <h1 className="text-4xl md:text-7xl font-black mb-2 md:mb-4 text-white drop-shadow-2xl tracking-tight leading-snug pb-2">
               {heroTitle}
             </h1>
             <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs md:text-sm font-bold text-white mb-4 md:mb-6 drop-shadow">

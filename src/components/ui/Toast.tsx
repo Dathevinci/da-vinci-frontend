@@ -44,11 +44,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             <motion.div
               key={t.id}
               layout
-              initial={{ opacity: 0, y: -50, scale: 0.8, filter: "blur(10px)" }}
-              animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
-              exit={{ opacity: 0, y: -20, scale: 0.9, filter: "blur(5px)", transition: { duration: 0.2 } }}
-              transition={{ type: "spring", stiffness: 400, damping: 25 }}
-              className="pointer-events-auto flex items-center gap-4 px-5 py-3 min-w-[250px] max-w-md rounded-full shadow-[0_20px_40px_rgba(0,0,0,0.8)] backdrop-blur-xl border"
+              initial={{ opacity: 0, y: -40, scale: 0.85 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -30, scale: 0.85, transition: { duration: 0.2 } }}
+              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+              className="pointer-events-auto flex items-center gap-4 px-5 py-3 min-w-[250px] max-w-md rounded-full shadow-[0_20px_40px_rgba(0,0,0,0.8)] backdrop-blur-2xl border"
               style={{
                 backgroundColor: "rgba(0, 0, 0, 0.9)",
                 borderColor:
