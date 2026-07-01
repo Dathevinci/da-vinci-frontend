@@ -6,6 +6,7 @@ import AnimeStatusBadge from "@/components/anime/AnimeStatusBadge";
 import AnimeTrackerPanel from "@/components/anime/AnimeTrackerPanel";
 import AnimeBackgroundTrailer from "@/components/anime/AnimeBackgroundTrailer";
 import AnimeTabs from "@/components/anime/AnimeTabs";
+import VideoPlayer from "@/components/anime/VideoPlayer";
 
 export const dynamic = 'force-dynamic';
 
@@ -74,7 +75,8 @@ export default async function AnimeDetails({ params }: { params: Promise<{ id: s
         <div className="container mx-auto px-4 md:px-12 pt-24 md:pt-32 pb-20 flex flex-col lg:flex-row gap-12">
           
           {/* Main Info */}
-          <div className="flex-1">
+          <div className="flex-1 flex flex-col gap-8">
+            <VideoPlayer animeTitle={title} />
             <AnimeTabs anime={anime} />
           </div>
 
