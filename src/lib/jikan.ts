@@ -98,3 +98,16 @@ export async function fetchUserMAL(username: string) {
   const data = await res.json();
   return data.data;
 }
+
+export function getYouTubeId(trailer: any): string | null {
+  if (trailer?.youtube_id) return trailer.youtube_id;
+  if (trailer?.embed_url) {
+    const match = trailer.embed_url.match(/embed\/([^?]+)/);
+    if (match) return match[1];
+  }
+  if (trailer?.url) {
+    const match = trailer.url.match(/v=([^&]+)/);
+    if (match) return match[1];
+  }
+  return null;
+}

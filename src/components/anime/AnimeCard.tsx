@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAnimeStatus } from '@/hooks/useAnimeStatus';
 import { useToast } from '@/components/ui/Toast';
 import TrailerModal from '../ui/TrailerModal';
+import { getYouTubeId } from '@/lib/jikan';
 
 interface AnimeCardProps {
   anime: Anime;
@@ -117,7 +118,8 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
                        e.preventDefault();
                        e.stopPropagation();
                        
-                       if (anime.trailer?.youtube_id) {
+                       const trailerId = getYouTubeId(anime.trailer);
+                       if (trailerId) {
                          setShowTrailer(true);
                        } else {
                          toast("No trailer available for this anime.", "error");
@@ -192,7 +194,7 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
 
       {/* Trailer Modal (Portaled outside to avoid stacking context issues) */}
       <TrailerModal 
-        videoId={showTrailer ? anime.trailer?.youtube_id : null} 
+        videoId={showTrailer ? getYouTubeId(anime.trailer) : null} 
         onClose={() => setShowTrailer(false)} 
       />
     </div>

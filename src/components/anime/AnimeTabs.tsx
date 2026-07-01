@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Clock, ExternalLink } from "lucide-react";
 import CommunityFeed from "../community/CommunityFeed";
 import { Anime } from "@tutkli/jikan-ts";
+import { getYouTubeId } from "@/lib/jikan";
 
 export default function AnimeTabs({ anime }: { anime: Anime }) {
   const [activeTab, setActiveTab] = useState("overview");
@@ -52,8 +53,8 @@ export default function AnimeTabs({ anime }: { anime: Anime }) {
                   <a href={anime.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-lg text-sm font-medium transition text-slate-300">
                     <ExternalLink className="w-4 h-4" /> MyAnimeList
                   </a>
-                  {anime.trailer?.url && (
-                    <a href={anime.trailer.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-lg text-sm font-medium transition text-slate-300">
+                  {getYouTubeId(anime.trailer) && (
+                    <a href={`https://youtube.com/watch?v=${getYouTubeId(anime.trailer)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-lg text-sm font-medium transition text-slate-300">
                       <ExternalLink className="w-4 h-4" /> YouTube Trailer
                     </a>
                   )}

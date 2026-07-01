@@ -5,6 +5,7 @@ import AnimeStatusBadge from "@/components/anime/AnimeStatusBadge";
 import AnimeTrackerPanel from "@/components/anime/AnimeTrackerPanel";
 import AnimeBackgroundTrailer from "@/components/anime/AnimeBackgroundTrailer";
 import AnimeTabs from "@/components/anime/AnimeTabs";
+import { getYouTubeId } from "@/lib/jikan";
 
 export const dynamic = 'force-dynamic';
 
@@ -26,13 +27,14 @@ export default async function AnimeDetails({ params }: { params: Promise<{ id: s
 
   const title = anime.title_english || anime.title;
   const bannerUrl = anime.trailer?.images?.maximum_image_url || anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url;
+  const trailerId = getYouTubeId(anime.trailer);
 
   return (
     <div className="bg-[#09090b] min-h-screen text-white pt-16">
       {/* Cinematic Banner Area */}
       <div className="relative w-full h-[50vh] md:h-[60vh]">
-        {anime.trailer?.youtube_id ? (
-          <AnimeBackgroundTrailer trailerId={anime.trailer.youtube_id} bannerUrl={bannerUrl || ""} />
+        {trailerId ? (
+          <AnimeBackgroundTrailer trailerId={trailerId} bannerUrl={bannerUrl || ""} />
         ) : (
           <>
             <img src={bannerUrl || ""} alt={title} className="w-full h-full object-cover opacity-50 mix-blend-screen" />
