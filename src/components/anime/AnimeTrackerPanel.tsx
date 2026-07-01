@@ -1,10 +1,11 @@
 "use client";
 
 import { useAnimeStatus, AnimeUserStatus } from "@/hooks/useAnimeStatus";
-import { Anime } from '@tutkli/jikan-ts';
 import { Check, Clock, Eye, Heart, X, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { clsx } from "clsx";
+import { motion, AnimatePresence } from "framer-motion";
+import { Anime } from '@tutkli/jikan-ts';
 
 export default function AnimeTrackerPanel({ anime }: { anime: Anime }) {
   const { getStatus, setStatus, isLoaded } = useAnimeStatus();
@@ -39,27 +40,35 @@ export default function AnimeTrackerPanel({ anime }: { anime: Anime }) {
         {currentConfig.label}
       </button>
 
-      {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-56 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col">
-          {(Object.keys(statusConfig) as AnimeUserStatus[]).map(status => {
-            const Config = statusConfig[status];
-            const Icon = Config.icon;
-            return (
-              <button
-                key={status}
-                onClick={() => { setStatus(anime, status); setIsOpen(false); }}
-                className={clsx(
-                  "flex items-center gap-3 px-4 py-3 text-sm font-semibold transition hover:bg-white/10",
-                  currentStatus === status ? "bg-indigo-500/20 text-indigo-400" : "text-slate-300"
-                )}
-              >
-                <Icon className="w-4 h-4" />
-                {Config.label}
-              </button>
-            );
-          })}
-        </div>
-      )}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            className="absolute top-full left-0 mt-2 w-56 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col"
+          >
+            {(Object.keys(statusConfig) as AnimeUserStatus[]).map(status => {
+              const Config = statusConfig[status];
+              const Icon = Config.icon;
+              return (
+                <button
+                  key={status}
+                  onClick={() => { setStatus(anime, status); setIsOpen(false); }}
+                  className={clsx(
+                    "flex items-center gap-3 px-4 py-3 text-sm font-semibold transition hover:bg-white/10",
+                    currentStatus === status ? "bg-indigo-500/20 text-indigo-400" : "text-slate-300"
+                  )}
+                >
+                  <Icon className="w-4 h-4" />
+                  {Config.label}
+                </button>
+              );
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

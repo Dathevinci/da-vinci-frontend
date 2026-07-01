@@ -44,7 +44,7 @@ export default function HeroBannerCarousel({ animes }: Props) {
           <img 
             src={(heroAnime.trailer?.images?.maximum_image_url || heroAnime.images?.jpg?.large_image_url || heroAnime.images?.jpg?.image_url || "") as string} 
             alt="Banner" 
-            className="w-full h-full object-cover opacity-60 mix-blend-screen"
+            className="w-full h-full object-cover opacity-40"
           />
           {/* Dark gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-r from-[#09090b] via-[#09090b]/80 to-transparent" />

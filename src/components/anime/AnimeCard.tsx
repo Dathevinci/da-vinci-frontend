@@ -87,8 +87,8 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1.15, zIndex: 50 }}
             exit={{ opacity: 0, scale: 0.95, zIndex: 50 }}
-            transition={{ type: "spring", stiffness: 400, damping: 25 }}
-            className="absolute inset-0 bg-white/10 backdrop-blur-2xl rounded-xl overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)] border border-white/20 flex flex-col cursor-pointer"
+            transition={{ type: "tween", duration: 0.2, ease: "easeOut" }}
+            className="absolute inset-0 bg-[#141414] rounded-xl overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.8)] border border-white/20 flex flex-col cursor-pointer"
             style={{ transformOrigin }}
           >
             <Link href={`/anime/${anime.mal_id}`} className="block w-full h-full relative">
