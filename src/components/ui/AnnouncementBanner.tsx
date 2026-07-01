@@ -23,6 +23,31 @@ interface Announcement {
 
 const announcements: Announcement[] = [
   {
+    id: 5,
+    tag: "Platform Updates",
+    icon: <Sparkles className="w-4 h-4 text-cyan-400" />,
+    theme: "from-cyan-900/80 to-blue-900/80",
+    border: "border-cyan-500/50",
+    shadow: "shadow-[0_0_30px_rgba(6,182,212,0.25)]",
+    tagBg: "bg-cyan-600 shadow-cyan-500/50",
+    title: "Cinematic Transitions & GIF Banners",
+    author: "dejavuh",
+    authorColor: "text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]",
+    shortMessage: "Enjoy global cinematic page transitions, community bug fixes, and exclusive animated GIF banners for top users!",
+    link: null,
+    buttonText: null,
+    content: (
+      <div className="space-y-4 text-cyan-100">
+        <h3 className="text-lg font-bold text-cyan-300">Latest Platform Improvements</h3>
+        <ul className="pl-4 text-sm leading-relaxed space-y-2 list-disc list-inside">
+          <li><strong className="text-white">Cinematic Page Transitions:</strong> The entire website now features fluid fade and slide animations when navigating between pages.</li>
+          <li><strong className="text-white">Animated GIF Banners:</strong> Users who have reached <strong>500 Arise Points</strong> (or Lead Dev status) can now upload animated GIFs for their profile background banners!</li>
+          <li><strong className="text-white">Community Fixes:</strong> We've completely bulletproofed the Community page against crashes from deleted accounts or missing data.</li>
+        </ul>
+      </div>
+    )
+  },
+  {
     id: 0,
     tag: "Massive UI Overhaul",
     icon: <Sparkles className="w-4 h-4 text-pink-400" />,
