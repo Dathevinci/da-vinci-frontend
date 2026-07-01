@@ -18,12 +18,33 @@ interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
+import { useNotifications } from "@/hooks/useNotifications";
+
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   const addToast = useCallback((message: string, type: ToastType = "info") => {
     const id = Math.random().toString(36).substr(2, 9);
     setToasts((prev) => [...prev, { id, message, type }]);
+
+    // Persist to notification history
+    try {
+      const stored = localStorage.getItem("davinci_notifications");
+      let current = [];
+      if (stored) {
+        current = JSON.parse(stored);
+      }
+      const newNotification = {
+        id,
+        message,
+        type,
+        timestamp: Date.now(),
+        read: false,
+      };
+      const updated = [newNotification, ...current].slice(0, 20);
+      localStorage.setItem("davinci_notifications", JSON.stringify(updated));
+      window.dispatchEvent(new Event("davinci_notifications_updated"));
+    } catch(e) {}
 
     // Auto dismiss after 4 seconds
     setTimeout(() => {

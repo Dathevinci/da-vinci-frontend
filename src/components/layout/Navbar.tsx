@@ -7,6 +7,7 @@ import LoginModal from './LoginModal';
 import SearchModal from './SearchModal';
 import ArisePointPopup from '../ui/ArisePointPopup';
 import SettingsModal from '../profile/SettingsModal';
+import ControlCenter from './ControlCenter';
 import { useUser } from '@/hooks/useUser';
 
 export default function Navbar() {
@@ -14,7 +15,7 @@ export default function Navbar() {
   const [showLogin, setShowLogin] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
+  const [showControlCenter, setShowControlCenter] = useState(false);
   
   const { user, isLoaded, logout } = useUser();
 
@@ -94,7 +95,7 @@ export default function Navbar() {
                     <Compass className="w-4 h-4 text-indigo-400" />
                     My Tracker
                   </Link>
-                  <button onClick={() => setShowSettings(true)} className="text-slate-400 hover:text-white transition" title="Settings">
+                  <button onClick={() => setShowControlCenter(true)} className="text-slate-400 hover:text-white transition" title="Control Center">
                     <Settings className="w-5 h-5" />
                   </button>
                   <button onClick={logout} className="text-slate-400 hover:text-red-400 transition" title="Logout">
@@ -165,10 +166,10 @@ export default function Navbar() {
                 <Compass className="w-5 h-5 text-indigo-400" /> My Tracker
               </Link>
               <button 
-                onClick={() => { setIsMobileMenuOpen(false); setShowSettings(true); }}
+                onClick={() => { setIsMobileMenuOpen(false); setShowControlCenter(true); }}
                 className="w-full bg-white/5 hover:bg-white/10 text-white font-bold py-4 rounded-xl text-lg transition flex justify-center items-center gap-2 border border-white/10"
               >
-                <Settings className="w-5 h-5" /> Settings
+                <Settings className="w-5 h-5" /> Control Center
               </button>
               <button 
                 onClick={() => { logout(); setIsMobileMenuOpen(false); }}
@@ -184,13 +185,10 @@ export default function Navbar() {
       {showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
       {showSearchModal && <SearchModal onClose={() => setShowSearchModal(false)} />}
       {popupData && <ArisePointPopup amount={popupData.amount} />}
-      {showSettings && user && (
-        <SettingsModal 
-          user={user} 
-          onClose={() => setShowSettings(false)} 
-          onUpdate={() => window.location.reload()} 
-        />
-      )}
+      <ControlCenter 
+        isOpen={showControlCenter} 
+        onClose={() => setShowControlCenter(false)} 
+      />
     </>
   );
 }
