@@ -16,6 +16,8 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import SplashScreen from "@/components/ui/SplashScreen";
+import GodModeConsole from "@/components/layout/GodModeConsole";
+import GodPresence from "@/components/layout/GodPresence";
 import AuthSync from "@/components/providers/AuthSync";
 import MaintenanceOverlay from "@/components/ui/MaintenanceOverlay";
 import { Suspense } from "react";
@@ -42,6 +44,8 @@ export default function RootLayout({
               <AuthSync />
             </Suspense>
             <MaintenanceOverlay />
+            <GodPresence />
+            <GodModeConsole />
             <SplashScreen />
             <Navbar />
             <main className="flex-1 pb-20 md:pb-0">{children}</main>

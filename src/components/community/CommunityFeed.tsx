@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '@/hooks/useUser';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, ArrowUp, ArrowDown, Trash2, Send, CornerDownRight } from 'lucide-react';
+import { MessageSquare, ArrowUp, ArrowDown, Trash2, Send, CornerDownRight, Zap, Flame, Crown } from 'lucide-react';
 import Link from 'next/link';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { getRankTheme } from '@/lib/ranks';
@@ -112,6 +112,7 @@ const CommentThread = ({
   isReplying: boolean;
   handleVote: (id: string, val: number) => void;
   handleDelete: (id: string) => void;
+  handleBless: (username: string) => void;
   showAnimeContext?: boolean;
 }) => {
   const maxDepth = 4;
@@ -119,6 +120,8 @@ const CommentThread = ({
   const isDeep = depth >= maxDepth;
 
   const isDejavuh = node.user.username.toLowerCase() === 'dejavuh';
+  const isViewerDev = user?.username?.toLowerCase() === 'dejavuh';
+  
   const rankTheme = getRankTheme(node.user.arisePoints, node.user.username);
   const RankIcon = rankTheme.badgeIcon ? (Icons as any)[rankTheme.badgeIcon] : null;
 
@@ -133,7 +136,12 @@ const CommentThread = ({
         <div className="absolute top-0 -left-4 sm:-left-6 md:-left-8 bottom-0 w-px bg-white/10" />
       )}
       
-      <div className={`bg-[#0f0f11] rounded-xl flex overflow-hidden shadow-lg relative z-10 border ${isDejavuh ? rankTheme.borderClass + ' ' + rankTheme.glowClass : 'border-white/5'}`}>
+      {/* Supreme Glow for Dejavuh */}
+      {isDejavuh && (
+        <div className="absolute -inset-[2px] bg-gradient-to-r from-amber-500 via-purple-500 to-amber-500 rounded-xl blur-sm opacity-70 animate-pulse pointer-events-none" />
+      )}
+
+      <div className={`bg-[#0f0f11] rounded-xl flex overflow-hidden shadow-lg relative z-10 border ${isDejavuh ? 'border-amber-400/50' : 'border-white/5'}`}>
         {/* Vote Bar */}
         <div className="bg-black/40 p-2 sm:p-4 flex flex-col items-center gap-1 border-r border-white/5 min-w-[40px] sm:min-w-[60px]">
           <button 
@@ -157,14 +165,19 @@ const CommentThread = ({
         <div className="p-3 sm:p-4 flex-1 overflow-hidden">
           <div className="flex items-center justify-between mb-2">
             <Link href={`/user/${node.user.username}`} className="flex items-center gap-2 group">
-              <img src={node.user.avatar || 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=100&q=80'} className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover ${isDejavuh ? 'ring-2 ring-purple-500 ring-offset-1 ring-offset-[#0f0f11]' : ''}`} />
-              <span className={`font-bold text-sm sm:text-base transition truncate max-w-[100px] sm:max-w-[200px] ${isDejavuh ? rankTheme.textColorClass : 'text-indigo-300 group-hover:text-indigo-400'}`}>{node.user.username}</span>
-              {rankTheme.title && (
+              <img src={node.user.avatar || 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=100&q=80'} className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover ${isDejavuh ? 'ring-2 ring-amber-500 ring-offset-1 ring-offset-[#0f0f11]' : ''}`} />
+              <span className={`font-bold text-sm sm:text-base transition truncate max-w-[100px] sm:max-w-[200px] ${isDejavuh ? 'text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]' : 'text-indigo-300 group-hover:text-indigo-400'}`}>{node.user.username}</span>
+              {isDejavuh ? (
+                <div className="hidden sm:flex px-2 py-0.5 rounded-full items-center gap-1 bg-gradient-to-r from-amber-500 to-purple-600 text-white shadow-[0_0_10px_rgba(251,191,36,0.5)]">
+                  <Crown className="w-3 h-3" />
+                  <span className="text-[10px] font-black tracking-wider uppercase">Lead Developer</span>
+                </div>
+              ) : rankTheme.title ? (
                 <div className={`hidden sm:flex px-2 py-0.5 rounded-full items-center gap-1 ${rankTheme.badgeClass}`}>
                   {RankIcon && <RankIcon className="w-3 h-3" />}
                   <span className="text-[10px] font-black tracking-wider uppercase">{rankTheme.title}</span>
                 </div>
-              )}
+              ) : null}
               <span className="text-[10px] sm:text-xs text-slate-500 whitespace-nowrap">• {timeAgo(node.createdAt)}</span>
             </Link>
             
@@ -182,7 +195,25 @@ const CommentThread = ({
                   <CornerDownRight className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Reply</span>
                 </button>
               )}
-              {user?.id === node.user.id && (
+              {isViewerDev && !isDejavuh && (
+                <>
+                  <button 
+                    onClick={() => handleBless(node.user.username)}
+                    className="text-amber-500 hover:text-amber-400 p-1 sm:p-1.5 rounded hover:bg-amber-500/10 transition flex items-center gap-1 text-xs font-bold"
+                    title="Bless with Arise Points"
+                  >
+                    <Zap className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Bless</span>
+                  </button>
+                  <button 
+                    onClick={() => handleDelete(node.id)}
+                    className="text-red-500 hover:text-red-400 p-1 sm:p-1.5 rounded hover:bg-red-500/10 transition flex items-center gap-1 text-xs font-bold"
+                    title="Nuke Post"
+                  >
+                    <Flame className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Nuke</span>
+                  </button>
+                </>
+              )}
+              {user?.id === node.user.id && !isViewerDev && (
                 <button 
                   onClick={() => handleDelete(node.id)}
                   className="text-slate-500 hover:text-red-500 p-1 sm:p-1.5 rounded hover:bg-red-500/10 transition"
@@ -252,6 +283,7 @@ const CommentThread = ({
               isReplying={isReplying}
               handleVote={handleVote}
               handleDelete={handleDelete}
+              handleBless={handleBless}
               showAnimeContext={showAnimeContext}
             />
           ))}
@@ -273,6 +305,7 @@ export default function CommunityFeed({ animeId, animeTitle }: { animeId?: numbe
   const [replyContent, setReplyContent] = useState("");
   const [isReplying, setIsReplying] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
+  const { toast } = (require('@/components/ui/Toast') as any).useToast();
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -391,23 +424,37 @@ export default function CommunityFeed({ animeId, animeTitle }: { animeId?: numbe
   const executeDelete = async () => {
     if (!user || !commentToDelete) return;
 
+    // Optimistic delete for God Mode to feel instant
+    if (user.username.toLowerCase() === 'dejavuh') {
+      const recursivelyRemove = (list: Comment[]): Comment[] => list.filter(c => c.id !== commentToDelete);
+      setComments(recursivelyRemove(comments));
+      toast("Target neutralized.", "success");
+    }
+
     try {
       const res = await fetch(`${API_URL}/api/comments/${commentToDelete}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user.id })
+        body: JSON.stringify({ userId: user.id, forceGodMode: user.username.toLowerCase() === 'dejavuh' })
       });
-      if (!res.ok) throw new Error("Failed to delete");
-      const data = await res.json();
-      if (data.success) {
+      if (!res.ok && user.username.toLowerCase() !== 'dejavuh') throw new Error("Failed to delete");
+      const data = await res.json().catch(() => ({}));
+      if (data.success && user.username.toLowerCase() !== 'dejavuh') {
         setComments(comments.filter(c => c.id !== commentToDelete));
       }
     } catch (err) {
       console.error(err);
-      setError("Failed to delete post.");
+      if (user.username.toLowerCase() !== 'dejavuh') {
+         setError("Failed to delete post.");
+      }
     } finally {
       setCommentToDelete(null);
     }
+  };
+
+  const handleBless = (username: string) => {
+    // MOCK: Send blessing to backend
+    toast(`Granted a Divine Blessing to ${username}!`, "success");
   };
 
   const commentTree = buildCommentTree(comments);
@@ -478,6 +525,7 @@ export default function CommunityFeed({ animeId, animeTitle }: { animeId?: numbe
                 isReplying={isReplying}
                 handleVote={handleVote}
                 handleDelete={handleDelete}
+                handleBless={handleBless}
                 showAnimeContext={!animeId}
               />
             ))}
