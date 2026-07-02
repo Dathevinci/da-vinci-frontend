@@ -67,15 +67,15 @@ export default function SplashScreen() {
         >
           {/* Blurred Background Image */}
           <motion.div 
-            initial={{ scale: 1.15, opacity: 0, filter: "blur(20px)" }}
-            animate={{ scale: 1, opacity: 0.6, filter: "blur(10px)" }}
+            initial={{ scale: 1.15, opacity: 0 }}
+            animate={{ scale: 1, opacity: 0.6 }}
             transition={{ duration: 4.5, ease: "easeOut" }}
             className="absolute inset-0 z-0"
           >
             <img 
               src="/bg.jpg" 
               alt="Cinematic Background" 
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover blur-[10px]"
             />
           </motion.div>
 
@@ -85,11 +85,10 @@ export default function SplashScreen() {
 
           {/* Logo Animation */}
           <motion.div
-            initial={{ scale: 0.8, opacity: 0, filter: "brightness(2) blur(12px)", y: 20 }}
+            initial={{ scale: 0.85, opacity: 0, y: 20 }}
             animate={{ 
               scale: 1, 
               opacity: 1, 
-              filter: "brightness(1) blur(0px)",
               y: 0
             }}
             transition={{ 
@@ -97,7 +96,7 @@ export default function SplashScreen() {
               ease: [0.16, 1, 0.3, 1], // Custom cinematic easing
               delay: 0.4 
             }}
-            style={{ willChange: "transform, opacity, filter" }}
+            style={{ willChange: "transform, opacity" }}
             className="relative z-10 flex flex-col items-center"
           >
             <img 
