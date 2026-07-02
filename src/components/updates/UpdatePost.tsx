@@ -62,10 +62,14 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
   const RankIcon = authorRank.badgeIcon ? (Icons as any)[authorRank.badgeIcon] : null;
 
   const isDev = user?.username?.toLowerCase() === "dejavuh";
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  const handleDeletePost = async () => {
-    if (!confirm("Are you sure you want to delete this update?")) return;
-    
+  const handleDeletePost = () => {
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    setShowDeleteModal(false);
     try {
       const res = await fetch(`${API_URL}/api/announcements/${post.id}`, {
         method: "DELETE",
@@ -330,6 +334,48 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
                 </button>
               </form>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Custom Delete Modal */}
+      <AnimatePresence>
+        {showDeleteModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-[#0f0f13] border border-white/10 rounded-2xl p-6 max-w-sm w-full shadow-2xl relative overflow-hidden"
+            >
+              {/* Glassmorphic glow */}
+              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-500/50 to-transparent" />
+              
+              <h3 className="text-xl font-bold text-white mb-2">Delete Update</h3>
+              <p className="text-slate-400 text-sm mb-6">
+                Are you absolutely sure you want to delete this update? This action cannot be undone.
+              </p>
+              
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  className="px-4 py-2 rounded-xl text-sm font-bold text-slate-300 hover:bg-white/5 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="px-4 py-2 rounded-xl text-sm font-bold bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition"
+                >
+                  Delete
+                </button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
