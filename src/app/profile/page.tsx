@@ -39,6 +39,12 @@ export default function ProfileTrackerPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
 
+  // Security State
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
   // AniList Sync State
   const [anilistUsername, setAnilistUsername] = useState("");
   const [syncingAnilist, setSyncingAnilist] = useState(false);
@@ -155,6 +161,47 @@ export default function ProfileTrackerPage() {
     await updateProfile({ bio });
     setIsSaving(false);
     toast("Profile saved successfully!", "success");
+  };
+
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast("Please fill in all password fields.", "error");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast("New passwords do not match.", "error");
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast("New password must be at least 6 characters.", "error");
+      return;
+    }
+    setIsChangingPassword(true);
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      const res = await fetch(`${API_URL}/api/auth/change-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          userId: user?.id, 
+          currentPassword, 
+          newPassword 
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast("Password changed successfully!", "success");
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        toast(data.message || "Failed to change password", "error");
+      }
+    } catch (err) {
+      toast("An error occurred while changing password.", "error");
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   const handleMALSync = async () => {
@@ -395,7 +442,7 @@ export default function ProfileTrackerPage() {
                         exit={{ opacity: 0, scale: 0.9 }}
                         transition={{ duration: 0.2 }}
                         key={item.anime.mal_id || Math.random()} 
-                        className="relative group"
+                        className="relative group z-0 hover:z-50"
                       >
                         <AnimeCard anime={item.anime} />
                         <div className="absolute -top-3 -right-3 z-50 bg-[#141414] border border-white/20 px-3 py-1 rounded-full text-xs font-bold text-indigo-300 shadow-xl">
@@ -492,6 +539,62 @@ export default function ProfileTrackerPage() {
                         className="w-full md:w-auto bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-lg font-bold transition disabled:opacity-50"
                       >
                         {isSaving ? "Saving..." : "Save Changes"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Security Component */}
+                <div className="max-w-2xl bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-2xl mt-8">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-12 h-12 rounded-xl bg-[#2b2d42] flex items-center justify-center border border-indigo-500/30 shadow-lg">
+                      <Settings className="w-6 h-6 text-indigo-400" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-black text-white">Security</h2>
+                      <p className="text-slate-400 text-sm">Update your password to keep your account secure.</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-bold text-slate-400 mb-2">Current Password</label>
+                      <input 
+                        type="password"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-400 mb-2">New Password</label>
+                      <input 
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-400 mb-2">Confirm New Password</label>
+                      <input 
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+
+                    <div className="pt-4">
+                      <button 
+                        onClick={handleChangePassword}
+                        disabled={isChangingPassword}
+                        className="w-full md:w-auto bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-lg font-bold transition disabled:opacity-50"
+                      >
+                        {isChangingPassword ? "Updating..." : "Change Password"}
                       </button>
                     </div>
                   </div>

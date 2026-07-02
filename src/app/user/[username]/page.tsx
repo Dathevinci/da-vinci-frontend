@@ -15,6 +15,10 @@ import { getRankTheme } from "@/lib/ranks";
 import * as Icons from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import PageTransition from "@/components/layout/PageTransition";
+import QuickViewModal from "@/components/ui/QuickViewModal";
+import TrailerModal from "@/components/ui/TrailerModal";
+import { getYouTubeId } from "@/lib/jikan";
+import { ChevronDown } from "lucide-react";
 
 export default function PublicProfilePage() {
   const { username } = useParams();
@@ -30,6 +34,30 @@ export default function PublicProfilePage() {
   const [showPointHistory, setShowPointHistory] = useState(false);
   const [showDomainExpansion, setShowDomainExpansion] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+
+  const [activeAnime, setActiveAnime] = useState<any | null>(null);
+  const [showQuickView, setShowQuickView] = useState(false);
+  const [showTrailer, setShowTrailer] = useState(false);
+  const [loadingAnimeId, setLoadingAnimeId] = useState<number | null>(null);
+
+  const handleOpenQuickView = async (e: React.MouseEvent, id: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setLoadingAnimeId(id);
+    try {
+      const res = await fetch(`https://api.jikan.moe/v4/anime/${id}/full`);
+      const data = await res.json();
+      if (data.data) {
+        setActiveAnime(data.data);
+        setShowQuickView(true);
+      }
+    } catch (err) {
+      console.error(err);
+      toast("Failed to load anime details.", "error");
+    } finally {
+      setLoadingAnimeId(null);
+    }
+  };
 
   const filterTabs = [
     { id: "All", icon: ListFilter },
@@ -265,6 +293,19 @@ export default function PublicProfilePage() {
                       </div>
                     </div>
                   </Link>
+
+                  {/* Quick View Button */}
+                  <button
+                    onClick={(e) => handleOpenQuickView(e, item.anilistId)}
+                    className="absolute top-2 right-2 w-8 h-8 bg-black/60 backdrop-blur-sm border border-white/20 text-white flex items-center justify-center rounded-full hover:bg-white hover:text-black transition-colors z-20 opacity-0 group-hover:opacity-100"
+                  >
+                    {loadingAnimeId === item.anilistId ? (
+                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4" />
+                    )}
+                  </button>
+
                   <div className="absolute -top-3 -right-3 z-50 bg-[#141414] border border-white/20 px-3 py-1 rounded-full text-xs font-bold text-indigo-300 shadow-xl capitalize">
                     {item.status.toLowerCase()}
                   </div>
@@ -275,6 +316,21 @@ export default function PublicProfilePage() {
         )}
         
       </motion.div>
+
+      {/* Trailer Modal */}
+      <TrailerModal 
+        videoId={showTrailer && activeAnime ? getYouTubeId(activeAnime.trailer) : null} 
+        onClose={() => setShowTrailer(false)} 
+      />
+
+      {/* Quick View Modal */}
+      {showQuickView && activeAnime && (
+        <QuickViewModal 
+          anime={activeAnime} 
+          onClose={() => setShowQuickView(false)} 
+          onPlayTrailer={() => setShowTrailer(true)} 
+        />
+      )}
 
       {modalData && (
         <FollowListModal
