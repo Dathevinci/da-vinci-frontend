@@ -1,15 +1,19 @@
 import React from "react";
 
 export default function Loading() {
-  // Generate a static array of droplets for SSR safety
-  const droplets = Array.from({ length: 30 }).map((_, i) => ({
-    id: i,
-    left: `${(i * 7 + 13) % 100}%`,
-    animationDelay: `${((i * 3 + 7) % 20) * 0.1}s`,
-    animationDuration: `${1 + ((i * 5) % 10) * 0.1}s`,
-    opacity: 0.2 + ((i * 7) % 5) * 0.1,
-    size: 2 + ((i * 11) % 4),
-  }));
+  // Generate a static array of bubbles for SSR safety
+  const bubbles = Array.from({ length: 25 }).map((_, i) => {
+    const isPurple = i % 2 === 0;
+    return {
+      id: i,
+      left: `${(i * 13 + 17) % 100}%`,
+      animationDelay: `${((i * 7 + 11) % 20) * 0.2}s`,
+      animationDuration: `${4 + ((i * 5) % 10) * 0.4}s`,
+      size: 10 + ((i * 11) % 15),
+      color: isPurple ? "rgba(168,85,247,0.8)" : "rgba(217,70,239,0.8)",
+      shadow: isPurple ? "rgba(168,85,247,0.5)" : "rgba(217,70,239,0.5)"
+    };
+  });
 
   return (
     <div className="fixed inset-0 z-[9999] bg-[#050505]/70 flex flex-col items-center justify-center overflow-hidden animate-[blurIn_1s_ease-out_forwards]">
@@ -18,29 +22,29 @@ export default function Loading() {
           0% { backdrop-filter: blur(0px); opacity: 0; }
           100% { backdrop-filter: blur(12px); opacity: 1; }
         }
-        @keyframes dropFall {
-          0% { transform: translateY(-10vh) scaleY(1); opacity: 0; }
-          10% { opacity: 1; }
-          80% { transform: translateY(100vh) scaleY(1.5); opacity: 1; }
-          100% { transform: translateY(110vh) scaleY(1); opacity: 0; }
+        @keyframes floatUp {
+          0% { transform: translateY(110vh) translateX(0) scale(0.8); opacity: 0; }
+          20% { opacity: 0.8; transform: translateY(80vh) translateX(-15px) scale(1); }
+          80% { opacity: 0.8; transform: translateY(20vh) translateX(15px) scale(1); }
+          100% { transform: translateY(-10vh) translateX(-5px) scale(0.8); opacity: 0; }
         }
       `}</style>
 
-      {/* Water Droplets Background */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        {droplets.map((drop) => (
+      {/* God Mode Bubbles Background */}
+      <div className="absolute inset-0 z-0 pointer-events-none mix-blend-screen">
+        <div className="absolute inset-0 bg-gradient-to-tr from-purple-900/10 to-fuchsia-600/10" />
+        {bubbles.map((bubble) => (
           <div
-            key={drop.id}
-            className="absolute top-0 bg-indigo-300 rounded-full"
+            key={bubble.id}
+            className="absolute top-0 rounded-full"
             style={{
-              left: drop.left,
-              width: `${drop.size}px`,
-              height: `${drop.size * 6}px`,
-              opacity: drop.opacity,
-              animation: `dropFall ${drop.animationDuration} linear infinite`,
-              animationDelay: drop.animationDelay,
-              boxShadow: '0 0 10px rgba(165, 180, 252, 0.5)',
-              filter: 'blur(1px)',
+              left: bubble.left,
+              width: `${bubble.size}px`,
+              height: `${bubble.size}px`,
+              background: `radial-gradient(circle, ${bubble.color} 0%, transparent 70%)`,
+              animation: `floatUp ${bubble.animationDuration} ease-in-out infinite`,
+              animationDelay: bubble.animationDelay,
+              boxShadow: `0 0 20px ${bubble.shadow}`,
             }}
           />
         ))}
