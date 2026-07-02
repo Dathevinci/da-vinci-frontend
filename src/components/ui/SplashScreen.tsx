@@ -3,29 +3,26 @@ import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function SplashScreen() {
-  const [show, setShow] = useState(false);
+  const [show, setShow] = useState(true);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [userInteracted, setUserInteracted] = useState(false);
+  const [hasChecked, setHasChecked] = useState(false);
 
   useEffect(() => {
-    // Check session storage to see if we've already played the intro in this session
-    // The user requested it to play "only for first time not all the time"
     const hasPlayed = sessionStorage.getItem("cinematicIntroPlayed");
     
     if (!hasPlayed) {
-      setShow(true);
       sessionStorage.setItem("cinematicIntroPlayed", "true");
       
-      // We create the audio element only on the client side
-      // Using a cinematic bass hit sound from pixabay
       const audio = new Audio("https://cdn.pixabay.com/download/audio/2022/02/15/audio_b2f9f8c6fb.mp3?filename=cinematic-deep-bass-rumble-115328.mp3");
       audio.volume = 0.5;
       audioRef.current = audio;
 
-      // Hide intro after 4.5 seconds
       const timer = setTimeout(() => {
         setShow(false);
       }, 4500);
+
+      setHasChecked(true);
 
       return () => {
         clearTimeout(timer);
@@ -33,13 +30,14 @@ export default function SplashScreen() {
           audioRef.current.pause();
         }
       };
+    } else {
+      setShow(false);
+      setHasChecked(true);
     }
   }, []);
 
-  // Modern browsers require user interaction to play audio.
-  // We'll try to play it automatically, but if it fails, we catch it.
   useEffect(() => {
-    if (show && audioRef.current) {
+    if (show && audioRef.current && hasChecked) {
       const playTimer = setTimeout(() => {
         audioRef.current?.play().catch(e => {
           console.log("Audio autoplay prevented by browser. User interaction needed.", e);
@@ -47,12 +45,16 @@ export default function SplashScreen() {
       }, 300);
       return () => clearTimeout(playTimer);
     }
-  }, [show]);
+  }, [show, hasChecked]);
+
+  // Prevent rendering if we already know it shouldn't show to avoid flashes
+  if (!show && hasChecked) return null;
 
   return (
     <AnimatePresence>
       {show && (
         <motion.div
+          key="splash-screen-overlay"
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 1.5, ease: "easeInOut" }}
@@ -65,23 +67,55 @@ export default function SplashScreen() {
             }
           }}
         >
-          {/* Blurred Background Image */}
-          <motion.div 
-            initial={{ scale: 1.15, opacity: 0 }}
-            animate={{ scale: 1, opacity: 0.6 }}
-            transition={{ duration: 4.5, ease: "easeOut" }}
+          <style>{`
+            @keyframes progressiveBlur {
+              0% { filter: blur(0px); opacity: 0; transform: scale(1.15); }
+              20% { filter: blur(0px); opacity: 0.8; transform: scale(1.1); }
+              100% { filter: blur(12px); opacity: 0.6; transform: scale(1); }
+            }
+            @keyframes dropFall {
+              0% { transform: translateY(-10vh) scaleY(1); opacity: 0; }
+              10% { opacity: 1; }
+              80% { transform: translateY(100vh) scaleY(1.5); opacity: 1; }
+              100% { transform: translateY(110vh) scaleY(1); opacity: 0; }
+            }
+          `}</style>
+
+          {/* Background Image with CSS Animation for smooth blur and scale */}
+          <div 
             className="absolute inset-0 z-0"
+            style={{ animation: 'progressiveBlur 4.5s ease-out forwards' }}
           >
             <img 
               src="/bg.jpg" 
               alt="Cinematic Background" 
               className="w-full h-full object-cover"
             />
-          </motion.div>
+          </div>
 
           {/* Dark Overlay gradients for dramatic effect */}
-          <div className="absolute inset-0 z-0 bg-gradient-to-t from-black via-transparent to-black opacity-80 pointer-events-none" />
-          <div className="absolute inset-0 z-0 bg-gradient-to-r from-black/80 via-transparent to-black/80 pointer-events-none" />
+          <div className="absolute inset-0 z-0 bg-gradient-to-t from-[#050505] via-transparent to-[#050505] opacity-90 pointer-events-none" />
+          <div className="absolute inset-0 z-0 bg-gradient-to-r from-[#050505]/90 via-transparent to-[#050505]/90 pointer-events-none" />
+
+          {/* Water Droplets Background */}
+          <div className="absolute inset-0 z-0 pointer-events-none">
+            {Array.from({ length: 40 }).map((_, i) => (
+              <div
+                key={i}
+                className="absolute top-0 bg-indigo-300 rounded-full"
+                style={{
+                  left: `${(i * 7 + 13) % 100}%`,
+                  width: `${2 + ((i * 11) % 4)}px`,
+                  height: `${(2 + ((i * 11) % 4)) * 6}px`,
+                  opacity: 0.2 + ((i * 7) % 5) * 0.1,
+                  animation: `dropFall ${1 + ((i * 5) % 10) * 0.1}s linear infinite`,
+                  animationDelay: `${((i * 3 + 7) % 20) * 0.1}s`,
+                  boxShadow: '0 0 10px rgba(165, 180, 252, 0.5)',
+                  filter: 'blur(1px)',
+                }}
+              />
+            ))}
+          </div>
 
           {/* Logo Animation */}
           <motion.div
