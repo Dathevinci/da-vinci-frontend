@@ -119,8 +119,8 @@ export default function ProfileTrackerPage() {
     
     if (isBanner) {
       if (isGif) {
-        if (user?.username !== "dejavuh" && (user?.arisePoints || 0) < 500) {
-          toast("Animated GIF banners require 500 Arise Points or Lead Dev status!", "error");
+        if (user?.username?.toLowerCase() !== "dejavuh" && user?.username?.toLowerCase() !== "davinci" && (user?.arisePoints || 0) < 500) {
+          toast("Animated GIF banners require 500 Arise Points, Lead Dev, or Admin status!", "error");
           return;
         }
       }

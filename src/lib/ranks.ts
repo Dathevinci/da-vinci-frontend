@@ -28,6 +28,21 @@ export function getRankTheme(points: number = 0, username: string = ""): RankThe
     };
   }
 
+  // 1.5 Ultimate Override: ADMIN
+  if (name === "davinci") {
+    return {
+      title: "ADMIN",
+      textGradient: "text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-red-500 to-rose-600 drop-shadow-[0_0_15px_rgba(239,68,68,0.8)]",
+      badgeClass: "bg-gradient-to-r from-red-600 to-rose-900 border border-red-500 shadow-lg shadow-red-500/40 text-white",
+      badgeIcon: "ShieldAlert",
+      borderClass: "border-red-500",
+      glowClass: "shadow-[0_0_30px_rgba(239,68,68,0.7)]",
+      bgCardClass: "bg-black/40 backdrop-blur-xl border-red-500/40",
+      tabUnderlineClass: "bg-red-500",
+      textColorClass: "text-red-500",
+    };
+  }
+
   // 2. Great old one (10000+) - Cosmic Crimson Theme
   if (points >= 10000) {
     return {
