@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '@/hooks/useUser';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, Heart, Trash2, Send, CornerDownRight, Zap, Flame, Crown, Code2, Sparkles, Feather, Leaf, User as UserIcon } from 'lucide-react';
+import { MessageSquare, Heart, Trash2, Send, CornerDownRight, Zap, Flame, Crown, Code2, Sparkles, Feather, Leaf, User as UserIcon, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { getRankTheme } from '@/lib/ranks';
@@ -23,6 +23,7 @@ interface Comment {
   parentId: string | null;
   animeId?: number;
   animeTitle?: string;
+  mediaUrl?: string;
   content: string;
   createdAt: string;
   score: number;
@@ -105,6 +106,8 @@ const CommentThread = ({
   setReplyingToId,
   replyContent,
   setReplyContent,
+  replyMediaUrl,
+  setReplyMediaUrl,
   handlePost,
   isReplying,
   handleVote,
@@ -118,7 +121,9 @@ const CommentThread = ({
   setReplyingToId: (id: string | null) => void;
   replyContent: string;
   setReplyContent: (val: string) => void;
-  handlePost: (parentId: string | null, content: string) => void;
+  replyMediaUrl: string;
+  setReplyMediaUrl: (val: string) => void;
+  handlePost: (parentId: string | null, content: string, mediaUrl?: string) => void;
   isReplying: boolean;
   handleVote: (id: string, val: number) => void;
   handleDelete: (id: string) => void;
@@ -223,6 +228,21 @@ const CommentThread = ({
           {node.content}
         </p>
 
+        {/* Media / GIF rendering */}
+        {node.mediaUrl && (
+          <div className="mb-4 rounded-xl overflow-hidden border border-white/10 bg-black/50 self-start max-w-full">
+            <img 
+              src={node.mediaUrl} 
+              alt="Community attached media" 
+              className="max-h-[350px] w-auto object-contain hover:scale-[1.02] transition-transform duration-300"
+              onError={(e) => {
+                // If it fails to load (e.g. invalid URL), hide it gracefully
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          </div>
+        )}
+
         {/* Action Bar (Instagram Style) */}
         <div className="flex items-center gap-4 mt-auto pt-2 border-t border-white/5">
           <button 
@@ -263,15 +283,28 @@ const CommentThread = ({
                     className="w-full bg-transparent text-white placeholder-slate-500 text-sm sm:text-base resize-none outline-none min-h-[60px]"
                     autoFocus
                   />
-                  <div className="flex justify-end gap-2 mt-2 pt-2 border-t border-white/5">
+                  <div className="mt-2 mb-2 flex items-center gap-2 px-3 py-1.5 bg-black/40 rounded-lg border border-white/5 focus-within:border-indigo-500/50 transition">
+                    <ImageIcon className="w-4 h-4 text-slate-400 shrink-0" />
+                    <input 
+                      type="url"
+                      placeholder="Attach Image/GIF URL (optional)"
+                      value={replyMediaUrl}
+                      onChange={(e) => setReplyMediaUrl(e.target.value)}
+                      className="bg-transparent text-xs sm:text-sm text-white placeholder-slate-500 w-full outline-none"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2 border-t border-white/5">
                     <button
-                      onClick={() => setReplyingToId(null)}
+                      onClick={() => {
+                        setReplyingToId(null);
+                        setReplyMediaUrl('');
+                      }}
                       className="text-slate-400 hover:text-white px-3 py-1.5 rounded text-xs sm:text-sm font-bold transition"
                     >
                       Cancel
                     </button>
                     <button
-                      onClick={() => handlePost(node.id, replyContent)}
+                      onClick={() => handlePost(node.id, replyContent, replyMediaUrl)}
                       disabled={isReplying || !replyContent.trim()}
                       className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold transition"
                     >
@@ -297,6 +330,8 @@ const CommentThread = ({
               setReplyingToId={setReplyingToId}
               replyContent={replyContent}
               setReplyContent={setReplyContent}
+              replyMediaUrl={replyMediaUrl}
+              setReplyMediaUrl={setReplyMediaUrl}
               handlePost={handlePost}
               isReplying={isReplying}
               handleVote={handleVote}
@@ -315,12 +350,14 @@ export default function CommunityFeed({ animeId, animeTitle }: { animeId?: numbe
   const { user } = useUser();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
+  const [newMediaUrl, setNewMediaUrl] = useState("");
   const [isPosting, setIsPosting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [replyingToId, setReplyingToId] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState("");
+  const [replyMediaUrl, setReplyMediaUrl] = useState("");
   const [isReplying, setIsReplying] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
   const { toast } = useToast();
@@ -357,7 +394,7 @@ export default function CommunityFeed({ animeId, animeTitle }: { animeId?: numbe
     fetchComments();
   }, [animeId, user?.id]);
 
-  const handlePost = async (parentId: string | null = null, content: string) => {
+  const handlePost = async (parentId: string | null = null, content: string, mediaUrl?: string) => {
     if (!user) return setError("You must be logged in to post.");
     if (!content.trim()) return;
 
@@ -374,7 +411,8 @@ export default function CommunityFeed({ animeId, animeTitle }: { animeId?: numbe
           animeId,
           animeTitle,
           content,
-          parentId
+          parentId,
+          mediaUrl
         })
       });
       
@@ -386,8 +424,10 @@ export default function CommunityFeed({ animeId, animeTitle }: { animeId?: numbe
         if (parentId) {
           setReplyingToId(null);
           setReplyContent("");
+          setReplyMediaUrl("");
         } else {
           setNewComment("");
+          setNewMediaUrl("");
         }
       } else {
         throw new Error(data.message || "Failed to post.");
@@ -505,9 +545,19 @@ export default function CommunityFeed({ animeId, animeTitle }: { animeId?: numbe
             placeholder="Share your views or review..."
             className="w-full bg-transparent text-white placeholder-slate-500 text-sm sm:text-base resize-none outline-none min-h-[80px] sm:min-h-[100px]"
           />
+          <div className="mt-2 mb-2 flex items-center gap-2 px-3 py-2 bg-black/40 rounded-xl border border-white/5 focus-within:border-indigo-500/50 transition">
+            <ImageIcon className="w-5 h-5 text-slate-400 shrink-0" />
+            <input 
+              type="url"
+              placeholder="Attach Image/GIF URL (optional)"
+              value={newMediaUrl}
+              onChange={(e) => setNewMediaUrl(e.target.value)}
+              className="bg-transparent text-sm sm:text-base text-white placeholder-slate-500 w-full outline-none"
+            />
+          </div>
           <div className="flex justify-end mt-2 pt-2 border-t border-white/5">
             <button
-              onClick={() => handlePost(null, newComment)}
+              onClick={() => handlePost(null, newComment, newMediaUrl)}
               disabled={isPosting || !newComment.trim()}
               className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white px-4 sm:px-6 py-2 rounded-full text-sm sm:text-base font-bold transition shadow-lg"
             >
@@ -539,6 +589,8 @@ export default function CommunityFeed({ animeId, animeTitle }: { animeId?: numbe
                 setReplyingToId={setReplyingToId}
                 replyContent={replyContent}
                 setReplyContent={setReplyContent}
+                replyMediaUrl={replyMediaUrl}
+                setReplyMediaUrl={setReplyMediaUrl}
                 handlePost={handlePost}
                 isReplying={isReplying}
                 handleVote={handleVote}
