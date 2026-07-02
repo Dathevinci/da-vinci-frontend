@@ -112,6 +112,7 @@ const CommentThread = ({
   isReplying,
   handleVote,
   handleDelete,
+  handleEdit,
   showAnimeContext
 }: {
   node: CommentNode;
@@ -127,15 +128,23 @@ const CommentThread = ({
   isReplying: boolean;
   handleVote: (id: string, val: number) => void;
   handleDelete: (id: string) => void;
+  handleEdit: (id: string, content: string, mediaUrl?: string) => Promise<void>;
   handleBless: (username: string) => void;
   showAnimeContext?: boolean;
 }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(node.content);
+  const [editMediaUrl, setEditMediaUrl] = useState(node.mediaUrl || "");
+
   const maxDepth = 4;
   const currentDepth = Math.min(depth, maxDepth);
   const isDeep = depth >= maxDepth;
 
   const isDejavuh = node.user?.username?.toLowerCase() === 'dejavuh';
   const isViewerDev = user?.username?.toLowerCase() === 'dejavuh';
+  const isViewerAdmin = user?.username?.toLowerCase() === 'davinci';
+  const isAuthor = user?.id === node.user?.id;
+  const canManage = isAuthor || isViewerDev || isViewerAdmin;
   
   const rankTheme = getRankTheme(node.user?.arisePoints || 0, node.user?.username || 'Unknown');
   const RankIcon = rankTheme.badgeIcon ? RankIcons[rankTheme.badgeIcon] : null;
@@ -185,31 +194,32 @@ const CommentThread = ({
           
           <div className="flex items-center gap-2 shrink-0">
             {isViewerDev && !isDejavuh && (
+              <button 
+                onClick={() => handleBless(node.user?.username || 'Unknown')}
+                className="text-fuchsia-500 hover:text-fuchsia-400 p-1 sm:p-1.5 rounded hover:bg-fuchsia-500/10 transition flex items-center gap-1 text-xs font-bold"
+                title="Bless with Arise Points"
+              >
+                <Zap className="w-4 h-4" />
+              </button>
+            )}
+            
+            {canManage && (
               <>
                 <button 
-                  onClick={() => handleBless(node.user?.username || 'Unknown')}
-                  className="text-fuchsia-500 hover:text-fuchsia-400 p-1 sm:p-1.5 rounded hover:bg-fuchsia-500/10 transition flex items-center gap-1 text-xs font-bold"
-                  title="Bless with Arise Points"
+                  onClick={() => setIsEditing(!isEditing)}
+                  className="text-slate-500 hover:text-indigo-400 p-1 sm:p-1.5 rounded hover:bg-indigo-500/10 transition"
+                  title="Edit Post"
                 >
-                  <Zap className="w-4 h-4" />
+                  <Edit className="w-4 h-4" />
                 </button>
                 <button 
                   onClick={() => handleDelete(node.id)}
-                  className="text-red-500 hover:text-red-400 p-1 sm:p-1.5 rounded hover:bg-red-500/10 transition flex items-center gap-1 text-xs font-bold"
-                  title="Nuke Post"
+                  className={`p-1 sm:p-1.5 rounded transition flex items-center gap-1 text-xs font-bold ${(!isAuthor && (isViewerDev || isViewerAdmin)) ? "text-red-500 hover:text-red-400 hover:bg-red-500/10" : "text-slate-500 hover:text-red-500 hover:bg-red-500/10"}`}
+                  title={!isAuthor ? "Nuke Post" : "Delete Post"}
                 >
-                  <Flame className="w-4 h-4" />
+                  {(!isAuthor && (isViewerDev || isViewerAdmin)) ? <Flame className="w-4 h-4" /> : <Trash2 className="w-4 h-4" />}
                 </button>
               </>
-            )}
-            {user?.id === node.user?.id && !isViewerDev && (
-              <button 
-                onClick={() => handleDelete(node.id)}
-                className="text-slate-500 hover:text-red-500 p-1 sm:p-1.5 rounded hover:bg-red-500/10 transition"
-                title="Delete Post"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
             )}
           </div>
         </div>
@@ -224,9 +234,42 @@ const CommentThread = ({
         )}
 
         {/* Content */}
-        <p className="text-slate-200 text-sm sm:text-base leading-relaxed whitespace-pre-wrap break-words mb-4">
-          {node.content}
-        </p>
+        {isEditing ? (
+          <div className="mb-4">
+            <textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              className="w-full bg-black/40 text-white placeholder-slate-500 text-sm sm:text-base resize-none outline-none min-h-[80px] p-3 rounded-lg border border-white/10 focus-within:border-indigo-500/50"
+            />
+            <div className="mt-2 mb-2 flex items-center gap-2 px-3 py-2 bg-black/40 rounded-xl border border-white/5 focus-within:border-indigo-500/50 transition">
+              <ImageIcon className="w-4 h-4 text-slate-400 shrink-0" />
+              <input 
+                type="url"
+                placeholder="Attach Image/GIF URL (optional)"
+                value={editMediaUrl}
+                onChange={(e) => setEditMediaUrl(e.target.value)}
+                className="bg-transparent text-sm text-white placeholder-slate-500 w-full outline-none"
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setIsEditing(false)} className="px-3 py-1.5 rounded-md text-xs font-bold text-slate-400 hover:text-white">Cancel</button>
+              <button 
+                onClick={async () => {
+                  await handleEdit(node.id, editContent, editMediaUrl);
+                  setIsEditing(false);
+                }}
+                disabled={!editContent.trim()}
+                className="px-3 py-1.5 rounded-md text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p className="text-slate-200 text-sm sm:text-base leading-relaxed whitespace-pre-wrap break-words mb-4">
+            {node.content}
+          </p>
+        )}
 
         {/* Media / GIF rendering */}
         {node.mediaUrl && (
@@ -479,32 +522,55 @@ export default function CommunityFeed({ animeId, animeTitle }: { animeId?: numbe
     setCommentToDelete(commentId);
   };
 
+  const handleEdit = async (id: string, content: string, mediaUrl?: string) => {
+    if (!user) return setError("You must be logged in to edit.");
+    
+    // Optimistic Update
+    const oldComments = [...comments];
+    setComments(comments.map(c => c.id === id ? { ...c, content, mediaUrl } : c));
+
+    try {
+      const res = await fetch(`${API_URL}/api/comments/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, content, mediaUrl })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "Failed to edit");
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Failed to edit post.");
+      setComments(oldComments);
+    }
+  };
+
   const executeDelete = async () => {
     if (!user || !commentToDelete) return;
-
-    // Optimistic delete for God Mode to feel instant
-    if ((user.username || '').toLowerCase() === 'dejavuh') {
-      const recursivelyRemove = (list: Comment[]): Comment[] => list.filter(c => c.id !== commentToDelete);
-      setComments(recursivelyRemove(comments));
-      toast("Target neutralized.", "success");
-    }
 
     try {
       const res = await fetch(`${API_URL}/api/comments/${commentToDelete}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user.id, forceGodMode: (user.username || '').toLowerCase() === 'dejavuh' })
+        body: JSON.stringify({ userId: user.id })
       });
-      if (!res.ok && (user.username || '').toLowerCase() !== 'dejavuh') throw new Error("Failed to delete");
       const data = await res.json().catch(() => ({}));
-      if (data.success && (user.username || '').toLowerCase() !== 'dejavuh') {
-        setComments(comments.filter(c => c.id !== commentToDelete));
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "Failed to delete");
+      }
+      
+      const recursivelyRemove = (list: Comment[]): Comment[] => list.filter(c => c.id !== commentToDelete);
+      setComments(recursivelyRemove(comments));
+      
+      if ((user.username || '').toLowerCase() === 'dejavuh' || (user.username || '').toLowerCase() === 'davinci') {
+        toast("Target neutralized.", "success");
+      } else {
+        toast("Post deleted.", "success");
       }
     } catch (err) {
       console.error(err);
-      if ((user.username || '').toLowerCase() !== 'dejavuh') {
-         setError("Failed to delete post.");
-      }
+      setError("Failed to delete post.");
     } finally {
       setCommentToDelete(null);
     }
@@ -595,6 +661,7 @@ export default function CommunityFeed({ animeId, animeTitle }: { animeId?: numbe
                 isReplying={isReplying}
                 handleVote={handleVote}
                 handleDelete={handleDelete}
+                handleEdit={handleEdit}
                 handleBless={handleBless}
                 showAnimeContext={!animeId}
               />
