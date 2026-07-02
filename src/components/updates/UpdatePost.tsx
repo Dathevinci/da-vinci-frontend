@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/Toast";
 import Link from "next/link";
 import { getRankTheme } from "@/lib/ranks";
 import * as Icons from "lucide-react";
+import HeartExplosion from "@/components/ui/HeartExplosion";
 
 interface Comment {
   id: string;
@@ -55,6 +56,8 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
   const [newComment, setNewComment] = useState("");
   const [loadingComments, setLoadingComments] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [showHeartExplosion, setShowHeartExplosion] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -121,6 +124,11 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
     }
 
     const newLiked = !isLiked;
+    if (newLiked) {
+      setShowHeartExplosion(true);
+      setTimeout(() => setShowHeartExplosion(false), 1000);
+    }
+
     setIsLiked(newLiked);
     setLikesCount((prev) => (newLiked ? prev + 1 : prev - 1));
     onLikeToggle(post.id, newLiked);
@@ -327,10 +335,11 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
       {/* Actions */}
       <div className="p-4 pb-2 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <button onClick={handleLike} className="group flex items-center gap-1.5 transition">
+          <button onClick={handleLike} className="group flex items-center gap-1.5 transition relative">
             <motion.div whileTap={{ scale: 0.8 }}>
               <Heart className={`w-7 h-7 transition ${isLiked ? 'text-red-500 fill-red-500' : 'text-slate-300 group-hover:text-slate-400'}`} />
             </motion.div>
+            <HeartExplosion show={showHeartExplosion} />
           </button>
           <button onClick={toggleComments} className="group flex items-center gap-1.5 transition">
             <motion.div whileTap={{ scale: 0.8 }}>
@@ -365,10 +374,22 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
             </div>
           </div>
         ) : (
-          <>
+          <div>
             <span className="font-bold text-white mr-2">{post.author.username}</span>
-            <span className="text-slate-200 text-sm whitespace-pre-wrap">{renderContentWithMentions(post.content)}</span>
-          </>
+            <span className="text-slate-200 text-sm whitespace-pre-wrap">
+              {isExpanded || post.content.length <= 300 
+                ? renderContentWithMentions(post.content) 
+                : renderContentWithMentions(`${post.content.substring(0, 300)}...`)}
+            </span>
+            {post.content.length > 300 && (
+              <button 
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="text-indigo-400 hover:text-indigo-300 text-sm font-bold ml-1 transition"
+              >
+                {isExpanded ? "See less" : "See more"}
+              </button>
+            )}
+          </div>
         )}
         
         {/* Tags */}

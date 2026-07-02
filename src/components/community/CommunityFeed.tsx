@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, Heart, Trash2, Send, CornerDownRight, Zap, Flame, Crown, Code2, Sparkles, Feather, Leaf, User as UserIcon, Image as ImageIcon, Edit } from 'lucide-react';
 import Link from 'next/link';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import HeartExplosion from '@/components/ui/HeartExplosion';
 import { getRankTheme } from '@/lib/ranks';
 const RankIcons: Record<string, any> = {
   Code2,
@@ -113,6 +114,7 @@ const CommentThread = ({
   handleVote,
   handleDelete,
   handleEdit,
+  handleBless,
   showAnimeContext
 }: {
   node: CommentNode;
@@ -135,6 +137,8 @@ const CommentThread = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(node.content);
   const [editMediaUrl, setEditMediaUrl] = useState(node.mediaUrl || "");
+  const [showHeartExplosion, setShowHeartExplosion] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const maxDepth = 4;
   const currentDepth = Math.min(depth, maxDepth);
@@ -266,9 +270,21 @@ const CommentThread = ({
             </div>
           </div>
         ) : (
-          <p className="text-slate-200 text-sm sm:text-base leading-relaxed whitespace-pre-wrap break-words mb-4">
-            {node.content}
-          </p>
+          <div className="mb-4">
+            <p className="text-slate-200 text-sm sm:text-base leading-relaxed whitespace-pre-wrap break-words">
+              {isExpanded || node.content.length <= 300 
+                ? node.content 
+                : `${node.content.substring(0, 300)}...`}
+            </p>
+            {node.content.length > 300 && (
+              <button 
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="text-indigo-400 hover:text-indigo-300 text-sm font-bold mt-1 transition"
+              >
+                {isExpanded ? "See less" : "See more"}
+              </button>
+            )}
+          </div>
         )}
 
         {/* Media / GIF rendering */}
@@ -289,13 +305,21 @@ const CommentThread = ({
         {/* Action Bar (Instagram Style) */}
         <div className="flex items-center gap-4 mt-auto pt-2 border-t border-white/5">
           <button 
-            onClick={() => handleVote(node.id, node.userVote === 1 ? 0 : 1)}
-            className="group flex items-center gap-1.5 transition"
+            onClick={() => {
+              const newVote = node.userVote === 1 ? 0 : 1;
+              if (newVote === 1) {
+                setShowHeartExplosion(true);
+                setTimeout(() => setShowHeartExplosion(false), 1000);
+              }
+              handleVote(node.id, newVote);
+            }}
+            className="group flex items-center gap-1.5 transition relative"
           >
             <motion.div whileTap={{ scale: 0.8 }}>
               <Heart className={`w-5 h-5 transition ${node.userVote === 1 ? 'text-red-500 fill-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'text-slate-400 group-hover:text-slate-300'}`} />
             </motion.div>
             <span className="text-xs sm:text-sm font-bold text-slate-400">{node.score}</span>
+            <HeartExplosion show={showHeartExplosion} />
           </button>
           
           <button 
