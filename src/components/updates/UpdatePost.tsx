@@ -11,6 +11,7 @@ import * as Icons from "lucide-react";
 import HeartExplosion from "@/components/ui/HeartExplosion";
 import CommentsDrawer from "@/components/ui/CommentsDrawer";
 import ConfirmModal from "@/components/ui/ConfirmModal";
+import MentionsInput from "@/components/ui/MentionsInput";
 
 interface Comment {
   id: string;
@@ -505,11 +506,11 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
               </div>
             )}
             <form onSubmit={submitComment} className="flex-1 flex gap-2">
-              <input
-                type="text"
+              <MentionsInput
                 placeholder="Add a comment..."
                 value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
+                onChange={(val) => setNewComment(val)}
+                onSubmit={submitComment as any}
                 className="flex-1 bg-white/5 border border-white/10 rounded-full px-4 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 transition"
               />
               <button 

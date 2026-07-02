@@ -19,6 +19,7 @@ const RankIcons: Record<string, any> = {
   User: UserIcon
 };
 import { useToast } from '@/components/ui/Toast';
+import MentionsTextarea from '@/components/ui/MentionsTextarea';
 
 interface Comment {
   id: string;
@@ -353,12 +354,11 @@ const CommentThread = ({
                 className="mt-4"
               >
                 <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-3 sm:p-4 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
-                  <textarea
+                  <MentionsTextarea
                     value={replyContent}
                     onChange={(e) => setReplyContent(e.target.value)}
                     placeholder={`Replying to @${node.user?.username || 'Unknown'}...`}
                     className="w-full bg-transparent text-white placeholder-slate-500 text-sm sm:text-base resize-none outline-none min-h-[60px]"
-                    autoFocus
                   />
                   <div className="mt-2 mb-2 flex items-center gap-2 px-3 py-1.5 bg-black/40 rounded-lg border border-white/5 focus-within:border-indigo-500/50 transition">
                     <ImageIcon className="w-4 h-4 text-slate-400 shrink-0" />
@@ -716,7 +716,7 @@ export default function CommunityFeed({ animeId, animeTitle }: { animeId?: numbe
 
       {user ? (
         <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 sm:p-5 mb-8 shadow-[0_10px_30px_rgba(0,0,0,0.4)] relative overflow-hidden mx-2 sm:mx-0">
-          <textarea
+          <MentionsTextarea
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Share your views or review..."

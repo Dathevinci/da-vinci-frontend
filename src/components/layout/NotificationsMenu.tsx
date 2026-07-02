@@ -45,11 +45,11 @@ export default function NotificationsMenu() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.15, type: "spring", stiffness: 300, damping: 25 }}
-            className="absolute top-full right-0 mt-3 w-[calc(100vw-2rem)] sm:w-96 max-w-sm bg-[#0f0f13] border border-white/10 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] z-50 flex flex-col transform origin-top-right"
+            className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-[calc(100vw-2rem)] sm:w-96 max-w-sm bg-[#0f0f13] border border-white/10 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] z-50 flex flex-col transform origin-top"
           >
             {/* Arrow/Pointer */}
-            <div className="absolute -top-[6px] right-2.5 w-3 h-3 bg-[#0f0f13] border-t border-l border-white/10 transform rotate-45 z-[-1]" />
-            <div className="absolute -top-[5px] right-2.5 w-3 h-3 bg-[#0f0f13] transform rotate-45 z-0" />
+            <div className="absolute -top-[6px] left-1/2 -translate-x-1/2 w-3 h-3 bg-[#0f0f13] border-t border-l border-white/10 transform rotate-45 z-[-1]" />
+            <div className="absolute -top-[5px] left-1/2 -translate-x-1/2 w-3 h-3 bg-[#0f0f13] transform rotate-45 z-0" />
 
             <div className="flex flex-col flex-1 overflow-hidden rounded-2xl relative z-10 bg-[#0f0f13]">
             {/* Header */}
