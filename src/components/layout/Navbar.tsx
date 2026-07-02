@@ -89,6 +89,10 @@ export default function Navbar() {
               </span>
             </button>
             
+            <div className="lg:hidden flex items-center">
+              <NotificationsMenu />
+            </div>
+            
             {isLoaded && (
               user ? (
                 <div className="hidden lg:flex items-center gap-4 relative">
