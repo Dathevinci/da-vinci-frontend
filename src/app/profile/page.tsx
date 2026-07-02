@@ -10,6 +10,7 @@ import ImagePreviewModal from "@/components/ui/ImagePreviewModal";
 import ImageCropperModal from "@/components/profile/ImageCropperModal";
 import ArisePointHistoryModal from "@/components/profile/ArisePointHistoryModal";
 import BioRenderer from "@/components/profile/BioRenderer";
+import { parseBio } from "@/lib/bioUtils";
 import getCroppedImg from "@/lib/cropImage";
 import { useState, useRef } from "react";
 import Link from "next/link";
@@ -63,6 +64,8 @@ export default function ProfileTrackerPage() {
   const filteredList = filter === "All" ? allTracked : getTrackedList(filter as AnimeUserStatus);
   const rankTheme = user ? getRankTheme(user.arisePoints, user.username) : getRankTheme(0, "");
   const RankIcon = rankTheme.badgeIcon ? (Icons as any)[rankTheme.badgeIcon] : null;
+
+  const { cleanBio, backgroundUrl } = user ? parseBio(user.bio || "", user.arisePoints || 0) : { cleanBio: "", backgroundUrl: null };
 
   const filterTabs = [
     { id: "All", icon: ListFilter },
@@ -291,7 +294,16 @@ export default function ProfileTrackerPage() {
         
         {/* Profile Header */}
         {user && (
-          <div className={`flex flex-col md:flex-row items-end gap-6 rounded-3xl mb-10 shadow-2xl p-8 pt-32 border ${rankTheme.bgCardClass}`}>
+          <div className={`relative flex flex-col md:flex-row items-end gap-6 rounded-3xl mb-10 shadow-2xl p-8 pt-32 border overflow-hidden ${rankTheme.bgCardClass}`}>
+            {backgroundUrl && (
+              <>
+                <div 
+                  className="absolute inset-0 z-0 bg-cover bg-center"
+                  style={{ backgroundImage: `url(${backgroundUrl})` }}
+                />
+                <div className="absolute inset-0 z-0 bg-black/75 rounded-3xl pointer-events-none" />
+              </>
+            )}
             <div className="relative z-10 flex flex-col md:flex-row items-end gap-6 w-full">
               <div 
                 className="relative group cursor-pointer" 
@@ -334,7 +346,7 @@ export default function ProfileTrackerPage() {
                     </div>
                   )}
                 </div>
-                <BioRenderer bio={user.bio || "No bio set. Update your settings to add one!"} className="text-indigo-200 font-medium drop-shadow-md max-w-xl" />
+                <BioRenderer bio={cleanBio || "No bio set. Update your settings to add one!"} className="text-indigo-200 font-medium drop-shadow-md max-w-xl" />
                 <div className="flex items-center gap-4 mt-3 text-sm font-bold text-slate-300">
                   <button 
                     onClick={() => setModalData({ title: 'Followers', users: (user.followers || []).map((f: any) => f.follower) })}

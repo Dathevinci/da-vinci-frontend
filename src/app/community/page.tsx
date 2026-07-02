@@ -9,6 +9,7 @@ import CommunityFeed from "@/components/community/CommunityFeed";
 import { motion, AnimatePresence } from "framer-motion";
 import PageTransition from "@/components/layout/PageTransition";
 import BioRenderer from '@/components/profile/BioRenderer';
+import { parseBio } from "@/lib/bioUtils";
 
 function UserCard({ user, currentUser, handleFollowToggle }: { user: User, currentUser: any, handleFollowToggle: (u: User, e: React.MouseEvent) => void }) {
   const [isHovered, setIsHovered] = useState(false);
@@ -26,9 +27,17 @@ function UserCard({ user, currentUser, handleFollowToggle }: { user: User, curre
   };
 
   const isFollowing = currentUser?.following?.some((f: any) => f.followingId === user.id);
+  const { cleanBio, backgroundUrl } = parseBio(user.bio || "", user.arisePoints || 0);
 
   const cardContent = (
     <>
+      {backgroundUrl && (
+        <>
+          <div className="absolute inset-0 z-0 bg-cover bg-center" style={{ backgroundImage: `url(${backgroundUrl})` }} />
+          <div className="absolute inset-0 z-0 bg-black/75 pointer-events-none" />
+        </>
+      )}
+
       {user.bannerUrl ? (
         <div className="absolute top-0 left-0 right-0 h-20 z-0 opacity-60">
           <img src={user.bannerUrl} alt="Banner" className="w-full h-full object-cover" />
@@ -38,7 +47,7 @@ function UserCard({ user, currentUser, handleFollowToggle }: { user: User, curre
         <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-br from-indigo-600/20 to-purple-600/10 z-0"></div>
       )}
       
-      <div className="relative z-10 flex flex-col pt-4">
+      <div className="relative z-10 flex flex-col pt-4 h-full">
         <div className="flex items-center gap-4 px-6">
           {user.avatar ? (
             <img src={user.avatar} alt="Avatar" className="w-16 h-16 rounded-full object-cover border-2 border-[#18181b] shadow-lg" />
@@ -53,13 +62,13 @@ function UserCard({ user, currentUser, handleFollowToggle }: { user: User, curre
           </div>
         </div>
         
-        <div className="px-6 pb-6 mt-4 min-h-[60px]">
-          <BioRenderer bio={user.bio || "No bio set."} className="text-sm text-slate-400 line-clamp-2" />
+        <div className="px-6 pb-6 mt-4 min-h-[60px] flex-1 flex flex-col">
+          <BioRenderer bio={cleanBio || "No bio set."} className="text-sm text-slate-300 line-clamp-2" />
 
           {currentUser && (
             <button 
               onClick={(e) => handleFollowToggle(user, e)}
-              className={`w-full mt-4 py-2 rounded-lg font-bold transition flex items-center justify-center gap-2 ${isFollowing ? "bg-white/5 hover:bg-red-500/20 text-slate-300 hover:text-red-400" : "bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white"}`}
+              className={`w-full mt-auto pt-4 py-2 rounded-lg font-bold transition flex items-center justify-center gap-2 ${isFollowing ? "bg-white/5 hover:bg-red-500/20 text-slate-300 hover:text-red-400" : "bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white"}`}
             >
               {isFollowing ? <><UserMinus className="w-4 h-4" /> Unfollow</> : <><UserPlus className="w-4 h-4" /> Follow</>}
             </button>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { ArrowLeft, MapPin, Calendar, Clock, Star, TrendingUp, Compass, Settings, Check, X, Shield, Users, Zap, User as UserIcon, Code2, Sparkles, Crown, Feather, Flame, Leaf, UserPlus, UserMinus, Eye, Heart, ListFilter } from 'lucide-react';
 import BioRenderer from '@/components/profile/BioRenderer';
+import { parseBio } from "@/lib/bioUtils";
 import { useUser, User } from "@/hooks/useUser";
 import FollowListModal from "@/components/profile/FollowListModal";
 import ImagePreviewModal from "@/components/ui/ImagePreviewModal";
@@ -120,6 +121,7 @@ export default function PublicProfilePage() {
   
   const rankTheme = getRankTheme(profileUser.arisePoints, profileUser.username);
   const RankIcon = rankTheme.badgeIcon ? (Icons as any)[rankTheme.badgeIcon] : null;
+  const { cleanBio, backgroundUrl } = profileUser ? parseBio(profileUser.bio || "", profileUser.arisePoints || 0) : { cleanBio: "", backgroundUrl: null };
 
   return (
     <PageTransition>
@@ -153,7 +155,18 @@ export default function PublicProfilePage() {
       >
         
         {/* Profile Header */}
-        <div className={`flex flex-col md:flex-row items-end gap-6 rounded-3xl mb-10 shadow-2xl p-8 pt-32 border ${rankTheme.bgCardClass}`}>
+        <div 
+          className={`relative flex flex-col md:flex-row items-end gap-6 rounded-3xl mb-10 shadow-2xl p-8 pt-32 border overflow-hidden ${rankTheme.bgCardClass}`}
+        >
+          {backgroundUrl && (
+            <>
+              <div 
+                className="absolute inset-0 z-0 bg-cover bg-center"
+                style={{ backgroundImage: `url(${backgroundUrl})` }}
+              />
+              <div className="absolute inset-0 z-0 bg-black/75 rounded-3xl pointer-events-none" />
+            </>
+          )}
           
           <div className="relative z-10 flex flex-col md:flex-row items-end gap-6 w-full">
             <div 
@@ -191,7 +204,7 @@ export default function PublicProfilePage() {
                   </div>
                 )}
               </div>
-              <BioRenderer bio={profileUser.bio || "No bio set."} className="text-indigo-200 font-medium drop-shadow-md max-w-xl" />
+              <BioRenderer bio={cleanBio || "No bio set."} className="text-indigo-200 font-medium drop-shadow-md max-w-xl" />
               <div className="flex items-center gap-4 mt-3 text-sm font-bold text-slate-300">
                 <button 
                   onClick={() => setModalData({ title: 'Followers', users: (profileUser.followers || []).map((f: any) => f.follower) })}
