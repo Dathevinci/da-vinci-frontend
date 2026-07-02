@@ -44,11 +44,23 @@ export default function HeroBannerCarousel({ animes }: Props) {
           <img 
             src={(heroAnime.trailer?.images?.maximum_image_url || heroAnime.images?.jpg?.large_image_url || heroAnime.images?.jpg?.image_url || "") as string} 
             alt="Banner" 
-            className="w-full h-full object-cover opacity-40"
+            className="absolute inset-0 w-full h-full object-cover opacity-40"
           />
+          
+          {/* YouTube Trailer Video Background */}
+          {heroAnime.trailer?.youtube_id && (
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <iframe
+                src={`https://www.youtube.com/embed/${heroAnime.trailer.youtube_id}?autoplay=1&mute=1&controls=0&disablekb=1&fs=0&loop=1&modestbranding=1&playsinline=1&color=white&iv_load_policy=3&playlist=${heroAnime.trailer.youtube_id}`}
+                allow="autoplay; encrypted-media"
+                className="absolute top-1/2 left-1/2 w-[100vw] h-[56.25vw] min-h-[100vh] min-w-[177.77vh] -translate-x-1/2 -translate-y-1/2 opacity-80"
+              />
+            </div>
+          )}
+
           {/* Dark gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#09090b] via-[#09090b]/80 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-transparent to-transparent" />
+          <div className="absolute inset-0 z-10 bg-gradient-to-r from-[#09090b] via-[#09090b]/80 to-transparent" />
+          <div className="absolute inset-0 z-10 bg-gradient-to-t from-[#09090b] via-transparent to-transparent" />
         </motion.div>
       </AnimatePresence>
 
