@@ -62,7 +62,34 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
   const RankIcon = authorRank.badgeIcon ? (Icons as any)[authorRank.badgeIcon] : null;
 
   const isDev = user?.username?.toLowerCase() === "dejavuh";
+  const isAdmin = user?.username?.toLowerCase() === "davinci";
+  const canModifyPost = isDev || isAdmin || user?.id === post.author.id;
+
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isEditingPost, setIsEditingPost] = useState(false);
+  const [editPostTitle, setEditPostTitle] = useState(post.title);
+  const [editPostContent, setEditPostContent] = useState(post.content);
+
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editCommentContent, setEditCommentContent] = useState("");
+
+  const renderContentWithMentions = (text: string) => {
+    if (!text) return null;
+    const regex = /(@[a-zA-Z0-9_]+)/g;
+    const parts = text.split(regex);
+    
+    return parts.map((part, i) => {
+      if (part.startsWith('@')) {
+        const username = part.slice(1);
+        return (
+          <Link key={i} href={`/user/${username}`} className="text-indigo-400 font-bold hover:text-indigo-300 hover:underline drop-shadow-[0_0_8px_rgba(129,140,248,0.5)]">
+            {part}
+          </Link>
+        );
+      }
+      return <span key={i}>{part}</span>;
+    });
+  };
 
   const handleDeletePost = () => {
     setShowDeleteModal(true);
@@ -151,12 +178,77 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
       if (data.success) {
         setComments([...comments, data.data]);
         setNewComment("");
-        post._count.comments += 1;
+      } else {
+        toast(data.error || "Failed to post comment", "error");
       }
     } catch (err) {
-      toast("Failed to post comment", "error");
+      toast("Error posting comment", "error");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleSavePostEdit = async () => {
+    if (!editPostTitle.trim() || !editPostContent.trim()) return;
+    try {
+      const res = await fetch(`${API_URL}/api/announcements/${post.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user?.id, title: editPostTitle, content: editPostContent }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast("Post updated successfully", "success");
+        setIsEditingPost(false);
+        // Optimistic UI update could go here, or depend on parent refetch
+        // We'll update the local state to reflect it since we don't have a direct setter for the post prop
+        post.title = editPostTitle;
+        post.content = editPostContent;
+      } else {
+        toast(data.error || "Failed to edit post", "error");
+      }
+    } catch (err) {
+      toast("Error editing post", "error");
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!confirm("Are you sure you want to delete this comment?")) return;
+    try {
+      const res = await fetch(`${API_URL}/api/announcements/comments/${commentId}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user?.id }),
+      });
+      if (res.ok) {
+        setComments(comments.filter(c => c.id !== commentId));
+        toast("Comment deleted", "success");
+      } else {
+        toast("Failed to delete comment", "error");
+      }
+    } catch (err) {
+      toast("Error deleting comment", "error");
+    }
+  };
+
+  const handleSaveCommentEdit = async (commentId: string) => {
+    if (!editCommentContent.trim()) return;
+    try {
+      const res = await fetch(`${API_URL}/api/announcements/comments/${commentId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user?.id, content: editCommentContent }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setComments(comments.map(c => c.id === commentId ? { ...c, content: editCommentContent } : c));
+        setEditingCommentId(null);
+        toast("Comment updated", "success");
+      } else {
+        toast(data.error || "Failed to edit comment", "error");
+      }
+    } catch (err) {
+      toast("Error editing comment", "error");
     }
   };
 
@@ -194,10 +286,15 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
             <span className="text-xs text-slate-500 font-medium">{timeAgo(post.createdAt)}</span>
           </div>
         </Link>
-        {isDev && (
-          <button onClick={handleDeletePost} className="text-slate-500 hover:text-red-500 transition px-2 py-1 bg-red-500/10 rounded-lg text-xs font-bold">
-            Delete
-          </button>
+        {canModifyPost && (
+          <div className="flex gap-2">
+            <button onClick={() => setIsEditingPost(!isEditingPost)} className="text-slate-500 hover:text-indigo-400 transition px-2 py-1 bg-indigo-500/10 rounded-lg text-xs font-bold">
+              {isEditingPost ? 'Cancel' : 'Edit'}
+            </button>
+            <button onClick={handleDeletePost} className="text-slate-500 hover:text-red-500 transition px-2 py-1 bg-red-500/10 rounded-lg text-xs font-bold">
+              Delete
+            </button>
+          </div>
         )}
       </div>
 
@@ -250,8 +347,29 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
 
       {/* Caption */}
       <div className="px-4 pb-4">
-        <span className="font-bold text-white mr-2">{post.author.username}</span>
-        <span className="text-slate-200 text-sm whitespace-pre-wrap">{post.content}</span>
+        {isEditingPost ? (
+          <div className="space-y-2 mb-2">
+            <input 
+              type="text" 
+              value={editPostTitle} 
+              onChange={e => setEditPostTitle(e.target.value)} 
+              className="w-full bg-black/50 border border-white/10 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-indigo-500" 
+            />
+            <textarea 
+              value={editPostContent} 
+              onChange={e => setEditPostContent(e.target.value)} 
+              className="w-full bg-black/50 border border-white/10 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-indigo-500 min-h-[100px]" 
+            />
+            <div className="flex justify-end">
+              <button onClick={handleSavePostEdit} className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3 py-1.5 rounded transition">Save</button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <span className="font-bold text-white mr-2">{post.author.username}</span>
+            <span className="text-slate-200 text-sm whitespace-pre-wrap">{renderContentWithMentions(post.content)}</span>
+          </>
+        )}
         
         {/* Tags */}
         <div className="mt-2 flex flex-wrap gap-2">
@@ -300,8 +418,29 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
                           <span className="font-bold text-sm text-white hover:underline">{c.user.username}</span>
                         </Link>
                         <span className="text-xs text-slate-500">{timeAgo(c.createdAt)}</span>
+                        
+                        {(isDev || isAdmin || user?.id === c.user.id) && (
+                          <div className="ml-auto flex gap-2">
+                            <button onClick={() => { setEditingCommentId(c.id); setEditCommentContent(c.content); }} className="text-xs text-slate-500 hover:text-indigo-400">Edit</button>
+                            <button onClick={() => handleDeleteComment(c.id)} className="text-xs text-slate-500 hover:text-red-500">Delete</button>
+                          </div>
+                        )}
                       </div>
-                      <p className="text-sm text-slate-300 break-words">{c.content}</p>
+                      
+                      {editingCommentId === c.id ? (
+                        <div className="mt-1 flex gap-2">
+                          <input 
+                            type="text" 
+                            value={editCommentContent} 
+                            onChange={e => setEditCommentContent(e.target.value)} 
+                            className="flex-1 bg-black/50 border border-white/10 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-indigo-500" 
+                          />
+                          <button onClick={() => handleSaveCommentEdit(c.id)} className="text-indigo-400 font-bold text-xs">Save</button>
+                          <button onClick={() => setEditingCommentId(null)} className="text-slate-400 text-xs">Cancel</button>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-slate-300 break-words whitespace-pre-wrap">{renderContentWithMentions(c.content)}</p>
+                      )}
                     </div>
                   </div>
                 ))
