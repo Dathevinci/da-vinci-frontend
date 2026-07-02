@@ -64,9 +64,9 @@ export default function Navbar() {
       }`}>
         <div className="container mx-auto px-4 flex justify-between items-center">
           <div className="flex items-center gap-8">
-            <Link href="/" className="font-graffiti text-3xl font-normal text-white tracking-widest flex items-center gap-3 drop-shadow-md">
-              <img src="/logo.png" alt="Da Vinci Logo" className="w-10 h-10 rounded-full border-2 border-indigo-400 shadow-lg shadow-indigo-500/20 object-cover" />
-              DA <span className="text-indigo-500">VINCI</span>
+            <Link href="/" className="font-cinzel font-bold text-2xl lg:text-3xl text-white tracking-[0.2em] uppercase flex items-center gap-3 drop-shadow-lg">
+              <img src="/logo.png" alt="Da Vinci Logo" className="w-10 h-10 rounded-full border border-indigo-400/50 shadow-[0_0_15px_rgba(99,102,241,0.4)] object-cover" />
+              DA <span className="text-indigo-400 font-black drop-shadow-[0_0_10px_rgba(99,102,241,0.5)]">VINCI</span>
             </Link>
             <nav className="hidden lg:flex gap-6 font-medium text-sm text-slate-300">
               <Link href="/" className="hover:text-white hover:text-indigo-400 transition">Dashboard</Link>
@@ -126,9 +126,9 @@ export default function Navbar() {
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-3xl flex flex-col">
           <div className="flex justify-between items-center p-4 border-b border-white/10">
-            <Link href="/" className="text-2xl font-black text-white flex items-center gap-2" onClick={() => setIsMobileMenuOpen(false)}>
-              <Palette className="w-6 h-6 text-indigo-500" />
-              Da Vinci
+            <Link href="/" className="font-cinzel font-bold text-2xl tracking-[0.2em] uppercase text-white flex items-center gap-3" onClick={() => setIsMobileMenuOpen(false)}>
+              <img src="/logo.png" alt="Da Vinci Logo" className="w-8 h-8 rounded-full border border-indigo-400/50 shadow-[0_0_15px_rgba(99,102,241,0.4)] object-cover" />
+              DA <span className="text-indigo-400 font-black drop-shadow-[0_0_10px_rgba(99,102,241,0.5)]">VINCI</span>
             </Link>
             <button onClick={() => setIsMobileMenuOpen(false)} className="text-slate-400 hover:text-white p-2">
               <X className="w-6 h-6" />

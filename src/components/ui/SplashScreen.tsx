@@ -155,9 +155,9 @@ export default function SplashScreen() {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1.2, duration: 1.2, ease: "easeOut" }}
-              className="font-graffiti text-5xl md:text-7xl font-normal text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-white tracking-widest drop-shadow-2xl"
+              className="font-cinzel text-5xl md:text-7xl font-bold text-white tracking-[0.2em] uppercase drop-shadow-[0_0_20px_rgba(99,102,241,0.6)]"
             >
-              DA VINCI
+              DA <span className="text-indigo-400 font-black drop-shadow-[0_0_15px_rgba(99,102,241,0.8)]">VINCI</span>
             </motion.h1>
           </motion.div>
         </motion.div>

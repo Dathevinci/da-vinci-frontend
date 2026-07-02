@@ -13,12 +13,10 @@ export default function Footer() {
           
           {/* Brand Section */}
           <div className="lg:col-span-1 space-y-6">
-            <Link href="/" className="flex items-center gap-3 group inline-flex">
-              <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-[0_0_20px_rgba(99,102,241,0.4)] group-hover:shadow-[0_0_30px_rgba(168,85,247,0.6)] transition-all duration-300">
-                <Compass className="w-5 h-5 text-white" />
-              </div>
-              <span className="font-black text-2xl tracking-tight text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-indigo-400 group-hover:to-purple-400 transition-all duration-300">
-                Da Vinci
+            <Link href="/" className="flex items-center gap-3 group inline-flex font-cinzel font-bold text-2xl tracking-[0.2em] uppercase drop-shadow-md">
+              <img src="/logo.png" alt="Da Vinci Logo" className="w-10 h-10 rounded-full border border-indigo-400/50 shadow-[0_0_15px_rgba(99,102,241,0.4)] object-cover group-hover:shadow-[0_0_20px_rgba(168,85,247,0.6)] transition-all duration-300" />
+              <span className="text-white group-hover:text-indigo-400 transition-all duration-300">
+                DA <span className="text-indigo-400 font-black group-hover:text-purple-400 transition-all duration-300">VINCI</span>
               </span>
             </Link>
             <p className="text-slate-400 text-sm leading-relaxed max-w-sm">

@@ -46,7 +46,12 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
         
         {/* Logo */}
         <div className="flex justify-center mb-6">
-          <img src="/logo.png" alt="Da Vinci Logo" className="w-16 h-16 rounded-full border-2 border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.5)]" />
+          <div className="flex items-center gap-3 font-cinzel font-bold text-2xl tracking-[0.2em] uppercase drop-shadow-md">
+            <img src="/logo.png" alt="Da Vinci Logo" className="w-12 h-12 rounded-full border border-indigo-400/50 shadow-[0_0_15px_rgba(99,102,241,0.4)] object-cover" />
+            <span className="text-white">
+              DA <span className="text-indigo-400 font-black">VINCI</span>
+            </span>
+          </div>
         </div>
 
         {/* Tabs */}

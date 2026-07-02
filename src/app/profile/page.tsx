@@ -75,7 +75,7 @@ export default function ProfileTrackerPage() {
     { id: "Finished", icon: Check },
   ];
 
-  const handleImageUpload = async (file: File | Blob, isBanner: boolean = false, isGif: boolean = false) => {
+  const handleImageUpload = async (file: File | Blob, isBanner: boolean = false, isGif: boolean = false, cropParams?: any) => {
     const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
     const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
@@ -99,9 +99,15 @@ export default function ProfileTrackerPage() {
       const data = await res.json();
       if (data.secure_url) {
         let finalUrl = data.secure_url;
-        if (isGif) {
+        if (isGif && cropParams) {
+          // Cloudinary crop transformation: c_crop,x_X,y_Y,w_W,h_H
+          const { x, y, width, height } = cropParams;
+          const cropStr = `c_crop,x_${Math.round(x)},y_${Math.round(y)},w_${Math.round(width)},h_${Math.round(height)}`;
+          finalUrl = finalUrl.replace('/upload/', `/upload/${cropStr}/`);
+        } else if (isGif) {
           finalUrl = finalUrl.replace(/\.[^/.]+$/, ".gif");
         }
+        
         if (isBanner) await updateProfile({ bannerUrl: finalUrl });
         else await updateProfile({ avatar: finalUrl });
       }
@@ -121,39 +127,37 @@ export default function ProfileTrackerPage() {
     e.target.value = ''; // Reset input so same file can be selected again
     const isGif = file.type === 'image/gif';
     
-    if (isBanner) {
-      if (isGif) {
-        if (user?.username?.toLowerCase() !== "dejavuh" && user?.username?.toLowerCase() !== "davinci" && (user?.arisePoints || 0) < 500) {
-          toast("Animated GIF banners require 500 Arise Points, Lead Dev, or Admin status!", "error");
-          return;
-        }
+    if (isGif) {
+      if (user?.username?.toLowerCase() !== "dejavuh" && user?.username?.toLowerCase() !== "davinci" && (user?.arisePoints || 0) < 500) {
+        toast(`Animated GIF ${isBanner ? 'banners' : 'avatars'} require 500 Arise Points, Lead Dev, or Admin status!`, "error");
+        return;
       }
-      // Always bypass cropping for banners (users want to upload raw backgrounds)
-      handleImageUpload(file, true, isGif);
-      return;
-    }
-
-    if (isGif && !isBanner) {
-      toast("GIF avatars are not supported.", "error");
-      return;
     }
 
     const reader = new FileReader();
     reader.onload = () => {
-      setCropModalData({ src: reader.result as string, isBanner });
+      setCropModalData({ src: reader.result as string, isBanner, isGif });
     };
     reader.readAsDataURL(file);
   };
 
   const handleCropComplete = async (croppedAreaPixels: any) => {
     if (!cropModalData) return;
-    const { src, isBanner } = cropModalData;
+    const { src, isBanner, isGif } = cropModalData;
     setCropModalData(null); // Close modal
     
     try {
-      const croppedFile = await getCroppedImg(src, croppedAreaPixels, isBanner ? 'banner.jpeg' : 'avatar.jpeg');
-      if (!croppedFile) throw new Error("Failed to crop image");
-      await handleImageUpload(croppedFile, isBanner);
+      if (isGif) {
+        // For GIFs, we cannot use canvas as it flattens animation. 
+        // We upload the raw GIF and use Cloudinary's crop transformation URL.
+        const response = await fetch(src);
+        const blob = await response.blob();
+        await handleImageUpload(blob, isBanner, true, croppedAreaPixels);
+      } else {
+        const croppedFile = await getCroppedImg(src, croppedAreaPixels, isBanner ? 'banner.jpeg' : 'avatar.jpeg');
+        if (!croppedFile) throw new Error("Failed to crop image");
+        await handleImageUpload(croppedFile, isBanner);
+      }
     } catch (e) {
       console.error(e);
       toast("Failed to crop and upload image.", "error");

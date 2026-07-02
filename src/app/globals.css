@@ -13,6 +13,10 @@
     font-family: var(--font-graffiti), cursive;
   }
   
+  .font-cinzel {
+    font-family: var(--font-cinzel), serif;
+  }
+  
   body {
     overflow-x: hidden;
     font-family: ui-sans-serif, system-ui, sans-serif;

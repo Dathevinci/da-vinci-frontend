@@ -12,12 +12,18 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-import { Permanent_Marker } from "next/font/google";
+import { Permanent_Marker, Cinzel } from "next/font/google";
 
 const permanentMarker = Permanent_Marker({
   weight: "400",
   subsets: ["latin"],
   variable: "--font-graffiti",
+});
+
+const cinzel = Cinzel({
+  weight: ["400", "700", "900"],
+  subsets: ["latin"],
+  variable: "--font-cinzel",
 });
 
 import Navbar from "@/components/layout/Navbar";
@@ -45,7 +51,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className="dark">
-      <body className={`bg-[#050505] text-white antialiased min-h-screen flex flex-col transition-colors duration-300 overflow-x-hidden ${permanentMarker.variable}`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} ${permanentMarker.variable} ${cinzel.variable} bg-[#050505] text-white antialiased min-h-screen flex flex-col transition-colors duration-300 overflow-x-hidden`}>
         <ThemeProvider>
           <ToastProvider>
             <Suspense fallback={null}>
