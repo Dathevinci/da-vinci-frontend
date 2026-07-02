@@ -5,10 +5,11 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Play, Plus, Check, ThumbsUp } from "lucide-react";
 import { Anime } from "@tutkli/jikan-ts";
-import Link from "next/link";
+
 import { useAnimeStatus } from "@/hooks/useAnimeStatus";
 import { useToast } from "@/components/ui/Toast";
 import { getYouTubeId } from "@/lib/jikan";
+import AnimeTabs from "@/components/anime/AnimeTabs";
 
 interface QuickViewModalProps {
   anime: Anime | null;
@@ -259,20 +260,45 @@ export default function QuickViewModal({ anime, onClose, onPlayTrailer }: QuickV
               </div>
             </div>
 
-            {/* Bottom Gradient for scrolling feeling */}
-            <div className="p-8 md:p-12 border-t border-[#404040]/50 mt-4">
-              <Link 
-                href={`/anime/${anime.mal_id}`}
-                onClick={onClose}
-                className="flex items-center justify-between w-full p-4 rounded bg-[#242424] hover:bg-[#2a2a2a] transition-colors group cursor-pointer"
-              >
-                <div className="flex items-center gap-4">
-                  <span className="text-xl md:text-2xl font-bold text-white">View Full Details</span>
+            {/* Full Details Section Embedded */}
+            <div className="px-8 md:px-12 pb-12 pt-4 border-t border-[#404040]/50 mt-4">
+              <div className="flex flex-col lg:flex-row gap-12 pt-4">
+                {/* Main Info Tabs */}
+                <div className="flex-1">
+                  <AnimeTabs anime={displayAnime as any} />
                 </div>
-                <div className="w-10 h-10 rounded-full border border-white/30 flex items-center justify-center text-white group-hover:border-white transition-colors">
-                  <ChevronDown className="w-5 h-5 -rotate-90" />
+
+                {/* Sidebar Stats */}
+                <div className="w-full lg:w-80 flex-shrink-0 space-y-6 mt-0 lg:mt-[72px]">
+                  <div className="bg-white/5 border border-white/5 p-6 rounded-2xl">
+                    <h3 className="font-bold text-lg mb-4 text-white border-b border-white/10 pb-2">Information</h3>
+                    <ul className="space-y-4 text-sm">
+                      <li>
+                        <span className="text-slate-500 block mb-1">Format</span>
+                        <span className="text-slate-200 font-medium">{displayAnime.type || "Unknown"}</span>
+                      </li>
+                      <li>
+                        <span className="text-slate-500 block mb-1">Episodes</span>
+                        <span className="text-slate-200 font-medium">{displayAnime.episodes || "Unknown"}</span>
+                      </li>
+                      <li>
+                        <span className="text-slate-500 block mb-1">Duration</span>
+                        <span className="text-slate-200 font-medium">{displayAnime.duration || "Unknown"}</span>
+                      </li>
+                      <li>
+                        <span className="text-slate-500 block mb-1">Season</span>
+                        <span className="text-slate-200 font-medium capitalize">{displayAnime.season} {displayAnime.year}</span>
+                      </li>
+                      <li>
+                        <span className="text-slate-500 block mb-1">Studios</span>
+                        <span className="text-slate-200 font-medium">
+                          {displayAnime.studios?.map(s => s.name).join(", ") || "Unknown"}
+                        </span>
+                      </li>
+                    </ul>
+                  </div>
                 </div>
-              </Link>
+              </div>
             </div>
             
           </motion.div>
@@ -283,22 +309,4 @@ export default function QuickViewModal({ anime, onClose, onPlayTrailer }: QuickV
   );
 }
 
-// Minimal Chevron Component for the link button at the bottom
-function ChevronDown(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <polyline points="6 9 12 15 18 9" />
-    </svg>
-  );
-}
+
