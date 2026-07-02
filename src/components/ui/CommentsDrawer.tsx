@@ -2,7 +2,8 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface CommentsDrawerProps {
   isOpen: boolean;
@@ -21,10 +22,15 @@ export default function CommentsDrawer({ isOpen, onClose, title = "Comments", ch
     }
     return () => {
       document.body.style.overflow = "unset";
-    };
+    }
   }, [isOpen]);
 
-  return (
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <>
@@ -63,6 +69,7 @@ export default function CommentsDrawer({ isOpen, onClose, title = "Comments", ch
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

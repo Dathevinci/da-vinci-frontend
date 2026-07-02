@@ -8,6 +8,7 @@ import SearchModal from './SearchModal';
 import ArisePointPopup from '../ui/ArisePointPopup';
 import SettingsModal from '../profile/SettingsModal';
 import ControlCenter from './ControlCenter';
+import NotificationsMenu from './NotificationsMenu';
 import { useUser } from '@/hooks/useUser';
 
 export default function Navbar() {
@@ -95,6 +96,7 @@ export default function Navbar() {
                     <Compass className="w-4 h-4 text-indigo-400" />
                     My Tracker
                   </Link>
+                  <NotificationsMenu />
                   <button onClick={() => setShowControlCenter(true)} className="text-slate-400 hover:text-white transition" title="Control Center">
                     <Settings className="w-5 h-5" />
                   </button>

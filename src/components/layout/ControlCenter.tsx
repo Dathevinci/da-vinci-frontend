@@ -4,11 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { usePreferences } from "@/hooks/usePreferences";
-import { useNotifications } from "@/hooks/useNotifications";
 import { useUser } from "@/hooks/useUser";
 import { useToast } from "@/components/ui/Toast";
-import { Moon, Sun, Wifi, WifiOff, PlayCircle, EyeOff, Zap, Bell, CheckCircle2, AlertCircle, Info, X, Trash2, CheckCheck, Lock, Unlock } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { Moon, Sun, PlayCircle, EyeOff, Zap, Lock, Unlock } from "lucide-react";
 
 interface ControlCenterProps {
   isOpen: boolean;
@@ -18,7 +16,6 @@ interface ControlCenterProps {
 export default function ControlCenter({ isOpen, onClose }: ControlCenterProps) {
   const { theme, toggleTheme } = useTheme();
   const { preferences, updatePreference } = usePreferences();
-  const { notifications, markAllAsRead, clearAll, removeNotification, unreadCount } = useNotifications();
   const { user, loginOrRegister } = useUser();
   const { toast } = useToast();
   const ref = useRef<HTMLDivElement>(null);
@@ -144,58 +141,7 @@ export default function ControlCenter({ isOpen, onClose }: ControlCenterProps) {
             </div>
           </button>
 
-          {/* Divider */}
-          <div className="h-px w-full bg-white/10 my-1" />
-
-          {/* Notifications Section */}
-          <div className="flex flex-col flex-1 overflow-hidden min-h-[250px]">
-            <div className="flex items-center justify-between mb-3 px-1">
-              <div className="flex items-center gap-2">
-                <Bell className="w-4 h-4 text-white/70" />
-                <span className="text-sm font-semibold">Notifications</span>
-                {unreadCount > 0 && (
-                  <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{unreadCount}</span>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <button onClick={markAllAsRead} className="text-[10px] text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1 bg-indigo-500/10 px-2 py-1 rounded-lg">
-                  <CheckCheck className="w-3 h-3" /> Read All
-                </button>
-                <button onClick={clearAll} className="text-[10px] text-red-400 hover:text-red-300 font-semibold flex items-center gap-1 bg-red-500/10 px-2 py-1 rounded-lg">
-                  <Trash2 className="w-3 h-3" /> Clear
-                </button>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto pr-1 space-y-2 scrollbar-thin scrollbar-thumb-white/10">
-              {notifications.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-32 text-white/40">
-                  <Bell className="w-8 h-8 mb-2 opacity-20" />
-                  <span className="text-xs">No notifications</span>
-                </div>
-              ) : (
-                notifications.map((notif) => (
-                  <div key={notif.id} className={`p-3 rounded-xl flex gap-3 group transition-colors ${notif.read ? 'bg-white/5 opacity-70' : 'bg-white/10'}`}>
-                    <div className="shrink-0 mt-0.5">
-                      {notif.type === "success" && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
-                      {notif.type === "error" && <AlertCircle className="w-4 h-4 text-red-400" />}
-                      {notif.type === "info" && <Info className="w-4 h-4 text-indigo-400" />}
-                    </div>
-                    <div className="flex-1 flex flex-col min-w-0">
-                      <p className="text-xs font-semibold text-white break-words pr-4 leading-tight">{notif.message}</p>
-                      <span className="text-[9px] text-white/50 mt-1">{formatDistanceToNow(notif.timestamp, { addSuffix: true })}</span>
-                    </div>
-                    <button 
-                      onClick={() => removeNotification(notif.id)}
-                      className="shrink-0 opacity-0 group-hover:opacity-100 text-white/40 hover:text-white transition-opacity"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+          </button>
         </motion.div>
       )}
     </AnimatePresence>
