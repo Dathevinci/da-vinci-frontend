@@ -12,6 +12,14 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+import { Permanent_Marker } from "next/font/google";
+
+const permanentMarker = Permanent_Marker({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-graffiti",
+});
+
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
@@ -37,7 +45,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className="dark">
-      <body className="bg-slate-50 dark:bg-[#050505] text-slate-900 dark:text-white antialiased min-h-screen flex flex-col transition-colors duration-300 overflow-x-hidden">
+      <body className={`bg-[#050505] text-white antialiased min-h-screen flex flex-col transition-colors duration-300 overflow-x-hidden ${permanentMarker.variable}`}>
         <ThemeProvider>
           <ToastProvider>
             <Suspense fallback={null}>

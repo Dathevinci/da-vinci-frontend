@@ -9,6 +9,10 @@
 }
 
 @layer base {
+  .font-graffiti {
+    font-family: var(--font-graffiti), cursive;
+  }
+  
   body {
     overflow-x: hidden;
     font-family: ui-sans-serif, system-ui, sans-serif;

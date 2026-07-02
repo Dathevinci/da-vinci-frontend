@@ -64,9 +64,9 @@ export default function Navbar() {
       }`}>
         <div className="container mx-auto px-4 flex justify-between items-center">
           <div className="flex items-center gap-8">
-            <Link href="/" className="text-3xl font-black text-white tracking-tighter flex items-center gap-3 drop-shadow-md">
+            <Link href="/" className="font-graffiti text-3xl font-normal text-white tracking-widest flex items-center gap-3 drop-shadow-md">
               <img src="/logo.png" alt="Da Vinci Logo" className="w-10 h-10 rounded-full border-2 border-indigo-400 shadow-lg shadow-indigo-500/20 object-cover" />
-              Da <span className="text-indigo-500">Vinci</span>
+              DA <span className="text-indigo-500">VINCI</span>
             </Link>
             <nav className="hidden lg:flex gap-6 font-medium text-sm text-slate-300">
               <Link href="/" className="hover:text-white hover:text-indigo-400 transition">Dashboard</Link>
