@@ -68,18 +68,24 @@ export default function SplashScreen() {
           }}
         >
           <style>{`
-            @keyframes progressiveBackdropBlur {
-              0% { backdrop-filter: blur(0px); background-color: rgba(5,5,5,0); }
-              20% { backdrop-filter: blur(12px); background-color: rgba(5,5,5,0.7); }
-              100% { backdrop-filter: blur(32px); background-color: rgba(5,5,5,0.9); }
+            @keyframes progressiveBlur {
+              0% { filter: blur(0px); opacity: 0; transform: scale(1.15); }
+              20% { filter: blur(0px); opacity: 0.8; transform: scale(1.1); }
+              100% { filter: blur(12px); opacity: 0.6; transform: scale(1); }
             }
           `}</style>
 
-          {/* Animated blurred background overlay */}
+          {/* Background Image with CSS Animation for smooth blur and scale */}
           <div 
             className="absolute inset-0 z-0"
-            style={{ animation: 'progressiveBackdropBlur 4.5s ease-out forwards' }}
-          />
+            style={{ animation: 'progressiveBlur 4.5s ease-out forwards' }}
+          >
+            <img 
+              src="/bg.jpg" 
+              alt="Cinematic Background" 
+              className="w-full h-full object-cover"
+            />
+          </div>
 
           {/* Dark Overlay gradients for dramatic effect */}
           <div className="absolute inset-0 z-0 bg-gradient-to-t from-[#050505] via-transparent to-[#050505] opacity-90 pointer-events-none" />
