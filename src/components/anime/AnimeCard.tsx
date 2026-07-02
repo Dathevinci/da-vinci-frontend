@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAnimeStatus } from '@/hooks/useAnimeStatus';
 import { useToast } from '@/components/ui/Toast';
 import TrailerModal from '../ui/TrailerModal';
+import QuickViewModal from '../ui/QuickViewModal';
 import { getYouTubeId } from '@/lib/jikan';
 
 interface AnimeCardProps {
@@ -19,6 +20,7 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
+  const [showQuickView, setShowQuickView] = useState(false);
   const [transformOrigin, setTransformOrigin] = useState("center center");
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -164,7 +166,15 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
                      <ThumbsUp className={`w-3.5 h-3.5 md:w-4 md:h-4 ${isLiked ? "fill-current" : ""}`} />
                    </button>
 
-                   <button className="w-7 h-7 md:w-8 md:h-8 border-2 border-slate-400 text-white flex items-center justify-center rounded-full hover:border-white hover:bg-white/10 transition-colors ml-auto">
+                   <button 
+                     onClick={(e) => {
+                       e.preventDefault();
+                       e.stopPropagation();
+                       setShowQuickView(true);
+                     }}
+                     className="w-7 h-7 md:w-8 md:h-8 border-2 border-slate-400 text-white flex items-center justify-center rounded-full hover:border-white hover:bg-white/10 transition-colors ml-auto"
+                     title="More Info"
+                   >
                      <ChevronDown className="w-3.5 h-3.5 md:w-4 md:h-4" />
                    </button>
                 </div>
@@ -192,11 +202,20 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
         )}
       </AnimatePresence>
 
-      {/* Trailer Modal (Portaled outside to avoid stacking context issues) */}
+      {/* Trailer Modal */}
       <TrailerModal 
         videoId={showTrailer ? getYouTubeId(anime.trailer) : null} 
         onClose={() => setShowTrailer(false)} 
       />
+
+      {/* Quick View Modal (Netflix style pop-out) */}
+      {showQuickView && (
+        <QuickViewModal 
+          anime={anime} 
+          onClose={() => setShowQuickView(false)} 
+          onPlayTrailer={() => setShowTrailer(true)} 
+        />
+      )}
     </div>
   );
 }
