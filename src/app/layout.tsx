@@ -36,8 +36,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className="bg-slate-50 dark:bg-black text-slate-900 dark:text-white antialiased min-h-screen flex flex-col transition-colors duration-300 overflow-x-hidden">
+    <html lang="en" suppressHydrationWarning className="dark">
+      <body className="bg-slate-50 dark:bg-[#050505] text-slate-900 dark:text-white antialiased min-h-screen flex flex-col transition-colors duration-300 overflow-x-hidden">
         <ThemeProvider>
           <ToastProvider>
             <Suspense fallback={null}>
