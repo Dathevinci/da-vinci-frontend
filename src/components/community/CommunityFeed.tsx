@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '@/hooks/useUser';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, ArrowUp, ArrowDown, Trash2, Send, CornerDownRight, Zap, Flame, Crown, Code2, Sparkles, Feather, Leaf, User as UserIcon } from 'lucide-react';
+import { MessageSquare, Heart, Trash2, Send, CornerDownRight, Zap, Flame, Crown, Code2, Sparkles, Feather, Leaf, User as UserIcon } from 'lucide-react';
 import Link from 'next/link';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { getRankTheme } from '@/lib/ranks';
@@ -21,6 +21,7 @@ import { useToast } from '@/components/ui/Toast';
 interface Comment {
   id: string;
   parentId: string | null;
+  animeId?: number;
   animeTitle?: string;
   content: string;
   createdAt: string;
@@ -150,91 +151,100 @@ const CommentThread = ({
         <div className="absolute -inset-[2px] bg-gradient-to-r from-fuchsia-500 via-purple-600 to-indigo-500 rounded-xl blur-[6px] opacity-80 animate-pulse pointer-events-none" />
       )}
 
-      <div className={`bg-[#0f0f11] rounded-xl flex overflow-hidden shadow-lg relative z-10 border ${isDejavuh ? 'border-purple-400/50' : 'border-white/5'}`}>
-        {/* Vote Bar */}
-        <div className="bg-black/40 p-2 sm:p-4 flex flex-col items-center gap-1 border-r border-white/5 min-w-[40px] sm:min-w-[60px]">
-          <button 
-            onClick={() => handleVote(node.id, 1)}
-            className={`p-1 rounded transition ${node.userVote === 1 ? 'text-orange-500 bg-orange-500/10' : 'text-slate-500 hover:text-orange-500 hover:bg-white/5'}`}
-          >
-            <ArrowUp className="w-4 h-4 sm:w-6 sm:h-6" />
-          </button>
-          <span className={`font-black text-xs sm:text-base ${node.userVote === 1 ? 'text-orange-500' : node.userVote === -1 ? 'text-indigo-500' : 'text-white'}`}>
-            {node.score}
-          </span>
-          <button 
-            onClick={() => handleVote(node.id, -1)}
-            className={`p-1 rounded transition ${node.userVote === -1 ? 'text-indigo-500 bg-indigo-500/10' : 'text-slate-500 hover:text-indigo-500 hover:bg-white/5'}`}
-          >
-            <ArrowDown className="w-4 h-4 sm:w-6 sm:h-6" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="p-3 sm:p-4 flex-1 overflow-hidden">
-          <div className="flex items-center justify-between mb-2">
-            <Link href={`/user/${node.user?.username || 'unknown'}`} className="flex items-center gap-2 group">
-              <img src={node.user?.avatar || 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=100&q=80'} className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover ${isDejavuh ? 'ring-2 ring-fuchsia-500 ring-offset-1 ring-offset-[#0f0f11] shadow-[0_0_15px_rgba(217,70,239,0.5)]' : ''}`} />
-              <span className={`font-bold text-sm sm:text-base transition truncate max-w-[100px] sm:max-w-[200px] ${isDejavuh ? 'text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-fuchsia-400 drop-shadow-[0_0_8px_rgba(192,132,252,0.8)]' : 'text-indigo-300 group-hover:text-indigo-400'}`}>{node.user?.username || 'Unknown User'}</span>
-              {isDejavuh ? (
-                <div className="hidden sm:flex px-2 py-0.5 rounded-full items-center gap-1 bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.6)]">
-                  <Crown className="w-3 h-3" />
-                  <span className="text-[10px] font-black tracking-wider uppercase">Lead Developer</span>
-                </div>
-              ) : rankTheme.title ? (
-                <div className={`hidden sm:flex px-2 py-0.5 rounded-full items-center gap-1 ${rankTheme.badgeClass}`}>
-                  {RankIcon && <RankIcon className="w-3 h-3" />}
-                  <span className="text-[10px] font-black tracking-wider uppercase">{rankTheme.title}</span>
-                </div>
-              ) : null}
-              <span className="text-[10px] sm:text-xs text-slate-500 whitespace-nowrap">• {timeAgo(node.createdAt)}</span>
-            </Link>
-            
-            <div className="flex items-center gap-1 shrink-0">
-              {showAnimeContext && node.animeTitle && (
-                <span className="text-[10px] sm:text-xs bg-white/5 border border-white/10 px-2 py-1 rounded-md text-slate-400 flex items-center gap-1 max-w-[150px] sm:max-w-[200px] truncate">
-                  on <span className="font-bold text-slate-300 truncate">{node.animeTitle}</span>
+      <div className={`bg-[#0f0f11] rounded-xl flex flex-col overflow-hidden shadow-lg relative z-10 border p-4 sm:p-5 ${isDejavuh ? 'border-purple-400/50' : 'border-white/5'}`}>
+        
+        {/* Header */}
+        <div className="flex items-center justify-between mb-3">
+          <Link href={`/user/${node.user?.username || 'unknown'}`} className="flex items-center gap-3 group">
+            <img src={node.user?.avatar || 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=100&q=80'} className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover ${isDejavuh ? 'ring-2 ring-fuchsia-500 ring-offset-1 ring-offset-[#0f0f11] shadow-[0_0_15px_rgba(217,70,239,0.5)]' : ''}`} />
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <span className={`font-bold text-sm sm:text-base transition ${isDejavuh ? 'text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-fuchsia-400 drop-shadow-[0_0_8px_rgba(192,132,252,0.8)]' : 'text-indigo-300 group-hover:text-indigo-400'}`}>
+                  {node.user?.username || 'Unknown User'}
                 </span>
-              )}
-              {user && (
+                {isDejavuh ? (
+                  <div className="hidden sm:flex px-2 py-0.5 rounded-full items-center gap-1 bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.6)]">
+                    <Crown className="w-3 h-3" />
+                    <span className="text-[10px] font-black tracking-wider uppercase">Lead Developer</span>
+                  </div>
+                ) : rankTheme.title ? (
+                  <div className={`hidden sm:flex px-2 py-0.5 rounded-full items-center gap-1 ${rankTheme.badgeClass}`}>
+                    {RankIcon && <RankIcon className="w-3 h-3" />}
+                    <span className="text-[10px] font-black tracking-wider uppercase">{rankTheme.title}</span>
+                  </div>
+                ) : null}
+              </div>
+              <span className="text-[10px] sm:text-xs text-slate-500">{timeAgo(node.createdAt)}</span>
+            </div>
+          </Link>
+          
+          <div className="flex items-center gap-2 shrink-0">
+            {isViewerDev && !isDejavuh && (
+              <>
                 <button 
-                  onClick={() => setReplyingToId(replyingToId === node.id ? null : node.id)}
-                  className="text-slate-500 hover:text-indigo-400 p-1 sm:p-1.5 rounded hover:bg-indigo-500/10 transition flex items-center gap-1 text-xs font-bold"
+                  onClick={() => handleBless(node.user?.username || 'Unknown')}
+                  className="text-fuchsia-500 hover:text-fuchsia-400 p-1 sm:p-1.5 rounded hover:bg-fuchsia-500/10 transition flex items-center gap-1 text-xs font-bold"
+                  title="Bless with Arise Points"
                 >
-                  <CornerDownRight className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Reply</span>
+                  <Zap className="w-4 h-4" />
                 </button>
-              )}
-              {isViewerDev && !isDejavuh && (
-                <>
-                  <button 
-                    onClick={() => handleBless(node.user?.username || 'Unknown')}
-                    className="text-fuchsia-500 hover:text-fuchsia-400 p-1 sm:p-1.5 rounded hover:bg-fuchsia-500/10 transition flex items-center gap-1 text-xs font-bold"
-                    title="Bless with Arise Points"
-                  >
-                    <Zap className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Bless</span>
-                  </button>
-                  <button 
-                    onClick={() => handleDelete(node.id)}
-                    className="text-red-500 hover:text-red-400 p-1 sm:p-1.5 rounded hover:bg-red-500/10 transition flex items-center gap-1 text-xs font-bold"
-                    title="Nuke Post"
-                  >
-                    <Flame className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Nuke</span>
-                  </button>
-                </>
-              )}
-              {user?.id === node.user?.id && !isViewerDev && (
                 <button 
                   onClick={() => handleDelete(node.id)}
-                  className="text-slate-500 hover:text-red-500 p-1 sm:p-1.5 rounded hover:bg-red-500/10 transition"
-                  title="Delete Post"
+                  className="text-red-500 hover:text-red-400 p-1 sm:p-1.5 rounded hover:bg-red-500/10 transition flex items-center gap-1 text-xs font-bold"
+                  title="Nuke Post"
                 >
-                  <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <Flame className="w-4 h-4" />
                 </button>
-              )}
-            </div>
+              </>
+            )}
+            {user?.id === node.user?.id && !isViewerDev && (
+              <button 
+                onClick={() => handleDelete(node.id)}
+                className="text-slate-500 hover:text-red-500 p-1 sm:p-1.5 rounded hover:bg-red-500/10 transition"
+                title="Delete Post"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
           </div>
+        </div>
+        
+        {/* Anime Context */}
+        {showAnimeContext && node.animeTitle && node.animeId && (
+          <Link href={`/anime/${node.animeId}`} className="mb-3 inline-block self-start">
+            <span className="text-xs bg-white/5 hover:bg-white/10 border border-white/10 px-2 py-1 rounded-md text-slate-400 flex items-center gap-1 transition">
+              on <span className="font-bold text-indigo-300 hover:text-indigo-400 truncate max-w-[250px]">{node.animeTitle}</span>
+            </span>
+          </Link>
+        )}
+
+        {/* Content */}
+        <p className="text-slate-200 text-sm sm:text-base leading-relaxed whitespace-pre-wrap break-words mb-4">
+          {node.content}
+        </p>
+
+        {/* Action Bar (Instagram Style) */}
+        <div className="flex items-center gap-4 mt-auto pt-2 border-t border-white/5">
+          <button 
+            onClick={() => handleVote(node.id, node.userVote === 1 ? 0 : 1)}
+            className="group flex items-center gap-1.5 transition"
+          >
+            <motion.div whileTap={{ scale: 0.8 }}>
+              <Heart className={`w-5 h-5 transition ${node.userVote === 1 ? 'text-red-500 fill-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'text-slate-400 group-hover:text-slate-300'}`} />
+            </motion.div>
+            <span className="text-xs sm:text-sm font-bold text-slate-400">{node.score}</span>
+          </button>
           
-          <p className="text-slate-200 text-sm sm:text-base leading-relaxed whitespace-pre-wrap break-words">{node.content}</p>
+          <button 
+            onClick={() => setReplyingToId(replyingToId === node.id ? null : node.id)}
+            className="group flex items-center gap-1.5 transition"
+          >
+            <motion.div whileTap={{ scale: 0.8 }}>
+              <MessageSquare className="w-5 h-5 text-slate-400 group-hover:text-slate-300" />
+            </motion.div>
+            <span className="text-xs sm:text-sm font-bold text-slate-400">{node.children?.length || 0}</span>
+          </button>
+        </div>
 
           {/* Reply Input Box */}
           <AnimatePresence>
@@ -272,7 +282,6 @@ const CommentThread = ({
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
       </div>
 
       {/* Render Children (Replies) */}
