@@ -8,6 +8,7 @@ import { Anime } from "@tutkli/jikan-ts";
 import Link from "next/link";
 import { useAnimeStatus } from "@/hooks/useAnimeStatus";
 import { useToast } from "@/components/ui/Toast";
+import { getYouTubeId } from "@/lib/jikan";
 
 interface QuickViewModalProps {
   anime: Anime | null;
@@ -64,6 +65,7 @@ export default function QuickViewModal({ anime, onClose, onPlayTrailer }: QuickV
 
   const title = anime?.title_english || anime?.title || "";
   const bannerUrl = anime?.trailer?.images?.maximum_image_url || anime?.images?.jpg?.large_image_url || anime?.images?.jpg?.image_url;
+  const youtubeId = anime ? getYouTubeId(anime.trailer) : null;
 
   return createPortal(
     <AnimatePresence>
@@ -95,12 +97,22 @@ export default function QuickViewModal({ anime, onClose, onPlayTrailer }: QuickV
             </button>
 
             {/* Banner Section */}
-            <div className="relative w-full h-[300px] sm:h-[400px] md:h-[450px] shrink-0">
-              <img 
-                src={bannerUrl} 
-                alt={title}
-                className="w-full h-full object-cover"
-              />
+            <div className="relative w-full h-[300px] sm:h-[400px] md:h-[450px] shrink-0 bg-black">
+              {youtubeId ? (
+                <div className="absolute inset-0 w-full h-[150%] -top-[25%] pointer-events-none">
+                  <iframe
+                    src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1&loop=1&playlist=${youtubeId}`}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    className="w-full h-full object-cover opacity-80"
+                  />
+                </div>
+              ) : (
+                <img 
+                  src={bannerUrl} 
+                  alt={title}
+                  className="w-full h-full object-cover"
+                />
+              )}
               
               {/* Bottom Gradient (Netflix Style) */}
               <div className="absolute inset-0 bg-gradient-to-t from-[#181818] via-[#181818]/60 to-transparent"></div>
