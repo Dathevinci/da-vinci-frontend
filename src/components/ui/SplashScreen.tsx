@@ -75,7 +75,7 @@ export default function SplashScreen() {
             <img 
               src="/bg.jpg" 
               alt="Cinematic Background" 
-              className="w-full h-full object-cover blur-[10px]"
+              className="w-full h-full object-cover"
             />
           </motion.div>
 
