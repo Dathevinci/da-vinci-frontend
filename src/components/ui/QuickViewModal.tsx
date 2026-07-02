@@ -121,7 +121,7 @@ export default function QuickViewModal({ anime, onClose, onPlayTrailer }: QuickV
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="relative w-full max-w-4xl bg-[#181818] rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.9)] border border-[#404040] z-10 my-auto overflow-hidden flex flex-col"
+            className="relative w-full max-w-4xl max-h-[90vh] md:max-h-[85vh] bg-[#181818] rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.9)] border border-[#404040] z-10 my-auto overflow-y-auto overflow-x-hidden flex flex-col"
           >
             {/* Close Button */}
             <button

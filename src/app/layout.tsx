@@ -37,7 +37,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="bg-slate-50 dark:bg-black text-slate-900 dark:text-white antialiased min-h-screen flex flex-col transition-colors duration-300">
+      <body className="bg-slate-50 dark:bg-black text-slate-900 dark:text-white antialiased min-h-screen flex flex-col transition-colors duration-300 overflow-x-hidden">
         <ThemeProvider>
           <ToastProvider>
             <Suspense fallback={null}>
