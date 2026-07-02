@@ -9,6 +9,8 @@ import Link from "next/link";
 import { getRankTheme } from "@/lib/ranks";
 import * as Icons from "lucide-react";
 import HeartExplosion from "@/components/ui/HeartExplosion";
+import CommentsDrawer from "@/components/ui/CommentsDrawer";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 interface Comment {
   id: string;
@@ -57,7 +59,10 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
   const [loadingComments, setLoadingComments] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showHeartExplosion, setShowHeartExplosion] = useState(false);
+  const [clickCoords, setClickCoords] = useState<{x: number, y: number} | null>(null);
+  const [showBigHeart, setShowBigHeart] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -117,7 +122,7 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
     }
   };
 
-  const handleLike = async () => {
+  const handleLike = async (e?: React.MouseEvent) => {
     if (!user) {
       toast("Please log in to like updates.", "error");
       return;
@@ -125,6 +130,7 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
 
     const newLiked = !isLiked;
     if (newLiked) {
+      if (e) setClickCoords({ x: e.clientX, y: e.clientY });
       setShowHeartExplosion(true);
       setTimeout(() => setShowHeartExplosion(false), 1000);
     }
@@ -145,6 +151,14 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
       setIsLiked(!newLiked);
       setLikesCount((prev) => (!newLiked ? prev + 1 : prev - 1));
       toast("Failed to interact.", "error");
+    }
+  };
+
+  const handleDoubleTap = () => {
+    setShowBigHeart(true);
+    setTimeout(() => setShowBigHeart(false), 1000);
+    if (!isLiked) {
+      handleLike();
     }
   };
 
@@ -220,22 +234,28 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
     }
   };
 
-  const handleDeleteComment = async (commentId: string) => {
-    if (!confirm("Are you sure you want to delete this comment?")) return;
+  const handleDeleteCommentClick = (commentId: string) => {
+    setCommentToDelete(commentId);
+  };
+
+  const confirmDeleteComment = async () => {
+    if (!commentToDelete) return;
     try {
-      const res = await fetch(`${API_URL}/api/announcements/comments/${commentId}`, {
+      const res = await fetch(`${API_URL}/api/announcements/comments/${commentToDelete}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: user?.id }),
       });
       if (res.ok) {
-        setComments(comments.filter(c => c.id !== commentId));
+        setComments(comments.filter(c => c.id !== commentToDelete));
         toast("Comment deleted", "success");
       } else {
         toast("Failed to delete comment", "error");
       }
     } catch (err) {
       toast("Error deleting comment", "error");
+    } finally {
+      setCommentToDelete(null);
     }
   };
 
@@ -308,10 +328,10 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
 
       {/* Media/Banner */}
       {post.image ? (
-        <div className="w-full bg-black relative" onDoubleClick={handleLike}>
+        <div className="w-full bg-black relative" onDoubleClick={handleDoubleTap}>
           <img src={post.image} alt="Update Media" className="w-full h-auto max-h-[500px] object-cover" />
           <AnimatePresence>
-            {isLiked && (
+            {showBigHeart && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.5, y: "-50%", x: "-50%" }}
                 animate={{ opacity: 1, scale: 1.5, y: "-50%", x: "-50%" }}
@@ -325,7 +345,7 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
           </AnimatePresence>
         </div>
       ) : (
-        <div className="w-full h-40 bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border-y border-white/5 flex items-center justify-center relative overflow-hidden" onDoubleClick={handleLike}>
+        <div className="w-full h-40 bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border-y border-white/5 flex items-center justify-center relative overflow-hidden" onDoubleClick={handleDoubleTap}>
           <div className="absolute inset-0 bg-[url('/noise.png')] opacity-20 mix-blend-overlay"></div>
           <Sparkles className="w-16 h-16 text-indigo-400/30 absolute -top-4 -right-4" />
           <h2 className="text-2xl md:text-3xl font-black text-white px-8 text-center drop-shadow-xl z-10">{post.title}</h2>
@@ -339,7 +359,7 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
             <motion.div whileTap={{ scale: 0.8 }}>
               <Heart className={`w-7 h-7 transition ${isLiked ? 'text-red-500 fill-red-500' : 'text-slate-300 group-hover:text-slate-400'}`} />
             </motion.div>
-            <HeartExplosion show={showHeartExplosion} />
+            <HeartExplosion show={showHeartExplosion} coordinates={clickCoords} />
           </button>
           <button onClick={toggleComments} className="group flex items-center gap-1.5 transition">
             <motion.div whileTap={{ scale: 0.8 }}>
@@ -408,42 +428,48 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
       )}
 
       {/* Comments Section */}
-      <AnimatePresence>
-        {showComments && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden border-t border-white/10 bg-black/20"
-          >
-            <div className="p-4 space-y-4 max-h-60 overflow-y-auto custom-scrollbar">
-              {loadingComments ? (
-                <div className="text-center text-sm text-slate-500 py-4">Loading comments...</div>
-              ) : comments.length === 0 ? (
-                <div className="text-center text-sm text-slate-500 py-4">No comments yet. Be the first!</div>
-              ) : (
-                comments.map((c) => (
+      <CommentsDrawer isOpen={showComments} onClose={() => setShowComments(false)} title="Comments">
+        <div className="flex flex-col h-full">
+          <div className="flex-1 space-y-4">
+            {loadingComments ? (
+              <div className="text-center text-sm text-slate-500 py-4">Loading comments...</div>
+            ) : comments.length === 0 ? (
+              <div className="text-center text-sm text-slate-500 py-4">No comments yet. Be the first!</div>
+            ) : (
+              comments.map(c => {
+                const cAuthorRank = getRankTheme(c.user.arisePoints, c.user.username);
+                const CRankIcon = cAuthorRank.badgeIcon ? (Icons as any)[cAuthorRank.badgeIcon] : null;
+                const canModify = isDev || isAdmin || user?.id === c.user.id;
+                
+                return (
                   <div key={c.id} className="flex gap-3">
                     <Link href={`/user/${c.user.username}`}>
                       {c.user.avatar ? (
-                        <img src={c.user.avatar} className="w-8 h-8 rounded-full object-cover shrink-0" />
+                        <img src={c.user.avatar} alt="Avatar" className={`w-8 h-8 rounded-full object-cover border ${cAuthorRank.borderClass}`} />
                       ) : (
-                        <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-xs shrink-0">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border ${cAuthorRank.borderClass} ${cAuthorRank.bgCardClass}`}>
                           {(c.user.username || 'U').charAt(0).toUpperCase()}
                         </div>
                       )}
                     </Link>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline gap-2">
-                        <Link href={`/user/${c.user.username}`}>
-                          <span className="font-bold text-sm text-white hover:underline">{c.user.username}</span>
+                        <Link href={`/user/${c.user.username}`} className="flex items-center gap-1 group">
+                          <span className={`font-bold text-sm hover:underline ${cAuthorRank.textColorClass}`}>{c.user.username}</span>
+                          {cAuthorRank.title && (
+                            <div className={`px-1 py-0.5 rounded text-[8px] uppercase font-bold flex items-center gap-0.5 ${cAuthorRank.badgeClass}`}>
+                              {CRankIcon && <CRankIcon className="w-2 h-2" />} {cAuthorRank.title}
+                            </div>
+                          )}
                         </Link>
                         <span className="text-xs text-slate-500">{timeAgo(c.createdAt)}</span>
                         
-                        {(isDev || isAdmin || user?.id === c.user.id) && (
+                        {canModify && (
                           <div className="ml-auto flex gap-2">
-                            <button onClick={() => { setEditingCommentId(c.id); setEditCommentContent(c.content); }} className="text-xs text-slate-500 hover:text-indigo-400">Edit</button>
-                            <button onClick={() => handleDeleteComment(c.id)} className="text-xs text-slate-500 hover:text-red-500">Delete</button>
+                            {user?.id === c.user.id && (
+                              <button onClick={() => { setEditingCommentId(c.id); setEditCommentContent(c.content); }} className="text-xs text-slate-500 hover:text-indigo-400">Edit</button>
+                            )}
+                            <button onClick={() => handleDeleteCommentClick(c.id)} className="text-xs text-slate-500 hover:text-red-500">Delete</button>
                           </div>
                         )}
                       </div>
@@ -464,39 +490,39 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
                       )}
                     </div>
                   </div>
-                ))
-              )}
-            </div>
-            
-            {/* Add Comment Input */}
-            <div className="p-4 border-t border-white/5 flex gap-3 items-center">
-              {user?.avatar ? (
-                <img src={user.avatar} className="w-8 h-8 rounded-full object-cover shrink-0" />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-xs shrink-0">
-                  {user ? (user.username || 'U').charAt(0).toUpperCase() : '?'}
-                </div>
-              )}
-              <form onSubmit={submitComment} className="flex-1 flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Add a comment..."
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  className="flex-1 bg-transparent border-none text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-0"
-                />
-                <button 
-                  type="submit" 
-                  disabled={!newComment.trim() || submitting}
-                  className="text-indigo-400 font-bold text-sm disabled:opacity-50 hover:text-indigo-300 transition"
-                >
-                  Post
-                </button>
-              </form>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                );
+              })
+            )}
+          </div>
+          
+          {/* Add Comment Input */}
+          <div className="pt-4 mt-4 border-t border-white/5 flex gap-3 items-center">
+            {user?.avatar ? (
+              <img src={user.avatar} className="w-8 h-8 rounded-full object-cover shrink-0" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-xs shrink-0">
+                {user ? (user.username || 'U').charAt(0).toUpperCase() : '?'}
+              </div>
+            )}
+            <form onSubmit={submitComment} className="flex-1 flex gap-2">
+              <input
+                type="text"
+                placeholder="Add a comment..."
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                className="flex-1 bg-white/5 border border-white/10 rounded-full px-4 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 transition"
+              />
+              <button 
+                type="submit" 
+                disabled={!newComment.trim() || submitting}
+                className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white p-2 rounded-full transition flex items-center justify-center w-9 h-9 shrink-0"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </form>
+          </div>
+        </div>
+      </CommentsDrawer>
 
       {/* Custom Delete Modal */}
       <AnimatePresence>

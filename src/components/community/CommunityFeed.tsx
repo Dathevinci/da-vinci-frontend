@@ -7,6 +7,7 @@ import { MessageSquare, Heart, Trash2, Send, CornerDownRight, Zap, Flame, Crown,
 import Link from 'next/link';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import HeartExplosion from '@/components/ui/HeartExplosion';
+import CommentsDrawer from '@/components/ui/CommentsDrawer';
 import { getRankTheme } from '@/lib/ranks';
 const RankIcons: Record<string, any> = {
   Code2,
@@ -138,7 +139,9 @@ const CommentThread = ({
   const [editContent, setEditContent] = useState(node.content);
   const [editMediaUrl, setEditMediaUrl] = useState(node.mediaUrl || "");
   const [showHeartExplosion, setShowHeartExplosion] = useState(false);
+  const [clickCoords, setClickCoords] = useState<{x: number, y: number} | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showDrawer, setShowDrawer] = useState(false);
 
   const maxDepth = 4;
   const currentDepth = Math.min(depth, maxDepth);
@@ -305,9 +308,10 @@ const CommentThread = ({
         {/* Action Bar (Instagram Style) */}
         <div className="flex items-center gap-4 mt-auto pt-2 border-t border-white/5">
           <button 
-            onClick={() => {
+            onClick={(e) => {
               const newVote = node.userVote === 1 ? 0 : 1;
               if (newVote === 1) {
+                setClickCoords({ x: e.clientX, y: e.clientY });
                 setShowHeartExplosion(true);
                 setTimeout(() => setShowHeartExplosion(false), 1000);
               }
@@ -319,11 +323,17 @@ const CommentThread = ({
               <Heart className={`w-5 h-5 transition ${node.userVote === 1 ? 'text-red-500 fill-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'text-slate-400 group-hover:text-slate-300'}`} />
             </motion.div>
             <span className="text-xs sm:text-sm font-bold text-slate-400">{node.score}</span>
-            <HeartExplosion show={showHeartExplosion} />
+            <HeartExplosion show={showHeartExplosion} coordinates={clickCoords} />
           </button>
           
           <button 
-            onClick={() => setReplyingToId(replyingToId === node.id ? null : node.id)}
+            onClick={() => {
+              if (depth === 0) {
+                setShowDrawer(true);
+              } else {
+                setReplyingToId(replyingToId === node.id ? null : node.id);
+              }
+            }}
             className="group flex items-center gap-1.5 transition"
           >
             <motion.div whileTap={{ scale: 0.8 }}>
@@ -385,30 +395,106 @@ const CommentThread = ({
       </div>
 
       {/* Render Children (Replies) */}
-      {node.children.length > 0 && (
-        <div className={isDeep ? "ml-0 mt-4" : "ml-4 sm:ml-8 md:ml-12 mt-4"}>
-          {node.children.map(child => (
-            <CommentThread 
-              key={child.id} 
-              node={child} 
-              depth={currentDepth + 1}
-              user={user}
-              replyingToId={replyingToId}
-              setReplyingToId={setReplyingToId}
-              replyContent={replyContent}
-              setReplyContent={setReplyContent}
-              replyMediaUrl={replyMediaUrl}
-              setReplyMediaUrl={setReplyMediaUrl}
-              handlePost={handlePost}
-              isReplying={isReplying}
-              handleVote={handleVote}
-              handleDelete={handleDelete}
-              handleEdit={handleEdit}
-              handleBless={handleBless}
-              showAnimeContext={showAnimeContext}
-            />
-          ))}
-        </div>
+      {depth === 0 ? (
+        <CommentsDrawer isOpen={showDrawer} onClose={() => setShowDrawer(false)} title={`Views on ${node.user?.username || 'User'}'s post`}>
+          <div className="flex flex-col h-full">
+            <div className="flex-1 space-y-4">
+              {node.children.length === 0 ? (
+                <div className="text-center text-sm text-slate-500 py-4">No replies yet. Be the first!</div>
+              ) : (
+                node.children.map(child => (
+                  <CommentThread 
+                    key={child.id} 
+                    node={child} 
+                    depth={currentDepth + 1}
+                    user={user}
+                    replyingToId={replyingToId}
+                    setReplyingToId={setReplyingToId}
+                    replyContent={replyContent}
+                    setReplyContent={setReplyContent}
+                    replyMediaUrl={replyMediaUrl}
+                    setReplyMediaUrl={setReplyMediaUrl}
+                    handlePost={handlePost}
+                    isReplying={isReplying}
+                    handleVote={handleVote}
+                    handleDelete={handleDelete}
+                    handleEdit={handleEdit}
+                    handleBless={handleBless}
+                    showAnimeContext={showAnimeContext}
+                  />
+                ))
+              )}
+            </div>
+            
+            {/* Always show a reply box at the bottom of the drawer for the root post */}
+            <div className="pt-4 mt-4 border-t border-white/5 bg-black/30 sticky bottom-0">
+              {user ? (
+                <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-3 shadow-lg">
+                  <textarea
+                    value={replyContent}
+                    onChange={(e) => setReplyContent(e.target.value)}
+                    placeholder={`Reply to @${node.user?.username || 'Unknown'}...`}
+                    className="w-full bg-transparent text-white placeholder-slate-500 text-sm resize-none outline-none min-h-[50px]"
+                  />
+                  <div className="mt-2 flex items-center gap-2">
+                    <ImageIcon className="w-4 h-4 text-slate-400 shrink-0" />
+                    <input 
+                      type="url"
+                      placeholder="Attach Image/GIF URL"
+                      value={replyMediaUrl}
+                      onChange={(e) => setReplyMediaUrl(e.target.value)}
+                      className="bg-transparent text-xs text-white placeholder-slate-500 w-full outline-none"
+                    />
+                  </div>
+                  <div className="flex justify-end pt-2 border-t border-white/5 mt-2">
+                    <button
+                      onClick={() => {
+                        handlePost(node.id, replyContent, replyMediaUrl);
+                        if (!isReplying) {
+                          // The state update is handled by the parent, but we can clear local strings
+                          setReplyContent("");
+                          setReplyMediaUrl("");
+                        }
+                      }}
+                      disabled={isReplying || !replyContent.trim()}
+                      className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white px-4 py-1.5 rounded-full text-xs font-bold transition"
+                    >
+                      {isReplying ? 'Replying...' : 'Reply'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center text-sm text-slate-500">Log in to reply.</div>
+              )}
+            </div>
+          </div>
+        </CommentsDrawer>
+      ) : (
+        node.children.length > 0 && (
+          <div className={isDeep ? "ml-0 mt-4" : "ml-4 sm:ml-8 md:ml-12 mt-4"}>
+            {node.children.map(child => (
+              <CommentThread 
+                key={child.id} 
+                node={child} 
+                depth={currentDepth + 1}
+                user={user}
+                replyingToId={replyingToId}
+                setReplyingToId={setReplyingToId}
+                replyContent={replyContent}
+                setReplyContent={setReplyContent}
+                replyMediaUrl={replyMediaUrl}
+                setReplyMediaUrl={setReplyMediaUrl}
+                handlePost={handlePost}
+                isReplying={isReplying}
+                handleVote={handleVote}
+                handleDelete={handleDelete}
+                handleEdit={handleEdit}
+                handleBless={handleBless}
+                showAnimeContext={showAnimeContext}
+              />
+            ))}
+          </div>
+        )
       )}
     </motion.div>
   );
