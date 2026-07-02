@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '@/hooks/useUser';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, Heart, Trash2, Send, CornerDownRight, Zap, Flame, Crown, Code2, Sparkles, Feather, Leaf, User as UserIcon, Image as ImageIcon } from 'lucide-react';
+import { MessageSquare, Heart, Trash2, Send, CornerDownRight, Zap, Flame, Crown, Code2, Sparkles, Feather, Leaf, User as UserIcon, Image as ImageIcon, Edit } from 'lucide-react';
 import Link from 'next/link';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { getRankTheme } from '@/lib/ranks';
@@ -379,6 +379,7 @@ const CommentThread = ({
               isReplying={isReplying}
               handleVote={handleVote}
               handleDelete={handleDelete}
+              handleEdit={handleEdit}
               handleBless={handleBless}
               showAnimeContext={showAnimeContext}
             />
