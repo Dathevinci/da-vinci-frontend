@@ -97,7 +97,7 @@ export default function QuickViewModal({ anime, onClose, onPlayTrailer }: QuickV
             </button>
 
             {/* Banner Section */}
-            <div className="relative w-full h-[300px] sm:h-[400px] md:h-[450px] shrink-0 bg-black">
+            <div className="relative w-full h-[300px] sm:h-[400px] md:h-[450px] shrink-0 bg-[#181818] overflow-hidden">
               {youtubeId ? (
                 <div className="absolute inset-0 w-full h-[150%] -top-[25%] pointer-events-none">
                   <iframe
@@ -115,8 +115,8 @@ export default function QuickViewModal({ anime, onClose, onPlayTrailer }: QuickV
               )}
               
               {/* Bottom Gradient (Netflix Style) */}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#181818] via-[#181818]/60 to-transparent"></div>
-              <div className="absolute inset-0 bg-gradient-to-r from-[#181818]/90 via-transparent to-transparent"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-[#181818] via-[#181818]/60 to-transparent pointer-events-none"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-[#181818]/90 via-transparent to-transparent pointer-events-none"></div>
 
               {/* Title and Controls positioned at the bottom of the banner */}
               <div className="absolute bottom-0 left-0 w-full p-8 md:p-12 pb-4">
