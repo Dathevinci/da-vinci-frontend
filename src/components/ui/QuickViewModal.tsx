@@ -20,6 +20,7 @@ export default function QuickViewModal({ anime, onClose, onPlayTrailer }: QuickV
   const [mounted, setMounted] = useState(false);
   const [cast, setCast] = useState<string[]>([]);
   const [isLiked, setIsLiked] = useState(false);
+  const [fullAnime, setFullAnime] = useState<Anime | null>(anime);
 
   const { getStatus, setStatus } = useAnimeStatus();
   const { toast } = useToast();
@@ -27,6 +28,28 @@ export default function QuickViewModal({ anime, onClose, onPlayTrailer }: QuickV
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Fetch full anime if it's missing trailer data (e.g. from Tracker local state)
+  useEffect(() => {
+    if (!anime) return;
+    let isMounted = true;
+    
+    // Check if we are missing trailer or synopsis
+    if (!anime.trailer || !anime.synopsis) {
+      fetch(`https://api.jikan.moe/v4/anime/${anime.mal_id}/full`)
+        .then(res => res.json())
+        .then(data => {
+          if (isMounted && data.data) {
+            setFullAnime(data.data);
+          }
+        })
+        .catch(err => console.error("Failed to fetch full anime:", err));
+    } else {
+      setFullAnime(anime);
+    }
+    
+    return () => { isMounted = false; };
+  }, [anime]);
 
   // Fetch cast when anime changes
   useEffect(() => {
@@ -60,16 +83,28 @@ export default function QuickViewModal({ anime, onClose, onPlayTrailer }: QuickV
 
   if (!mounted) return null;
 
-  const currentStatus = anime ? getStatus(anime.mal_id) : "None";
+  const displayAnime = fullAnime || anime;
+  const currentStatus = displayAnime ? getStatus(displayAnime.mal_id) : "None";
   const isInWatchlist = currentStatus !== "None";
 
-  const title = anime?.title_english || anime?.title || "";
-  const bannerUrl = anime?.trailer?.images?.maximum_image_url || anime?.images?.jpg?.large_image_url || anime?.images?.jpg?.image_url;
-  const youtubeId = anime ? getYouTubeId(anime.trailer) : null;
+  const handleToggleWatchlist = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!displayAnime) return;
+    if (isInWatchlist) {
+      setStatus(displayAnime, "None");
+    } else {
+      setStatus(displayAnime, "Watching");
+    }
+    toast(isInWatchlist ? "Removed from Tracker" : "Added to Tracker", "success");
+  };
+
+  const title = displayAnime?.title_english || displayAnime?.title || "";
+  const bannerUrl = displayAnime?.trailer?.images?.maximum_image_url || displayAnime?.images?.jpg?.large_image_url || displayAnime?.images?.jpg?.image_url;
+  const youtubeId = displayAnime ? getYouTubeId(displayAnime.trailer) : null;
 
   return createPortal(
     <AnimatePresence>
-      {anime && (
+      {displayAnime && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 md:p-12 overflow-y-auto">
           {/* Backdrop */}
           <motion.div
@@ -137,11 +172,7 @@ export default function QuickViewModal({ anime, onClose, onPlayTrailer }: QuickV
                   </button>
                   
                   <button 
-                    onClick={() => {
-                      // @ts-ignore
-                      setStatus(anime, isInWatchlist ? "None" : "Interested");
-                      toast(isInWatchlist ? "Removed from Watchlist" : "Added to Watchlist", "success");
-                    }}
+                    onClick={handleToggleWatchlist}
                     className={`w-10 h-10 md:w-11 md:h-11 border-2 flex items-center justify-center rounded-full transition-colors ${
                       isInWatchlist 
                         ? "border-white/50 text-white bg-white/10 hover:border-white hover:bg-white/20" 
@@ -178,19 +209,23 @@ export default function QuickViewModal({ anime, onClose, onPlayTrailer }: QuickV
                 
                 {/* Meta Info Row */}
                 <div className="flex items-center gap-3 text-sm md:text-base font-semibold">
-                  <span className="text-green-500">{anime.score ? `${(anime.score * 10).toFixed(0)}% Match` : "New"}</span>
-                  <span className="text-slate-300">{anime.year || "N/A"}</span>
+                  <span className="text-green-500">{displayAnime.score ? `${(displayAnime.score * 10).toFixed(0)}% Match` : "New"}</span>
+                  <span className="text-slate-300">{displayAnime.year || "N/A"}</span>
                   <span className="border border-white/40 text-slate-300 px-1.5 py-0.5 text-xs rounded">
-                    {anime.rating ? anime.rating.split('-')[0].trim() : "13+"}
+                    {displayAnime.rating ? displayAnime.rating.split('-')[0].trim() : "13+"}
                   </span>
-                  <span className="text-slate-300">{anime.episodes ? `${anime.episodes} Episodes` : "Ongoing"}</span>
+                  <span className="text-slate-300">{displayAnime.episodes ? `${displayAnime.episodes} Episodes` : "Ongoing"}</span>
                   <span className="border border-white/40 text-slate-300 px-1.5 py-0.5 text-xs rounded">HD</span>
                 </div>
 
                 {/* Synopsis */}
-                <p className="text-sm md:text-base text-slate-100 leading-relaxed">
-                  {anime.synopsis || "No synopsis available."}
-                </p>
+                <div className="text-sm md:text-base text-slate-300 max-w-3xl leading-relaxed">
+                  {displayAnime?.synopsis ? (
+                    <p className="line-clamp-4">{displayAnime.synopsis}</p>
+                  ) : (
+                    <p className="italic text-slate-500">No synopsis available.</p>
+                  )}
+                </div>
 
               </div>
 
@@ -208,22 +243,19 @@ export default function QuickViewModal({ anime, onClose, onPlayTrailer }: QuickV
                 </div>
 
                 {/* Genres */}
-                <div className="text-slate-400">
-                  <span className="text-slate-500">Genres: </span>
+                <div className="flex items-start gap-4">
+                  <span className="text-slate-500 w-16">Genres:</span>
                   <span className="text-slate-300">
-                    {anime.genres?.map(g => g.name).join(", ") || "Unknown"}
+                    {displayAnime?.genres?.map(g => g.name).join(", ") || "Unknown"}
                   </span>
                 </div>
-
-                {/* Themes */}
-                {anime.themes && anime.themes.length > 0 && (
-                  <div className="text-slate-400">
-                    <span className="text-slate-500">This show is: </span>
-                    <span className="text-slate-300">
-                      {anime.themes.map(t => t.name).join(", ")}
-                    </span>
-                  </div>
-                )}
+                  
+                <div className="flex items-start gap-4">
+                  <span className="text-slate-500 w-16">This show is:</span>
+                  <span className="text-slate-300">
+                    {displayAnime?.demographics?.map(d => d.name).concat(displayAnime?.themes?.map(t => t.name) || []).join(", ") || "Unknown"}
+                  </span>
+                </div>
               </div>
             </div>
 
