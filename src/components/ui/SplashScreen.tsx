@@ -59,7 +59,7 @@ export default function SplashScreen() {
           exit={{ opacity: 0 }}
           transition={{ duration: 1.5, ease: "easeInOut" }}
           style={{ willChange: "opacity" }}
-          className="fixed inset-0 z-[99999] flex items-center justify-center overflow-hidden"
+          className="fixed inset-0 z-[99999] flex items-center justify-center overflow-hidden bg-[#050505]"
           onClick={() => {
             if (!userInteracted) {
               setUserInteracted(true);

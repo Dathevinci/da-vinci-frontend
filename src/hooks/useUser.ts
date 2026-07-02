@@ -40,7 +40,7 @@ export function useUser() {
         fetch(`${API_URL}/api/users/${parsedUser.id}`)
           .then(res => res.json())
           .then(data => {
-            if (data.success) {
+            if (data.success && localStorage.getItem("davinci_user")) {
                broadcastUpdate(data.data);
             }
           })
