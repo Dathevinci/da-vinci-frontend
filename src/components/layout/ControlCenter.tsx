@@ -140,8 +140,6 @@ export default function ControlCenter({ isOpen, onClose }: ControlCenterProps) {
               <div className={`w-4 h-4 rounded-full bg-white transition-transform ${preferences.reducedMotion ? 'translate-x-4' : 'translate-x-0'}`} />
             </div>
           </button>
-
-          </button>
         </motion.div>
       )}
     </AnimatePresence>
