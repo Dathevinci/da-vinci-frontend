@@ -59,7 +59,7 @@ export default function SplashScreen() {
           exit={{ opacity: 0 }}
           transition={{ duration: 1.5, ease: "easeInOut" }}
           style={{ willChange: "opacity" }}
-          className="fixed inset-0 z-[99999] flex items-center justify-center bg-[#050505] overflow-hidden"
+          className="fixed inset-0 z-[99999] flex items-center justify-center overflow-hidden"
           onClick={() => {
             if (!userInteracted) {
               setUserInteracted(true);
@@ -68,24 +68,18 @@ export default function SplashScreen() {
           }}
         >
           <style>{`
-            @keyframes progressiveBlur {
-              0% { filter: blur(0px); opacity: 0; transform: scale(1.15); }
-              20% { filter: blur(0px); opacity: 0.8; transform: scale(1.1); }
-              100% { filter: blur(12px); opacity: 0.6; transform: scale(1); }
+            @keyframes progressiveBackdropBlur {
+              0% { backdrop-filter: blur(0px); background-color: rgba(5,5,5,0); }
+              20% { backdrop-filter: blur(12px); background-color: rgba(5,5,5,0.7); }
+              100% { backdrop-filter: blur(32px); background-color: rgba(5,5,5,0.9); }
             }
           `}</style>
 
-          {/* Background Image with CSS Animation for smooth blur and scale */}
+          {/* Animated blurred background overlay */}
           <div 
             className="absolute inset-0 z-0"
-            style={{ animation: 'progressiveBlur 4.5s ease-out forwards' }}
-          >
-            <img 
-              src="/bg.jpg" 
-              alt="Cinematic Background" 
-              className="w-full h-full object-cover"
-            />
-          </div>
+            style={{ animation: 'progressiveBackdropBlur 4.5s ease-out forwards' }}
+          />
 
           {/* Dark Overlay gradients for dramatic effect */}
           <div className="absolute inset-0 z-0 bg-gradient-to-t from-[#050505] via-transparent to-[#050505] opacity-90 pointer-events-none" />
