@@ -73,12 +73,6 @@ export default function SplashScreen() {
               20% { filter: blur(0px); opacity: 0.8; transform: scale(1.1); }
               100% { filter: blur(12px); opacity: 0.6; transform: scale(1); }
             }
-            @keyframes dropFall {
-              0% { transform: translateY(-10vh) scaleY(1); opacity: 0; }
-              10% { opacity: 1; }
-              80% { transform: translateY(100vh) scaleY(1.5); opacity: 1; }
-              100% { transform: translateY(110vh) scaleY(1); opacity: 0; }
-            }
           `}</style>
 
           {/* Background Image with CSS Animation for smooth blur and scale */}
@@ -97,24 +91,43 @@ export default function SplashScreen() {
           <div className="absolute inset-0 z-0 bg-gradient-to-t from-[#050505] via-transparent to-[#050505] opacity-90 pointer-events-none" />
           <div className="absolute inset-0 z-0 bg-gradient-to-r from-[#050505]/90 via-transparent to-[#050505]/90 pointer-events-none" />
 
-          {/* Water Droplets Background */}
-          <div className="absolute inset-0 z-0 pointer-events-none">
-            {Array.from({ length: 40 }).map((_, i) => (
-              <div
-                key={i}
-                className="absolute top-0 bg-indigo-300 rounded-full"
-                style={{
-                  left: `${(i * 7 + 13) % 100}%`,
-                  width: `${2 + ((i * 11) % 4)}px`,
-                  height: `${(2 + ((i * 11) % 4)) * 6}px`,
-                  opacity: 0.2 + ((i * 7) % 5) * 0.1,
-                  animation: `dropFall ${1 + ((i * 5) % 10) * 0.1}s linear infinite`,
-                  animationDelay: `${((i * 3 + 7) % 20) * 0.1}s`,
-                  boxShadow: '0 0 10px rgba(165, 180, 252, 0.5)',
-                  filter: 'blur(1px)',
-                }}
-              />
-            ))}
+          {/* Hollow Purple Effect Backdrop */}
+          <div className="absolute inset-0 z-0 pointer-events-none flex items-center justify-center overflow-hidden mix-blend-screen">
+            {/* Blue Orb (Attraction) */}
+            <motion.div
+              initial={{ x: -300, y: -100, scale: 0.2, opacity: 0 }}
+              animate={{ x: 0, y: 0, scale: 1, opacity: 1 }}
+              transition={{ duration: 1.5, ease: "easeOut" }}
+              style={{ willChange: "transform, opacity" }}
+              className="absolute w-64 h-64 bg-blue-500 rounded-full blur-[60px] opacity-80"
+            />
+            
+            {/* Red Orb (Repulsion) */}
+            <motion.div
+              initial={{ x: 300, y: 100, scale: 0.2, opacity: 0 }}
+              animate={{ x: 0, y: 0, scale: 1, opacity: 1 }}
+              transition={{ duration: 1.5, ease: "easeOut" }}
+              style={{ willChange: "transform, opacity" }}
+              className="absolute w-64 h-64 bg-red-500 rounded-full blur-[60px] opacity-80"
+            />
+
+            {/* Hollow Purple Expansion */}
+            <motion.div
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: [0, 1.5, 8], opacity: [0, 1, 0] }}
+              transition={{ delay: 1.5, duration: 2, ease: "easeIn" }}
+              style={{ willChange: "transform, opacity" }}
+              className="absolute w-96 h-96 bg-purple-500 rounded-full blur-[60px]"
+            />
+            
+            {/* Core flash */}
+            <motion.div
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: [0, 3], opacity: [0, 1, 0] }}
+              transition={{ delay: 1.5, duration: 1, ease: "easeOut" }}
+              style={{ willChange: "transform, opacity" }}
+              className="absolute w-32 h-32 bg-white rounded-full blur-[20px]"
+            />
           </div>
 
           {/* Logo Animation */}
