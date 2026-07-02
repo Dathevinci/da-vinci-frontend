@@ -65,7 +65,7 @@ export default function ProfileTrackerPage() {
   const rankTheme = user ? getRankTheme(user.arisePoints, user.username) : getRankTheme(0, "");
   const RankIcon = rankTheme.badgeIcon ? (Icons as any)[rankTheme.badgeIcon] : null;
 
-  const { cleanBio, backgroundUrl } = user ? parseBio(user.bio || "", user.arisePoints || 0) : { cleanBio: "", backgroundUrl: null };
+  const { cleanBio, backgroundUrl } = user ? parseBio(user.bio || "", user.arisePoints || 0, user.username) : { cleanBio: "", backgroundUrl: null };
 
   const filterTabs = [
     { id: "All", icon: ListFilter },

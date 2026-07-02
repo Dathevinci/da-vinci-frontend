@@ -27,7 +27,7 @@ function UserCard({ user, currentUser, handleFollowToggle }: { user: User, curre
   };
 
   const isFollowing = currentUser?.following?.some((f: any) => f.followingId === user.id);
-  const { cleanBio, backgroundUrl } = parseBio(user.bio || "", user.arisePoints || 0);
+  const { cleanBio, backgroundUrl } = parseBio(user.bio || "", user.arisePoints || 0, user.username);
 
   const cardContent = (
     <>

@@ -121,7 +121,7 @@ export default function PublicProfilePage() {
   
   const rankTheme = getRankTheme(profileUser.arisePoints, profileUser.username);
   const RankIcon = rankTheme.badgeIcon ? (Icons as any)[rankTheme.badgeIcon] : null;
-  const { cleanBio, backgroundUrl } = profileUser ? parseBio(profileUser.bio || "", profileUser.arisePoints || 0) : { cleanBio: "", backgroundUrl: null };
+  const { cleanBio, backgroundUrl } = profileUser ? parseBio(profileUser.bio || "", profileUser.arisePoints || 0, profileUser.username) : { cleanBio: "", backgroundUrl: null };
 
   return (
     <PageTransition>

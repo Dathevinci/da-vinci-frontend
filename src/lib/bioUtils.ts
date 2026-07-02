@@ -8,27 +8,39 @@
  * @param arisePoints The user's Arise Points
  * @returns { cleanBio: string, backgroundUrl: string | null }
  */
-export function parseBio(bio: string | null | undefined, arisePoints: number = 0): { cleanBio: string, backgroundUrl: string | null } {
+export function parseBio(bio: string | null | undefined, arisePoints: number = 0, username: string = ""): { cleanBio: string, backgroundUrl: string | null } {
   if (!bio) {
     return { cleanBio: "", backgroundUrl: null };
   }
 
-  // Regex to match URLs ending in image extensions or specific GIF provider paths
-  const urlRegex = /(https?:\/\/[^\s]+(\.(gif|png|jpe?g|webp)|giphy\.com\/media\/|tenor\.com\/view\/)[^\s]*)/i;
+  // Auto-transform Giphy webpage links to direct media URLs
+  const giphyWebRegex = /https?:\/\/giphy\.com\/gifs\/[^\s]+?-([a-zA-Z0-9]+)(?:\?.*)?/i;
+  let parsedBio = bio;
+  const giphyMatch = bio.match(giphyWebRegex);
+  if (giphyMatch) {
+    const id = giphyMatch[1];
+    const directUrl = `https://media.giphy.com/media/${id}/giphy.gif`;
+    parsedBio = bio.replace(giphyMatch[0], directUrl);
+  }
+
+  // Regex to match direct image URLs (must end in image ext or be a known media provider raw URL)
+  const urlRegex = /(https?:\/\/[^\s]+(\.(gif|png|jpe?g|webp)|media\.giphy\.com\/media\/)[^\s]*)/i;
   
-  const match = bio.match(urlRegex);
+  const match = parsedBio.match(urlRegex);
   
   if (match) {
     const url = match[0];
-    const cleanBio = bio.replace(url, "").trim();
+    const cleanBio = parsedBio.replace(url, "").trim();
     
-    // Only allow background GIFs if they have >= 100 points
-    if (arisePoints >= 100) {
+    const isSpecial = username.toLowerCase() === 'dejavuh' || username.toLowerCase() === 'davinci';
+
+    // Only allow background GIFs if they have >= 100 points or are a special user
+    if (arisePoints >= 100 || isSpecial) {
       return { cleanBio, backgroundUrl: url };
     } else {
       return { cleanBio, backgroundUrl: null };
     }
   }
 
-  return { cleanBio: bio.trim(), backgroundUrl: null };
+  return { cleanBio: parsedBio.trim(), backgroundUrl: null };
 }
