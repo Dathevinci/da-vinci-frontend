@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { ArrowLeft, MapPin, Calendar, Clock, Star, TrendingUp, Compass, Settings, Check, X, Shield, Users, Zap, User as UserIcon, Code2, Sparkles, Crown, Feather, Flame, Leaf, UserPlus, UserMinus, Eye, Heart, ListFilter } from 'lucide-react';
+import BioRenderer from '@/components/profile/BioRenderer';
 import { useUser, User } from "@/hooks/useUser";
-import { Compass, UserPlus, UserMinus, Eye, Heart, Clock, Check, ListFilter, Code2 } from "lucide-react";
 import FollowListModal from "@/components/profile/FollowListModal";
 import ImagePreviewModal from "@/components/ui/ImagePreviewModal";
 import ArisePointHistoryModal from "@/components/profile/ArisePointHistoryModal";
@@ -190,7 +191,7 @@ export default function PublicProfilePage() {
                   </div>
                 )}
               </div>
-              <p className="text-indigo-200 font-medium drop-shadow-md max-w-xl">{profileUser.bio || "No bio set."}</p>
+              <BioRenderer bio={profileUser.bio || "No bio set."} className="text-indigo-200 font-medium drop-shadow-md max-w-xl" />
               <div className="flex items-center gap-4 mt-3 text-sm font-bold text-slate-300">
                 <button 
                   onClick={() => setModalData({ title: 'Followers', users: (profileUser.followers || []).map((f: any) => f.follower) })}

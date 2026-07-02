@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/Toast";
 import CommunityFeed from "@/components/community/CommunityFeed";
 import { motion, AnimatePresence } from "framer-motion";
 import PageTransition from "@/components/layout/PageTransition";
+import BioRenderer from '@/components/profile/BioRenderer';
 
 function UserCard({ user, currentUser, handleFollowToggle }: { user: User, currentUser: any, handleFollowToggle: (u: User, e: React.MouseEvent) => void }) {
   const [isHovered, setIsHovered] = useState(false);
@@ -52,10 +53,8 @@ function UserCard({ user, currentUser, handleFollowToggle }: { user: User, curre
           </div>
         </div>
         
-        <div className="px-6 pb-6 mt-4">
-          <p className="text-sm text-slate-400 line-clamp-2 min-h-[40px]">
-            {user.bio || "No bio set."}
-          </p>
+        <div className="px-6 pb-6 mt-4 min-h-[60px]">
+          <BioRenderer bio={user.bio || "No bio set."} className="text-sm text-slate-400 line-clamp-2" />
 
           {currentUser && (
             <button 

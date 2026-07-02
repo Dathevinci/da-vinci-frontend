@@ -9,6 +9,7 @@ import LoadingOverlay from "@/components/ui/LoadingOverlay";
 import ImagePreviewModal from "@/components/ui/ImagePreviewModal";
 import ImageCropperModal from "@/components/profile/ImageCropperModal";
 import ArisePointHistoryModal from "@/components/profile/ArisePointHistoryModal";
+import BioRenderer from "@/components/profile/BioRenderer";
 import getCroppedImg from "@/lib/cropImage";
 import { useState, useRef } from "react";
 import Link from "next/link";
@@ -333,7 +334,7 @@ export default function ProfileTrackerPage() {
                     </div>
                   )}
                 </div>
-                <p className="text-indigo-200 font-medium drop-shadow-md max-w-xl">{user.bio || "No bio set. Update your settings to add one!"}</p>
+                <BioRenderer bio={user.bio || "No bio set. Update your settings to add one!"} className="text-indigo-200 font-medium drop-shadow-md max-w-xl" />
                 <div className="flex items-center gap-4 mt-3 text-sm font-bold text-slate-300">
                   <button 
                     onClick={() => setModalData({ title: 'Followers', users: (user.followers || []).map((f: any) => f.follower) })}
