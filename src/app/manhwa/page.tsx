@@ -8,11 +8,13 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, BookMarked, Loader2, Flame, Clock, Star } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { IMangaResult, ISearch } from "@/lib/asura/models";
+import { useManhwaModal } from "@/components/providers/ManhwaModalProvider";
 import { formatDistanceToNowStrict } from "date-fns";
 
 export default function ManhwaPage() {
   const sp = useSearchParams();
   const router = useRouter();
+  const { openManhwa } = useManhwaModal();
   const page = Math.max(1, parseInt(sp.get("page") || "1"));
   const query = sp.get("q") || "";
 
@@ -108,9 +110,9 @@ export default function ManhwaPage() {
                       </div>
                       <h2 className="text-[1.3rem] font-black text-white tracking-wide">Trending Comics</h2>
                     </div>
-                    <Link href="/manhwa?view=all&page=1" className="px-4 py-1.5 bg-[#8a2be2] hover:bg-[#9a3bf2] text-white text-xs font-bold rounded transition-colors shadow-md">
+                    <button onClick={() => router.push("/manhwa?view=all&page=1")} className="px-4 py-1.5 bg-[#8a2be2] hover:bg-[#9a3bf2] text-white text-xs font-bold rounded transition-colors shadow-md">
                       All Comics
-                    </Link>
+                    </button>
                   </div>
                   
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
@@ -129,15 +131,15 @@ export default function ManhwaPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {latestUpdates.map((manhwa) => (
                       <div key={`latest-${manhwa.id}`} className="flex gap-4 p-3 bg-[#0b0b0c] rounded-lg border border-[#2a2a32] hover:border-[#8a2be2]/50 transition-colors">
-                        <Link href={`/manhwa/${encodeURIComponent(manhwa.id)}`} className="w-[85px] h-[120px] shrink-0 rounded overflow-hidden shadow-md">
+                        <button onClick={() => openManhwa(manhwa)} className="w-[85px] h-[120px] shrink-0 rounded overflow-hidden shadow-md text-left">
                           {manhwa.image && (
-                            <img src={`/api/manhwa-image?url=${encodeURIComponent(manhwa.image)}`} alt={manhwa.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                            <img src={`/api/manhwa-image?url=${encodeURIComponent(manhwa.image)}`} alt={manhwa.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300 hq-image" />
                           )}
-                        </Link>
+                        </button>
                         <div className="flex flex-col flex-1 min-w-0">
-                          <Link href={`/manhwa/${encodeURIComponent(manhwa.id)}`} className="text-sm font-bold text-[#e2e8f0] line-clamp-2 hover:text-[#8a2be2] transition-colors mb-2 leading-snug">
+                          <button onClick={() => openManhwa(manhwa)} className="text-sm font-bold text-[#e2e8f0] line-clamp-2 hover:text-[#8a2be2] transition-colors mb-2 leading-snug text-left">
                             {manhwa.title}
-                          </Link>
+                          </button>
                           
                           <div className="flex flex-col gap-1.5 mt-auto">
                             {(manhwa.latest_chapters && manhwa.latest_chapters.length > 0) ? (

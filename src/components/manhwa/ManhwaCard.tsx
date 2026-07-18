@@ -59,7 +59,7 @@ export default function ManhwaCard({ manhwa }: { manhwa: IMangaResult }) {
           <div className="flex text-yellow-500 text-[10px]">
             ★★★★★
           </div>
-          <span className="text-[10px] font-bold text-slate-400 ml-1">{manhwa.rating || "N/A"}</span>
+          <span className="text-[10px] font-bold text-slate-400 ml-1">{displayRating}</span>
         </div>
       </div>
     </div>
