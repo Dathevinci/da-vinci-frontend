@@ -1,0 +1,159 @@
+@import "tailwindcss";
+@custom-variant dark (&:is(.dark, .dark *));
+
+@theme {
+  --color-background: #09090b;
+  --color-foreground: #fafafa;
+  --color-primary: #6366f1; /* Indigo/Purple */
+  --color-secondary: #e50914; /* Red accent */
+}
+
+@layer base {
+  .font-graffiti {
+    font-family: var(--font-graffiti), cursive;
+  }
+  
+  .font-cinzel {
+    font-family: var(--font-cinzel), serif;
+  }
+
+  .font-fell {
+    font-family: var(--font-fell), serif;
+  }
+
+  .font-garamond {
+    font-family: var(--font-garamond), "EB Garamond", Georgia, serif;
+  }
+  
+  body {
+    overflow-x: hidden;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+  }
+  html.dark body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+  }
+
+  /* Neon Purple overlay in dark mode */
+  html.dark body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.15) 0%, rgba(0, 0, 0, 0) 80%);
+    pointer-events: none;
+  }
+
+  /* Black mode (when not dark) */
+  html:not(.dark) body {
+    background-color: #000000 !important;
+    color: var(--color-foreground);
+  }
+
+  /* Custom Shop Themes */
+  body.theme-neon {
+    background-color: #040914 !important; /* Dark cyan-blue tint */
+    background-image: radial-gradient(circle at top right, rgba(6, 182, 212, 0.15) 0%, transparent 60%),
+                      radial-gradient(circle at bottom left, rgba(217, 70, 239, 0.15) 0%, transparent 60%);
+  }
+  body.theme-neon::before {
+    background: transparent !important; /* disable default overlay */
+  }
+
+  body.theme-crimson {
+    background-color: #120303 !important; /* Dark red tint */
+    background-image: radial-gradient(circle at center top, rgba(220, 38, 38, 0.15) 0%, transparent 60%);
+  }
+  body.theme-crimson::before {
+    background: transparent !important;
+  }
+  
+  /* Override the base background class applied to the body */
+  html:not(.dark) .bg-\[\#050505\] {
+    background-color: #000000 !important;
+  }
+
+
+  /* Performance Mode */
+  body.reduced-motion *,
+  body.reduced-motion *::before,
+  body.reduced-motion *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Custom Netflix-style Scrollbar */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; transition: background 0.2s; }
+::-webkit-scrollbar-thumb:hover { background: #e50914; }
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Performance & smoothness (helps low-end / mobile devices)
+   ═══════════════════════════════════════════════════════════ */
+
+/* Respect the OS "reduce motion" setting — kills decorative/infinite
+   animations that cause jank and battery drain on weaker devices. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Momentum scrolling for horizontal carousels / panels on touch devices. */
+.hide-scrollbar,
+.custom-scrollbar {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Utility to promote a continuously-animating element onto its own GPU
+   layer so its motion doesn't repaint the layers underneath it. */
+.gpu-layer {
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Shop Themes */
+body.theme-neon {
+  background: linear-gradient(to bottom right, #09090b, #110022 30%, #001122 70%, #09090b) !important;
+  color: #e0f2fe;
+}
+body.theme-neon::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(217, 70, 239, 0.1), transparent 40%),
+              radial-gradient(circle at bottom left, rgba(6, 182, 212, 0.1), transparent 40%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+body.theme-crimson {
+  background: linear-gradient(to bottom right, #09090b, #1a0505 40%, #09090b) !important;
+  color: #ffe4e6;
+}
+body.theme-crimson::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(225, 29, 72, 0.1), transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}

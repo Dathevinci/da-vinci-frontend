@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cinematic Black Hole</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            background-color: #010103; /* Deep space color */
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            font-family: sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 1. Global Full-Screen Cosmic Canvas */
+        #cosmic-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1; /* Background/overlay */
+            pointer-events: none;
+        }
+
+        .content-wrapper {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 4. The Avatar & Accretion Disk */
+        .avatar-container {
+            position: relative;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Avatar styling with inset shadow */
+        .avatar-image {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            position: relative;
+            z-index: 20;
+            box-shadow: inset 0 0 30px 15px rgba(0,0,0,0.9);
+            background: #111;
+        }
+
+        /* Swirling, high-contrast accretion disk */
+        .accretion-disk {
+            position: absolute;
+            top: -60%;
+            left: -60%;
+            right: -60%;
+            bottom: -60%;
+            border-radius: 50%;
+            z-index: 15;
+            pointer-events: none;
+            background: radial-gradient(circle, transparent 25%, rgba(255, 70, 0, 0.5) 35%, rgba(138, 43, 226, 0.7) 45%, rgba(255, 0, 255, 0.3) 55%, transparent 70%);
+            box-shadow: 
+                inset 0 0 50px rgba(255, 80, 0, 0.8), 
+                inset 0 0 70px rgba(168, 85, 247, 0.9),
+                0 0 80px rgba(255, 100, 0, 0.6),
+                0 0 120px rgba(138, 43, 226, 0.5);
+            mix-blend-mode: screen;
+            animation: spinDisk 3s linear infinite;
+        }
+        
+        .accretion-disk::before, .accretion-disk::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            mix-blend-mode: overlay;
+            filter: blur(12px);
+        }
+
+        .accretion-disk::before {
+            background: conic-gradient(from 0deg, transparent 0%, rgba(255, 120, 0, 0.9) 10%, rgba(200, 50, 255, 0.9) 20%, transparent 40%, rgba(255, 50, 50, 0.9) 60%, rgba(100, 100, 255, 0.9) 70%, transparent 90%);
+            animation: spinDiskReverse 4s linear infinite;
+        }
+
+        .accretion-disk::after {
+            background: conic-gradient(from 180deg, transparent 0%, rgba(255, 200, 0, 0.9) 15%, rgba(255, 50, 100, 0.9) 30%, transparent 50%, rgba(255, 100, 255, 0.9) 70%, transparent 90%);
+            animation: spinDisk 2.5s linear infinite;
+        }
+
+        /* Space-warping gravitational lensing effect */
+        .gravitational-lens {
+            position: absolute;
+            top: -40%;
+            left: -40%;
+            right: -40%;
+            bottom: -40%;
+            border-radius: 50%;
+            z-index: 5;
+            pointer-events: none;
+            backdrop-filter: blur(10px) contrast(1.5);
+            -webkit-backdrop-filter: blur(10px) contrast(1.5);
+            background: radial-gradient(circle, transparent 20%, rgba(0,0,0,0.7) 45%, transparent 80%);
+            box-shadow: inset 0 0 20px rgba(0,0,0,1);
+        }
+
+        .event-horizon {
+            position: absolute;
+            inset: -2px;
+            border-radius: 50%;
+            z-index: 25;
+            pointer-events: none;
+            box-shadow: inset 0 0 40px 25px rgba(0,0,0,0.98);
+            background: radial-gradient(circle, rgba(0,0,0,1) 40%, transparent 75%);
+        }
+
+        @keyframes spinDisk {
+            0% { transform: rotate(0deg) scale(1) skew(2deg); }
+            50% { transform: rotate(180deg) scale(1.03) skew(-2deg); }
+            100% { transform: rotate(360deg) scale(1) skew(2deg); }
+        }
+        
+        @keyframes spinDiskReverse {
+            0% { transform: rotate(360deg) scale(1) skew(-2deg); }
+            50% { transform: rotate(180deg) scale(1.03) skew(2deg); }
+            100% { transform: rotate(0deg) scale(1) skew(-2deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 1. Global Full-Screen Cosmic Canvas -->
+    <canvas id="cosmic-canvas"></canvas>
+
+    <div class="content-wrapper">
+        <div class="avatar-container">
+            <!-- Self-contained vector avatar (No external image links) -->
+            <svg class="avatar-image" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <rect width="100" height="100" fill="#151515"/>
+                <circle cx="50" cy="40" r="18" fill="#333"/>
+                <path d="M 20 100 Q 50 60 80 100" fill="#333"/>
+            </svg>
+            <div class="gravitational-lens"></div>
+            <div class="accretion-disk"></div>
+            <div class="event-horizon"></div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * Advanced JavaScript (HTML5 Canvas)
+         * Cinematic Black Hole & Cosmic Galaxy Environment
+         */
+        const canvas = document.getElementById('cosmic-canvas');
+        const ctx = canvas.getContext('2d');
+
+        let width, height, centerX, centerY;
+        const EVENT_HORIZON_RADIUS = 75; // Matches 150px avatar container
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            centerX = width / 2;
+            centerY = height / 2;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Object-Oriented Particle Systems
+        class Star {
+            constructor(isBackground) {
+                this.isBackground = isBackground;
+                this.reset(true);
+            }
+
+            reset(initial = false) {
+                const maxDist = Math.max(width, height);
+                // If initial setup, scatter them everywhere. If resetting, spawn on outer edges.
+                this.distance = initial ? EVENT_HORIZON_RADIUS + Math.random() * maxDist : maxDist + Math.random() * 200;
+                this.angle = Math.random() * Math.PI * 2;
+                
+                // 2. Parallax & Size setup
+                if (this.isBackground) {
+                    this.size = Math.random() * 1.2;
+                    this.baseSpeed = 0.0003 + Math.random() * 0.0007; // Slow orbit
+                    this.inwardSpeed = 0.05 + Math.random() * 0.15; // Slow pull
+                    this.color = `rgba(255, 255, 255, ${Math.random() * 0.4 + 0.1})`;
+                } else {
+                    this.size = Math.random() * 2 + 0.8;
+                    this.baseSpeed = 0.0008 + Math.random() * 0.0015; // Faster orbit
+                    this.inwardSpeed = 0.2 + Math.random() * 0.5; // Faster pull
+                    const colors = ["#ffffff", "#fbcfe8", "#e9d5ff", "#c4b5fd", "#fde68a", "#93c5fd"];
+                    this.color = colors[Math.floor(Math.random() * colors.length)];
+                }
+                
+                this.twinkleSpeed = Math.random() * 0.05 + 0.01;
+                this.twinklePhase = Math.random() * Math.PI * 2;
+            }
+
+            update() {
+                // Exponential acceleration as stars approach the black hole
+                const distFactor = Math.max(0.01, this.distance / (Math.max(width, height) / 2));
+                const currentSpeed = this.baseSpeed * (1 + 1 / (distFactor * distFactor * 0.8));
+                const currentInwardSpeed = this.inwardSpeed * (1 + 1 / (distFactor * 1.5));
+
+                this.angle += currentSpeed;
+                this.distance -= currentInwardSpeed;
+
+                // Absorbed into event horizon -> respawn at edge
+                if (this.distance < EVENT_HORIZON_RADIUS) {
+                    this.reset();
+                }
+                
+                this.twinklePhase += this.twinkleSpeed;
+            }
+
+            draw(ctx) {
+                const x = centerX + Math.cos(this.angle) * this.distance;
+                const y = centerY + Math.sin(this.angle) * this.distance;
+                
+                // Alpha fading near the event horizon for a smooth transition
+                let alphaMultiplier = 1;
+                if (this.distance < EVENT_HORIZON_RADIUS + 80) {
+                    alphaMultiplier = (this.distance - EVENT_HORIZON_RADIUS) / 80;
+                }
+                
+                // Twinkling effect
+                const twinkleAlpha = 0.6 + Math.sin(this.twinklePhase) * 0.4;
+
+                ctx.beginPath();
+                ctx.arc(x, y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = Math.max(0, twinkleAlpha * alphaMultiplier);
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        // 3. The Doomed Star (Detailed Event Sequence)
+        class DoomedStar {
+            constructor() {
+                this.particles = [];
+                this.reset();
+            }
+
+            reset() {
+                this.active = true;
+                this.angle = Math.random() * Math.PI * 2;
+                const maxDist = Math.max(width, height) * 1.1;
+                this.distance = maxDist;
+                // Brightly glowing star particle
+                this.size = 4 + Math.random() * 2.5; 
+                this.speed = 0.001; // Initial orbital speed
+                this.inwardSpeed = 1.5; // Initial fall speed
+                this.particles = [];
+            }
+
+            update() {
+                if (!this.active) {
+                    if (this.particles.length === 0) {
+                        this.reset();
+                    }
+                    this.updateParticles();
+                    return;
+                }
+
+                // Exponential acceleration towards the vortex
+                const distFactor = Math.max(0.01, this.distance / 400);
+                this.speed += 0.0001 / distFactor;
+                this.inwardSpeed += 0.08 / distFactor;
+
+                this.angle += this.speed;
+                this.distance -= this.inwardSpeed;
+
+                // Trigger Disintegration (Spaghettification threshold)
+                if (this.distance < EVENT_HORIZON_RADIUS + 40) {
+                    this.disintegrate();
+                }
+            }
+            
+            disintegrate() {
+                this.active = false;
+                // Disintegrate into smaller fading particles
+                const numParticles = 25;
+                const x = centerX + Math.cos(this.angle) * this.distance;
+                const y = centerY + Math.sin(this.angle) * this.distance;
+                
+                for(let i=0; i<numParticles; i++) {
+                    // Spray particles along the orbital path
+                    const angleOffset = (Math.random() - 0.5) * 0.5;
+                    this.particles.push({
+                        x: x + (Math.random() - 0.5) * 15,
+                        y: y + (Math.random() - 0.5) * 15,
+                        vx: Math.cos(this.angle + Math.PI/2 + angleOffset) * this.speed * this.distance + (Math.random() - 0.5) * 4,
+                        vy: Math.sin(this.angle + Math.PI/2 + angleOffset) * this.speed * this.distance + (Math.random() - 0.5) * 4,
+                        life: 1.0,
+                        decay: 0.015 + Math.random() * 0.025,
+                        size: Math.random() * 2.5 + 0.5
+                    });
+                }
+            }
+            
+            updateParticles() {
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    let p = this.particles[i];
+                    
+                    // Intense gravitational pull on fragments
+                    const dx = centerX - p.x;
+                    const dy = centerY - p.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    const force = 800 / Math.max(1, dist*dist);
+                    
+                    p.vx += (dx / dist) * force;
+                    p.vy += (dy / dist) * force;
+                    
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.life -= p.decay;
+                    
+                    if (p.life <= 0 || dist < EVENT_HORIZON_RADIUS - 5) {
+                        this.particles.splice(i, 1);
+                    }
+                }
+            }
+
+            draw(ctx) {
+                if (!this.active) {
+                    // Render disintegrating particles (fading and redshifting)
+                    for (let p of this.particles) {
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                        // Deep redshift glow for fragments
+                        ctx.fillStyle = `rgba(255, ${Math.floor(p.life * 80)}, 50, ${p.life})`;
+                        ctx.fill();
+                    }
+                    return;
+                }
+
+                const x = centerX + Math.cos(this.angle) * this.distance;
+                const y = centerY + Math.sin(this.angle) * this.distance;
+
+                // Redshift & Spaghettification calculations
+                const threshold = 350;
+                let redshift = 0; // 0 to 1
+                if (this.distance < threshold + EVENT_HORIZON_RADIUS) {
+                    redshift = 1 - ((this.distance - EVENT_HORIZON_RADIUS) / threshold);
+                }
+                
+                // Stretch vector path along a mathematical curve
+                const stretch = 1 + Math.pow(redshift, 2) * 12;
+
+                const r = 255;
+                const g = Math.floor(255 * (1 - redshift * 0.9));
+                const b = Math.floor(255 * (1 - redshift * 0.9));
+                
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate(this.angle + Math.PI / 2); // Align with orbital direction
+                ctx.beginPath();
+                ctx.ellipse(0, 0, this.size, this.size * stretch, 0, 0, Math.PI * 2);
+                ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                ctx.shadowBlur = 25;
+                ctx.shadowColor = `rgb(255, ${g}, ${b})`; // Glow shifts with redshift
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // Initialize Cosmos
+        const stars = [];
+        const numBackgroundStars = 2000;
+        const numForegroundStars = 500;
+
+        for (let i = 0; i < numBackgroundStars; i++) stars.push(new Star(true));
+        for (let i = 0; i < numForegroundStars; i++) stars.push(new Star(false));
+
+        const doomedStar = new DoomedStar();
+
+        function render() {
+            // Motion blur / trail effect for smooth cosmic movement
+            ctx.globalCompositeOperation = "destination-out";
+            ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
+            ctx.fillRect(0, 0, width, height);
+            ctx.globalCompositeOperation = "lighter";
+
+            for (let star of stars) {
+                star.update();
+                star.draw(ctx);
+            }
+
+            doomedStar.update();
+            doomedStar.draw(ctx);
+
+            requestAnimationFrame(render);
+        }
+
+        // Start buttery-smooth 60fps rendering
+        render();
+    </script>
+</body>
+</html>
