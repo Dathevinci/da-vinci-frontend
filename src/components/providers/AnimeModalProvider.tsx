@@ -41,7 +41,7 @@ function AnimeModalUrlWatcher({ onOpen }: { onOpen: (a: Anime, opts?: AnimeModal
 
   useEffect(() => {
     const view = searchParams.get("view");
-    if (!view) {
+    if (!view || isNaN(Number(view))) {
       handledRef.current = null;
       return;
     }
