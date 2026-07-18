@@ -93,15 +93,6 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
     );
   }
 
-  useEffect(() => {
-    if (isFullscreen) {
-      document.body.classList.add('hide-navbar-footer');
-    } else {
-      document.body.classList.remove('hide-navbar-footer');
-    }
-    return () => document.body.classList.remove('hide-navbar-footer');
-  }, [isFullscreen]);
-
   return (
     <div className="bg-[#09090b] min-h-screen text-white pb-24">
       {/* Top Navigation Bar */}

@@ -79,8 +79,8 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
             {/* Left Column: Cover & Actions */}
             <div className="flex-shrink-0 mx-auto md:mx-0 w-[240px] flex flex-col gap-4">
               <div className="w-full aspect-[2/3] rounded-lg overflow-hidden border border-[#2a2a32] shadow-lg bg-[#0b0b0c]">
-                {manhwa.cover ? (
-                  <img src={`/api/manhwa-image?url=${encodeURIComponent(manhwa.cover)}`} alt={manhwa.title} className="w-full h-full object-cover" />
+                {manhwa.image ? (
+                  <img src={`/api/manhwa-image?url=${encodeURIComponent(manhwa.image)}`} alt={manhwa.title} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <BookOpen className="w-12 h-12 text-[#2a2a32]" />
@@ -125,7 +125,7 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
                 </span>
                 {manhwa.rating && (
                   <span className="flex items-center gap-1 bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 px-2 py-1 rounded">
-                    <Star className="w-3 h-3 fill-yellow-400" /> {manhwa.rating}
+                    <Star className="w-3 h-3 fill-yellow-400" /> {Number(manhwa.rating).toFixed(1)}
                   </span>
                 )}
               </div>
@@ -162,7 +162,7 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
                       <Clock className="w-3 h-3" /> Updated On
                     </div>
                     <div className="text-sm font-medium text-[#e2e8f0] truncate">
-                      {manhwa.updatedOn}
+                      {new Date(manhwa.updatedOn).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                     </div>
                   </div>
                 )}
@@ -173,9 +173,10 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
                 <h3 className="text-sm font-bold uppercase tracking-widest text-white mb-3 flex items-center gap-2 border-b border-[#2a2a32] pb-2">
                   <AlignLeft className="w-4 h-4 text-indigo-400" /> Synopsis
                 </h3>
-                <div className="text-[#a3a3a3] text-sm leading-relaxed max-w-none whitespace-pre-wrap">
-                  {manhwa.description || "No synopsis available for this series."}
-                </div>
+                <div 
+                  className="text-[#a3a3a3] text-sm leading-relaxed max-w-none whitespace-pre-wrap"
+                  dangerouslySetInnerHTML={{ __html: manhwa.description || "No synopsis available for this series." }}
+                />
               </div>
 
               {/* Genres */}
