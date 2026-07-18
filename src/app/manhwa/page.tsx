@@ -145,7 +145,7 @@ export default function ManhwaPage() {
                                 const timeText = formatDistanceToNowStrict(new Date(chapter.published_at), { addSuffix: true });
                                 return (
                                   <div key={chapter.id} className="flex items-center justify-between text-[11px]">
-                                    <Link href={`/manhwa/${encodeURIComponent(manhwa.id)}#chapter-${chapter.number}`} className={`font-bold transition-colors hover:text-[#8a2be2] visited:text-[#8a2be2] flex items-center gap-1 ${offset === 0 ? 'text-[#ffc107]' : 'text-[#e2e8f0]'}`}>
+                                    <Link href={`/manhwa/${encodeURIComponent(manhwa.id)}/chapter/${encodeURIComponent(`${manhwa.id}|${chapter.number}`)}`} className={`font-bold transition-colors hover:text-[#8a2be2] visited:text-[#8a2be2] flex items-center gap-1 ${offset === 0 ? 'text-[#ffc107]' : 'text-[#e2e8f0]'}`}>
                                       Chapter {chapter.number} {chapter.is_premium && <span className="text-[9px]">🔒</span>}
                                     </Link>
                                     <span className={`font-medium ${offset === 0 ? 'text-[#ffc107]/80' : 'text-[#737373]'}`}>
@@ -165,7 +165,7 @@ export default function ManhwaPage() {
                                 
                                 return (
                                   <div key={`fallback-${offset}`} className="flex items-center justify-between text-[11px]">
-                                    <Link href={`/manhwa/${encodeURIComponent(manhwa.id)}#chapter-${chNum}`} className={`font-bold transition-colors hover:text-[#8a2be2] visited:text-[#8a2be2] flex items-center gap-1 ${offset === 0 ? 'text-[#ffc107]' : 'text-[#e2e8f0]'}`}>
+                                    <Link href={`/manhwa/${encodeURIComponent(manhwa.id)}/chapter/${encodeURIComponent(`${manhwa.id}|${chNum}`)}`} className={`font-bold transition-colors hover:text-[#8a2be2] visited:text-[#8a2be2] flex items-center gap-1 ${offset === 0 ? 'text-[#ffc107]' : 'text-[#e2e8f0]'}`}>
                                       Chapter {chNum}
                                     </Link>
                                     <span className={`font-medium ${offset === 0 ? 'text-[#ffc107]/80' : 'text-[#737373]'}`}>

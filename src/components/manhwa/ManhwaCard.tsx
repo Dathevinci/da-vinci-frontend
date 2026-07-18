@@ -8,7 +8,7 @@ export default function ManhwaCard({ manhwa }: { manhwa: IMangaResult }) {
   const isOngoing = manhwa.status?.toString().toUpperCase() === "ONGOING";
 
   const chapterHref = manhwa.latest_chapters?.[0] 
-    ? `/manhwa/${encodeURIComponent(manhwa.id)}/chapter/${encodeURIComponent(manhwa.latest_chapters[0].id)}`
+    ? `/manhwa/${encodeURIComponent(manhwa.id)}/chapter/${encodeURIComponent(`${manhwa.id}|${manhwa.latest_chapters[0].number}`)}`
     : `/manhwa/${encodeURIComponent(manhwa.id)}`;
 
   return (
