@@ -10,6 +10,7 @@ import ArisePointPopup from '../ui/ArisePointPopup';
 import ControlCenter from './ControlCenter';
 import NotificationsMenu from './NotificationsMenu';
 import { useUser } from '@/hooks/useUser';
+import { useAppMode } from '@/components/providers/AppModeProvider';
 import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
 import UserLink from "@/components/profile/UserLink";
 
@@ -70,6 +71,38 @@ export default function Navbar() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  const { mode, toggleMode } = useAppMode();
+  
+  // Theming variables based on mode
+  const accentText = mode === 'anime' ? 'text-indigo-400 drop-shadow-[0_0_10px_rgba(99,102,241,0.5)]' : 'text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]';
+  const accentHover = mode === 'anime' ? 'hover:text-indigo-400' : 'hover:text-emerald-400';
+  const accentBorder = mode === 'anime' ? 'border-indigo-400/50 shadow-[0_0_15px_rgba(99,102,241,0.4)]' : 'border-emerald-400/50 shadow-[0_0_15px_rgba(52,211,153,0.4)]';
+
+  // Desktop Links
+  const animeLinks = (
+    <>
+      <Link href="/" className={`hover:text-white ${accentHover} transition whitespace-nowrap`}>Dashboard</Link>
+      <Link href="/explore" className={`hover:text-white ${accentHover} transition whitespace-nowrap`}>Explore</Link>
+      <div className="relative group">
+        <button className={`hover:text-white ${accentHover} transition flex items-center gap-1`}>
+          Discover <ChevronDown className="w-4 h-4 transition-transform group-hover:rotate-180" />
+        </button>
+        <div className="absolute top-full left-0 mt-6 w-48 bg-[#0f0f11] border border-white/10 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all flex flex-col overflow-hidden py-2 before:absolute before:-top-6 before:left-0 before:w-full before:h-6 before:bg-transparent">
+          <Link href="/airing" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><Activity className="w-4 h-4" /> Airing Now</Link>
+          <Link href="/upcoming" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><Compass className="w-4 h-4" /> Upcoming</Link>
+          <Link href="/calendar" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><Calendar className="w-4 h-4" /> Schedule</Link>
+        </div>
+      </div>
+    </>
+  );
+
+  const manhwaLinks = (
+    <>
+      <Link href="/manhwa" className={`hover:text-white ${accentHover} transition whitespace-nowrap`}>Dashboard</Link>
+      <Link href="/updates" className={`hover:text-white ${accentHover} transition whitespace-nowrap`}>Updates</Link>
+    </>
+  );
+
   return (
     <>
       <header className={`fixed top-0 w-full z-50 transition-all duration-300 ${
@@ -79,35 +112,35 @@ export default function Navbar() {
       }`}>
         <div className={`container mx-auto px-4 sm:px-6 flex justify-between items-center transition-all duration-300 ${isScrolled ? 'h-16' : 'h-20 lg:h-24'}`}>
           <div className="flex items-center gap-4 lg:gap-8">
-            <Link href="/" className="font-fell font-bold text-xl sm:text-2xl lg:text-3xl text-white tracking-[0.1em] sm:tracking-[0.2em] uppercase flex items-center gap-2 sm:gap-3 drop-shadow-lg shrink-0">
-              <img src="/logo.png" alt="Da Vinci Logo" className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-indigo-400/50 shadow-[0_0_15px_rgba(99,102,241,0.4)] object-cover" />
-              <span className="hidden xs:inline-block">DA <span className="text-indigo-400 font-black drop-shadow-[0_0_10px_rgba(99,102,241,0.5)]">VINCI</span></span>
-              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-violet-500/15 border border-violet-400/40 text-violet-200 text-[9px] font-bold tracking-widest uppercase align-middle">Beta</span>
+            <Link href={mode === 'anime' ? "/" : "/manhwa"} className="font-fell font-bold text-xl sm:text-2xl lg:text-3xl text-white tracking-[0.1em] sm:tracking-[0.2em] uppercase flex items-center gap-2 sm:gap-3 drop-shadow-lg shrink-0">
+              <img src="/logo.png" alt="Da Vinci Logo" className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full border ${accentBorder} object-cover transition-colors`} />
+              <span className="hidden xs:inline-block">DA <span className={`font-black ${accentText} transition-colors`}>VINCI</span></span>
             </Link>
+            
+            {/* Mode Switcher */}
+            <button 
+              onClick={toggleMode}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors shrink-0"
+              title="Switch Mode"
+            >
+              <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider ${mode === 'anime' ? 'text-indigo-400' : 'text-emerald-400'}`}>
+                {mode === 'anime' ? 'Anime Mode' : 'Manhwa Mode'}
+              </span>
+            </button>
+
             <nav className="hidden lg:flex gap-4 xl:gap-6 font-medium text-sm text-slate-300 shrink-0">
-              <Link href="/" className="hover:text-white hover:text-indigo-400 transition whitespace-nowrap">Dashboard</Link>
-              <Link href="/explore" className="hover:text-white hover:text-indigo-400 transition whitespace-nowrap">Explore</Link>
-              <Link href="/manhwa" className="hover:text-white hover:text-indigo-400 transition whitespace-nowrap">Manhwa</Link>
+              {mode === 'anime' ? animeLinks : manhwaLinks}
+              
               <div className="relative group">
-                <button className="hover:text-white hover:text-indigo-400 transition flex items-center gap-1">
-                  Discover <ChevronDown className="w-4 h-4 transition-transform group-hover:rotate-180" />
+                <button className={`hover:text-white ${accentHover} transition flex items-center gap-1`}>
+                  More <ChevronDown className="w-4 h-4 transition-transform group-hover:rotate-180" />
                 </button>
                 <div className="absolute top-full left-0 mt-6 w-48 bg-[#0f0f11] border border-white/10 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all flex flex-col overflow-hidden py-2 before:absolute before:-top-6 before:left-0 before:w-full before:h-6 before:bg-transparent">
-                  <Link href="/airing" className="px-4 py-2 hover:bg-white/5 hover:text-indigo-400 transition flex items-center gap-2"><Activity className="w-4 h-4" /> Airing Now</Link>
-                  <Link href="/upcoming" className="px-4 py-2 hover:bg-white/5 hover:text-indigo-400 transition flex items-center gap-2"><Compass className="w-4 h-4" /> Upcoming</Link>
-                  <Link href="/calendar" className="px-4 py-2 hover:bg-white/5 hover:text-indigo-400 transition flex items-center gap-2"><Calendar className="w-4 h-4" /> Schedule</Link>
+                  <Link href="/community" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><Users className="w-4 h-4" /> Community</Link>
+                  <Link href="/shop" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><ShoppingBag className="w-4 h-4" /> Shop</Link>
+                  <Link href="/support" className="px-4 py-2 hover:bg-white/5 text-[#ff5e5b] hover:text-[#ff4542] transition flex items-center gap-2"><Heart className="w-4 h-4" /> Support Us</Link>
                 </div>
               </div>
-              <Link href="/updates" className="hover:text-white hover:text-indigo-400 transition whitespace-nowrap">Updates</Link>
-              <Link href="/community" className="hover:text-white hover:text-indigo-400 transition flex items-center gap-2 whitespace-nowrap">
-                <Users className="w-4 h-4" /> Community
-              </Link>
-              <Link href="/shop" className="hover:text-white hover:text-indigo-400 transition flex items-center gap-2 whitespace-nowrap">
-                <ShoppingBag className="w-4 h-4" /> Shop
-              </Link>
-              <Link href="/support" className="hover:text-white text-[#ff5e5b] hover:text-[#ff4542] transition flex items-center gap-1.5 whitespace-nowrap font-bold">
-                <Heart className="w-4 h-4" /> Support Us
-              </Link>
             </nav>
           </div>
           
@@ -183,17 +216,25 @@ export default function Navbar() {
           </div>
           
           <div className="flex flex-col p-6 gap-6 text-xl font-bold text-slate-300">
-            <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-indigo-400">Dashboard</Link>
-            <Link href="/explore" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-indigo-400">Explore</Link>
-            <Link href="/manhwa" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-indigo-400">Manhwa</Link>
-            <Link href="/airing" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-indigo-400">Airing Now</Link>
-            <Link href="/upcoming" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-indigo-400">Upcoming</Link>
-            <Link href="/calendar" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-indigo-400">Schedule</Link>
-            <Link href="/updates" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-indigo-400">Updates</Link>
-            <Link href="/community" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-indigo-400 flex items-center gap-3">
+            {mode === 'anime' ? (
+              <>
+                <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className={accentHover}>Dashboard</Link>
+                <Link href="/explore" onClick={() => setIsMobileMenuOpen(false)} className={accentHover}>Explore</Link>
+                <Link href="/airing" onClick={() => setIsMobileMenuOpen(false)} className={accentHover}>Airing Now</Link>
+                <Link href="/upcoming" onClick={() => setIsMobileMenuOpen(false)} className={accentHover}>Upcoming</Link>
+                <Link href="/calendar" onClick={() => setIsMobileMenuOpen(false)} className={accentHover}>Schedule</Link>
+              </>
+            ) : (
+              <>
+                <Link href="/manhwa" onClick={() => setIsMobileMenuOpen(false)} className={accentHover}>Dashboard</Link>
+                <Link href="/updates" onClick={() => setIsMobileMenuOpen(false)} className={accentHover}>Updates</Link>
+              </>
+            )}
+            <hr className="border-white/10 my-2" />
+            <Link href="/community" onClick={() => setIsMobileMenuOpen(false)} className={`${accentHover} flex items-center gap-3`}>
               <Users className="w-6 h-6" /> Community
             </Link>
-            <Link href="/shop" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-indigo-400 flex items-center gap-3">
+            <Link href="/shop" onClick={() => setIsMobileMenuOpen(false)} className={`${accentHover} flex items-center gap-3`}>
               <ShoppingBag className="w-6 h-6" /> Shop
             </Link>
             <Link href="/support" onClick={() => setIsMobileMenuOpen(false)} className="text-[#ff5e5b] hover:text-[#ff4542] flex items-center gap-3">

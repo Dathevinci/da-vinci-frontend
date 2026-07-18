@@ -53,6 +53,8 @@ import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { ToastProvider } from "@/components/ui/Toast";
 import AnimeModalProvider from "@/components/providers/AnimeModalProvider";
 
+import { AppModeProvider } from "@/components/providers/AppModeProvider";
+
 export const metadata: Metadata = {
   title: "Da Vinci",
   description: "A modern, educational anime discovery platform.",
@@ -67,22 +69,24 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning className="dark">
       <body className={`${geistSans.variable} ${geistMono.variable} ${permanentMarker.variable} ${cinzel.variable} ${ebGaramond.variable} ${fellEnglish.variable} bg-[#050505] text-white antialiased min-h-screen flex flex-col transition-colors duration-300 overflow-x-hidden`}>
         <ThemeProvider>
-          <ToastProvider>
-            <AnimeModalProvider>
-              <Suspense fallback={null}>
-                <AuthSync />
-              </Suspense>
+          <AppModeProvider>
+            <ToastProvider>
+              <AnimeModalProvider>
+                <Suspense fallback={null}>
+                  <AuthSync />
+                </Suspense>
 
-              <InviteOnlyGuard>
-                <MaintenanceOverlay />
-                <SplashScreen />
-                <Navbar />
-                <main className="flex-1 pb-20 md:pb-0">{children}</main>
-                <Footer />
-                <MobileBottomNav />
-              </InviteOnlyGuard>
-            </AnimeModalProvider>
-          </ToastProvider>
+                <InviteOnlyGuard>
+                  <MaintenanceOverlay />
+                  <SplashScreen />
+                  <Navbar />
+                  <main className="flex-1 pb-20 md:pb-0">{children}</main>
+                  <Footer />
+                  <MobileBottomNav />
+                </InviteOnlyGuard>
+              </AnimeModalProvider>
+            </ToastProvider>
+          </AppModeProvider>
         </ThemeProvider>
       </body>
     </html>
