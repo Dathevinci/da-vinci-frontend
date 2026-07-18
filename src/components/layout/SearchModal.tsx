@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, Loader2, Compass } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { searchAnime } from "@/lib/jikan";
-import { asura } from "@/lib/asura/parsers";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import { useAnimeModal } from "@/components/providers/AnimeModalProvider";
 import { useAppMode } from "@/components/providers/AppModeProvider";
@@ -50,8 +49,10 @@ export default function SearchModal({ onClose }: SearchModalProps) {
       setIsLoading(true);
       try {
         if (mode === 'manhwa') {
-          const res = await asura.search(query, 1);
-          setResults(res.results.slice(0, 5));
+          const res = await fetch(`/api/manhwa?q=${encodeURIComponent(query)}&page=1`);
+          if (!res.ok) throw new Error("Search failed");
+          const data = await res.json();
+          setResults(data.results.slice(0, 5));
         } else {
           const res = await searchAnime({ search: query, page: 1 });
           setResults(res.Page.media.slice(0, 5));
