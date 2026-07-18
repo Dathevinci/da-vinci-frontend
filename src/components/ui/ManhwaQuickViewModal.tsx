@@ -122,8 +122,7 @@ export default function ManhwaQuickViewModal({ manhwa, options, onClose }: Manhw
                   <img
                     src={bannerUrl}
                     alt={title}
-                    className="w-full h-full object-cover"
-                    style={{ imageRendering: 'high-quality' }}
+                    className="w-full h-full object-cover hq-image"
                   />
                 ) : (
                   <div className="w-full h-full bg-[#151518] flex items-center justify-center text-slate-600">

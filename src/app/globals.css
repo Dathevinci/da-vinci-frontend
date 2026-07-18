@@ -160,3 +160,5 @@ body.theme-crimson::after {
 
 .hide-navbar-footer header, .hide-navbar-footer footer { display: none !important; }
 .hide-navbar-footer body { padding-top: 0 !important; }
+
+.hq-image { image-rendering: high-quality; image-rendering: -webkit-optimize-contrast; }

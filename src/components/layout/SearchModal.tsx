@@ -158,8 +158,7 @@ export default function SearchModal({ onClose }: SearchModalProps) {
                       <img
                         src={image}
                         alt={title}
-                        className="w-12 h-16 object-cover rounded-md"
-                        style={isManhwa ? { imageRendering: 'high-quality' } : {}}
+                        className={`w-12 h-16 object-cover rounded-md ${isManhwa ? 'hq-image' : ''}`}
                       />
                       <div className="flex-1 min-w-0">
                         <h3 className="text-white font-bold truncate">

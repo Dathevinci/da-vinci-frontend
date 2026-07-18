@@ -25,8 +25,7 @@ export default function ManhwaCard({ manhwa }: { manhwa: IMangaResult }) {
           <img
             src={`/api/manhwa-image?url=${encodeURIComponent(manhwa.image)}`}
             alt={manhwa.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            style={{ imageRendering: 'high-quality' }}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 hq-image"
           />
         ) : (
           <div className="w-full h-full bg-[#151518] flex items-center justify-center text-slate-600">
