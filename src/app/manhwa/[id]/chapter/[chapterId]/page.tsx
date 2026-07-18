@@ -60,6 +60,17 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
     }
   }
 
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    if (isFullscreen) {
+      document.body.classList.add('hide-navbar-footer');
+    } else {
+      document.body.classList.remove('hide-navbar-footer');
+    }
+    return () => document.body.classList.remove('hide-navbar-footer');
+  }, [isFullscreen]);
+
   const currentChapter = manhwa?.chapters?.find(c => c.id === chapterId);
 
   if (loading) {
@@ -81,8 +92,6 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
       </div>
     );
   }
-
-  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     if (isFullscreen) {
