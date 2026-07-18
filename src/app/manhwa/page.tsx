@@ -108,9 +108,9 @@ export default function ManhwaPage() {
                       </div>
                       <h2 className="text-[1.3rem] font-black text-white tracking-wide">Trending Comics</h2>
                     </div>
-                    <button onClick={() => router.push("/manhwa?view=all&page=1")} className="px-4 py-1.5 bg-[#8a2be2] hover:bg-[#9a3bf2] text-white text-xs font-bold rounded transition-colors shadow-md">
+                    <Link href="/manhwa?view=all&page=1" className="px-4 py-1.5 bg-[#8a2be2] hover:bg-[#9a3bf2] text-white text-xs font-bold rounded transition-colors shadow-md">
                       All Comics
-                    </button>
+                    </Link>
                   </div>
                   
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">

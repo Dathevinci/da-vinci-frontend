@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { searchAnime } from "@/lib/jikan";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import { useAnimeModal } from "@/components/providers/AnimeModalProvider";
+import { useManhwaModal } from "@/components/providers/ManhwaModalProvider";
 import { useAppMode } from "@/components/providers/AppModeProvider";
 import { Anime } from "@tutkli/jikan-ts";
 import { IMangaResult } from "@/lib/asura/models";
@@ -21,6 +22,7 @@ export default function SearchModal({ onClose }: SearchModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { openAnime } = useAnimeModal();
+  const { openManhwa } = useManhwaModal();
   const { mode } = useAppMode();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -146,7 +148,7 @@ export default function SearchModal({ onClose }: SearchModalProps) {
                       onClick={() => {
                         onClose();
                         if (isManhwa) {
-                          router.push(`/manhwa/${encodeURIComponent(item.id)}`);
+                          openManhwa(item);
                         } else {
                           openAnime(item);
                         }

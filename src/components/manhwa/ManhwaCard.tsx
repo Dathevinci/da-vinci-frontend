@@ -1,7 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import { IMangaResult } from "@/lib/asura/models";
+import { useManhwaModal } from "@/components/providers/ManhwaModalProvider";
 
 export default function ManhwaCard({ manhwa }: { manhwa: IMangaResult }) {
+  const { openManhwa } = useManhwaModal();
   const ratingNum = Number(manhwa.rating);
   const displayRating = !isNaN(ratingNum) && ratingNum > 0 ? ratingNum.toFixed(1) : "N/A";
   
@@ -13,7 +17,10 @@ export default function ManhwaCard({ manhwa }: { manhwa: IMangaResult }) {
 
   return (
     <div className="group flex flex-col h-full bg-transparent overflow-hidden">
-      <Link href={`/manhwa/${encodeURIComponent(manhwa.id)}`} className="relative w-full aspect-[2/3] overflow-hidden rounded-lg shadow-md block">
+      <button 
+        onClick={() => openManhwa(manhwa)} 
+        className="relative w-full aspect-[2/3] overflow-hidden rounded-lg shadow-md block text-left"
+      >
         {manhwa.image ? (
           <img
             src={`/api/manhwa-image?url=${encodeURIComponent(manhwa.image)}`}
@@ -38,15 +45,15 @@ export default function ManhwaCard({ manhwa }: { manhwa: IMangaResult }) {
             ★ {displayRating}
           </div>
         )}
-      </Link>
+      </button>
 
       <div className="pt-2 flex flex-col flex-1 bg-[#0b0b0c]">
-        <Link href={`/manhwa/${encodeURIComponent(manhwa.id)}`}>
-          <h3 className="font-bold text-[#e2e8f0] text-[13px] leading-tight line-clamp-2 mb-1 hover:text-indigo-400 transition-colors">
+        <button onClick={() => openManhwa(manhwa)} className="text-left w-full">
+          <h3 className="font-bold text-[#e2e8f0] text-[13px] leading-tight line-clamp-2 mb-1 hover:text-[#8a2be2] transition-colors">
             {manhwa.title}
           </h3>
-        </Link>
-        <Link href={chapterHref} className="text-[11px] font-bold text-[#a3a3a3] mb-1 hover:text-indigo-400 transition-colors w-fit">
+        </button>
+        <Link href={chapterHref} className="text-[11px] font-bold text-[#a3a3a3] mb-1 hover:text-[#8a2be2] transition-colors w-fit">
           {manhwa.latestChapter || (manhwa.latest_chapters?.[0] ? `Chapter ${manhwa.latest_chapters[0].number}` : "Chapter ?")}
         </Link>
         <div className="flex items-center gap-1 mt-auto pointer-events-none">

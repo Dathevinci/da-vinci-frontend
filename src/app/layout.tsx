@@ -52,6 +52,7 @@ import { Suspense } from "react";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { ToastProvider } from "@/components/ui/Toast";
 import AnimeModalProvider from "@/components/providers/AnimeModalProvider";
+import ManhwaModalProvider from "@/components/providers/ManhwaModalProvider";
 
 import { AppModeProvider } from "@/components/providers/AppModeProvider";
 
@@ -72,18 +73,20 @@ export default function RootLayout({
           <AppModeProvider>
             <ToastProvider>
               <AnimeModalProvider>
-                <Suspense fallback={null}>
-                  <AuthSync />
-                </Suspense>
+                <ManhwaModalProvider>
+                  <Suspense fallback={null}>
+                    <AuthSync />
+                  </Suspense>
 
-                <InviteOnlyGuard>
-                  <MaintenanceOverlay />
-                  <SplashScreen />
-                  <Navbar />
-                  <main className="flex-1 pb-20 md:pb-0">{children}</main>
-                  <Footer />
-                  <MobileBottomNav />
-                </InviteOnlyGuard>
+                  <InviteOnlyGuard>
+                    <MaintenanceOverlay />
+                    <SplashScreen />
+                    <Navbar />
+                    <main className="flex-1 pb-20 md:pb-0">{children}</main>
+                    <Footer />
+                    <MobileBottomNav />
+                  </InviteOnlyGuard>
+                </ManhwaModalProvider>
               </AnimeModalProvider>
             </ToastProvider>
           </AppModeProvider>
