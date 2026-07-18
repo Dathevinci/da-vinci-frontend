@@ -82,50 +82,66 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
     );
   }
 
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    if (isFullscreen) {
+      document.body.classList.add('hide-navbar-footer');
+    } else {
+      document.body.classList.remove('hide-navbar-footer');
+    }
+    return () => document.body.classList.remove('hide-navbar-footer');
+  }, [isFullscreen]);
+
   return (
     <div className="bg-[#09090b] min-h-screen text-white pb-24">
       {/* Top Navigation Bar */}
-      <div className="fixed top-0 left-0 right-0 h-16 bg-[#09090b]/80 backdrop-blur-xl border-b border-white/5 z-50 flex items-center justify-between px-4 md:px-8">
-        <Link 
-          href={`/manhwa/${encodeURIComponent(id)}`}
-          className="flex items-center gap-2 text-slate-400 hover:text-white transition"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          <span className="hidden sm:inline font-medium">Back to {manhwa?.title || 'Details'}</span>
-        </Link>
+      {!isFullscreen && (
+        <div className="fixed top-0 left-0 right-0 h-16 bg-[#09090b]/80 backdrop-blur-xl border-b border-white/5 z-50 flex items-center justify-between px-4 md:px-8">
+          <Link 
+            href={`/manhwa/${encodeURIComponent(id)}`}
+            className="flex items-center gap-2 text-slate-400 hover:text-white transition"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="hidden sm:inline font-medium">Back to {manhwa?.title || 'Details'}</span>
+          </Link>
 
-        <div className="font-bold text-center absolute left-1/2 -translate-x-1/2">
-          {currentChapter?.title || `Chapter ${chapterId}`}
-        </div>
+          <div className="font-bold text-center absolute left-1/2 -translate-x-1/2">
+            {currentChapter?.title || `Chapter ${chapterId}`}
+          </div>
 
-        <div className="flex items-center gap-2">
-          {prevChapterId ? (
-            <Link 
-              href={`/manhwa/${encodeURIComponent(id)}/chapter/${encodeURIComponent(prevChapterId)}`}
-              className="p-2 bg-white/5 hover:bg-white/10 rounded-lg transition"
-              title="Previous Chapter"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </Link>
-          ) : (
-            <div className="p-2 opacity-30 cursor-not-allowed"><ChevronLeft className="w-5 h-5" /></div>
-          )}
-          {nextChapterId ? (
-            <Link 
-              href={`/manhwa/${encodeURIComponent(id)}/chapter/${encodeURIComponent(nextChapterId)}`}
-              className="p-2 bg-white/5 hover:bg-white/10 rounded-lg transition"
-              title="Next Chapter"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </Link>
-          ) : (
-            <div className="p-2 opacity-30 cursor-not-allowed"><ChevronRight className="w-5 h-5" /></div>
-          )}
+          <div className="flex items-center gap-2">
+            {prevChapterId ? (
+              <Link 
+                href={`/manhwa/${encodeURIComponent(id)}/chapter/${encodeURIComponent(prevChapterId)}`}
+                className="p-2 bg-white/5 hover:bg-white/10 rounded-lg transition"
+                title="Previous Chapter"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </Link>
+            ) : (
+              <div className="p-2 opacity-30 cursor-not-allowed"><ChevronLeft className="w-5 h-5" /></div>
+            )}
+            {nextChapterId ? (
+              <Link 
+                href={`/manhwa/${encodeURIComponent(id)}/chapter/${encodeURIComponent(nextChapterId)}`}
+                className="p-2 bg-white/5 hover:bg-white/10 rounded-lg transition"
+                title="Next Chapter"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </Link>
+            ) : (
+              <div className="p-2 opacity-30 cursor-not-allowed"><ChevronRight className="w-5 h-5" /></div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Reader area */}
-      <div className="max-w-[800px] mx-auto pt-16 flex flex-col items-center select-none bg-[#09090b]">
+      <div 
+        className={`max-w-[800px] mx-auto flex flex-col items-center select-none bg-[#09090b] cursor-pointer ${isFullscreen ? 'pt-0' : 'pt-16'}`}
+        onClick={() => setIsFullscreen(!isFullscreen)}
+      >
         {pages.map((page, index) => (
           <img 
             key={page.page || index}
@@ -138,44 +154,48 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
       </div>
 
       {/* Bottom Navigation */}
-      <div className="max-w-[800px] mx-auto p-8 flex items-center justify-between mt-8 border-t border-white/5">
-        {prevChapterId ? (
-          <Link 
-            href={`/manhwa/${encodeURIComponent(id)}/chapter/${encodeURIComponent(prevChapterId)}`}
-            className="flex items-center gap-2 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition"
-          >
-            <ChevronLeft className="w-5 h-5" /> Previous Chapter
-          </Link>
-        ) : (
-          <div />
-        )}
-        
-        {nextChapterId ? (
-          <Link 
-            href={`/manhwa/${encodeURIComponent(id)}/chapter/${encodeURIComponent(nextChapterId)}`}
-            className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl transition shadow-lg font-bold"
-          >
-            Next Chapter <ChevronRight className="w-5 h-5" />
-          </Link>
-        ) : (
-          <Link 
-            href={`/manhwa/${encodeURIComponent(id)}`}
-            className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl transition font-bold"
-          >
-            Finished <ArrowLeft className="w-5 h-5 ml-2 rotate-180" />
-          </Link>
-        )}
-      </div>
+      {!isFullscreen && (
+        <div className="max-w-[800px] mx-auto p-8 flex items-center justify-between mt-8 border-t border-white/5">
+          {prevChapterId ? (
+            <Link 
+              href={`/manhwa/${encodeURIComponent(id)}/chapter/${encodeURIComponent(prevChapterId)}`}
+              className="flex items-center gap-2 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition"
+            >
+              <ChevronLeft className="w-5 h-5" /> Previous Chapter
+            </Link>
+          ) : (
+            <div />
+          )}
+          
+          {nextChapterId ? (
+            <Link 
+              href={`/manhwa/${encodeURIComponent(id)}/chapter/${encodeURIComponent(nextChapterId)}`}
+              className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl transition shadow-lg font-bold"
+            >
+              Next Chapter <ChevronRight className="w-5 h-5" />
+            </Link>
+          ) : (
+            <Link 
+              href={`/manhwa/${encodeURIComponent(id)}`}
+              className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl transition font-bold"
+            >
+              Finished <ArrowLeft className="w-5 h-5 ml-2 rotate-180" />
+            </Link>
+          )}
+        </div>
+      )}
 
       {/* Chapter Comments */}
-      <div className="max-w-[1000px] mx-auto p-4 sm:p-8 mt-4 border-t border-white/5">
-        <CommunityFeed 
-          mangaId={id} 
-          mangaTitle={manhwa?.title} 
-          chapterId={chapterId} 
-          chapterTitle={currentChapter?.title || `Chapter`} 
-        />
-      </div>
+      {!isFullscreen && (
+        <div className="max-w-[1000px] mx-auto p-4 sm:p-8 mt-4 border-t border-white/5">
+          <CommunityFeed 
+            mangaId={id} 
+            mangaTitle={manhwa?.title} 
+            chapterId={chapterId} 
+            chapterTitle={currentChapter?.title || `Chapter`} 
+          />
+        </div>
+      )}
     </div>
   );
 }

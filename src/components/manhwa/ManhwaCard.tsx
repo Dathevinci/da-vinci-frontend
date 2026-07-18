@@ -7,9 +7,13 @@ export default function ManhwaCard({ manhwa }: { manhwa: IMangaResult }) {
   
   const isOngoing = manhwa.status?.toString().toUpperCase() === "ONGOING";
 
+  const chapterHref = manhwa.latest_chapters?.[0] 
+    ? `/manhwa/${encodeURIComponent(manhwa.id)}/chapter/${encodeURIComponent(manhwa.latest_chapters[0].id)}`
+    : `/manhwa/${encodeURIComponent(manhwa.id)}`;
+
   return (
-    <Link href={`/manhwa/${encodeURIComponent(manhwa.id)}`} className="group flex flex-col h-full bg-transparent overflow-hidden">
-      <div className="relative w-full aspect-[2/3] overflow-hidden rounded-lg shadow-md">
+    <div className="group flex flex-col h-full bg-transparent overflow-hidden">
+      <Link href={`/manhwa/${encodeURIComponent(manhwa.id)}`} className="relative w-full aspect-[2/3] overflow-hidden rounded-lg shadow-md block">
         {manhwa.image ? (
           <img
             src={manhwa.image}
@@ -33,22 +37,24 @@ export default function ManhwaCard({ manhwa }: { manhwa: IMangaResult }) {
             ★ {displayRating}
           </div>
         )}
-      </div>
+      </Link>
 
       <div className="pt-2 flex flex-col flex-1 bg-[#0b0b0c]">
-        <h3 className="font-bold text-[#e2e8f0] text-[13px] leading-tight line-clamp-2 mb-1 group-hover:text-indigo-400 transition-colors">
-          {manhwa.title}
-        </h3>
-        <div className="text-[11px] font-bold text-[#a3a3a3] mb-1">
-          {manhwa.latestChapter || "Chapter ?"}
-        </div>
-        <div className="flex items-center gap-1 mt-auto">
+        <Link href={`/manhwa/${encodeURIComponent(manhwa.id)}`}>
+          <h3 className="font-bold text-[#e2e8f0] text-[13px] leading-tight line-clamp-2 mb-1 hover:text-indigo-400 transition-colors">
+            {manhwa.title}
+          </h3>
+        </Link>
+        <Link href={chapterHref} className="text-[11px] font-bold text-[#a3a3a3] mb-1 hover:text-indigo-400 transition-colors w-fit">
+          {manhwa.latestChapter || (manhwa.latest_chapters?.[0] ? `Chapter ${manhwa.latest_chapters[0].number}` : "Chapter ?")}
+        </Link>
+        <div className="flex items-center gap-1 mt-auto pointer-events-none">
           <div className="flex text-yellow-500 text-[10px]">
             ★★★★★
           </div>
           <span className="text-[10px] font-bold text-slate-400 ml-1">{manhwa.rating || "N/A"}</span>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }

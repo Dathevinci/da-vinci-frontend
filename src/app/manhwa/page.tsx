@@ -6,12 +6,13 @@ import ManhwaFilters from "@/components/manhwa/ManhwaFilters";
 import ManhwaHeroCarousel from "@/components/manhwa/ManhwaHeroCarousel";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, BookMarked, Loader2, Flame, Clock, Star } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { IMangaResult, ISearch } from "@/lib/asura/models";
 import { formatDistanceToNowStrict } from "date-fns";
 
 export default function ManhwaPage() {
   const sp = useSearchParams();
+  const router = useRouter();
   const page = Math.max(1, parseInt(sp.get("page") || "1"));
   const query = sp.get("q") || "";
 
@@ -106,10 +107,9 @@ export default function ManhwaPage() {
                         <Star className="w-4 h-4 text-[#8a2be2] fill-[#8a2be2]" />
                       </div>
                       <h2 className="text-[1.3rem] font-black text-white tracking-wide">Trending Comics</h2>
-                    </div>
-                    <Link href="/manhwa?view=all&page=1" className="px-4 py-1.5 bg-[#8a2be2] hover:bg-[#9a3bf2] text-white text-xs font-bold rounded transition-colors shadow-md">
+                    <button onClick={() => router.push("/manhwa?view=all&page=1")} className="px-4 py-1.5 bg-[#8a2be2] hover:bg-[#9a3bf2] text-white text-xs font-bold rounded transition-colors shadow-md">
                       All Comics
-                    </Link>
+                    </button>
                   </div>
                   
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">

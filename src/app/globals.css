@@ -157,3 +157,6 @@ body.theme-crimson::after {
   pointer-events: none;
   z-index: 0;
 }
+
+.hide-navbar-footer header, .hide-navbar-footer footer { display: none !important; }
+.hide-navbar-footer body { padding-top: 0 !important; }
