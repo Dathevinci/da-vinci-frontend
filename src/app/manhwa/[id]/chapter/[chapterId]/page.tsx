@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, ArrowLeft, Loader2, Lock } from "lucide-react";
 import { IMangaChapterPage, IMangaInfo } from "@/lib/asura/models";
 import CommunityFeed from "@/components/community/CommunityFeed";
+import { motion } from "framer-motion";
 
 export default function ManhwaChapterPage({ params }: { params: Promise<{ id: string; chapterId: string }> }) {
   const resolvedParams = use(params);
@@ -156,15 +157,18 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
           </div>
         </div>
       )}
-
       {/* Reader area */}
       <div 
         className={`max-w-[800px] mx-auto flex flex-col items-center select-none bg-[#09090b] cursor-pointer ${isFullscreen ? 'pt-0' : 'pt-16'}`}
         onClick={() => setIsFullscreen(!isFullscreen)}
       >
         {pages.map((page, index) => (
-          <img 
+          <motion.img 
             key={page.page || index}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "200px" }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
             src={`/api/manhwa-image?url=${encodeURIComponent(page.img)}`} 
             alt={`Page ${page.page}`}
             className="w-full h-auto object-contain bg-[#111]"
