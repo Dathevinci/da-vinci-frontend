@@ -89,7 +89,7 @@ export default function ManhwaPage() {
           <p className="text-[#a3a3a3] text-sm font-bold uppercase tracking-widest">Loading AsuraScans...</p>
         </div>
       ) : isHome ? (
-        <>
+        <div className="w-full">
           {/* Top Hero Carousel */}
           <ManhwaHeroCarousel items={trending.slice(0, 10)} />
           
@@ -131,7 +131,7 @@ export default function ManhwaPage() {
                       <div key={`latest-${manhwa.id}`} className="flex gap-4 p-3 bg-[#0b0b0c] rounded-lg border border-[#2a2a32] hover:border-[#8a2be2]/50 transition-colors">
                         <Link href={`/manhwa/${encodeURIComponent(manhwa.id)}`} className="w-[85px] h-[120px] shrink-0 rounded overflow-hidden shadow-md">
                           {manhwa.image && (
-                            <img src={manhwa.image} alt={manhwa.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                            <img src={`/api/manhwa-image?url=${encodeURIComponent(manhwa.image)}`} alt={manhwa.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                           )}
                         </Link>
                         <div className="flex flex-col flex-1 min-w-0">
@@ -220,7 +220,7 @@ export default function ManhwaPage() {
                       >
                         <div className="relative w-14 h-14 shrink-0 rounded overflow-hidden border border-[#2a2a32] bg-[#0b0b0c]">
                           {item.image && (
-                            <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                            <img src={`/api/manhwa-image?url=${encodeURIComponent(item.image)}`} alt={item.title} className="w-full h-full object-cover" />
                           )}
                           <div className="absolute top-0 left-0 w-5 h-5 bg-[#8a2be2] text-white text-[10px] font-bold flex items-center justify-center rounded-br shadow-md">
                             {index + 1}
@@ -248,7 +248,7 @@ export default function ManhwaPage() {
 
             </div>
           </div>
-        </>
+        </div>
       ) : data.length > 0 ? (
         <div className="max-w-[1400px] mx-auto px-4 md:px-8">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 bg-[#151518] border border-[#2a2a32] p-6 rounded-xl shadow-lg relative overflow-hidden">

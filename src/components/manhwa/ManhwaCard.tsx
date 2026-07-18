@@ -16,7 +16,7 @@ export default function ManhwaCard({ manhwa }: { manhwa: IMangaResult }) {
       <Link href={`/manhwa/${encodeURIComponent(manhwa.id)}`} className="relative w-full aspect-[2/3] overflow-hidden rounded-lg shadow-md block">
         {manhwa.image ? (
           <img
-            src={manhwa.image}
+            src={`/api/manhwa-image?url=${encodeURIComponent(manhwa.image)}`}
             alt={manhwa.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />

@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
   const allowedHosts = [
     "uploads.mangadex.org",
     "cmdxd98sb0x3yprd.mangadex.network",
+    "cdn.asurascans.com",
   ];
   const isAllowed =
     allowedHosts.includes(parsed.hostname) ||
@@ -31,12 +32,14 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    const isAsura = parsed.hostname === "cdn.asurascans.com";
+    
     const res = await fetch(url, {
       headers: {
-        // MangaDex requires this Referer to serve cover images
-        Referer: "https://mangadex.org/",
+        // Asura requires their referer, MangaDex requires theirs
+        Referer: isAsura ? "https://asuracomic.net/" : "https://mangadex.org/",
         "User-Agent":
-          "Mozilla/5.0 (compatible; DaVinci/1.0; +https://davinci.app)",
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
       },
     });
 

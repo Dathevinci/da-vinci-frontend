@@ -145,7 +145,7 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
         {pages.map((page, index) => (
           <img 
             key={page.page || index}
-            src={page.img} 
+            src={`/api/manhwa-image?url=${encodeURIComponent(page.img)}`} 
             alt={`Page ${page.page}`}
             className="w-full h-auto object-contain bg-[#111]"
             loading="lazy"
