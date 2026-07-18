@@ -28,6 +28,8 @@ export interface IMangaChapter {
   id: string;
   title: string;
   releaseDate?: string;
+  isLocked?: boolean;
+  earlyAccessUntil?: string;
 }
 
 export interface IMangaChapterPage {

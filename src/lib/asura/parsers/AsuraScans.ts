@@ -171,10 +171,16 @@ class AsuraScans extends MangaParser {
         const chaptersData = await this.requestWithFallback<any>(`series/${mangaId}/chapters`);
         const chaptersList = chaptersData.data || [];
         info.chapters = chaptersList.map((chap: any): IMangaChapter => {
+          // A chapter might be locked if is_locked is true, is_premium is true, or early_access_until is in the future
+          const isEarlyAccess = chap.early_access_until ? new Date(chap.early_access_until) > new Date() : false;
+          const isLocked = chap.is_locked || chap.is_premium || isEarlyAccess;
+          
           return {
             id: `${mangaId}|${chap.number}`, // We embed slug and chapter number
             title: chap.title || `Chapter ${chap.number}`,
             releaseDate: chap.published_at,
+            isLocked: !!isLocked,
+            earlyAccessUntil: chap.early_access_until,
           };
         });
       } catch (e) {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, ArrowLeft, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowLeft, Loader2, Lock } from "lucide-react";
 import { IMangaChapterPage, IMangaInfo } from "@/lib/asura/models";
 import CommunityFeed from "@/components/community/CommunityFeed";
 
@@ -72,6 +72,26 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
   }, [isFullscreen]);
 
   const currentChapter = manhwa?.chapters?.find(c => c.id === chapterId);
+
+  if (currentChapter?.isLocked) {
+    return (
+      <div className="bg-[#09090b] min-h-screen flex items-center justify-center text-white flex-col gap-6 px-4 text-center">
+        <Lock className="w-16 h-16 text-indigo-500 mb-2" />
+        <h1 className="text-3xl font-black">Chapter Locked</h1>
+        <p className="text-slate-400 max-w-md text-lg">
+          This chapter is currently locked or in early access. It will be available to read once it is officially released for free.
+        </p>
+        {(currentChapter as any).earlyAccessUntil && (
+          <p className="text-indigo-400 font-bold bg-indigo-500/10 border border-indigo-500/20 px-4 py-2 rounded-lg">
+            Unlocks on: {new Date((currentChapter as any).earlyAccessUntil).toLocaleString()}
+          </p>
+        )}
+        <Link href={`/manhwa/${encodeURIComponent(id)}`} className="mt-4 px-6 py-3 bg-[#1e1e24] hover:bg-[#2a2a32] rounded-lg font-bold transition-colors border border-[#2a2a32] flex items-center gap-2">
+          <ArrowLeft className="w-5 h-5" /> Back to details
+        </Link>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

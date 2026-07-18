@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from "react";
 import Link from "next/link";
-import { ChevronLeft, BookOpen, User, Tag, Clock, Star, ShieldAlert, AlignLeft } from "lucide-react";
+import { ChevronLeft, BookOpen, User, Tag, Clock, Star, ShieldAlert, AlignLeft, Lock } from "lucide-react";
 import { IMangaInfo } from "@/lib/asura/models";
 import ManhwaTrackerButton from "@/components/manhwa/ManhwaTrackerButton";
 import CommunityFeed from "@/components/community/CommunityFeed";
@@ -92,24 +92,35 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
               <ManhwaTrackerButton manhwa={manhwa} className="w-full" />
               
               {/* Read First/Last Chapter Buttons */}
-              {manhwa.chapters && manhwa.chapters.length > 0 && (
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  <Link 
-                    href={`/manhwa/${encodeURIComponent(id)}/chapter/${encodeURIComponent(manhwa.chapters[manhwa.chapters.length - 1].id)}`}
-                    className="py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold text-xs text-center flex flex-col items-center justify-center transition-colors shadow-md shadow-indigo-900/20"
-                  >
-                    <span>First</span>
-                    <span className="opacity-70 font-medium">Chapter</span>
-                  </Link>
-                  <Link 
-                    href={`/manhwa/${encodeURIComponent(id)}/chapter/${encodeURIComponent(manhwa.chapters[0].id)}`}
-                    className="py-3 bg-[#1e1e24] hover:bg-[#2a2a32] text-white rounded-lg font-bold text-xs text-center flex flex-col items-center justify-center transition-colors border border-[#2a2a32]"
-                  >
-                    <span>Latest</span>
-                    <span className="opacity-70 font-medium">Chapter</span>
-                  </Link>
-                </div>
-              )}
+              {manhwa.chapters && manhwa.chapters.length > 0 && (() => {
+                const firstChapter = manhwa.chapters[manhwa.chapters.length - 1];
+                const latestUnlockedChapter = manhwa.chapters.find(c => !c.isLocked) || manhwa.chapters[0];
+                return (
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <Link 
+                      href={`/manhwa/${encodeURIComponent(id)}/chapter/${encodeURIComponent(firstChapter.id)}`}
+                      className="py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold text-xs text-center flex flex-col items-center justify-center transition-colors shadow-md shadow-indigo-900/20"
+                    >
+                      <span>First</span>
+                      <span className="opacity-70 font-medium">Chapter</span>
+                    </Link>
+                    {latestUnlockedChapter && !latestUnlockedChapter.isLocked ? (
+                      <Link 
+                        href={`/manhwa/${encodeURIComponent(id)}/chapter/${encodeURIComponent(latestUnlockedChapter.id)}`}
+                        className="py-3 bg-[#1e1e24] hover:bg-[#2a2a32] text-white rounded-lg font-bold text-xs text-center flex flex-col items-center justify-center transition-colors border border-[#2a2a32]"
+                      >
+                        <span>Latest</span>
+                        <span className="opacity-70 font-medium">Chapter</span>
+                      </Link>
+                    ) : (
+                      <div className="py-3 bg-[#1e1e24] opacity-50 cursor-not-allowed text-white rounded-lg font-bold text-xs text-center flex flex-col items-center justify-center border border-[#2a2a32]">
+                        <span>Locked</span>
+                        <span className="opacity-70 font-medium">Chapter</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Right Column: Title & Info */}
@@ -209,27 +220,43 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
           <div className="max-h-[600px] overflow-y-auto">
             {manhwa.chapters && manhwa.chapters.length > 0 ? (
               <div className="flex flex-col">
-                {manhwa.chapters.map((chap, index) => (
-                  <Link 
-                    key={chap.id}
-                    href={`/manhwa/${encodeURIComponent(id)}/chapter/${encodeURIComponent(chap.id)}`}
-                    className={`flex items-center justify-between px-6 py-3.5 hover:bg-[#2a2a32] transition-colors group ${index % 2 === 0 ? 'bg-[#151518]' : 'bg-[#1a1a1f]'} text-[#e2e8f0] visited:text-[#8a2be2]`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="text-indigo-500 font-black opacity-30 text-xs w-6 text-right group-hover:text-indigo-400 group-hover:opacity-100 transition-all">
-                        {manhwa.chapters!.length - index}
+                {manhwa.chapters.map((chap, index) => {
+                  const isLocked = chap.isLocked;
+                  const innerContent = (
+                    <>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="text-indigo-500 font-black opacity-30 text-xs w-6 text-right group-hover:text-indigo-400 group-hover:opacity-100 transition-all">
+                          {manhwa.chapters!.length - index}
+                        </div>
+                        <div className={`font-bold transition-colors truncate flex items-center gap-2 ${isLocked ? 'text-slate-500' : 'group-hover:text-indigo-300'}`}>
+                          {isLocked && <Lock className="w-4 h-4 text-slate-500" />}
+                          {chap.title}
+                        </div>
                       </div>
-                      <div className="font-bold group-hover:text-indigo-300 transition-colors truncate">
-                        {chap.title}
-                      </div>
+                      {chap.releaseDate && (
+                        <div className={`text-[10px] font-bold uppercase tracking-wider shrink-0 ml-4 transition-colors ${isLocked ? 'text-slate-600' : 'text-[#737373] group-hover:text-[#a3a3a3]'}`}>
+                          {chap.releaseDate}
+                        </div>
+                      )}
+                    </>
+                  );
+
+                  const className = `flex items-center justify-between px-6 py-3.5 transition-colors group ${index % 2 === 0 ? 'bg-[#151518]' : 'bg-[#1a1a1f]'} ${isLocked ? 'cursor-not-allowed opacity-80' : 'hover:bg-[#2a2a32] text-[#e2e8f0] visited:text-[#8a2be2]'}`;
+
+                  return isLocked ? (
+                    <div key={chap.id} className={className} title={chap.earlyAccessUntil ? `Early Access Until: ${new Date(chap.earlyAccessUntil).toLocaleString()}` : "This chapter is locked"}>
+                      {innerContent}
                     </div>
-                    {chap.releaseDate && (
-                      <div className="text-[10px] font-bold text-[#737373] uppercase tracking-wider shrink-0 ml-4 group-hover:text-[#a3a3a3] transition-colors">
-                        {chap.releaseDate}
-                      </div>
-                    )}
-                  </Link>
-                ))}
+                  ) : (
+                    <Link 
+                      key={chap.id}
+                      href={`/manhwa/${encodeURIComponent(id)}/chapter/${encodeURIComponent(chap.id)}`}
+                      className={className}
+                    >
+                      {innerContent}
+                    </Link>
+                  );
+                })}
               </div>
             ) : (
               <div className="p-12 text-center text-[#737373] font-medium text-sm">
