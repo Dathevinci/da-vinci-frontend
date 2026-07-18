@@ -3,9 +3,11 @@ import { IMangaResult } from "@/lib/asura/models";
 import Link from "next/link";
 import { Star } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useManhwaModal } from "@/components/providers/ManhwaModalProvider";
 
 export default function ManhwaHeroCarousel({ items }: { items: IMangaResult[] }) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const { openManhwa } = useManhwaModal();
 
   useEffect(() => {
     if (items.length <= 1) return;
@@ -72,7 +74,7 @@ export default function ManhwaHeroCarousel({ items }: { items: IMangaResult[] })
                 }}
               >
                 {isActive ? (
-                  <Link href={`/manhwa/${encodeURIComponent(item.id)}`} className="block w-full h-full relative">
+                  <button onClick={() => openManhwa(item)} className="block w-full h-full relative text-left">
                     {item.image && (
                       <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
                     )}
@@ -86,7 +88,7 @@ export default function ManhwaHeroCarousel({ items }: { items: IMangaResult[] })
                         {item.title}
                       </h3>
                     </div>
-                  </Link>
+                  </button>
                 ) : (
                   <div className="w-full h-full relative">
                     {item.image && (

@@ -73,9 +73,9 @@ export default function SearchModal({ onClose }: SearchModalProps) {
     e.preventDefault();
     if (query.trim()) {
       if (mode === 'manhwa') {
-        // If there's a top result, just go to it since there's no manhwa search page yet
+        // If there's a top result, open its quick view modal
         if (results.length > 0) {
-          router.push(`/manhwa/${encodeURIComponent(results[0].id)}`);
+          openManhwa(results[0]);
         }
       } else {
         router.push(`/explore?q=${encodeURIComponent(query)}`);
