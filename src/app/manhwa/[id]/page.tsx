@@ -80,7 +80,7 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
             <div className="flex-shrink-0 mx-auto md:mx-0 w-[240px] flex flex-col gap-4">
               <div className="w-full aspect-[2/3] rounded-lg overflow-hidden border border-[#2a2a32] shadow-lg bg-[#0b0b0c]">
                 {manhwa.image ? (
-                  <img src={`/api/manhwa-image?url=${encodeURIComponent(manhwa.image)}`} alt={manhwa.title} className="w-full h-full object-cover" />
+                  <img src={`/api/manhwa-image?url=${encodeURIComponent(manhwa.image)}`} alt={manhwa.title} className="w-full h-full object-cover" style={{ imageRendering: 'high-quality' }} />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <BookOpen className="w-12 h-12 text-[#2a2a32]" />
