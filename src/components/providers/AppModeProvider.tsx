@@ -21,8 +21,20 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
   // Load initial mode from local storage
   useEffect(() => {
     const savedMode = localStorage.getItem('daVinciAppMode') as AppMode;
-    if (savedMode === 'anime' || savedMode === 'manhwa') {
-      setModeState(savedMode);
+    if (savedMode === 'manhwa' && pathname === '/') {
+      // If user preferred manhwa but landed on the root, redirect them
+      router.replace('/manhwa');
+    } else if (savedMode === 'anime' && pathname === '/manhwa') {
+      // If user preferred anime but landed on the manhwa root, redirect them
+      router.replace('/');
+    } else if (savedMode === 'anime' || savedMode === 'manhwa') {
+      // Otherwise just restore the visual state, but only if it matches the current path category
+      const isManhwaPath = pathname.startsWith('/manhwa');
+      if (isManhwaPath && savedMode === 'manhwa') {
+        setModeState('manhwa');
+      } else if (!isManhwaPath && savedMode === 'anime') {
+        setModeState('anime');
+      }
     }
   }, []);
 
@@ -30,12 +42,18 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (pathname) {
       if (pathname.startsWith('/manhwa')) {
-        if (mode !== 'manhwa') setModeState('manhwa');
+        if (mode !== 'manhwa') {
+          setModeState('manhwa');
+          localStorage.setItem('daVinciAppMode', 'manhwa');
+        }
       } else if (pathname === '/' || pathname.startsWith('/anime') || pathname.startsWith('/explore') || pathname.startsWith('/airing') || pathname.startsWith('/upcoming') || pathname.startsWith('/calendar')) {
-        if (mode !== 'anime') setModeState('anime');
+        if (mode !== 'anime') {
+          setModeState('anime');
+          localStorage.setItem('daVinciAppMode', 'anime');
+        }
       }
     }
-  }, [pathname]);
+  }, [pathname, mode]);
 
   const setMode = (newMode: AppMode) => {
     setModeState(newMode);
