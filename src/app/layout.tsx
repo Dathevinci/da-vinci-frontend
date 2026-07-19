@@ -45,6 +45,7 @@ import ModeTransition from "@/components/layout/ModeTransition";
 import Footer from "@/components/layout/Footer";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import SplashScreen from "@/components/ui/SplashScreen";
+import SupportUsModal from "@/components/layout/SupportUsModal";
 import AuthSync from "@/components/providers/AuthSync";
 import MaintenanceOverlay from "@/components/ui/MaintenanceOverlay";
 import InviteOnlyGuard from "@/components/layout/InviteOnlyGuard";
@@ -81,6 +82,7 @@ export default function RootLayout({
                   </Suspense>
 
                   <InviteOnlyGuard>
+                    <SupportUsModal />
                     <MaintenanceOverlay />
                     <SplashScreen />
                     <Navbar />
