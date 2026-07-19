@@ -151,7 +151,7 @@ export default function ManhwaQuickViewModal({ manhwa, options, onClose }: Manhw
                     <span className={`px-2 py-0.5 rounded text-xs uppercase tracking-wider border ${
                       displayManhwa.status.toLowerCase() === 'ongoing'
                         ? 'bg-green-500/10 text-green-400 border-green-500/20'
-                        : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                        : 'bg-red-500/10 text-red-400 border-red-500/20'
                     }`}>
                       {displayManhwa.status}
                     </span>
@@ -171,7 +171,7 @@ export default function ManhwaQuickViewModal({ manhwa, options, onClose }: Manhw
                         <Link
                           href={`/manhwa/${encodeURIComponent(manhwa.id)}/chapter/${encodeURIComponent(firstChapter.id)}`}
                           onClick={onClose}
-                          className="flex items-center gap-2 bg-[#8a2be2] hover:bg-[#9a3bf2] text-white px-6 py-2.5 rounded shadow-lg shadow-[#8a2be2]/20 transition-colors font-bold"
+                          className="flex items-center gap-2 bg-[#dc2626] hover:bg-[#ef4444] text-white px-6 py-2.5 rounded shadow-lg shadow-[#dc2626]/20 transition-colors font-bold"
                         >
                           <Play className="w-5 h-5 fill-current" />
                           Read First Chapter
@@ -226,7 +226,7 @@ export default function ManhwaQuickViewModal({ manhwa, options, onClose }: Manhw
                     {fullManhwa.description.length > 200 && (
                       <button
                         onClick={() => setIsExpanded(!isExpanded)}
-                        className="text-[#8a2be2] hover:text-[#9a3bf2] font-bold text-sm mt-2 transition-colors"
+                        className="text-[#dc2626] hover:text-[#ef4444] font-bold text-sm mt-2 transition-colors"
                       >
                         {isExpanded ? "Show Less" : "Read More"}
                       </button>
@@ -252,7 +252,7 @@ export default function ManhwaQuickViewModal({ manhwa, options, onClose }: Manhw
                     <Link
                       href={`/manhwa/${encodeURIComponent(manhwa.id)}`}
                       onClick={onClose}
-                      className="text-sm font-bold text-[#8a2be2] hover:underline"
+                      className="text-sm font-bold text-[#dc2626] hover:underline"
                     >
                       View All
                     </Link>
@@ -273,10 +273,10 @@ export default function ManhwaQuickViewModal({ manhwa, options, onClose }: Manhw
                         className={`flex items-center justify-between p-3 rounded-lg border ${
                           chapter.isLocked
                             ? 'bg-[#151518] border-[#2a2a32] opacity-60 cursor-not-allowed'
-                            : 'bg-[#1e1e24] border-[#2a2a32] hover:border-[#8a2be2]/50 hover:bg-[#8a2be2]/5 transition-colors group'
+                            : 'bg-[#1e1e24] border-[#2a2a32] hover:border-[#dc2626]/50 hover:bg-[#dc2626]/5 transition-colors group'
                         }`}
                       >
-                        <div className="font-bold text-sm text-[#e2e8f0] group-hover:text-[#8a2be2] transition-colors">
+                        <div className="font-bold text-sm text-[#e2e8f0] group-hover:text-[#dc2626] transition-colors">
                           Chapter {chapter.number}
                         </div>
                         <div className="text-xs text-slate-500 font-medium flex items-center gap-2">
@@ -301,7 +301,7 @@ export default function ManhwaQuickViewModal({ manhwa, options, onClose }: Manhw
                         onClick={() => openManhwa(rec)}
                         className="group text-left"
                       >
-                        <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden border border-white/5 group-hover:border-[#8a2be2]/50 bg-[#151518] transition-colors">
+                        <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden border border-white/5 group-hover:border-[#dc2626]/50 bg-[#151518] transition-colors">
                           {rec.image ? (
                             <img
                               src={`/api/manhwa-image?url=${encodeURIComponent(rec.image)}`}

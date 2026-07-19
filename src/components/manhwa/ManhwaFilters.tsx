@@ -35,7 +35,7 @@ function FiltersInner() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search manhwa..."
-          className="w-full bg-[#151518] border border-white/10 rounded-xl py-3 pl-11 pr-4 text-sm focus:outline-none focus:border-indigo-500/50 transition-colors text-white placeholder:text-slate-500"
+          className="w-full bg-[#151518] border border-white/10 rounded-xl py-3 pl-11 pr-4 text-sm focus:outline-none focus:border-red-500/50 transition-colors text-white placeholder:text-slate-500"
         />
         <Search className="w-4 h-4 text-slate-500 absolute left-4 top-1/2 -translate-y-1/2" />
       </form>
@@ -55,7 +55,7 @@ function FiltersInner() {
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="w-full bg-[#151518] border border-white/10 rounded-lg py-2 px-3 text-sm text-white focus:outline-none focus:border-indigo-500/50"
+              className="w-full bg-[#151518] border border-white/10 rounded-lg py-2 px-3 text-sm text-white focus:outline-none focus:border-red-500/50"
             >
               <option value="">All</option>
               <option value="ongoing">Ongoing</option>
@@ -70,7 +70,7 @@ function FiltersInner() {
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value)}
-              className="w-full bg-[#151518] border border-white/10 rounded-lg py-2 px-3 text-sm text-white focus:outline-none focus:border-indigo-500/50"
+              className="w-full bg-[#151518] border border-white/10 rounded-lg py-2 px-3 text-sm text-white focus:outline-none focus:border-red-500/50"
             >
               <option value="followedCount">Most Popular</option>
               <option value="latestUploadedChapter">Latest Updated</option>
@@ -80,7 +80,7 @@ function FiltersInner() {
           </div>
 
           <div className="flex gap-2 mt-1">
-            <button onClick={apply} className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-lg text-sm transition">
+            <button onClick={apply} className="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-2 rounded-lg text-sm transition">
               Apply
             </button>
             <button onClick={clear} className="p-2 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white rounded-lg transition border border-white/10">

@@ -247,7 +247,7 @@ export default function QuickViewModal({ anime, options, onClose, onPlayTrailer 
                       <p className={`transition-all ${isExpanded ? "" : "line-clamp-4"}`}>{displayAnime.synopsis}</p>
                       <button 
                         onClick={() => setIsExpanded(!isExpanded)}
-                        className="text-indigo-400 hover:text-indigo-300 font-bold text-sm mt-1 transition-colors"
+                        className="text-purple-400 hover:text-purple-300 font-bold text-sm mt-1 transition-colors"
                       >
                         {isExpanded ? "Show Less" : "See More"}
                       </button>
@@ -297,7 +297,7 @@ export default function QuickViewModal({ anime, options, onClose, onPlayTrailer 
                 <button
                   onClick={() => setActiveTab("episodes")}
                   className={`pb-3 font-bold text-base md:text-lg transition-colors border-b-2 -mb-px ${
-                    activeTab === "episodes" ? "border-indigo-500 text-white" : "border-transparent text-slate-400 hover:text-white"
+                    activeTab === "episodes" ? "border-purple-500 text-white" : "border-transparent text-slate-400 hover:text-white"
                   }`}
                 >
                   Episodes
@@ -305,7 +305,7 @@ export default function QuickViewModal({ anime, options, onClose, onPlayTrailer 
                 <button
                   onClick={() => setActiveTab("discussions")}
                   className={`pb-3 font-bold text-base md:text-lg transition-colors border-b-2 -mb-px ${
-                    activeTab === "discussions" ? "border-indigo-500 text-white" : "border-transparent text-slate-400 hover:text-white"
+                    activeTab === "discussions" ? "border-purple-500 text-white" : "border-transparent text-slate-400 hover:text-white"
                   }`}
                 >
                   Discussions

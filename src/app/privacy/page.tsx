@@ -6,23 +6,23 @@ export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-slate-300 py-20 px-6 sm:px-12 relative overflow-hidden">
       {/* Background elements */}
-      <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-indigo-500/10 to-transparent pointer-events-none" />
-      <div className="absolute -top-[200px] -right-[200px] w-[600px] h-[600px] bg-indigo-500/10 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-purple-500/10 to-transparent pointer-events-none" />
+      <div className="absolute -top-[200px] -right-[200px] w-[600px] h-[600px] bg-purple-500/10 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="max-w-4xl mx-auto relative z-10">
-        <Link href="/" className="inline-flex items-center text-indigo-400 hover:text-indigo-300 font-medium mb-12 transition-colors">
+        <Link href="/" className="inline-flex items-center text-purple-400 hover:text-purple-300 font-medium mb-12 transition-colors">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Home
         </Link>
 
         <div className="flex items-center gap-4 mb-8">
-          <div className="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center">
-            <Shield className="w-6 h-6 text-indigo-400" />
+          <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center">
+            <Shield className="w-6 h-6 text-purple-400" />
           </div>
           <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tight">Privacy Policy</h1>
         </div>
 
-        <div className="prose prose-invert prose-indigo max-w-none prose-p:leading-relaxed prose-headings:text-white prose-a:text-indigo-400 hover:prose-a:text-indigo-300">
+        <div className="prose prose-invert prose-indigo max-w-none prose-p:leading-relaxed prose-headings:text-white prose-a:text-purple-400 hover:prose-a:text-purple-300">
           <p className="text-lg text-slate-400 mb-12">
             Last updated: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
           </p>
@@ -64,7 +64,7 @@ export default function PrivacyPage() {
             </p>
           </section>
 
-          <section className="bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 rounded-2xl p-8">
+          <section className="bg-gradient-to-br from-purple-500/20 to-purple-500/20 border border-purple-500/30 rounded-2xl p-8">
             <h2 className="text-2xl font-bold mb-4 text-white">5. Contact Us</h2>
             <p className="text-slate-300">
               If you have any questions or concerns about this Privacy Policy, please contact us at:

@@ -72,7 +72,7 @@ export default function HeroBannerCarousel({ animes }: Props) {
           >
             <div className="mb-4 flex items-center gap-3">
               <AnimeStatusBadge status={heroAnime.status || "Unknown"} />
-              <span className="text-indigo-400 font-bold uppercase tracking-widest text-sm flex items-center gap-1">
+              <span className="text-purple-400 font-bold uppercase tracking-widest text-sm flex items-center gap-1">
                 <PlayCircle className="w-4 h-4" /> #{currentIndex + 1} Trending
               </span>
             </div>
@@ -93,7 +93,7 @@ export default function HeroBannerCarousel({ animes }: Props) {
             <div className="flex items-center gap-4 w-full sm:w-auto">
               <button
                 onClick={() => openAnime(heroAnime)}
-                className="flex items-center justify-center w-full sm:w-auto gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 md:px-8 md:py-3 rounded-full text-base md:text-lg font-bold transition shadow-xl shadow-indigo-600/20"
+                className="flex items-center justify-center w-full sm:w-auto gap-2 bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 md:px-8 md:py-3 rounded-full text-base md:text-lg font-bold transition shadow-xl shadow-purple-600/20"
               >
                 <Info className="w-4 h-4 md:w-5 md:h-5" />
                 View Details
@@ -110,7 +110,7 @@ export default function HeroBannerCarousel({ animes }: Props) {
             key={idx}
             onClick={() => setCurrentIndex(idx)}
             className={`h-1.5 rounded-full transition-all duration-500 ${
-              idx === currentIndex ? "w-8 bg-indigo-500" : "w-2 bg-white/20 hover:bg-white/40"
+              idx === currentIndex ? "w-8 bg-purple-500" : "w-2 bg-white/20 hover:bg-white/40"
             }`}
           />
         ))}

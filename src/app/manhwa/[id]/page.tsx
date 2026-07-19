@@ -36,7 +36,7 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
     return (
       <div className="bg-[#0b0b0c] min-h-screen pt-24 pb-16 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4 text-[#a3a3a3]">
-          <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-10 h-10 border-4 border-red-600 border-t-transparent rounded-full animate-spin"></div>
           <div className="font-bold tracking-widest uppercase text-xs">Loading Series</div>
         </div>
       </div>
@@ -57,14 +57,14 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
   }
 
   return (
-    <div className="bg-[#0b0b0c] min-h-screen pt-20 pb-16 text-[#e2e8f0] font-sans selection:bg-indigo-500/30">
+    <div className="bg-[#0b0b0c] min-h-screen pt-20 pb-16 text-[#e2e8f0] font-sans selection:bg-red-500/30">
       <div className="max-w-[1100px] mx-auto px-4 md:px-8">
         
         {/* Breadcrumb Navigation */}
         <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#737373] mb-6">
-          <Link href="/" className="hover:text-indigo-400 transition-colors">Home</Link>
+          <Link href="/" className="hover:text-red-400 transition-colors">Home</Link>
           <span>/</span>
-          <Link href="/manhwa" className="hover:text-indigo-400 transition-colors">Comics</Link>
+          <Link href="/manhwa" className="hover:text-red-400 transition-colors">Comics</Link>
           <span>/</span>
           <span className="text-[#e2e8f0] truncate max-w-[200px]">{manhwa.title}</span>
         </div>
@@ -72,7 +72,7 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
         {/* Main Content Card (Asura Layout) */}
         <div className="bg-[#151518] border border-[#2a2a32] rounded-xl overflow-hidden shadow-2xl relative mb-12">
           {/* subtle top gradient accent */}
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600" />
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-600 via-red-600 to-pink-600" />
           
           <div className="flex flex-col md:flex-row p-6 md:p-8 gap-8">
             
@@ -99,7 +99,7 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
                   <div className="grid grid-cols-2 gap-2 mt-2">
                     <Link 
                       href={`/manhwa/${encodeURIComponent(id)}/chapter/${encodeURIComponent(firstChapter.id)}`}
-                      className="py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold text-xs text-center flex flex-col items-center justify-center transition-colors shadow-md shadow-indigo-900/20"
+                      className="py-3 bg-red-600 hover:bg-red-500 text-white rounded-lg font-bold text-xs text-center flex flex-col items-center justify-center transition-colors shadow-md shadow-red-900/20"
                     >
                       <span>First</span>
                       <span className="opacity-70 font-medium">Chapter</span>
@@ -129,7 +129,7 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
               <div className="flex flex-wrap items-center gap-2 mb-3 text-[11px] font-black uppercase tracking-widest">
                 <span className={`px-2 py-1 rounded ${
                   manhwa.status?.toLowerCase() === 'ongoing' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
-                  manhwa.status?.toLowerCase() === 'completed' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' :
+                  manhwa.status?.toLowerCase() === 'completed' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
                   'bg-[#1e1e24] text-[#a3a3a3] border border-[#2a2a32]'
                 }`}>
                   {manhwa.status || "Unknown"}
@@ -182,7 +182,7 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
               {/* Synopsis */}
               <div className="mb-8 flex-1">
                 <h3 className="text-sm font-bold uppercase tracking-widest text-white mb-3 flex items-center gap-2 border-b border-[#2a2a32] pb-2">
-                  <AlignLeft className="w-4 h-4 text-indigo-400" /> Synopsis
+                  <AlignLeft className="w-4 h-4 text-red-400" /> Synopsis
                 </h3>
                 <div 
                   className="text-[#a3a3a3] text-sm leading-relaxed max-w-none whitespace-pre-wrap"
@@ -210,7 +210,7 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
         <div className="bg-[#151518] border border-[#2a2a32] rounded-xl overflow-hidden shadow-2xl">
           <div className="px-6 py-4 border-b border-[#2a2a32] bg-[#0b0b0c] flex items-center justify-between">
             <h3 className="text-base font-black uppercase tracking-widest text-white flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-indigo-400" /> Chapters
+              <BookOpen className="w-5 h-5 text-red-400" /> Chapters
             </h3>
             <span className="text-xs font-bold text-[#737373] bg-[#1e1e24] px-2 py-1 rounded">
               {manhwa.chapters?.length || 0} Total
@@ -225,10 +225,10 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
                   const innerContent = (
                     <>
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="text-indigo-500 font-black opacity-30 text-xs w-6 text-right group-hover:text-indigo-400 group-hover:opacity-100 transition-all">
+                        <div className="text-red-500 font-black opacity-30 text-xs w-6 text-right group-hover:text-red-400 group-hover:opacity-100 transition-all">
                           {manhwa.chapters!.length - index}
                         </div>
-                        <div className={`font-bold transition-colors truncate flex items-center gap-2 ${isLocked ? 'text-slate-500' : 'group-hover:text-indigo-300'}`}>
+                        <div className={`font-bold transition-colors truncate flex items-center gap-2 ${isLocked ? 'text-slate-500' : 'group-hover:text-red-300'}`}>
                           {isLocked && <Lock className="w-4 h-4 text-slate-500" />}
                           {chap.title}
                         </div>
@@ -241,7 +241,7 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
                     </>
                   );
 
-                  const className = `flex items-center justify-between px-6 py-3.5 transition-colors group ${index % 2 === 0 ? 'bg-[#151518]' : 'bg-[#1a1a1f]'} ${isLocked ? 'cursor-not-allowed opacity-80' : 'hover:bg-[#2a2a32] text-[#e2e8f0] visited:text-[#8a2be2]'}`;
+                  const className = `flex items-center justify-between px-6 py-3.5 transition-colors group ${index % 2 === 0 ? 'bg-[#151518]' : 'bg-[#1a1a1f]'} ${isLocked ? 'cursor-not-allowed opacity-80' : 'hover:bg-[#2a2a32] text-[#e2e8f0] visited:text-[#dc2626]'}`;
 
                   return isLocked ? (
                     <div key={chap.id} className={className} title={chap.earlyAccessUntil ? `Early Access Until: ${new Date(chap.earlyAccessUntil).toLocaleString()}` : "This chapter is locked"}>

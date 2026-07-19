@@ -79,7 +79,7 @@ export default async function ExplorePage({
                 </Link>
               )}
               {pageInfo.hasNextPage && (
-                <Link href={createPageUrl(page + 1)} className="px-4 py-2 bg-indigo- hover:bg-indigo-500 border border-indigo-500/50 rounded-lg transition shadow-lg flex items-center gap-1 text-white">
+                <Link href={createPageUrl(page + 1)} className="px-4 py-2 bg-indigo- hover:bg-purple-500 border border-purple-500/50 rounded-lg transition shadow-lg flex items-center gap-1 text-white">
                   Next <ChevronRight className="w-4 h-4" />
                 </Link>
               )}
@@ -120,7 +120,7 @@ export default async function ExplorePage({
               </div>
 
               {pageInfo.hasNextPage ? (
-                <Link href={createPageUrl(page + 1)} className="px-6 py-3 bg-indigo- hover:bg-indigo-500 border border-indigo-500/50 rounded-xl transition shadow-lg flex items-center gap-2 text-white">
+                <Link href={createPageUrl(page + 1)} className="px-6 py-3 bg-indigo- hover:bg-purple-500 border border-purple-500/50 rounded-xl transition shadow-lg flex items-center gap-2 text-white">
                   Next Page <ChevronRight className="w-5 h-5" />
                 </Link>
               ) : (

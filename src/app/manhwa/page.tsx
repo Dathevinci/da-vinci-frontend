@@ -83,11 +83,11 @@ export default function ManhwaPage() {
     .slice(0, 18);
 
   return (
-    <div className="bg-[#0b0b0c] min-h-screen pt-16 pb-16 text-white font-sans selection:bg-indigo-500/30">
+    <div className="bg-[#0b0b0c] min-h-screen pt-16 pb-16 text-white font-sans selection:bg-red-500/30">
       <AnimatePresence mode="wait">
         {loading ? (
           <motion.div key="loader" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center py-40 gap-4">
-            <Loader2 className="w-10 h-10 text-indigo-500 animate-spin" />
+            <Loader2 className="w-10 h-10 text-red-500 animate-spin" />
             <p className="text-[#a3a3a3] text-sm font-bold uppercase tracking-widest">Loading AsuraScans...</p>
           </motion.div>
         ) : isHome ? (
@@ -98,7 +98,7 @@ export default function ManhwaPage() {
             {/* Netflix-style horizontal shelves — same feel as anime mode */}
             <div className="relative z-20 space-y-2 pt-6 max-w-[1600px] mx-auto">
               <ManhwaCarousel title="Trending Now" icon={<Flame className="w-6 h-6 text-orange-500" />} items={trending} />
-              <ManhwaCarousel title="Recently Added" icon={<Clock className="w-6 h-6 text-[#8a2be2]" />} items={latestUpdates} />
+              <ManhwaCarousel title="Recently Added" icon={<Clock className="w-6 h-6 text-[#dc2626]" />} items={latestUpdates} />
               {topRated.length > 0 && (
                 <ManhwaCarousel title="Top Rated" icon={<Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />} items={topRated} />
               )}
@@ -107,7 +107,7 @@ export default function ManhwaPage() {
               <div className="flex justify-center pt-4 pb-2 pl-4 md:pl-12">
                 <button
                   onClick={() => router.push("/manhwa?view=all&page=1")}
-                  className="flex items-center gap-2 px-8 py-3 bg-[#8a2be2] hover:bg-[#9a3bf2] text-white font-bold rounded-full shadow-[0_0_20px_rgba(138,43,226,0.3)] transition-colors"
+                  className="flex items-center gap-2 px-8 py-3 bg-[#dc2626] hover:bg-[#ef4444] text-white font-bold rounded-full shadow-[0_0_20px_rgba(220,38,38,0.3)] transition-colors"
                 >
                   <BookMarked className="w-5 h-5" /> Browse All Comics
                 </button>
@@ -117,10 +117,10 @@ export default function ManhwaPage() {
         ) : data.length > 0 ? (
           <motion.div key="grid" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }} className="max-w-[1400px] mx-auto px-4 md:px-8">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 bg-[#151518] border border-[#2a2a32] p-6 rounded-xl shadow-lg relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#8a2be2] to-purple-600"></div>
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#dc2626] to-red-600"></div>
               <div>
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="w-12 h-12 rounded-xl bg-[#8a2be2]/10 flex items-center justify-center text-[#8a2be2] border border-[#8a2be2]/20">
+                  <div className="w-12 h-12 rounded-xl bg-[#dc2626]/10 flex items-center justify-center text-[#dc2626] border border-[#dc2626]/20">
                     <BookMarked className="w-6 h-6" />
                   </div>
                   <div>
@@ -136,7 +136,7 @@ export default function ManhwaPage() {
               </div>
             </div>
             <div className="flex items-center gap-2 mb-6 border-b border-[#2a2a32] pb-3">
-              <BookMarked className="w-5 h-5 text-[#8a2be2]" />
+              <BookMarked className="w-5 h-5 text-[#dc2626]" />
               <h2 className="text-xl font-black uppercase tracking-wider text-white">
                 {query ? `Search: ${query}` : `Browse Series`}
               </h2>
@@ -183,7 +183,7 @@ export default function ManhwaPage() {
           </span>
           
           {hasNext ? (
-            <Link href={buildUrl(page + 1)} className="px-6 py-3 bg-[#8a2be2] hover:bg-[#9a3bf2] text-white border border-[#8a2be2]/50 rounded-lg transition shadow-[0_0_15px_rgba(138,43,226,0.2)] flex items-center gap-2">
+            <Link href={buildUrl(page + 1)} className="px-6 py-3 bg-[#dc2626] hover:bg-[#ef4444] text-white border border-[#dc2626]/50 rounded-lg transition shadow-[0_0_15px_rgba(220,38,38,0.2)] flex items-center gap-2">
               Next <ChevronRight className="w-4 h-4" />
             </Link>
           ) : (

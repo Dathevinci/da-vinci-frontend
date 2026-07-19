@@ -296,7 +296,7 @@ export default function PublicProfilePage() {
             <div className="absolute inset-0 bg-gradient-to-b from-[#09090b]/5 via-[#09090b]/25 to-[#09090b]/85"></div>
           </>
         ) : (
-          <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-indigo-500/10 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/4"></div>
+          <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-purple-500/10 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/4"></div>
         )}
       </div>
 
@@ -335,7 +335,7 @@ export default function PublicProfilePage() {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="w-full h-full bg-gradient-to-br from-indigo-600/70 via-purple-600/50 to-fuchsia-600/40" />
+              <div className="w-full h-full bg-gradient-to-br from-purple-600/70 via-purple-600/50 to-fuchsia-600/40" />
             )}
             <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/50" />
           </div>
@@ -356,7 +356,7 @@ export default function PublicProfilePage() {
               ) : (
                 <motion.div
                   layoutId="profile-avatar"
-                  className={`w-32 h-32 bg-indigo-600 rounded-full flex items-center justify-center text-4xl font-black border-4 transition-all duration-300 relative z-10 ${avatarBorderClass}`}
+                  className={`w-32 h-32 bg-purple-600 rounded-full flex items-center justify-center text-4xl font-black border-4 transition-all duration-300 relative z-10 ${avatarBorderClass}`}
                 >
                   {profileUser.username.charAt(0).toUpperCase()}
                 </motion.div>
@@ -445,7 +445,7 @@ export default function PublicProfilePage() {
               {/* Level Progress Bar */}
               <div className="w-full bg-black/40 rounded-full h-2.5 mt-2 mb-1 border border-white/10 relative overflow-hidden">
                 <div 
-                  className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2.5 rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(99,102,241,0.5)]" 
+                  className="bg-gradient-to-r from-purple-500 to-purple-500 h-2.5 rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(168,85,247,0.5)]" 
                   style={{ width: `${progressPercent}%` }}
                 ></div>
                 <div className="absolute inset-0 bg-white/5 opacity-30 mix-blend-overlay"></div>
@@ -456,13 +456,13 @@ export default function PublicProfilePage() {
               </div>
               
               <div className="text-[10px] font-black tracking-[0.18em] uppercase text-slate-500 mb-1.5">About me</div>
-              <BioRenderer bio={cleanBio || "No bio set."} className="text-indigo-200 font-medium drop-shadow-md" />
+              <BioRenderer bio={cleanBio || "No bio set."} className="text-purple-200 font-medium drop-shadow-md" />
               <div className="h-px bg-white/10 my-4" />
 
               {/* Hours Watched — the time actually poured into anime. This is what
                   the finish payout is priced on, so it's the number worth flexing. */}
-              <div className="mb-4 flex items-center gap-3 rounded-xl border border-indigo-500/25 bg-gradient-to-r from-indigo-500/15 via-purple-500/10 to-transparent px-3 py-2.5">
-                <Clock className="h-5 w-5 shrink-0 text-indigo-300 drop-shadow-[0_0_6px_rgba(129,140,248,0.7)]" />
+              <div className="mb-4 flex items-center gap-3 rounded-xl border border-purple-500/25 bg-gradient-to-r from-purple-500/15 via-purple-500/10 to-transparent px-3 py-2.5">
+                <Clock className="h-5 w-5 shrink-0 text-purple-300 drop-shadow-[0_0_6px_rgba(129,140,248,0.7)]" />
                 <div className="min-w-0">
                   <div className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-500">Hours Watched</div>
                   <div className={`text-lg font-black leading-tight drop-shadow-md ${rankTheme.textColorClass}`}>
@@ -496,7 +496,7 @@ export default function PublicProfilePage() {
 
                 <button
                   onClick={handleFollowToggle}
-                  className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold transition shadow-xl ${isFollowing ? "bg-white/10 hover:bg-red-500/20 hover:text-red-400 text-white" : "bg-indigo-600 hover:bg-indigo-500 text-white"}`}
+                  className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold transition shadow-xl ${isFollowing ? "bg-white/10 hover:bg-red-500/20 hover:text-red-400 text-white" : "bg-purple-600 hover:bg-purple-500 text-white"}`}
                 >
                   {isFollowing ? (
                     <><UserMinus className="w-5 h-5" /> Unfollow</>
@@ -512,7 +512,7 @@ export default function PublicProfilePage() {
               <div className="z-10 mt-4 flex gap-2 w-full">
                 <button
                   onClick={() => setShowSettings(true)}
-                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold transition shadow-xl bg-indigo-600 hover:bg-indigo-500 text-white"
+                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold transition shadow-xl bg-purple-600 hover:bg-purple-500 text-white"
                 >
                   <Settings className="w-5 h-5" /> Settings
                 </button>
@@ -527,7 +527,7 @@ export default function PublicProfilePage() {
         {/* Watchlist Section */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
           <h2 className="text-2xl font-bold flex items-center gap-3">
-            <Compass className="w-6 h-6 text-indigo-400" />
+            <Compass className="w-6 h-6 text-purple-400" />
             {profileUser.username}'s Collection
           </h2>
 
@@ -535,7 +535,7 @@ export default function PublicProfilePage() {
             <button
               onClick={() => setActiveTab("anime")}
               className={`flex items-center gap-2 px-5 py-2 rounded-md text-sm font-bold transition-all ${
-                activeTab === "anime" ? "bg-indigo-600 text-white shadow-md" : "text-slate-400 hover:text-white"
+                activeTab === "anime" ? "bg-purple-600 text-white shadow-md" : "text-slate-400 hover:text-white"
               }`}
             >
               Anime
@@ -546,7 +546,7 @@ export default function PublicProfilePage() {
             <button
               onClick={() => setActiveTab("manhwa")}
               className={`flex items-center gap-2 px-5 py-2 rounded-md text-sm font-bold transition-all ${
-                activeTab === "manhwa" ? "bg-indigo-600 text-white shadow-md" : "text-slate-400 hover:text-white"
+                activeTab === "manhwa" ? "bg-purple-600 text-white shadow-md" : "text-slate-400 hover:text-white"
               }`}
             >
               Manhwa

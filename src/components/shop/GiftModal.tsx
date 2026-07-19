@@ -113,7 +113,7 @@ export default function GiftModal({
               <div>
                 <h2 className="font-black leading-tight text-white">Send as a gift</h2>
                 <p className="text-xs text-slate-400">
-                  {item.name} · <span className="font-bold text-indigo-300">{isGod ? "Free" : `${item.price.toLocaleString()} AP`}</span>
+                  {item.name} · <span className="font-bold text-purple-300">{isGod ? "Free" : `${item.price.toLocaleString()} AP`}</span>
                 </p>
               </div>
             </div>
@@ -134,7 +134,7 @@ export default function GiftModal({
                   setSelected(null);
                 }}
                 placeholder="Search a user to gift…"
-                className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-3 text-sm transition placeholder:text-slate-500 focus:border-indigo-500/60 focus:outline-none"
+                className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-3 text-sm transition placeholder:text-slate-500 focus:border-purple-500/60 focus:outline-none"
               />
             </div>
           </div>
@@ -150,18 +150,18 @@ export default function GiftModal({
                     key={u.id}
                     onClick={() => setSelected(u)}
                     className={`flex w-full items-center gap-3 px-3 py-2.5 text-left transition ${
-                      selected?.id === u.id ? "bg-indigo-600/25" : "hover:bg-white/5"
+                      selected?.id === u.id ? "bg-purple-600/25" : "hover:bg-white/5"
                     }`}
                   >
                     {u.avatar ? (
                       <img src={u.avatar} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
                     ) : (
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-purple-600 text-xs font-bold text-white">
                         {(u.username || "?").charAt(0).toUpperCase()}
                       </span>
                     )}
                     <span className="flex-1 truncate font-bold text-white">{u.username}</span>
-                    {selected?.id === u.id && <Check className="h-4 w-4 shrink-0 text-indigo-300" />}
+                    {selected?.id === u.id && <Check className="h-4 w-4 shrink-0 text-purple-300" />}
                   </button>
                 ))
               )}
@@ -173,7 +173,7 @@ export default function GiftModal({
             <button
               onClick={send}
               disabled={!selected || sending}
-              className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-fuchsia-600 py-3 font-black text-white transition enabled:hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40"
+              className="w-full rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 py-3 font-black text-white transition enabled:hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40"
             >
               {sending ? "Sending…" : selected ? `Gift to ${selected.username}${isGod ? "" : ` · ${item.price.toLocaleString()} AP`}` : "Pick someone to gift"}
             </button>

@@ -16,7 +16,7 @@ export default function ArisePointPopup({ amount }: ArisePointPopupProps) {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -20, scale: 0.8 }}
           transition={{ type: "spring", stiffness: 400, damping: 25 }}
-          className="bg-gradient-to-r from-purple-600 to-indigo-600 p-[1px] rounded-2xl shadow-[0_0_30px_rgba(139,92,246,0.4)]"
+          className="bg-gradient-to-r from-purple-600 to-purple-600 p-[1px] rounded-2xl shadow-[0_0_30px_rgba(139,92,246,0.4)]"
         >
           <div className="bg-[#09090b]/90 backdrop-blur-md px-6 py-4 rounded-2xl flex items-center gap-4">
             <motion.div 
@@ -34,7 +34,7 @@ export default function ArisePointPopup({ amount }: ArisePointPopupProps) {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
-                  className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-indigo-400"
+                  className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-purple-400"
                 >{amount}</motion.span> Points
               </span>
             </div>

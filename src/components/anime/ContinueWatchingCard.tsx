@@ -113,7 +113,7 @@ export default function ContinueWatchingCard({ anime }: ContinueWatchingCardProp
         <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors duration-300"></div>
 
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 scale-90 group-hover:scale-100">
-          <PlayCircle className="w-14 h-14 text-white drop-shadow-[0_0_10px_rgba(0,0,0,0.8)] fill-indigo-500/20" strokeWidth={1.5} />
+          <PlayCircle className="w-14 h-14 text-white drop-shadow-[0_0_10px_rgba(0,0,0,0.8)] fill-purple-500/20" strokeWidth={1.5} />
         </div>
 
         <div className="absolute inset-x-0 bottom-0 p-4 pb-5">

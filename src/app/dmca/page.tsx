@@ -29,7 +29,7 @@ export default function DMCAPage() {
 
           <section className="mb-12 bg-white/5 border border-white/10 rounded-2xl p-8">
             <h2 className="text-2xl font-bold mb-4">Content Disclaimer</h2>
-            <p className="uppercase text-slate-300 font-bold tracking-wide leading-relaxed border-l-4 border-indigo-500 pl-4 mb-4">
+            <p className="uppercase text-slate-300 font-bold tracking-wide leading-relaxed border-l-4 border-purple-500 pl-4 mb-4">
               DA-VINCI DOES NOT OWN THE RIGHTS TO PROVIDE THE CONTENT YOU SEE ON THE SITE. The content is provided by third-party anime sources, open-access databases, and other open-access websites. WE DO NOT OWN NOR CONTROL THE CONTENT ON THE WEBSITE. WE SIMPLY PROVIDE LINKS TO IT.
             </p>
             <p>

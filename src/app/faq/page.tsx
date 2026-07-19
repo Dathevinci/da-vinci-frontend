@@ -83,7 +83,7 @@ export default function FAQPage() {
           })}
         </div>
 
-        <section className="bg-gradient-to-br from-purple-500/20 to-indigo-500/20 border border-purple-500/30 rounded-2xl p-8 text-center sm:text-left sm:flex sm:items-center sm:justify-between">
+        <section className="bg-gradient-to-br from-purple-500/20 to-purple-500/20 border border-purple-500/30 rounded-2xl p-8 text-center sm:text-left sm:flex sm:items-center sm:justify-between">
           <div>
             <h2 className="text-2xl font-bold mb-2 text-white">Still have questions?</h2>
             <p className="text-slate-300 mb-6 sm:mb-0">

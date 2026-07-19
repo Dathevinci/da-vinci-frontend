@@ -76,13 +76,13 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
   if (currentChapter?.isLocked) {
     return (
       <div className="bg-[#09090b] min-h-screen flex items-center justify-center text-white flex-col gap-6 px-4 text-center">
-        <Lock className="w-16 h-16 text-indigo-500 mb-2" />
+        <Lock className="w-16 h-16 text-red-500 mb-2" />
         <h1 className="text-3xl font-black">Chapter Locked</h1>
         <p className="text-slate-400 max-w-md text-lg">
           This chapter is currently locked or in early access. It will be available to read once it is officially released for free.
         </p>
         {(currentChapter as any).earlyAccessUntil && (
-          <p className="text-indigo-400 font-bold bg-indigo-500/10 border border-indigo-500/20 px-4 py-2 rounded-lg">
+          <p className="text-red-400 font-bold bg-red-500/10 border border-red-500/20 px-4 py-2 rounded-lg">
             Unlocks on: {new Date((currentChapter as any).earlyAccessUntil).toLocaleString()}
           </p>
         )}
@@ -96,7 +96,7 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
   if (loading) {
     return (
       <div className="bg-[#09090b] min-h-screen flex items-center justify-center text-white flex-col gap-4">
-        <Loader2 className="w-10 h-10 animate-spin text-indigo-500" />
+        <Loader2 className="w-10 h-10 animate-spin text-red-500" />
         <p className="text-slate-400">Loading chapter pages from Asura...</p>
       </div>
     );
@@ -106,7 +106,7 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
     return (
       <div className="bg-[#09090b] min-h-screen flex items-center justify-center text-white flex-col gap-4">
         <p className="text-xl font-bold">Failed to load chapter</p>
-        <Link href={`/manhwa/${encodeURIComponent(id)}`} className="text-indigo-400 hover:underline flex items-center gap-2">
+        <Link href={`/manhwa/${encodeURIComponent(id)}`} className="text-red-400 hover:underline flex items-center gap-2">
           <ArrowLeft className="w-4 h-4" /> Back to details
         </Link>
       </div>
@@ -193,7 +193,7 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
           {nextChapterId ? (
             <Link 
               href={`/manhwa/${encodeURIComponent(id)}/chapter/${encodeURIComponent(nextChapterId)}`}
-              className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl transition shadow-lg font-bold"
+              className="flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-500 rounded-xl transition shadow-lg font-bold"
             >
               Next Chapter <ChevronRight className="w-5 h-5" />
             </Link>

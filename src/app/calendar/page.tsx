@@ -56,7 +56,7 @@ export default async function CalendarPage() {
   return (
     <div className="bg-[#09090b] min-h-screen pt-24 pb-12 px-4 md:px-12 text-white">
       <div className="max-w-5xl mx-auto">
-        <h1 className="text-4xl font-black mb-2 flex items-center gap-3 text-indigo-400">
+        <h1 className="text-4xl font-black mb-2 flex items-center gap-3 text-purple-400">
           Airing Calendar
         </h1>
         <p className="text-slate-400 mb-10">Estimated release schedule for this season (JST).</p>
@@ -85,11 +85,11 @@ export default async function CalendarPage() {
                     
                     return (
                       <AnimeModalTrigger anime={anime} key={anime.mal_id} className="w-full text-left">
-                        <div className="flex items-center gap-4 bg-[#141414] border border-white/5 p-3 rounded-xl hover:border-indigo-500/50 hover:bg-indigo-500/5 transition group cursor-pointer">
+                        <div className="flex items-center gap-4 bg-[#141414] border border-white/5 p-3 rounded-xl hover:border-purple-500/50 hover:bg-purple-500/5 transition group cursor-pointer">
                           <img src={anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url} alt={title} className="w-16 h-24 object-cover rounded shadow-md" />
                           <div>
-                            <h3 className="font-bold text-sm line-clamp-2 mb-1 group-hover:text-indigo-400 transition">{title}</h3>
-                            <div className="text-xs text-indigo-300 font-semibold mb-1">
+                            <h3 className="font-bold text-sm line-clamp-2 mb-1 group-hover:text-purple-400 transition">{title}</h3>
+                            <div className="text-xs text-purple-300 font-semibold mb-1">
                               {anime.episodes ? `${anime.episodes} Episodes` : 'Ongoing'}
                             </div>
                             <div className="text-xs text-slate-400 flex items-center gap-1">

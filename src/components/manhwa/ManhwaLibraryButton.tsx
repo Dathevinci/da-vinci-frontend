@@ -10,7 +10,7 @@ import { useToast } from "@/components/ui/Toast";
 
 const OPTIONS: { status: ManhwaStatus; label: string; icon: typeof BookOpen; color: string }[] = [
   { status: "Reading", label: "Reading", icon: BookOpen, color: "text-green-400" },
-  { status: "Finished", label: "Finished", icon: Check, color: "text-indigo-400" },
+  { status: "Finished", label: "Finished", icon: Check, color: "text-red-400" },
   { status: "PlanToRead", label: "Plan to Read", icon: Clock, color: "text-blue-400" },
   { status: "Dropped", label: "Dropped", icon: Heart, color: "text-red-400" },
 ];

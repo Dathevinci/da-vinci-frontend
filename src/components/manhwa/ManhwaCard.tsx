@@ -95,11 +95,11 @@ export default function ManhwaCard({ manhwa }: { manhwa: IMangaResult }) {
       {/* Resting info below the cover */}
       <div className="pt-2 flex flex-col flex-1 bg-[#0b0b0c]">
         <button onClick={handleOpen} className="text-left w-full">
-          <h3 className="font-bold text-[#e2e8f0] text-[13px] leading-tight line-clamp-2 mb-1 hover:text-[#8a2be2] transition-colors">
+          <h3 className="font-bold text-[#e2e8f0] text-[13px] leading-tight line-clamp-2 mb-1 hover:text-[#dc2626] transition-colors">
             {manhwa.title}
           </h3>
         </button>
-        <Link href={chapterHref} className="text-[11px] font-bold text-[#a3a3a3] mb-1 hover:text-[#8a2be2] transition-colors w-fit">
+        <Link href={chapterHref} className="text-[11px] font-bold text-[#a3a3a3] mb-1 hover:text-[#dc2626] transition-colors w-fit">
           {chapterLabel || "Chapter ?"}
         </Link>
         <div className="flex items-center gap-1 mt-auto pointer-events-none">
@@ -132,7 +132,7 @@ export default function ManhwaCard({ manhwa }: { manhwa: IMangaResult }) {
                 <Link
                   href={chapterHref}
                   onClick={(e) => { e.stopPropagation(); closeHover(); }}
-                  className="flex items-center gap-1 bg-[#8a2be2] hover:bg-[#9a3bf2] text-white text-[11px] font-bold px-2.5 py-1 rounded-full transition-colors"
+                  className="flex items-center gap-1 bg-[#dc2626] hover:bg-[#ef4444] text-white text-[11px] font-bold px-2.5 py-1 rounded-full transition-colors"
                   title="Read latest chapter"
                 >
                   <Play className="w-3 h-3 fill-current" /> Read

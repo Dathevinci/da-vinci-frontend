@@ -39,9 +39,9 @@ export default function ManhwaCarousel({ title, items, icon, seeAllLink = "/manh
         <button
           onClick={() => handleScroll("left")}
           aria-label="Scroll left"
-          className="absolute left-0 md:-left-4 top-1/2 -translate-y-1/2 z-40 w-10 h-10 md:w-12 md:h-12 bg-black/60 border border-white/10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-black/80 hover:scale-110 hover:border-[#8a2be2]/60 transition-all backdrop-blur-md shadow-2xl"
+          className="absolute left-0 md:-left-4 top-1/2 -translate-y-1/2 z-40 w-10 h-10 md:w-12 md:h-12 bg-black/60 border border-white/10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-black/80 hover:scale-110 hover:border-[#dc2626]/60 transition-all backdrop-blur-md shadow-2xl"
         >
-          <ChevronLeft className="w-6 h-6 md:w-8 md:h-8 text-white hover:text-[#8a2be2]" />
+          <ChevronLeft className="w-6 h-6 md:w-8 md:h-8 text-white hover:text-[#dc2626]" />
         </button>
 
         <div
@@ -57,10 +57,10 @@ export default function ManhwaCarousel({ title, items, icon, seeAllLink = "/manh
 
           {/* See All card */}
           <Link href={seeAllLink} className="snap-start shrink-0">
-            <div className="relative w-[132px] sm:w-[150px] md:w-[178px] aspect-[2/3] rounded-lg flex items-center justify-center bg-[#141414]/40 border border-white/5 hover:bg-[#141414]/80 transition-colors cursor-pointer group/card hover:scale-105 duration-300 hover:shadow-[0_0_30px_rgba(138,43,226,0.2)] hover:border-[#8a2be2]/40">
+            <div className="relative w-[132px] sm:w-[150px] md:w-[178px] aspect-[2/3] rounded-lg flex items-center justify-center bg-[#141414]/40 border border-white/5 hover:bg-[#141414]/80 transition-colors cursor-pointer group/card hover:scale-105 duration-300 hover:shadow-[0_0_30px_rgba(220,38,38,0.2)] hover:border-[#dc2626]/40">
               <div className="flex flex-col items-center gap-3">
-                <div className="w-14 h-14 rounded-full border-2 border-white/10 flex items-center justify-center group-hover/card:border-[#8a2be2] transition-colors bg-black/40 shadow-lg">
-                  <ChevronRight className="w-8 h-8 text-white group-hover/card:translate-x-1 group-hover/card:text-[#8a2be2] transition-all" />
+                <div className="w-14 h-14 rounded-full border-2 border-white/10 flex items-center justify-center group-hover/card:border-[#dc2626] transition-colors bg-black/40 shadow-lg">
+                  <ChevronRight className="w-8 h-8 text-white group-hover/card:translate-x-1 group-hover/card:text-[#dc2626] transition-all" />
                 </div>
                 <span className="text-slate-400 font-bold tracking-widest uppercase text-xs group-hover/card:text-white transition-colors">See All</span>
               </div>
@@ -71,9 +71,9 @@ export default function ManhwaCarousel({ title, items, icon, seeAllLink = "/manh
         <button
           onClick={() => handleScroll("right")}
           aria-label="Scroll right"
-          className="absolute right-0 md:-right-4 top-1/2 -translate-y-1/2 z-40 w-10 h-10 md:w-12 md:h-12 bg-black/60 border border-white/10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-black/80 hover:scale-110 hover:border-[#8a2be2]/60 transition-all backdrop-blur-md shadow-2xl"
+          className="absolute right-0 md:-right-4 top-1/2 -translate-y-1/2 z-40 w-10 h-10 md:w-12 md:h-12 bg-black/60 border border-white/10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-black/80 hover:scale-110 hover:border-[#dc2626]/60 transition-all backdrop-blur-md shadow-2xl"
         >
-          <ChevronRight className="w-6 h-6 md:w-8 md:h-8 text-white hover:text-[#8a2be2]" />
+          <ChevronRight className="w-6 h-6 md:w-8 md:h-8 text-white hover:text-[#dc2626]" />
         </button>
       </div>
     </div>

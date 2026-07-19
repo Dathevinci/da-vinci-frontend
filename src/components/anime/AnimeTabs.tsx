@@ -42,7 +42,7 @@ export default function AnimeTabs({ anime }: { anime: Anime }) {
       <div className="flex border-b border-white/10 mb-8 overflow-x-auto hide-scrollbar">
         <button 
           onClick={() => setActiveTab("overview")}
-          className={`px-6 py-4 font-bold text-lg transition-colors border-b-2 whitespace-nowrap ${activeTab === "overview" ? "border-indigo-500 text-indigo-400" : "border-transparent text-slate-400 hover:text-white"}`}
+          className={`px-6 py-4 font-bold text-lg transition-colors border-b-2 whitespace-nowrap ${activeTab === "overview" ? "border-purple-500 text-purple-400" : "border-transparent text-slate-400 hover:text-white"}`}
         >
           Overview
         </button>
@@ -57,7 +57,7 @@ export default function AnimeTabs({ anime }: { anime: Anime }) {
         )}
         <button 
           onClick={() => setActiveTab("discussions")}
-          className={`px-6 py-4 font-bold text-lg transition-colors border-b-2 whitespace-nowrap ${activeTab === "discussions" ? "border-indigo-500 text-indigo-400" : "border-transparent text-slate-400 hover:text-white"}`}
+          className={`px-6 py-4 font-bold text-lg transition-colors border-b-2 whitespace-nowrap ${activeTab === "discussions" ? "border-purple-500 text-purple-400" : "border-transparent text-slate-400 hover:text-white"}`}
         >
           Discussions
         </button>

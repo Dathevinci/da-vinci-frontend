@@ -18,7 +18,7 @@ export default function LevelBadge({ xp, className = "", size = "sm" }: LevelBad
     if (isInfinity) return "bg-gradient-to-r from-yellow-300 via-red-400 to-purple-600 text-white border-white/20 shadow-[0_0_15px_rgba(239,68,68,0.5)]";
     if (numLevel >= 10) return "bg-gradient-to-r from-yellow-300 via-red-400 to-purple-600 text-white border-white/20 shadow-[0_0_15px_rgba(239,68,68,0.5)]"; // Max — legendary
     if (numLevel >= 8) return "bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white border-white/20 shadow-[0_0_15px_rgba(192,38,211,0.5)]";
-    if (numLevel >= 5) return "bg-gradient-to-r from-indigo-500 to-cyan-400 text-white border-white/20 shadow-[0_0_10px_rgba(99,102,241,0.5)]";
+    if (numLevel >= 5) return "bg-gradient-to-r from-purple-500 to-cyan-400 text-white border-white/20 shadow-[0_0_10px_rgba(99,102,241,0.5)]";
     if (numLevel >= 3) return "bg-gradient-to-r from-amber-500 to-orange-400 text-white border-white/10";
     return "bg-white/10 text-slate-300 border-white/5"; // Levels 1-2
   };

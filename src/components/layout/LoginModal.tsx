@@ -65,9 +65,9 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
         {/* Logo */}
         <div className="flex justify-center mb-6">
           <div className="flex items-center gap-3 font-fell font-bold text-2xl tracking-[0.2em] uppercase drop-shadow-md">
-            <img src="/logo.png" alt="Da Vinci Logo" className="w-12 h-12 rounded-full border border-indigo-400/50 shadow-[0_0_15px_rgba(99,102,241,0.4)] object-cover" />
+            <img src="/logo.png" alt="Da Vinci Logo" className="w-12 h-12 rounded-full border border-purple-400/50 shadow-[0_0_15px_rgba(168,85,247,0.4)] object-cover" />
             <span className="text-white">
-              DA <span className="text-indigo-400 font-black">VINCI</span>
+              DA <span className="text-purple-400 font-black">VINCI</span>
             </span>
           </div>
         </div>
@@ -135,7 +135,7 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
                 required
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-indigo-500"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500"
                 placeholder="e.g. NarutoFan99 or email@example.com"
               />
             </div>
@@ -148,7 +148,7 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500"
                   placeholder="e.g. NarutoFan99"
                 />
               </div>
@@ -159,7 +159,7 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500"
                   placeholder="e.g. naruto@konoha.com"
                 />
               </div>
@@ -170,7 +170,7 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
                   required
                   value={inviteCode}
                   onChange={(e) => setInviteCode(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-indigo-500 uppercase"
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500 uppercase"
                   placeholder="e.g. A1B2C3D4"
                 />
               </div>
@@ -184,14 +184,14 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-indigo-500"
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500"
               placeholder="••••••••"
             />
           </div>
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full bg-indigo- hover:bg-indigo-500 text-white font-bold py-3 rounded-lg transition disabled:opacity-50 mt-4 shadow-lg shadow-indigo-500/20"
+            className="w-full bg-indigo- hover:bg-purple-500 text-white font-bold py-3 rounded-lg transition disabled:opacity-50 mt-4 shadow-lg shadow-purple-500/20"
           >
             {loading ? "Connecting..." : mode === 'login' ? "Log In" : "Create Account"}
           </button>

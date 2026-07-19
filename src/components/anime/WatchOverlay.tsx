@@ -395,8 +395,8 @@ export default function WatchOverlay({
         {/* Loading */}
         {loadingStream && (
           <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
-            <Loader2 className="w-16 h-16 animate-spin text-indigo-500 mb-4" />
-            <p className="font-bold text-sm text-indigo-400 uppercase tracking-widest">Loading Stream...</p>
+            <Loader2 className="w-16 h-16 animate-spin text-purple-500 mb-4" />
+            <p className="font-bold text-sm text-purple-400 uppercase tracking-widest">Loading Stream...</p>
           </div>
         )}
 
@@ -642,7 +642,7 @@ export default function WatchOverlay({
           <div className="fixed inset-0 z-[60]" onClick={() => setShowServerPanel(false)} />
           <div className="absolute top-16 right-4 z-[70] w-72 bg-[#141414]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-4 animate-in fade-in slide-in-from-top-2 duration-300">
             <h4 className="font-bold text-sm text-slate-300 uppercase tracking-wider mb-3 flex items-center gap-2">
-              <Server className="w-4 h-4 text-indigo-400" /> Quality
+              <Server className="w-4 h-4 text-purple-400" /> Quality
             </h4>
             <div className="flex flex-col gap-1.5 max-h-64 overflow-y-auto custom-scrollbar">
               {streamData?.sources.map((source, i) => (
@@ -650,7 +650,7 @@ export default function WatchOverlay({
                   key={i}
                   onClick={() => { switchQuality(source.quality); setShowServerPanel(false); }}
                   className={`px-4 py-2.5 rounded-lg text-sm font-bold text-left transition ${activeQuality === source.quality
-                    ? "bg-indigo-600 text-white"
+                    ? "bg-purple-600 text-white"
                     : "bg-white/5 text-slate-300 hover:bg-white/10"
                   }`}
                 >
@@ -683,7 +683,7 @@ export default function WatchOverlay({
                   <select
                     value={activeSeason}
                     onChange={(e) => setActiveSeason(Number(e.target.value))}
-                    className="w-full appearance-none bg-white/5 border border-white/10 text-white rounded-lg px-4 py-2.5 pr-10 font-bold text-sm focus:outline-none focus:border-indigo-500 cursor-pointer"
+                    className="w-full appearance-none bg-white/5 border border-white/10 text-white rounded-lg px-4 py-2.5 pr-10 font-bold text-sm focus:outline-none focus:border-purple-500 cursor-pointer"
                   >
                     {seasons.map((s, i) => (
                       <option key={i} value={i} className="bg-[#141414] text-white">{s.label}</option>
@@ -703,7 +703,7 @@ export default function WatchOverlay({
                   <button
                     key={ep.id || idx}
                     onClick={() => { loadStream(ep.id, epNo); setShowEpisodePanel(false); }}
-                    className={`w-full text-left px-5 py-4 flex items-center gap-4 border-b border-white/5 transition-colors group ${isActive ? "bg-indigo-600/20 border-l-4 border-l-indigo-500" : "hover:bg-white/5 border-l-4 border-l-transparent"}`}
+                    className={`w-full text-left px-5 py-4 flex items-center gap-4 border-b border-white/5 transition-colors group ${isActive ? "bg-purple-600/20 border-l-4 border-l-purple-500" : "hover:bg-white/5 border-l-4 border-l-transparent"}`}
                   >
                     {/* Thumbnail or number */}
                     {ep.image ? (
@@ -711,7 +711,7 @@ export default function WatchOverlay({
                         <img src={ep.image} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                         {isActive && (
                           <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                            <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                            <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
                           </div>
                         )}
                       </div>
@@ -721,7 +721,7 @@ export default function WatchOverlay({
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className={`font-bold text-sm truncate ${isActive ? "text-indigo-300" : "text-white"}`}>
+                      <p className={`font-bold text-sm truncate ${isActive ? "text-purple-300" : "text-white"}`}>
                         {ep.title || `Episode ${epNo}`}
                       </p>
                       {ep.description && (
@@ -729,8 +729,8 @@ export default function WatchOverlay({
                       )}
                     </div>
                     {isActive && (
-                      <div className="flex items-center gap-1 text-indigo-400 flex-shrink-0">
-                        <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                      <div className="flex items-center gap-1 text-purple-400 flex-shrink-0">
+                        <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
                         <span className="text-xs font-bold uppercase">Playing</span>
                       </div>
                     )}

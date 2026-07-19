@@ -15,7 +15,7 @@ export default function VideoPlayer({ streamUrl, loading, error }: VideoPlayerPr
   return (
     <div className="w-full relative bg-black aspect-video rounded-xl overflow-hidden border border-white/10 shadow-2xl group">
       {(loading || (!iframeLoaded && streamUrl)) && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm text-indigo-400">
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm text-purple-400">
           <Loader2 className="w-12 h-12 animate-spin mb-4" />
           <p className="font-bold tracking-widest text-sm uppercase">Loading Stream...</p>
         </div>

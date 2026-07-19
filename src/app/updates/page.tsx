@@ -75,7 +75,7 @@ export default function UpdatesPage() {
             {canPostUpdate && (
               <button 
                 onClick={() => setShowCreateModal(true)}
-                className="bg-indigo- hover:bg-indigo-500 text-white p-2 rounded-full transition shadow-lg"
+                className="bg-indigo- hover:bg-purple-500 text-white p-2 rounded-full transition shadow-lg"
               >
                 <Plus className="w-6 h-6" />
               </button>
@@ -84,7 +84,7 @@ export default function UpdatesPage() {
 
           {loading ? (
             <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
             </div>
           ) : updates.length === 0 ? (
             <div className="text-center text-slate-500 py-20">

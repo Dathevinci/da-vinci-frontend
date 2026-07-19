@@ -191,7 +191,7 @@ const CommentThread = ({
       
       {/* Supreme Glow for Dejavuh */}
       {isDejavuh && (
-        <div className="absolute -inset-[2px] bg-gradient-to-r from-fuchsia-500 via-purple-600 to-indigo-500 rounded-xl blur-[6px] opacity-80 animate-pulse pointer-events-none" />
+        <div className="absolute -inset-[2px] bg-gradient-to-r from-fuchsia-500 via-purple-600 to-purple-500 rounded-xl blur-[6px] opacity-80 animate-pulse pointer-events-none" />
       )}
       {/* Golden aura for a comment that received a Divine Blessing */}
       {node.blessed && !isDejavuh && (
@@ -233,12 +233,12 @@ const CommentThread = ({
                 <span className={`font-bold text-sm sm:text-base transition 
                   ${node.user?.activeFont === 'font_cyber' ? 'font-mono tracking-widest' : ''} 
                   ${node.user?.activeFont === 'font_pixel' ? 'font-serif tracking-tight' : ''} 
-                  ${nameColorClass(node.user?.activeColor) || (isDejavuh ? 'text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-fuchsia-400 drop-shadow-[0_0_8px_rgba(192,132,252,0.8)]' : 'text-indigo-300 group-hover:text-indigo-400')}`}>
+                  ${nameColorClass(node.user?.activeColor) || (isDejavuh ? 'text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-fuchsia-400 drop-shadow-[0_0_8px_rgba(192,132,252,0.8)]' : 'text-purple-300 group-hover:text-purple-400')}`}>
                   {node.user?.username || 'Unknown User'}
                 </span>
                 
                 {isDejavuh ? (
-                  <div className="hidden sm:flex px-2 py-0.5 rounded-full items-center gap-1 bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.6)]">
+                  <div className="hidden sm:flex px-2 py-0.5 rounded-full items-center gap-1 bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.6)]">
                     <Crown className="w-3 h-3" />
                     <span className="text-[10px] font-black tracking-wider uppercase">Lead Developer</span>
                   </div>
@@ -302,7 +302,7 @@ const CommentThread = ({
               <>
                 <button 
                   onClick={() => setIsEditing(!isEditing)}
-                  className="text-slate-500 hover:text-indigo-400 p-1 sm:p-1.5 rounded hover:bg-indigo-500/10 transition"
+                  className="text-slate-500 hover:text-purple-400 p-1 sm:p-1.5 rounded hover:bg-purple-500/10 transition"
                   title="Edit Post"
                 >
                   <Edit className="w-4 h-4" />
@@ -346,7 +346,7 @@ const CommentThread = ({
             className="mb-3 inline-block self-start cursor-pointer text-left"
           >
             <span className="text-xs bg-white/5 hover:bg-white/10 border border-white/10 px-2 py-1 rounded-md text-slate-400 flex items-center gap-1 transition">
-              on <span className="font-bold text-indigo-300 hover:text-indigo-400 truncate max-w-[250px]">{node.animeTitle}</span>
+              on <span className="font-bold text-purple-300 hover:text-purple-400 truncate max-w-[250px]">{node.animeTitle}</span>
             </span>
           </button>
         )}
@@ -357,9 +357,9 @@ const CommentThread = ({
             <textarea
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
-              className="w-full bg-black/40 text-white placeholder-slate-500 text-sm sm:text-base resize-none outline-none min-h-[80px] p-3 rounded-lg border border-white/10 focus-within:border-indigo-500/50"
+              className="w-full bg-black/40 text-white placeholder-slate-500 text-sm sm:text-base resize-none outline-none min-h-[80px] p-3 rounded-lg border border-white/10 focus-within:border-purple-500/50"
             />
-            <div className="mt-2 mb-2 flex items-center gap-2 px-3 py-2 bg-black/40 rounded-xl border border-white/5 focus-within:border-indigo-500/50 transition">
+            <div className="mt-2 mb-2 flex items-center gap-2 px-3 py-2 bg-black/40 rounded-xl border border-white/5 focus-within:border-purple-500/50 transition">
               <ImageIcon className="w-4 h-4 text-slate-400 shrink-0" />
               <input 
                 type="url"
@@ -377,7 +377,7 @@ const CommentThread = ({
                   setIsEditing(false);
                 }}
                 disabled={!editContent.trim()}
-                className="px-3 py-1.5 rounded-md text-xs font-bold bg-indigo- text-white hover:bg-indigo-500 disabled:opacity-50"
+                className="px-3 py-1.5 rounded-md text-xs font-bold bg-indigo- text-white hover:bg-purple-500 disabled:opacity-50"
               >
                 Save
               </button>
@@ -393,7 +393,7 @@ const CommentThread = ({
             {node.content.length > 300 && (
               <button 
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="text-indigo-400 hover:text-indigo-300 text-sm font-bold mt-1 transition"
+                className="text-purple-400 hover:text-purple-300 text-sm font-bold mt-1 transition"
               >
                 {isExpanded ? "See less" : "See more"}
               </button>
@@ -483,7 +483,7 @@ const CommentThread = ({
                     placeholder={`Replying to @${node.user?.username || 'Unknown'}...`}
                     className="w-full bg-transparent text-white placeholder-slate-500 text-sm sm:text-base resize-none outline-none min-h-[60px]"
                   />
-                  <div className="mt-3 mb-3 flex items-center gap-3 px-4 py-2 bg-black/50 rounded-xl border border-white/5 focus-within:border-indigo-500/50 focus-within:bg-indigo-500/5 transition-all ring-1 ring-black/20">
+                  <div className="mt-3 mb-3 flex items-center gap-3 px-4 py-2 bg-black/50 rounded-xl border border-white/5 focus-within:border-purple-500/50 focus-within:bg-purple-500/5 transition-all ring-1 ring-black/20">
                     <ImageIcon className="w-4 h-4 text-slate-400 shrink-0" />
                     <input 
                       type="url"
@@ -506,7 +506,7 @@ const CommentThread = ({
                     <button
                       onClick={() => handlePost(node.id, replyContent, replyMediaUrl)}
                       disabled={isReplying || !replyContent.trim()}
-                      className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 shadow-[0_0_15px_rgba(79,70,229,0.3)] hover:shadow-[0_0_20px_rgba(79,70,229,0.5)] disabled:opacity-50 disabled:shadow-none text-white px-5 py-1.5 rounded-full text-xs sm:text-sm font-bold transition-all hover:scale-[1.02]"
+                      className="bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 shadow-[0_0_15px_rgba(79,70,229,0.3)] hover:shadow-[0_0_20px_rgba(79,70,229,0.5)] disabled:opacity-50 disabled:shadow-none text-white px-5 py-1.5 rounded-full text-xs sm:text-sm font-bold transition-all hover:scale-[1.02]"
                     >
                       {isReplying ? 'Replying...' : 'Reply'}
                     </button>
@@ -580,7 +580,7 @@ const CommentThread = ({
                         }
                       }}
                       disabled={isReplying || !replyContent.trim()}
-                      className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 shadow-[0_0_15px_rgba(79,70,229,0.3)] hover:shadow-[0_0_20px_rgba(79,70,229,0.5)] disabled:opacity-50 text-white px-5 py-1.5 rounded-full text-xs font-bold transition-all"
+                      className="bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 shadow-[0_0_15px_rgba(79,70,229,0.3)] hover:shadow-[0_0_20px_rgba(79,70,229,0.5)] disabled:opacity-50 text-white px-5 py-1.5 rounded-full text-xs font-bold transition-all"
                     >
                       {isReplying ? 'Replying...' : 'Reply'}
                     </button>
@@ -598,7 +598,7 @@ const CommentThread = ({
             {!showReplies ? (
               <button 
                 onClick={() => setShowReplies(true)}
-                className="flex items-center gap-1 text-xs sm:text-sm font-bold text-indigo-400 hover:text-indigo-300 transition mb-2"
+                className="flex items-center gap-1 text-xs sm:text-sm font-bold text-purple-400 hover:text-purple-300 transition mb-2"
               >
                 <ChevronDown className="w-4 h-4" /> View {node.children.length} {node.children.length === 1 ? 'reply' : 'replies'}
               </button>
@@ -957,15 +957,15 @@ export default function CommunityFeed({
       </AnimatePresence>
 
       <div className="flex items-center gap-3 mb-6 sm:mb-8 pl-2 sm:pl-0">
-        <div className="p-2 bg-indigo-500/10 rounded-xl ring-1 ring-indigo-500/20 shadow-[0_0_15px_rgba(79,70,229,0.2)]">
-          <MessageSquare className="w-6 h-6 sm:w-8 sm:h-8 text-indigo-400" />
+        <div className="p-2 bg-purple-500/10 rounded-xl ring-1 ring-purple-500/20 shadow-[0_0_15px_rgba(79,70,229,0.2)]">
+          <MessageSquare className="w-6 h-6 sm:w-8 sm:h-8 text-purple-400" />
         </div>
         <h2 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-br from-white to-slate-400">Community Views</h2>
       </div>
 
       {/* Controls Bar */}
       <div className="flex flex-col md:flex-row gap-3 mb-6 bg-[#0a0a0c]/80 backdrop-blur-xl p-3 rounded-2xl border border-white/10 ring-1 ring-white/5 shadow-2xl mx-2 sm:mx-0">
-        <div className="flex-1 flex items-center bg-black/40 rounded-xl px-4 py-2.5 border border-white/5 focus-within:border-indigo-500/50 focus-within:bg-indigo-500/5 transition-all">
+        <div className="flex-1 flex items-center bg-black/40 rounded-xl px-4 py-2.5 border border-white/5 focus-within:border-purple-500/50 focus-within:bg-purple-500/5 transition-all">
           <Search className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
           <input 
             type="text" 
@@ -981,7 +981,7 @@ export default function CommunityFeed({
           <select 
             value={sortBy} 
             onChange={(e) => setSortBy(e.target.value as any)}
-            className="bg-black/40 border border-white/5 text-white text-sm rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500/50 focus:bg-indigo-500/5 cursor-pointer appearance-none transition-all hover:bg-black/60"
+            className="bg-black/40 border border-white/5 text-white text-sm rounded-xl px-4 py-2.5 outline-none focus:border-purple-500/50 focus:bg-purple-500/5 cursor-pointer appearance-none transition-all hover:bg-black/60"
           >
             <option value="newest" className="bg-[#121214]">Newest</option>
             <option value="top" className="bg-[#121214]">Top Votes</option>
@@ -992,7 +992,7 @@ export default function CommunityFeed({
             onClick={() => setMediaOnly(!mediaOnly)}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-bold transition-all ${
               mediaOnly 
-                ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300 shadow-[0_0_15px_rgba(79,70,229,0.15)]' 
+                ? 'bg-purple-500/20 border-purple-500/50 text-purple-300 shadow-[0_0_15px_rgba(79,70,229,0.15)]' 
                 : 'bg-black/40 border-white/5 text-slate-400 hover:text-white hover:bg-black/60 hover:border-white/10'
             }`}
           >
@@ -1010,7 +1010,7 @@ export default function CommunityFeed({
             placeholder="Share your views or review..."
             className="w-full bg-transparent text-white placeholder-slate-500 text-sm sm:text-base resize-none outline-none min-h-[80px] sm:min-h-[100px]"
           />
-          <div className="mt-3 mb-3 flex items-center gap-3 px-4 py-2.5 bg-black/50 rounded-2xl border border-white/5 focus-within:border-indigo-500/50 focus-within:bg-indigo-500/5 transition-all ring-1 ring-black/20">
+          <div className="mt-3 mb-3 flex items-center gap-3 px-4 py-2.5 bg-black/50 rounded-2xl border border-white/5 focus-within:border-purple-500/50 focus-within:bg-purple-500/5 transition-all ring-1 ring-black/20">
             <ImageIcon className="w-5 h-5 text-slate-400 shrink-0" />
             <input 
               type="url"
@@ -1024,7 +1024,7 @@ export default function CommunityFeed({
             <button
               onClick={() => handlePost(null, newComment, newMediaUrl)}
               disabled={isPosting || !newComment.trim()}
-              className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_25px_rgba(79,70,229,0.5)] disabled:opacity-50 disabled:shadow-none text-white px-6 sm:px-8 py-2.5 rounded-full text-sm sm:text-base font-bold transition-all duration-300 hover:scale-[1.02]"
+              className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_25px_rgba(79,70,229,0.5)] disabled:opacity-50 disabled:shadow-none text-white px-6 sm:px-8 py-2.5 rounded-full text-sm sm:text-base font-bold transition-all duration-300 hover:scale-[1.02]"
             >
               <Send className="w-4 h-4" />
               <span className="hidden sm:inline">Post View</span>
@@ -1033,14 +1033,14 @@ export default function CommunityFeed({
           </div>
         </div>
       ) : (
-        <div className="bg-indigo-600/10 border border-indigo-500/20 rounded-xl p-4 sm:p-6 mb-8 text-center mx-2 sm:mx-0">
-          <p className="text-indigo-200 text-sm sm:text-base font-medium">Log in to share your views with the community!</p>
+        <div className="bg-purple-600/10 border border-purple-500/20 rounded-xl p-4 sm:p-6 mb-8 text-center mx-2 sm:mx-0">
+          <p className="text-purple-200 text-sm sm:text-base font-medium">Log in to share your views with the community!</p>
         </div>
       )}
 
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
         <div className="space-y-2 px-2 sm:px-0">

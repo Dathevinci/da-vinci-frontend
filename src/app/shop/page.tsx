@@ -31,11 +31,11 @@ const SHOP_ITEMS = [
   { id: "effect_lotus", type: "effect", rare: true, name: "The Sacred Lotus Pond", description: "Stillness itself. A sacred lotus pond blooms across the viewer's ENTIRE screen — clear crystal water rippling with every gentle drop, and stirring into fresh waves as they move their mouse or scroll. Forty golden fireflies hover and dance over the surface while a cluster of giant green lily pads drifts around your avatar. Beside you, a pink Lotus and a pristine white Water Lily breathe slowly open and closed, their golden stamens shedding faint pollen into the air. The calm at the eye of the storm.", price: 12000, icon: Flower2, color: "text-emerald-300", glow: "shadow-[0_0_24px_rgba(52,211,153,0.7)]", gradient: "from-pink-300 via-emerald-500 to-teal-800" },
   { id: "effect_samurai", type: "effect", rare: true, name: "The Ghost Samurai", description: "The blade remembers. A spectral katana — hamon glinting along its tempered edge — floats across your avatar and, every six seconds, draws in a flash: a lightning-fast iaijutsu slash that carves a glowing crimson crescent around you and sends a gust through the storm of sakura petals falling across the viewer's ENTIRE screen, while your avatar rests in an aura of crimson and pale steel. The Ghost does not miss.", price: 12000, icon: Swords, color: "text-red-400", glow: "shadow-[0_0_24px_rgba(220,38,38,0.8)]", gradient: "from-slate-300 via-red-600 to-stone-950" },
   { id: "effect_mahoraga", type: "effect", rare: true, name: "Wheel of Adaptation", description: "The Divine General's Eight-Handled Wheel manifests behind your avatar in heavy metallic gold and bronze — idling with a slow, ominous turn until it violently SNAPS 45 degrees, hurling a blinding divine shockwave across the viewer's ENTIRE screen while cursed ink drifts through the dark. It adapts. Every four seconds. Forever.", price: 8000, icon: Cog, color: "text-amber-300", glow: "shadow-[0_0_24px_rgba(255,215,0,0.8)]", gradient: "from-amber-300 via-yellow-600 to-stone-900" },
-  { id: "effect_tempest", type: "effect", rare: true, name: "Monarch's Tempest", description: "The apex artifact. A cel-shaded thundercloud crowns your avatar with lightning flickering inside it while electric arcs snap around the rim — and when anyone opens your profile, a cinematic storm engulfs their ENTIRE screen: pouring parallax rain, branched lightning strikes, and thunder-flash lighting. Dark-fantasy anime, made real.", price: 7500, icon: CloudLightning, color: "text-sky-300", glow: "shadow-[0_0_24px_rgba(56,189,248,0.8)]", gradient: "from-sky-400 via-indigo-600 to-slate-800" },
+  { id: "effect_tempest", type: "effect", rare: true, name: "Monarch's Tempest", description: "The apex artifact. A cel-shaded thundercloud crowns your avatar with lightning flickering inside it while electric arcs snap around the rim — and when anyone opens your profile, a cinematic storm engulfs their ENTIRE screen: pouring parallax rain, branched lightning strikes, and thunder-flash lighting. Dark-fantasy anime, made real.", price: 7500, icon: CloudLightning, color: "text-sky-300", glow: "shadow-[0_0_24px_rgba(56,189,248,0.8)]", gradient: "from-sky-400 via-purple-600 to-slate-800" },
   { id: "effect_blackhole", type: "effect", rare: true, name: "Event Horizon", description: "A highly detailed Black Hole / Deep Space Galaxy avatar effect. Your avatar becomes the center of an accretion disk while a spiral galaxy orbits around it, consuming doomed stars.", price: 7500, icon: Orbit, color: "text-orange-400", glow: "shadow-[0_0_24px_rgba(255,100,0,0.8)]", gradient: "from-orange-500 via-purple-500 to-black" },
   { id: "effect_fool", type: "effect", rare: true, name: "Fog of History", description: "Above the Grey Fog, at the bronze table. When anyone opens your profile, the endless Grey Fog rolls across their ENTIRE screen — crimson stars of the Tarot Club pulse deep within it, and silver spirit threads snake out of the mist to bind themselves to your avatar, crowned in an abyssal-black and cosmic-gold aura. He is watching.", price: 6000, icon: CloudFog, color: "text-slate-300", glow: "shadow-[0_0_24px_rgba(203,213,225,0.7)]", gradient: "from-slate-400 via-slate-600 to-amber-700" },
   { id: "effect_evernight", type: "effect", rare: true, name: "Evernight's Blessing", description: "The night belongs to Her. When anyone opens your profile, a massive Crimson Moon rises over their ENTIRE screen while the River of Eternal Darkness undulates below — and night-vanilla blossoms drift down like snow, swirling into orbit around your avatar, which rests inside an intertwined silver-and-crimson Aura of Concealment. Sleep. Tranquility. Concealment.", price: 6500, icon: Moon, color: "text-rose-300", glow: "shadow-[0_0_24px_rgba(244,63,94,0.7)]", gradient: "from-rose-400 via-rose-800 to-slate-900" },
-  { id: "effect_ascension", type: "effect", rare: true, name: "Voltaic Ascension", description: "The single rarest power in Da Vinci. A storm of amethyst lightning crackles around your avatar while violet smoke pours across your profile — then reality tears open in a warp of light the moment your profile is viewed. Turns your whole profile purple. For the very few.", price: 5000, icon: Zap, color: "text-purple-300", glow: "shadow-[0_0_24px_rgba(168,85,247,0.8)]", gradient: "from-fuchsia-500 via-purple-500 to-indigo-700" },
+  { id: "effect_ascension", type: "effect", rare: true, name: "Voltaic Ascension", description: "The single rarest power in Da Vinci. A storm of amethyst lightning crackles around your avatar while violet smoke pours across your profile — then reality tears open in a warp of light the moment your profile is viewed. Turns your whole profile purple. For the very few.", price: 5000, icon: Zap, color: "text-purple-300", glow: "shadow-[0_0_24px_rgba(168,85,247,0.8)]", gradient: "from-fuchsia-500 via-purple-500 to-purple-700" },
 
   // ---- Avatar Frames: an animated ring that spins around your avatar everywhere ----
   { id: "frame_amethyst", type: "frame", name: "Amethyst Halo", description: "A violet-and-magenta ring that slowly spins around your avatar. Shows on your profile, your comments, and the nav bar.", price: 90, icon: Aperture, color: "text-purple-400", glow: "shadow-[0_0_15px_rgba(192,132,252,0.5)]", gradient: "from-purple-500 to-fuchsia-600" },
@@ -101,7 +101,7 @@ export default function ShopPage() {
     }
   }, [isLoaded, user, router]);
 
-  if (!isLoaded) return <div className="min-h-screen bg-[#09090b] flex items-center justify-center"><div className="animate-spin w-8 h-8 border-2 border-indigo-500 rounded-full border-t-transparent" /></div>;
+  if (!isLoaded) return <div className="min-h-screen bg-[#09090b] flex items-center justify-center"><div className="animate-spin w-8 h-8 border-2 border-purple-500 rounded-full border-t-transparent" /></div>;
   // Open to every logged-in user — cosmetics are the main Arise Points sink.
   if (!user) return null; // redirect to home is handled by the effect above
 
@@ -235,7 +235,7 @@ export default function ShopPage() {
             ? 'bg-gradient-to-b from-emerald-500/10 to-lime-500/[0.04] border border-emerald-500/40 shadow-[0_0_28px_rgba(52,211,153,0.25)] hover:-translate-y-2 hover:shadow-[0_0_38px_rgba(52,211,153,0.4)]'
             : isActive
             ? 'bg-gradient-to-b from-white/10 to-white/5 border border-white/20 shadow-[0_8px_32px_rgba(255,255,255,0.05)]'
-            : 'bg-white/[0.02] backdrop-blur-lg border border-white/5 hover:border-indigo-500/40 hover:bg-white/[0.04] hover:-translate-y-2 hover:shadow-[0_15px_40px_rgba(99,102,241,0.15)]'}`}
+            : 'bg-white/[0.02] backdrop-blur-lg border border-white/5 hover:border-purple-500/40 hover:bg-white/[0.04] hover:-translate-y-2 hover:shadow-[0_15px_40px_rgba(168,85,247,0.15)]'}`}
       >
         {/* Subtle gradient overlay on hover */}
         <div className={`absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-500 bg-gradient-to-br ${item.gradient}`} />
@@ -287,7 +287,7 @@ export default function ShopPage() {
             </div>
             <div className="flex items-center gap-3">
               <div className="relative h-14 w-14 shrink-0">
-                <div className="relative z-10 flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border-2 border-white/15 bg-gradient-to-br from-indigo-500 to-fuchsia-600 text-xl font-black text-white">
+                <div className="relative z-10 flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border-2 border-white/15 bg-gradient-to-br from-purple-500 to-fuchsia-600 text-xl font-black text-white">
                   {user.avatar ? <img src={user.avatar} alt="" className="h-full w-full object-cover" /> : (user.username?.[0]?.toUpperCase() || "?")}
                 </div>
                 {isPreviewable && (
@@ -323,7 +323,7 @@ export default function ShopPage() {
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); toggleDesc(item.id); }}
-                  className="mt-1 text-xs font-bold text-indigo-400 transition hover:text-indigo-300"
+                  className="mt-1 text-xs font-bold text-purple-400 transition hover:text-purple-300"
                 >
                   {expanded ? "See less" : "See more"}
                 </button>
@@ -341,7 +341,7 @@ export default function ShopPage() {
               className={`flex w-full items-center justify-center gap-2 rounded-xl py-3 font-bold transition-all duration-300
                 ${(!isAdmin(user) && (user.arisePoints || 0) < item.price)
                   ? "cursor-not-allowed border border-white/5 bg-white/5 text-slate-500"
-                  : "bg-gradient-to-r from-indigo-600 to-fuchsia-600 text-white shadow-[0_0_20px_rgba(99,102,241,0.4)] hover:scale-[1.02] hover:from-indigo-500 hover:to-fuchsia-500 hover:shadow-[0_0_25px_rgba(217,70,239,0.6)]"}`}
+                  : "bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:scale-[1.02] hover:from-purple-500 hover:to-fuchsia-500 hover:shadow-[0_0_25px_rgba(217,70,239,0.6)]"}`}
             >
               {buyingId === item.id ? (
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
@@ -430,7 +430,7 @@ export default function ShopPage() {
       <div className="min-h-screen bg-[#050505] pt-24 pb-24 text-white relative overflow-clip">
         {/* Background Ambient Glows */}
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-fuchsia-600/10 blur-[120px] rounded-full pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-indigo-600/10 blur-[150px] rounded-full pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-purple-600/10 blur-[150px] rounded-full pointer-events-none" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[400px] bg-blue-600/5 blur-[100px] rounded-full pointer-events-none transform rotate-45" />
 
         <div className="max-w-7xl mx-auto px-4 relative z-10">
@@ -440,7 +440,7 @@ export default function ShopPage() {
             className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6"
           >
             <div>
-              <h1 className="text-4xl md:text-6xl font-black flex items-center gap-4 bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-fuchsia-400 to-pink-500 drop-shadow-sm mb-2">
+              <h1 className="text-4xl md:text-6xl font-black flex items-center gap-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-fuchsia-400 to-pink-500 drop-shadow-sm mb-2">
                 <ShoppingBag className="w-10 h-10 md:w-14 md:h-14 text-fuchsia-500 drop-shadow-[0_0_15px_rgba(217,70,239,0.5)]" /> 
                 Arise Shop
               </h1>
@@ -450,7 +450,7 @@ export default function ShopPage() {
               whileHover={{ scale: 1.05 }}
               className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-5 flex items-center gap-5 shadow-[0_8px_30px_rgb(0,0,0,0.5)]"
             >
-              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-fuchsia-600 flex items-center justify-center shadow-[0_0_20px_rgba(99,102,241,0.6)]">
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-fuchsia-600 flex items-center justify-center shadow-[0_0_20px_rgba(168,85,247,0.6)]">
                 <Diamond className="w-7 h-7 text-white" />
               </div>
               <div>
@@ -597,7 +597,7 @@ export default function ShopPage() {
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Search frames, effects…"
-                    className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-9 text-sm transition placeholder:text-slate-500 focus:border-indigo-500/60 focus:outline-none"
+                    className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-9 text-sm transition placeholder:text-slate-500 focus:border-purple-500/60 focus:outline-none"
                   />
                   {query && (
                     <button
@@ -622,7 +622,7 @@ export default function ShopPage() {
                       key={o.key}
                       onClick={() => setOwned(o.key)}
                       className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
-                        owned === o.key ? "bg-indigo-600 text-white shadow" : "text-slate-400 hover:text-white"
+                        owned === o.key ? "bg-purple-600 text-white shadow" : "text-slate-400 hover:text-white"
                       }`}
                     >
                       {o.label}
@@ -641,8 +641,8 @@ export default function ShopPage() {
                       onClick={() => setCategory(t.key)}
                       className={`flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-bold transition ${
                         active
-                          ? "border-transparent bg-gradient-to-r from-indigo-600 to-fuchsia-600 text-white shadow-[0_0_16px_rgba(99,102,241,0.45)]"
-                          : "border-white/10 bg-white/5 text-slate-300 hover:border-indigo-500/40 hover:text-white"
+                          ? "border-transparent bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-[0_0_16px_rgba(168,85,247,0.45)]"
+                          : "border-white/10 bg-white/5 text-slate-300 hover:border-purple-500/40 hover:text-white"
                       }`}
                     >
                       <TabIcon className="h-4 w-4" />
@@ -669,7 +669,7 @@ export default function ShopPage() {
               </span>
               <button
                 onClick={resetFilters}
-                className="font-bold text-indigo-300 underline-offset-2 transition hover:text-white hover:underline"
+                className="font-bold text-purple-300 underline-offset-2 transition hover:text-white hover:underline"
               >
                 Reset filters
               </button>
@@ -686,7 +686,7 @@ export default function ShopPage() {
               </p>
               <button
                 onClick={resetFilters}
-                className="rounded-xl bg-gradient-to-r from-indigo-600 to-fuchsia-600 px-6 py-2.5 font-bold text-white transition hover:scale-[1.03]"
+                className="rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 px-6 py-2.5 font-bold text-white transition hover:scale-[1.03]"
               >
                 Show everything
               </button>
@@ -702,7 +702,7 @@ export default function ShopPage() {
               <div key={section.key} className="mb-14">
                 <div className="mb-6 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
-                    <div className={`h-9 w-1.5 rounded-full ${isSSSSection ? "bg-gradient-to-b from-white to-slate-500 shadow-[0_0_16px_rgba(255,255,255,0.8)]" : isRare ? "bg-gradient-to-b from-fuchsia-300 to-purple-600 shadow-[0_0_14px_rgba(217,70,239,0.7)]" : "bg-gradient-to-b from-indigo-400 to-fuchsia-500 shadow-[0_0_12px_rgba(217,70,239,0.5)]"}`} />
+                    <div className={`h-9 w-1.5 rounded-full ${isSSSSection ? "bg-gradient-to-b from-white to-slate-500 shadow-[0_0_16px_rgba(255,255,255,0.8)]" : isRare ? "bg-gradient-to-b from-fuchsia-300 to-purple-600 shadow-[0_0_14px_rgba(217,70,239,0.7)]" : "bg-gradient-to-b from-purple-400 to-fuchsia-500 shadow-[0_0_12px_rgba(217,70,239,0.5)]"}`} />
                     <div>
                       <h2 className="text-2xl md:text-3xl font-black text-white leading-tight">{section.title}</h2>
                       <p className="text-slate-400 text-sm md:text-base">{section.blurb}</p>
@@ -770,7 +770,7 @@ export default function ShopPage() {
                     <div className={`relative z-[2] h-28 bg-gradient-to-br ${pv.gradient} opacity-70`} />
                     <div className="relative z-[10] -mt-14 flex items-end gap-4 px-6 pb-6">
                       <div className="relative h-24 w-24 shrink-0">
-                        <div className="relative z-10 flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-4 border-[#0d0d16] bg-gradient-to-br from-indigo-500 to-fuchsia-600 text-3xl font-black text-white">
+                        <div className="relative z-10 flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-4 border-[#0d0d16] bg-gradient-to-br from-purple-500 to-fuchsia-600 text-3xl font-black text-white">
                           {user.avatar ? <img src={user.avatar} alt="" className="h-full w-full object-cover" /> : user.username?.[0]?.toUpperCase() || "?"}
                         </div>
                         <AvatarDecoration frame={pv.type === "frame" ? pv.id : null} effect={pv.type === "effect" ? pv.id : null} size="lg" />
@@ -810,7 +810,7 @@ export default function ShopPage() {
                           className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-3 font-bold transition ${
                             !canBuy
                               ? "cursor-not-allowed border border-white/5 bg-white/5 text-slate-500"
-                              : "bg-gradient-to-r from-indigo-600 to-fuchsia-600 text-white shadow-[0_0_20px_rgba(99,102,241,0.4)] hover:from-indigo-500 hover:to-fuchsia-500"
+                              : "bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:from-purple-500 hover:to-fuchsia-500"
                           }`}
                         >
                           {buyingId === pv.id ? (

@@ -64,7 +64,7 @@ export default function TermsPage() {
             </p>
 
             <h3 className="text-xl font-bold mb-2 text-white">4.2 Anime Content</h3>
-            <p className="uppercase text-slate-300 font-bold tracking-wide leading-relaxed border-l-4 border-indigo-500 pl-4 mb-4">
+            <p className="uppercase text-slate-300 font-bold tracking-wide leading-relaxed border-l-4 border-purple-500 pl-4 mb-4">
               DA-VINCI DOES NOT OWN THE RIGHTS TO PROVIDE THE CONTENT YOU SEE ON THE SITE. The content is provided by third-party anime sources, open-access databases, and other open-access websites. WE DO NOT OWN NOR CONTROL THE CONTENT ON THE WEBSITE. WE SIMPLY PROVIDE LINKS TO IT.
             </p>
             <p className="uppercase text-slate-300 font-bold tracking-wide leading-relaxed border-l-4 border-red-500 pl-4">
@@ -79,7 +79,7 @@ export default function TermsPage() {
             </p>
           </section>
 
-          <section className="bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border border-blue-500/30 rounded-2xl p-8">
+          <section className="bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/30 rounded-2xl p-8">
             <h2 className="text-2xl font-bold mb-4 text-white">6. Contact & Copyright Claims</h2>
             <p className="text-slate-300">
               For any questions regarding these terms, or to submit a DMCA takedown request regarding embedded content, please contact us at:

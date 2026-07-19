@@ -17,7 +17,7 @@ export default function SupportPage() {
       <div className="min-h-screen pt-24 pb-12 bg-[#09090b] text-white relative overflow-hidden">
         {/* Background glow effects */}
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#ff5e5b]/10 blur-[150px] rounded-full pointer-events-none translate-x-1/3 -translate-y-1/3"></div>
-        <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-indigo-600/10 blur-[150px] rounded-full pointer-events-none -translate-x-1/3 translate-y-1/3"></div>
+        <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-purple-600/10 blur-[150px] rounded-full pointer-events-none -translate-x-1/3 translate-y-1/3"></div>
 
         <div className="max-w-5xl mx-auto px-4 md:px-8 relative z-10">
           
@@ -59,10 +59,10 @@ export default function SupportPage() {
             >
               {/* Server Cost Tracker Container */}
               <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 blur-[80px] rounded-full"></div>
+                <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 blur-[80px] rounded-full"></div>
                 
                 <h2 className="text-2xl font-black text-white mb-8 flex items-center gap-3 relative z-10">
-                  <Coffee className="w-6 h-6 text-indigo-400" />
+                  <Coffee className="w-6 h-6 text-purple-400" />
                   Monthly Server Cost
                 </h2>
 
@@ -104,10 +104,10 @@ export default function SupportPage() {
               </div>
 
               {/* Info box */}
-              <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-2xl p-6 flex items-start gap-4">
-                <Info className="w-6 h-6 text-indigo-400 shrink-0 mt-0.5" />
+              <div className="bg-purple-500/5 border border-purple-500/20 rounded-2xl p-6 flex items-start gap-4">
+                <Info className="w-6 h-6 text-purple-400 shrink-0 mt-0.5" />
                 <div>
-                  <h3 className="font-bold text-indigo-300 mb-2">Why support us?</h3>
+                  <h3 className="font-bold text-purple-300 mb-2">Why support us?</h3>
                   <p className="text-slate-400 text-sm leading-relaxed">
                     Da Vinci is built by anime fans, for anime fans. We completely refuse to use intrusive ads or pop-ups. Your donations directly pay for the high-speed servers, database costs, and continuous development of new features.
                   </p>
@@ -130,7 +130,7 @@ export default function SupportPage() {
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl mb-6">
                 <ul className="space-y-4 text-slate-300 font-medium">
                   <li className="flex items-start gap-3">
-                    <Sparkles className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
+                    <Sparkles className="w-5 h-5 text-purple-400 shrink-0 mt-0.5" />
                     <span>Exclusive animated profile effects to show off your status</span>
                   </li>
                   <li className="flex items-start gap-3">

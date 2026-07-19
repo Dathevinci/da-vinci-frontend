@@ -126,7 +126,7 @@ export default async function AnimeDetails({ params }: { params: Promise<{ id: s
               <h3 className="font-bold text-lg mb-4 text-white border-b border-white/10 pb-2">Genres</h3>
               <div className="flex flex-wrap gap-2">
                 {anime.genres.map((g: any) => (
-                  <span key={g.name} className="bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-3 py-1 rounded-full text-xs font-medium">
+                  <span key={g.name} className="bg-purple-500/10 text-purple-300 border border-purple-500/20 px-3 py-1 rounded-full text-xs font-medium">
                     {g.name}
                   </span>
                 ))}

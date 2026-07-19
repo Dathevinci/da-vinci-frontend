@@ -57,9 +57,9 @@ export default function ContinueWatchingCarousel() {
       <div className="relative">
         <button 
           onClick={() => handleScroll('left')}
-          className="absolute left-0 md:-left-4 top-1/2 -translate-y-1/2 z-[60] w-10 h-10 md:w-12 md:h-12 bg-black/60 border border-white/10 rounded-full flex items-center justify-center opacity-70 hover:opacity-100 hover:bg-black/80 hover:scale-110 hover:border-indigo-500/50 transition-all backdrop-blur-md shadow-2xl"
+          className="absolute left-0 md:-left-4 top-1/2 -translate-y-1/2 z-[60] w-10 h-10 md:w-12 md:h-12 bg-black/60 border border-white/10 rounded-full flex items-center justify-center opacity-70 hover:opacity-100 hover:bg-black/80 hover:scale-110 hover:border-purple-500/50 transition-all backdrop-blur-md shadow-2xl"
         >
-          <ChevronLeft className="w-6 h-6 md:w-8 md:h-8 text-white transition-transform hover:text-indigo-400" />
+          <ChevronLeft className="w-6 h-6 md:w-8 md:h-8 text-white transition-transform hover:text-purple-400" />
         </button>
 
         <div
@@ -74,9 +74,9 @@ export default function ContinueWatchingCarousel() {
 
         <button 
           onClick={() => handleScroll('right')}
-          className="absolute right-0 md:-right-4 top-1/2 -translate-y-1/2 z-[60] w-10 h-10 md:w-12 md:h-12 bg-black/60 border border-white/10 rounded-full flex items-center justify-center opacity-70 hover:opacity-100 hover:bg-black/80 hover:scale-110 hover:border-indigo-500/50 transition-all backdrop-blur-md shadow-2xl"
+          className="absolute right-0 md:-right-4 top-1/2 -translate-y-1/2 z-[60] w-10 h-10 md:w-12 md:h-12 bg-black/60 border border-white/10 rounded-full flex items-center justify-center opacity-70 hover:opacity-100 hover:bg-black/80 hover:scale-110 hover:border-purple-500/50 transition-all backdrop-blur-md shadow-2xl"
         >
-          <ChevronRight className="w-6 h-6 md:w-8 md:h-8 text-white transition-transform hover:text-indigo-400" />
+          <ChevronRight className="w-6 h-6 md:w-8 md:h-8 text-white transition-transform hover:text-purple-400" />
         </button>
       </div>
     </div>

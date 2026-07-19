@@ -32,9 +32,9 @@ export default function AnimeCarousel({ title, animes, seeAllLink = "/explore" }
       <div className="relative">
         <button 
           onClick={() => handleScroll('left')}
-          className="absolute left-0 md:-left-4 top-1/2 -translate-y-1/2 z-40 w-10 h-10 md:w-12 md:h-12 bg-black/60 border border-white/10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-black/80 hover:scale-110 hover:border-indigo-500/50 transition-all backdrop-blur-md shadow-2xl"
+          className="absolute left-0 md:-left-4 top-1/2 -translate-y-1/2 z-40 w-10 h-10 md:w-12 md:h-12 bg-black/60 border border-white/10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-black/80 hover:scale-110 hover:border-purple-500/50 transition-all backdrop-blur-md shadow-2xl"
         >
-          <ChevronLeft className="w-6 h-6 md:w-8 md:h-8 text-white transition-transform hover:text-indigo-400" />
+          <ChevronLeft className="w-6 h-6 md:w-8 md:h-8 text-white transition-transform hover:text-purple-400" />
         </button>
 
         <div
@@ -46,10 +46,10 @@ export default function AnimeCarousel({ title, animes, seeAllLink = "/explore" }
           
           {/* See More Card */}
           <Link href={seeAllLink} className="snap-start">
-            <div className="relative w-[160px] md:w-[220px] aspect-[2/3] rounded-xl flex-shrink-0 flex items-center justify-center bg-[#141414]/30 border border-white/5 hover:bg-[#141414]/80 transition-colors cursor-pointer group/card hover:scale-105 duration-300 hover:shadow-[0_0_30px_rgba(99,102,241,0.2)] hover:border-indigo-500/30">
+            <div className="relative w-[160px] md:w-[220px] aspect-[2/3] rounded-xl flex-shrink-0 flex items-center justify-center bg-[#141414]/30 border border-white/5 hover:bg-[#141414]/80 transition-colors cursor-pointer group/card hover:scale-105 duration-300 hover:shadow-[0_0_30px_rgba(168,85,247,0.2)] hover:border-purple-500/30">
               <div className="flex flex-col items-center gap-3">
-                <div className="w-14 h-14 rounded-full border-2 border-white/10 flex items-center justify-center group-hover/card:border-indigo-400 transition-colors bg-black/40 shadow-lg">
-                  <ChevronRight className="w-8 h-8 text-white group-hover/card:translate-x-1 group-hover/card:text-indigo-400 transition-all" />
+                <div className="w-14 h-14 rounded-full border-2 border-white/10 flex items-center justify-center group-hover/card:border-purple-400 transition-colors bg-black/40 shadow-lg">
+                  <ChevronRight className="w-8 h-8 text-white group-hover/card:translate-x-1 group-hover/card:text-purple-400 transition-all" />
                 </div>
                 <span className="text-slate-400 font-bold tracking-widest uppercase text-xs md:text-sm group-hover/card:text-white transition-colors">See All</span>
               </div>
@@ -59,9 +59,9 @@ export default function AnimeCarousel({ title, animes, seeAllLink = "/explore" }
 
         <button 
           onClick={() => handleScroll('right')}
-          className="absolute right-0 md:-right-4 top-1/2 -translate-y-1/2 z-40 w-10 h-10 md:w-12 md:h-12 bg-black/60 border border-white/10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-black/80 hover:scale-110 hover:border-indigo-500/50 transition-all backdrop-blur-md shadow-2xl"
+          className="absolute right-0 md:-right-4 top-1/2 -translate-y-1/2 z-40 w-10 h-10 md:w-12 md:h-12 bg-black/60 border border-white/10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-black/80 hover:scale-110 hover:border-purple-500/50 transition-all backdrop-blur-md shadow-2xl"
         >
-          <ChevronRight className="w-6 h-6 md:w-8 md:h-8 text-white transition-transform hover:text-indigo-400" />
+          <ChevronRight className="w-6 h-6 md:w-8 md:h-8 text-white transition-transform hover:text-purple-400" />
         </button>
       </div>
     </div>

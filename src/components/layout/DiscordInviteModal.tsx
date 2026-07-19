@@ -61,14 +61,14 @@ export default function DiscordInviteModal({ username, email, avatar, onClose, o
               required
               value={inviteCode}
               onChange={(e) => setInviteCode(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-indigo-500 uppercase"
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500 uppercase"
               placeholder="e.g. A1B2C3D4"
             />
           </div>
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg transition disabled:opacity-50 mt-4 shadow-lg shadow-indigo-500/20"
+            className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-lg transition disabled:opacity-50 mt-4 shadow-lg shadow-purple-500/20"
           >
             {loading ? "Verifying..." : "Complete Registration"}
           </button>

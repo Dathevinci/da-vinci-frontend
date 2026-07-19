@@ -103,7 +103,7 @@ export default function UserProfileModal({ username, onClose }: { username: stri
 
         {loading ? (
           <div className="rounded-3xl border border-white/10 bg-[#111019] h-80 grid place-items-center">
-            <div className="h-8 w-8 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+            <div className="h-8 w-8 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : notFound || !profileUser ? (
           <div className="rounded-3xl border border-white/10 bg-[#111019] p-10 text-center text-slate-400">
@@ -156,7 +156,7 @@ function PopoutCard({
             className="h-full w-full object-cover"
           />
         ) : (
-          <div className="h-full w-full bg-gradient-to-br from-indigo-600/70 via-purple-600/50 to-fuchsia-600/40" />
+          <div className="h-full w-full bg-gradient-to-br from-purple-600/70 via-purple-600/50 to-fuchsia-600/40" />
         )}
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/50" />
       </div>
@@ -167,7 +167,7 @@ function PopoutCard({
           {profileUser.avatar ? (
             <img src={profileUser.avatar} alt={profileUser.username} className="relative z-10 h-24 w-24 rounded-full object-cover border-4 border-[#0e0d16] bg-[#141414]" />
           ) : (
-            <div className="relative z-10 grid h-24 w-24 place-items-center rounded-full border-4 border-[#0e0d16] bg-indigo-600 text-4xl font-black text-white">
+            <div className="relative z-10 grid h-24 w-24 place-items-center rounded-full border-4 border-[#0e0d16] bg-purple-600 text-4xl font-black text-white">
               {profileUser.username.charAt(0).toUpperCase()}
             </div>
           )}
@@ -211,7 +211,7 @@ function PopoutCard({
         {cleanBio && (
           <>
             <div className="mt-4 mb-1.5 text-[10px] font-black tracking-[0.18em] uppercase text-slate-500">About me</div>
-            <BioRenderer bio={cleanBio} className="text-indigo-200 font-medium text-sm line-clamp-4" />
+            <BioRenderer bio={cleanBio} className="text-purple-200 font-medium text-sm line-clamp-4" />
           </>
         )}
 
@@ -227,7 +227,7 @@ function PopoutCard({
           {canFollow && (
             <button
               onClick={onFollow}
-              className={`flex-1 flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition shadow-lg ${isFollowing ? "bg-white/10 text-white hover:bg-red-500/20 hover:text-red-400" : "bg-indigo-600 text-white hover:bg-indigo-500"}`}
+              className={`flex-1 flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition shadow-lg ${isFollowing ? "bg-white/10 text-white hover:bg-red-500/20 hover:text-red-400" : "bg-purple-600 text-white hover:bg-purple-500"}`}
             >
               {isFollowing ? <><UserMinus className="w-4 h-4" /> Unfollow</> : <><UserPlus className="w-4 h-4" /> Follow</>}
             </button>

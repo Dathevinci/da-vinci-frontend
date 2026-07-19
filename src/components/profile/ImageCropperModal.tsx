@@ -71,7 +71,7 @@ export default function ImageCropperModal({ imageSrc, isBanner, isGif, onClose, 
               step={0.1}
               aria-labelledby="Zoom"
               onChange={(e) => setZoom(Number(e.target.value))}
-              className="w-full accent-indigo-500 h-2 bg-white/10 rounded-lg appearance-none cursor-pointer"
+              className="w-full accent-purple-500 h-2 bg-white/10 rounded-lg appearance-none cursor-pointer"
             />
           </div>
 
@@ -84,7 +84,7 @@ export default function ImageCropperModal({ imageSrc, isBanner, isGif, onClose, 
             </button>
             <button 
               onClick={handleSave}
-              className="px-6 py-2.5 bg-indigo- hover:bg-indigo-500 text-white rounded-lg font-bold shadow-lg flex items-center gap-2 transition"
+              className="px-6 py-2.5 bg-indigo- hover:bg-purple-500 text-white rounded-lg font-bold shadow-lg flex items-center gap-2 transition"
             >
               <Check className="w-5 h-5" /> Apply Crop
             </button>

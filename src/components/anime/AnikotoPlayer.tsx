@@ -444,7 +444,7 @@ export default function AnikotoPlayer({
               exit={{ opacity: 0 }}
               className="absolute inset-0 flex flex-col items-center justify-center gap-4 pointer-events-none"
             >
-              <div className="w-16 h-16 rounded-full border-4 border-white/10 border-t-indigo-500 animate-spin" />
+              <div className="w-16 h-16 rounded-full border-4 border-white/10 border-t-purple-500 animate-spin" />
               <p className="text-slate-400 text-sm font-medium">Loading Episode {activeEpNo}…</p>
             </motion.div>
           )}
@@ -467,7 +467,7 @@ export default function AnikotoPlayer({
               <div className="flex gap-3 mt-2">
                 <button
                   onClick={() => switchType(streamType === "sub" ? "dub" : "sub")}
-                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm transition"
+                  className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm transition"
                 >
                   Try {streamType === "sub" ? "Dub" : "Sub"}
                 </button>
@@ -514,7 +514,7 @@ export default function AnikotoPlayer({
                     disabled={loading}
                     className={`px-4 py-1 rounded-full text-xs font-black uppercase transition ${
                       streamType === t
-                        ? "bg-indigo-600 text-white shadow-lg"
+                        ? "bg-purple-600 text-white shadow-lg"
                         : "text-slate-400 hover:text-white"
                     }`}
                   >
@@ -588,7 +588,7 @@ export default function AnikotoPlayer({
                     style={{ width: `${bufferedPct}%` }}
                   />
                   <div
-                    className="absolute top-0 left-0 h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-[width]"
+                    className="absolute top-0 left-0 h-full rounded-full bg-gradient-to-r from-purple-500 to-violet-500 transition-[width]"
                     style={{ width: `${progressPct}%` }}
                   />
                   <div
@@ -600,7 +600,7 @@ export default function AnikotoPlayer({
                 {/* Controls row */}
                 <div className="flex items-center gap-3 md:gap-4">
                   {/* Play/Pause */}
-                  <button onClick={togglePlay} disabled={loading} className="text-white hover:text-indigo-300 transition">
+                  <button onClick={togglePlay} disabled={loading} className="text-white hover:text-purple-300 transition">
                     {playing
                       ? <Pause className="w-7 h-7" />
                       : <Play className="w-7 h-7 fill-white" />
@@ -620,7 +620,7 @@ export default function AnikotoPlayer({
                   <div className="flex items-center gap-2 group/vol">
                     <button
                       onClick={() => { const v = videoRef.current; if (v) v.muted = !v.muted; }}
-                      className="text-white hover:text-indigo-300 transition"
+                      className="text-white hover:text-purple-300 transition"
                     >
                       {muted || volume === 0 ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
                     </button>
@@ -628,7 +628,7 @@ export default function AnikotoPlayer({
                       type="range" min={0} max={1} step={0.02}
                       value={muted ? 0 : volume}
                       onChange={e => handleVolumeChange(parseFloat(e.target.value))}
-                      className="w-0 group-hover/vol:w-20 overflow-hidden transition-all duration-300 accent-indigo-500 cursor-pointer"
+                      className="w-0 group-hover/vol:w-20 overflow-hidden transition-all duration-300 accent-purple-500 cursor-pointer"
                     />
                   </div>
 
@@ -642,14 +642,14 @@ export default function AnikotoPlayer({
                   {/* Episodes */}
                   <button
                     onClick={e => { e.stopPropagation(); setShowEpisodePanel(v => !v); }}
-                    className={`transition ${showEpisodePanel ? "text-indigo-400" : "text-white hover:text-indigo-300"}`}
+                    className={`transition ${showEpisodePanel ? "text-purple-400" : "text-white hover:text-purple-300"}`}
                     title="Episodes"
                   >
                     <List className="w-6 h-6" />
                   </button>
 
                   {/* Fullscreen */}
-                  <button onClick={toggleFullscreen} className="text-white hover:text-indigo-300 transition">
+                  <button onClick={toggleFullscreen} className="text-white hover:text-purple-300 transition">
                     {fullscreen ? <Minimize className="w-6 h-6" /> : <Maximize className="w-6 h-6" />}
                   </button>
                 </div>
@@ -693,24 +693,24 @@ export default function AnikotoPlayer({
                       onClick={() => { loadEpisode(ep.number, streamType); setShowEpisodePanel(false); }}
                       className={`w-full text-left flex items-center gap-4 px-5 py-4 border-b border-white/5 transition-colors group ${
                         isActive
-                          ? "bg-indigo-600/15 border-l-2 border-l-indigo-500 pl-[18px]"
+                          ? "bg-purple-600/15 border-l-2 border-l-purple-500 pl-[18px]"
                           : "hover:bg-white/5 border-l-2 border-l-transparent"
                       }`}
                     >
                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 font-black text-sm transition ${
-                        isActive ? "bg-indigo-600 text-white" : "bg-white/10 text-slate-400 group-hover:bg-white/20"
+                        isActive ? "bg-purple-600 text-white" : "bg-white/10 text-slate-400 group-hover:bg-white/20"
                       }`}>
                         {ep.number}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={`font-bold text-sm truncate ${isActive ? "text-indigo-300" : "text-white"}`}>
+                        <p className={`font-bold text-sm truncate ${isActive ? "text-purple-300" : "text-white"}`}>
                           {ep.title || `Episode ${ep.number}`}
                         </p>
                         {(ep as any).hasDub && (
                           <p className="text-slate-500 text-xs mt-0.5">Sub &amp; Dub available</p>
                         )}
                       </div>
-                      {isActive && <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse flex-shrink-0" />}
+                      {isActive && <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse flex-shrink-0" />}
                     </button>
                   );
                 })}

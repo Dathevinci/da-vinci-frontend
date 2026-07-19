@@ -400,11 +400,11 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
             <h2 className="text-2xl font-black mb-6 text-white tracking-tight flex-shrink-0">Settings</h2>
 
             <div className="flex gap-2 mb-6 border-b border-white/10 pb-2 overflow-x-auto scrollbar-none shrink-0">
-              <button onClick={() => setActiveTab('profile')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition ${activeTab === 'profile' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>Profile</button>
-              <button onClick={() => setActiveTab('account')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition ${activeTab === 'account' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>Account</button>
-              <button onClick={() => setActiveTab('preferences')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition ${activeTab === 'preferences' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>Preferences</button>
-              <button onClick={() => setActiveTab('integrations')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition ${activeTab === 'integrations' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>Integrations</button>
-              <button onClick={() => setActiveTab('invites')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition ${activeTab === 'invites' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>Invite Keys</button>
+              <button onClick={() => setActiveTab('profile')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition ${activeTab === 'profile' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>Profile</button>
+              <button onClick={() => setActiveTab('account')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition ${activeTab === 'account' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>Account</button>
+              <button onClick={() => setActiveTab('preferences')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition ${activeTab === 'preferences' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>Preferences</button>
+              <button onClick={() => setActiveTab('integrations')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition ${activeTab === 'integrations' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>Integrations</button>
+              <button onClick={() => setActiveTab('invites')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition ${activeTab === 'invites' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>Invite Keys</button>
             </div>
 
             {/* Scrollable Content Area */}
@@ -429,9 +429,9 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                         <button 
                           onClick={() => fileInputRef.current?.click()}
                           disabled={uploadingImage}
-                          className="flex-1 flex flex-col items-center justify-center gap-2 border-2 border-dashed border-white/20 hover:border-indigo-400 bg-white/5 hover:bg-white/10 text-white font-bold h-32 rounded-2xl transition disabled:opacity-50"
+                          className="flex-1 flex flex-col items-center justify-center gap-2 border-2 border-dashed border-white/20 hover:border-purple-400 bg-white/5 hover:bg-white/10 text-white font-bold h-32 rounded-2xl transition disabled:opacity-50"
                         >
-                          {uploadingImage ? <RefreshCw className="w-6 h-6 animate-spin text-indigo-400" /> : <Camera className="w-6 h-6 text-slate-400" />}
+                          {uploadingImage ? <RefreshCw className="w-6 h-6 animate-spin text-purple-400" /> : <Camera className="w-6 h-6 text-slate-400" />}
                           <span className="text-sm text-slate-300">{uploadingImage ? "Uploading..." : "Upload Avatar"}</span>
                         </button>
                       </div>
@@ -443,9 +443,9 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                         <button 
                           onClick={() => bannerInputRef.current?.click()}
                           disabled={uploadingBanner}
-                          className="flex-1 flex flex-col items-center justify-center gap-2 border-2 border-dashed border-white/20 hover:border-indigo-400 bg-white/5 hover:bg-white/10 text-white font-bold h-32 rounded-2xl transition disabled:opacity-50"
+                          className="flex-1 flex flex-col items-center justify-center gap-2 border-2 border-dashed border-white/20 hover:border-purple-400 bg-white/5 hover:bg-white/10 text-white font-bold h-32 rounded-2xl transition disabled:opacity-50"
                         >
-                          {uploadingBanner ? <RefreshCw className="w-6 h-6 animate-spin text-indigo-400" /> : <ImageIcon className="w-6 h-6 text-slate-400" />}
+                          {uploadingBanner ? <RefreshCw className="w-6 h-6 animate-spin text-purple-400" /> : <ImageIcon className="w-6 h-6 text-slate-400" />}
                           <span className="text-sm text-slate-300">{uploadingBanner ? "Uploading..." : "Upload Banner"}</span>
                         </button>
                       </div>
@@ -458,13 +458,13 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                       <div className="flex gap-2">
                         <button
                           onClick={() => saveBannerStyle("full")}
-                          className={`flex-1 px-4 py-3 rounded-xl font-bold text-sm border transition ${bannerStyle !== "cover" ? "bg-indigo-600 border-indigo-500 text-white" : "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10"}`}
+                          className={`flex-1 px-4 py-3 rounded-xl font-bold text-sm border transition ${bannerStyle !== "cover" ? "bg-purple-600 border-purple-500 text-white" : "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10"}`}
                         >
                           Full screen
                         </button>
                         <button
                           onClick={() => saveBannerStyle("cover")}
-                          className={`flex-1 px-4 py-3 rounded-xl font-bold text-sm border transition ${bannerStyle === "cover" ? "bg-indigo-600 border-indigo-500 text-white" : "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10"}`}
+                          className={`flex-1 px-4 py-3 rounded-xl font-bold text-sm border transition ${bannerStyle === "cover" ? "bg-purple-600 border-purple-500 text-white" : "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10"}`}
                         >
                           Cover header
                         </button>
@@ -493,7 +493,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                         onChange={e => setBannerPos(Number(e.target.value))}
                         onMouseUp={() => { updateProfile({ bannerPosition: bannerPos } as any); onUpdate?.({ bannerPosition: bannerPos }); }}
                         onTouchEnd={() => { updateProfile({ bannerPosition: bannerPos } as any); onUpdate?.({ bannerPosition: bannerPos }); }}
-                        className="w-full accent-indigo-500 cursor-pointer"
+                        className="w-full accent-purple-500 cursor-pointer"
                       />
                       <p className="text-xs text-slate-500">Drag to choose which part of the banner shows in the cover.</p>
                     </div>
@@ -501,7 +501,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
 
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Bio</label>
-                    <textarea value={bio} onChange={e => setBio(e.target.value)} rows={3} placeholder="Tell us about yourself..." className="w-full bg-[#030305] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition resize-none" />
+                    <textarea value={bio} onChange={e => setBio(e.target.value)} rows={3} placeholder="Tell us about yourself..." className="w-full bg-[#030305] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition resize-none" />
                   </div>
                   
                   <div className="bg-white/5 border border-white/5 rounded-2xl overflow-hidden">
@@ -515,7 +515,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                           <p className="text-[11px] text-slate-500 mt-0.5 max-w-[200px]">Hide watchlist and bio from non-followers.</p>
                         </div>
                       </div>
-                      <button onClick={() => setIsPrivate(!isPrivate)} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${isPrivate ? 'bg-indigo-600' : 'bg-white/10'}`}>
+                      <button onClick={() => setIsPrivate(!isPrivate)} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${isPrivate ? 'bg-purple-600' : 'bg-white/10'}`}>
                         <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${isPrivate ? 'translate-x-5' : 'translate-x-1'}`} />
                       </button>
                     </div>
@@ -524,7 +524,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                   <button 
                     onClick={handleSaveProfile}
                     disabled={isSaving}
-                    className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(79,70,229,0.3)]"
+                    className="w-full bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(79,70,229,0.3)]"
                   >
                     <Save className="w-5 h-5" />
                     {isSaving ? "Saving..." : "Save Profile"}
@@ -536,11 +536,11 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
                   {/* Change Username — first change free, then costs Arise Points */}
                   <div className="bg-white/5 border border-white/10 p-6 rounded-2xl space-y-3">
-                    <h3 className="font-bold flex items-center gap-2 text-white"><UserIcon className="w-5 h-5 text-indigo-400" /> Change Username</h3>
+                    <h3 className="font-bold flex items-center gap-2 text-white"><UserIcon className="w-5 h-5 text-purple-400" /> Change Username</h3>
                     <p className="text-sm text-slate-400">
                       {usernameIsFree
                         ? "Your first username change is free."
-                        : <>Changing again costs <span className="font-bold text-indigo-300">{USERNAME_COST} Arise Points</span> — you have <span className="font-semibold text-white">{(user?.arisePoints || 0).toLocaleString()}</span>.</>}
+                        : <>Changing again costs <span className="font-bold text-purple-300">{USERNAME_COST} Arise Points</span> — you have <span className="font-semibold text-white">{(user?.arisePoints || 0).toLocaleString()}</span>.</>}
                     </p>
                     <div className="flex flex-col sm:flex-row gap-3">
                       <input
@@ -548,12 +548,12 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                         onChange={e => setNewUsername(e.target.value)}
                         placeholder={user?.username || "New username"}
                         maxLength={20}
-                        className="flex-1 bg-[#030305] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500"
+                        className="flex-1 bg-[#030305] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500"
                       />
                       <button
                         onClick={handleChangeUsername}
                         disabled={isChangingUsername || !newUsername.trim()}
-                        className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl font-bold transition disabled:opacity-50 whitespace-nowrap"
+                        className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-xl font-bold transition disabled:opacity-50 whitespace-nowrap"
                       >
                         {isChangingUsername ? "Saving…" : usernameIsFree ? "Change · Free" : `Change · ${USERNAME_COST} AP`}
                       </button>
@@ -562,11 +562,11 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                   </div>
 
                   <div className="bg-white/5 border border-white/10 p-6 rounded-2xl space-y-4">
-                    <h3 className="font-bold flex items-center gap-2 text-white"><Key className="w-5 h-5 text-indigo-400" /> Change Password</h3>
-                    <input type="password" placeholder="Current Password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="w-full bg-[#030305] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500" />
-                    <input type="password" placeholder="New Password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full bg-[#030305] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500" />
-                    <input type="password" placeholder="Confirm New Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="w-full bg-[#030305] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500" />
-                    <button onClick={handleChangePassword} disabled={isChangingPassword} className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-xl font-bold transition w-full disabled:opacity-50 flex items-center justify-center gap-2">
+                    <h3 className="font-bold flex items-center gap-2 text-white"><Key className="w-5 h-5 text-purple-400" /> Change Password</h3>
+                    <input type="password" placeholder="Current Password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="w-full bg-[#030305] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500" />
+                    <input type="password" placeholder="New Password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full bg-[#030305] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500" />
+                    <input type="password" placeholder="Confirm New Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="w-full bg-[#030305] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500" />
+                    <button onClick={handleChangePassword} disabled={isChangingPassword} className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-2.5 rounded-xl font-bold transition w-full disabled:opacity-50 flex items-center justify-center gap-2">
                       {isChangingPassword ? "Updating..." : "Update Password"}
                     </button>
                   </div>
@@ -602,14 +602,14 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                     <div className="flex items-center justify-between p-4 hover:bg-white/[0.02] transition">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
-                          <PlayCircle className={`w-4 h-4 ${preferences.autoplayTrailers ? 'text-indigo-400' : 'text-slate-400'}`} />
+                          <PlayCircle className={`w-4 h-4 ${preferences.autoplayTrailers ? 'text-purple-400' : 'text-slate-400'}`} />
                         </div>
                         <div>
                           <h3 className="font-bold text-white text-sm">Cinematic Autoplay</h3>
                           <p className="text-[11px] text-slate-500 mt-0.5 max-w-[200px]">Auto-play trailers on hover.</p>
                         </div>
                       </div>
-                      <button onClick={() => updatePreference('autoplayTrailers', !preferences.autoplayTrailers)} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${preferences.autoplayTrailers ? 'bg-indigo-600' : 'bg-white/10'}`}>
+                      <button onClick={() => updatePreference('autoplayTrailers', !preferences.autoplayTrailers)} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${preferences.autoplayTrailers ? 'bg-purple-600' : 'bg-white/10'}`}>
                         <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${preferences.autoplayTrailers ? 'translate-x-5' : 'translate-x-1'}`} />
                       </button>
                     </div>
@@ -690,17 +690,17 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
 
               {activeTab === 'invites' && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-                  <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+                  <div className="bg-purple-500/10 border border-purple-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
                     <div>
-                      <h3 className="font-bold text-indigo-300">Invite Keys</h3>
-                      <p className="text-xs text-indigo-300/70 mt-1">
+                      <h3 className="font-bold text-purple-300">Invite Keys</h3>
+                      <p className="text-xs text-purple-300/70 mt-1">
                         {isAdmin(user) ? "Staff overrides enabled — generate unlimited invite keys." : "Generate your free invite key, or buy more with Arise Points."}
                       </p>
                     </div>
                     <button
                       onClick={generateInvite}
                       disabled={isGeneratingInvite || (!isAdmin(user) && invites.length >= 1)}
-                      className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold py-2 px-4 rounded-xl transition flex items-center gap-2 whitespace-nowrap"
+                      className="bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold py-2 px-4 rounded-xl transition flex items-center gap-2 whitespace-nowrap"
                     >
                       <Key className="w-4 h-4" />
                       {isGeneratingInvite ? "Generating..." : "Generate Key"}
@@ -712,13 +712,13 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                       <div>
                         <h3 className="font-bold text-white">Buy an Extra Invite</h3>
                         <p className="text-xs text-slate-400 mt-1">
-                          Costs <span className="text-indigo-300 font-bold">{INVITE_COST.toLocaleString()} AP</span> — you have <span className="text-white font-semibold">{(user?.arisePoints || 0).toLocaleString()}</span>.
+                          Costs <span className="text-purple-300 font-bold">{INVITE_COST.toLocaleString()} AP</span> — you have <span className="text-white font-semibold">{(user?.arisePoints || 0).toLocaleString()}</span>.
                         </p>
                       </div>
                       <button
                         onClick={buyInvite}
                         disabled={buyingInvite || (user?.arisePoints || 0) < INVITE_COST}
-                        className="bg-white/10 hover:bg-white/20 border border-indigo-500/40 disabled:opacity-50 text-white font-bold py-2 px-4 rounded-xl transition flex items-center gap-2 whitespace-nowrap"
+                        className="bg-white/10 hover:bg-white/20 border border-purple-500/40 disabled:opacity-50 text-white font-bold py-2 px-4 rounded-xl transition flex items-center gap-2 whitespace-nowrap"
                       >
                         <Key className="w-4 h-4" />
                         {buyingInvite ? "Buying…" : `Buy — ${INVITE_COST.toLocaleString()} AP`}

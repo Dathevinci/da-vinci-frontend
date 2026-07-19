@@ -99,7 +99,7 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
       if (part.startsWith('@')) {
         const username = part.slice(1);
         return (
-          <Link key={i} href={`/user/${username}`} className="text-indigo-400 font-bold hover:text-indigo-300 hover:underline drop-shadow-[0_0_8px_rgba(129,140,248,0.5)]">
+          <Link key={i} href={`/user/${username}`} className="text-purple-400 font-bold hover:text-purple-300 hover:underline drop-shadow-[0_0_8px_rgba(129,140,248,0.5)]">
             {part}
           </Link>
         );
@@ -328,7 +328,7 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
         </UserLink>
         {canModifyPost && (
           <div className="flex gap-2">
-            <button onClick={() => setIsEditingPost(!isEditingPost)} className="text-slate-500 hover:text-indigo-400 transition px-2 py-1 bg-indigo-500/10 rounded-lg text-xs font-bold">
+            <button onClick={() => setIsEditingPost(!isEditingPost)} className="text-slate-500 hover:text-purple-400 transition px-2 py-1 bg-purple-500/10 rounded-lg text-xs font-bold">
               {isEditingPost ? 'Cancel' : 'Edit'}
             </button>
             <button onClick={handleDeletePost} className="text-slate-500 hover:text-red-500 transition px-2 py-1 bg-red-500/10 rounded-lg text-xs font-bold">
@@ -357,9 +357,9 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
           </AnimatePresence>
         </div>
       ) : (
-        <div className="w-full h-40 bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border-y border-white/5 flex items-center justify-center relative overflow-hidden" onDoubleClick={handleDoubleTap}>
+        <div className="w-full h-40 bg-gradient-to-r from-purple-900/40 to-purple-900/40 border-y border-white/5 flex items-center justify-center relative overflow-hidden" onDoubleClick={handleDoubleTap}>
           <div className="absolute inset-0 bg-[url('/noise.png')] opacity-20 mix-blend-overlay"></div>
-          <Sparkles className="w-16 h-16 text-indigo-400/30 absolute -top-4 -right-4" />
+          <Sparkles className="w-16 h-16 text-purple-400/30 absolute -top-4 -right-4" />
           <h2 className="text-2xl md:text-3xl font-black text-white px-8 text-center drop-shadow-xl z-10">{post.title}</h2>
         </div>
       )}
@@ -394,15 +394,15 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
               type="text" 
               value={editPostTitle} 
               onChange={e => setEditPostTitle(e.target.value)} 
-              className="w-full bg-black/50 border border-white/10 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-indigo-500" 
+              className="w-full bg-black/50 border border-white/10 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-purple-500" 
             />
             <textarea 
               value={editPostContent} 
               onChange={e => setEditPostContent(e.target.value)} 
-              className="w-full bg-black/50 border border-white/10 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-indigo-500 min-h-[100px]" 
+              className="w-full bg-black/50 border border-white/10 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-purple-500 min-h-[100px]" 
             />
             <div className="flex justify-end">
-              <button onClick={handleSavePostEdit} className="bg-indigo- hover:bg-indigo-500 text-white text-xs font-bold px-3 py-1.5 rounded transition">Save</button>
+              <button onClick={handleSavePostEdit} className="bg-indigo- hover:bg-purple-500 text-white text-xs font-bold px-3 py-1.5 rounded transition">Save</button>
             </div>
           </div>
         ) : (
@@ -416,7 +416,7 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
             {post.content.length > 300 && (
               <button 
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="text-indigo-400 hover:text-indigo-300 text-sm font-bold ml-1 transition"
+                className="text-purple-400 hover:text-purple-300 text-sm font-bold ml-1 transition"
               >
                 {isExpanded ? "See less" : "See more"}
               </button>
@@ -427,7 +427,7 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
         {/* Tags */}
         <div className="mt-2 flex flex-wrap gap-2">
           {post.tag.split(',').map((t, i) => (
-            <span key={i} className="text-indigo-400 text-xs font-medium hover:underline cursor-pointer">#{t.trim()}</span>
+            <span key={i} className="text-purple-400 text-xs font-medium hover:underline cursor-pointer">#{t.trim()}</span>
           ))}
         </div>
       </div>
@@ -480,7 +480,7 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
                         {canModify && (
                           <div className="ml-auto flex gap-2">
                             {user?.id === c.user.id && (
-                              <button onClick={() => { setEditingCommentId(c.id); setEditCommentContent(c.content); }} className="text-xs text-slate-500 hover:text-indigo-400">Edit</button>
+                              <button onClick={() => { setEditingCommentId(c.id); setEditCommentContent(c.content); }} className="text-xs text-slate-500 hover:text-purple-400">Edit</button>
                             )}
                             <button onClick={() => handleDeleteCommentClick(c.id)} className="text-xs text-slate-500 hover:text-red-500">Delete</button>
                           </div>
@@ -493,9 +493,9 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
                             type="text" 
                             value={editCommentContent} 
                             onChange={e => setEditCommentContent(e.target.value)} 
-                            className="flex-1 bg-black/50 border border-white/10 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-indigo-500" 
+                            className="flex-1 bg-black/50 border border-white/10 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-purple-500" 
                           />
-                          <button onClick={() => handleSaveCommentEdit(c.id)} className="text-indigo-400 font-bold text-xs">Save</button>
+                          <button onClick={() => handleSaveCommentEdit(c.id)} className="text-purple-400 font-bold text-xs">Save</button>
                           <button onClick={() => setEditingCommentId(null)} className="text-slate-400 text-xs">Cancel</button>
                         </div>
                       ) : (
@@ -513,7 +513,7 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
             {user?.avatar ? (
               <img src={user.avatar} className="w-8 h-8 rounded-full object-cover shrink-0" />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-xs shrink-0">
+              <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center font-bold text-xs shrink-0">
                 {user ? (user.username || 'U').charAt(0).toUpperCase() : '?'}
               </div>
             )}
@@ -523,12 +523,12 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
                 value={newComment}
                 onChange={(val) => setNewComment(val)}
                 onSubmit={submitComment as any}
-                className="flex-1 bg-white/5 border border-white/10 rounded-full px-4 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 transition"
+                className="flex-1 bg-white/5 border border-white/10 rounded-full px-4 py-2 text-sm text-white focus:outline-none focus:border-purple-500 transition"
               />
               <button 
                 type="submit" 
                 disabled={!newComment.trim() || submitting}
-                className="bg-indigo- hover:bg-indigo-500 disabled:opacity-50 text-white p-2 rounded-full transition flex items-center justify-center w-9 h-9 shrink-0"
+                className="bg-indigo- hover:bg-purple-500 disabled:opacity-50 text-white p-2 rounded-full transition flex items-center justify-center w-9 h-9 shrink-0"
               >
                 <Send className="w-4 h-4" />
               </button>

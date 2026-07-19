@@ -312,7 +312,7 @@ export default function EpisodeList({
   // ── Loading ──
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-indigo-400">
+      <div className="flex flex-col items-center justify-center py-20 text-purple-400">
         <Loader2 className="w-12 h-12 animate-spin mb-4" />
         <p className="font-bold tracking-widest text-sm uppercase">Loading Episodes...</p>
       </div>
@@ -371,7 +371,7 @@ export default function EpisodeList({
               title={useCustomPlayer ? "Switch to classic player" : "Switch to new player (beta)"}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition border ${
                 useCustomPlayer
-                  ? "bg-indigo-600/20 border-indigo-500/40 text-indigo-300"
+                  ? "bg-purple-600/20 border-purple-500/40 text-purple-300"
                   : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10"
               }`}
             >
@@ -473,7 +473,7 @@ export default function EpisodeList({
                     </p>
                   )}
                   {ep.createdAt && (
-                    <p className="text-indigo-400/80 text-xs font-medium mt-1.5 flex items-center gap-1.5">
+                    <p className="text-purple-400/80 text-xs font-medium mt-1.5 flex items-center gap-1.5">
                       <Clock className="w-3 h-3" />
                       Arrived {formatDistanceToNow(new Date(ep.createdAt), { addSuffix: true })}
                     </p>

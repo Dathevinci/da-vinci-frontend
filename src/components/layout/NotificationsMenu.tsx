@@ -80,7 +80,7 @@ export default function NotificationsMenu() {
               <div className="flex items-center gap-3">
                 <button 
                   onClick={markAllAsRead} 
-                  className="text-xs text-indigo-400 hover:text-indigo-300 font-bold transition"
+                  className="text-xs text-purple-400 hover:text-purple-300 font-bold transition"
                 >
                   Mark all read
                 </button>
@@ -115,16 +115,16 @@ export default function NotificationsMenu() {
                           router.push(notif.link);
                         }
                       }}
-                      className={`p-4 flex gap-3 group transition-colors relative ${notif.read ? 'bg-transparent' : 'bg-indigo-900/10 hover:bg-indigo-900/20'} ${notif.link ? 'cursor-pointer hover:bg-white/5' : ''}`}
+                      className={`p-4 flex gap-3 group transition-colors relative ${notif.read ? 'bg-transparent' : 'bg-purple-900/10 hover:bg-purple-900/20'} ${notif.link ? 'cursor-pointer hover:bg-white/5' : ''}`}
                     >
                       {!notif.read && (
-                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-indigo-500 rounded-r-full"></div>
+                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-purple-500 rounded-r-full"></div>
                       )}
                       
                       <div className="shrink-0 mt-0.5">
                         {notif.type === "success" && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
                         {notif.type === "error" && <AlertCircle className="w-5 h-5 text-red-400" />}
-                        {notif.type === "info" && <Info className="w-5 h-5 text-indigo-400" />}
+                        {notif.type === "info" && <Info className="w-5 h-5 text-purple-400" />}
                       </div>
                       
                       <div className="flex-1 min-w-0 pr-6">

@@ -45,7 +45,7 @@ export default function ManhwaHeroCarousel({ items }: { items: IMangaResult[] })
   return (
     <div className="relative w-full h-[320px] md:h-[400px] overflow-hidden flex items-center justify-center bg-[#09090b] mb-12 py-10">
       {/* Background glow based on active item */}
-      <div className="absolute inset-0 bg-indigo-900/20 blur-[100px] pointer-events-none" />
+      <div className="absolute inset-0 bg-red-900/20 blur-[100px] pointer-events-none" />
       
       <div className="relative w-full max-w-[1200px] h-[300px] flex items-center justify-center">
         <AnimatePresence initial={false} mode="popLayout">
@@ -69,7 +69,7 @@ export default function ManhwaHeroCarousel({ items }: { items: IMangaResult[] })
                 className="absolute w-[180px] h-[260px] md:w-[220px] md:h-[320px] rounded-xl overflow-hidden cursor-pointer border border-[#2a2a32] shadow-2xl"
                 onClick={() => setActiveIndex(i)}
                 style={{ 
-                  boxShadow: isActive ? '0 20px 40px rgba(0,0,0,0.8), 0 0 20px rgba(99,102,241,0.3)' : '0 10px 20px rgba(0,0,0,0.5)',
+                  boxShadow: isActive ? '0 20px 40px rgba(0,0,0,0.8), 0 0 20px rgba(220,38,38,0.3)' : '0 10px 20px rgba(0,0,0,0.5)',
                   filter: isActive ? 'none' : 'brightness(0.6)'
                 }}
               >

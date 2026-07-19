@@ -45,7 +45,7 @@ function UserCard({ user, currentUser, handleFollowToggle }: { user: User, curre
           <div className="absolute inset-0 bg-gradient-to-t from-[#18181b] to-transparent"></div>
         </div>
       ) : (
-        <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-br from-indigo-600/20 to-purple-600/10 z-0"></div>
+        <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-br from-purple-600/20 to-purple-600/10 z-0"></div>
       )}
       
       <div className="relative z-10 flex flex-col pt-4 h-full">
@@ -54,14 +54,14 @@ function UserCard({ user, currentUser, handleFollowToggle }: { user: User, curre
             {user.avatar ? (
               <img src={user.avatar} alt="Avatar" className="relative z-10 w-16 h-16 rounded-full object-cover border-2 border-[#18181b] shadow-lg" />
             ) : (
-              <div className="relative z-10 w-16 h-16 bg-indigo-600 rounded-full flex items-center justify-center text-xl font-black border-2 border-[#18181b] shadow-lg">
+              <div className="relative z-10 w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center text-xl font-black border-2 border-[#18181b] shadow-lg">
                 {(user.username || 'U').charAt(0).toUpperCase()}
               </div>
             )}
             <AvatarDecoration frame={(user as any).activeFrame} effect={user.activeEffect} />
           </div>
           <div className="flex-1 mt-2">
-            <h3 className="font-bold text-lg text-white group-hover:text-indigo-400 transition">{user.username || 'Unknown User'}</h3>
+            <h3 className="font-bold text-lg text-white group-hover:text-purple-400 transition">{user.username || 'Unknown User'}</h3>
             <p className="text-xs text-slate-400 font-medium">{(user.followers || []).length} Followers</p>
           </div>
         </UserLink>
@@ -72,7 +72,7 @@ function UserCard({ user, currentUser, handleFollowToggle }: { user: User, curre
           {currentUser && (
             <button 
               onClick={(e) => handleFollowToggle(user, e)}
-              className={`w-full mt-auto pt-4 py-2 rounded-lg font-bold transition flex items-center justify-center gap-2 ${isFollowing ? "bg-white/5 hover:bg-red-500/20 text-slate-300 hover:text-red-400" : "bg-indigo-/20 hover:bg-indigo-600 text-indigo-300 hover:text-white"}`}
+              className={`w-full mt-auto pt-4 py-2 rounded-lg font-bold transition flex items-center justify-center gap-2 ${isFollowing ? "bg-white/5 hover:bg-red-500/20 text-slate-300 hover:text-red-400" : "bg-indigo-/20 hover:bg-purple-600 text-purple-300 hover:text-white"}`}
             >
               {isFollowing ? <><UserMinus className="w-4 h-4" /> Unfollow</> : <><UserPlus className="w-4 h-4" /> Follow</>}
             </button>
@@ -204,7 +204,7 @@ export default function CommunityPage() {
               >
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
             <div>
-              <h1 className="text-3xl font-black mb-2 flex items-center gap-3 text-indigo-400">
+              <h1 className="text-3xl font-black mb-2 flex items-center gap-3 text-purple-400">
                 <Users className="w-8 h-8" /> User Directory
               </h1>
               <p className="text-slate-400">Discover other anime fans and explore their watchlists.</p>
@@ -216,7 +216,7 @@ export default function CommunityPage() {
                 placeholder="Search users..." 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-full pl-10 pr-4 py-3 focus:outline-none focus:border-indigo-500 transition"
+                className="w-full bg-white/5 border border-white/10 rounded-full pl-10 pr-4 py-3 focus:outline-none focus:border-purple-500 transition"
               />
             </div>
           </div>

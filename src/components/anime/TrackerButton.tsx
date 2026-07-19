@@ -15,7 +15,7 @@ type Variant = "full" | "compact" | "icon";
 // the backend "Finished" status so it stays compatible with existing data.
 const OPTIONS: { status: AnimeUserStatus; label: string; icon: typeof Eye; color: string }[] = [
   { status: "Watching", label: "Watching", icon: Eye, color: "text-green-400" },
-  { status: "Finished", label: "Watched", icon: Check, color: "text-indigo-400" },
+  { status: "Finished", label: "Watched", icon: Check, color: "text-purple-400" },
   { status: "Waiting", label: "Waiting", icon: Clock, color: "text-blue-400" },
   { status: "Interested", label: "Interested", icon: Heart, color: "text-pink-400" },
 ];

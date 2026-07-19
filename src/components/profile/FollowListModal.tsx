@@ -48,7 +48,7 @@ export default function FollowListModal({ title, users, onClose }: FollowListMod
                   {user.avatar ? (
                     <img src={user.avatar} alt={user.username} className="relative z-10 w-12 h-12 rounded-full object-cover border-2 border-white/10" />
                   ) : (
-                    <div className="relative z-10 w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center border-2 border-white/10 text-white font-bold text-xl">
+                    <div className="relative z-10 w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center border-2 border-white/10 text-white font-bold text-xl">
                       {user.username.charAt(0).toUpperCase()}
                     </div>
                   )}

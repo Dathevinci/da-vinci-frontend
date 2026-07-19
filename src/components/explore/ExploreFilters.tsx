@@ -74,7 +74,7 @@ export default function ExploreFilters() {
     <div className="w-full lg:w-72 flex-shrink-0 flex flex-col gap-6">
       {/* Mobile Toggle */}
       <button 
-        className="lg:hidden w-full flex items-center justify-center gap-2 bg-indigo- hover:bg-indigo-500 text-white py-3 rounded-xl font-bold transition"
+        className="lg:hidden w-full flex items-center justify-center gap-2 bg-indigo- hover:bg-purple-500 text-white py-3 rounded-xl font-bold transition"
         onClick={() => setIsMobileFiltersOpen(true)}
       >
         <Filter className="w-5 h-5" /> Filters & Search
@@ -96,7 +96,7 @@ export default function ExploreFilters() {
               name="q"
               defaultValue={currentQuery}
               placeholder="Search anime..." 
-              className="w-full bg-white/5 border border-white/10 text-white py-3 pl-12 pr-4 rounded-xl focus:outline-none focus:border-indigo-500 focus:bg-white/10 transition shadow-inner"
+              className="w-full bg-white/5 border border-white/10 text-white py-3 pl-12 pr-4 rounded-xl focus:outline-none focus:border-purple-500 focus:bg-white/10 transition shadow-inner"
             />
           </form>
         </div>
@@ -112,9 +112,9 @@ export default function ExploreFilters() {
                   name="sort" 
                   checked={currentSort === sort.value}
                   onChange={() => updateFilters({ sort: sort.value })}
-                  className="w-4 h-4 text-indigo-500 bg-white/10 border-white/20 focus:ring-indigo-500 focus:ring-offset-[#09090b]" 
+                  className="w-4 h-4 text-purple-500 bg-white/10 border-white/20 focus:ring-purple-500 focus:ring-offset-[#09090b]" 
                 />
-                <span className={`text-sm transition-colors ${currentSort === sort.value ? 'text-indigo-400 font-bold' : 'text-slate-400 group-hover:text-slate-300'}`}>
+                <span className={`text-sm transition-colors ${currentSort === sort.value ? 'text-purple-400 font-bold' : 'text-slate-400 group-hover:text-slate-300'}`}>
                   {sort.label}
                 </span>
               </label>
@@ -127,7 +127,7 @@ export default function ExploreFilters() {
           <h3 className="font-bold text-white mb-3 text-sm tracking-wider uppercase flex justify-between items-center">
             Genres
             {currentGenres.length > 0 && (
-              <button onClick={() => updateFilters({ genre: null })} className="text-xs text-indigo-400 hover:text-indigo-300 normal-case">Clear</button>
+              <button onClick={() => updateFilters({ genre: null })} className="text-xs text-purple-400 hover:text-purple-300 normal-case">Clear</button>
             )}
           </h3>
           <div className="flex flex-wrap gap-2">
@@ -157,7 +157,7 @@ export default function ExploreFilters() {
             <select 
               value={currentFormat} 
               onChange={(e) => updateFilters({ format: e.target.value })}
-              className="w-full bg-[#141414] border border-white/10 text-slate-300 rounded-lg p-2 focus:outline-none focus:border-indigo-500"
+              className="w-full bg-[#141414] border border-white/10 text-slate-300 rounded-lg p-2 focus:outline-none focus:border-purple-500"
             >
               <option value="">Any Format</option>
               {FORMATS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
@@ -169,7 +169,7 @@ export default function ExploreFilters() {
             <select 
               value={currentStatus} 
               onChange={(e) => updateFilters({ status: e.target.value })}
-              className="w-full bg-[#141414] border border-white/10 text-slate-300 rounded-lg p-2 focus:outline-none focus:border-indigo-500"
+              className="w-full bg-[#141414] border border-white/10 text-slate-300 rounded-lg p-2 focus:outline-none focus:border-purple-500"
             >
               <option value="">Any Status</option>
               {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}

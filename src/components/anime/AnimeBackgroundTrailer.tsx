@@ -131,7 +131,7 @@ export default function AnimeBackgroundTrailer({ trailerId, bannerUrl }: Props) 
               max="100" 
               value={isMuted ? 0 : volume}
               onChange={handleVolumeChange}
-              className="w-0 opacity-0 group-hover:w-24 group-hover:opacity-100 transition-all duration-300 cursor-pointer accent-indigo-500"
+              className="w-0 opacity-0 group-hover:w-24 group-hover:opacity-100 transition-all duration-300 cursor-pointer accent-purple-500"
             />
           </div>
         </div>

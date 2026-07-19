@@ -175,7 +175,7 @@ export default function SearchModal({ onClose }: SearchModalProps) {
                 {mode === 'anime' && (
                   <button
                     onClick={handleSubmit}
-                    className="w-full mt-2 p-4 text-center text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-xl transition font-bold flex items-center justify-center gap-2"
+                    className="w-full mt-2 p-4 text-center text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 rounded-xl transition font-bold flex items-center justify-center gap-2"
                   >
                     <Compass className="w-4 h-4" /> View all results for "{query}"
                   </button>

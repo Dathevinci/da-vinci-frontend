@@ -74,9 +74,9 @@ export default function Navbar() {
   const { mode, toggleMode } = useAppMode();
   
   // Theming variables based on mode
-  const accentText = mode === 'anime' ? 'text-indigo-400 drop-shadow-[0_0_10px_rgba(99,102,241,0.5)]' : 'text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]';
-  const accentHover = mode === 'anime' ? 'hover:text-indigo-400' : 'hover:text-emerald-400';
-  const accentBorder = mode === 'anime' ? 'border-indigo-400/50 shadow-[0_0_15px_rgba(99,102,241,0.4)]' : 'border-emerald-400/50 shadow-[0_0_15px_rgba(52,211,153,0.4)]';
+  const accentText = mode === 'anime' ? 'text-purple-400 drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]' : 'text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]';
+  const accentHover = mode === 'anime' ? 'hover:text-purple-400' : 'hover:text-emerald-400';
+  const accentBorder = mode === 'anime' ? 'border-purple-400/50 shadow-[0_0_15px_rgba(168,85,247,0.4)]' : 'border-emerald-400/50 shadow-[0_0_15px_rgba(52,211,153,0.4)]';
 
   // Desktop Links
   const animeLinks = (
@@ -123,7 +123,7 @@ export default function Navbar() {
               className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors shrink-0"
               title="Switch Mode"
             >
-              <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider ${mode === 'anime' ? 'text-indigo-400' : 'text-emerald-400'}`}>
+              <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider ${mode === 'anime' ? 'text-purple-400' : 'text-emerald-400'}`}>
                 {mode === 'anime' ? 'Anime Mode' : 'Manhwa Mode'}
               </span>
             </button>
@@ -145,7 +145,7 @@ export default function Navbar() {
           </div>
           
           <div className="flex items-center gap-3 sm:gap-4 lg:gap-6 text-slate-300 shrink-0">
-            <button onClick={() => setShowSearchModal(true)} className="hover:text-indigo-400 transition transform hover:scale-110 flex items-center gap-2">
+            <button onClick={() => setShowSearchModal(true)} className="hover:text-purple-400 transition transform hover:scale-110 flex items-center gap-2">
               <Search className="w-5 h-5 sm:w-6 sm:h-6" />
               <span className="hidden lg:flex items-center gap-1 text-xs font-medium bg-white/10 px-2 py-0.5 rounded text-slate-400 border border-white/5 shadow-inner">
                 <kbd>Ctrl</kbd> + <kbd>K</kbd>
@@ -169,8 +169,8 @@ export default function Navbar() {
                       ${user.activeFont === 'font_pixel' ? 'font-serif tracking-tight' : ''} 
                       ${user.activeColor === 'color_gold' ? 'text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]' :
                         user.activeColor === 'color_neon_pink' ? 'text-fuchsia-400 drop-shadow-[0_0_8px_rgba(232,121,249,0.8)]' :
-                        isAdmin(user) ? 'text-indigo-300 group-hover:text-indigo-400' : 
-                        'text-slate-200 group-hover:text-indigo-400'}`}>
+                        isAdmin(user) ? 'text-purple-300 group-hover:text-purple-400' : 
+                        'text-slate-200 group-hover:text-purple-400'}`}>
                       {user.username}
                     </span>
                   </UserLink>
@@ -185,7 +185,7 @@ export default function Navbar() {
               ) : (
                 <button 
                   onClick={() => setShowLogin(true)}
-                  className="hidden lg:block bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-1.5 px-5 xl:px-6 border border-indigo-500/50 rounded-full text-sm transition shadow-lg shadow-indigo-500/20 whitespace-nowrap"
+                  className="hidden lg:block bg-purple-600 hover:bg-purple-500 text-white font-bold py-1.5 px-5 xl:px-6 border border-purple-500/50 rounded-full text-sm transition shadow-lg shadow-purple-500/20 whitespace-nowrap"
                 >
                   Sign In
                 </button>
@@ -207,8 +207,8 @@ export default function Navbar() {
         <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xl flex flex-col">
           <div className="flex justify-between items-center p-4 border-b border-white/10">
             <Link href="/" className="font-cinzel font-bold text-2xl tracking-[0.2em] uppercase text-white flex items-center gap-3" onClick={() => setIsMobileMenuOpen(false)}>
-              <img src="/logo.png" alt="Da Vinci Logo" className="w-8 h-8 rounded-full border border-indigo-400/50 shadow-[0_0_15px_rgba(99,102,241,0.4)] object-cover" />
-              DA <span className="text-indigo-400 font-black drop-shadow-[0_0_10px_rgba(99,102,241,0.5)]">VINCI</span>
+              <img src="/logo.png" alt="Da Vinci Logo" className="w-8 h-8 rounded-full border border-purple-400/50 shadow-[0_0_15px_rgba(168,85,247,0.4)] object-cover" />
+              DA <span className="text-purple-400 font-black drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]">VINCI</span>
             </Link>
             <button onClick={() => setIsMobileMenuOpen(false)} className="text-slate-400 hover:text-white p-2">
               <X className="w-6 h-6" />
@@ -246,7 +246,7 @@ export default function Navbar() {
             <div className="mt-auto p-6 border-t border-white/10">
               <button 
                 onClick={() => { setIsMobileMenuOpen(false); setShowLogin(true); }}
-                className="w-full bg-indigo- hover:bg-indigo-500 text-white font-bold py-4 rounded-xl text-lg transition"
+                className="w-full bg-indigo- hover:bg-purple-500 text-white font-bold py-4 rounded-xl text-lg transition"
               >
                 Sign In
               </button>
@@ -255,7 +255,7 @@ export default function Navbar() {
           {isLoaded && user && (
             <div className="mt-auto p-6 border-t border-white/10 flex flex-col gap-4 overflow-y-auto max-h-[50vh]">
               <Link href={`/user/${user.username}`} onClick={() => setIsMobileMenuOpen(false)} className="w-full bg-white/10 hover:bg-white/20 text-white font-bold py-4 rounded-xl text-lg transition flex justify-center items-center gap-2 border border-white/10 shadow-lg">
-                <Compass className="w-5 h-5 text-indigo-400" /> My Tracker
+                <Compass className="w-5 h-5 text-purple-400" /> My Tracker
               </Link>
               <button 
                 onClick={() => { setIsMobileMenuOpen(false); setShowControlCenter(true); }}

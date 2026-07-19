@@ -16,7 +16,7 @@ const STATUS_COLORS: Record<Exclude<ManhwaUserStatus, "None">, string> = {
   Interested: "bg-pink-500 hover:bg-pink-600",
   Reading: "bg-green-500 hover:bg-green-600",
   Waiting: "bg-yellow-500 hover:bg-yellow-600",
-  Finished: "bg-indigo-500 hover:bg-indigo-600",
+  Finished: "bg-red-500 hover:bg-red-600",
   Dropped: "bg-red-500 hover:bg-red-600",
 };
 

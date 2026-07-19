@@ -128,7 +128,7 @@ export default function MentionsTextarea({ value, onChange, placeholder, classNa
           key={user.id}
           onClick={() => insertMention(user.username)}
           onMouseEnter={() => setSelectedIndex(idx)}
-          className={`w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-white/5 transition ${idx === selectedIndex ? "bg-indigo-500/20" : ""}`}
+          className={`w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-white/5 transition ${idx === selectedIndex ? "bg-purple-500/20" : ""}`}
           type="button"
         >
           {user.avatar ? (

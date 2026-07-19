@@ -122,7 +122,7 @@ export default function CreateUpdateModal({ onClose, onCreated }: CreateUpdateMo
               type="text" 
               value={title} 
               onChange={e => setTitle(e.target.value)} 
-              className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500"
+              className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-purple-500"
               required
             />
           </div>
@@ -133,7 +133,7 @@ export default function CreateUpdateModal({ onClose, onCreated }: CreateUpdateMo
               type="text" 
               value={tag} 
               onChange={e => setTag(e.target.value)} 
-              className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500"
+              className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-purple-500"
             />
           </div>
 
@@ -142,7 +142,7 @@ export default function CreateUpdateModal({ onClose, onCreated }: CreateUpdateMo
             <textarea 
               value={content} 
               onChange={e => setContent(e.target.value)} 
-              className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500 h-32 resize-none"
+              className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-purple-500 h-32 resize-none"
               required
             />
           </div>
@@ -165,7 +165,7 @@ export default function CreateUpdateModal({ onClose, onCreated }: CreateUpdateMo
                 <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="update-image" />
                 <label 
                   htmlFor="update-image"
-                  className="flex items-center gap-2 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 px-4 py-2 rounded-lg font-bold cursor-pointer transition w-full justify-center border border-indigo-500/30"
+                  className="flex items-center gap-2 bg-purple-600/20 hover:bg-purple-600/40 text-purple-300 px-4 py-2 rounded-lg font-bold cursor-pointer transition w-full justify-center border border-purple-500/30"
                 >
                   {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <UploadCloud className="w-5 h-5" />}
                   {uploading ? "Uploading..." : "Upload Image"}
@@ -185,7 +185,7 @@ export default function CreateUpdateModal({ onClose, onCreated }: CreateUpdateMo
             <button 
               type="submit" 
               disabled={submitting || !title || !content}
-              className="bg-indigo- hover:bg-indigo-500 text-white px-6 py-2 rounded-lg font-bold transition flex items-center gap-2 disabled:opacity-50"
+              className="bg-indigo- hover:bg-purple-500 text-white px-6 py-2 rounded-lg font-bold transition flex items-center gap-2 disabled:opacity-50"
             >
               {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
               Post Update
