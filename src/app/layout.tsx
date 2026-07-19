@@ -41,6 +41,7 @@ const ebGaramond = EB_Garamond({
 });
 
 import Navbar from "@/components/layout/Navbar";
+import ModeTransition from "@/components/layout/ModeTransition";
 import Footer from "@/components/layout/Footer";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import SplashScreen from "@/components/ui/SplashScreen";
@@ -71,6 +72,7 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} ${permanentMarker.variable} ${cinzel.variable} ${ebGaramond.variable} ${fellEnglish.variable} bg-[#050505] text-white antialiased min-h-screen flex flex-col transition-colors duration-300 overflow-x-hidden`}>
         <ThemeProvider>
           <AppModeProvider>
+            <ModeTransition />
             <ToastProvider>
               <AnimeModalProvider>
                 <ManhwaModalProvider>

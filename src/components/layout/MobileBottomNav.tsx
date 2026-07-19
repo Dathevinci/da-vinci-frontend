@@ -11,8 +11,8 @@ export default function MobileBottomNav() {
   const { user } = useUser();
   const { mode } = useAppMode();
 
-  const accentColor = mode === 'anime' ? 'text-purple-400' : 'text-emerald-400';
-  const bgBadge = mode === 'anime' ? 'bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.8)]' : 'bg-emerald-500 shadow-[0_0_10px_rgba(52,211,153,0.8)]';
+  const accentColor = mode === 'anime' ? 'text-purple-400' : 'text-red-500';
+  const bgBadge = mode === 'anime' ? 'bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.8)]' : 'bg-red-600 shadow-[0_0_10px_rgba(220,38,38,0.8)]';
 
   const navItemsAnime = [
     { label: "Home", href: "/", icon: <Home className="w-6 h-6" /> },

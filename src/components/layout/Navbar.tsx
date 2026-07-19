@@ -74,9 +74,9 @@ export default function Navbar() {
   const { mode, toggleMode } = useAppMode();
   
   // Theming variables based on mode
-  const accentText = mode === 'anime' ? 'text-purple-400 drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]' : 'text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]';
-  const accentHover = mode === 'anime' ? 'hover:text-purple-400' : 'hover:text-emerald-400';
-  const accentBorder = mode === 'anime' ? 'border-purple-400/50 shadow-[0_0_15px_rgba(168,85,247,0.4)]' : 'border-emerald-400/50 shadow-[0_0_15px_rgba(52,211,153,0.4)]';
+  const accentText = mode === 'anime' ? 'text-purple-400 drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]' : 'text-red-500 drop-shadow-[0_0_10px_rgba(220,38,38,0.5)]';
+  const accentHover = mode === 'anime' ? 'hover:text-purple-400' : 'hover:text-red-500';
+  const accentBorder = mode === 'anime' ? 'border-purple-400/50 shadow-[0_0_15px_rgba(168,85,247,0.4)]' : 'border-red-500/50 shadow-[0_0_15px_rgba(220,38,38,0.4)]';
 
   // Desktop Links
   const animeLinks = (
@@ -123,7 +123,7 @@ export default function Navbar() {
               className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors shrink-0"
               title="Switch Mode"
             >
-              <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider ${mode === 'anime' ? 'text-purple-400' : 'text-emerald-400'}`}>
+              <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-colors ${mode === 'anime' ? 'text-purple-400' : 'text-red-500'}`}>
                 {mode === 'anime' ? 'Anime Mode' : 'Manhwa Mode'}
               </span>
             </button>

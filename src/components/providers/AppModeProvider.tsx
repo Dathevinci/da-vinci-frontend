@@ -1,20 +1,29 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 
 export type AppMode = 'anime' | 'manhwa';
+
+// Drives the full-screen curtain overlay (ModeTransition) while switching modes.
+export interface ModeTransitionState {
+  active: boolean;
+  target: AppMode;
+}
 
 interface AppModeContextProps {
   mode: AppMode;
   setMode: (mode: AppMode) => void;
   toggleMode: () => void;
+  transition: ModeTransitionState;
 }
 
 const AppModeContext = createContext<AppModeContextProps | undefined>(undefined);
 
 export function AppModeProvider({ children }: { children: ReactNode }) {
   const [mode, setModeState] = useState<AppMode>('anime');
+  const [transition, setTransition] = useState<ModeTransitionState>({ active: false, target: 'anime' });
+  const timersRef = useRef<number[]>([]);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -55,11 +64,10 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
     }
   }, [pathname, mode]);
 
-  const setMode = (newMode: AppMode) => {
+  // Flip the visual mode + navigate to that mode's home. During a transition
+  // this runs while the curtain is fully closed, so the change never flashes.
+  const performSwap = (newMode: AppMode) => {
     setModeState(newMode);
-    localStorage.setItem('daVinciAppMode', newMode);
-    
-    // Redirect to the appropriate home page for the selected mode
     if (newMode === 'manhwa') {
       if (!pathname.startsWith('/manhwa')) router.push('/manhwa');
     } else {
@@ -67,9 +75,31 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const setMode = (newMode: AppMode) => {
+    localStorage.setItem('daVinciAppMode', newMode);
+
+    // Same mode — just make sure we're on the right page, no curtain needed.
+    if (newMode === mode) {
+      performSwap(newMode);
+      return;
+    }
+
+    // Real switch → play the cinematic curtain, swapping behind it while closed.
+    timersRef.current.forEach((t) => clearTimeout(t));
+    timersRef.current = [];
+    setTransition({ active: true, target: newMode });
+    timersRef.current.push(
+      window.setTimeout(() => performSwap(newMode), 500),                               // swap while covered
+      window.setTimeout(() => setTransition((prev) => ({ ...prev, active: false })), 1000), // part the curtain
+    );
+  };
+
   const toggleMode = () => {
     setMode(mode === 'anime' ? 'manhwa' : 'anime');
   };
+
+  // Clear any pending transition timers on unmount.
+  useEffect(() => () => { timersRef.current.forEach((t) => clearTimeout(t)); }, []);
 
   // Add a class to body for global CSS theming
   useEffect(() => {
@@ -83,7 +113,7 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
   }, [mode]);
 
   return (
-    <AppModeContext.Provider value={{ mode, setMode, toggleMode }}>
+    <AppModeContext.Provider value={{ mode, setMode, toggleMode, transition }}>
       {children}
     </AppModeContext.Provider>
   );
