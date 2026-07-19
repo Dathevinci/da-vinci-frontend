@@ -136,11 +136,12 @@ class AsuraScans extends MangaParser {
 
   override search = async (query: string, page: number = 1): Promise<ISearch<IMangaResult>> => {
     try {
-      // Same offset-based pagination as browse (?page= is ignored upstream).
+      // AsuraScans filters by ?search= (NOT ?name=, which it silently ignores
+      // and returns the full catalog). Paginate with ?offset= like browse.
       const per = AsuraScans.PER_PAGE;
       const offset = (Math.max(1, page) - 1) * per;
       const formattedQuery = encodeURIComponent(query);
-      const data = await this.requestWithFallback<any>(`series?offset=${offset}&name=${formattedQuery}`);
+      const data = await this.requestWithFallback<any>(`series?offset=${offset}&search=${formattedQuery}`);
       const items = data.data || [];
       const total = Number(data.meta?.total) || 0;
 
