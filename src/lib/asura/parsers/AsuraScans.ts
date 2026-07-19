@@ -89,14 +89,22 @@ class AsuraScans extends MangaParser {
     };
   }
 
+  // AsuraScans' API pages by ?per_page. Both browse and search share the size.
+  private static readonly PER_PAGE = 20;
+
   async getLatestUpdates(page: number = 1): Promise<ISearch<IMangaResult>> {
     try {
-      // The API naturally returns latest updates when queried for series
-      const data = await this.requestWithFallback<any>(`series?page=${page}`);
+      // The API IGNORES ?page= (every page returns the same first 20 series) —
+      // it paginates by ?offset= instead. Convert the 1-based page to an offset.
+      const per = AsuraScans.PER_PAGE;
+      const offset = (Math.max(1, page) - 1) * per;
+      const data = await this.requestWithFallback<any>(`series?offset=${offset}`);
       const items = data.data || [];
+      const total = Number(data.meta?.total) || 0;
       return {
         currentPage: page,
-        hasNextPage: items.length > 0, // Simple heuristic
+        // Trust the API's own has_more; fall back to an offset/total check.
+        hasNextPage: data.meta?.has_more === true || (total > 0 && offset + items.length < total),
         results: items.map((i: any) => this.mapMangaResult(i)),
       };
     } catch (err) {
@@ -128,13 +136,17 @@ class AsuraScans extends MangaParser {
 
   override search = async (query: string, page: number = 1): Promise<ISearch<IMangaResult>> => {
     try {
+      // Same offset-based pagination as browse (?page= is ignored upstream).
+      const per = AsuraScans.PER_PAGE;
+      const offset = (Math.max(1, page) - 1) * per;
       const formattedQuery = encodeURIComponent(query);
-      const data = await this.requestWithFallback<any>(`series?page=${page}&name=${formattedQuery}`);
+      const data = await this.requestWithFallback<any>(`series?offset=${offset}&name=${formattedQuery}`);
       const items = data.data || [];
-      
+      const total = Number(data.meta?.total) || 0;
+
       return {
         currentPage: page,
-        hasNextPage: items.length > 0,
+        hasNextPage: data.meta?.has_more === true || (total > 0 && offset + items.length < total),
         results: items.map((i: any) => this.mapMangaResult(i)),
       };
     } catch (err) {
