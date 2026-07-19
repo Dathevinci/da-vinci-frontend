@@ -179,4 +179,11 @@ body.theme-crimson::after {
   .reader-page { transition: none; opacity: 1; }
 }
 
-.hq-image { image-rendering: high-quality; image-rendering: -webkit-optimize-contrast; }
+/* Smooth, high-quality downscaling of large covers into small cards.
+   -webkit-optimize-contrast made big manhwa covers look crunchy/pixelated in
+   Chrome; `auto` uses the browser's high-quality resampler instead. */
+.hq-image {
+  image-rendering: auto;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
