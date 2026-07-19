@@ -58,7 +58,7 @@ export default function AnikotoPlayer({
   posterUrl,
 }: AnikotoPlayerProps) {
   // Stream / episode state
-  const [streamResult, setStreamResult] = useState<AnikotoStreamResult | null>(null);
+  const [, setStreamResult] = useState<AnikotoStreamResult | null>(null);
   const [streamError, setStreamError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeEpNo, setActiveEpNo] = useState(startEp);

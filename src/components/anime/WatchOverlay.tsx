@@ -46,7 +46,6 @@ export default function WatchOverlay({
   const [streamData, setStreamData] = useState<AnikotoStreamResult | null>(null);
   const [loadingStream, setLoadingStream] = useState(true);
   const [streamError, setStreamError] = useState<string | null>(null);
-  const [activeQuality, setActiveQuality] = useState<string>("default");
   const [activeSourceObj, setActiveSourceObj] = useState<{ url: string; isM3U8: boolean; isEmbed?: boolean } | null>(null);
   const [streamType, setStreamType] = useState<"sub" | "dub">("sub");
   const [activeServer, setActiveServer] = useState<string | null>(null);
@@ -255,7 +254,6 @@ export default function WatchOverlay({
         data.sources[0];
 
       if (source) {
-        setActiveQuality(source.quality);
         playSource(source.url, source.isM3U8, data.headers, (source as any).isEmbed);
         // anime.mal_id holds the anilist id; episodeNo dedups per unique episode.
         addXpForWatching(anime.mal_id, episodeNo).catch(console.error);
@@ -342,15 +340,6 @@ export default function WatchOverlay({
     }
   }, [streamType, activeEpisode, activeEpisodeNo, loadStream]);
 
-  const switchQuality = useCallback((quality: string) => {
-    if (!streamData) return;
-    const source = streamData.sources.find(s => s.quality === quality);
-    if (source) {
-      setActiveQuality(quality);
-      playSource(source.url, source.isM3U8, streamData.headers, (source as any).isEmbed);
-    }
-  }, [streamData, playSource]);
-
   // Group episodes into chunks
   const seasons: { label: string; episodes: AnikotoEpisode[] }[] = [];
   for (let i = 0; i < allEpisodes.length; i += EPISODES_PER_SEASON) {
@@ -364,7 +353,6 @@ export default function WatchOverlay({
   }
 
   const currentIdx = activeEpisode ? allEpisodes.findIndex(e => e.id === activeEpisode.id) : -1;
-  const hasPrev = currentIdx > 0;
   const hasNext = currentIdx < allEpisodes.length - 1;
 
   if (!isBrowser) return null;

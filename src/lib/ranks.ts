@@ -36,11 +36,6 @@ export const LEVEL_TITLES: Record<number, string> = {
   10: "Delusion Entity",
 };
 
-export function getLevelTitle(level: number): string {
-  const L = Math.max(1, Math.min(10, Math.round(level || 1)));
-  return LEVEL_TITLES[L];
-}
-
 // Per-level theme. Colours climb from a cool cyan watcher up to a cosmic,
 // void-touched Delusion Entity at max level.
 const LEVEL_THEMES: Record<number, RankTheme> = {
