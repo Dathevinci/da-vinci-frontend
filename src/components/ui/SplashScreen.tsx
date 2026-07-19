@@ -156,18 +156,8 @@ export default function SplashScreen() {
               transition={{ delay: 2, duration: 1.1, ease: "easeOut" }}
               className="font-garamond italic text-violet-100/70 text-base md:text-xl tracking-[0.35em] mt-4 pl-[0.35em]"
             >
-              The Renaissance of Anime
+              The Renaissance of Anime &amp; Manhwa
             </motion.p>
-
-            {/* Beta badge */}
-            <motion.div
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 2.4, duration: 0.9, ease: "easeOut" }}
-              className="mt-6 px-3 py-1 rounded-full border border-violet-400/40 bg-violet-500/10 text-violet-200/90 text-[10px] md:text-xs font-bold tracking-[0.3em] uppercase"
-            >
-              Beta
-            </motion.div>
           </motion.div>
         </motion.div>
       )}

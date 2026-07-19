@@ -78,14 +78,14 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
             Da Vinci
           </motion.h1>
 
-          {/* Beta badge */}
+          {/* Medium badge — the two arts studied within */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.7, delay: 0.5, ease: easeCine }}
-            className="mb-6 px-3 py-1 rounded-full border border-violet-400/40 bg-violet-500/10 text-violet-200/90 text-[10px] md:text-xs font-bold tracking-[0.3em] uppercase"
+            className="mb-6 px-4 py-1 rounded-full border border-violet-400/40 bg-violet-500/10 text-violet-200/90 text-[10px] md:text-xs font-bold tracking-[0.25em] uppercase"
           >
-            Beta
+            Anime &middot; Manhwa
           </motion.div>
 
           {/* Ornamental rule */}
@@ -103,7 +103,7 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
             transition={{ duration: 0.9, delay: 0.25, ease: easeCine }}
             className="font-garamond italic text-lg md:text-2xl text-violet-100/80 mb-3 leading-relaxed"
           >
-            An invitation-only atelier for the devoted student of the anime arts.
+            An invitation-only atelier for the devoted student of the anime &amp; manhwa arts.
           </motion.p>
           <motion.p
             initial={{ y: 16, opacity: 0 }}
@@ -111,7 +111,7 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
             transition={{ duration: 0.9, delay: 0.32, ease: easeCine }}
             className="text-sm md:text-base text-slate-400/80 mb-12 max-w-md mx-auto font-light tracking-wide"
           >
-            Da Vinci is in open beta — present your seal to unlock the vault and begin your study.
+            Present your seal to unlock the vault — anime to watch, manhwa to read — and begin your study.
           </motion.p>
 
           {/* Request Access — purple-lined seal button */}
