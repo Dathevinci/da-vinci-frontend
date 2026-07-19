@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import ManhwaCard from "@/components/manhwa/ManhwaCard";
 import ManhwaFilters from "@/components/manhwa/ManhwaFilters";
 import ManhwaHeroCarousel from "@/components/manhwa/ManhwaHeroCarousel";
@@ -11,7 +11,24 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { IMangaResult, ISearch } from "@/lib/asura/models";
 import { motion, AnimatePresence } from "framer-motion";
 
+// useSearchParams() must sit inside a Suspense boundary or `next build`
+// fails to prerender /manhwa (same pattern as ManhwaFilters / ManhwaModalProvider).
 export default function ManhwaPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="bg-[#0b0b0c] min-h-screen pt-16 flex flex-col items-center justify-center py-40 gap-4">
+          <Loader2 className="w-10 h-10 text-red-500 animate-spin" />
+          <p className="text-[#a3a3a3] text-sm font-bold uppercase tracking-widest">Loading AsuraScans...</p>
+        </div>
+      }
+    >
+      <ManhwaPageInner />
+    </Suspense>
+  );
+}
+
+function ManhwaPageInner() {
   const sp = useSearchParams();
   const router = useRouter();
   const page = Math.max(1, parseInt(sp.get("page") || "1"));
