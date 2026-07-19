@@ -6,14 +6,15 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Heart, X } from "lucide-react";
 import Link from "next/link";
 
-// Remember the last time we showed the prompt so we don't nag on every visit.
-const STORAGE_KEY = "daVinciSupportPromptAt";
-const REPROMPT_MS = 7 * 24 * 60 * 60 * 1000; // re-ask at most once a week
+// Show once per browser session (i.e. each fresh visit to the site), like the
+// splash. sessionStorage clears when the tab/session ends, so a returning
+// visitor sees it again next time — but it won't nag on internal navigation.
+const SESSION_KEY = "daVinciSupportShown";
 
 /**
- * A gentle "Support Us" popup shown to a visitor on their first open (after the
- * cinematic splash clears). They can head to the /support page or dismiss it;
- * either way we won't ask again for a week.
+ * A gentle "Support Us" popup shown to a visitor on their first entry each
+ * session (after the cinematic splash clears). They can head to the /support
+ * page or dismiss it.
  */
 export default function SupportUsModal() {
   const [mounted, setMounted] = useState(false);
@@ -22,32 +23,30 @@ export default function SupportUsModal() {
   useEffect(() => {
     setMounted(true);
 
-    let last = 0;
+    let alreadyShown = false;
     let splashPlaying = false;
     try {
-      last = Number(localStorage.getItem(STORAGE_KEY) || 0);
+      alreadyShown = !!sessionStorage.getItem(SESSION_KEY);
       // The splash plays once per session; if its flag isn't set yet it's about to.
       splashPlaying = !sessionStorage.getItem("cinematicIntroPlayed");
     } catch {
-      /* storage blocked — fall through and show once */
+      /* storage blocked — fall through and show */
     }
 
-    if (Date.now() - last <= REPROMPT_MS) return; // shown recently, stay quiet
+    if (alreadyShown) return; // already shown this session
 
     // Let the splash finish so the popup animates in cleanly on a fresh load.
     const delay = splashPlaying ? 6200 : 1800;
-    const timer = setTimeout(() => setShow(true), delay);
+    const timer = setTimeout(() => {
+      // Mark shown for this session as soon as it appears, so navigating
+      // around doesn't pop it a second time.
+      try { sessionStorage.setItem(SESSION_KEY, "1"); } catch { /* ignore */ }
+      setShow(true);
+    }, delay);
     return () => clearTimeout(timer);
   }, []);
 
-  const dismiss = () => {
-    try {
-      localStorage.setItem(STORAGE_KEY, String(Date.now()));
-    } catch {
-      /* ignore */
-    }
-    setShow(false);
-  };
+  const dismiss = () => setShow(false);
 
   // Close on Escape while open.
   useEffect(() => {
