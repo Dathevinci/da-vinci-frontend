@@ -81,7 +81,7 @@ export default function ManhwaHeroCarousel({ items }: { items: IMangaResult[] })
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-end p-4">
                       {item.rating && (
                         <div className="absolute top-2 left-2 bg-black/80 border border-yellow-500/30 text-yellow-400 text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1 backdrop-blur-md">
-                          <Star className="w-3 h-3 fill-yellow-400" /> {item.rating}
+                          <Star className="w-3 h-3 fill-yellow-400" /> {Number(item.rating).toFixed(1)}
                         </div>
                       )}
                       <h3 className="text-white font-black text-sm md:text-base leading-tight drop-shadow-md text-center">
