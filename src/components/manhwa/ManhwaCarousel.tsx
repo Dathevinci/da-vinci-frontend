@@ -47,7 +47,7 @@ export default function ManhwaCarousel({ title, items, icon, seeAllLink = "/manh
         <div
           ref={rowRef}
           style={{ overscrollBehaviorX: "contain", WebkitOverflowScrolling: "touch" }}
-          className="flex gap-3 md:gap-4 overflow-x-auto hide-scrollbar scroll-smooth px-2 pt-6 pb-10 -mt-3 -mb-4 snap-x"
+          className="flex gap-3 md:gap-4 overflow-x-auto hide-scrollbar scroll-smooth px-3 pt-8 pb-12 -mt-4 -mb-4 snap-x"
         >
           {items.map((m) => (
             <div key={m.id} className="snap-start shrink-0 w-[132px] sm:w-[150px] md:w-[178px]">
