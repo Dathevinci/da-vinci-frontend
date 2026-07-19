@@ -161,4 +161,22 @@ body.theme-crimson::after {
 .hide-navbar-footer header, .hide-navbar-footer footer, .hide-navbar-footer #mobile-bottom-nav { display: none !important; }
 .hide-navbar-footer body { padding-top: 0 !important; }
 
+/* ── Manhwa reader pages ──────────────────────────────────────────────
+   Long webtoon chapters can be 40–80 tall images. content-visibility lets
+   the browser skip layout/paint for pages that are off-screen, so scrolling
+   stays smooth no matter how long the chapter is; contain-intrinsic-size
+   reserves a rough height per page so the scrollbar doesn't lurch as images
+   stream in. The fade-in is opacity-only (never a transform) so it can't
+   cause scroll jank. */
+.reader-page {
+  content-visibility: auto;
+  contain-intrinsic-size: 800px 1400px;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+.reader-page.is-loaded { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .reader-page { transition: none; opacity: 1; }
+}
+
 .hq-image { image-rendering: high-quality; image-rendering: -webkit-optimize-contrast; }

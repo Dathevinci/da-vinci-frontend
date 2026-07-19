@@ -25,6 +25,8 @@ export default function ManhwaCard({ manhwa }: { manhwa: IMangaResult }) {
           <img
             src={`/api/manhwa-image?url=${encodeURIComponent(manhwa.image)}`}
             alt={manhwa.title}
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 hq-image"
           />
         ) : (

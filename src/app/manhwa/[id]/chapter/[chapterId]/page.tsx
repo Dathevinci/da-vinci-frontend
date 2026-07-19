@@ -5,7 +5,6 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, ArrowLeft, Loader2, Lock } from "lucide-react";
 import { IMangaChapterPage, IMangaInfo } from "@/lib/asura/models";
 import CommunityFeed from "@/components/community/CommunityFeed";
-import { motion } from "framer-motion";
 
 export default function ManhwaChapterPage({ params }: { params: Promise<{ id: string; chapterId: string }> }) {
   const resolvedParams = use(params);
@@ -163,16 +162,16 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
         onClick={() => setIsFullscreen(!isFullscreen)}
       >
         {pages.map((page, index) => (
-          <motion.img 
+          <img
             key={page.page || index}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "200px" }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-            src={`/api/manhwa-image?url=${encodeURIComponent(page.img)}`} 
+            src={`/api/manhwa-image?url=${encodeURIComponent(page.img)}`}
             alt={`Page ${page.page}`}
-            className="w-full h-auto object-contain bg-[#111]"
             loading="lazy"
+            decoding="async"
+            // Gentle fade the moment the page finishes decoding — a cheap
+            // opacity-only transition (no transform), so scrolling stays smooth.
+            onLoad={(e) => e.currentTarget.classList.add("is-loaded")}
+            className="reader-page w-full h-auto object-contain bg-[#111]"
           />
         ))}
       </div>
