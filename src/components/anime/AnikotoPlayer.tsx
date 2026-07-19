@@ -18,7 +18,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Play, Pause, Volume2, VolumeX, Maximize, Minimize,
   SkipForward, SkipBack, List, X, ChevronLeft, ChevronRight,
-  Loader2, AlertCircle,
+  Loader2, AlertCircle, Server, ChevronDown,
 } from "lucide-react";
 import {
   getAnikotoStreamUrlFast,
@@ -63,6 +63,9 @@ export default function AnikotoPlayer({
   const [loading, setLoading] = useState(true);
   const [activeEpNo, setActiveEpNo] = useState(startEp);
   const [streamType, setStreamType] = useState<"sub" | "dub">("sub");
+  const [servers, setServers] = useState<{ name: string; type: string }[]>([]);
+  const [activeServer, setActiveServer] = useState<string | null>(null);
+  const [showServerMenu, setShowServerMenu] = useState(false);
 
   /**
    * pendingSource: set by loadEpisode after the URL is resolved.
@@ -117,7 +120,7 @@ export default function AnikotoPlayer({
   }, []);
 
   // ── STEP 1: fetch the stream URL ───────────────────────────────────────────
-  const loadEpisode = useCallback(async (epNo: number, type: "sub" | "dub") => {
+  const loadEpisode = useCallback(async (epNo: number, type: "sub" | "dub", server?: string) => {
     if (!mountedRef.current) return;
 
     // Reset all state
@@ -150,8 +153,8 @@ export default function AnikotoPlayer({
 
     try {
       const data = serverIds
-        ? await getAnikotoStreamUrlFast(animeId, epNo, serverIds, type)
-        : await getAnikotoStreamUrl(animeId, epNo, type);
+        ? await getAnikotoStreamUrlFast(animeId, epNo, serverIds, type, server)
+        : await getAnikotoStreamUrl(animeId, epNo, type, server);
 
       if (!mountedRef.current) return;
 
@@ -162,6 +165,8 @@ export default function AnikotoPlayer({
       }
 
       setStreamResult(data);
+      setServers(data.servers ?? []);
+      setActiveServer(data.serverName ?? server ?? null);
 
       const src = data.sources.find(s => s.quality === "auto") ?? data.sources[0];
       if (!src) {
@@ -522,6 +527,48 @@ export default function AnikotoPlayer({
                   </button>
                 ))}
               </div>
+
+              {/* Server picker — switch embed host if a viewer's network blocks one */}
+              {servers.length > 0 && (
+                <div className="relative flex-shrink-0 pointer-events-auto">
+                  {showServerMenu && <div className="fixed inset-0 z-40" onClick={() => setShowServerMenu(false)} />}
+                  <button
+                    onClick={() => setShowServerMenu(v => !v)}
+                    disabled={loading}
+                    title="Switch server if the video won't load"
+                    className="relative z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-sm border border-white/10 text-xs font-bold text-white hover:bg-black/60 transition"
+                  >
+                    <Server className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">{activeServer || "Server"}</span>
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showServerMenu ? "rotate-180" : ""}`} />
+                  </button>
+                  <AnimatePresence>
+                    {showServerMenu && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-0 mt-2 w-48 z-50 bg-[#141414] border border-white/10 rounded-xl shadow-2xl p-1.5"
+                      >
+                        <p className="px-2.5 pt-1 pb-1.5 text-[10px] text-slate-500 uppercase tracking-wider">Won&apos;t load? Try another</p>
+                        {servers.map(s => (
+                          <button
+                            key={s.name}
+                            onClick={() => { setShowServerMenu(false); loadEpisode(activeEpNo, streamType, s.name); }}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-between transition ${
+                              activeServer === s.name ? "bg-purple-600 text-white" : "text-slate-300 hover:bg-white/10"
+                            }`}
+                          >
+                            <span>{s.name}</span>
+                            <span className="opacity-50 uppercase">{s.type}</span>
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

@@ -49,6 +49,7 @@ export default function WatchOverlay({
   const [activeQuality, setActiveQuality] = useState<string>("default");
   const [activeSourceObj, setActiveSourceObj] = useState<{ url: string; isM3U8: boolean; isEmbed?: boolean } | null>(null);
   const [streamType, setStreamType] = useState<"sub" | "dub">("sub");
+  const [activeServer, setActiveServer] = useState<string | null>(null);
   const [isBrowser, setIsBrowser] = useState(false);
 
   // UI state
@@ -207,7 +208,7 @@ export default function WatchOverlay({
   }, []);
 
   // Load stream for an episode
-  const loadStream = useCallback(async (episodeId: string, episodeNo: number, overrideType?: "sub" | "dub") => {
+  const loadStream = useCallback(async (episodeId: string, episodeNo: number, overrideType?: "sub" | "dub", server?: string) => {
     const typeToUse = overrideType || streamType;
     setLoadingStream(true);
     setStreamError(null);
@@ -236,13 +237,14 @@ export default function WatchOverlay({
       const serverIds = (epObj as any)?.serverIds as string | undefined;
 
       const data = serverIds
-        ? await getAnikotoStreamUrlFast(consumetAnimeId, episodeNo, serverIds, typeToUse)
-        : await getAnikotoStreamUrl(consumetAnimeId, episodeNo, typeToUse);
+        ? await getAnikotoStreamUrlFast(consumetAnimeId, episodeNo, serverIds, typeToUse, server)
+        : await getAnikotoStreamUrl(consumetAnimeId, episodeNo, typeToUse, server);
       if (!data || !data.sources || data.sources.length === 0) {
         setStreamError(`No stream found for Episode ${episodeNo}. Try switching Sub/Dub or selecting a different episode.`);
         return;
       }
       setStreamData(data);
+      setActiveServer(data.serverName ?? server ?? null);
 
       // Find a source to play — prefer "auto", "default" for ABR, then "1080p"
       const source =
@@ -615,6 +617,14 @@ export default function WatchOverlay({
               </button>
 
                 <button
+                  onClick={() => { setShowServerPanel(v => !v); setShowEpisodePanel(false); }}
+                  className={`transition ${showServerPanel ? "text-purple-400" : "text-white hover:text-slate-300"}`}
+                  title="Servers — switch if the video won't load"
+                >
+                  <Server className="w-6 h-6" />
+                </button>
+
+                <button
                   onClick={() => { setShowEpisodePanel(v => !v); setShowServerPanel(false); }}
                   className={`transition ${showEpisodePanel ? "text-red-500" : "text-white hover:text-slate-300"}`}
                   title="Episodes"
@@ -636,28 +646,38 @@ export default function WatchOverlay({
           </div>
         </div>
 
-      {/* ═══ QUALITY / SERVER PANEL ═══ */}
+      {/* ═══ SERVER PANEL — switch embed host if the current one is blocked ═══ */}
       {showServerPanel && (
         <>
           <div className="fixed inset-0 z-[60]" onClick={() => setShowServerPanel(false)} />
           <div className="absolute top-16 right-4 z-[70] w-72 bg-[#141414]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-4 animate-in fade-in slide-in-from-top-2 duration-300">
-            <h4 className="font-bold text-sm text-slate-300 uppercase tracking-wider mb-3 flex items-center gap-2">
-              <Server className="w-4 h-4 text-purple-400" /> Quality
+            <h4 className="font-bold text-sm text-slate-300 uppercase tracking-wider mb-1 flex items-center gap-2">
+              <Server className="w-4 h-4 text-purple-400" /> Servers
             </h4>
+            <p className="text-[11px] text-slate-500 mb-3">Video won&apos;t load? Try another server.</p>
             <div className="flex flex-col gap-1.5 max-h-64 overflow-y-auto custom-scrollbar">
-              {streamData?.sources.map((source, i) => (
+              {(streamData?.servers && streamData.servers.length > 0
+                ? streamData.servers
+                : (activeServer ? [{ name: activeServer, type: streamType }] : [])
+              ).map((s, i) => (
                 <button
-                  key={i}
-                  onClick={() => { switchQuality(source.quality); setShowServerPanel(false); }}
-                  className={`px-4 py-2.5 rounded-lg text-sm font-bold text-left transition ${activeQuality === source.quality
+                  key={s.name + i}
+                  onClick={() => {
+                    if (activeEpisode) loadStream(activeEpisode.id, activeEpisodeNo, streamType, s.name);
+                    setShowServerPanel(false);
+                  }}
+                  className={`px-4 py-2.5 rounded-lg text-sm font-bold text-left transition flex items-center justify-between ${activeServer === s.name
                     ? "bg-purple-600 text-white"
                     : "bg-white/5 text-slate-300 hover:bg-white/10"
                   }`}
                 >
-                  {source.quality === "default" ? "Auto" : source.quality}
-                  {source.isM3U8 && <span className="ml-2 text-xs text-slate-500">HLS</span>}
+                  <span>{s.name}</span>
+                  <span className="text-xs opacity-60 uppercase">{s.type}</span>
                 </button>
               ))}
+              {(!streamData?.servers || streamData.servers.length === 0) && !activeServer && (
+                <p className="text-xs text-slate-500 px-2 py-1">No alternate servers found.</p>
+              )}
             </div>
           </div>
         </>

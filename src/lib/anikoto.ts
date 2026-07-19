@@ -40,10 +40,19 @@ export interface AnikotoStream {
   isEmbed?: boolean;
 }
 
+export interface AnikotoServerOption {
+  name: string;
+  type: string;
+}
+
 export interface AnikotoStreamResult {
   sources: AnikotoStream[];
   subtitles?: { url: string; lang: string }[];
   headers?: Record<string, string>;
+  // The servers available for this episode/type + which one resolved. Lets the
+  // player offer a "switch server" picker when an embed host is blocked.
+  servers?: AnikotoServerOption[];
+  serverName?: string;
 }
 
 // ─── Client-side Stream Cache ─────────────────────────────────────────────────
@@ -210,7 +219,8 @@ export async function getAnikotoEpisodes(
 export async function getAnikotoStreamUrl(
   animeId: string,
   episodeNo: number,
-  type: "sub" | "dub" = "sub"
+  type: "sub" | "dub" = "sub",
+  preferredServer?: string
 ): Promise<AnikotoStreamResult | null> {
   try {
     // 1. Get episodes list to find the target episode's server_ids
@@ -245,8 +255,11 @@ export async function getAnikotoStreamUrl(
       matched = allServers;
     }
 
-    // Prefer HD-1 > HD-2 > Vidstream-2 > first available
+    const servers: AnikotoServerOption[] = matched.map((s) => ({ name: String(s.name), type: String(s.type) }));
+
+    // Honor a requested server, else prefer HD-1 > HD-2 > Vidstream-2 > first
     const server =
+      (preferredServer ? matched.find((s) => s.name === preferredServer) : undefined) ??
       matched.find((s) => s.name === "HD-1") ??
       matched.find((s) => s.name === "HD-2") ??
       matched.find((s) => s.name?.startsWith("Vidstream")) ??
@@ -282,6 +295,8 @@ export async function getAnikotoStreamUrl(
         Referer: "https://anikototv.to/",
         Origin: "https://anikototv.to",
       },
+      servers,
+      serverName: server.name,
     };
   } catch (err) {
     console.error("AniKotoAPI stream error:", err);
@@ -304,21 +319,23 @@ export async function getAnikotoStreamUrlFast(
   animeId: string,
   episodeNo: number,
   serverIds: string,
-  type: "sub" | "dub" = "sub"
+  type: "sub" | "dub" = "sub",
+  server?: string
 ): Promise<AnikotoStreamResult | null> {
-  const cacheKey = `${animeId}:${episodeNo}:${type}`;
+  const cacheKey = `${animeId}:${episodeNo}:${type}:${server || "auto"}`;
   const cached = getCachedStream(cacheKey);
   if (cached) return cached; // instant on replay — zero API calls
 
   try {
     // Hit the local Next.js proxy — ONE browser round-trip instead of two cold Vercel calls
-    const proxyUrl = `/api/anikoto-stream?animeId=${encodeURIComponent(animeId)}&ep=${episodeNo}&type=${type}&serverIds=${encodeURIComponent(serverIds)}`;
+    let proxyUrl = `/api/anikoto-stream?animeId=${encodeURIComponent(animeId)}&ep=${episodeNo}&type=${type}&serverIds=${encodeURIComponent(serverIds)}`;
+    if (server) proxyUrl += `&server=${encodeURIComponent(server)}`;
     const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(20000) });
 
     if (!res.ok) {
       // Fallback: call the external API directly if proxy fails
       console.warn("Proxy failed, falling back to direct API");
-      return getAnikotoStreamUrl(animeId, episodeNo, type);
+      return getAnikotoStreamUrl(animeId, episodeNo, type, server);
     }
 
     const data = await res.json();
@@ -328,12 +345,14 @@ export async function getAnikotoStreamUrlFast(
       sources: [{ url: data.url, quality: "auto", isM3U8: data.isM3U8 ?? false, isEmbed: !data.isM3U8 }],
       subtitles: [],
       headers: { Referer: "https://anikototv.to/", Origin: "https://anikototv.to" },
+      servers: Array.isArray(data.servers) ? data.servers : undefined,
+      serverName: data.serverName,
     };
     setCachedStream(cacheKey, result);
     return result;
   } catch (err) {
     console.error("AniKotoAPI fast-stream error:", err);
     // Fallback to direct API call
-    return getAnikotoStreamUrl(animeId, episodeNo, type);
+    return getAnikotoStreamUrl(animeId, episodeNo, type, server);
   }
 }

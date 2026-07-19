@@ -22,7 +22,7 @@ const ANIKOTO_API =
   process.env.ANIKOTO_API_URL || "https://anikoto-api-lemon.vercel.app";
 
 // Simple server-side in-memory cache (survives across requests in same instance)
-const cache = new Map<string, { url: string; isM3U8: boolean; ts: number }>();
+const cache = new Map<string, { url: string; isM3U8: boolean; serverName?: string; servers?: { name: string; type: string }[]; ts: number }>();
 const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
 export async function GET(req: NextRequest) {
@@ -31,16 +31,17 @@ export async function GET(req: NextRequest) {
   const animeId = searchParams.get("animeId") || "unknown";
   const ep = searchParams.get("ep") || "1";
   const type = (searchParams.get("type") || "sub") as "sub" | "dub";
+  const wantServer = searchParams.get("server"); // optional: pick a specific server by name
 
   if (!serverIds) {
     return NextResponse.json({ error: "serverIds is required" }, { status: 400 });
   }
 
-  // Check cache first
-  const cacheKey = `${animeId}:${ep}:${type}`;
+  // Check cache first (keyed by chosen server so switching servers isn't masked)
+  const cacheKey = `${animeId}:${ep}:${type}:${wantServer || "auto"}`;
   const cached = cache.get(cacheKey);
   if (cached && Date.now() - cached.ts < CACHE_TTL) {
-    return NextResponse.json({ url: cached.url, isM3U8: cached.isM3U8, cached: true });
+    return NextResponse.json({ url: cached.url, isM3U8: cached.isM3U8, serverName: cached.serverName, servers: cached.servers, cached: true });
   }
 
   try {
@@ -64,7 +65,12 @@ export async function GET(req: NextRequest) {
     if (!matched.length) matched = allServers.filter((s) => s.type === (type === "sub" ? "dub" : "sub"));
     if (!matched.length) matched = allServers;
 
+    // The distinct servers the client can switch between — each maps to a
+    // different embed host, so a viewer blocked on one can try another.
+    const servers = matched.map((s) => ({ name: String(s.name), type: String(s.type) }));
+
     const server =
+      (wantServer ? matched.find((s) => s.name === wantServer) : undefined) ??
       matched.find((s) => s.name === "HD-1") ??
       matched.find((s) => s.name === "HD-2") ??
       matched.find((s) => s.name?.startsWith("Vidstream")) ??
@@ -92,13 +98,14 @@ export async function GET(req: NextRequest) {
     const isM3U8 = resolvedUrl.includes(".m3u8") || resolvedUrl.includes("/hls/");
 
     // Cache the result
-    cache.set(cacheKey, { url: resolvedUrl, isM3U8, ts: Date.now() });
+    cache.set(cacheKey, { url: resolvedUrl, isM3U8, serverName: server.name, servers, ts: Date.now() });
 
     return NextResponse.json({
       url: resolvedUrl,
       isM3U8,
       serverName: server.name,
       serverType: server.type,
+      servers,
       cached: false,
     });
   } catch (err: any) {
