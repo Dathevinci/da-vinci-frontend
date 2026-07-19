@@ -26,6 +26,13 @@ const reveal = (delay: number) => ({
   transition: { delay, duration: 0.4, ease: "easeOut" as const },
 });
 
+// AsuraScans releaseDate may be an ISO string — show it as a short date.
+const formatChapterDate = (raw?: string) => {
+  if (!raw) return "";
+  const d = new Date(raw);
+  return isNaN(d.getTime()) ? raw : d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+};
+
 export default function ManhwaQuickViewModal({ manhwa, options, onClose }: ManhwaQuickViewModalProps) {
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(true);
@@ -112,8 +119,12 @@ export default function ManhwaQuickViewModal({ manhwa, options, onClose }: Manhw
               <X className="w-6 h-6" />
             </button>
 
+            {/* One scroll container so the whole modal — cover, info, synopsis,
+                chapters — scrolls together, instead of a cramped fixed header. */}
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+
             {/* Banner & Cover Area */}
-            <div className="relative flex flex-col md:flex-row p-6 sm:p-8 md:p-10 gap-6 md:gap-10 border-b border-[#2a2a32] bg-gradient-to-b from-[#151518] to-[#0b0b0c] shrink-0">
+            <div className="relative flex flex-col md:flex-row p-6 sm:p-8 md:p-10 gap-6 md:gap-10 border-b border-[#2a2a32] bg-gradient-to-b from-[#151518] to-[#0b0b0c]">
               {/* Background blurred cover */}
               {bannerUrl && (
                 <img
@@ -212,8 +223,8 @@ export default function ManhwaQuickViewModal({ manhwa, options, onClose }: Manhw
               </div>
             </div>
 
-            {/* Details Scroll Area */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-8 md:p-10 space-y-8">
+            {/* Details */}
+            <div className="p-6 sm:p-8 md:p-10 space-y-8">
 
               {/* Synopsis */}
               <div>
@@ -276,11 +287,11 @@ export default function ManhwaQuickViewModal({ manhwa, options, onClose }: Manhw
                             : 'bg-[#1e1e24] border-[#2a2a32] hover:border-[#dc2626]/50 hover:bg-[#dc2626]/5 transition-colors group'
                         }`}
                       >
-                        <div className="font-bold text-sm text-[#e2e8f0] group-hover:text-[#dc2626] transition-colors">
-                          Chapter {chapter.number}
+                        <div className="font-bold text-sm text-[#e2e8f0] group-hover:text-[#dc2626] transition-colors line-clamp-1 min-w-0">
+                          {chapter.title || `Chapter ${chapter.id?.split("|")[1] ?? ""}`.trim()}
                         </div>
-                        <div className="text-xs text-slate-500 font-medium flex items-center gap-2">
-                          {chapter.date}
+                        <div className="text-xs text-slate-500 font-medium flex items-center gap-2 shrink-0">
+                          {formatChapterDate(chapter.releaseDate)}
                           {chapter.isLocked && <span className="bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded text-[10px] uppercase font-black tracking-wider">Locked</span>}
                         </div>
                       </Link>
@@ -331,6 +342,7 @@ export default function ManhwaQuickViewModal({ manhwa, options, onClose }: Manhw
                 </Link>
               </div>
 
+            </div>
             </div>
           </motion.div>
         </motion.div>
