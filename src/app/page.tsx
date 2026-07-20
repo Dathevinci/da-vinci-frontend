@@ -47,7 +47,7 @@ export default async function Home() {
 
   return (
     <PageTransition>
-      <div className="pb-20 min-h-screen bg-black/40 backdrop-blur-sm">
+      <div className="pb-20 min-h-screen bg-black/40">
       {data.isFallback && (
         <div className="relative z-30 bg-amber-500/10 border-b border-amber-500/20 text-amber-300 text-xs sm:text-sm font-medium text-center py-2 px-4">
           AniList is currently unavailable — showing backup data from MyAnimeList.

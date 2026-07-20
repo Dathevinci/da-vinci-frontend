@@ -35,7 +35,7 @@ export default async function UpcomingPage() {
 
   return (
     <PageTransition>
-      <div className="pb-20 min-h-screen bg-black/40 backdrop-blur-sm">
+      <div className="pb-20 min-h-screen bg-black/40">
       <HeroBannerCarousel animes={heroAnimes} />
       
       <div className="relative z-20 max-w-7xl mx-auto px-4 md:px-12 mt-12">

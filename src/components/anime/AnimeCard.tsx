@@ -233,11 +233,14 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
         )}
       </AnimatePresence>
 
-      {/* Trailer Modal (from the pop-out's play-trailer button) */}
-      <TrailerModal
-        videoId={trailerVideoId}
-        onClose={() => setTrailerVideoId(null)}
-      />
+      {/* Trailer modal — only mounted while a trailer is actually playing, so
+          the home feed doesn't carry ~150 idle portals (one per card). */}
+      {trailerVideoId && (
+        <TrailerModal
+          videoId={trailerVideoId}
+          onClose={() => setTrailerVideoId(null)}
+        />
+      )}
     </div>
   );
 }
