@@ -84,9 +84,17 @@ function portraitCover(url: string): string {
 
 // ── list rows (browse) ────────────────────────────────────────────────────────
 function parseListRows(html: string): NovelResult[] {
-  // Scope to the main novel list container to avoid sidebar widgets.
+  // Scope to the MAIN list container ONLY. Browse/search pages have sidebar
+  // widgets (list-genre / list-side "Most Popular") that ALSO use
+  // `list list-novel`; slicing to end-of-page swallowed them, so searches with
+  // few/no matches returned popular novels instead of the real results.
   const startIdx = html.indexOf('class="list list-novel');
-  const scoped = startIdx >= 0 ? html.slice(startIdx) : html;
+  let scoped = html;
+  if (startIdx >= 0) {
+    const rest = html.slice(startIdx);
+    const nextIdx = rest.indexOf('class="list list-novel', 1); // next block = sidebar widget
+    scoped = nextIdx > 0 ? rest.slice(0, nextIdx) : rest;
+  }
   const out: NovelResult[] = [];
   const seen = new Set<string>();
   const rows = scoped.split(/<div class="row"/);
