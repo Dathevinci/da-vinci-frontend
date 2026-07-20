@@ -78,6 +78,26 @@ export default function ShopPage() {
       window.dispatchEvent(new Event("davinci_user_updated"));
     } catch {}
   };
+
+  // After a server-authoritative purchase, sync the cached user from the server's
+  // response (new balance) + add the item to the right inventory array, so the
+  // navbar balance and the shop's owned state update instantly.
+  const INVENTORY_FIELD: Record<string, string> = {
+    role: "purchasedRoles", tag: "purchasedTags", theme: "purchasedThemes",
+    color: "purchasedColors", font: "purchasedFonts", effect: "purchasedEffects", frame: "purchasedFrames",
+  };
+  const applyPurchase = (itemId: string, type: string, newAP: number | null) => {
+    try {
+      const stored = localStorage.getItem("davinci_user");
+      if (!stored) return;
+      const u = JSON.parse(stored);
+      if (typeof newAP === "number") u.arisePoints = newAP;
+      const f = INVENTORY_FIELD[type];
+      if (f) u[f] = Array.from(new Set([...(Array.isArray(u[f]) ? u[f] : []), itemId]));
+      localStorage.setItem("davinci_user", JSON.stringify(u));
+      window.dispatchEvent(new Event("davinci_user_updated"));
+    } catch {}
+  };
   // Discovery controls — as the catalog grows these keep everything findable.
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<"all" | "sss" | "rare" | "frame" | "effect">("all");
@@ -144,25 +164,21 @@ export default function ShopPage() {
     }
 
     setBuyingId(item.id);
-    const newPoints = isGod ? user.arisePoints : (user.arisePoints || 0) - item.price;
-    const inventory = getInventoryArray(item.type);
-    
-    const updatePayload: any = {};
-    if (!isGod) {
-      updatePayload.arisePoints = newPoints;
-    }
-    switch(item.type) {
-      case 'role': updatePayload.purchasedRoles = [...inventory, item.id]; break;
-      case 'tag': updatePayload.purchasedTags = [...inventory, item.id]; break;
-      case 'theme': updatePayload.purchasedThemes = [...inventory, item.id]; break;
-      case 'color': updatePayload.purchasedColors = [...inventory, item.id]; break;
-      case 'font': updatePayload.purchasedFonts = [...inventory, item.id]; break;
-      case 'effect': updatePayload.purchasedEffects = [...inventory, item.id]; break;
-      case 'frame': updatePayload.purchasedFrames = [...inventory, item.id]; break;
-    }
-
     try {
-      await updateProfile(updatePayload);
+      // Server-authoritative: the backend checks the price + balance and moves
+      // the points. The client can no longer set its own AP or inventory.
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      const res = await fetch(`${API_URL}/api/users/purchase`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, itemId: item.id }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        toast(data.message || "Purchase failed", "error");
+        return;
+      }
+      applyPurchase(item.id, item.type, typeof data.arisePoints === "number" ? data.arisePoints : null);
       toast(`Successfully purchased ${item.name}!`, "success");
     } catch (err) {
       toast("Purchase failed", "error");
