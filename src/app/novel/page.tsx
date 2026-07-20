@@ -20,7 +20,7 @@ export default function NovelBrowsePage() {
     <Suspense
       fallback={
         <div className="bg-[#0b0b0c] min-h-screen pt-24 flex flex-col items-center justify-center gap-4">
-          <Loader2 className="w-10 h-10 text-amber-500 animate-spin" />
+          <Loader2 className="w-10 h-10 text-pink-500 animate-spin" />
           <p className="text-slate-500 text-sm font-bold uppercase tracking-widest">Loading Library…</p>
         </div>
       }
@@ -74,12 +74,12 @@ function NovelBrowseInner() {
   };
 
   return (
-    <div className="bg-[#0b0b0c] min-h-screen pt-20 pb-16 text-white selection:bg-amber-500/30">
+    <div className="bg-[#0b0b0c] min-h-screen pt-20 pb-16 text-white selection:bg-pink-500/30">
       <div className="max-w-[1500px] mx-auto px-4 md:px-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 mb-8 pt-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+            <div className="w-12 h-12 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400">
               <BookOpen className="w-6 h-6" />
             </div>
             <div>
@@ -92,7 +92,7 @@ function NovelBrowseInner() {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Search novels…"
-              className="w-full bg-[#151518] border border-white/10 rounded-xl py-3 pl-11 pr-4 text-sm focus:outline-none focus:border-amber-500/50 transition-colors placeholder:text-slate-500"
+              className="w-full bg-[#151518] border border-white/10 rounded-xl py-3 pl-11 pr-4 text-sm focus:outline-none focus:border-pink-500/50 transition-colors placeholder:text-slate-500"
             />
             <Search className="w-4 h-4 text-slate-500 absolute left-4 top-1/2 -translate-y-1/2" />
           </form>
@@ -106,7 +106,7 @@ function NovelBrowseInner() {
                 key={key}
                 href={`/novel?list=${key}`}
                 className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition ${
-                  list === key ? "bg-amber-500 text-black" : "bg-[#151518] text-slate-300 hover:bg-[#1e1e24] border border-white/10"
+                  list === key ? "bg-pink-500 text-black" : "bg-[#151518] text-slate-300 hover:bg-[#1e1e24] border border-white/10"
                 }`}
               >
                 <Icon className="w-4 h-4" /> {label}
@@ -122,7 +122,7 @@ function NovelBrowseInner() {
         {/* Grid */}
         {loading ? (
           <div className="py-32 flex flex-col items-center gap-4">
-            <Loader2 className="w-10 h-10 text-amber-500 animate-spin" />
+            <Loader2 className="w-10 h-10 text-pink-500 animate-spin" />
             <p className="text-slate-500 text-sm font-bold uppercase tracking-widest">Loading novels…</p>
           </div>
         ) : results.length > 0 ? (
@@ -153,7 +153,7 @@ function NovelBrowseInner() {
             )}
             <span className="px-6 py-3 bg-[#0b0b0c] border border-white/10 rounded-lg text-slate-400">Page {page}</span>
             {hasNext ? (
-              <Link href={buildUrl(page + 1)} className="px-6 py-3 bg-amber-500 hover:bg-amber-400 text-black rounded-lg flex items-center gap-2">
+              <Link href={buildUrl(page + 1)} className="px-6 py-3 bg-pink-500 hover:bg-pink-400 text-black rounded-lg flex items-center gap-2">
                 Next <ChevronRight className="w-4 h-4" />
               </Link>
             ) : (

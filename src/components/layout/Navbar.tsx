@@ -74,11 +74,11 @@ export default function Navbar() {
 
   const { mode, setMode } = useAppMode();
 
-  // Theming variables based on mode (anime = amethyst, manhwa = crimson, novel = amber)
-  const accentText = mode === 'anime' ? 'text-purple-400 drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]' : mode === 'manhwa' ? 'text-red-500 drop-shadow-[0_0_10px_rgba(220,38,38,0.5)]' : 'text-amber-400 drop-shadow-[0_0_10px_rgba(245,158,11,0.5)]';
-  const accentHover = mode === 'anime' ? 'hover:text-purple-400' : mode === 'manhwa' ? 'hover:text-red-500' : 'hover:text-amber-400';
-  const accentBorder = mode === 'anime' ? 'border-purple-400/50 shadow-[0_0_15px_rgba(168,85,247,0.4)]' : mode === 'manhwa' ? 'border-red-500/50 shadow-[0_0_15px_rgba(220,38,38,0.4)]' : 'border-amber-400/50 shadow-[0_0_15px_rgba(245,158,11,0.4)]';
-  const modeLabelColor = mode === 'anime' ? 'text-purple-400' : mode === 'manhwa' ? 'text-red-500' : 'text-amber-400';
+  // Theming variables based on mode (anime = amethyst, manhwa = crimson, novel = pink)
+  const accentText = mode === 'anime' ? 'text-purple-400 drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]' : mode === 'manhwa' ? 'text-red-500 drop-shadow-[0_0_10px_rgba(220,38,38,0.5)]' : 'text-pink-400 drop-shadow-[0_0_10px_rgba(236,72,153,0.5)]';
+  const accentHover = mode === 'anime' ? 'hover:text-purple-400' : mode === 'manhwa' ? 'hover:text-red-500' : 'hover:text-pink-400';
+  const accentBorder = mode === 'anime' ? 'border-purple-400/50 shadow-[0_0_15px_rgba(168,85,247,0.4)]' : mode === 'manhwa' ? 'border-red-500/50 shadow-[0_0_15px_rgba(220,38,38,0.4)]' : 'border-pink-400/50 shadow-[0_0_15px_rgba(236,72,153,0.4)]';
+  const modeLabelColor = mode === 'anime' ? 'text-purple-400' : mode === 'manhwa' ? 'text-red-500' : 'text-pink-400';
 
   // Desktop Links
   const animeLinks = (
@@ -115,7 +115,7 @@ export default function Navbar() {
   const MODE_OPTIONS = [
     { m: 'anime' as const, label: 'Anime', cls: 'text-purple-400', Icon: Tv },
     { m: 'manhwa' as const, label: 'Manhwa', cls: 'text-red-500', Icon: BookMarked },
-    { m: 'novel' as const, label: 'Novels', cls: 'text-amber-400', Icon: BookOpen },
+    { m: 'novel' as const, label: 'Novels', cls: 'text-pink-400', Icon: BookOpen },
   ];
 
   return (

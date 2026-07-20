@@ -15,12 +15,12 @@ const easeCurtain: [number, number, number, number] = [0.83, 0, 0.17, 1];
 export default function ModeTransition() {
   const { transition } = useAppMode();
 
-  // Themed per destination mode: manhwa = crimson, novel = amber, anime = amethyst.
+  // Themed per destination mode: manhwa = crimson, novel = pink, anime = amethyst.
   const theme =
     transition.target === "manhwa"
       ? { accent: "#dc2626", dim: "rgba(220,38,38,0.55)", glow: "rgba(220,38,38,0.35)", panel: "rgba(60,10,10,0.92)", label: "Manhwa Mode", sub: "Enter the library", Icon: BookMarked }
       : transition.target === "novel"
-      ? { accent: "#f59e0b", dim: "rgba(245,158,11,0.55)", glow: "rgba(245,158,11,0.35)", panel: "rgba(60,42,8,0.92)", label: "Novels Mode", sub: "Enter the archive", Icon: BookOpen }
+      ? { accent: "#ec4899", dim: "rgba(236,72,153,0.55)", glow: "rgba(236,72,153,0.35)", panel: "rgba(55,10,40,0.92)", label: "Novels Mode", sub: "Enter the archive", Icon: BookOpen }
       : { accent: "#8b5cf6", dim: "rgba(139,92,246,0.55)", glow: "rgba(139,92,246,0.35)", panel: "rgba(30,16,60,0.92)", label: "Anime Mode", sub: "Enter the theater", Icon: Tv };
 
   const accent = theme.accent;

@@ -44,18 +44,18 @@ export default function NovelDetailPage() {
   if (loading)
     return (
       <div className="min-h-screen bg-[#0b0b0c] pt-24 flex justify-center">
-        <Loader2 className="w-10 h-10 text-amber-500 animate-spin" />
+        <Loader2 className="w-10 h-10 text-pink-500 animate-spin" />
       </div>
     );
   if (!novel || !novel.title)
     return (
       <div className="min-h-screen bg-[#0b0b0c] pt-32 text-center text-slate-400">
-        Novel not found. <Link href="/novel" className="text-amber-400 underline">Back to library</Link>
+        Novel not found. <Link href="/novel" className="text-pink-400 underline">Back to library</Link>
       </div>
     );
 
   return (
-    <div className="bg-[#0b0b0c] min-h-screen pt-16 pb-16 text-white selection:bg-amber-500/30">
+    <div className="bg-[#0b0b0c] min-h-screen pt-16 pb-16 text-white selection:bg-pink-500/30">
       {/* Hero */}
       <div className="relative">
         {cover && (
@@ -80,13 +80,13 @@ export default function NovelDetailPage() {
             <h1 className="text-3xl md:text-4xl font-black leading-tight mb-3">{novel.title}</h1>
             <div className="flex flex-wrap items-center gap-3 text-sm mb-4">
               <span className="flex items-center gap-1 text-slate-300">
-                <UserIcon className="w-4 h-4 text-amber-400" /> {novel.author}
+                <UserIcon className="w-4 h-4 text-pink-400" /> {novel.author}
               </span>
               <span
                 className={`px-2 py-0.5 rounded text-xs uppercase font-bold border ${
                   novel.status?.toLowerCase().includes("complet")
                     ? "bg-green-500/10 text-green-400 border-green-500/20"
-                    : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                    : "bg-pink-500/10 text-pink-400 border-pink-500/20"
                 }`}
               >
                 {novel.status}
@@ -106,7 +106,7 @@ export default function NovelDetailPage() {
               {firstCh && (
                 <Link
                   href={`/novel/${encodeURIComponent(id)}/chapter/${encodeURIComponent(firstCh.id)}`}
-                  className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-black font-bold px-6 py-2.5 rounded-lg transition"
+                  className="flex items-center gap-2 bg-pink-500 hover:bg-pink-400 text-black font-bold px-6 py-2.5 rounded-lg transition"
                 >
                   <Play className="w-4 h-4 fill-current" /> Start Reading
                 </Link>
@@ -129,14 +129,14 @@ export default function NovelDetailPage() {
       <div className="max-w-[1200px] mx-auto px-4 md:px-8 mt-10">
         <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
           <h2 className="text-xl font-black flex items-center gap-2">
-            <List className="w-5 h-5 text-amber-400" /> Chapters
+            <List className="w-5 h-5 text-pink-400" /> Chapters
           </h2>
           <div className="relative w-full sm:w-64">
             <input
               value={chapterFilter}
               onChange={(e) => setChapterFilter(e.target.value)}
               placeholder="Find a chapter…"
-              className="w-full bg-[#151518] border border-white/10 rounded-lg py-2 pl-9 pr-3 text-sm focus:outline-none focus:border-amber-500/50"
+              className="w-full bg-[#151518] border border-white/10 rounded-lg py-2 pl-9 pr-3 text-sm focus:outline-none focus:border-pink-500/50"
             />
             <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
           </div>
@@ -147,11 +147,11 @@ export default function NovelDetailPage() {
               key={ch.id}
               href={`/novel/${encodeURIComponent(id)}/chapter/${encodeURIComponent(ch.id)}`}
               className={`flex items-center justify-between p-3 rounded-lg border transition-colors group ${
-                lastRead === ch.id ? "bg-amber-500/10 border-amber-500/40" : "bg-[#151518] border-white/5 hover:border-amber-500/40 hover:bg-amber-500/5"
+                lastRead === ch.id ? "bg-pink-500/10 border-pink-500/40" : "bg-[#151518] border-white/5 hover:border-pink-500/40 hover:bg-pink-500/5"
               }`}
             >
-              <span className="text-sm text-slate-300 group-hover:text-amber-400 line-clamp-1">{ch.title}</span>
-              <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-amber-400 shrink-0" />
+              <span className="text-sm text-slate-300 group-hover:text-pink-400 line-clamp-1">{ch.title}</span>
+              <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-pink-400 shrink-0" />
             </Link>
           ))}
         </div>

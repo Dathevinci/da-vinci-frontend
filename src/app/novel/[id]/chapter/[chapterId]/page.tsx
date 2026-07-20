@@ -75,11 +75,11 @@ export default function NovelReaderPage() {
   };
 
   return (
-    <div className="bg-[#0f0e0c] min-h-screen text-slate-200 selection:bg-amber-500/30">
+    <div className="bg-[#0f0e0c] min-h-screen text-slate-200 selection:bg-pink-500/30">
       {/* Top bar */}
       <div className="sticky top-0 z-30 bg-[#0f0e0c]/90 backdrop-blur-md border-b border-white/5">
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
-          <Link href={`/novel/${encodeURIComponent(id)}`} className="flex items-center gap-2 text-slate-400 hover:text-amber-400 transition text-sm font-bold min-w-0">
+          <Link href={`/novel/${encodeURIComponent(id)}`} className="flex items-center gap-2 text-slate-400 hover:text-pink-400 transition text-sm font-bold min-w-0">
             <ArrowLeft className="w-4 h-4 shrink-0" /> <span className="hidden sm:inline line-clamp-1">{novel?.title || "Back"}</span>
           </Link>
           <div className="flex items-center gap-1">
@@ -99,12 +99,12 @@ export default function NovelReaderPage() {
 
       {loading ? (
         <div className="py-40 flex justify-center">
-          <Loader2 className="w-10 h-10 text-amber-500 animate-spin" />
+          <Loader2 className="w-10 h-10 text-pink-500 animate-spin" />
         </div>
       ) : !chapter || !chapter.content?.length ? (
         <div className="py-40 text-center text-slate-400">
           Failed to load this chapter.{" "}
-          <button onClick={() => go(chapterId)} className="text-amber-400 underline">
+          <button onClick={() => go(chapterId)} className="text-pink-400 underline">
             Retry
           </button>
         </div>
@@ -124,17 +124,17 @@ export default function NovelReaderPage() {
             <button
               onClick={() => go(prevId)}
               disabled={!prevId}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-[#1a1814] border border-white/10 disabled:opacity-30 hover:border-amber-500/40 transition font-bold text-sm"
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-[#1a1814] border border-white/10 disabled:opacity-30 hover:border-pink-500/40 transition font-bold text-sm"
             >
               <ChevronLeft className="w-5 h-5" /> Previous
             </button>
-            <button onClick={() => setShowChapters(true)} className="p-3 rounded-xl bg-[#1a1814] border border-white/10 hover:border-amber-500/40 transition" title="Chapters">
+            <button onClick={() => setShowChapters(true)} className="p-3 rounded-xl bg-[#1a1814] border border-white/10 hover:border-pink-500/40 transition" title="Chapters">
               <List className="w-5 h-5" />
             </button>
             <button
               onClick={() => go(nextId)}
               disabled={!nextId}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-amber-500 text-black disabled:opacity-30 hover:bg-amber-400 transition font-bold text-sm"
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-pink-500 text-black disabled:opacity-30 hover:bg-pink-400 transition font-bold text-sm"
             >
               Next <ChevronRight className="w-5 h-5" />
             </button>
@@ -165,7 +165,7 @@ export default function NovelReaderPage() {
                     go(c.id);
                   }}
                   className={`w-full text-left px-5 py-3 border-b border-white/5 text-sm transition ${
-                    c.id === chapterId ? "bg-amber-500/15 text-amber-300 font-bold" : "text-slate-400 hover:bg-white/5"
+                    c.id === chapterId ? "bg-pink-500/15 text-pink-300 font-bold" : "text-slate-400 hover:bg-white/5"
                   }`}
                 >
                   {c.title}
@@ -174,7 +174,7 @@ export default function NovelReaderPage() {
               <Link
                 href={`/novel/${encodeURIComponent(id)}`}
                 onClick={() => setShowChapters(false)}
-                className="block text-center text-amber-400 text-xs font-bold py-4 hover:underline"
+                className="block text-center text-pink-400 text-xs font-bold py-4 hover:underline"
               >
                 View all chapters →
               </Link>
