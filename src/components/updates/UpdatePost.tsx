@@ -1,21 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { formatDistanceToNow } from 'date-fns';
+import { useState, type ReactNode } from "react";
 import { isAdmin } from "@/lib/admin";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, MessageCircle, Send, MoreHorizontal, Sparkles } from "lucide-react";
+import { MessageCircle, Send, Sparkles, Tag as TagIcon } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { useToast } from "@/components/ui/Toast";
 import Link from "next/link";
 import { getRankTheme } from "@/lib/ranks";
 import { Code2 as IconCode2, ShieldAlert, Sparkles as IconSparkles, Crown as IconCrown, Flame as IconFlame, Zap as IconZap, Compass as IconCompass, Leaf as IconLeaf, ArrowUpRight, Feather as IconFeather, Eye as IconEye } from "lucide-react";
 const ICON_MAP: Record<string, any> = { Code2: IconCode2, ShieldAlert, Sparkles: IconSparkles, Crown: IconCrown, Flame: IconFlame, Zap: IconZap, Compass: IconCompass, Leaf: IconLeaf, ArrowUpRight, Feather: IconFeather, Eye: IconEye };
-import HeartExplosion from "@/components/ui/HeartExplosion";
 import CommentsDrawer from "@/components/ui/CommentsDrawer";
 import { AvatarDecoration, hasFrameRing } from "@/components/profile/AvatarDecoration";
 import UserLink from "@/components/profile/UserLink";
-import ConfirmModal from "@/components/ui/ConfirmModal";
 import MentionsInput from "@/components/ui/MentionsInput";
 
 interface Comment {
@@ -40,9 +37,7 @@ interface UpdatePostProps {
     tag: string;
     image: string | null;
     createdAt: string;
-    hasLiked: boolean;
     _count: {
-      likes: number;
       comments: number;
     };
     author: {
@@ -54,30 +49,89 @@ interface UpdatePostProps {
       activeEffect?: string | null;
     };
   };
-  onLikeToggle: (id: string, newLikedState: boolean) => void;
   onDelete?: (id: string) => void;
 }
 
-export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostProps) {
+// Render @mentions inside a line of text as profile links.
+function renderMentions(text: string): ReactNode {
+  if (!text) return null;
+  const parts = text.split(/(@[a-zA-Z0-9_]+)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("@")) {
+      return (
+        <Link key={i} href={`/user/${part.slice(1)}`} className="font-bold text-purple-400 hover:text-purple-300 hover:underline">
+          {part}
+        </Link>
+      );
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
+
+const isDivider = (l: string) => /^[━─=_]{3,}$/.test(l.trim());
+
+// Turn the raw Dev-Blog text (── HEADER ── section blocks + paragraphs) into a
+// formatted changelog. Section headers like "NEW — X" get a coloured chip.
+function ChangelogBody({ content }: { content: string }) {
+  const lines = content.split("\n");
+  const blocks: ReactNode[] = [];
+  let key = 0;
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // ── HEADER ── block
+    if (isDivider(line) && i + 2 < lines.length && isDivider(lines[i + 2])) {
+      const header = lines[i + 1].trim();
+      const m = header.match(/^(NEW|FIX|FIXED|IMPROVED|CHANGED|REMOVED)\s*[—–-]\s*(.*)$/i);
+      blocks.push(
+        <div key={key++} className="flex items-center gap-2.5 pt-5 first:pt-0">
+          <span className="h-6 w-1.5 shrink-0 rounded-full bg-gradient-to-b from-fuchsia-400 to-purple-600" />
+          <h3 className="flex items-center gap-2 text-lg font-black text-white">
+            {m ? (
+              <>
+                <span className="rounded-full border border-fuchsia-500/30 bg-fuchsia-500/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-fuchsia-300">{m[1]}</span>
+                {m[2]}
+              </>
+            ) : (
+              header
+            )}
+          </h3>
+        </div>
+      );
+      i += 3;
+      continue;
+    }
+
+    // Skip blank lines and the duplicated "Da Vinci — Dev Blog X.Y" heading line.
+    if (line.trim() === "" || /^da\s*vinci\s*[—–-]\s*dev\s*blog/i.test(line.trim())) {
+      i++;
+      continue;
+    }
+
+    blocks.push(
+      <p key={key++} className="text-[15px] leading-relaxed text-slate-300">
+        {renderMentions(line)}
+      </p>
+    );
+    i++;
+  }
+
+  return <div className="space-y-3">{blocks}</div>;
+}
+
+export default function UpdatePost({ post, onDelete }: UpdatePostProps) {
   const { user } = useUser();
   const { toast } = useToast();
-  const [isLiked, setIsLiked] = useState(post.hasLiked);
-  const [likesCount, setLikesCount] = useState(post._count.likes);
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [loadingComments, setLoadingComments] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [showHeartExplosion, setShowHeartExplosion] = useState(false);
-  const [clickCoords, setClickCoords] = useState<{x: number, y: number} | null>(null);
-  const [showBigHeart, setShowBigHeart] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
-  const authorRank = post.author ? getRankTheme((post.author as any).xp || 0, post.author.username) : null;
-  const RankIcon = authorRank?.badgeIcon ? ICON_MAP[authorRank.badgeIcon] : null;
 
   const isDev = isAdmin(user);
   const canModifyPost = isDev || user?.id === post.author.id;
@@ -86,31 +140,21 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
   const [isEditingPost, setIsEditingPost] = useState(false);
   const [editPostTitle, setEditPostTitle] = useState(post.title);
   const [editPostContent, setEditPostContent] = useState(post.content);
-
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editCommentContent, setEditCommentContent] = useState("");
 
-  const renderContentWithMentions = (text: string) => {
-    if (!text) return null;
-    const regex = /(@[a-zA-Z0-9_]+)/g;
-    const parts = text.split(regex);
-    
-    return parts.map((part, i) => {
-      if (part.startsWith('@')) {
-        const username = part.slice(1);
-        return (
-          <Link key={i} href={`/user/${username}`} className="text-purple-400 font-bold hover:text-purple-300 hover:underline drop-shadow-[0_0_8px_rgba(129,140,248,0.5)]">
-            {part}
-          </Link>
-        );
-      }
-      return <span key={i}>{part}</span>;
-    });
-  };
+  // Version badge (e.g. "1.5.1") + a cleaner display title (drop the "… :" prefix).
+  const version = post.title.match(/(\d+\.\d+(?:\.\d+)?)/)?.[1] || null;
+  const displayTitle = post.title.includes(":") ? post.title.split(":").slice(1).join(":").trim() : post.title;
+  const tags = post.tag ? post.tag.split(",").map((t) => t.trim()).filter(Boolean) : [];
 
-  const handleDeletePost = () => {
-    setShowDeleteModal(true);
-  };
+  const dateLabel = (() => {
+    try {
+      return new Date(post.createdAt).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+    } catch {
+      return "";
+    }
+  })();
 
   const confirmDelete = async () => {
     setShowDeleteModal(false);
@@ -118,7 +162,7 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
       const res = await fetch(`${API_URL}/api/announcements/${post.id}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user?.id })
+        body: JSON.stringify({ userId: user?.id }),
       });
       if (res.ok) {
         toast("Update deleted", "success");
@@ -126,48 +170,8 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
       } else {
         toast("Failed to delete", "error");
       }
-    } catch (err) {
+    } catch {
       toast("Error deleting post", "error");
-    }
-  };
-
-  const handleLike = async (e?: React.MouseEvent) => {
-    if (!user) {
-      toast("Please log in to like updates.", "error");
-      return;
-    }
-
-    const newLiked = !isLiked;
-    if (newLiked) {
-      if (e) setClickCoords({ x: e.clientX, y: e.clientY });
-      setShowHeartExplosion(true);
-      setTimeout(() => setShowHeartExplosion(false), 1000);
-    }
-
-    setIsLiked(newLiked);
-    setLikesCount((prev) => (newLiked ? prev + 1 : prev - 1));
-    onLikeToggle(post.id, newLiked);
-
-    try {
-      await fetch(`${API_URL}/api/announcements/${post.id}/like`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user.id }),
-      });
-    } catch (err) {
-      console.error(err);
-      // Revert on error
-      setIsLiked(!newLiked);
-      setLikesCount((prev) => (!newLiked ? prev + 1 : prev - 1));
-      toast("Failed to interact.", "error");
-    }
-  };
-
-  const handleDoubleTap = () => {
-    setShowBigHeart(true);
-    setTimeout(() => setShowBigHeart(false), 1000);
-    if (!isLiked) {
-      handleLike();
     }
   };
 
@@ -176,10 +180,8 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
     try {
       const res = await fetch(`${API_URL}/api/announcements/${post.id}/comments`);
       const data = await res.json();
-      if (data.success) {
-        setComments(data.data || []);
-      }
-    } catch (err) {
+      if (data.success) setComments(data.data || []);
+    } catch {
       toast("Failed to load comments", "error");
     } finally {
       setLoadingComments(false);
@@ -187,9 +189,7 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
   };
 
   const toggleComments = () => {
-    if (!showComments && comments.length === 0) {
-      fetchComments();
-    }
+    if (!showComments && comments.length === 0) fetchComments();
     setShowComments(!showComments);
   };
 
@@ -197,7 +197,6 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
     e.preventDefault();
     if (!user) return toast("You must be logged in to comment.", "error");
     if (!newComment.trim()) return;
-
     setSubmitting(true);
     try {
       const res = await fetch(`${API_URL}/api/announcements/${post.id}/comments`, {
@@ -212,7 +211,7 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
       } else {
         toast(data.error || "Failed to post comment", "error");
       }
-    } catch (err) {
+    } catch {
       toast("Error posting comment", "error");
     } finally {
       setSubmitting(false);
@@ -229,22 +228,16 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
       });
       const data = await res.json();
       if (data.success) {
-        toast("Post updated successfully", "success");
+        toast("Post updated", "success");
         setIsEditingPost(false);
-        // Optimistic UI update could go here, or depend on parent refetch
-        // We'll update the local state to reflect it since we don't have a direct setter for the post prop
         post.title = editPostTitle;
         post.content = editPostContent;
       } else {
         toast(data.error || "Failed to edit post", "error");
       }
-    } catch (err) {
+    } catch {
       toast("Error editing post", "error");
     }
-  };
-
-  const handleDeleteCommentClick = (commentId: string) => {
-    setCommentToDelete(commentId);
   };
 
   const confirmDeleteComment = async () => {
@@ -256,12 +249,12 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
         body: JSON.stringify({ userId: user?.id }),
       });
       if (res.ok) {
-        setComments(comments.filter(c => c.id !== commentToDelete));
+        setComments(comments.filter((c) => c.id !== commentToDelete));
         toast("Comment deleted", "success");
       } else {
         toast("Failed to delete comment", "error");
       }
-    } catch (err) {
+    } catch {
       toast("Error deleting comment", "error");
     } finally {
       setCommentToDelete(null);
@@ -278,13 +271,13 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
       });
       const data = await res.json();
       if (data.success) {
-        setComments(comments.map(c => c.id === commentId ? { ...c, content: editCommentContent } : c));
+        setComments(comments.map((c) => (c.id === commentId ? { ...c, content: editCommentContent } : c)));
         setEditingCommentId(null);
         toast("Comment updated", "success");
       } else {
         toast(data.error || "Failed to edit comment", "error");
       }
-    } catch (err) {
+    } catch {
       toast("Error editing comment", "error");
     }
   };
@@ -299,207 +292,149 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
     return `${Math.floor(hours / 24)}d`;
   };
 
-  return (
-    <div className="bg-[#18181b] border border-white/10 rounded-2xl overflow-hidden shadow-2xl mb-8 max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4">
-        <UserLink username={post.author.username} className="flex items-center gap-3 group">
-          <div className="relative shrink-0">
-            {post.author.avatar ? (
-              <img src={post.author.avatar} alt="Avatar" className={`relative z-10 w-10 h-10 rounded-full object-cover border-2 ${hasFrameRing(post.author.activeFrame, post.author.activeEffect) ? "border-[#18181b]" : authorRank?.borderClass}`} />
-            ) : (
-              <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center font-black border-2 ${authorRank?.borderClass} ${authorRank?.bgCardClass}`}>
-                {(post.author.username || 'U').charAt(0).toUpperCase()}
-              </div>
-            )}
-            <AvatarDecoration frame={post.author.activeFrame} effect={post.author.activeEffect} />
-          </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className={`font-bold group-hover:underline ${authorRank?.textColorClass}`}>{post.author.username}</span>
-              {authorRank?.title && (
-                <div className={`px-1.5 py-0.5 rounded text-[9px] uppercase font-bold flex items-center gap-0.5 ${authorRank?.badgeClass}`}>
-                  {RankIcon && <RankIcon className="w-2.5 h-2.5" />} {authorRank?.title}
-                </div>
-              )}
-            </div>
-            <span className="text-xs text-slate-500 font-medium">{timeAgo(post.createdAt)}</span>
-          </div>
-        </UserLink>
-        {canModifyPost && (
-          <div className="flex gap-2">
-            <button onClick={() => setIsEditingPost(!isEditingPost)} className="text-slate-500 hover:text-purple-400 transition px-2 py-1 bg-purple-500/10 rounded-lg text-xs font-bold">
-              {isEditingPost ? 'Cancel' : 'Edit'}
-            </button>
-            <button onClick={handleDeletePost} className="text-slate-500 hover:text-red-500 transition px-2 py-1 bg-red-500/10 rounded-lg text-xs font-bold">
-              Delete
-            </button>
-          </div>
-        )}
-      </div>
+  const authorRank = post.author ? getRankTheme((post.author as any).xp || 0, post.author.username) : null;
 
-      {/* Media/Banner */}
-      {post.image ? (
-        <div className="w-full bg-black relative" onDoubleClick={handleDoubleTap}>
-          <img src={post.image} alt="Update Media" className="w-full h-auto max-h-[500px] object-cover" />
-          <AnimatePresence>
-            {showBigHeart && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.5, y: "-50%", x: "-50%" }}
-                animate={{ opacity: 1, scale: 1.5, y: "-50%", x: "-50%" }}
-                exit={{ opacity: 0, scale: 1, y: "-50%", x: "-50%" }}
-                transition={{ duration: 0.4, ease: "easeOut" }}
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-              >
-                <Heart className="w-32 h-32 text-red-500 fill-red-500 drop-shadow-2xl" />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      ) : (
-        <div className="w-full h-40 bg-gradient-to-r from-purple-900/40 to-purple-900/40 border-y border-white/5 flex items-center justify-center relative overflow-hidden" onDoubleClick={handleDoubleTap}>
-          <div className="absolute inset-0 bg-[url('/noise.png')] opacity-20 mix-blend-overlay"></div>
-          <Sparkles className="w-16 h-16 text-purple-400/30 absolute -top-4 -right-4" />
-          <h2 className="text-2xl md:text-3xl font-black text-white px-8 text-center drop-shadow-xl z-10">{post.title}</h2>
-        </div>
+  return (
+    <article className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-[#141418] to-[#0d0d11] shadow-[0_10px_40px_rgba(0,0,0,0.4)]">
+      {/* accent bar */}
+      <div className="h-1 w-full bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-500" />
+
+      {post.image && (
+        <img src={post.image} alt="" className="max-h-[420px] w-full object-cover" />
       )}
 
-      {/* Actions */}
-      <div className="p-4 pb-2 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button onClick={handleLike} className="group flex items-center gap-1.5 transition relative">
-            <motion.div whileTap={{ scale: 0.8 }}>
-              <Heart className={`w-7 h-7 transition ${isLiked ? 'text-red-500 fill-red-500' : 'text-slate-300 group-hover:text-slate-400'}`} />
-            </motion.div>
-            <HeartExplosion show={showHeartExplosion} coordinates={clickCoords} />
-          </button>
-          <button onClick={toggleComments} className="group flex items-center gap-1.5 transition">
-            <motion.div whileTap={{ scale: 0.8 }}>
-              <MessageCircle className="w-7 h-7 text-slate-300 group-hover:text-slate-400" />
-            </motion.div>
-          </button>
+      <div className="p-6 md:p-8">
+        {/* meta row */}
+        <div className="mb-4 flex flex-wrap items-center gap-2.5">
+          {version && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-purple-600 to-fuchsia-600 px-3 py-1 text-sm font-black text-white shadow-[0_0_16px_rgba(168,85,247,0.4)]">
+              <Sparkles className="h-3.5 w-3.5" /> v{version}
+            </span>
+          )}
+          {tags.map((t) => (
+            <span key={t} className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-bold text-slate-300">
+              <TagIcon className="h-3 w-3 text-fuchsia-400" /> {t}
+            </span>
+          ))}
+          <span className="text-xs font-medium text-slate-500">{dateLabel}</span>
+
+          {canModifyPost && (
+            <div className="ml-auto flex gap-2">
+              <button onClick={() => setIsEditingPost(!isEditingPost)} className="rounded-lg bg-purple-500/10 px-2.5 py-1 text-xs font-bold text-slate-400 transition hover:text-purple-300">
+                {isEditingPost ? "Cancel" : "Edit"}
+              </button>
+              <button onClick={() => setShowDeleteModal(true)} className="rounded-lg bg-red-500/10 px-2.5 py-1 text-xs font-bold text-slate-400 transition hover:text-red-400">
+                Delete
+              </button>
+            </div>
+          )}
         </div>
-      </div>
 
-      {/* Likes count */}
-      <div className="px-4 pb-2">
-        <span className="font-bold text-sm text-white">{likesCount} likes</span>
-      </div>
-
-      {/* Caption */}
-      <div className="px-4 pb-4">
         {isEditingPost ? (
-          <div className="space-y-2 mb-2">
-            <input 
-              type="text" 
-              value={editPostTitle} 
-              onChange={e => setEditPostTitle(e.target.value)} 
-              className="w-full bg-black/50 border border-white/10 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-purple-500" 
+          <div className="space-y-2">
+            <input
+              value={editPostTitle}
+              onChange={(e) => setEditPostTitle(e.target.value)}
+              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-purple-500 focus:outline-none"
             />
-            <textarea 
-              value={editPostContent} 
-              onChange={e => setEditPostContent(e.target.value)} 
-              className="w-full bg-black/50 border border-white/10 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-purple-500 min-h-[100px]" 
+            <textarea
+              value={editPostContent}
+              onChange={(e) => setEditPostContent(e.target.value)}
+              className="min-h-[180px] w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-purple-500 focus:outline-none"
             />
             <div className="flex justify-end">
-              <button onClick={handleSavePostEdit} className="bg-indigo- hover:bg-purple-500 text-white text-xs font-bold px-3 py-1.5 rounded transition">Save</button>
+              <button onClick={handleSavePostEdit} className="rounded-lg bg-gradient-to-r from-purple-600 to-fuchsia-600 px-4 py-1.5 text-xs font-bold text-white transition hover:scale-[1.02]">
+                Save
+              </button>
             </div>
           </div>
         ) : (
-          <div>
-            <span className="font-bold text-white mr-2">{post.author.username}</span>
-            <span className="text-slate-200 text-sm whitespace-pre-wrap">
-              {isExpanded || post.content.length <= 300 
-                ? renderContentWithMentions(post.content) 
-                : renderContentWithMentions(`${post.content.substring(0, 300)}...`)}
-            </span>
-            {post.content.length > 300 && (
-              <button 
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="text-purple-400 hover:text-purple-300 text-sm font-bold ml-1 transition"
-              >
-                {isExpanded ? "See less" : "See more"}
-              </button>
-            )}
-          </div>
+          <>
+            <h2 className="mb-5 text-2xl font-black leading-tight tracking-tight md:text-3xl">{displayTitle}</h2>
+            <ChangelogBody content={post.content} />
+          </>
         )}
-        
-        {/* Tags */}
-        <div className="mt-2 flex flex-wrap gap-2">
-          {post.tag.split(',').map((t, i) => (
-            <span key={i} className="text-purple-400 text-xs font-medium hover:underline cursor-pointer">#{t.trim()}</span>
-          ))}
+
+        {/* footer: author + discuss */}
+        <div className="mt-7 flex items-center justify-between border-t border-white/10 pt-4">
+          <UserLink username={post.author.username} className="group flex items-center gap-2.5">
+            <div className="relative shrink-0">
+              {post.author.avatar ? (
+                <img src={post.author.avatar} alt="" className={`relative z-10 h-8 w-8 rounded-full object-cover border-2 ${hasFrameRing(post.author.activeFrame, post.author.activeEffect) ? "border-[#141418]" : authorRank?.borderClass}`} />
+              ) : (
+                <div className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-black ${authorRank?.borderClass} ${authorRank?.bgCardClass}`}>
+                  {(post.author.username || "U").charAt(0).toUpperCase()}
+                </div>
+              )}
+              <AvatarDecoration frame={post.author.activeFrame} effect={post.author.activeEffect} />
+            </div>
+            <div className="leading-tight">
+              <div className={`text-sm font-bold group-hover:underline ${authorRank?.textColorClass}`}>{post.author.username}</div>
+              <div className="text-[11px] text-slate-500">{timeAgo(post.createdAt)} ago</div>
+            </div>
+          </UserLink>
+
+          <button
+            onClick={toggleComments}
+            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold text-slate-300 transition hover:border-purple-500/40 hover:text-white"
+          >
+            <MessageCircle className="h-4 w-4" />
+            {post._count.comments > 0 ? `Discuss · ${post._count.comments}` : "Discuss"}
+          </button>
         </div>
       </div>
 
-      {/* View Comments Link */}
-      {post._count.comments > 0 && !showComments && (
-        <button onClick={toggleComments} className="px-4 pb-4 text-sm text-slate-500 font-medium hover:text-slate-400 transition">
-          View all {post._count.comments} comments
-        </button>
-      )}
-
-      {/* Comments Section */}
-      <CommentsDrawer isOpen={showComments} onClose={() => setShowComments(false)} title="Comments">
-        <div className="flex flex-col h-full">
+      {/* Comments */}
+      <CommentsDrawer isOpen={showComments} onClose={() => setShowComments(false)} title="Discussion">
+        <div className="flex h-full flex-col">
           <div className="flex-1 space-y-4">
             {loadingComments ? (
-              <div className="text-center text-sm text-slate-500 py-4">Loading comments...</div>
+              <div className="py-4 text-center text-sm text-slate-500">Loading comments…</div>
             ) : comments.length === 0 ? (
-              <div className="text-center text-sm text-slate-500 py-4">No comments yet. Be the first!</div>
+              <div className="py-4 text-center text-sm text-slate-500">No comments yet. Be the first!</div>
             ) : (
-              comments.map(c => {
-                const cAuthorRank = c.user ? getRankTheme((c.user as any).xp || 0, c.user.username) : getRankTheme(0, 'Unknown');
-                const CRankIcon = cAuthorRank?.badgeIcon ? ICON_MAP[cAuthorRank.badgeIcon] : null;
-                const canModify = isDev || isAdmin(user) || user?.id === c.user.id;
-                
+              comments.map((c) => {
+                const cRank = c.user ? getRankTheme((c.user as any).xp || 0, c.user.username) : getRankTheme(0, "Unknown");
+                const canModify = isDev || user?.id === c.user.id;
                 return (
                   <div key={c.id} className="flex gap-3">
-                    <UserLink username={c.user.username} className="relative shrink-0 inline-flex">
+                    <UserLink username={c.user.username} className="relative inline-flex shrink-0">
                       {c.user.avatar ? (
-                        <img src={c.user.avatar} alt="Avatar" className={`relative z-10 w-8 h-8 rounded-full object-cover border ${hasFrameRing(c.user.activeFrame, c.user.activeEffect) ? "border-[#18181b]" : cAuthorRank.borderClass}`} />
+                        <img src={c.user.avatar} alt="" className={`relative z-10 h-8 w-8 rounded-full object-cover border ${hasFrameRing(c.user.activeFrame, c.user.activeEffect) ? "border-[#18181b]" : cRank.borderClass}`} />
                       ) : (
-                        <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border ${cAuthorRank.borderClass} ${cAuthorRank.bgCardClass}`}>
-                          {(c.user.username || 'U').charAt(0).toUpperCase()}
+                        <div className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border text-xs font-bold ${cRank.borderClass} ${cRank.bgCardClass}`}>
+                          {(c.user.username || "U").charAt(0).toUpperCase()}
                         </div>
                       )}
                       <AvatarDecoration frame={c.user.activeFrame} effect={c.user.activeEffect} />
                     </UserLink>
-                    <div className="flex-1 min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-baseline gap-2">
-                        <UserLink username={c.user.username} className="flex items-center gap-1 group">
-                          <span className={`font-bold text-sm hover:underline ${cAuthorRank.textColorClass}`}>{c.user.username}</span>
-                          {cAuthorRank.title && (
-                            <div className={`px-1 py-0.5 rounded text-[8px] uppercase font-bold flex items-center gap-0.5 ${cAuthorRank.badgeClass}`}>
-                              {CRankIcon && <CRankIcon className="w-2 h-2" />} {cAuthorRank.title}
-                            </div>
-                          )}
+                        <UserLink username={c.user.username} className="group">
+                          <span className={`text-sm font-bold group-hover:underline ${cRank.textColorClass}`}>{c.user.username}</span>
                         </UserLink>
                         <span className="text-xs text-slate-500">{timeAgo(c.createdAt)}</span>
-                        
                         {canModify && (
                           <div className="ml-auto flex gap-2">
                             {user?.id === c.user.id && (
                               <button onClick={() => { setEditingCommentId(c.id); setEditCommentContent(c.content); }} className="text-xs text-slate-500 hover:text-purple-400">Edit</button>
                             )}
-                            <button onClick={() => handleDeleteCommentClick(c.id)} className="text-xs text-slate-500 hover:text-red-500">Delete</button>
+                            <button onClick={() => setCommentToDelete(c.id)} className="text-xs text-slate-500 hover:text-red-500">Delete</button>
                           </div>
                         )}
                       </div>
-                      
                       {editingCommentId === c.id ? (
                         <div className="mt-1 flex gap-2">
-                          <input 
-                            type="text" 
-                            value={editCommentContent} 
-                            onChange={e => setEditCommentContent(e.target.value)} 
-                            className="flex-1 bg-black/50 border border-white/10 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-purple-500" 
+                          <input
+                            value={editCommentContent}
+                            onChange={(e) => setEditCommentContent(e.target.value)}
+                            className="flex-1 rounded border border-white/10 bg-black/50 px-2 py-1 text-sm text-white focus:border-purple-500 focus:outline-none"
                           />
-                          <button onClick={() => handleSaveCommentEdit(c.id)} className="text-purple-400 font-bold text-xs">Save</button>
-                          <button onClick={() => setEditingCommentId(null)} className="text-slate-400 text-xs">Cancel</button>
+                          <button onClick={() => handleSaveCommentEdit(c.id)} className="text-xs font-bold text-purple-400">Save</button>
+                          <button onClick={() => setEditingCommentId(null)} className="text-xs text-slate-400">Cancel</button>
                         </div>
                       ) : (
-                        <p className="text-sm text-slate-300 break-words whitespace-pre-wrap">{renderContentWithMentions(c.content)}</p>
+                        <p className="whitespace-pre-wrap break-words text-sm text-slate-300">{renderMentions(c.content)}</p>
                       )}
                     </div>
                   </div>
@@ -507,77 +442,67 @@ export default function UpdatePost({ post, onLikeToggle, onDelete }: UpdatePostP
               })
             )}
           </div>
-          
-          {/* Add Comment Input */}
-          <div className="pt-4 mt-4 border-t border-white/5 flex gap-3 items-center">
+
+          <div className="mt-4 flex items-center gap-3 border-t border-white/5 pt-4">
             {user?.avatar ? (
-              <img src={user.avatar} className="w-8 h-8 rounded-full object-cover shrink-0" />
+              <img src={user.avatar} className="h-8 w-8 shrink-0 rounded-full object-cover" />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center font-bold text-xs shrink-0">
-                {user ? (user.username || 'U').charAt(0).toUpperCase() : '?'}
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-purple-600 text-xs font-bold">
+                {user ? (user.username || "U").charAt(0).toUpperCase() : "?"}
               </div>
             )}
-            <form onSubmit={submitComment} className="flex-1 flex gap-2">
+            <form onSubmit={submitComment} className="flex flex-1 gap-2">
               <MentionsInput
-                placeholder="Add a comment..."
+                placeholder="Add a comment…"
                 value={newComment}
                 onChange={(val) => setNewComment(val)}
                 onSubmit={submitComment as any}
-                className="flex-1 bg-white/5 border border-white/10 rounded-full px-4 py-2 text-sm text-white focus:outline-none focus:border-purple-500 transition"
+                className="flex-1 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white transition focus:border-purple-500 focus:outline-none"
               />
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={!newComment.trim() || submitting}
-                className="bg-indigo- hover:bg-purple-500 disabled:opacity-50 text-white p-2 rounded-full transition flex items-center justify-center w-9 h-9 shrink-0"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white transition hover:scale-105 disabled:opacity-50"
               >
-                <Send className="w-4 h-4" />
+                <Send className="h-4 w-4" />
               </button>
             </form>
           </div>
         </div>
       </CommentsDrawer>
 
-      {/* Custom Delete Modal */}
+      {/* Delete confirm */}
       <AnimatePresence>
         {showDeleteModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-[#0f0f13] border border-white/10 rounded-2xl p-6 max-w-sm w-full shadow-2xl relative overflow-hidden"
-            >
-              {/* Glassmorphic glow */}
-              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-500/50 to-transparent" />
-              
-              <h3 className="text-xl font-bold text-white mb-2">Delete Update</h3>
-              <p className="text-slate-400 text-sm mb-6">
-                Are you absolutely sure you want to delete this update? This action cannot be undone.
-              </p>
-              
-              <div className="flex gap-3 justify-end">
-                <button
-                  onClick={() => setShowDeleteModal(false)}
-                  className="px-4 py-2 rounded-xl text-sm font-bold text-slate-300 hover:bg-white/5 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmDelete}
-                  className="px-4 py-2 rounded-xl text-sm font-bold bg-red-/10 text-red-500 hover:bg-red-500 hover:text-white transition"
-                >
-                  Delete
-                </button>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-white/10 bg-[#0f0f13] p-6 shadow-2xl">
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-red-500/50 to-transparent" />
+              <h3 className="mb-2 text-xl font-bold">Delete update</h3>
+              <p className="mb-6 text-sm text-slate-400">Are you sure? This can't be undone.</p>
+              <div className="flex justify-end gap-3">
+                <button onClick={() => setShowDeleteModal(false)} className="rounded-xl px-4 py-2 text-sm font-bold text-slate-300 transition hover:bg-white/5">Cancel</button>
+                <button onClick={confirmDelete} className="rounded-xl bg-red-500/10 px-4 py-2 text-sm font-bold text-red-500 transition hover:bg-red-500 hover:text-white">Delete</button>
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+
+      {/* Comment delete confirm */}
+      <AnimatePresence>
+        {commentToDelete && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#0f0f13] p-6 shadow-2xl">
+              <h3 className="mb-2 text-xl font-bold">Delete comment</h3>
+              <p className="mb-6 text-sm text-slate-400">This can't be undone.</p>
+              <div className="flex justify-end gap-3">
+                <button onClick={() => setCommentToDelete(null)} className="rounded-xl px-4 py-2 text-sm font-bold text-slate-300 transition hover:bg-white/5">Cancel</button>
+                <button onClick={confirmDeleteComment} className="rounded-xl bg-red-500/10 px-4 py-2 text-sm font-bold text-red-500 transition hover:bg-red-500 hover:text-white">Delete</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </article>
   );
 }
