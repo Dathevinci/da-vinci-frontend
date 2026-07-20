@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import PageTransition from "@/components/layout/PageTransition";
 import { useUser } from "@/hooks/useUser";
 import { isAdmin, isLeadDev, displayArisePoints } from "@/lib/admin";
@@ -103,22 +103,6 @@ export default function ShopPage() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<"all" | "sss" | "rare" | "frame" | "effect">("all");
   const [owned, setOwned] = useState<"all" | "unowned" | "owned">("all");
-  // Descriptions are long — collapsed to 3 lines with a per-card "See more".
-  const [expandedDescs, setExpandedDescs] = useState<Set<string>>(new Set());
-  const toggleDesc = (id: string) =>
-    setExpandedDescs((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  // The "Explore / Take me there" buttons live at the top; the filtered grid is
-  // far below the toolbar, so set the category AND scroll down to it.
-  const gridRef = useRef<HTMLDivElement>(null);
-  const jumpToCategory = (cat: typeof category) => {
-    setCategory(cat);
-    requestAnimationFrame(() => gridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
-  };
-
   useEffect(() => {
     if (isLoaded && !user) {
       router.push("/");
@@ -231,169 +215,112 @@ export default function ShopPage() {
     const isSSS = !!(item as any).sss;
     const isRare = !isSSS && !!(item as any).rare;
     const isUnique = !!(item as any).unique;
-    // Rarity styling for the mini-profile chip + tier line.
+    const canAfford = isAdmin(user) || (user.arisePoints || 0) >= item.price;
     const rarity = isSSS
-      ? { label: "SSS Grade", chip: "text-black bg-gradient-to-r from-white via-slate-200 to-slate-400 shadow-[0_0_14px_rgba(255,255,255,0.6)]", tier: `SSS-Grade ${item.type === "frame" ? "Frame" : "Effect"}` }
+      ? { label: "SSS", chip: "text-black bg-gradient-to-r from-white via-slate-200 to-slate-400" }
       : isRare
-      ? { label: "Extreme Rare", chip: "text-white bg-gradient-to-r from-fuchsia-500 to-purple-600 shadow-[0_0_12px_rgba(217,70,239,0.5)]", tier: "Extreme Rare Effect" }
+      ? { label: "Extreme Rare", chip: "text-white bg-gradient-to-r from-fuchsia-500 to-purple-600" }
       : isUnique
-      ? { label: `${(item as any).badge || "🐸"} Unique`, chip: "text-emerald-950 bg-gradient-to-r from-emerald-300 to-lime-300 shadow-[0_0_12px_rgba(52,211,153,0.5)]", tier: "Unique Effect" }
-      : { label: item.type === "frame" ? "Frame" : "Effect", chip: "border border-white/10 bg-white/10 text-slate-300", tier: item.type === "frame" ? "Avatar Frame" : "Avatar Effect" };
+      ? { label: `${(item as any).badge || "🐸"} Unique`, chip: "text-emerald-950 bg-gradient-to-r from-emerald-300 to-lime-300" }
+      : { label: item.type === "frame" ? "Frame" : "Effect", chip: "border border-white/15 bg-black/50 text-slate-200" };
 
     return (
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: i * 0.05 }}
+        transition={{ delay: Math.min(i * 0.04, 0.3) }}
         key={item.id}
-        className={`relative overflow-hidden rounded-3xl p-6 transition-all duration-300 group flex flex-col
+        className={`group relative flex flex-col overflow-hidden rounded-2xl border transition-all duration-300 hover:-translate-y-1
           ${isSSS
-            ? 'bg-gradient-to-b from-slate-200/10 to-black/60 border border-slate-200/40 shadow-[0_0_38px_rgba(255,255,255,0.3)] hover:-translate-y-2 hover:shadow-[0_0_50px_rgba(255,255,255,0.45)]'
+            ? "border-slate-200/30 bg-gradient-to-b from-slate-200/[0.08] to-black/60 hover:shadow-[0_0_30px_rgba(255,255,255,0.22)]"
             : isRare
-            ? 'bg-gradient-to-b from-purple-500/10 to-fuchsia-500/[0.04] border border-purple-500/40 shadow-[0_0_34px_rgba(168,85,247,0.3)] hover:-translate-y-2 hover:shadow-[0_0_44px_rgba(168,85,247,0.5)]'
+            ? "border-purple-500/35 bg-gradient-to-b from-purple-500/[0.09] to-black/40 hover:shadow-[0_0_26px_rgba(168,85,247,0.3)]"
             : isUnique
-            ? 'bg-gradient-to-b from-emerald-500/10 to-lime-500/[0.04] border border-emerald-500/40 shadow-[0_0_28px_rgba(52,211,153,0.25)] hover:-translate-y-2 hover:shadow-[0_0_38px_rgba(52,211,153,0.4)]'
-            : isActive
-            ? 'bg-gradient-to-b from-white/10 to-white/5 border border-white/20 shadow-[0_8px_32px_rgba(255,255,255,0.05)]'
-            : 'bg-white/[0.02] backdrop-blur-lg border border-white/5 hover:border-purple-500/40 hover:bg-white/[0.04] hover:-translate-y-2 hover:shadow-[0_15px_40px_rgba(168,85,247,0.15)]'}`}
+            ? "border-emerald-500/30 bg-gradient-to-b from-emerald-500/[0.08] to-black/40 hover:shadow-[0_0_22px_rgba(52,211,153,0.25)]"
+            : "border-white/10 bg-white/[0.03] hover:border-purple-500/40 hover:shadow-[0_10px_30px_rgba(168,85,247,0.15)]"}
+          ${isActive ? "ring-1 ring-fuchsia-400/60" : ""}`}
       >
-        {/* Subtle gradient overlay on hover */}
-        <div className={`absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-500 bg-gradient-to-br ${item.gradient}`} />
-
-        {/* Rare: living amethyst sheen sweeping across the card */}
-        {isRare && (
-          <motion.div
-            aria-hidden
-            className="absolute inset-0 pointer-events-none"
-            style={{ background: "linear-gradient(115deg, transparent 30%, rgba(217,70,239,0.14) 50%, transparent 70%)", backgroundSize: "220% 100%" }}
-            animate={{ backgroundPosition: ["120% 0%", "-120% 0%"] }}
-            transition={{ duration: 3.6, repeat: Infinity, ease: "easeInOut" }}
-          />
-        )}
-        {/* SSS: a blinding white edge of light sweeping the darkness */}
-        {isSSS && (
-          <motion.div
-            aria-hidden
-            className="absolute inset-0 pointer-events-none"
-            style={{ background: "linear-gradient(115deg, transparent 34%, rgba(255,255,255,0.2) 50%, transparent 66%)", backgroundSize: "220% 100%" }}
-            animate={{ backgroundPosition: ["120% 0%", "-120% 0%"] }}
-            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-          />
-        )}
-
-        {/* ── Mini profile preview (click → full-screen live preview) ── */}
-        <div
-          onClick={() => setPreviewItem(item)}
-          className="group/prev relative z-10 mb-4 cursor-pointer overflow-hidden rounded-2xl border border-white/10 bg-[#0c0c12] p-4 transition hover:border-white/25"
-        >
-          <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient} opacity-[0.16]`} />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-          {/* hover: preview affordance */}
-          <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-black/50 opacity-0 backdrop-blur-[1px] transition group-hover/prev:opacity-100">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-xs font-black uppercase tracking-wider text-white">
-              <Eye className="h-4 w-4" /> Preview
+        {/* Preview tile — your avatar wearing the item; tap for the full live preview */}
+        <button onClick={() => setPreviewItem(item)} className="relative block aspect-[5/4] w-full overflow-hidden">
+          <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient} opacity-25 transition-opacity duration-300 group-hover:opacity-40`} />
+          <div className="absolute inset-0 bg-[radial-gradient(85%_65%_at_50%_100%,rgba(0,0,0,0.6),transparent)]" />
+          <span className={`absolute left-2 top-2 z-20 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] ${rarity.chip}`}>
+            {rarity.label}
+          </span>
+          {hasItem && (
+            <span className="absolute right-2 top-2 z-20 inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-emerald-300">
+              <Check className="h-3 w-3" /> Owned
+            </span>
+          )}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="relative h-20 w-20">
+              <div className="relative z-10 flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-white/20 bg-gradient-to-br from-purple-500 to-fuchsia-600 text-2xl font-black text-white">
+                {user.avatar ? <img src={user.avatar} alt="" className="h-full w-full object-cover" /> : (user.username?.[0]?.toUpperCase() || "?")}
+              </div>
+              {isPreviewable && (
+                <AvatarDecoration
+                  frame={item.type === "frame" ? item.id : null}
+                  effect={item.type === "effect" ? item.id : null}
+                  size="lg"
+                />
+              )}
+            </div>
+          </div>
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center pb-2 opacity-0 transition group-hover:opacity-100">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/60 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur">
+              <Eye className="h-3 w-3" /> Preview
             </span>
           </div>
-          <div className="relative z-10">
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${rarity.chip}`}>
-                {rarity.label}
-              </span>
-              {hasItem && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-400">
-                  <Check className="h-3 w-3" /> Owned
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="relative h-14 w-14 shrink-0">
-                <div className="relative z-10 flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border-2 border-white/15 bg-gradient-to-br from-purple-500 to-fuchsia-600 text-xl font-black text-white">
-                  {user.avatar ? <img src={user.avatar} alt="" className="h-full w-full object-cover" /> : (user.username?.[0]?.toUpperCase() || "?")}
-                </div>
-                {isPreviewable && (
-                  <AvatarDecoration
-                    frame={item.type === "frame" ? item.id : null}
-                    effect={item.type === "effect" ? item.id : null}
-                    size="lg"
-                  />
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
-                  <span className={`truncate text-lg font-black leading-tight bg-gradient-to-r ${item.gradient} bg-clip-text text-transparent`}>
-                    {user.username || "your name"}
-                  </span>
-                  <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)]" />
-                </div>
-                <div className="truncate text-[11px] font-bold uppercase tracking-wider text-slate-400">{rarity.tier}</div>
-              </div>
-            </div>
-          </div>
-        </div>
+        </button>
 
-        {/* ── product name + description ── */}
-        <h3 className={`relative z-10 mb-1.5 text-xl font-black tracking-tight ${item.color}`}>{item.name}</h3>
-        {(() => {
-          const expanded = expandedDescs.has(item.id);
-          const isLong = item.description.length > 100;
-          return (
-            <div className="relative z-10 mb-5 flex-1">
-              <p className={`text-sm leading-relaxed text-slate-400 ${expanded ? "" : "line-clamp-3"}`}>{item.description}</p>
-              {isLong && (
+        {/* Name + actions — the lore lives inside the preview */}
+        <div className="flex flex-1 flex-col gap-2.5 p-3">
+          <h3 title={item.name} className={`truncate text-sm font-black tracking-tight ${item.color}`}>{item.name}</h3>
+          <div className="mt-auto flex items-center gap-1.5">
+            {!hasItem ? (
+              canAfford ? (
                 <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); toggleDesc(item.id); }}
-                  className="mt-1 text-xs font-bold text-purple-400 transition hover:text-purple-300"
+                  onClick={() => handlePurchase(item)}
+                  disabled={buyingId === item.id}
+                  className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 text-xs font-black text-white transition hover:from-purple-500 hover:to-fuchsia-500"
                 >
-                  {expanded ? "See less" : "See more"}
+                  {buyingId === item.id ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  ) : (
+                    <>
+                      <Diamond className="h-3.5 w-3.5" /> {item.price.toLocaleString()}
+                    </>
+                  )}
                 </button>
-              )}
-            </div>
-          );
-        })()}
-
-        {/* ── actions ── */}
-        <div className="relative z-10 mt-auto flex flex-col gap-2">
-          {!hasItem ? (
-            (!isAdmin(user) && (user.arisePoints || 0) < item.price) ? (
-              <button
-                onClick={() => setShowBuyPoints(true)}
-                className="flex w-full items-center justify-center gap-2 rounded-xl py-3 font-bold transition-all duration-300 border border-amber-400/30 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20 hover:border-amber-400/50"
-              >
-                <Diamond className="h-4 w-4" /> {item.price.toLocaleString()} AP <span className="opacity-50">·</span> Buy Points
-              </button>
+              ) : (
+                <button
+                  onClick={() => setShowBuyPoints(true)}
+                  title="Not enough Arise Points — top up"
+                  className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl border border-amber-400/30 bg-amber-500/10 text-xs font-black text-amber-200 transition hover:bg-amber-500/20"
+                >
+                  <Diamond className="h-3.5 w-3.5" /> {item.price.toLocaleString()} · Top up
+                </button>
+              )
             ) : (
               <button
-                onClick={() => handlePurchase(item)}
-                disabled={buyingId === item.id}
-                className="flex w-full items-center justify-center gap-2 rounded-xl py-3 font-bold transition-all duration-300 bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:scale-[1.02] hover:from-purple-500 hover:to-fuchsia-500 hover:shadow-[0_0_25px_rgba(217,70,239,0.6)]"
+                onClick={() => handleToggle(item, !isActive)}
+                className={`flex h-9 flex-1 items-center justify-center rounded-xl border text-xs font-black transition ${
+                  isActive
+                    ? "border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20"
+                    : "border-white/10 bg-white/5 text-white hover:bg-white/10"
+                }`}
               >
-                {buyingId === item.id ? (
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                ) : (
-                  <>
-                    <Diamond className="h-4 w-4" /> {item.price.toLocaleString()} <span className="opacity-50">·</span> Acquire
-                  </>
-                )}
+                {isActive ? "Unequip" : "Equip"}
               </button>
-            )
-          ) : (
+            )}
             <button
-              onClick={() => handleToggle(item, !isActive)}
-              className={`flex w-full items-center justify-center gap-2 rounded-xl border py-3 font-black transition-all duration-300 hover:scale-[1.02]
-                ${isActive
-                  ? "border-red-500/30 bg-red-500/10 text-red-400 hover:border-red-400 hover:bg-red-500/20 hover:shadow-[0_0_15px_rgba(239,68,68,0.3)]"
-                  : "border-white/10 bg-white/5 text-white hover:border-transparent hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]"}`}
+              onClick={() => setGiftTarget(item)}
+              title="Gift to a friend"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300 transition hover:border-fuchsia-500/40 hover:text-white"
             >
-              {isActive ? "Unequip" : "Equip"}
+              <Gift className="h-4 w-4" />
             </button>
-          )}
-          <button
-            onClick={() => setGiftTarget(item)}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 py-2 text-sm font-bold text-slate-300 transition hover:border-fuchsia-500/40 hover:text-white"
-          >
-            <Gift className="h-4 w-4" /> Gift to a friend
-          </button>
+          </div>
         </div>
       </motion.div>
     );
@@ -460,84 +387,36 @@ export default function ShopPage() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[400px] bg-blue-600/5 blur-[100px] rounded-full pointer-events-none transform rotate-45" />
 
         <div className="max-w-7xl mx-auto px-4 relative z-10">
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }}
+          <motion.div
+            initial={{ opacity: 0, y: -16 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6"
+            className="mb-8 flex flex-wrap items-center justify-between gap-4"
           >
             <div>
-              <h1 className="text-4xl md:text-6xl font-black flex items-center gap-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-fuchsia-400 to-pink-500 drop-shadow-sm mb-2">
-                <ShoppingBag className="w-10 h-10 md:w-14 md:h-14 text-fuchsia-500 drop-shadow-[0_0_15px_rgba(217,70,239,0.5)]" /> 
+              <h1 className="flex items-center gap-3 text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-fuchsia-400 to-pink-500 md:text-5xl">
+                <ShoppingBag className="h-8 w-8 text-fuchsia-500 drop-shadow-[0_0_15px_rgba(217,70,239,0.5)] md:h-11 md:w-11" />
                 Arise Shop
               </h1>
-              <p className="text-slate-400 text-lg md:text-xl font-medium max-w-2xl">Dress up your avatar with animated frames and effects that follow you across Da Vinci — on your profile, your comments, and the nav bar.</p>
+              <p className="mt-1.5 text-sm text-slate-400 md:text-base">Animated frames &amp; effects that follow you across Da Vinci.</p>
             </div>
-            <motion.div 
-              whileHover={{ scale: 1.05 }}
-              className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-5 flex items-center gap-5 shadow-[0_8px_30px_rgb(0,0,0,0.5)]"
-            >
-              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-fuchsia-600 flex items-center justify-center shadow-[0_0_20px_rgba(168,85,247,0.6)]">
-                <Diamond className="w-7 h-7 text-white" />
-              </div>
-              <div>
-                <p className="text-sm text-slate-400 font-medium">Your Balance</p>
-                <p className="text-2xl font-black text-white">
-                  {isLeadDev(user) ? (
-                    <span className="text-fuchsia-400 drop-shadow-[0_0_8px_rgba(232,121,249,0.8)]">∞ AP</span>
-                  ) : (
-                    `${displayArisePoints(user)} AP`
-                  )}
-                </p>
+            <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2.5 rounded-2xl border border-white/10 bg-white/5 px-4 py-2">
+                <Diamond className="h-5 w-5 text-fuchsia-400" />
+                <div className="leading-tight">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Balance</p>
+                  <p className="text-base font-black text-white">
+                    {isLeadDev(user) ? <span className="text-fuchsia-400">∞ AP</span> : `${displayArisePoints(user)} AP`}
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => setShowBuyPoints(true)}
-                className="ml-1 inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 px-4 py-2.5 text-sm font-black text-white shadow-[0_0_16px_rgba(168,85,247,0.45)] transition hover:scale-105"
+                className="inline-flex h-[52px] items-center gap-1.5 rounded-2xl bg-gradient-to-r from-purple-600 to-fuchsia-600 px-4 text-sm font-black text-white shadow-[0_0_16px_rgba(168,85,247,0.45)] transition hover:scale-105"
               >
                 <Diamond className="h-4 w-4" /> Buy Points
               </button>
-            </motion.div>
-          </motion.div>
-
-          {/* ── Hero: Complete Your Look ── */}
-          <motion.section
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="relative mb-6 overflow-hidden rounded-3xl border border-purple-500/30 p-8 md:p-10"
-            style={{ background: "radial-gradient(120% 140% at 12% 20%, #4c1d95 0%, #2e1065 45%, #140a2e 100%)" }}
-          >
-            <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(60% 90% at 88% 50%, rgba(217,70,239,0.35), transparent 60%)" }} />
-            <div className="relative max-w-xl">
-              <h2 className="mb-3 text-3xl font-black tracking-tight md:text-4xl">Complete Your Look</h2>
-              <p className="mb-6 text-base text-purple-100/80 md:text-lg">Cinematic profile effects and animated frames that take over your whole profile the moment someone opens it. Your profile called — it wants one.</p>
-              <button
-                onClick={() => jumpToCategory("rare")}
-                className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-black text-purple-950 transition hover:scale-105"
-              >
-                Explore Extreme Rares <ArrowRight className="h-4 w-4" />
-              </button>
             </div>
-          </motion.section>
-
-          {/* ── Collection feature cards ── */}
-          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {[
-              { key: "sss" as const, label: "SSS · One Exists", blurb: "The pinnacle. One exists.", bg: "radial-gradient(120% 120% at 20% 20%, #3b0764, #1a0a2e)", color: "text-fuchsia-200" },
-              { key: "rare" as const, label: "Extreme Rare", blurb: "Screen-devouring cinematics.", bg: "radial-gradient(120% 120% at 80% 30%, #6d28d9, #2e1065)", color: "text-purple-200" },
-            ].map((c) => (
-              <button
-                key={c.key}
-                onClick={() => jumpToCategory(c.key)}
-                className="group relative flex h-44 flex-col overflow-hidden rounded-2xl border border-white/10 p-6 text-left transition hover:-translate-y-1"
-                style={{ background: c.bg }}
-              >
-                <div className={`relative text-2xl font-black italic tracking-tight ${c.color}`}>{c.label}</div>
-                <p className="relative mt-1 text-sm text-white/60">{c.blurb}</p>
-                <span className="relative mt-auto inline-flex w-fit items-center gap-1.5 rounded-full bg-white/95 px-4 py-2 text-sm font-black text-[#1a0a2e] transition group-hover:gap-2.5">
-                  Take me there <ArrowRight className="h-4 w-4" />
-                </span>
-              </button>
-            ))}
-          </div>
+          </motion.div>
 
           {/* ── Equipped now — what you're wearing, with one-tap unequip ── */}
           {equippedItems.length > 0 && (
@@ -614,13 +493,8 @@ export default function ShopPage() {
 
           {/* ── Toolbar: search, ownership, category tabs (not sticky — it scrolls
               away with the page so it never overlaps the item grid) ── */}
-          <motion.div
-            ref={gridRef}
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8 scroll-mt-24"
-          >
-            <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-[#0b0b10] p-3 shadow-[0_8px_30px_rgba(0,0,0,0.45)] md:p-4">
+          <div className="z-30 mb-8 md:sticky md:top-[72px]">
+            <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-[#0b0b10]/95 backdrop-blur-xl p-3 shadow-[0_8px_30px_rgba(0,0,0,0.45)] md:p-4">
               <div className="flex flex-col gap-3 md:flex-row md:items-center">
                 {/* search */}
                 <div className="relative min-w-0 flex-1">
@@ -691,7 +565,7 @@ export default function ShopPage() {
                 })}
               </div>
             </div>
-          </motion.div>
+          </div>
 
           {/* results summary when filtering */}
           {filtersActive && (
@@ -734,10 +608,10 @@ export default function ShopPage() {
               <div key={section.key} className="mb-14">
                 <div className="mb-6 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
-                    <div className={`h-9 w-1.5 rounded-full ${isSSSSection ? "bg-gradient-to-b from-white to-slate-500 shadow-[0_0_16px_rgba(255,255,255,0.8)]" : isRare ? "bg-gradient-to-b from-fuchsia-300 to-purple-600 shadow-[0_0_14px_rgba(217,70,239,0.7)]" : "bg-gradient-to-b from-purple-400 to-fuchsia-500 shadow-[0_0_12px_rgba(217,70,239,0.5)]"}`} />
-                    <div>
-                      <h2 className="text-2xl md:text-3xl font-black text-white leading-tight">{section.title}</h2>
-                      <p className="text-slate-400 text-sm md:text-base">{section.blurb}</p>
+                    <div className={`h-7 w-1.5 rounded-full ${isSSSSection ? "bg-gradient-to-b from-white to-slate-500 shadow-[0_0_16px_rgba(255,255,255,0.8)]" : isRare ? "bg-gradient-to-b from-fuchsia-300 to-purple-600 shadow-[0_0_14px_rgba(217,70,239,0.7)]" : "bg-gradient-to-b from-purple-400 to-fuchsia-500 shadow-[0_0_12px_rgba(217,70,239,0.5)]"}`} />
+                    <div className="flex items-center gap-2.5">
+                      <h2 className="text-xl md:text-2xl font-black text-white leading-tight">{section.title}</h2>
+                      <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs font-black text-slate-300">{items.length}</span>
                     </div>
                   </div>
                   {category === "all" && (
@@ -753,7 +627,7 @@ export default function ShopPage() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ staggerChildren: 0.1 }}
-                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                  className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
                 >
                   {items.map((item, i) => renderCard(item, i))}
                 </motion.div>
@@ -833,7 +707,9 @@ export default function ShopPage() {
                       )}
                     </div>
                     <h3 className={`mb-1 text-xl font-black ${pv.color}`}>{pv.name}</h3>
-                    <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-slate-400">{pv.description}</p>
+                    <div className="custom-scrollbar mb-4 max-h-40 overflow-y-auto pr-1">
+                      <p className="text-sm leading-relaxed text-slate-400">{pv.description}</p>
+                    </div>
                     <div className="flex gap-2">
                       {!pOwned ? (
                         !canBuy ? (
