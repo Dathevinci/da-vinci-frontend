@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut, Users, Palette, ShoppingBag, Menu, X, Settings, Heart, ChevronDown, Tv, BookMarked, BookOpen } from 'lucide-react';
 import { isAdmin, isLeadDev } from "@/lib/admin";
@@ -73,6 +74,7 @@ export default function Navbar() {
   }, []);
 
   const { mode, setMode } = useAppMode();
+  const pathname = usePathname();
 
   // Theming variables based on mode (anime = amethyst, manhwa = crimson, novel = pink)
   const accentText = mode === 'anime' ? 'text-purple-400 drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]' : mode === 'manhwa' ? 'text-red-500 drop-shadow-[0_0_10px_rgba(220,38,38,0.5)]' : 'text-pink-400 drop-shadow-[0_0_10px_rgba(236,72,153,0.5)]';
@@ -117,6 +119,10 @@ export default function Navbar() {
     { m: 'manhwa' as const, label: 'Manhwa', cls: 'text-red-500', Icon: BookMarked },
     { m: 'novel' as const, label: 'Novels', cls: 'text-pink-400', Icon: BookOpen },
   ];
+
+  // Immersive readers (manhwa/novel chapter pages) render their own top bar —
+  // hide the global navbar so it doesn't overlap them.
+  if (pathname && pathname.includes('/chapter/')) return null;
 
   return (
     <>

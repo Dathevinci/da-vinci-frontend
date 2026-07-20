@@ -38,6 +38,9 @@ export default function MobileBottomNav() {
 
   const navItems = mode === 'anime' ? navItemsAnime : mode === 'manhwa' ? navItemsManhwa : navItemsNovel;
 
+  // Hide on immersive chapter readers so it doesn't cover their controls.
+  if (pathname && pathname.includes('/chapter/')) return null;
+
   return (
     <nav id="mobile-bottom-nav" className="fixed bottom-0 left-0 right-0 z-40 bg-[#09090b]/90 backdrop-blur-xl border-t border-white/10 pb-safe md:hidden">
       <div className="flex justify-around items-center h-16 px-2">
