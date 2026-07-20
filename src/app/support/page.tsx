@@ -1,14 +1,41 @@
 "use client";
 
-import { Coffee, Heart, Shield, Crown, Zap, Star, ExternalLink, Info, Sparkles } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Coffee, Heart, Shield, Crown, Zap, Star, ExternalLink, Info, Sparkles, Diamond } from "lucide-react";
 import { motion } from "framer-motion";
 import PageTransition from "@/components/layout/PageTransition";
 import Link from "next/link";
+import { useUser } from "@/hooks/useUser";
+import BuyPointsModal from "@/components/shop/BuyPointsModal";
+import { currencySymbol } from "@/lib/kofiBundles";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+interface KofiStats {
+  monthlyTotal: number;
+  currency: string;
+  recent: { name: string; linked: boolean; amount: number; currency: string; tierName: string | null; type: string; createdAt: string }[];
+}
 
 export default function SupportPage() {
+  const { user } = useUser();
+  const [stats, setStats] = useState<KofiStats | null>(null);
+  const [showBuyPoints, setShowBuyPoints] = useState(false);
   const monthlyGoal = 100;
-  const currentDonation = 3; // Hardcoded for now
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/kofi/stats`)
+      .then((r) => r.json())
+      .then((d) => { if (d.success) setStats(d); })
+      .catch(() => {});
+  }, []);
+
+  const currency = stats?.currency || "GBP";
+  const sym = currencySymbol(currency);
+  const currentDonation = stats?.monthlyTotal ?? 0;
   const progress = Math.min((currentDonation / monthlyGoal) * 100, 100);
+  const recent = stats?.recent || [];
+  const topSupporter = recent[0];
 
 
 
@@ -70,11 +97,11 @@ export default function SupportPage() {
                   <div className="flex justify-between items-end mb-4">
                     <div>
                       <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">Current Funds</span>
-                      <div className="text-4xl font-black text-white mt-1">£{currentDonation}</div>
+                      <div className="text-4xl font-black text-white mt-1">{sym}{currentDonation}</div>
                     </div>
                     <div className="text-right">
                       <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">Goal</span>
-                      <div className="text-2xl font-bold text-slate-500 mt-1">£{monthlyGoal}</div>
+                      <div className="text-2xl font-bold text-slate-500 mt-1">{sym}{monthlyGoal}</div>
                     </div>
                   </div>
                   
@@ -97,10 +124,26 @@ export default function SupportPage() {
                   rel="noopener noreferrer"
                   className="w-full bg-gradient-to-r from-[#ff5e5b] to-[#ff4542] hover:from-[#ff4542] hover:to-[#e63e3b] text-white font-black text-lg py-5 px-6 rounded-2xl transition-all flex justify-center items-center gap-3 shadow-[0_10px_30px_rgba(255,94,91,0.3)] transform hover:scale-[1.02] active:scale-[0.98] relative z-10"
                 >
-                  <Coffee className="w-6 h-6" /> 
+                  <Coffee className="w-6 h-6" />
                   Support on Ko-fi
                   <ExternalLink className="w-5 h-5 opacity-70" />
                 </a>
+
+                {/* How perks auto-apply */}
+                <div className="mt-4 flex items-start gap-3 rounded-xl border border-amber-400/25 bg-amber-500/[0.07] p-4 relative z-10">
+                  <Info className="w-5 h-5 text-amber-300 shrink-0 mt-0.5" />
+                  <p className="text-sm text-amber-100/90 leading-relaxed">
+                    To get your <span className="font-bold">Supporter badge</span> and <span className="font-bold">Arise Points</span> automatically, write your Da Vinci username{user?.username ? <> (<span className="font-black text-amber-200">{user.username}</span>)</> : null} in the Ko-fi message when you pay.
+                  </p>
+                </div>
+
+                {/* Buy Arise Points with real money */}
+                <button
+                  onClick={() => setShowBuyPoints(true)}
+                  className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-purple-500/40 bg-purple-500/10 py-4 font-black text-purple-100 transition hover:bg-purple-500/20 hover:scale-[1.01] relative z-10"
+                >
+                  <Diamond className="w-5 h-5 text-fuchsia-400" /> Buy Arise Points
+                </button>
               </div>
 
               {/* Info box */}
@@ -149,17 +192,37 @@ export default function SupportPage() {
                 <div className="relative z-10 text-center">
                   <Heart className="w-8 h-8 text-red-500 mx-auto mb-3 animate-pulse" />
                   <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Recent Supporter</p>
-                  <p className="text-2xl font-black text-white mb-2">Māna-Yood-Sushāī</p>
+                  <p className="text-2xl font-black text-white mb-2">{topSupporter?.name || "Māna-Yood-Sushāī"}</p>
                   <p className="text-sm text-red-200">
-                    Thank you! Unlocked the exclusive <strong>Crimson Realm</strong> animated profile effect!
+                    {topSupporter ? (
+                      "Thank you for keeping Da Vinci alive! 💛"
+                    ) : (
+                      <>Thank you! Unlocked the exclusive <strong>Crimson Realm</strong> animated profile effect!</>
+                    )}
                   </p>
                 </div>
               </div>
+
+              {recent.length > 0 && (
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Recent supporters</p>
+                  <div className="flex flex-wrap gap-2">
+                    {recent.slice(0, 8).map((r, i) => (
+                      <span key={i} className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-bold text-slate-200">
+                        <Heart className="w-3 h-3 text-rose-400 fill-rose-400" />
+                        {r.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
             </motion.div>
           </div>
         </div>
       </div>
+
+      {showBuyPoints && <BuyPointsModal username={user?.username || ""} onClose={() => setShowBuyPoints(false)} />}
     </PageTransition>
   );
 }

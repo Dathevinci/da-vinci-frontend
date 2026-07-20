@@ -7,6 +7,7 @@ import { isAdmin, isLeadDev, displayArisePoints } from "@/lib/admin";
 import { useToast } from "@/components/ui/Toast";
 import { MountainSnow, ShoppingBag, Sparkles, Check, Diamond, Aperture, CircleDot, Orbit, Snowflake, Flame, Sun, Zap, Leaf, Search, X, LayoutGrid, CloudLightning, CloudFog, Moon, Cog, Target, Trees, Gift, Swords, Flower2, Skull, Sprout, Eye, ArrowRight } from "lucide-react";
 import GiftModal from "@/components/shop/GiftModal";
+import BuyPointsModal from "@/components/shop/BuyPointsModal";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
@@ -61,6 +62,8 @@ export default function ShopPage() {
   const [giftTarget, setGiftTarget] = useState<typeof SHOP_ITEMS[0] | null>(null);
   // The item being previewed full-screen (its real effect plays over a mock profile).
   const [previewItem, setPreviewItem] = useState<typeof SHOP_ITEMS[0] | null>(null);
+  // Money → Arise Points top-up modal (Ko-fi bundles).
+  const [showBuyPoints, setShowBuyPoints] = useState(false);
 
   // After a successful gift the server has already moved the points; just sync
   // the gifter's cached balance so the navbar/shop show it immediately.
@@ -335,22 +338,28 @@ export default function ShopPage() {
         {/* ── actions ── */}
         <div className="relative z-10 mt-auto flex flex-col gap-2">
           {!hasItem ? (
-            <button
-              onClick={() => handlePurchase(item)}
-              disabled={buyingId === item.id || (!isAdmin(user) && (user.arisePoints || 0) < item.price)}
-              className={`flex w-full items-center justify-center gap-2 rounded-xl py-3 font-bold transition-all duration-300
-                ${(!isAdmin(user) && (user.arisePoints || 0) < item.price)
-                  ? "cursor-not-allowed border border-white/5 bg-white/5 text-slate-500"
-                  : "bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:scale-[1.02] hover:from-purple-500 hover:to-fuchsia-500 hover:shadow-[0_0_25px_rgba(217,70,239,0.6)]"}`}
-            >
-              {buyingId === item.id ? (
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-              ) : (
-                <>
-                  <Diamond className="h-4 w-4" /> {item.price.toLocaleString()} <span className="opacity-50">·</span> Acquire
-                </>
-              )}
-            </button>
+            (!isAdmin(user) && (user.arisePoints || 0) < item.price) ? (
+              <button
+                onClick={() => setShowBuyPoints(true)}
+                className="flex w-full items-center justify-center gap-2 rounded-xl py-3 font-bold transition-all duration-300 border border-amber-400/30 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20 hover:border-amber-400/50"
+              >
+                <Diamond className="h-4 w-4" /> {item.price.toLocaleString()} AP <span className="opacity-50">·</span> Buy Points
+              </button>
+            ) : (
+              <button
+                onClick={() => handlePurchase(item)}
+                disabled={buyingId === item.id}
+                className="flex w-full items-center justify-center gap-2 rounded-xl py-3 font-bold transition-all duration-300 bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:scale-[1.02] hover:from-purple-500 hover:to-fuchsia-500 hover:shadow-[0_0_25px_rgba(217,70,239,0.6)]"
+              >
+                {buyingId === item.id ? (
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                ) : (
+                  <>
+                    <Diamond className="h-4 w-4" /> {item.price.toLocaleString()} <span className="opacity-50">·</span> Acquire
+                  </>
+                )}
+              </button>
+            )
           ) : (
             <button
               onClick={() => handleToggle(item, !isActive)}
@@ -463,6 +472,12 @@ export default function ShopPage() {
                   )}
                 </p>
               </div>
+              <button
+                onClick={() => setShowBuyPoints(true)}
+                className="ml-1 inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 px-4 py-2.5 text-sm font-black text-white shadow-[0_0_16px_rgba(168,85,247,0.45)] transition hover:scale-105"
+              >
+                <Diamond className="h-4 w-4" /> Buy Points
+              </button>
             </motion.div>
           </motion.div>
 
@@ -804,23 +819,28 @@ export default function ShopPage() {
                     <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-slate-400">{pv.description}</p>
                     <div className="flex gap-2">
                       {!pOwned ? (
-                        <button
-                          onClick={() => handlePurchase(pv)}
-                          disabled={buyingId === pv.id || !canBuy}
-                          className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-3 font-bold transition ${
-                            !canBuy
-                              ? "cursor-not-allowed border border-white/5 bg-white/5 text-slate-500"
-                              : "bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:from-purple-500 hover:to-fuchsia-500"
-                          }`}
-                        >
-                          {buyingId === pv.id ? (
-                            <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                          ) : (
-                            <>
-                              <Diamond className="h-4 w-4" /> {pv.price.toLocaleString()} <span className="opacity-50">·</span> Acquire
-                            </>
-                          )}
-                        </button>
+                        !canBuy ? (
+                          <button
+                            onClick={() => { setPreviewItem(null); setShowBuyPoints(true); }}
+                            className="flex flex-1 items-center justify-center gap-2 rounded-xl py-3 font-bold transition border border-amber-400/30 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20"
+                          >
+                            <Diamond className="h-4 w-4" /> {pv.price.toLocaleString()} AP <span className="opacity-50">·</span> Buy Points
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handlePurchase(pv)}
+                            disabled={buyingId === pv.id}
+                            className="flex flex-1 items-center justify-center gap-2 rounded-xl py-3 font-bold transition bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:from-purple-500 hover:to-fuchsia-500"
+                          >
+                            {buyingId === pv.id ? (
+                              <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                            ) : (
+                              <>
+                                <Diamond className="h-4 w-4" /> {pv.price.toLocaleString()} <span className="opacity-50">·</span> Acquire
+                              </>
+                            )}
+                          </button>
+                        )
                       ) : (
                         <button
                           onClick={() => handleToggle(pv, !pActive)}
@@ -859,6 +879,8 @@ export default function ShopPage() {
           onGifted={applyNewBalance}
         />
       )}
+
+      {showBuyPoints && <BuyPointsModal username={user.username} onClose={() => setShowBuyPoints(false)} />}
     </PageTransition>
   );
 }
