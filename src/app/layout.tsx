@@ -55,6 +55,7 @@ import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { ToastProvider } from "@/components/ui/Toast";
 import AnimeModalProvider from "@/components/providers/AnimeModalProvider";
 import ManhwaModalProvider from "@/components/providers/ManhwaModalProvider";
+import NovelModalProvider from "@/components/providers/NovelModalProvider";
 
 import { AppModeProvider } from "@/components/providers/AppModeProvider";
 
@@ -77,6 +78,7 @@ export default function RootLayout({
             <ToastProvider>
               <AnimeModalProvider>
                 <ManhwaModalProvider>
+                  <NovelModalProvider>
                   <Suspense fallback={null}>
                     <AuthSync />
                   </Suspense>
@@ -90,6 +92,7 @@ export default function RootLayout({
                     <Footer />
                     <MobileBottomNav />
                   </InviteOnlyGuard>
+                  </NovelModalProvider>
                 </ManhwaModalProvider>
               </AnimeModalProvider>
             </ToastProvider>

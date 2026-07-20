@@ -74,11 +74,12 @@ function decodeEntities(s: string): string {
     .trim();
 }
 
-// readnovelfull serves resized covers via /thumb/t-WxH/ — request a portrait crop.
+// readnovelfull serves resized covers via /thumb/t-WxH/ — request the largest
+// portrait the CDN serves (t-600x900) for HD thumbnails.
 function portraitCover(url: string): string {
   if (!url) return "";
   const u = url.startsWith("http") ? url : `https:${url.replace(/^\/\//, "")}`;
-  return u.replace(/\/thumb\/t-\d+x\d+\//, "/thumb/t-300x439/");
+  return u.replace(/\/thumb\/t-\d+x\d+\//, "/thumb/t-600x900/");
 }
 
 // ── list rows (browse) ────────────────────────────────────────────────────────

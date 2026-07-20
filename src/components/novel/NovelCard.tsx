@@ -1,23 +1,28 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import Link from "next/link";
 import { BookOpen, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { NovelResult } from "@/lib/novel/ReadNovelFull";
+import { useNovelModal } from "@/components/providers/NovelModalProvider";
 
 export default function NovelCard({ novel }: { novel: NovelResult }) {
+  const { openNovel } = useNovelModal();
+
   const [isHovered, setIsHovered] = useState(false);
   const [transformOrigin, setTransformOrigin] = useState("center center");
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
   const cover = novel.cover ? `/api/novel-image?url=${encodeURIComponent(novel.cover)}` : null;
-  const href = `/novel/${encodeURIComponent(novel.id)}`;
 
   const closeHover = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     setIsHovered(false);
+  };
+  const handleOpen = () => {
+    closeHover();
+    openNovel(novel);
   };
 
   // Fine pointers only (no hover pop-out on touch, where there's no mouseleave).
@@ -34,7 +39,6 @@ export default function NovelCard({ novel }: { novel: NovelResult }) {
   };
   const handleMouseLeave = () => closeHover();
 
-  // Dismiss on scroll so the pop-out can't linger over the wrong card.
   useEffect(() => {
     if (!isHovered) return;
     const dismiss = () => closeHover();
@@ -51,7 +55,7 @@ export default function NovelCard({ novel }: { novel: NovelResult }) {
       onMouseLeave={handleMouseLeave}
     >
       {/* Base cover */}
-      <Link href={href} className="relative w-full aspect-[2/3] overflow-hidden rounded-lg shadow-md block">
+      <button onClick={handleOpen} className="relative w-full aspect-[2/3] overflow-hidden rounded-lg shadow-md block text-left">
         {cover ? (
           <img src={cover} alt={novel.title} loading="lazy" decoding="async" className="w-full h-full object-cover hq-image" />
         ) : (
@@ -59,15 +63,15 @@ export default function NovelCard({ novel }: { novel: NovelResult }) {
             <BookOpen className="w-10 h-10" />
           </div>
         )}
-      </Link>
+      </button>
 
       {/* Resting info below the cover */}
       <div className="pt-2 flex flex-col flex-1">
-        <Link href={href} className="text-left w-full">
+        <button onClick={handleOpen} className="text-left w-full">
           <h3 className="font-bold text-[#e2e8f0] text-[13px] leading-tight line-clamp-2 mb-1 hover:text-pink-400 transition-colors">
             {novel.title}
           </h3>
-        </Link>
+        </button>
         {novel.latestChapter && <p className="text-[11px] font-bold text-slate-500 line-clamp-1">{novel.latestChapter}</p>}
       </div>
 
@@ -80,7 +84,8 @@ export default function NovelCard({ novel }: { novel: NovelResult }) {
             exit={{ opacity: 0, scale: 1, zIndex: 50 }}
             transition={{ type: "tween", duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
             style={{ transformOrigin }}
-            className="absolute top-0 left-0 w-full aspect-[2/3] bg-[#141414] rounded-lg overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.8)] border border-white/20 will-change-transform"
+            onClick={handleOpen}
+            className="absolute top-0 left-0 w-full aspect-[2/3] bg-[#141414] rounded-lg overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.8)] border border-white/20 cursor-pointer will-change-transform"
           >
             {cover && <img src={cover} alt={novel.title} className="absolute inset-0 w-full h-full object-cover" />}
 
@@ -88,20 +93,19 @@ export default function NovelCard({ novel }: { novel: NovelResult }) {
               <h3 className="font-black text-[13px] text-white leading-tight drop-shadow-md line-clamp-2 mb-2">{novel.title}</h3>
 
               <div className="flex items-center gap-1.5 mb-2 relative z-10">
-                <Link
-                  href={href}
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleOpen(); }}
                   className="flex items-center gap-1 bg-pink-500 hover:bg-pink-400 text-white text-[11px] font-bold px-2.5 py-1 rounded-full transition-colors"
-                  title="Read this novel"
                 >
                   <BookOpen className="w-3 h-3" /> Read
-                </Link>
-                <Link
-                  href={href}
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleOpen(); }}
                   className="w-7 h-7 border-2 border-slate-400 text-white flex items-center justify-center rounded-full hover:border-white hover:bg-white/10 transition-colors ml-auto"
                   title="Details"
                 >
                   <ChevronRight className="w-3.5 h-3.5" />
-                </Link>
+                </button>
               </div>
 
               {novel.latestChapter && (
