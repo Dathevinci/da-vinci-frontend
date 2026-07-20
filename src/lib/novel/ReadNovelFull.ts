@@ -208,8 +208,11 @@ export async function getChapterContent(slug: string, chapterId: string): Promis
   }
   const content = htmlToParagraphs(block);
 
-  const prev = html.match(/id="prev_chap"[^>]*href="\/[a-z0-9-]+\/([^"/]+?)\.html"/)?.[1] || null;
-  const next = html.match(/id="next_chap"[^>]*href="\/[a-z0-9-]+\/([^"/]+?)\.html"/)?.[1] || null;
+  // Grab the prev/next anchor tags (attribute order varies), then pull the href.
+  const prevTag = html.match(/<a\b[^>]*\bid="prev_chap"[^>]*>/i)?.[0] || "";
+  const nextTag = html.match(/<a\b[^>]*\bid="next_chap"[^>]*>/i)?.[0] || "";
+  const prev = prevTag.match(/href="\/[a-z0-9-]+\/([^"/]+?)\.html"/)?.[1] || null;
+  const next = nextTag.match(/href="\/[a-z0-9-]+\/([^"/]+?)\.html"/)?.[1] || null;
 
   return { title, content, prev, next };
 }

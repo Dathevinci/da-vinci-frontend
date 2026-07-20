@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 
-export type AppMode = 'anime' | 'manhwa';
+export type AppMode = 'anime' | 'manhwa' | 'novel';
 
 // Drives the full-screen curtain overlay (ModeTransition) while switching modes.
 export interface ModeTransitionState {
@@ -29,37 +29,31 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
 
   // Load initial mode from local storage
   useEffect(() => {
-    const savedMode = localStorage.getItem('daVinciAppMode') as AppMode;
-    if (savedMode === 'manhwa' && pathname === '/') {
-      // If user preferred manhwa but landed on the root, redirect them
-      router.replace('/manhwa');
-    } else if (savedMode === 'anime' && pathname === '/manhwa') {
-      // If user preferred anime but landed on the manhwa root, redirect them
-      router.replace('/');
-    } else if (savedMode === 'anime' || savedMode === 'manhwa') {
-      // Otherwise just restore the visual state, but only if it matches the current path category
-      const isManhwaPath = pathname.startsWith('/manhwa');
-      if (isManhwaPath && savedMode === 'manhwa') {
-        setModeState('manhwa');
-      } else if (!isManhwaPath && savedMode === 'anime') {
-        setModeState('anime');
-      }
+    const savedMode = (localStorage.getItem('daVinciAppMode') as AppMode | null) || 'anime';
+    // From the bare root, honour a saved reading mode by redirecting to its home.
+    if (pathname === '/' && savedMode !== 'anime') {
+      router.replace(savedMode === 'manhwa' ? '/manhwa' : '/novel');
+      return;
     }
+    // Otherwise restore the visual mode to match the path we're on.
+    if (pathname.startsWith('/manhwa')) setModeState('manhwa');
+    else if (pathname.startsWith('/novel')) setModeState('novel');
+    else if (
+      pathname === '/' || pathname.startsWith('/anime') || pathname.startsWith('/explore') ||
+      pathname.startsWith('/airing') || pathname.startsWith('/upcoming') || pathname.startsWith('/calendar')
+    ) setModeState('anime');
+    else setModeState(savedMode); // neutral path (community/shop/…) — keep saved mode
   }, []);
 
   // Sync mode based on current URL path
   useEffect(() => {
     if (pathname) {
       if (pathname.startsWith('/manhwa')) {
-        if (mode !== 'manhwa') {
-          setModeState('manhwa');
-          localStorage.setItem('daVinciAppMode', 'manhwa');
-        }
+        if (mode !== 'manhwa') { setModeState('manhwa'); localStorage.setItem('daVinciAppMode', 'manhwa'); }
+      } else if (pathname.startsWith('/novel')) {
+        if (mode !== 'novel') { setModeState('novel'); localStorage.setItem('daVinciAppMode', 'novel'); }
       } else if (pathname === '/' || pathname.startsWith('/anime') || pathname.startsWith('/explore') || pathname.startsWith('/airing') || pathname.startsWith('/upcoming') || pathname.startsWith('/calendar')) {
-        if (mode !== 'anime') {
-          setModeState('anime');
-          localStorage.setItem('daVinciAppMode', 'anime');
-        }
+        if (mode !== 'anime') { setModeState('anime'); localStorage.setItem('daVinciAppMode', 'anime'); }
       }
     }
   }, [pathname, mode]);
@@ -68,11 +62,12 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
   // this runs while the curtain is fully closed, so the change never flashes.
   const performSwap = (newMode: AppMode) => {
     setModeState(newMode);
-    if (newMode === 'manhwa') {
-      if (!pathname.startsWith('/manhwa')) router.push('/manhwa');
-    } else {
-      if (pathname.startsWith('/manhwa')) router.push('/');
-    }
+    const home = newMode === 'manhwa' ? '/manhwa' : newMode === 'novel' ? '/novel' : '/';
+    const alreadyThere =
+      newMode === 'manhwa' ? pathname.startsWith('/manhwa') :
+      newMode === 'novel' ? pathname.startsWith('/novel') :
+      !pathname.startsWith('/manhwa') && !pathname.startsWith('/novel');
+    if (!alreadyThere) router.push(home);
   };
 
   const setMode = (newMode: AppMode) => {
@@ -95,7 +90,7 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
   };
 
   const toggleMode = () => {
-    setMode(mode === 'anime' ? 'manhwa' : 'anime');
+    setMode(mode === 'anime' ? 'manhwa' : mode === 'manhwa' ? 'novel' : 'anime');
   };
 
   // Clear any pending transition timers on unmount.
@@ -103,13 +98,9 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
 
   // Add a class to body for global CSS theming
   useEffect(() => {
-    if (mode === 'manhwa') {
-      document.body.classList.add('theme-manhwa');
-      document.body.classList.remove('theme-anime');
-    } else {
-      document.body.classList.add('theme-anime');
-      document.body.classList.remove('theme-manhwa');
-    }
+    const b = document.body.classList;
+    b.remove('theme-anime', 'theme-manhwa', 'theme-novel');
+    b.add(mode === 'manhwa' ? 'theme-manhwa' : mode === 'novel' ? 'theme-novel' : 'theme-anime');
   }, [mode]);
 
   return (

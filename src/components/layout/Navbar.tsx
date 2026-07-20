@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut, Users, Palette, ShoppingBag, Menu, X, Settings, Heart, ChevronDown } from 'lucide-react';
+import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut, Users, Palette, ShoppingBag, Menu, X, Settings, Heart, ChevronDown, Tv, BookMarked, BookOpen } from 'lucide-react';
 import { isAdmin, isLeadDev } from "@/lib/admin";
 import LoginModal from './LoginModal';
 import SearchModal from './SearchModal';
@@ -18,6 +18,7 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [modeMenuOpen, setModeMenuOpen] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showControlCenter, setShowControlCenter] = useState(false);
   
@@ -71,12 +72,13 @@ export default function Navbar() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const { mode, toggleMode } = useAppMode();
-  
-  // Theming variables based on mode
-  const accentText = mode === 'anime' ? 'text-purple-400 drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]' : 'text-red-500 drop-shadow-[0_0_10px_rgba(220,38,38,0.5)]';
-  const accentHover = mode === 'anime' ? 'hover:text-purple-400' : 'hover:text-red-500';
-  const accentBorder = mode === 'anime' ? 'border-purple-400/50 shadow-[0_0_15px_rgba(168,85,247,0.4)]' : 'border-red-500/50 shadow-[0_0_15px_rgba(220,38,38,0.4)]';
+  const { mode, setMode } = useAppMode();
+
+  // Theming variables based on mode (anime = amethyst, manhwa = crimson, novel = amber)
+  const accentText = mode === 'anime' ? 'text-purple-400 drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]' : mode === 'manhwa' ? 'text-red-500 drop-shadow-[0_0_10px_rgba(220,38,38,0.5)]' : 'text-amber-400 drop-shadow-[0_0_10px_rgba(245,158,11,0.5)]';
+  const accentHover = mode === 'anime' ? 'hover:text-purple-400' : mode === 'manhwa' ? 'hover:text-red-500' : 'hover:text-amber-400';
+  const accentBorder = mode === 'anime' ? 'border-purple-400/50 shadow-[0_0_15px_rgba(168,85,247,0.4)]' : mode === 'manhwa' ? 'border-red-500/50 shadow-[0_0_15px_rgba(220,38,38,0.4)]' : 'border-amber-400/50 shadow-[0_0_15px_rgba(245,158,11,0.4)]';
+  const modeLabelColor = mode === 'anime' ? 'text-purple-400' : mode === 'manhwa' ? 'text-red-500' : 'text-amber-400';
 
   // Desktop Links
   const animeLinks = (
@@ -103,6 +105,19 @@ export default function Navbar() {
     </>
   );
 
+  const novelLinks = (
+    <>
+      <Link href="/novel" className={`hover:text-white ${accentHover} transition whitespace-nowrap`}>Library</Link>
+      <Link href="/updates" className={`hover:text-white ${accentHover} transition whitespace-nowrap`}>Updates</Link>
+    </>
+  );
+
+  const MODE_OPTIONS = [
+    { m: 'anime' as const, label: 'Anime', cls: 'text-purple-400', Icon: Tv },
+    { m: 'manhwa' as const, label: 'Manhwa', cls: 'text-red-500', Icon: BookMarked },
+    { m: 'novel' as const, label: 'Novels', cls: 'text-amber-400', Icon: BookOpen },
+  ];
+
   return (
     <>
       <header className={`fixed top-0 w-full z-50 transition-all duration-300 ${
@@ -112,24 +127,43 @@ export default function Navbar() {
       }`}>
         <div className={`container mx-auto px-4 sm:px-6 flex justify-between items-center transition-all duration-300 ${isScrolled ? 'h-16' : 'h-20 lg:h-24'}`}>
           <div className="flex items-center gap-4 lg:gap-8">
-            <Link href={mode === 'anime' ? "/" : "/manhwa"} className="font-fell font-bold text-xl sm:text-2xl lg:text-3xl text-white tracking-[0.1em] sm:tracking-[0.2em] uppercase flex items-center gap-2 sm:gap-3 drop-shadow-lg shrink-0">
+            <Link href={mode === 'anime' ? "/" : mode === 'manhwa' ? "/manhwa" : "/novel"} className="font-fell font-bold text-xl sm:text-2xl lg:text-3xl text-white tracking-[0.1em] sm:tracking-[0.2em] uppercase flex items-center gap-2 sm:gap-3 drop-shadow-lg shrink-0">
               <img src="/logo.png" alt="Da Vinci Logo" className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full border ${accentBorder} object-cover transition-colors`} />
               <span className="hidden xs:inline-block">DA <span className={`font-black ${accentText} transition-colors`}>VINCI</span></span>
             </Link>
-            
-            {/* Mode Switcher */}
-            <button 
-              onClick={toggleMode}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors shrink-0"
-              title="Switch Mode"
-            >
-              <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-colors ${mode === 'anime' ? 'text-purple-400' : 'text-red-500'}`}>
-                {mode === 'anime' ? 'Anime Mode' : 'Manhwa Mode'}
-              </span>
-            </button>
+
+            {/* Mode Switcher — 3-way dropdown (Anime / Manhwa / Novels) */}
+            <div className="relative shrink-0">
+              <button
+                onClick={() => setModeMenuOpen(v => !v)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
+                title="Switch mode"
+              >
+                <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-colors ${modeLabelColor}`}>
+                  {mode === 'anime' ? 'Anime' : mode === 'manhwa' ? 'Manhwa' : 'Novels'} Mode
+                </span>
+                <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${modeMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {modeMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setModeMenuOpen(false)} />
+                  <div className="absolute left-0 mt-2 w-40 z-50 bg-[#0f0f11] border border-white/10 rounded-xl shadow-2xl p-1.5">
+                    {MODE_OPTIONS.map(({ m, label, cls, Icon }) => (
+                      <button
+                        key={m}
+                        onClick={() => { setModeMenuOpen(false); setMode(m); }}
+                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition ${mode === m ? `bg-white/10 ${cls}` : 'text-slate-300 hover:bg-white/5'}`}
+                      >
+                        <Icon className="w-4 h-4" /> {label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
 
             <nav className="hidden lg:flex gap-4 xl:gap-6 font-medium text-sm text-slate-300 shrink-0">
-              {mode === 'anime' ? animeLinks : manhwaLinks}
+              {mode === 'anime' ? animeLinks : mode === 'manhwa' ? manhwaLinks : novelLinks}
               
               <div className="relative group">
                 <button className={`hover:text-white ${accentHover} transition flex items-center gap-1`}>
@@ -224,9 +258,14 @@ export default function Navbar() {
                 <Link href="/upcoming" onClick={() => setIsMobileMenuOpen(false)} className={accentHover}>Upcoming</Link>
                 <Link href="/calendar" onClick={() => setIsMobileMenuOpen(false)} className={accentHover}>Schedule</Link>
               </>
-            ) : (
+            ) : mode === 'manhwa' ? (
               <>
                 <Link href="/manhwa" onClick={() => setIsMobileMenuOpen(false)} className={accentHover}>Dashboard</Link>
+                <Link href="/updates" onClick={() => setIsMobileMenuOpen(false)} className={accentHover}>Updates</Link>
+              </>
+            ) : (
+              <>
+                <Link href="/novel" onClick={() => setIsMobileMenuOpen(false)} className={accentHover}>Library</Link>
                 <Link href="/updates" onClick={() => setIsMobileMenuOpen(false)} className={accentHover}>Updates</Link>
               </>
             )}

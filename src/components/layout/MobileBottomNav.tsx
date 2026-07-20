@@ -11,8 +11,8 @@ export default function MobileBottomNav() {
   const { user } = useUser();
   const { mode } = useAppMode();
 
-  const accentColor = mode === 'anime' ? 'text-purple-400' : 'text-red-500';
-  const bgBadge = mode === 'anime' ? 'bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.8)]' : 'bg-red-600 shadow-[0_0_10px_rgba(220,38,38,0.8)]';
+  const accentColor = mode === 'anime' ? 'text-purple-400' : mode === 'manhwa' ? 'text-red-500' : 'text-amber-400';
+  const bgBadge = mode === 'anime' ? 'bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.8)]' : mode === 'manhwa' ? 'bg-red-600 shadow-[0_0_10px_rgba(220,38,38,0.8)]' : 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.8)]';
 
   const navItemsAnime = [
     { label: "Home", href: "/", icon: <Home className="w-6 h-6" /> },
@@ -29,7 +29,14 @@ export default function MobileBottomNav() {
     { label: "Profile", href: user ? `/user/${user.username}` : "/user/login", icon: <UserIcon className="w-6 h-6" /> }
   ];
 
-  const navItems = mode === 'anime' ? navItemsAnime : navItemsManhwa;
+  const navItemsNovel = [
+    { label: "Library", href: "/novel", icon: <BookOpen className="w-6 h-6" /> },
+    { label: "Updates", href: "/updates", icon: <Megaphone className="w-6 h-6" /> },
+    { label: "Community", href: "/community", icon: <Users className="w-6 h-6" /> },
+    { label: "Profile", href: user ? `/user/${user.username}` : "/user/login", icon: <UserIcon className="w-6 h-6" /> }
+  ];
+
+  const navItems = mode === 'anime' ? navItemsAnime : mode === 'manhwa' ? navItemsManhwa : navItemsNovel;
 
   return (
     <nav id="mobile-bottom-nav" className="fixed bottom-0 left-0 right-0 z-40 bg-[#09090b]/90 backdrop-blur-xl border-t border-white/10 pb-safe md:hidden">

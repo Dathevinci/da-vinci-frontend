@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { BookMarked, Tv } from "lucide-react";
+import { BookMarked, Tv, BookOpen } from "lucide-react";
 import { useAppMode } from "@/components/providers/AppModeProvider";
 
 // Strong easeInOutQuint — gives the curtain a weighty, cinematic close/open.
@@ -14,18 +14,22 @@ const easeCurtain: [number, number, number, number] = [0.83, 0, 0.17, 1];
  */
 export default function ModeTransition() {
   const { transition } = useAppMode();
-  const isManhwa = transition.target === "manhwa";
 
-  // Themed per destination mode: manhwa = crimson, anime = amethyst.
-  const accent = isManhwa ? "#dc2626" : "#8b5cf6";
-  const accentDim = isManhwa ? "rgba(220,38,38,0.55)" : "rgba(139,92,246,0.55)";
-  const glow = isManhwa ? "rgba(220,38,38,0.35)" : "rgba(139,92,246,0.35)";
-  const label = isManhwa ? "Manhwa Mode" : "Anime Mode";
-  const sub = isManhwa ? "Enter the library" : "Enter the theater";
-  const Icon = isManhwa ? BookMarked : Tv;
-  const panelBg = `radial-gradient(ellipse at center, ${
-    isManhwa ? "rgba(60,10,10,0.92)" : "rgba(30,16,60,0.92)"
-  } 0%, #050505 72%)`;
+  // Themed per destination mode: manhwa = crimson, novel = amber, anime = amethyst.
+  const theme =
+    transition.target === "manhwa"
+      ? { accent: "#dc2626", dim: "rgba(220,38,38,0.55)", glow: "rgba(220,38,38,0.35)", panel: "rgba(60,10,10,0.92)", label: "Manhwa Mode", sub: "Enter the library", Icon: BookMarked }
+      : transition.target === "novel"
+      ? { accent: "#f59e0b", dim: "rgba(245,158,11,0.55)", glow: "rgba(245,158,11,0.35)", panel: "rgba(60,42,8,0.92)", label: "Novels Mode", sub: "Enter the archive", Icon: BookOpen }
+      : { accent: "#8b5cf6", dim: "rgba(139,92,246,0.55)", glow: "rgba(139,92,246,0.35)", panel: "rgba(30,16,60,0.92)", label: "Anime Mode", sub: "Enter the theater", Icon: Tv };
+
+  const accent = theme.accent;
+  const accentDim = theme.dim;
+  const glow = theme.glow;
+  const label = theme.label;
+  const sub = theme.sub;
+  const Icon = theme.Icon;
+  const panelBg = `radial-gradient(ellipse at center, ${theme.panel} 0%, #050505 72%)`;
 
   return (
     <AnimatePresence>
