@@ -293,6 +293,9 @@ export default function PublicProfilePage() {
   // The SSS-grade Unblinking inks it in parchment, ash and bleeding crimson.
   const isUnblinking = effectiveEffect === "effect_unblinking";
   const unblinkingName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#f2ead8,#9ca3af,#8b0000,#9ca3af,#f2ead8)] drop-shadow-[0_0_10px_rgba(139,0,0,0.6)]";
+  // The SSS-grade Infinite Void drowns it in starlight cyan and deep-space indigo.
+  const isVoid = effectiveEffect === "effect_void";
+  const voidName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#e0f2fe,#67e8f9,#6366f1,#67e8f9,#e0f2fe)] drop-shadow-[0_0_10px_rgba(34,211,238,0.6)]";
   // When a bought frame (or the Voltaic ring) is equipped, drop the rank/role
   // border + glow so it doesn't override the frame the user chose.
   const ringOverridesRank = hasFrameRing((profileUser as any).activeFrame, effectiveEffect);
@@ -335,7 +338,7 @@ export default function PublicProfilePage() {
 
         {/* ═══ LEFT: the profile card — the effect fills it as a whole ═══ */}
         <div className="w-full lg:w-[370px] lg:shrink-0 lg:sticky lg:top-24">
-        <div className={`relative rounded-3xl shadow-2xl border overflow-hidden ${rankTheme.bgCardClass} ${isCrimson ? "!border-red-600/50 shadow-[0_0_45px_rgba(255,0,0,0.35)]" : isDejaVu ? "!border-purple-500/50 shadow-[0_0_45px_rgba(168,85,247,0.4)]" : isTempest ? "!border-sky-500/50 shadow-[0_0_45px_rgba(56,189,248,0.35)]" : isFool ? "!border-amber-500/40 shadow-[0_0_45px_rgba(245,158,11,0.3)]" : isEvernight ? "!border-rose-500/40 shadow-[0_0_45px_rgba(225,29,72,0.3)]" : isMahoraga ? "!border-yellow-500/50 shadow-[0_0_45px_rgba(255,215,0,0.35)]" : isRitual ? "!border-slate-200/50 shadow-[0_0_50px_rgba(255,255,255,0.35)]" : isCanopy ? "!border-emerald-500/50 shadow-[0_0_45px_rgba(16,185,129,0.35)]" : isSamurai ? "!border-red-500/40 shadow-[0_0_45px_rgba(185,28,28,0.4)]" : isHimalaya ? "!border-sky-300/40 shadow-[0_0_45px_rgba(191,219,254,0.4)]" : isLotus ? "!border-emerald-400/40 shadow-[0_0_45px_rgba(52,211,153,0.4)]" : isMango ? "!border-orange-400/50 shadow-[0_0_45px_rgba(255,140,0,0.45)]" : isJungle ? "!border-green-500/45 shadow-[0_0_45px_rgba(31,107,56,0.5)]" : isUnblinking ? "!border-red-900/50 shadow-[0_0_45px_rgba(139,0,0,0.45)]" : ""}`}>
+        <div className={`relative rounded-3xl shadow-2xl border overflow-hidden ${rankTheme.bgCardClass} ${isCrimson ? "!border-red-600/50 shadow-[0_0_45px_rgba(255,0,0,0.35)]" : isDejaVu ? "!border-purple-500/50 shadow-[0_0_45px_rgba(168,85,247,0.4)]" : isTempest ? "!border-sky-500/50 shadow-[0_0_45px_rgba(56,189,248,0.35)]" : isFool ? "!border-amber-500/40 shadow-[0_0_45px_rgba(245,158,11,0.3)]" : isEvernight ? "!border-rose-500/40 shadow-[0_0_45px_rgba(225,29,72,0.3)]" : isMahoraga ? "!border-yellow-500/50 shadow-[0_0_45px_rgba(255,215,0,0.35)]" : isRitual ? "!border-slate-200/50 shadow-[0_0_50px_rgba(255,255,255,0.35)]" : isCanopy ? "!border-emerald-500/50 shadow-[0_0_45px_rgba(16,185,129,0.35)]" : isSamurai ? "!border-red-500/40 shadow-[0_0_45px_rgba(185,28,28,0.4)]" : isHimalaya ? "!border-sky-300/40 shadow-[0_0_45px_rgba(191,219,254,0.4)]" : isLotus ? "!border-emerald-400/40 shadow-[0_0_45px_rgba(52,211,153,0.4)]" : isMango ? "!border-orange-400/50 shadow-[0_0_45px_rgba(255,140,0,0.45)]" : isJungle ? "!border-green-500/45 shadow-[0_0_45px_rgba(31,107,56,0.5)]" : isUnblinking ? "!border-red-900/50 shadow-[0_0_45px_rgba(139,0,0,0.45)]" : isVoid ? "!border-cyan-400/50 shadow-[0_0_50px_rgba(34,211,238,0.35)]" : ""}`}>
           {backgroundUrl && (
             <>
               <div
@@ -406,7 +409,7 @@ export default function PublicProfilePage() {
                 <h1 className={`text-3xl font-black drop-shadow-lg pb-1 leading-tight break-words relative z-10
                   ${profileUser.activeFont === 'font_cyber' ? 'font-mono tracking-widest' : ''} 
                   ${profileUser.activeFont === 'font_pixel' ? 'font-serif tracking-tight' : ''} 
-                  ${isCrimson ? crimsonName : isDejaVu ? dejaVuName : isTempest ? tempestName : isFool ? foolName : isEvernight ? evernightName : isMahoraga ? mahoragaName : isRitual ? ritualName : isCanopy ? canopyName : isSamurai ? samuraiName : isHimalaya ? himalayaName : isLotus ? lotusName : isMango ? mangoName : isJungle ? jungleName : isUnblinking ? unblinkingName : (nameColorClass(profileUser.activeColor) || rankTheme.textGradient)}`}>
+                  ${isCrimson ? crimsonName : isDejaVu ? dejaVuName : isTempest ? tempestName : isFool ? foolName : isEvernight ? evernightName : isMahoraga ? mahoragaName : isRitual ? ritualName : isCanopy ? canopyName : isSamurai ? samuraiName : isHimalaya ? himalayaName : isLotus ? lotusName : isMango ? mangoName : isJungle ? jungleName : isUnblinking ? unblinkingName : isVoid ? voidName : (nameColorClass(profileUser.activeColor) || rankTheme.textGradient)}`}>
                   {profileUser.username}
                 </h1>
                 

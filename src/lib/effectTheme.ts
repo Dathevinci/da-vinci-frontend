@@ -33,6 +33,8 @@ export function effectNameClass(effect?: string | null): string {
       return "text-transparent bg-clip-text bg-[linear-gradient(to_right,#3fae5a,#7a9b3a,#ffe196,#3fae5a,#1f6b38)] drop-shadow-[0_0_10px_rgba(63,174,90,0.6)]";
     case "effect_unblinking":
       return "text-transparent bg-clip-text bg-[linear-gradient(to_right,#f2ead8,#9ca3af,#8b0000,#9ca3af,#f2ead8)] drop-shadow-[0_0_10px_rgba(139,0,0,0.6)]";
+    case "effect_void":
+      return "text-transparent bg-clip-text bg-[linear-gradient(to_right,#e0f2fe,#67e8f9,#6366f1,#67e8f9,#e0f2fe)] drop-shadow-[0_0_10px_rgba(34,211,238,0.6)]";
     default:
       return "";
   }
@@ -55,6 +57,7 @@ export function effectCardBorderClass(effect?: string | null): string {
     case "effect_mango": return "!border-orange-400/50 shadow-[0_0_45px_rgba(255,140,0,0.45)]";
     case "effect_jungle": return "!border-green-500/45 shadow-[0_0_45px_rgba(31,107,56,0.5)]";
     case "effect_unblinking": return "!border-red-900/50 shadow-[0_0_45px_rgba(139,0,0,0.45)]";
+    case "effect_void": return "!border-cyan-400/50 shadow-[0_0_50px_rgba(34,211,238,0.35)]";
     default: return "!border-white/10";
   }
 }

@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>Domain Expansion — Infinite Void</title>
+<style>
+  /* ── The page plunged into the domain ─────────────────────────────────── */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background:
+      radial-gradient(120% 90% at 50% 40%, rgba(30, 27, 75, 0.55), transparent 60%),
+      #010103;
+    color: #e2e8f0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* ── The glassy profile container (CRITICAL LAYOUT OVERRIDE step 4) ───── */
+  #profile-card {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 44px 56px 36px;
+    border-radius: 28px;
+    background: rgba(2, 2, 5, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(103, 232, 249, 0.18);
+    box-shadow: 0 0 60px rgba(34, 211, 238, 0.12), inset 0 0 40px rgba(15, 23, 42, 0.6);
+    text-align: center;
+  }
+
+  /* ── Dummy 150×150 circular avatar (procedural CSS — no image assets) ── */
+  #avatar {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid rgba(103, 232, 249, 0.75);
+    box-shadow: 0 0 34px rgba(34, 211, 238, 0.5), 0 0 80px rgba(79, 70, 229, 0.35);
+    background: linear-gradient(180deg, #0b1220 0%, #101b33 100%);
+  }
+  /* white hair */
+  #avatar .hair {
+    position: absolute;
+    inset: -10% -12% 42% -12%;
+    background: radial-gradient(115% 105% at 50% 0%, #f8fafc 0 56%, transparent 57%);
+    filter: drop-shadow(0 2px 6px rgba(148, 163, 184, 0.5));
+  }
+  /* the blindfold */
+  #avatar .blindfold {
+    position: absolute;
+    left: -4%;
+    right: -4%;
+    top: 46%;
+    height: 21%;
+    background: #04050a;
+    box-shadow: 0 0 14px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(148, 163, 184, 0.22);
+  }
+  /* faint cursed-energy shimmer under the blindfold */
+  #avatar .glint {
+    position: absolute;
+    left: 22%;
+    right: 22%;
+    top: 52%;
+    height: 8%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent, rgba(103, 232, 249, 0.55), transparent);
+    filter: blur(3px);
+    animation: glint 3.4s ease-in-out infinite;
+  }
+  @keyframes glint { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.9; } }
+
+  h1 {
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    background: linear-gradient(90deg, #e0f2fe, #67e8f9, #818cf8, #67e8f9, #e0f2fe);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 0 24px rgba(34, 211, 238, 0.35);
+  }
+  #sub {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.34em;
+    text-transform: uppercase;
+    color: rgba(165, 243, 252, 0.72);
+  }
+  #hint {
+    margin-top: 6px;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(148, 163, 184, 0.45);
+  }
+</style>
+</head>
+<body>
+
+  <div id="profile-card">
+    <div id="avatar" aria-label="profile avatar">
+      <div class="hair"></div>
+      <div class="blindfold"></div>
+      <div class="glint"></div>
+    </div>
+    <h1>Gojo Satoru</h1>
+    <div id="sub">「 Domain Expansion — Infinite Void 」</div>
+    <div id="hint">click anywhere to re-cast</div>
+  </div>
+
+<script>
+(() => {
+  "use strict";
+  const TAU = Math.PI * 2;
+
+  /* ── CRITICAL LAYOUT OVERRIDE (Global Screen Escape) ──────────────────────
+     1. create the canvas dynamically, 2. append straight to <body> to escape
+     every stacking context, 3. exact fixed/fullscreen/screen-blend CSS. */
+  const canvas = document.createElement("canvas");
+  canvas.style.position = "fixed";
+  canvas.style.top = "0";
+  canvas.style.left = "0";
+  canvas.style.width = "100vw";
+  canvas.style.height = "100vh";
+  canvas.style.zIndex = "9999";
+  canvas.style.pointerEvents = "none";
+  canvas.style.mixBlendMode = "screen";
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext("2d");
+
+  const DPR = Math.min(window.devicePixelRatio || 1, 2);
+  let W = 0, H = 0;
+  function resize() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = Math.round(W * DPR);
+    canvas.height = Math.round(H * DPR);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  resize();
+  window.addEventListener("resize", resize);
+
+  const avatarEl = document.getElementById("avatar");
+
+  /* ── math helpers ──────────────────────────────────────────────────────── */
+  const easeOutExpo = (x) => (x >= 1 ? 1 : 1 - Math.pow(2, -10 * x));
+  // deterministic pseudo-random (same layout every cast, no flicker on respawn)
+  const rand = (i, s) => {
+    const x = Math.sin((i + 1) * 12.9898 + s * 78.233) * 43758.5453;
+    return x - Math.floor(x);
+  };
+
+  /* ── ambient starfield (the domain's cosmos) ───────────────────────────── */
+  const STARS = Array.from({ length: 170 }, (_, i) => ({
+    x: rand(i, 1), y: rand(i, 2),
+    r: 0.4 + rand(i, 3) * 1.5,
+    tw: rand(i, 4) * TAU,
+    sp: 0.4 + rand(i, 5) * 1.6,
+  }));
+
+  /* ── PHASE 3: the information flood — 1200 particles ───────────────────── */
+  const N = 1200;
+  const GOLDEN = Math.PI * (3 - Math.sqrt(5)); // golden angle — phyllotaxis spirals
+  const parts = new Array(N);
+  function spawnParticles(cx, cy) {
+    for (let i = 0; i < N; i++) {
+      const arm = i % 6;                          // six fractal arms
+      const armAng = (arm / 6) * TAU;
+      const ang = armAng + i * GOLDEN * 0.5;      // golden-angle sweep along each arm
+      const spd = 190 + rand(i, 6) * 540;         // px/s outward
+      // radial velocity + tangential swirl = precise logarithmic-spiral flow
+      const tang = 0.55;
+      parts[i] = {
+        x: cx, y: cy,
+        vx: Math.cos(ang) * spd + Math.cos(ang + Math.PI / 2) * spd * tang,
+        vy: Math.sin(ang) * spd + Math.sin(ang + Math.PI / 2) * spd * tang,
+        birth: (i / N) * 1.6,                     // staggered emission → arms visibly unfurl
+        size: 0.8 + rand(i, 7) * 2.4,
+        type: i % 5 === 0 ? 2 : i % 2,            // 0 dot · 1 streak · 2 data-glyph
+        hue: rand(i, 8),                          // white / cyan / indigo split
+        drift: rand(i, 9) * TAU,                  // stasis micro-drift phase
+        rot: rand(i, 10) * TAU,
+        alive: false,
+      };
+    }
+  }
+  const pcol = (h, a) =>
+    h < 0.5 ? `rgba(255,255,255,${a})` : h < 0.85 ? `rgba(103,232,249,${a})` : `rgba(129,140,248,${a})`;
+
+  /* ── the 4-phase state machine ─────────────────────────────────────────── */
+  const P1_DUR = 1.15;   // PHASE 1  barrier drop (easeOutExpo — impossibly fast)
+  const P2_AT  = 0.85;   // PHASE 2  cosmic eye fades in
+  const P3_AT  = 2.2;    // PHASE 3  information flood erupts
+  const P4_AT  = 4.6;    // PHASE 4  stasis — time collapses by 95%
+  const P4_RAMP = 0.9;
+
+  let elapsed = 0;        // real time since the cast (the eye's calm clock)
+  let t = 0;              // DOMAIN time (collapses in stasis)
+  let timeScale = 1;
+  let spawned = false;
+  let last = performance.now();
+
+  function recast() {
+    elapsed = 0; t = 0; timeScale = 1; spawned = false;
+  }
+  window.addEventListener("pointerdown", recast);
+
+  /* ── PHASE 2: the Cosmic Eye ───────────────────────────────────────────── */
+  function drawEye(cx, cy, R, a) {
+    // rotation blends real + domain time: it slows to a crawl in stasis but never dies
+    const rot = elapsed * 0.06 + t * 0.18;
+    // the calm, terrifying pulse runs on REAL time — it breathes through the paralysis
+    const pulse = 1 + 0.035 * Math.sin(elapsed * 0.9);
+
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.globalAlpha = a;
+
+    // 1 · deep-space halo
+    let g = ctx.createRadialGradient(cx, cy, R * 0.05, cx, cy, R);
+    g.addColorStop(0, "rgba(129,140,248,0.30)");
+    g.addColorStop(0.45, "rgba(49,46,129,0.35)");
+    g.addColorStop(0.8, "rgba(30,27,75,0.18)");
+    g.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.fill();
+
+    // 2 · the swirling iris — conic gradient annulus (radial fallback)
+    const irisOut = R * 0.62 * pulse, irisIn = R * 0.30 * pulse;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(rot);
+    let iris;
+    if (typeof ctx.createConicGradient === "function") {
+      iris = ctx.createConicGradient(0, 0, 0);
+      for (let s = 0; s <= 24; s++) {
+        const p = s / 24;
+        iris.addColorStop(p, s % 3 === 0 ? "rgba(255,255,255,0.55)" : s % 3 === 1 ? "rgba(34,211,238,0.50)" : "rgba(79,70,229,0.55)");
+      }
+    } else {
+      iris = ctx.createRadialGradient(0, 0, irisIn, 0, 0, irisOut);
+      iris.addColorStop(0, "rgba(34,211,238,0.50)");
+      iris.addColorStop(0.6, "rgba(79,70,229,0.50)");
+      iris.addColorStop(1, "rgba(255,255,255,0.35)");
+    }
+    ctx.beginPath();
+    ctx.arc(0, 0, irisOut, 0, TAU);
+    ctx.arc(0, 0, irisIn, 0, TAU, true);
+    ctx.fillStyle = iris;
+    ctx.globalAlpha = a * 0.8;
+    ctx.fill("evenodd");
+    ctx.restore();
+
+    // 3 · three spiral galaxy filaments winding through the iris
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(-rot * 1.6);
+    for (let arm = 0; arm < 3; arm++) {
+      const off = arm * (TAU / 3);
+      ctx.beginPath();
+      for (let s = 0; s <= 64; s++) {
+        const th = (s / 64) * Math.PI * 2.6;
+        const rr = irisIn * 0.9 + (irisOut * 1.25 - irisIn * 0.9) * (s / 64);
+        const x = Math.cos(th + off) * rr, y = Math.sin(th + off) * rr;
+        s === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = arm === 1 ? "rgba(255,255,255,0.35)" : "rgba(103,232,249,0.32)";
+      ctx.lineWidth = 1.6;
+      ctx.shadowColor = "#67e8f9";
+      ctx.shadowBlur = 10;
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // 4 · the blinding starlight core + cross-flare
+    const coreR = R * 0.20 * pulse;
+    g = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR);
+    g.addColorStop(0, "rgba(255,255,255,1)");
+    g.addColorStop(0.35, "rgba(224,242,254,0.95)");
+    g.addColorStop(0.7, "rgba(103,232,249,0.5)");
+    g.addColorStop(1, "rgba(103,232,249,0)");
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(cx, cy, coreR, 0, TAU); ctx.fill();
+    for (let k = 0; k < 4; k++) {
+      const angk = k * (Math.PI / 2) + rot * 0.5;
+      const len = coreR * (k % 2 ? 2.6 : 3.4);
+      const lg = ctx.createLinearGradient(cx, cy, cx + Math.cos(angk) * len, cy + Math.sin(angk) * len);
+      lg.addColorStop(0, "rgba(255,255,255,0.85)");
+      lg.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.strokeStyle = lg;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(angk) * len, cy + Math.sin(angk) * len);
+      ctx.stroke();
+    }
+
+    // 5 · thin outer rim
+    ctx.globalAlpha = a * 0.5;
+    ctx.strokeStyle = "rgba(165,243,252,0.5)";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.arc(cx, cy, R * 0.66 * pulse, 0, TAU); ctx.stroke();
+
+    ctx.restore();
+  }
+
+  /* ── PHASE 3/4: integrate + draw the information flood ─────────────────── */
+  function drawParticles(rdt, dt, pt) {
+    const hang = 1 - timeScale; // 0 → free flight, ~0.95 → suspended stasis
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    for (let i = 0; i < N; i++) {
+      const p = parts[i];
+      if (!p.alive) {
+        if (pt >= p.birth) p.alive = true;
+        else continue;
+      }
+      // curl the velocity a little every second → true spiral trajectories
+      const curl = 0.35 * dt;
+      const c = Math.cos(curl), s = Math.sin(curl);
+      const nvx = p.vx * c - p.vy * s;
+      const nvy = p.vx * s + p.vy * c;
+      p.vx = nvx * (1 - 0.22 * dt);
+      p.vy = nvy * (1 - 0.22 * dt);
+      p.x += p.vx * dt;   // dt is DOMAIN time — collapses 95% in stasis
+      p.y += p.vy * dt;
+      // stasis: microscopic real-time drift so the frozen storm shimmers alive
+      p.x += Math.cos(elapsed * 0.7 + p.drift) * 3.2 * hang * rdt;
+      p.y += Math.sin(elapsed * 0.6 + p.drift) * 3.2 * hang * rdt;
+
+      if (p.x < -50 || p.x > W + 50 || p.y < -50 || p.y > H + 50) continue;
+
+      const age = pt - p.birth;
+      const ain = Math.min(age / 0.25, 1); // fast fade-in as each mote is born
+      if (p.type === 1) {
+        // data streak — a line trailing along the velocity vector
+        const lx = Math.max(Math.min(p.vx * 0.05, 26), -26);
+        const ly = Math.max(Math.min(p.vy * 0.05, 26), -26);
+        ctx.strokeStyle = pcol(p.hue, 0.8 * ain);
+        ctx.lineWidth = p.size * 0.8;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p.x - lx, p.y - ly);
+        ctx.stroke();
+      } else if (p.type === 2) {
+        // data-glyph — a tiny rotating "+" of pure information
+        const L = p.size * 3;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot + t * 1.2);
+        ctx.strokeStyle = pcol(p.hue, 0.7 * ain);
+        ctx.lineWidth = 1.1;
+        ctx.beginPath();
+        ctx.moveTo(-L, 0); ctx.lineTo(L, 0);
+        ctx.moveTo(0, -L); ctx.lineTo(0, L);
+        ctx.stroke();
+        ctx.restore();
+      } else {
+        // glowing mote — soft halo + hot core
+        ctx.fillStyle = pcol(p.hue, 0.22 * ain);
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.size * 2.6, 0, TAU); ctx.fill();
+        ctx.fillStyle = pcol(p.hue, 0.9 * ain);
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU); ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
+  /* ── the optimized master loop ─────────────────────────────────────────── */
+  function frame(now) {
+    // self-heal: if the page loaded while the viewport reported 0 (hidden tab,
+    // prerender) no resize event ever comes — recheck every frame, it's cheap.
+    if (W !== window.innerWidth || H !== window.innerHeight) resize();
+
+    const rdt = Math.min((now - last) / 1000, 0.05); // real dt, clamped
+    last = now;
+    elapsed += rdt;
+
+    // PHASE 4 — the Paralysis: collapse the flow of time by 95%
+    if (elapsed > P4_AT) {
+      const k = Math.min((elapsed - P4_AT) / P4_RAMP, 1);
+      timeScale = 1 - 0.95 * easeOutExpo(k);
+    } else {
+      timeScale = 1;
+    }
+    const dt = rdt * timeScale;
+    t += dt;
+
+    ctx.clearRect(0, 0, W, H);
+
+    // the epicenter — track the live avatar every frame
+    const r0 = avatarEl.getBoundingClientRect();
+    const cx = r0.left + r0.width / 2;
+    const cy = r0.top + r0.height / 2;
+    const ar = r0.width / 2;
+
+    // impact shake while the barrier drops
+    let sx = 0, sy = 0;
+    if (elapsed < 0.45) {
+      const s = (0.45 - elapsed) / 0.45;
+      sx = (Math.random() - 0.5) * 14 * s;
+      sy = (Math.random() - 0.5) * 14 * s;
+    }
+    ctx.save();
+    ctx.translate(sx, sy);
+
+    // ambient stars reveal once the barrier has sealed the domain
+    const starA = easeOutExpo(Math.min(Math.max(elapsed - 0.35, 0) / 1.2, 1));
+    if (starA > 0) {
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      for (let i = 0; i < STARS.length; i++) {
+        const st = STARS[i];
+        const twinkle = 0.3 + 0.3 * Math.sin(elapsed * st.sp + st.tw);
+        ctx.fillStyle = `rgba(226,232,240,${(twinkle * starA).toFixed(3)})`;
+        ctx.beginPath();
+        ctx.arc(st.x * W, st.y * H, st.r, 0, TAU);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // PHASE 1 — Domain Expansion: the barrier drop
+    const maxR = Math.hypot(Math.max(cx, W - cx), Math.max(cy, H - cy)) * 1.25;
+    const bp = Math.min(elapsed / P1_DUR, 1);
+    const bR = ar + easeOutExpo(bp) * maxR;
+    const bFade = bp < 1 ? 1 : Math.max(1 - (elapsed - P1_DUR) / 0.6, 0);
+    if (bFade > 0) {
+      ctx.save();
+      // the inverted black sphere itself (screen-blend leaves the darkness to
+      // the page; the RIM is what locks the world away)
+      ctx.fillStyle = "rgba(0,0,0,1)";
+      ctx.beginPath(); ctx.arc(cx, cy, bR, 0, TAU); ctx.fill();
+      ctx.globalAlpha = bFade;
+      ctx.shadowColor = "#ffffff";
+      ctx.shadowBlur = 40;
+      ctx.strokeStyle = "rgba(255,255,255,0.95)";
+      ctx.lineWidth = 10;
+      ctx.beginPath(); ctx.arc(cx, cy, bR, 0, TAU); ctx.stroke();
+      ctx.shadowBlur = 18;
+      ctx.strokeStyle = "rgba(103,232,249,0.8)";
+      ctx.lineWidth = 3.5;
+      ctx.beginPath(); ctx.arc(cx, cy, bR * 0.985, 0, TAU); ctx.stroke();
+      ctx.globalAlpha = bFade * 0.4;
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = "rgba(129,140,248,0.7)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(cx, cy, bR * 0.9, 0, TAU); ctx.stroke();
+      ctx.restore();
+    }
+
+    // PHASE 2 — the Cosmic Eye behind the avatar
+    if (elapsed > P2_AT) {
+      const ep = Math.min((elapsed - P2_AT) / 1.5, 1);
+      drawEye(cx, cy, Math.min(W, H) * 0.46, easeOutExpo(ep));
+    }
+
+    // PHASE 3 — the flood of infinite information
+    if (elapsed > P3_AT && !spawned) {
+      spawnParticles(cx, cy);
+      spawned = true;
+    }
+    if (spawned) drawParticles(rdt, dt, elapsed - P3_AT);
+
+    ctx.restore();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

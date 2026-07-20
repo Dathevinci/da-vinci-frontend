@@ -97,6 +97,7 @@ export default function Navbar() {
           <Link href="/calendar" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><Calendar className="w-4 h-4" /> Schedule</Link>
         </div>
       </div>
+      <Link href="/updates" className={`hover:text-white ${accentHover} transition whitespace-nowrap`}>Updates</Link>
     </>
   );
 
@@ -263,6 +264,7 @@ export default function Navbar() {
                 <Link href="/airing" onClick={() => setIsMobileMenuOpen(false)} className={accentHover}>Airing Now</Link>
                 <Link href="/upcoming" onClick={() => setIsMobileMenuOpen(false)} className={accentHover}>Upcoming</Link>
                 <Link href="/calendar" onClick={() => setIsMobileMenuOpen(false)} className={accentHover}>Schedule</Link>
+                <Link href="/updates" onClick={() => setIsMobileMenuOpen(false)} className={accentHover}>Updates</Link>
               </>
             ) : mode === 'manhwa' ? (
               <>
