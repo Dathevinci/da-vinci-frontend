@@ -4,12 +4,13 @@ import { Compass, Code2, MessageCircle, Radio, Heart, ExternalLink, ShieldCheck,
 export default function Footer() {
   return (
     <footer className="relative mt-20 border-t border-white/10 overflow-hidden bg-[#050505]">
-      {/* Decorative Glows */}
+      {/* Decorative Glows — one per mode (anime purple · manhwa red · novel pink) */}
       <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[120px] pointer-events-none transform -translate-y-1/2"></div>
-      <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[120px] pointer-events-none transform -translate-y-1/2"></div>
-      
-      {/* Subtle Top Gradient Line */}
-      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-purple-500/50 to-transparent"></div>
+      <div className="absolute top-0 left-1/2 w-[430px] h-[430px] bg-red-600/10 rounded-full blur-[120px] pointer-events-none transform -translate-x-1/2 -translate-y-1/2"></div>
+      <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-pink-600/10 rounded-full blur-[120px] pointer-events-none transform -translate-y-1/2"></div>
+
+      {/* Tri-color top line: anime → manhwa → novel */}
+      <div className="absolute top-0 left-0 right-0 h-[1px] bg-[linear-gradient(to_right,transparent,rgba(139,92,246,0.6),rgba(220,38,38,0.5),rgba(236,72,153,0.6),transparent)]"></div>
 
       <div className="container mx-auto px-6 pt-20 pb-12 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 lg:gap-8">
@@ -26,8 +27,16 @@ export default function Footer() {
               </span>
             </Link>
             <p className="text-slate-400 text-sm leading-relaxed max-w-sm font-medium">
-              Your ultimate companion for tracking, discovering, and exploring anime. Seamlessly synced with AniList for a premium, lightning-fast experience.
+              Your ultimate companion for tracking, discovering, and exploring <span className="text-purple-300 font-semibold">anime</span>, <span className="text-red-300 font-semibold">manhwa</span>, and <span className="text-pink-300 font-semibold">light novels</span> — one premium, lightning-fast library for every art.
             </p>
+
+            {/* Three modes, three colours */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="px-3 py-1 rounded-full text-xs font-bold border border-purple-500/30 bg-purple-500/10 text-purple-300">Anime</span>
+              <span className="px-3 py-1 rounded-full text-xs font-bold border border-red-500/30 bg-red-500/10 text-red-300">Manhwa</span>
+              <span className="px-3 py-1 rounded-full text-xs font-bold border border-pink-500/30 bg-pink-500/10 text-pink-300">Novels</span>
+            </div>
+
             <div className="pt-2 flex flex-col gap-3">
               <a 
                 href="https://discord.gg/dSPPjPUQbM" 
@@ -51,15 +60,17 @@ export default function Footer() {
             </h4>
             <ul className="space-y-3.5 text-slate-400 font-medium">
               {[
-                { name: "Dashboard", href: "/" },
-                { name: "Catalog", href: "/explore" },
-                { name: "Airing Calendar", href: "/calendar" },
-                { name: "Discussions", href: "/community" },
-                { name: "Shop", href: "/shop" },
+                { name: "Dashboard", href: "/", dot: "bg-purple-400" },
+                { name: "Anime", href: "/explore", dot: "bg-purple-400" },
+                { name: "Manhwa", href: "/manhwa", dot: "bg-red-400" },
+                { name: "Novels", href: "/novel", dot: "bg-pink-400" },
+                { name: "Airing Calendar", href: "/calendar", dot: "bg-purple-400" },
+                { name: "Discussions", href: "/community", dot: "bg-purple-400" },
+                { name: "Shop", href: "/shop", dot: "bg-purple-400" },
               ].map((link) => (
                 <li key={link.name}>
                   <Link href={link.href} className="group hover:text-purple-300 transition-all duration-300 inline-flex items-center gap-2">
-                    <ChevronRight className="w-3.5 h-3.5 opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 text-purple-500 transition-all duration-300" />
+                    <span className={`w-1.5 h-1.5 rounded-full ${link.dot} opacity-60 group-hover:opacity-100 transition-opacity duration-300`} />
                     {link.name}
                   </Link>
                 </li>
@@ -133,7 +144,7 @@ export default function Footer() {
             
             <div className="flex-1 max-w-2xl text-center md:text-left">
               <p className="text-xs text-slate-500 leading-relaxed">
-                Da Vinci is strictly an educational tracker interface. We do not host, scrape, or stream any copyrighted material. All data and images are provided by the AniList API and third-party sources.
+                Da Vinci is strictly an educational tracker interface for anime, manhwa, and light novels. We do not host, scrape, or stream any copyrighted material. All data and images are provided by the AniList API and other third-party sources.
               </p>
             </div>
 

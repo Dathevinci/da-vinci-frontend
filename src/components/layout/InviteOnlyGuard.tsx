@@ -37,8 +37,10 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
   if (!user) {
     return (
       <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center relative overflow-hidden text-white p-4 selection:bg-violet-500/20">
-        {/* Violet ambience + edge vignette (no generic floating blobs) */}
-        <div className="absolute inset-0 z-0 pointer-events-none bg-[radial-gradient(ellipse_at_50%_35%,rgba(88,44,160,0.20)_0%,transparent_55%)]" />
+        {/* Tri-mode ambience — anime violet (top), manhwa red (left), novel pink (right) + edge vignette */}
+        <div className="absolute inset-0 z-0 pointer-events-none bg-[radial-gradient(ellipse_at_50%_32%,rgba(139,92,246,0.20)_0%,transparent_55%)]" />
+        <div className="absolute inset-0 z-0 pointer-events-none bg-[radial-gradient(ellipse_at_20%_78%,rgba(220,38,38,0.13)_0%,transparent_50%)]" />
+        <div className="absolute inset-0 z-0 pointer-events-none bg-[radial-gradient(ellipse_at_80%_75%,rgba(236,72,153,0.14)_0%,transparent_50%)]" />
         <div className="absolute inset-0 z-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_45%,#050505_100%)]" />
 
         {/* Faint concentric geometry — a nod to da Vinci's proportion studies */}
@@ -47,9 +49,11 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1, rotate: 360 }}
             transition={{ opacity: { duration: 2 }, scale: { duration: 2, ease: easeCine }, rotate: { duration: 160, repeat: Infinity, ease: "linear" } }}
-            className="gpu-layer w-[520px] h-[520px] md:w-[720px] md:h-[720px] rounded-full border border-violet-300/[0.07]"
+            className="gpu-layer w-[520px] h-[520px] md:w-[720px] md:h-[720px] rounded-full border border-violet-300/[0.10]"
           />
-          <div className="absolute w-[360px] h-[360px] md:w-[500px] md:h-[500px] rounded-full border border-violet-300/[0.06]" />
+          {/* manhwa-red + novel-pink inner rings */}
+          <div className="absolute w-[440px] h-[440px] md:w-[610px] md:h-[610px] rounded-full border border-red-400/[0.07]" />
+          <div className="absolute w-[360px] h-[360px] md:w-[500px] md:h-[500px] rounded-full border border-pink-400/[0.08]" />
         </div>
 
         <div className="z-10 flex flex-col items-center text-center max-w-2xl w-full">
@@ -78,14 +82,18 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
             Da Vinci
           </motion.h1>
 
-          {/* Medium badge — the two arts studied within */}
+          {/* Medium badge — the three arts studied within, each in its own hue */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.7, delay: 0.5, ease: easeCine }}
-            className="mb-6 px-4 py-1 rounded-full border border-violet-400/40 bg-violet-500/10 text-violet-200/90 text-[10px] md:text-xs font-bold tracking-[0.25em] uppercase"
+            className="mb-6 px-4 py-1 rounded-full border border-white/15 bg-white/[0.04] text-[10px] md:text-xs font-bold tracking-[0.25em] uppercase"
           >
-            Anime &middot; Manhwa
+            <span className="text-violet-300">Anime</span>
+            <span className="text-slate-500"> &middot; </span>
+            <span className="text-red-400">Manhwa</span>
+            <span className="text-slate-500"> &middot; </span>
+            <span className="text-pink-400">Novels</span>
           </motion.div>
 
           {/* Ornamental rule */}
@@ -93,7 +101,7 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
             initial={{ opacity: 0, scaleX: 0 }}
             animate={{ opacity: 1, scaleX: 1 }}
             transition={{ duration: 0.9, delay: 0.35, ease: easeCine }}
-            className="h-px w-44 md:w-56 bg-gradient-to-r from-transparent via-violet-300/50 to-transparent origin-center mb-8"
+            className="h-px w-44 md:w-56 bg-[linear-gradient(to_right,transparent,rgba(167,139,250,0.6),rgba(248,113,113,0.5),rgba(244,114,182,0.6),transparent)] origin-center mb-8"
           />
 
           {/* Refined Renaissance copy */}
@@ -103,7 +111,7 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
             transition={{ duration: 0.9, delay: 0.25, ease: easeCine }}
             className="font-garamond italic text-lg md:text-2xl text-violet-100/80 mb-3 leading-relaxed"
           >
-            An invitation-only atelier for the devoted student of the anime &amp; manhwa arts.
+            An invitation-only atelier for the devoted student of the anime, manhwa &amp; light-novel arts.
           </motion.p>
           <motion.p
             initial={{ y: 16, opacity: 0 }}
@@ -111,7 +119,7 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
             transition={{ duration: 0.9, delay: 0.32, ease: easeCine }}
             className="text-sm md:text-base text-slate-400/80 mb-12 max-w-md mx-auto font-light tracking-wide"
           >
-            Present your seal to unlock the vault — anime to watch, manhwa to read — and begin your study.
+            Present your seal to unlock the vault — anime to watch, manhwa &amp; novels to read — and begin your study.
           </motion.p>
 
           {/* Request Access — purple-lined seal button */}
