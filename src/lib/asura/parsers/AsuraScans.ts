@@ -8,6 +8,11 @@ import {
   IMangaChapter,
 } from '../models';
 
+interface MangaFilters {
+  status?: string;
+  sort?: string;
+}
+
 class AsuraScans extends MangaParser {
   override readonly name = 'AsuraScans';
   protected override baseUrl = 'https://api.asurascans.com/api';
@@ -92,13 +97,16 @@ class AsuraScans extends MangaParser {
   // AsuraScans' API pages by ?per_page. Both browse and search share the size.
   private static readonly PER_PAGE = 20;
 
-  async getLatestUpdates(page: number = 1): Promise<ISearch<IMangaResult>> {
+  async getLatestUpdates(page: number = 1, filters?: MangaFilters): Promise<ISearch<IMangaResult>> {
     try {
       // The API IGNORES ?page= (every page returns the same first 20 series) —
       // it paginates by ?offset= instead. Convert the 1-based page to an offset.
       const per = AsuraScans.PER_PAGE;
       const offset = (Math.max(1, page) - 1) * per;
-      const data = await this.requestWithFallback<any>(`series?offset=${offset}`);
+      let path = `series?offset=${offset}`;
+      if (filters?.status) path += `&status=${encodeURIComponent(filters.status)}`;
+      if (filters?.sort) path += `&sort=${encodeURIComponent(filters.sort)}`;
+      const data = await this.requestWithFallback<any>(path);
       const items = data.data || [];
       const total = Number(data.meta?.total) || 0;
       return {
@@ -130,18 +138,21 @@ class AsuraScans extends MangaParser {
     }
   }
 
-  async getSeries(page: number = 1): Promise<ISearch<IMangaResult>> {
-    return this.getLatestUpdates(page);
+  async getSeries(page: number = 1, filters?: MangaFilters): Promise<ISearch<IMangaResult>> {
+    return this.getLatestUpdates(page, filters);
   }
 
-  override search = async (query: string, page: number = 1): Promise<ISearch<IMangaResult>> => {
+  override search = async (query: string, page: number = 1, filters?: MangaFilters): Promise<ISearch<IMangaResult>> => {
     try {
       // AsuraScans filters by ?search= (NOT ?name=, which it silently ignores
       // and returns the full catalog). Paginate with ?offset= like browse.
       const per = AsuraScans.PER_PAGE;
       const offset = (Math.max(1, page) - 1) * per;
       const formattedQuery = encodeURIComponent(query);
-      const data = await this.requestWithFallback<any>(`series?offset=${offset}&search=${formattedQuery}`);
+      let path = `series?offset=${offset}&search=${formattedQuery}`;
+      if (filters?.status) path += `&status=${encodeURIComponent(filters.status)}`;
+      if (filters?.sort) path += `&sort=${encodeURIComponent(filters.sort)}`;
+      const data = await this.requestWithFallback<any>(path);
       const items = data.data || [];
       const total = Number(data.meta?.total) || 0;
 

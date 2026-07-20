@@ -10,21 +10,22 @@ function FiltersInner() {
 
   const [query, setQuery] = useState(sp.get("q") || "");
   const [status, setStatus] = useState(sp.get("status") || "");
-  const [sort, setSort] = useState(sp.get("sort") || "followedCount");
+  const [sort, setSort] = useState(sp.get("sort") || "");
   const [open, setOpen] = useState(false);
 
   const apply = () => {
     const p = new URLSearchParams();
     if (query) p.set("q", query);
     if (status) p.set("status", status);
-    if (sort && sort !== "followedCount") p.set("sort", sort);
+    if (sort) p.set("sort", sort);
+    p.set("view", "all"); // filters always show the browse grid, not the home shelves
     p.set("page", "1");
     router.push(`/manhwa?${p.toString()}`);
   };
 
   const clear = () => {
-    setQuery(""); setStatus(""); setSort("followedCount");
-    router.push("/manhwa?page=1");
+    setQuery(""); setStatus(""); setSort("");
+    router.push("/manhwa?view=all&page=1");
   };
 
   return (
@@ -61,7 +62,7 @@ function FiltersInner() {
               <option value="ongoing">Ongoing</option>
               <option value="completed">Completed</option>
               <option value="hiatus">Hiatus</option>
-              <option value="cancelled">Cancelled</option>
+              <option value="dropped">Dropped</option>
             </select>
           </div>
 
@@ -72,10 +73,10 @@ function FiltersInner() {
               onChange={(e) => setSort(e.target.value)}
               className="w-full bg-[#151518] border border-white/10 rounded-lg py-2 px-3 text-sm text-white focus:outline-none focus:border-red-500/50"
             >
-              <option value="followedCount">Most Popular</option>
-              <option value="latestUploadedChapter">Latest Updated</option>
+              <option value="">Latest</option>
+              <option value="popular">Most Popular</option>
               <option value="rating">Highest Rated</option>
-              <option value="year">Newest</option>
+              <option value="title">A&ndash;Z</option>
             </select>
           </div>
 

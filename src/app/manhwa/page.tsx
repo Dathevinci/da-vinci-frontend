@@ -33,6 +33,8 @@ function ManhwaPageInner() {
   const router = useRouter();
   const page = Math.max(1, parseInt(sp.get("page") || "1"));
   const query = sp.get("q") || "";
+  const status = sp.get("status") || "";
+  const sort = sp.get("sort") || "";
 
   const [data, setData] = useState<IMangaResult[]>([]);
   const [trending, setTrending] = useState<IMangaResult[]>([]);
@@ -41,7 +43,8 @@ function ManhwaPageInner() {
   const [hasNext, setHasNext] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const isHome = !query && page === 1 && sp.get("view") !== "all";
+  // A filter (status/sort) always means the browse grid, never the home shelves.
+  const isHome = !query && page === 1 && sp.get("view") !== "all" && !status && !sort;
 
   useEffect(() => {
     setLoading(true);
@@ -61,11 +64,11 @@ function ManhwaPageInner() {
           setLoading(false);
         });
     } else {
-      // Fetch regular search/pagination data
+      // Fetch regular search/pagination/filter data
       let url = `/api/manhwa?page=${page}`;
-      if (query) {
-        url += `&q=${encodeURIComponent(query)}`;
-      }
+      if (query) url += `&q=${encodeURIComponent(query)}`;
+      if (status) url += `&status=${encodeURIComponent(status)}`;
+      if (sort) url += `&sort=${encodeURIComponent(sort)}`;
       fetch(url)
         .then((res) => res.json())
         .then((res: ISearch<IMangaResult>) => {
