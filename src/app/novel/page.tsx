@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Search, Loader2, BookOpen, ChevronLeft, ChevronRight, Flame, Clock, CheckCircle2, BookMarked } from "lucide-react";
+import { Loader2, BookOpen, ChevronLeft, ChevronRight, Flame, Clock, CheckCircle2, BookMarked } from "lucide-react";
 import NovelCard from "@/components/novel/NovelCard";
 import NovelCarousel from "@/components/novel/NovelCarousel";
 import NovelHeroCarousel from "@/components/novel/NovelHeroCarousel";
@@ -48,7 +48,6 @@ function NovelInner() {
   const [completed, setCompleted] = useState<NovelResult[]>([]);
   const [hasNext, setHasNext] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [searchInput, setSearchInput] = useState(query);
 
   useEffect(() => {
     setLoading(true);
@@ -80,12 +79,6 @@ function NovelInner() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sp.toString(), isHome]);
-
-  const submitSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const q = searchInput.trim();
-    router.push(q ? `/novel?q=${encodeURIComponent(q)}` : "/novel");
-  };
 
   const buildUrl = (p: number) => {
     const u = new URLSearchParams(sp.toString());
@@ -123,26 +116,15 @@ function NovelInner() {
           </motion.div>
         ) : (
           <motion.div key="browse" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }} className="max-w-[1500px] mx-auto px-4 md:px-8">
-            {/* Header + search */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 mb-8 pt-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400">
-                  <BookOpen className="w-6 h-6" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-black tracking-tight">Light Novels</h1>
-                  <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">Powered by ReadNovelFull</p>
-                </div>
+            {/* Header (search lives in the navbar) */}
+            <div className="flex items-center gap-3 mb-8 pt-4">
+              <div className="w-12 h-12 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400">
+                <BookOpen className="w-6 h-6" />
               </div>
-              <form onSubmit={submitSearch} className="relative w-full md:w-80">
-                <input
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  placeholder="Search novels…"
-                  className="w-full bg-[#151518] border border-white/10 rounded-xl py-3 pl-11 pr-4 text-sm focus:outline-none focus:border-pink-500/50 transition-colors placeholder:text-slate-500"
-                />
-                <Search className="w-4 h-4 text-slate-500 absolute left-4 top-1/2 -translate-y-1/2" />
-              </form>
+              <div>
+                <h1 className="text-3xl font-black tracking-tight">Light Novels</h1>
+                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">Powered by ReadNovelFull</p>
+              </div>
             </div>
 
             {/* List tabs (hidden during search) */}

@@ -124,29 +124,31 @@ export async function browseNovels(
 }
 
 // ── search ────────────────────────────────────────────────────────────────────
-export async function searchNovels(keyword: string): Promise<{ results: NovelResult[]; hasNextPage: boolean }> {
-  const html = await fetchHtml(`/ajax/search-novel?keyword=${encodeURIComponent(keyword)}`);
-  const out: NovelResult[] = [];
-  const seen = new Set<string>();
-  for (const m of html.matchAll(/href="\/([a-z0-9-]+)\.html"[^>]*title="([^"]*)"/g)) {
-    const slug = m[1];
-    if (seen.has(slug)) continue;
-    seen.add(slug);
-    out.push({ id: slug, title: decodeEntities(m[2]), cover: "" });
-  }
-  return { results: out, hasNextPage: false };
+export async function searchNovels(keyword: string, page = 1): Promise<{ results: NovelResult[]; hasNextPage: boolean }> {
+  // Use the full paginated search page (covers + many results across the whole
+  // catalog), not the tiny autocomplete. Same row structure as browse.
+  const html = await fetchHtml(`/novel-list/search?keyword=${encodeURIComponent(keyword)}&page=${Math.max(1, page)}`);
+  const results = parseListRows(html);
+  const pages = Array.from(html.matchAll(/[?&]page=(\d+)/g)).map((m) => Number(m[1]));
+  const maxPage = pages.length ? Math.max(...pages) : page;
+  return { results, hasNextPage: page < maxPage && results.length > 0 };
 }
 
 // ── detail ────────────────────────────────────────────────────────────────────
-function parseChapters(html: string, slug: string): NovelChapter[] {
+// The chapter archive lists chapters under the novel's real slug, which can
+// differ from the browse/page slug (e.g. a "-v1" suffix). Match ANY two-segment
+// chapter link so chapters are always found regardless of that mismatch.
+function parseChapters(html: string): NovelChapter[] {
   const out: NovelChapter[] = [];
-  const re = new RegExp(`href="\\/${slug}\\/([^"/]+?)\\.html"[^>]*(?:title="([^"]*)")?[^>]*>(?:\\s*<[^>]+>\\s*)*([^<]*)`, "g");
+  const seen = new Set<string>();
   let n = 0;
+  const re = /href="\/[a-z0-9-]+\/([^"/]+?)\.html"[^>]*(?:title="([^"]*)")?[^>]*>(?:\s*<[^>]+>\s*)*([^<]*)/g;
   for (const m of html.matchAll(re)) {
     const id = m[1];
-    const title = decodeEntities(m[2] || m[3] || id);
+    if (seen.has(id)) continue;
+    seen.add(id);
     n += 1;
-    out.push({ id, title, number: n });
+    out.push({ id, title: decodeEntities(m[2] || m[3] || id), number: n });
   }
   return out;
 }
@@ -167,7 +169,7 @@ export async function getNovelInfo(slug: string): Promise<NovelInfo> {
   if (novelId) {
     try {
       const chHtml = await fetchHtml(`/ajax/chapter-archive?novelId=${novelId}`);
-      chapters = parseChapters(chHtml, slug);
+      chapters = parseChapters(chHtml);
     } catch {
       /* chapters optional; detail still returns */
     }
@@ -190,8 +192,36 @@ function htmlToParagraphs(raw: string): string[] {
     .filter((p) => p.length > 1);
 }
 
+// Resolve the real slug a chapter lives under (differs from the novel-page slug
+// for "-v1"-style novels) by looking it up in the chapter archive.
+async function resolveChapterSlug(novelSlug: string, chapterId: string): Promise<string> {
+  const page = await fetchHtml(`/${novelSlug}.html`).catch(() => "");
+  const nid = page.match(/data-novel-id="(\d+)"/)?.[1];
+  if (!nid) return "";
+  const arc = await fetchHtml(`/ajax/chapter-archive?novelId=${nid}`).catch(() => "");
+  const esc = chapterId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return arc.match(new RegExp(`href="\\/([a-z0-9-]+)\\/${esc}\\.html"`))?.[1] || "";
+}
+
 export async function getChapterContent(slug: string, chapterId: string): Promise<ChapterContent> {
-  const html = await fetchHtml(`/${slug}/${chapterId}.html`);
+  // The novel slug can differ from the chapter slug (e.g. "-v1"). Try the given
+  // slug, then the de-versioned slug, then resolve the real one via the archive.
+  const candidates: string[] = [];
+  const add = (s: string) => { if (s && !candidates.includes(s)) candidates.push(s); };
+  add(slug);
+  add(slug.replace(/-v\d+$/i, ""));
+
+  let html = "";
+  for (const s of candidates) {
+    const h = await fetchHtml(`/${s}/${chapterId}.html`).catch(() => "");
+    if (h.includes('id="chr-content"')) { html = h; break; }
+  }
+  if (!html) {
+    const real = await resolveChapterSlug(slug, chapterId).catch(() => "");
+    if (real && !candidates.includes(real)) html = await fetchHtml(`/${real}/${chapterId}.html`).catch(() => "");
+  }
+  if (!html) throw new Error(`Chapter not found: ${slug}/${chapterId}`);
+
   const title = decodeEntities(
     html.match(/<span class="chr-text">([^<]+)<\/span>/)?.[1] ||
       html.match(/<a class="chr-title"[^>]*>(?:\s*<[^>]+>\s*)*([^<]+)/)?.[1] ||

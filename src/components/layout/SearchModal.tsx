@@ -8,6 +8,7 @@ import { searchAnime } from "@/lib/jikan";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import { useAnimeModal } from "@/components/providers/AnimeModalProvider";
 import { useManhwaModal } from "@/components/providers/ManhwaModalProvider";
+import { useNovelModal } from "@/components/providers/NovelModalProvider";
 import { useAppMode } from "@/components/providers/AppModeProvider";
 import { Anime } from "@tutkli/jikan-ts";
 import { IMangaResult } from "@/lib/asura/models";
@@ -23,6 +24,7 @@ export default function SearchModal({ onClose }: SearchModalProps) {
   const router = useRouter();
   const { openAnime } = useAnimeModal();
   const { openManhwa } = useManhwaModal();
+  const { openNovel } = useNovelModal();
   const { mode } = useAppMode();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -54,7 +56,12 @@ export default function SearchModal({ onClose }: SearchModalProps) {
           const res = await fetch(`/api/manhwa?q=${encodeURIComponent(query)}&page=1`);
           if (!res.ok) throw new Error("Search failed");
           const data = await res.json();
-          setResults(data.results.slice(0, 5));
+          setResults((data.results || []).slice(0, 5));
+        } else if (mode === 'novel') {
+          const res = await fetch(`/api/novels?q=${encodeURIComponent(query)}&page=1`);
+          if (!res.ok) throw new Error("Search failed");
+          const data = await res.json();
+          setResults((data.results || []).slice(0, 5));
         } else {
           const res = await searchAnime({ search: query, page: 1 });
           setResults(res.Page.media.slice(0, 5));
@@ -77,6 +84,8 @@ export default function SearchModal({ onClose }: SearchModalProps) {
         if (results.length > 0) {
           openManhwa(results[0]);
         }
+      } else if (mode === 'novel') {
+        router.push(`/novel?q=${encodeURIComponent(query)}`);
       } else {
         router.push(`/explore?q=${encodeURIComponent(query)}`);
       }
@@ -112,7 +121,7 @@ export default function SearchModal({ onClose }: SearchModalProps) {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={mode === 'manhwa' ? "Search manhwa..." : "Search anime..."}
+              placeholder={mode === 'manhwa' ? "Search manhwa..." : mode === 'novel' ? "Search novels..." : "Search anime..."}
               className="w-full bg-transparent text-white text-xl py-6 pl-16 pr-12 focus:outline-none placeholder:text-slate-500"
             />
             {query && (
@@ -136,10 +145,15 @@ export default function SearchModal({ onClose }: SearchModalProps) {
               <div className="p-2">
                 {results.map((item) => {
                   const isManhwa = mode === 'manhwa';
-                  const key = isManhwa ? item.id : item.mal_id;
-                  const title = isManhwa ? item.title : (item.title_english || item.title);
-                  const image = isManhwa ? `/api/manhwa-image?url=${encodeURIComponent(item.image)}` : (item.images?.jpg?.large_image_url || item.images?.jpg?.image_url);
-                  const subtext = isManhwa ? `Rating: ${item.rating || 'N/A'}` : `${item.type} • ${item.year || "?"}`;
+                  const isNovel = mode === 'novel';
+                  const key = isManhwa || isNovel ? item.id : item.mal_id;
+                  const title = isManhwa || isNovel ? item.title : (item.title_english || item.title);
+                  const image = isManhwa
+                    ? `/api/manhwa-image?url=${encodeURIComponent(item.image)}`
+                    : isNovel
+                    ? (item.cover ? `/api/novel-image?url=${encodeURIComponent(item.cover)}` : "")
+                    : (item.images?.jpg?.large_image_url || item.images?.jpg?.image_url);
+                  const subtext = isManhwa ? `Rating: ${item.rating || 'N/A'}` : isNovel ? (item.latestChapter || "Light Novel") : `${item.type} • ${item.year || "?"}`;
 
                   return (
                     <button
@@ -147,18 +161,16 @@ export default function SearchModal({ onClose }: SearchModalProps) {
                       key={key}
                       onClick={() => {
                         onClose();
-                        if (isManhwa) {
-                          openManhwa(item);
-                        } else {
-                          openAnime(item);
-                        }
+                        if (isManhwa) openManhwa(item);
+                        else if (isNovel) openNovel(item);
+                        else openAnime(item);
                       }}
                       className="w-full text-left flex items-center gap-4 p-4 hover:bg-white/5 rounded-xl transition cursor-pointer"
                     >
                       <img
                         src={image}
                         alt={title}
-                        className={`w-12 h-16 object-cover rounded-md ${isManhwa ? 'hq-image' : ''}`}
+                        className={`w-12 h-16 object-cover rounded-md bg-[#151518] ${isManhwa || isNovel ? 'hq-image' : ''}`}
                       />
                       <div className="flex-1 min-w-0">
                         <h3 className="text-white font-bold truncate">
@@ -171,11 +183,13 @@ export default function SearchModal({ onClose }: SearchModalProps) {
                     </button>
                   );
                 })}
-                
-                {mode === 'anime' && (
+
+                {(mode === 'anime' || mode === 'novel') && (
                   <button
                     onClick={handleSubmit}
-                    className="w-full mt-2 p-4 text-center text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 rounded-xl transition font-bold flex items-center justify-center gap-2"
+                    className={`w-full mt-2 p-4 text-center rounded-xl transition font-bold flex items-center justify-center gap-2 ${
+                      mode === 'novel' ? "text-pink-400 hover:text-pink-300 hover:bg-pink-500/10" : "text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
+                    }`}
                   >
                     <Compass className="w-4 h-4" /> View all results for "{query}"
                   </button>
@@ -187,7 +201,7 @@ export default function SearchModal({ onClose }: SearchModalProps) {
               </div>
             ) : (
               <div className="p-8 text-center text-slate-500 text-sm">
-                Type something to search the Jikan database.
+                Type something to search {mode === 'manhwa' ? 'manhwa' : mode === 'novel' ? 'light novels' : 'anime'}.
               </div>
             )}
           </div>

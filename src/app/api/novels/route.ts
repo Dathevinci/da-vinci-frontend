@@ -8,7 +8,7 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get('page') || '1');
     const list = searchParams.get('list') || 'most-popular-novel';
 
-    const data = query ? await searchNovels(query) : await browseNovels(page, list);
+    const data = query ? await searchNovels(query, page) : await browseNovels(page, list);
     return NextResponse.json(data);
   } catch (error: any) {
     console.error('ReadNovelFull API Error:', error);
