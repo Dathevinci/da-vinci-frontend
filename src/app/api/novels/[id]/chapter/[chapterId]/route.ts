@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getChapterContent } from '@/lib/novel/ReadNovelFull';
+import { getChapterContent } from '@/lib/novel/sources';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string; chapterId: string }> }) {
   try {

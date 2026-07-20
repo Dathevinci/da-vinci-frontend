@@ -46,6 +46,7 @@ function NovelInner() {
   const [trending, setTrending] = useState<NovelResult[]>([]);
   const [latest, setLatest] = useState<NovelResult[]>([]);
   const [completed, setCompleted] = useState<NovelResult[]>([]);
+  const [fanmtl, setFanmtl] = useState<NovelResult[]>([]);
   const [hasNext, setHasNext] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -58,6 +59,7 @@ function NovelInner() {
           setTrending(res.trending || []);
           setLatest(res.latestUpdates || []);
           setCompleted(res.completed || []);
+          setFanmtl(res.fanmtl || []);
           setLoading(false);
         })
         .catch(() => setLoading(false));
@@ -103,6 +105,7 @@ function NovelInner() {
               <NovelCarousel title="Trending Now" icon={<Flame className="w-6 h-6 text-orange-500" />} items={trending} seeAllLink="/novel?view=all&list=most-popular-novel" />
               <NovelCarousel title="Recently Updated" icon={<Clock className="w-6 h-6 text-pink-400" />} items={latest} seeAllLink="/novel?view=all&list=latest-release-novel" />
               <NovelCarousel title="Completed" icon={<CheckCircle2 className="w-6 h-6 text-green-500" />} items={completed} seeAllLink="/novel?view=all&list=completed-novel" />
+              <NovelCarousel title="More Novels" icon={<BookOpen className="w-6 h-6 text-pink-400" />} items={fanmtl} seeAllLink="/novel?view=all" />
 
               <div className="flex justify-center pt-4 pb-2 pl-4 md:pl-12">
                 <button

@@ -1,19 +1,10 @@
 import { NextResponse } from 'next/server';
-import { browseNovels } from '@/lib/novel/ReadNovelFull';
+import { homeShelves } from '@/lib/novel/sources';
 
-// Home shelves for Novels mode — trending (popular), recently updated, completed.
+// Home shelves for Novels mode — readnovelfull lists + a fanmtl shelf.
 export async function GET() {
   try {
-    const [trending, latest, completed] = await Promise.all([
-      browseNovels(1, 'most-popular-novel'),
-      browseNovels(1, 'latest-release-novel'),
-      browseNovels(1, 'completed-novel'),
-    ]);
-    return NextResponse.json({
-      trending: trending.results || [],
-      latestUpdates: latest.results || [],
-      completed: completed.results || [],
-    });
+    return NextResponse.json(await homeShelves());
   } catch (error: any) {
     console.error('Novel Home API Error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

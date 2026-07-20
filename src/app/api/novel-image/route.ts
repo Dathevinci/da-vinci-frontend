@@ -14,14 +14,20 @@ export async function GET(req: NextRequest) {
     return new NextResponse("Invalid URL", { status: 400 });
   }
 
-  if (parsed.hostname !== "img.readnovelfull.com" && !parsed.hostname.endsWith(".readnovelfull.com")) {
+  const host = parsed.hostname;
+  const allowed =
+    host === "img.readnovelfull.com" || host.endsWith(".readnovelfull.com") ||
+    host === "www.fanmtl.com" || host.endsWith(".fanmtl.com");
+  if (!allowed) {
     return new NextResponse("Domain not allowed", { status: 403 });
   }
+
+  const referer = host.includes("fanmtl") ? "https://www.fanmtl.com/" : "https://readnovelfull.com/";
 
   try {
     const res = await fetch(url, {
       headers: {
-        Referer: "https://readnovelfull.com/",
+        Referer: referer,
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
       },
