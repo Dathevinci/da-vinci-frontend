@@ -24,9 +24,9 @@ export async function getChapterContent(id: string, chapterId: string): Promise<
   return source === "fmtl" ? FMTL.getChapterContent(slug, chapterId) : RNF.getChapterContent(slug, chapterId);
 }
 
-// Search BOTH sources and interleave, deduped by title. A source that fails is
-// skipped, so search still works if one is down.
-export async function searchAll(query: string, page = 1): Promise<{ results: NovelResult[]; hasNextPage: boolean }> {
+// Query both sources for one term and interleave, deduped by title. A source
+// that fails is skipped, so search still works if one is down.
+async function runSearch(query: string, page: number): Promise<{ results: NovelResult[]; hasNextPage: boolean }> {
   const [rnf, fmtl] = await Promise.allSettled([RNF.searchNovels(query, page), FMTL.searchNovels(query)]);
   const a = rnf.status === "fulfilled" ? rnf.value.results : [];
   const b = fmtl.status === "fulfilled" ? fmtl.value.results : [];
@@ -45,6 +45,21 @@ export async function searchAll(query: string, page = 1): Promise<{ results: Nov
   }
   const hasNextPage = rnf.status === "fulfilled" ? rnf.value.hasNextPage : false;
   return { results: merged, hasNextPage };
+}
+
+export async function searchAll(query: string, page = 1): Promise<{ results: NovelResult[]; hasNextPage: boolean }> {
+  let result = await runSearch(query, page);
+  // Both sources do a contiguous substring match, so a full title with
+  // punctuation (e.g. the curly apostrophe in "Omniscient Reader's Viewpoint")
+  // matches nothing. On an empty first page, retry with the first 2 clean words.
+  if (result.results.length === 0 && page <= 1) {
+    const words = query.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((w) => w.length > 1);
+    const short = words.slice(0, 2).join(" ");
+    if (short && short !== query.trim().toLowerCase()) {
+      result = await runSearch(short, page);
+    }
+  }
+  return result;
 }
 
 // Browse the readnovelfull catalog (the list tabs are readnovelfull lists).
