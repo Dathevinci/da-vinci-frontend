@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Gift, Search, Check } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
+import { authHeaders } from "@/lib/authToken";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -68,7 +69,7 @@ export default function GiftModal({
     try {
       const res = await fetch(`${API_URL}/api/users/gift`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ gifterId, recipientUsername: selected.username, itemId: item.id }),
       });
       const data = await res.json();

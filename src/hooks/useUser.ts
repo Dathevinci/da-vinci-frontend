@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { authHeaders, setAuthToken } from "@/lib/authToken";
 
 export interface User {
   id: string;
@@ -117,8 +118,9 @@ export function useUser() {
         body: JSON.stringify({ username, email, password, inviteCode })
       });
       const data = await res.json();
-      
+
       if (data.success) {
+        setAuthToken(data.token || null);
         broadcastUpdate(data.data);
         return { success: true };
       } else {
@@ -139,8 +141,9 @@ export function useUser() {
         body: JSON.stringify({ identifier, password })
       });
       const data = await res.json();
-      
+
       if (data.success) {
+        setAuthToken(data.token || null);
         broadcastUpdate(data.data);
         return { success: true, user: data.data };
       } else {
@@ -161,8 +164,9 @@ export function useUser() {
         body: JSON.stringify({ username, email, avatar, inviteCode })
       });
       const data = await res.json();
-      
+
       if (data.success) {
+        setAuthToken(data.token || null);
         broadcastUpdate(data.data);
         return { success: true, user: data.data };
       } else {
@@ -186,7 +190,7 @@ export function useUser() {
     try {
       const res = await fetch(`${API_URL}/api/users/${user.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify(data)
       });
       const result = await res.json();
@@ -206,7 +210,7 @@ export function useUser() {
     try {
       const res = await fetch(`${API_URL}/api/users/${user.id}/username`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ username: newUsername }),
       });
       const result = await res.json();
@@ -310,6 +314,7 @@ export function useUser() {
   };
 
   const logout = () => {
+    setAuthToken(null);
     broadcastUpdate(null);
   };
 

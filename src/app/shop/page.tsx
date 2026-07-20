@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/Toast";
 import { MountainSnow, ShoppingBag, Sparkles, Check, Diamond, Aperture, CircleDot, Orbit, Snowflake, Flame, Sun, Zap, Leaf, Search, X, LayoutGrid, CloudLightning, CloudFog, Moon, Cog, Target, Trees, Gift, Swords, Flower2, Skull, Sprout, Eye, ArrowRight } from "lucide-react";
 import GiftModal from "@/components/shop/GiftModal";
 import BuyPointsModal from "@/components/shop/BuyPointsModal";
+import { authHeaders } from "@/lib/authToken";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
@@ -170,7 +171,7 @@ export default function ShopPage() {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
       const res = await fetch(`${API_URL}/api/users/purchase`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ userId: user.id, itemId: item.id }),
       });
       const data = await res.json();
