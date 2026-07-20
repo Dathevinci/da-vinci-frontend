@@ -438,6 +438,19 @@ export default function PublicProfilePage() {
                   );
                 })()}
 
+                {/* Supporter — anyone who backed Da Vinci. Rendered off a PERSISTENT
+                    marker (owns tag_supporter, or the donor-exclusive effect_crimson),
+                    so it survives renames and doesn't consume the activeTag slot. */}
+                {((profileUser as any).purchasedTags?.includes('tag_supporter') || (profileUser as any).purchasedEffects?.includes('effect_crimson')) && (
+                  <div
+                    className="shrink-0 px-3 py-1 rounded-full flex items-center gap-1.5 border border-amber-400/40 bg-gradient-to-r from-amber-500/20 via-rose-500/15 to-amber-500/20 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.25)] cursor-help"
+                    title="Supported Da Vinci — thank you 💛"
+                  >
+                    <Heart className="w-3.5 h-3.5 fill-current" />
+                    <span className="text-xs font-black tracking-wider uppercase">Supporter</span>
+                  </div>
+                )}
+
                 {profileUser.activeRole === 'role_watcher' && (
                   <div className="shrink-0 px-3 py-1 rounded-full flex items-center gap-1 bg-purple-500/20 text-purple-400 border border-purple-500/30">
                     <Shield className="w-4 h-4" />
