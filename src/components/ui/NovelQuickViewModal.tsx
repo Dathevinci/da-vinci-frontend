@@ -7,6 +7,7 @@ import { X, Play, BookOpen, User as UserIcon, List, ChevronRight } from "lucide-
 import Link from "next/link";
 import type { NovelInfo, NovelResult } from "@/lib/novel/ReadNovelFull";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
+import NovelTrackerButton from "@/components/novel/NovelTrackerButton";
 
 const reveal = (delay: number) => ({
   initial: { opacity: 0, y: 16 },
@@ -177,6 +178,9 @@ export default function NovelQuickViewModal({
                         <div className="h-11 w-28 bg-[#1e1e24] rounded"></div>
                       </div>
                     )}
+                    <div className="w-44">
+                      <NovelTrackerButton novel={{ id: novel.id, title, cover: display.cover }} />
+                    </div>
                   </motion.div>
                 </div>
               </div>

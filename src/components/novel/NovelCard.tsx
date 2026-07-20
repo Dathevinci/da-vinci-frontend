@@ -5,6 +5,7 @@ import { BookOpen, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { NovelResult } from "@/lib/novel/ReadNovelFull";
 import { useNovelModal } from "@/components/providers/NovelModalProvider";
+import NovelTrackerButton from "@/components/novel/NovelTrackerButton";
 
 export default function NovelCard({ novel }: { novel: NovelResult }) {
   const { openNovel } = useNovelModal();
@@ -99,6 +100,9 @@ export default function NovelCard({ novel }: { novel: NovelResult }) {
                 >
                   <BookOpen className="w-3 h-3" /> Read
                 </button>
+                <div onClick={(e) => e.stopPropagation()}>
+                  <NovelTrackerButton novel={novel} variant="compact" />
+                </div>
                 <button
                   onClick={(e) => { e.stopPropagation(); handleOpen(); }}
                   className="w-7 h-7 border-2 border-slate-400 text-white flex items-center justify-center rounded-full hover:border-white hover:bg-white/10 transition-colors ml-auto"

@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { BookOpen, Loader2, Play, List, ChevronRight, User as UserIcon, Search } from "lucide-react";
 import type { NovelInfo } from "@/lib/novel/ReadNovelFull";
+import NovelTrackerButton from "@/components/novel/NovelTrackerButton";
 
 const MAX_LIST = 300; // cap rendered chapter links; the search box finds the rest
 
@@ -119,6 +120,9 @@ export default function NovelDetailPage() {
                   Continue
                 </Link>
               )}
+              <div className="w-full sm:w-48">
+                <NovelTrackerButton novel={{ id, title: novel.title, cover: novel.cover }} />
+              </div>
             </div>
             <p className="text-slate-300 text-sm leading-relaxed">{novel.synopsis || "No synopsis available."}</p>
           </div>

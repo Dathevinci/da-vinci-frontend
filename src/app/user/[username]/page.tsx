@@ -36,6 +36,8 @@ import TrackerButton from "@/components/anime/TrackerButton";
 import { useAnimeStatus } from "@/hooks/useAnimeStatus";
 import { useManhwaStatus } from "@/hooks/useManhwaStatus";
 import ManhwaTrackerButton from "@/components/manhwa/ManhwaTrackerButton";
+import { useNovelStatus } from "@/hooks/useNovelStatus";
+import NovelTrackerButton from "@/components/novel/NovelTrackerButton";
 
 export default function PublicProfilePage() {
   const { username } = useParams();
@@ -45,6 +47,7 @@ export default function PublicProfilePage() {
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [watchlist, setWatchlist] = useState<any[]>([]);
   const [manhwaWatchlist, setManhwaWatchlist] = useState<any[]>([]);
+  const [novelWatchlist, setNovelWatchlist] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalData, setModalData] = useState<{ title: string; users: any[] } | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -59,14 +62,15 @@ export default function PublicProfilePage() {
   // re-file cards into the right section immediately.
   const { tracked: liveTracked } = useAnimeStatus();
   const { tracked: liveTrackedManhwa } = useManhwaStatus();
+  const { tracked: liveTrackedNovel } = useNovelStatus();
 
   const [activeAnime, setActiveAnime] = useState<any | null>(null);
   const [showQuickView, setShowQuickView] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
   const [loadingAnimeId, setLoadingAnimeId] = useState<number | null>(null);
 
-  // Toggle between Anime and Manhwa tabs
-  const [activeTab, setActiveTab] = useState<"anime" | "manhwa">("anime");
+  // Toggle between Anime, Manhwa and Novel tabs
+  const [activeTab, setActiveTab] = useState<"anime" | "manhwa" | "novel">("anime");
 
   const handleOpenQuickView = async (e: React.MouseEvent, id: number) => {
     e.preventDefault();
@@ -109,6 +113,7 @@ export default function PublicProfilePage() {
           setProfileUser(data.data);
           setWatchlist(data.data.watchlist || []);
           setManhwaWatchlist(data.data.manhwaBookmarks || []);
+          setNovelWatchlist(data.data.novelBookmarks || []);
         }
       } catch (err) {
         console.error("Failed to fetch user", err);
@@ -163,6 +168,25 @@ export default function PublicProfilePage() {
     const rank = (s: string) => { const i = order.indexOf(s); return i === -1 ? 99 : i; };
     return Object.entries(groups).sort((a, b) => rank(a[0]) - rank(b[0]));
   }, [activeManhwaItems, liveTrackedManhwa, selfView]);
+
+  const activeNovelItems = novelWatchlist;
+  const groupedNovelItems = useMemo(() => {
+    const SECTION_FOR_NOVEL: Record<string, string> = {
+      READING: "Reading", FINISHED: "Finished", COMPLETED: "Finished",
+      WAITING: "Waiting", INTERESTED: "Interested", DROPPED: "Dropped",
+    };
+    const groups: Record<string, typeof activeNovelItems> = {};
+    activeNovelItems.forEach(item => {
+      const raw = (selfView && liveTrackedNovel[item.novelId]?.status) || item.status || "READING";
+      const section = SECTION_FOR_NOVEL[String(raw).toUpperCase()] || "Other";
+      if (!groups[section]) groups[section] = [];
+      groups[section].push(item);
+    });
+
+    const order = ["Reading", "Finished", "Waiting", "Interested", "Dropped", "Other"];
+    const rank = (s: string) => { const i = order.indexOf(s); return i === -1 ? 99 : i; };
+    return Object.entries(groups).sort((a, b) => rank(a[0]) - rank(b[0]));
+  }, [activeNovelItems, liveTrackedNovel, selfView]);
 
   // Hours actually spent watching — the summed runtime of everything FINISHED.
   // Runtime metadata is backfilled server-side, so this covers old entries too;
@@ -554,6 +578,17 @@ export default function PublicProfilePage() {
                 activeTab === "manhwa" ? "bg-black/30 text-slate-200" : "bg-white/10 text-slate-400"
               }`}>{manhwaWatchlist.length}</span>
             </button>
+            <button
+              onClick={() => setActiveTab("novel")}
+              className={`flex items-center gap-2 px-5 py-2 rounded-md text-sm font-bold transition-all ${
+                activeTab === "novel" ? "bg-purple-600 text-white shadow-md" : "text-slate-400 hover:text-white"
+              }`}
+            >
+              Novel
+              <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${
+                activeTab === "novel" ? "bg-black/30 text-slate-200" : "bg-white/10 text-slate-400"
+              }`}>{novelWatchlist.length}</span>
+            </button>
           </div>
         </div>
 
@@ -749,6 +784,104 @@ export default function PublicProfilePage() {
                         <div className="flex justify-center mt-6">
                           <button
                             onClick={() => setExpandedSections(prev => ({ ...prev, [`manhwa-${section}`]: !prev[`manhwa-${section}`] }))}
+                            className="flex items-center space-x-2 px-6 py-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 transition-colors text-sm font-medium text-slate-300 hover:text-white"
+                          >
+                            <span>{isExpanded ? "Show Less" : `See All ${items.length}`}</span>
+                            <motion.div animate={{ rotate: isExpanded ? 180 : 0 }}>
+                              <ChevronDown className="w-4 h-4" />
+                            </motion.div>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+
+        {activeTab === "novel" && (
+          <>
+            {activeNovelItems.length === 0 ? (
+              <div className="text-center py-20 text-slate-500 font-medium bg-white/5 rounded-2xl border border-white/10">
+                This user hasn't tracked any novels yet!
+              </div>
+            ) : (
+              <div className="space-y-10">
+                {groupedNovelItems.map(([section, items]) => {
+                  const isExpanded = !!expandedSections[`novel-${section}`];
+                  const displayedItems = isExpanded ? items : items.slice(0, 6);
+                  const hasMore = items.length > 6;
+
+                  return (
+                    <div key={section} className="space-y-4">
+                      <div className="flex items-center space-x-3 mb-2">
+                        <h3 className="text-xl font-bold text-white tracking-wide">{section}</h3>
+                        <span className="text-xs font-bold bg-white/10 text-slate-300 px-2 py-0.5 rounded-full">{items.length}</span>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+                        <AnimatePresence>
+                          {displayedItems.map((item, i) => {
+                            const revealIndex = isExpanded ? Math.max(0, i - 6) : i;
+                            const cover = item.coverImage ? `/api/novel-image?url=${encodeURIComponent(item.coverImage)}` : null;
+                            return (
+                            <motion.div
+                              initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.15 } }}
+                              transition={{ duration: 0.35, delay: Math.min(revealIndex * 0.035, 0.35), ease: [0.16, 1, 0.3, 1] }}
+                              key={item.id}
+                              style={{ willChange: "transform, opacity" }}
+                              className="relative group rounded-xl overflow-hidden shadow-lg border border-white/10 cursor-pointer block text-left bg-white/5 w-full"
+                            >
+                              <Link href={`/novel/${encodeURIComponent(item.novelId)}`}>
+                                <div className="w-full aspect-[2/3] relative">
+                                  {cover ? (
+                                    <img
+                                      src={cover}
+                                      alt={item.title}
+                                      loading="lazy"
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-[#151518]">
+                                      <span className="text-slate-600 font-bold">No Image</span>
+                                    </div>
+                                  )}
+
+                                  {/* Status Tracker */}
+                                  <div className="absolute top-2 left-2 z-20" onClick={(e) => e.preventDefault()}>
+                                    {isSelf ? (
+                                      <NovelTrackerButton
+                                        novel={{ id: item.novelId, title: item.title, coverImage: item.coverImage }}
+                                        variant="compact"
+                                      />
+                                    ) : (
+                                      <span className="px-2 py-1 text-xs font-bold rounded shadow-md border border-white/10 bg-white/10 text-white">
+                                        {String(item.status || "Reading").charAt(0).toUpperCase() + String(item.status || "Reading").slice(1).toLowerCase()}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-4">
+                                    <h3 className="text-white font-bold text-sm md:text-base drop-shadow-md line-clamp-2">
+                                      {item.title}
+                                    </h3>
+                                  </div>
+                                </div>
+                              </Link>
+                            </motion.div>
+                            );
+                          })}
+                        </AnimatePresence>
+                      </div>
+
+                      {hasMore && (
+                        <div className="flex justify-center mt-6">
+                          <button
+                            onClick={() => setExpandedSections(prev => ({ ...prev, [`novel-${section}`]: !prev[`novel-${section}`] }))}
                             className="flex items-center space-x-2 px-6 py-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 transition-colors text-sm font-medium text-slate-300 hover:text-white"
                           >
                             <span>{isExpanded ? "Show Less" : `See All ${items.length}`}</span>
