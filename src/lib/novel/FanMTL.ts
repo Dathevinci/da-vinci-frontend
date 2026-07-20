@@ -145,8 +145,20 @@ export async function getChapterContent(slug: string, chapterId: string): Promis
   const num = Number(chapterId);
   const html = await fetchHtml(`/novel/${slug}_${chapterId}.html`);
   const flat = html.replace(/\n/g, " ");
-  const title = decodeEntities(flat.match(/class="chapter-title"[^>]*>([^<]+)</)?.[1] || flat.match(/<h1[^>]*>([^<]+)<\/h1>/)?.[1] || `Chapter ${chapterId}`);
-  const block = flat.match(/class="chapter-content"[^>]*>([\s\S]*?)<\/div>/)?.[1] || "";
+  const title = decodeEntities(
+    flat.match(/<h2[^>]*>([^<]{1,80})<\/h2>/)?.[1] ||
+      flat.match(/class="chapter-title"[^>]*>([^<]+)/)?.[1] ||
+      `Chapter ${chapterId}`
+  );
+  // Capture .chapter-content up to </article>. A non-greedy </div> match would
+  // stop at the leading ad <div align="center">…</div> and yield no text.
+  let block = "";
+  const cm = flat.match(/class="chapter-content"[^>]*>/);
+  if (cm && cm.index != null) {
+    let rest = flat.slice(cm.index + cm[0].length);
+    const end = rest.search(/<\/article>|class="chapter-nav|id="comment|class="footer/i);
+    block = end > 0 ? rest.slice(0, end) : rest;
+  }
   const content = htmlToParagraphs(block);
   const prev = Number.isFinite(num) && num > 1 ? String(num - 1) : null;
   const next = Number.isFinite(num) ? String(num + 1) : null;
