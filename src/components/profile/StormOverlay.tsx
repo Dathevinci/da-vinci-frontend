@@ -329,34 +329,37 @@ function useStormCanvas(
 
 // ── Drifting storm sky: cel-shaded clouds rolling left → right, three bands ──
 
-// All bands hug the top of the viewport — a rolling storm CEILING that never
-// drifts down over faces or content.
+// All bands hug the top of the card — a rolling storm CEILING that never drifts
+// down over faces or content. Widths + drift are a % of the CARD (they used to
+// be viewport `vw` units left over from the full-screen version, which made each
+// cloud far wider than the ~370px profile card and buried it under one dark
+// blob). Now the storm scales to the card at any size.
 const DRIFT_CLOUDS = [
   // background: small, faint, slow
-  { top: "1%", scale: 0.7, dur: 160, delay: -90, op: 0.3, z: 0 },
-  { top: "7%", scale: 0.6, dur: 175, delay: -120, op: 0.26, z: 0 },
+  { top: "3%", w: 46, dur: 158, delay: -90, op: 0.26, z: 0 },
+  { top: "9%", w: 40, dur: 176, delay: -120, op: 0.2, z: 0 },
   // midground
-  { top: "0%", scale: 1.1, dur: 112, delay: -60, op: 0.5, z: 1 },
-  { top: "4%", scale: 0.95, dur: 128, delay: -16, op: 0.44, z: 1 },
-  // foreground: large, dark, faster — anchored partly above the viewport edge
-  { top: "-6%", scale: 1.6, dur: 78, delay: -22, op: 0.85, z: 2 },
-  { top: "-4%", scale: 1.8, dur: 66, delay: -48, op: 0.9, z: 2 },
+  { top: "1%", w: 68, dur: 112, delay: -60, op: 0.42, z: 1 },
+  { top: "6%", w: 58, dur: 128, delay: -16, op: 0.36, z: 1 },
+  // foreground: large, dark, faster — anchored partly above the card's top edge
+  { top: "-7%", w: 92, dur: 80, delay: -22, op: 0.62, z: 2 },
+  { top: "-5%", w: 104, dur: 68, delay: -48, op: 0.7, z: 2 },
 ];
 
 function DriftClouds() {
   return (
     <div className="absolute inset-0 overflow-hidden">
-      <style>{`@keyframes tempest-drift { from { transform: translateX(-48vw) scale(var(--cs)); } to { transform: translateX(114vw) scale(var(--cs)); } }`}</style>
+      <style>{`@keyframes tempest-drift { from { transform: translateX(-140%); } to { transform: translateX(320%); } }`}</style>
       {DRIFT_CLOUDS.map((c, i) => (
         <span
           key={i}
-          className="absolute left-0 block w-[42vw] min-w-[260px] max-w-[600px]"
+          className="absolute left-0 block"
           style={
             {
               top: c.top,
+              width: `${c.w}%`,
               opacity: c.op,
               zIndex: c.z,
-              "--cs": c.scale,
               animation: `tempest-drift ${c.dur}s linear ${c.delay}s infinite`,
             } as CSSProperties
           }
