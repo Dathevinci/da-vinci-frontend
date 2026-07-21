@@ -2,6 +2,12 @@ plugins {
     id 'com.android.application'
 }
 
+// Version comes from CI (-Pvcode / -Pvname, from the run number & git tag).
+// Computed as plain locals here to avoid a Groovy DSL parsing ambiguity that
+// made `versionCode (…)` evaluate to null when written inline in defaultConfig.
+def appVersionCode = (project.findProperty('vcode') ?: '1').toString().toInteger()
+def appVersionName = (project.findProperty('vname') ?: '1.0.0').toString()
+
 android {
     namespace 'xyz.dathevinci.twa'
     compileSdk 34
@@ -10,10 +16,8 @@ android {
         applicationId 'xyz.dathevinci.twa'
         minSdk 21
         targetSdk 34
-        // Passed in by CI from the git tag / run number; sane fallbacks for a
-        // plain local build.
-        versionCode (project.findProperty('vcode') ?: '1').toString().toInteger()
-        versionName (project.findProperty('vname') ?: '1.0.0').toString()
+        versionCode appVersionCode
+        versionName appVersionName
     }
 
     signingConfigs {
