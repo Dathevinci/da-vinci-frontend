@@ -16,13 +16,14 @@ export async function GET(req: NextRequest) {
 
   const host = parsed.hostname;
   const allowed =
+    host === "novelfull.net" || host.endsWith(".novelfull.net") ||
     host === "img.readnovelfull.com" || host.endsWith(".readnovelfull.com") ||
     host === "www.fanmtl.com" || host.endsWith(".fanmtl.com");
   if (!allowed) {
     return new NextResponse("Domain not allowed", { status: 403 });
   }
 
-  const referer = host.includes("fanmtl") ? "https://www.fanmtl.com/" : "https://readnovelfull.com/";
+  const referer = host.includes("novelfull") ? "https://novelfull.net/" : host.includes("fanmtl") ? "https://www.fanmtl.com/" : "https://readnovelfull.com/";
 
   try {
     const res = await fetch(url, {

@@ -126,7 +126,7 @@ function NovelInner() {
               </div>
               <div>
                 <h1 className="text-3xl font-black tracking-tight">Light Novels</h1>
-                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">ReadNovelFull &middot; FanMTL</p>
+                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">NovelFull &middot; ReadNovelFull</p>
               </div>
             </div>
 
