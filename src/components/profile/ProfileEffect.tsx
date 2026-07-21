@@ -17,6 +17,7 @@ import { MangoLocoCardRealm } from "@/components/profile/MangoLoco";
 import { JungleCardRealm } from "@/components/profile/JungleDepths";
 import { UnblinkingCardRealm } from "@/components/profile/UnblinkingGaze";
 import { VoidCardDomain } from "@/components/profile/InfiniteVoid";
+import { DejavuCardEcho } from "@/components/profile/DejavuEcho";
 import { usePreferences } from "@/hooks/usePreferences";
 
 /**
@@ -65,6 +66,7 @@ export function ProfileEffect({ effect }: { effect?: string | null }) {
   if (effect === "effect_jungle") return <JungleCardRealm />;
   if (effect === "effect_unblinking") return <UnblinkingCardRealm />;
   if (effect === "effect_void") return <VoidCardDomain />;
+  if (effect === "effect_dejavu") return <DejavuCardEcho />;
   if (effect === "effect_froggie") return <FroggieCardPond />;
   if (effect === "effect_aura") return <AuraField />;
   const cfg = FIELD[effect as keyof typeof FIELD];

@@ -378,22 +378,27 @@ function useVoidCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
     // while viewing; it just stops burning the main thread (and battery) when
     // nothing is watching. On resume, reset `last` so the domain clock doesn't
     // jump forward by however long it was parked.
-    const resume = () => {
-      if (!paused) return;
-      paused = false;
-      last = performance.now();
-      raf = requestAnimationFrame(frame);
+    // The two "not being seen" signals are tracked SEPARATELY so a tab
+    // hide→show can't resume a loop the IntersectionObserver had parked
+    // while the card was scrolled off-screen (and vice versa).
+    let hidden = document.hidden;
+    let offscreen = false;
+    const sync = () => {
+      const shouldPause = hidden || offscreen;
+      if (shouldPause === paused) return;
+      paused = shouldPause;
+      if (paused) {
+        cancelAnimationFrame(raf);
+      } else {
+        last = performance.now();
+        raf = requestAnimationFrame(frame);
+      }
     };
-    const pause = () => {
-      if (paused) return;
-      paused = true;
-      cancelAnimationFrame(raf);
-    };
-    const onVis = () => (document.hidden ? pause() : resume());
+    const onVis = () => { hidden = document.hidden; sync(); };
     document.addEventListener("visibilitychange", onVis);
     const io =
       typeof IntersectionObserver !== "undefined"
-        ? new IntersectionObserver(([e]) => (e.isIntersecting ? resume() : pause()), { threshold: 0 })
+        ? new IntersectionObserver(([e]) => { offscreen = !e.isIntersecting; sync(); }, { threshold: 0 })
         : null;
     io?.observe(canvas);
 

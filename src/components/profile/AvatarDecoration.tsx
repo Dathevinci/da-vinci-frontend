@@ -16,6 +16,7 @@ import { MangoLocoAvatarMarigold } from "@/components/profile/MangoLoco";
 import { JungleAvatarFronds } from "@/components/profile/JungleDepths";
 import { UnblinkingAvatarMark } from "@/components/profile/UnblinkingGaze";
 import { VoidAvatarMark } from "@/components/profile/InfiniteVoid";
+import { DejavuAvatarMark } from "@/components/profile/DejavuEcho";
 
 /**
  * Discord-style avatar decorations that overlay an avatar.
@@ -39,7 +40,7 @@ export const FRAMES: Record<string, { ring: string; glow: string; speed: number 
 
 // Effects rendered by this component. effect_sparkles is intentionally excluded —
 // it has its own legacy inline rendering elsewhere, so we don't double it up.
-export const DECOR_EFFECTS = new Set(["effect_snow", "effect_embers", "effect_aura", "effect_ascension", "effect_froggie", "effect_tempest", "effect_blackhole", "effect_fool", "effect_evernight", "effect_crimson", "effect_mahoraga", "effect_ritual", "effect_canopy", "effect_samurai", "effect_himalaya", "effect_lotus", "effect_mango", "effect_jungle", "effect_unblinking", "effect_void"]);
+export const DECOR_EFFECTS = new Set(["effect_snow", "effect_embers", "effect_aura", "effect_ascension", "effect_froggie", "effect_tempest", "effect_blackhole", "effect_fool", "effect_evernight", "effect_crimson", "effect_mahoraga", "effect_ritual", "effect_canopy", "effect_samurai", "effect_himalaya", "effect_lotus", "effect_mango", "effect_jungle", "effect_unblinking", "effect_void", "effect_dejavu"]);
 
 // The extreme-rare "Voltaic Ascension" gives its own crackling electric ring,
 // shown even when no frame is equipped — so the storm follows the avatar everywhere.
@@ -114,6 +115,7 @@ const HEAVY_EFFECTS = new Set([
   "effect_jungle",
   "effect_unblinking",
   "effect_void",
+  "effect_dejavu",
 ]);
 
 const LITE_GLOW: Record<string, string[]> = {
@@ -133,6 +135,7 @@ const LITE_GLOW: Record<string, string[]> = {
   effect_jungle: ["0 0 8px 1px rgba(31,107,56,0.5)", "0 0 18px 5px rgba(63,174,90,0.6)", "0 0 8px 1px rgba(255,220,120,0.4)"],
   effect_unblinking: ["0 0 8px 1px rgba(10,10,12,0.6)", "0 0 18px 5px rgba(139,0,0,0.5)", "0 0 8px 1px rgba(242,234,216,0.25)"],
   effect_void: ["0 0 8px 1px rgba(34,211,238,0.5)", "0 0 18px 5px rgba(224,242,254,0.6)", "0 0 8px 1px rgba(99,102,241,0.5)"],
+  effect_dejavu: ["0 0 8px 1px rgba(156,163,175,0.4)", "0 0 18px 5px rgba(0,255,255,0.45)", "0 0 8px 1px rgba(139,0,0,0.55)"],
 };
 
 import { BlackHoleEffect } from "./BlackHoleEffect";
@@ -249,6 +252,11 @@ function EffectLayer({ effect, size = "sm" }: { effect: string; size?: "sm" | "l
   if (effect === "effect_void") {
     // SSS: starlight-cyan void aura + the cosmic-eye anchor. InfiniteVoid.tsx.
     return <VoidAvatarMark />;
+  }
+
+  if (effect === "effect_dejavu") {
+    // LIMITED SSS: ash/crimson/cyan phantom glow + the echo anchor. DejavuEcho.tsx.
+    return <DejavuAvatarMark />;
   }
 
   if (effect === "effect_aura") {

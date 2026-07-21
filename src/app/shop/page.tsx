@@ -5,7 +5,7 @@ import PageTransition from "@/components/layout/PageTransition";
 import { useUser } from "@/hooks/useUser";
 import { isAdmin, isLeadDev, displayArisePoints } from "@/lib/admin";
 import { useToast } from "@/components/ui/Toast";
-import { MountainSnow, ShoppingBag, Sparkles, Check, Diamond, Aperture, CircleDot, Orbit, Snowflake, Flame, Sun, Zap, Leaf, Search, X, LayoutGrid, CloudLightning, CloudFog, Moon, Cog, Target, Trees, Gift, Swords, Flower2, Skull, Sprout, Eye, ArrowRight, Infinity as InfinityIcon } from "lucide-react";
+import { MountainSnow, ShoppingBag, Sparkles, Check, Diamond, Aperture, CircleDot, Orbit, Snowflake, Flame, Sun, Zap, Leaf, Search, X, LayoutGrid, CloudLightning, CloudFog, Moon, Cog, Target, Trees, Gift, Swords, Flower2, Skull, Sprout, Eye, ArrowRight, Infinity as InfinityIcon, History, Hourglass } from "lucide-react";
 import GiftModal from "@/components/shop/GiftModal";
 import BuyPointsModal from "@/components/shop/BuyPointsModal";
 import { authHeaders } from "@/lib/authToken";
@@ -19,8 +19,18 @@ import { motion } from "framer-motion";
 
 // The shop is now focused on avatar decorations: animated Frames (rings) and
 // Effects (particles around your avatar + a matching flourish across your profile).
+
+// ── LIMITED DROP window ─────────────────────────────────────────────────────
+// Dejavu: Temporal Echo vanishes from sale at this instant. MUST match the
+// backend's availableUntil for effect_dejavu in shopCatalog.ts — the server is
+// the real wall (purchases AND gifts are rejected after this); this constant
+// only drives the countdown UI. Owners keep the effect forever.
+const DEJAVU_ENDS_AT = Date.parse("2026-07-24T23:59:59Z");
+
 const SHOP_ITEMS = [
   // ---- SSS GRADE: one exists ----
+  { id: "effect_dejavu", type: "effect", sss: true, limited: true, endsAt: DEJAVU_ENDS_AT, name: "Dejavu: Temporal Echo", description: "「 …you have read this before, haven't you? 」 LIMITED — 3 days, then it vanishes forever. The card plunges into a psychological void of pitch black and ash grey. A volatile quantum field orbits your avatar, never certain of its own position — and every few seconds the moment REPEATS: translucent, glitching afterimages of your avatar split away, drift, and snap back like a memory refusing to stay in the past. Three colossal time-dilation rings turn slowly behind you, inscribed with faintly glowing runes and relativity equations. Then reality itself TEARS — the whole card rips horizontally for a fifth of a second and jagged blood-red threads crack out from your avatar like corrupted nerves — while grey ash falls upward through a frozen moment in time. Time does not pass here. It circles. SSS grade. Limited.", price: 15000, icon: History, color: "text-slate-200", glow: "shadow-[0_0_26px_rgba(139,0,0,0.7)]", gradient: "from-slate-100 via-red-900 to-cyan-500" },
+
   { id: "effect_himalaya", type: "effect", sss: true, name: "The Silent Himalayas", description: "Night falls on the roof of the world. Three ranges of moonlit Himalayan peaks rise across the viewer's ENTIRE screen — deep twilight blue in the distance, icy silver up front — while heavy, weightless snow drifts down in three layers of depth, fluttering without a breath of wind. Freezing mountain mist rolls along the ridges, and the snow QUIETLY PILES: soft rolling drifts bury the bottom of the screen and settle in a gentle cap on the crown of your avatar and the top of your profile. Sagarmāthā's silence. SSS grade.", price: 25500, icon: MountainSnow, color: "text-sky-200", glow: "shadow-[0_0_26px_rgba(191,219,254,0.7)]", gradient: "from-slate-200 via-sky-400 to-slate-800" },
 
   { id: "effect_ritual", type: "effect", sss: true, name: "With This Treasure…", description: "「 With this treasure, I summon— 」 The complete ritual. The world drowns in boiling black shadows; jagged tendrils lash out of the dark and seize your avatar while a blinding divine core burns through them. Above it hangs the bone-white Eight-Handled Wheel — impossibly still, until it shudders… and SNAPS 45 degrees with a spray of white sparks that shakes the viewer's entire screen. The Ten Shadows' final trump card — and it speaks: the summoning chant plays aloud when the profile opens. SSS grade. One exists.", price: 25000, icon: Target, color: "text-slate-100", glow: "shadow-[0_0_26px_rgba(255,255,255,0.75)]", gradient: "from-slate-100 via-slate-500 to-black" },
@@ -56,6 +66,15 @@ const SHOP_ITEMS = [
   { id: "effect_snow", type: "effect", name: "Winter's Veil", description: "Snowflakes fall gently around your avatar — and drift across your whole profile when someone opens it.", price: 90, icon: Snowflake, color: "text-sky-300", glow: "shadow-[0_0_15px_rgba(125,211,252,0.5)]", gradient: "from-sky-300 to-blue-500" },
   { id: "effect_embers", type: "effect", name: "Cinder Storm", description: "Glowing embers rise around your avatar — and float up across your whole profile when someone opens it.", price: 90, icon: Flame, color: "text-orange-400", glow: "shadow-[0_0_15px_rgba(251,146,60,0.5)]", gradient: "from-orange-400 to-red-600" },
 ];
+
+// "2d 13:45:09" (or "04:12:33" inside the last day) — limited-drop countdown.
+const fmtLeft = (ms: number) => {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const d = Math.floor(s / 86400);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const hms = `${pad(Math.floor((s % 86400) / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`;
+  return d > 0 ? `${d}d ${hms}` : hms;
+};
 
 export default function ShopPage() {
   const { user, updateProfile, isLoaded } = useUser();
@@ -105,6 +124,17 @@ export default function ShopPage() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<"all" | "sss" | "rare" | "frame" | "effect">("all");
   const [owned, setOwned] = useState<"all" | "unowned" | "owned">("all");
+  // Live clock for limited-drop countdowns. Starts null and is set on mount so
+  // the SSR/prerender markup never bakes in a build-time Date.now() (hydration
+  // mismatch); ticks once a second only while a live window exists.
+  const [nowTs, setNowTs] = useState<number | null>(null);
+  useEffect(() => {
+    const hasLiveWindow = SHOP_ITEMS.some((it) => (it as any).endsAt && Date.now() <= (it as any).endsAt);
+    setNowTs(Date.now());
+    if (!hasLiveWindow) return;
+    const iv = setInterval(() => setNowTs(Date.now()), 1000);
+    return () => clearInterval(iv);
+  }, []);
   useEffect(() => {
     if (isLoaded && !user) {
       router.push("/");
@@ -142,10 +172,17 @@ export default function ShopPage() {
   };
 
   const handlePurchase = async (item: typeof SHOP_ITEMS[0]) => {
+    // Limited drops: the server rejects after the window too — this is just the
+    // friendly local wall so nobody wastes a click at 00:00:01.
+    const endsAt = (item as any).endsAt as number | undefined;
+    if (endsAt && Date.now() > endsAt) {
+      return toast("This limited item's window has closed — it's gone.", "error");
+    }
+
     // Staff (admins + lead dev) buy freely without spending — their balance is a
     // fixed display (40k for admins, ∞ for the lead dev), so nothing is deducted.
     const isGod = isAdmin(user);
-    
+
     if (!isGod && (user.arisePoints || 0) < item.price) {
       return toast("Not enough Arise Points!", "error");
     }
@@ -218,6 +255,11 @@ export default function ShopPage() {
     const isRare = !isSSS && !!(item as any).rare;
     const isUnique = !!(item as any).unique;
     const canAfford = isAdmin(user) || (user.arisePoints || 0) >= item.price;
+    // Limited drop: countdown while the window is open, sealed after it closes.
+    const isLimited = !!(item as any).limited;
+    const endsAt = (item as any).endsAt as number | undefined;
+    const msLeft = endsAt && nowTs !== null ? endsAt - nowTs : null;
+    const isExpired = msLeft !== null && msLeft <= 0;
     const rarity = isSSS
       ? { label: "SSS", chip: "text-black bg-gradient-to-r from-white via-slate-200 to-slate-400" }
       : isRare
@@ -249,6 +291,15 @@ export default function ShopPage() {
           <span className={`absolute left-2 top-2 z-20 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] ${rarity.chip}`}>
             {rarity.label}
           </span>
+          {isLimited && (
+            <span className={`absolute left-2 top-8 z-20 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] ${
+              isExpired
+                ? "border-white/15 bg-black/60 text-slate-500"
+                : "animate-pulse border-red-700/60 bg-red-950/70 text-red-300"
+            }`}>
+              <Hourglass className="h-2.5 w-2.5" /> Limited
+            </span>
+          )}
           {hasItem && (
             <span className="absolute right-2 top-2 z-20 inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-emerald-300">
               <Check className="h-3 w-3" /> Owned
@@ -275,12 +326,40 @@ export default function ShopPage() {
           </div>
         </button>
 
+        {/* Limited-drop strip: a live countdown while the window is open,
+            a sealed marker after — the item stays visible as a trophy. */}
+        {isLimited && (
+          <div className={`flex items-center justify-center gap-1.5 border-y px-2 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] ${
+            isExpired
+              ? "border-white/10 bg-black/50 text-slate-500"
+              : "border-red-800/40 bg-gradient-to-r from-red-950/60 via-red-900/40 to-red-950/60 text-red-300"
+          }`}>
+            <Hourglass className={`h-3 w-3 ${isExpired ? "" : "animate-pulse"}`} />
+            {isExpired ? (
+              <span>Window closed — gone forever</span>
+            ) : msLeft !== null ? (
+              <span>
+                Vanishes in <span className="font-mono tabular-nums text-red-200">{fmtLeft(msLeft)}</span>
+              </span>
+            ) : (
+              <span>Limited drop — 3 days only</span>
+            )}
+          </div>
+        )}
+
         {/* Name + actions — the lore lives inside the preview */}
         <div className="flex flex-1 flex-col gap-2.5 p-3">
           <h3 title={item.name} className={`truncate text-sm font-black tracking-tight ${item.color}`}>{item.name}</h3>
           <div className="mt-auto flex items-center gap-1.5">
             {!hasItem ? (
-              canAfford ? (
+              isExpired ? (
+                <button
+                  disabled
+                  className="flex h-9 flex-1 cursor-not-allowed items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-black/40 text-xs font-black text-slate-600"
+                >
+                  Vanished
+                </button>
+              ) : canAfford ? (
                 <button
                   onClick={() => handlePurchase(item)}
                   disabled={buyingId === item.id}
@@ -316,9 +395,14 @@ export default function ShopPage() {
               </button>
             )}
             <button
-              onClick={() => setGiftTarget(item)}
-              title="Gift to a friend"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300 transition hover:border-fuchsia-500/40 hover:text-white"
+              onClick={() => !isExpired && setGiftTarget(item)}
+              disabled={isExpired}
+              title={isExpired ? "The limited window has closed — gifting is off too" : "Gift to a friend"}
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition ${
+                isExpired
+                  ? "cursor-not-allowed border-white/5 bg-black/30 text-slate-700"
+                  : "border-white/10 bg-white/5 text-slate-300 hover:border-fuchsia-500/40 hover:text-white"
+              }`}
             >
               <Gift className="h-4 w-4" />
             </button>
@@ -658,6 +742,9 @@ export default function ShopPage() {
               ? { label: `${(pv as any).badge || "🐸"} Unique`, cls: "text-emerald-950 bg-gradient-to-r from-emerald-300 to-lime-300" }
               : { label: pv.type === "frame" ? "Frame" : "Effect", cls: "border border-white/10 bg-white/10 text-slate-300" };
             const canBuy = isAdmin(user) || (user.arisePoints || 0) >= pv.price;
+            const pEndsAt = (pv as any).endsAt as number | undefined;
+            const pMsLeft = pEndsAt && nowTs !== null ? pEndsAt - nowTs : null;
+            const pExpired = pMsLeft !== null && pMsLeft <= 0;
             return (
               <>
                 {/* Each layer is a TOP-LEVEL fixed element so its z-index competes
@@ -702,6 +789,16 @@ export default function ShopPage() {
                   <div className="mx-auto max-w-md rounded-2xl border border-white/10 bg-[#0b0b12]/90 p-5 shadow-2xl backdrop-blur-xl">
                     <div className="mb-2 flex items-center gap-2">
                       <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${pChip.cls}`}>{pChip.label}</span>
+                      {(pv as any).limited && (
+                        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${
+                          pExpired
+                            ? "border-white/15 bg-black/50 text-slate-500"
+                            : "border-red-700/60 bg-red-950/70 text-red-300"
+                        }`}>
+                          <Hourglass className={`h-3 w-3 ${pExpired ? "" : "animate-pulse"}`} />
+                          {pExpired ? "Window closed" : pMsLeft !== null ? <span className="font-mono tabular-nums">{fmtLeft(pMsLeft)}</span> : "Limited"}
+                        </span>
+                      )}
                       {pOwned && (
                         <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-400">
                           <Check className="h-3 w-3" /> Owned
@@ -714,7 +811,14 @@ export default function ShopPage() {
                     </div>
                     <div className="flex gap-2">
                       {!pOwned ? (
-                        !canBuy ? (
+                        pExpired ? (
+                          <button
+                            disabled
+                            className="flex flex-1 cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-white/10 bg-black/40 py-3 font-black text-slate-600"
+                          >
+                            Vanished — the window has closed
+                          </button>
+                        ) : !canBuy ? (
                           <button
                             onClick={() => { setPreviewItem(null); setShowBuyPoints(true); }}
                             className="flex flex-1 items-center justify-center gap-2 rounded-xl py-3 font-bold transition border border-amber-400/30 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20"
@@ -748,11 +852,17 @@ export default function ShopPage() {
                       )}
                       <button
                         onClick={() => {
+                          if (pExpired) return;
                           setGiftTarget(pv);
                           setPreviewItem(null);
                         }}
-                        title="Gift to a friend"
-                        className="flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-5 py-3 font-bold text-slate-300 transition hover:text-white"
+                        disabled={pExpired}
+                        title={pExpired ? "The limited window has closed — gifting is off too" : "Gift to a friend"}
+                        className={`flex items-center justify-center rounded-xl border px-5 py-3 font-bold transition ${
+                          pExpired
+                            ? "cursor-not-allowed border-white/5 bg-black/30 text-slate-700"
+                            : "border-white/10 bg-white/5 text-slate-300 hover:text-white"
+                        }`}
                       >
                         <Gift className="h-4 w-4" />
                       </button>

@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DEJAVU — Temporal Echo (SSS)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: #030304;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    color: #e5e7eb;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  /* The profile container plunged into a void-like atmosphere */
+  .profile-card {
+    position: relative;
+    width: min(420px, 92vw);
+    padding: 96px 32px 40px;
+    background: rgba(8, 8, 12, 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(139, 0, 0, 0.25);
+    border-radius: 24px;
+    text-align: center;
+    z-index: 1;
+    box-shadow: 0 0 80px rgba(139, 0, 0, 0.12), 0 30px 60px rgba(0, 0, 0, 0.8);
+  }
+  /* Dummy 150x150 circular avatar — the epicenter the canvas tracks */
+  #avatar {
+    position: absolute;
+    top: -75px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 35% 30%, #2a2a33, #0b0b0f 70%),
+      #0b0b0f;
+    border: 3px solid rgba(229, 231, 235, 0.28);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 44px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: rgba(229, 231, 235, 0.85);
+    text-shadow: 0 0 18px rgba(0, 255, 255, 0.35);
+    user-select: none;
+  }
+  h1 {
+    font-size: 30px;
+    font-weight: 900;
+    letter-spacing: 6px;
+    background: linear-gradient(90deg, #9ca3af, #f9fafb, #8b0000, #00ffff, #9ca3af);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin-bottom: 6px;
+  }
+  .grade {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 3px;
+    padding: 4px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(0, 255, 255, 0.35);
+    color: #67e8f9;
+    background: rgba(0, 255, 255, 0.06);
+    margin-bottom: 14px;
+  }
+  p { font-size: 13px; line-height: 1.7; color: #9ca3af; }
+  .rule { color: #8B0000; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="profile-card">
+  <div id="avatar">D</div>
+  <h1>DEJAVU</h1>
+  <div class="grade">SSS · TEMPORAL ECHO</div>
+  <p>
+    A memory that refuses to stay in the past. The frame fractures, the moment
+    repeats, and reality tears along the <span class="rule">red thread</span>.
+    Time does not pass here — it circles.
+  </p>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  /* ─── GLOBAL SCREEN ESCAPE ───────────────────────────────────────────────
+     Canvas is created dynamically and appended straight to document.body so
+     no ancestor stacking context / overflow / transform can clip it. */
+  const canvas = document.createElement("canvas");
+  canvas.style.cssText =
+    "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;" +
+    "z-index: 9999; pointer-events: none; mix-blend-mode: screen;";
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext("2d");
+
+  const TAU = Math.PI * 2;
+  const DPR = Math.min(window.devicePixelRatio || 1, 1.5);
+  let W = 0, H = 0;
+  const resize = () => {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = Math.round(W * DPR);
+    canvas.height = Math.round(H * DPR);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  };
+  resize();
+  window.addEventListener("resize", resize);
+
+  /* Deterministic pseudo-random (stable layouts across frames) */
+  const rand = (i, s) => {
+    const x = Math.sin((i + 1) * 12.9898 + s * 78.233) * 43758.5453;
+    return x - Math.floor(x);
+  };
+  const easeOutExpo = (x) => (x >= 1 ? 1 : 1 - Math.pow(2, -10 * x));
+  const easeInOutSine = (x) => -(Math.cos(Math.PI * x) - 1) / 2;
+
+  /* Epicenter: track the avatar live */
+  const avatarEl = document.getElementById("avatar");
+  let cx = W / 2, cy = H / 2, ar = 75;
+  const trackAvatar = () => {
+    const r = avatarEl.getBoundingClientRect();
+    cx = r.left + r.width / 2;
+    cy = r.top + r.height / 2;
+    ar = r.width / 2;
+  };
+
+  /* ═══ PHASE 1 · THE UNCERTAINTY PRINCIPLE ═══════════════════════════════
+     Volatile quantum particle field orbiting the avatar + afterimage ghosts */
+  const QN = 64;
+  const quanta = Array.from({ length: QN }, (_, i) => ({
+    baseAng: rand(i, 1) * TAU,
+    speed: (0.25 + rand(i, 2) * 0.9) * (i % 2 ? 1 : -1),
+    rBase: 1.06 + rand(i, 3) * 0.38,          // orbit radius multiplier of ar
+    wobAmp: 3 + rand(i, 4) * 9,               // radial uncertainty
+    wobFreq: 0.8 + rand(i, 5) * 2.4,
+    size: 0.6 + rand(i, 6) * 1.7,
+    hue: rand(i, 7),                           // <0.7 cyan · else phantom white
+    jitterSeed: rand(i, 8) * 100,
+  }));
+
+  /* Afterimage ghosts: every ~3s, 2-3 translucent clones of the avatar ring
+     drift away then snap back — the memory repeating itself. */
+  const ghosts = [];
+  let nextGhostAt = 1.4;
+  const spawnGhosts = (t) => {
+    const n = 2 + Math.floor(Math.random() * 2); // 2-3
+    for (let i = 0; i < n; i++) {
+      const ang = Math.random() * TAU;
+      ghosts.push({
+        born: t,
+        life: 1.6 + Math.random() * 0.9,
+        dx: Math.cos(ang) * (18 + Math.random() * 34),
+        dy: Math.sin(ang) * (12 + Math.random() * 26),
+        scale: 1 + Math.random() * 0.14,
+        glitch: Math.random() < 0.5,
+      });
+    }
+  };
+  const drawGhosts = (t) => {
+    for (let i = ghosts.length - 1; i >= 0; i--) {
+      const g = ghosts[i];
+      const p = (t - g.born) / g.life;
+      if (p >= 1) { ghosts.splice(i, 1); continue; }
+      /* drift OUT fast (the déjà vu splits off), then SNAP back (easeOutExpo
+         inverted): out for first 55%, snap home in the last 45%. */
+      let k;
+      if (p < 0.55) k = easeOutExpo(p / 0.55);
+      else k = 1 - easeOutExpo((p - 0.55) / 0.45);
+      const alpha = (p < 0.55 ? 0.5 : 0.5 * (1 - (p - 0.55) / 0.45));
+      const gx = cx + g.dx * k + (g.glitch ? (Math.random() - 0.5) * 3 : 0);
+      const gy = cy + g.dy * k;
+      const gr = ar * (1 + (g.scale - 1) * k) + 2;
+
+      ctx.save();
+      ctx.globalAlpha = Math.max(alpha, 0) * 0.85;
+      ctx.filter = "blur(4px)";
+      /* ethereal double ring: phantom white core + cyan / crimson chroma split */
+      ctx.strokeStyle = "rgba(229,231,235,0.9)";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(gx, gy, gr, 0, TAU); ctx.stroke();
+      ctx.strokeStyle = g.glitch ? "rgba(139,0,0,0.9)" : "rgba(0,255,255,0.8)";
+      ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.arc(gx + (g.glitch ? 2.5 : -2), gy, gr, 0, TAU); ctx.stroke();
+      ctx.restore();
+    }
+  };
+
+  /* ═══ PHASE 2 · RELATIVITY & TIME DILATION RINGS ════════════════════════ */
+  const EQUATIONS = [
+    "Δt′ = γΔt", "E = mc²", "t′ = t/√(1−v²/c²)", "S = k·log W",
+    "ds² = −c²dt² + dx²", "∇×E = −∂B/∂t", "ψ(x,t) = Ae^{i(kx−ωt)}",
+    "ᚠᚢᚦᚨᚱᚲ", "τ = ∫√(1−v²/c²)dt", "ᛞᛖᛃᚨᚹᚢ", "G = 8πT", "Δx·Δp ≥ ℏ/2",
+  ];
+  const RINGS = [
+    { rMul: 2.1, speed: 0.05, alpha: 0.30, font: 10, eqOff: 0 },
+    { rMul: 3.0, speed: -0.033, alpha: 0.22, font: 11, eqOff: 4 },
+    { rMul: 4.1, speed: 0.021, alpha: 0.15, font: 12, eqOff: 8 },
+  ];
+  const drawRings = (t, dilation) => {
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    for (let ri = 0; ri < RINGS.length; ri++) {
+      const ring = RINGS[ri];
+      const R = ar * ring.rMul + Math.sin(t * 0.4 + ri) * 6;
+      const rot = t * ring.speed * dilation + ri * 1.7;
+
+      /* the geometric ring itself: a faint arc with tick marks */
+      ctx.strokeStyle = `rgba(156,163,175,${ring.alpha * 0.5})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.stroke();
+      for (let k = 0; k < 24; k++) {
+        const a = rot * 1.5 + (k / 24) * TAU;
+        const x1 = cx + Math.cos(a) * (R - 3), y1 = cy + Math.sin(a) * (R - 3);
+        const x2 = cx + Math.cos(a) * (R + 3), y2 = cy + Math.sin(a) * (R + 3);
+        ctx.strokeStyle = `rgba(0,255,255,${ring.alpha * 0.6})`;
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+      }
+
+      /* runic equations set along the ring path, letter by letter */
+      ctx.font = `${ring.font}px "Courier New", monospace`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      const nEq = 4;
+      for (let e = 0; e < nEq; e++) {
+        const eq = EQUATIONS[(ring.eqOff + e) % EQUATIONS.length];
+        const startAng = rot + (e / nEq) * TAU;
+        const step = (ring.font * 0.78) / R; // angular advance per character
+        for (let cI = 0; cI < eq.length; cI++) {
+          const a = startAng + cI * step;
+          const x = cx + Math.cos(a) * R;
+          const y = cy + Math.sin(a) * R;
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(a + Math.PI / 2);
+          const flicker = 0.72 + 0.28 * Math.sin(t * 2.2 + cI * 1.7 + e * 9 + ri * 30);
+          ctx.fillStyle = (cI + e) % 7 === 0
+            ? `rgba(139,0,0,${ring.alpha * 1.35 * flicker})`
+            : `rgba(103,232,249,${ring.alpha * flicker})`;
+          ctx.shadowColor = "#00ffff";
+          ctx.shadowBlur = 6;
+          ctx.fillText(eq[cI], 0, 0);
+          ctx.restore();
+        }
+      }
+    }
+    ctx.restore();
+  };
+
+  /* ═══ PHASE 3 · THE PSYCHOLOGICAL SHATTER ═══════════════════════════════
+     Every 8-12 s: a violent 0.2 s horizontal tear + blood-red threads. */
+  let nextShatterAt = 5.5;
+  let shatterStart = -99;
+  let threads = [];
+  const spawnThreads = () => {
+    threads = [];
+    const n = 4 + Math.floor(Math.random() * 2); // 4-5
+    for (let i = 0; i < n; i++) {
+      const baseAng = (i / n) * TAU + Math.random() * 0.9;
+      const reach = Math.max(W, H) * (0.4 + Math.random() * 0.45);
+      /* jagged bezier chain: 3 segments, elbows kinked hard off-axis */
+      const pts = [[cx, cy]];
+      let px = cx, py = cy, a = baseAng;
+      for (let s = 1; s <= 3; s++) {
+        a += (Math.random() - 0.5) * 1.5;
+        const seg = (reach / 3) * (0.7 + Math.random() * 0.6);
+        px += Math.cos(a) * seg;
+        py += Math.sin(a) * seg;
+        pts.push([px, py]);
+      }
+      threads.push({ pts, w: 1.2 + Math.random() * 1.6, seed: Math.random() * 10 });
+    }
+  };
+  const drawTear = (t) => {
+    const dt = t - shatterStart;
+    if (dt > 0.2 || dt < 0) return false;
+    /* slice the live canvas into horizontal bands and re-draw them offset —
+       drawImage(self) with source slicing = the picture violently tears */
+    const bands = 14;
+    const bandH = canvas.height / bands;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // raw pixel space for slicing
+    for (let b = 0; b < bands; b++) {
+      const off = (Math.random() - 0.5) * 90 * (1 - dt / 0.2);
+      ctx.drawImage(canvas,
+        0, b * bandH, canvas.width, bandH,
+        off, b * bandH, canvas.width, bandH);
+    }
+    /* chromatic scream: crimson + cyan chaos lines through the tear */
+    for (let i = 0; i < 10; i++) {
+      const y = Math.random() * canvas.height;
+      ctx.fillStyle = i % 2 ? "rgba(139,0,0,0.5)" : "rgba(0,255,255,0.35)";
+      ctx.fillRect(0, y, canvas.width, 1 + Math.random() * 2.5);
+    }
+    ctx.restore();
+    return true;
+  };
+  const drawThreads = (t) => {
+    const dt = t - shatterStart;
+    if (dt < 0.06 || dt > 3.4) return;
+    const grow = easeOutExpo(Math.min((dt - 0.06) / 0.5, 1)); // shoot out fast
+    const fade = dt > 2.2 ? 1 - (dt - 2.2) / 1.2 : 1;
+    ctx.save();
+    ctx.globalCompositeOperation = "source-over"; // dark blood, not additive
+    for (const th of threads) {
+      const [p0, p1, p2, p3] = th.pts;
+      /* live nerve-twitch on the elbows */
+      const j = (k) => Math.sin(t * 17 + th.seed + k * 5) * 2.2;
+      ctx.strokeStyle = `rgba(139,0,0,${0.85 * fade})`;
+      ctx.lineWidth = th.w;
+      ctx.lineCap = "round";
+      ctx.shadowColor = "#8B0000";
+      ctx.shadowBlur = 9;
+      ctx.beginPath();
+      ctx.moveTo(p0[0], p0[1]);
+      ctx.bezierCurveTo(
+        p1[0] + j(1), p1[1] + j(2),
+        p2[0] + j(3), p2[1] + j(4),
+        p0[0] + (p3[0] - p0[0]) * grow, p0[1] + (p3[1] - p0[1]) * grow);
+      ctx.stroke();
+      /* hairline crack highlight */
+      ctx.strokeStyle = `rgba(248,113,113,${0.35 * fade})`;
+      ctx.lineWidth = 0.6;
+      ctx.shadowBlur = 0;
+      ctx.stroke();
+    }
+    ctx.restore();
+  };
+
+  /* ═══ PHASE 4 · THE VOID ASHES ══════════════════════════════════════════
+     Ash suspended in a frozen moment — falling UPWARD, drifting on a sine. */
+  const AN = 90;
+  const ashes = Array.from({ length: AN }, (_, i) => ({
+    x: rand(i, 11),
+    y: rand(i, 12),
+    v: 8 + rand(i, 13) * 26,       // px/s upward
+    driftAmp: 8 + rand(i, 14) * 22,
+    driftFreq: 0.15 + rand(i, 15) * 0.5,
+    phase: rand(i, 16) * TAU,
+    size: 0.6 + rand(i, 17) * 2.1,
+    grey: 55 + Math.floor(rand(i, 18) * 130),
+    alpha: 0.14 + rand(i, 19) * 0.4,
+  }));
+  const drawAshes = (t, dilation) => {
+    ctx.save();
+    ctx.globalCompositeOperation = "source-over";
+    for (const a of ashes) {
+      const y = ((a.y * H - t * a.v * dilation) % (H + 40) + H + 40) % (H + 40) - 20;
+      const x = a.x * W + Math.sin(t * a.driftFreq * TAU + a.phase) * a.driftAmp;
+      const g = a.grey;
+      ctx.fillStyle = `rgba(${g},${g},${g + 6},${a.alpha})`;
+      ctx.beginPath();
+      ctx.arc(x, y, a.size, 0, TAU);
+      ctx.fill();
+    }
+    ctx.restore();
+  };
+
+  /* ═══ THE LOOP ══════════════════════════════════════════════════════════ */
+  let t = 0;
+  let last = performance.now();
+  let paused = false;
+  let raf = 0;
+
+  const frame = (now) => {
+    const rdt = Math.min((now - last) / 1000, 0.05);
+    last = now;
+    t += rdt;
+    trackAvatar();
+
+    /* time dilation breathes: the world slows, then releases — eerie */
+    const dilation = 0.55 + 0.45 * easeInOutSine((Math.sin(t * 0.21) + 1) / 2);
+
+    ctx.clearRect(0, 0, W, H);
+
+    /* faint void haze behind everything so screen-blending has a bed */
+    const haze = ctx.createRadialGradient(cx, cy, ar, cx, cy, Math.max(W, H) * 0.75);
+    haze.addColorStop(0, "rgba(20,20,26,0.55)");
+    haze.addColorStop(0.5, "rgba(10,10,14,0.25)");
+    haze.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = haze;
+    ctx.fillRect(0, 0, W, H);
+
+    drawAshes(t, dilation);          /* PHASE 4 (back layer) */
+    drawRings(t, dilation);          /* PHASE 2 */
+
+    /* PHASE 1: quantum orbit field (additive) */
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    for (let i = 0; i < QN; i++) {
+      const q = quanta[i];
+      const ang = q.baseAng + t * q.speed * dilation;
+      /* Heisenberg jitter: position is never certain */
+      const wob = Math.sin(t * q.wobFreq + q.jitterSeed) * q.wobAmp
+        + (Math.random() - 0.5) * 1.6;
+      const r = ar * q.rBase + wob;
+      const x = cx + Math.cos(ang) * r;
+      const y = cy + Math.sin(ang) * r;
+      const tw = 0.45 + 0.55 * Math.sin(t * 3 + q.jitterSeed);
+      ctx.fillStyle = q.hue < 0.7
+        ? `rgba(0,255,255,${0.5 * tw})`
+        : `rgba(249,250,251,${0.65 * tw})`;
+      ctx.shadowColor = q.hue < 0.7 ? "#00ffff" : "#f9fafb";
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.arc(x, y, q.size, 0, TAU);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    /* PHASE 1: afterimages */
+    if (t >= nextGhostAt) { spawnGhosts(t); nextGhostAt = t + 3 + Math.random() * 0.4; }
+    drawGhosts(t);
+
+    /* PHASE 3: shatter scheduling */
+    if (t >= nextShatterAt) {
+      shatterStart = t;
+      spawnThreads();
+      nextShatterAt = t + 8 + Math.random() * 4; // every 8-12 s
+    }
+    drawThreads(t);
+    const tearing = drawTear(t);
+
+    /* crimson flash bathes the screen the instant reality tears */
+    if (tearing) {
+      ctx.fillStyle = `rgba(139,0,0,${0.18 * Math.random()})`;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    if (!paused) raf = requestAnimationFrame(frame);
+  };
+  raf = requestAnimationFrame(frame);
+
+  /* pause when the tab is hidden — no wasted battery in the void.
+     The resume path is guarded on `paused` so a page first loaded in a hidden
+     tab can't end up with two concurrent rAF loops. */
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      if (!paused) { paused = true; cancelAnimationFrame(raf); }
+    } else if (paused) {
+      paused = false; last = performance.now(); raf = requestAnimationFrame(frame);
+    }
+  });
+})();
+</script>
+</body>
+</html>
