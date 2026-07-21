@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from "react";
 import Link from "next/link";
-import { ChevronLeft, BookOpen, User, Tag, Clock, Star, ShieldAlert, AlignLeft, Lock } from "lucide-react";
+import { ChevronLeft, BookOpen, User, Tag, Clock, Star, ShieldAlert, AlignLeft, Lock, Play } from "lucide-react";
 import { IMangaInfo } from "@/lib/asura/models";
 import ManhwaTrackerButton from "@/components/manhwa/ManhwaTrackerButton";
 import CommunityFeed from "@/components/community/CommunityFeed";
@@ -13,6 +13,16 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
 
   const [manhwa, setManhwa] = useState<IMangaInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  // Last chapter you read (saved by the reader) → powers the "Continue" button.
+  const [lastRead, setLastRead] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      setLastRead(localStorage.getItem(`manhwa-progress:${id}`));
+    } catch {
+      /* ignore */
+    }
+  }, [id]);
 
   useEffect(() => {
     fetch(`/api/manhwa/${encodeURIComponent(id)}`)
@@ -90,7 +100,23 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
               
               {/* Tracker / Bookmark */}
               <ManhwaTrackerButton manhwa={manhwa} className="w-full" />
-              
+
+              {/* Continue where you left off — only when there's a saved,
+                  still-available (unlocked) chapter to jump back to. */}
+              {(() => {
+                const cont = lastRead ? manhwa.chapters?.find((c) => c.id === lastRead && !c.isLocked) : null;
+                if (!cont) return null;
+                return (
+                  <Link
+                    href={`/manhwa/${encodeURIComponent(id)}/chapter/${encodeURIComponent(cont.id)}`}
+                    className="mt-2 w-full py-3 px-3 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 text-white rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-colors shadow-md shadow-red-900/30"
+                  >
+                    <Play className="w-4 h-4 fill-current shrink-0" />
+                    <span className="truncate">Continue · {cont.title}</span>
+                  </Link>
+                );
+              })()}
+
               {/* Read First/Last Chapter Buttons */}
               {manhwa.chapters && manhwa.chapters.length > 0 && (() => {
                 const firstChapter = manhwa.chapters[manhwa.chapters.length - 1];

@@ -38,6 +38,7 @@ export default function ManhwaQuickViewModal({ manhwa, options, onClose }: Manhw
   const [visible, setVisible] = useState(true);
   const [fullManhwa, setFullManhwa] = useState<IMangaInfo | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [lastRead, setLastRead] = useState<string | null>(null);
 
   const { openManhwa } = useManhwaModal();
   const { toast } = useToast();
@@ -63,6 +64,11 @@ export default function ManhwaQuickViewModal({ manhwa, options, onClose }: Manhw
   // Fetch full details
   useEffect(() => {
     if (!manhwa) return;
+    try {
+      setLastRead(localStorage.getItem(`manhwa-progress:${manhwa.id}`));
+    } catch {
+      /* ignore */
+    }
     let isMounted = true;
 
     const loadFull = async () => {
@@ -177,12 +183,23 @@ export default function ManhwaQuickViewModal({ manhwa, options, onClose }: Manhw
                   {fullManhwa?.chapters && fullManhwa.chapters.length > 0 ? (() => {
                     const firstChapter = fullManhwa.chapters[fullManhwa.chapters.length - 1];
                     const latestUnlockedChapter = fullManhwa.chapters.find((c: any) => !c.isLocked) || fullManhwa.chapters[0];
+                    const continueChapter = lastRead ? fullManhwa.chapters.find((c: any) => c.id === lastRead && !c.isLocked) : null;
                     return (
                       <>
+                        {continueChapter && (
+                          <Link
+                            href={`/manhwa/${encodeURIComponent(manhwa.id)}/chapter/${encodeURIComponent(continueChapter.id)}`}
+                            onClick={onClose}
+                            className="flex items-center gap-2 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 text-white px-6 py-2.5 rounded shadow-lg shadow-red-900/30 transition-colors font-bold"
+                          >
+                            <Play className="w-5 h-5 fill-current" />
+                            Continue
+                          </Link>
+                        )}
                         <Link
                           href={`/manhwa/${encodeURIComponent(manhwa.id)}/chapter/${encodeURIComponent(firstChapter.id)}`}
                           onClick={onClose}
-                          className="flex items-center gap-2 bg-[#dc2626] hover:bg-[#ef4444] text-white px-6 py-2.5 rounded shadow-lg shadow-[#dc2626]/20 transition-colors font-bold"
+                          className={`flex items-center gap-2 px-6 py-2.5 rounded shadow-lg transition-colors font-bold ${continueChapter ? "bg-[#1e1e24] border border-[#2a2a32] hover:bg-[#2a2a32] text-white" : "bg-[#dc2626] hover:bg-[#ef4444] text-white shadow-[#dc2626]/20"}`}
                         >
                           <Play className="w-5 h-5 fill-current" />
                           Read First Chapter

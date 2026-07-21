@@ -49,6 +49,20 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
       });
   }, [id, chapterId]);
 
+  // Remember where you're up to, so the detail page + quick-view can offer a
+  // "Continue" jump straight back to this chapter. Only saved once the chapter
+  // has actually loaded and isn't locked.
+  useEffect(() => {
+    if (loading || pages.length === 0) return;
+    const cc = manhwa?.chapters?.find((c) => c.id === chapterId);
+    if ((cc as any)?.isLocked) return;
+    try {
+      localStorage.setItem(`manhwa-progress:${id}`, chapterId);
+    } catch {
+      /* ignore */
+    }
+  }, [loading, pages.length, manhwa, id, chapterId]);
+
   // Reward reading: once the pages are up and you've dwelled a few seconds,
   // grant Arise Points. Deduped server-side per chapter, so re-reads never
   // re-award. Skipped for locked chapters (you can't read those).

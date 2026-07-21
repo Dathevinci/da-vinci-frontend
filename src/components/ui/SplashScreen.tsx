@@ -128,14 +128,11 @@ export default function SplashScreen() {
                   }}
                   className={ch === " " ? "inline-block w-[0.4em]" : "inline-block"}
                   style={{
-                    backgroundImage:
-                      "linear-gradient(100deg, #a78bfa 0%, #ddd6fe 25%, #ffffff 50%, #ddd6fe 75%, #a78bfa 100%)",
-                    backgroundSize: "220% 100%",
-                    WebkitBackgroundClip: "text",
-                    backgroundClip: "text",
-                    color: "transparent",
-                    animation: "gildedSheen 3.4s ease-in-out 1.1s both",
-                    textShadow: "0 1px 2px rgba(0,0,0,0.55), 0 0 30px rgba(167,139,250,0.45)",
+                    // Solid light fill (NOT background-clip:text — that renders
+                    // transparent on some mobile WebViews, leaving only the
+                    // shadow: the "invisible wordmark" bug). Reads on every device.
+                    color: "#ece8ff",
+                    textShadow: "0 2px 8px rgba(0,0,0,0.5), 0 0 26px rgba(167,139,250,0.6), 0 0 3px rgba(221,214,254,0.55)",
                   }}
                 >
                   {ch === " " ? " " : ch}
@@ -156,7 +153,7 @@ export default function SplashScreen() {
               transition={{ delay: 2, duration: 1.1, ease: "easeOut" }}
               className="font-garamond italic text-violet-100/70 text-base md:text-xl tracking-[0.35em] mt-4 pl-[0.35em]"
             >
-              The Renaissance of Anime &amp; Manhwa
+              The Renaissance of Anime, Manhwa &amp; Novels
             </motion.p>
           </motion.div>
         </motion.div>
