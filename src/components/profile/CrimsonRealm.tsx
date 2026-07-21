@@ -153,6 +153,7 @@ function useCrimsonCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
     };
 
     let raf = 0;
+    let paused = false;
     let last = performance.now();
     let t = 0;
 
@@ -323,14 +324,38 @@ function useCrimsonCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
         ctx.shadowBlur = 0;
       });
 
-      raf = requestAnimationFrame(frame);
+      if (!paused) raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
+
+    // Pause the loop when the realm isn't being seen (tab backgrounded or card
+    // scrolled off-screen) — no visual change while viewing, just frees the main
+    // thread. Reset `last` on resume so the clock doesn't jump forward.
+    const resume = () => {
+      if (!paused) return;
+      paused = false;
+      last = performance.now();
+      raf = requestAnimationFrame(frame);
+    };
+    const pause = () => {
+      if (paused) return;
+      paused = true;
+      cancelAnimationFrame(raf);
+    };
+    const onVis = () => (document.hidden ? pause() : resume());
+    document.addEventListener("visibilitychange", onVis);
+    const io =
+      typeof IntersectionObserver !== "undefined"
+        ? new IntersectionObserver(([e]) => (e.isIntersecting ? resume() : pause()), { threshold: 0 })
+        : null;
+    io?.observe(canvas);
 
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
+      document.removeEventListener("visibilitychange", onVis);
       ro?.disconnect();
+      io?.disconnect();
     };
   }, [canvasRef]);
 }

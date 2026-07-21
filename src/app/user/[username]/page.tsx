@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
-import Link from "next/link";
 import { ArrowLeft, MapPin, Calendar, Clock, Star, TrendingUp, Compass, Settings, Check, X, Shield, Users, Zap, User as UserIcon, Code2, Sparkles, Crown, Feather, Flame, Leaf, UserPlus, UserMinus, Eye, Heart, ListFilter } from 'lucide-react';
 import BioRenderer from '@/components/profile/BioRenderer';
 import { parseBio } from "@/lib/bioUtils";
@@ -39,6 +38,8 @@ import ManhwaTrackerButton from "@/components/manhwa/ManhwaTrackerButton";
 import { useNovelStatus } from "@/hooks/useNovelStatus";
 import NovelTrackerButton from "@/components/novel/NovelTrackerButton";
 import { novelCover } from "@/lib/novelImage";
+import { useManhwaModal } from "@/components/providers/ManhwaModalProvider";
+import { useNovelModal } from "@/components/providers/NovelModalProvider";
 
 export default function PublicProfilePage() {
   const { username } = useParams();
@@ -64,6 +65,11 @@ export default function PublicProfilePage() {
   const { tracked: liveTracked } = useAnimeStatus();
   const { tracked: liveTrackedManhwa } = useManhwaStatus();
   const { tracked: liveTrackedNovel } = useNovelStatus();
+
+  // Manhwa/novel cards pop a quick-view modal (like the anime tab) instead of
+  // navigating away to the detail page.
+  const { openManhwa } = useManhwaModal();
+  const { openNovel } = useNovelModal();
 
   const [activeAnime, setActiveAnime] = useState<any | null>(null);
   const [showQuickView, setShowQuickView] = useState(false);
@@ -645,7 +651,6 @@ export default function PublicProfilePage() {
                           exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.15 } }}
                           transition={{ duration: 0.35, delay: Math.min(revealIndex * 0.035, 0.35), ease: [0.16, 1, 0.3, 1] }}
                           key={item.id}
-                          style={{ willChange: "transform, opacity" }}
                           className="relative group rounded-xl overflow-hidden shadow-lg border border-white/10 cursor-pointer block text-left bg-white/5 w-full"
                           onClick={(e) => handleOpenQuickView(e, item.anilistId)}
                         >
@@ -752,16 +757,15 @@ export default function PublicProfilePage() {
                               exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.15 } }}
                               transition={{ duration: 0.35, delay: Math.min(revealIndex * 0.035, 0.35), ease: [0.16, 1, 0.3, 1] }}
                               key={item.id}
-                              style={{ willChange: "transform, opacity" }}
                               className="relative group rounded-xl overflow-hidden shadow-lg border border-white/10 cursor-pointer block text-left bg-white/5 w-full"
+                              onClick={() => openManhwa({ id: item.mangaId, title: item.title, image: item.coverImage } as any)}
                             >
-                              <Link href={`/manhwa/${encodeURIComponent(item.mangaId)}`}>
                                 <div className="w-full aspect-[2/3] relative">
                                   {item.coverImage ? (
-                                    <img 
-                                      src={item.coverImage} 
-                                      alt={item.title} 
-                                      loading="lazy" 
+                                    <img
+                                      src={item.coverImage}
+                                      alt={item.title}
+                                      loading="lazy"
                                       className="w-full h-full object-cover"
                                     />
                                   ) : (
@@ -769,7 +773,7 @@ export default function PublicProfilePage() {
                                       <span className="text-slate-600 font-bold">No Image</span>
                                     </div>
                                   )}
-                                  
+
                                   {/* Status Tracker */}
                                   <div className="absolute top-2 left-2 z-20" onClick={(e) => e.stopPropagation()}>
                                     {isSelf ? (
@@ -790,7 +794,6 @@ export default function PublicProfilePage() {
                                     </h3>
                                   </div>
                                 </div>
-                              </Link>
                             </motion.div>
                             );
                           })}
@@ -850,10 +853,9 @@ export default function PublicProfilePage() {
                               exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.15 } }}
                               transition={{ duration: 0.35, delay: Math.min(revealIndex * 0.035, 0.35), ease: [0.16, 1, 0.3, 1] }}
                               key={item.id}
-                              style={{ willChange: "transform, opacity" }}
                               className="relative group rounded-xl overflow-hidden shadow-lg border border-white/10 cursor-pointer block text-left bg-white/5 w-full"
+                              onClick={() => openNovel({ id: item.novelId, title: item.title, cover: item.coverImage } as any)}
                             >
-                              <Link href={`/novel/${encodeURIComponent(item.novelId)}`}>
                                 <div className="w-full aspect-[2/3] relative">
                                   {cover ? (
                                     <img
@@ -869,7 +871,7 @@ export default function PublicProfilePage() {
                                   )}
 
                                   {/* Status Tracker */}
-                                  <div className="absolute top-2 left-2 z-20" onClick={(e) => e.preventDefault()}>
+                                  <div className="absolute top-2 left-2 z-20" onClick={(e) => e.stopPropagation()}>
                                     {isSelf ? (
                                       <NovelTrackerButton
                                         novel={{ id: item.novelId, title: item.title, coverImage: item.coverImage }}
@@ -888,7 +890,6 @@ export default function PublicProfilePage() {
                                     </h3>
                                   </div>
                                 </div>
-                              </Link>
                             </motion.div>
                             );
                           })}

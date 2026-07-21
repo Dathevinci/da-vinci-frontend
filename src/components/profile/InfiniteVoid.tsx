@@ -112,6 +112,7 @@ function useVoidCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
     let timeScale = 1;
     let last = performance.now();
     let raf = 0;
+    let paused = false;
 
     const drawEye = (cx: number, cy: number, R: number, a: number) => {
       const rot = elapsed * 0.06 + t * 0.18; // slows to a crawl, never dies
@@ -368,14 +369,40 @@ function useVoidCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       }
 
       ctx.restore();
-      raf = requestAnimationFrame(frame);
+      if (!paused) raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
+
+    // Pause the render loop when the effect isn't actually being seen — the tab
+    // is backgrounded, or the card has scrolled off-screen. Zero visual change
+    // while viewing; it just stops burning the main thread (and battery) when
+    // nothing is watching. On resume, reset `last` so the domain clock doesn't
+    // jump forward by however long it was parked.
+    const resume = () => {
+      if (!paused) return;
+      paused = false;
+      last = performance.now();
+      raf = requestAnimationFrame(frame);
+    };
+    const pause = () => {
+      if (paused) return;
+      paused = true;
+      cancelAnimationFrame(raf);
+    };
+    const onVis = () => (document.hidden ? pause() : resume());
+    document.addEventListener("visibilitychange", onVis);
+    const io =
+      typeof IntersectionObserver !== "undefined"
+        ? new IntersectionObserver(([e]) => (e.isIntersecting ? resume() : pause()), { threshold: 0 })
+        : null;
+    io?.observe(canvas);
 
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
+      document.removeEventListener("visibilitychange", onVis);
       ro?.disconnect();
+      io?.disconnect();
     };
   }, [canvasRef]);
 }
