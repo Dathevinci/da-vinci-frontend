@@ -3,10 +3,12 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, ChevronLeft, ChevronRight, List, ArrowLeft, Minus, Plus, X, Type } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight, List, ArrowLeft, X } from "lucide-react";
 import type { NovelInfo, ChapterContent } from "@/lib/novel/ReadNovelFull";
 import { useUser } from "@/hooks/useUser";
 import { earnPoints } from "@/lib/earn";
+import { useNovelReaderPrefs, themeById, fontById, spacingById, widthById } from "@/lib/novel/readerPrefs";
+import ReaderSettings from "@/components/novel/ReaderSettings";
 
 export default function NovelReaderPage() {
   const params = useParams();
@@ -17,26 +19,16 @@ export default function NovelReaderPage() {
   const [chapter, setChapter] = useState<ChapterContent | null>(null);
   const [novel, setNovel] = useState<NovelInfo | null>(null);
   const [loading, setLoading] = useState(true);
-  const [fontSize, setFontSize] = useState(19);
   const [showChapters, setShowChapters] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const { user } = useUser();
 
-  // Restore / persist font preference.
-  useEffect(() => {
-    try {
-      const f = Number(localStorage.getItem("novel-font"));
-      if (f >= 14 && f <= 28) setFontSize(f);
-    } catch {
-      /* ignore */
-    }
-  }, []);
-  useEffect(() => {
-    try {
-      localStorage.setItem("novel-font", String(fontSize));
-    } catch {
-      /* ignore */
-    }
-  }, [fontSize]);
+  // Reader customization (theme, font, size, spacing, width, alignment).
+  const { prefs, update, reset } = useNovelReaderPrefs();
+  const t = themeById(prefs.theme);
+  const fontCss = fontById(prefs.font).css;
+  const lineHeight = spacingById(prefs.spacing).value;
+  const widthCls = widthById(prefs.width).cls;
 
   // Fetch the chapter + save reading progress.
   useEffect(() => {
@@ -69,10 +61,10 @@ export default function NovelReaderPage() {
   // Deduped server-side per chapter, so re-reads never re-award.
   useEffect(() => {
     if (!user || !chapter || !chapter.content?.length) return;
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       earnPoints(user.id, "read", `novel:${id}:${chapterId}`);
     }, 3500);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, [user, chapter, id, chapterId]);
 
   const chapters = novel?.chapters || [];
@@ -88,22 +80,23 @@ export default function NovelReaderPage() {
   };
 
   return (
-    <div className="bg-[#0f0e0c] min-h-screen text-slate-200 selection:bg-pink-500/30">
+    <div className="min-h-screen selection:bg-pink-500/30" style={{ backgroundColor: t.bg, color: t.text }}>
       {/* Top bar */}
-      <div className="sticky top-0 z-30 bg-[#0f0e0c]/90 backdrop-blur-md border-b border-white/5">
+      <div className="sticky top-0 z-30 backdrop-blur-md border-b" style={{ backgroundColor: t.panel + "e6", borderColor: t.border }}>
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
-          <Link href={`/novel/${encodeURIComponent(id)}`} className="flex items-center gap-2 text-slate-400 hover:text-pink-400 transition text-sm font-bold min-w-0">
+          <Link href={`/novel/${encodeURIComponent(id)}`} className="flex items-center gap-2 hover:text-pink-400 transition text-sm font-bold min-w-0" style={{ color: t.muted }}>
             <ArrowLeft className="w-4 h-4 shrink-0" /> <span className="hidden sm:inline line-clamp-1">{novel?.title || "Back"}</span>
           </Link>
           <div className="flex items-center gap-1">
-            <button onClick={() => setFontSize((f) => Math.max(14, f - 1))} className="p-2 rounded-lg hover:bg-white/10 text-slate-400" title="Smaller text">
-              <Minus className="w-4 h-4" />
+            <button
+              onClick={() => setShowSettings(true)}
+              className="flex items-center gap-1.5 px-3 h-9 rounded-lg hover:bg-pink-500/10 hover:text-pink-400 transition font-black"
+              style={{ color: t.muted }}
+              title="Reading settings"
+            >
+              <span className="font-serif text-[15px] leading-none">Aa</span>
             </button>
-            <Type className="w-4 h-4 text-slate-500" />
-            <button onClick={() => setFontSize((f) => Math.min(28, f + 1))} className="p-2 rounded-lg hover:bg-white/10 text-slate-400" title="Larger text">
-              <Plus className="w-4 h-4" />
-            </button>
-            <button onClick={() => setShowChapters(true)} className="p-2 rounded-lg hover:bg-white/10 text-slate-400 ml-1" title="Chapters">
+            <button onClick={() => setShowChapters(true)} className="p-2 rounded-lg hover:bg-pink-500/10 hover:text-pink-400 transition" style={{ color: t.muted }} title="Chapters">
               <List className="w-5 h-5" />
             </button>
           </div>
@@ -115,20 +108,18 @@ export default function NovelReaderPage() {
           <Loader2 className="w-10 h-10 text-pink-500 animate-spin" />
         </div>
       ) : !chapter || !chapter.content?.length ? (
-        <div className="py-40 text-center text-slate-400">
+        <div className="py-40 text-center" style={{ color: t.muted }}>
           Failed to load this chapter.{" "}
           <button onClick={() => go(chapterId)} className="text-pink-400 underline">
             Retry
           </button>
         </div>
       ) : (
-        <article className="max-w-3xl mx-auto px-5 sm:px-8 py-10">
-          <h1 className="text-2xl font-black text-white mb-8 text-center">{chapter.title}</h1>
-          <div className="space-y-5" style={{ fontSize, lineHeight: 1.85 }}>
+        <article className={`${widthCls} mx-auto px-5 sm:px-8 py-10`} style={{ fontFamily: fontCss }}>
+          <h1 className="text-2xl font-black mb-8 text-center" style={{ color: t.text }}>{chapter.title}</h1>
+          <div className="space-y-5" style={{ fontSize: prefs.size, lineHeight, textAlign: prefs.justify ? "justify" : "left" }}>
             {chapter.content.map((p, i) => (
-              <p key={i} className="font-garamond text-slate-300/90">
-                {p}
-              </p>
+              <p key={i}>{p}</p>
             ))}
           </div>
 
@@ -137,11 +128,12 @@ export default function NovelReaderPage() {
             <button
               onClick={() => go(prevId)}
               disabled={!prevId}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-[#1a1814] border border-white/10 disabled:opacity-30 hover:border-pink-500/40 transition font-bold text-sm"
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border disabled:opacity-30 hover:border-pink-500/40 transition font-bold text-sm"
+              style={{ backgroundColor: t.panel, borderColor: t.border, color: t.text }}
             >
               <ChevronLeft className="w-5 h-5" /> Previous
             </button>
-            <button onClick={() => setShowChapters(true)} className="p-3 rounded-xl bg-[#1a1814] border border-white/10 hover:border-pink-500/40 transition" title="Chapters">
+            <button onClick={() => setShowChapters(true)} className="p-3 rounded-xl border hover:border-pink-500/40 transition" style={{ backgroundColor: t.panel, borderColor: t.border, color: t.text }} title="Chapters">
               <List className="w-5 h-5" />
             </button>
             <button
@@ -155,35 +147,40 @@ export default function NovelReaderPage() {
         </article>
       )}
 
+      {/* Reading settings sheet */}
+      {showSettings && <ReaderSettings prefs={prefs} update={update} reset={reset} onClose={() => setShowSettings(false)} />}
+
       {/* Chapter drawer */}
       {showChapters && (
         <>
           <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={() => setShowChapters(false)} />
-          <div className="fixed top-0 right-0 bottom-0 z-50 w-full sm:w-[380px] bg-[#141210] border-l border-white/10 flex flex-col">
-            <div className="p-5 border-b border-white/10 flex items-center justify-between flex-shrink-0">
+          <div className="fixed top-0 right-0 bottom-0 z-50 w-full sm:w-[380px] border-l flex flex-col" style={{ backgroundColor: t.panel, borderColor: t.border, color: t.text }}>
+            <div className="p-5 border-b flex items-center justify-between flex-shrink-0" style={{ borderColor: t.border }}>
               <div>
-                <h3 className="font-black text-white">Chapters</h3>
-                <p className="text-slate-500 text-xs mt-0.5">{chapters.length} total</p>
+                <h3 className="font-black">Chapters</h3>
+                <p className="text-xs mt-0.5" style={{ color: t.muted }}>{chapters.length} total</p>
               </div>
-              <button onClick={() => setShowChapters(false)} className="p-2 rounded-full bg-white/10 hover:bg-white/20">
+              <button onClick={() => setShowChapters(false)} className="p-2 rounded-full hover:bg-pink-500/10 hover:text-pink-400" style={{ color: t.muted }}>
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar">
-              {drawerChapters.map((c) => (
-                <button
-                  key={c.id}
-                  onClick={() => {
-                    setShowChapters(false);
-                    go(c.id);
-                  }}
-                  className={`w-full text-left px-5 py-3 border-b border-white/5 text-sm transition ${
-                    c.id === chapterId ? "bg-pink-500/15 text-pink-300 font-bold" : "text-slate-400 hover:bg-white/5"
-                  }`}
-                >
-                  {c.title}
-                </button>
-              ))}
+              {drawerChapters.map((c) => {
+                const active = c.id === chapterId;
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => {
+                      setShowChapters(false);
+                      go(c.id);
+                    }}
+                    className={`w-full text-left px-5 py-3 border-b text-sm transition ${active ? "bg-pink-500/15 text-pink-300 font-bold" : "hover:bg-pink-500/5"}`}
+                    style={{ borderColor: t.border, color: active ? undefined : t.muted }}
+                  >
+                    {c.title}
+                  </button>
+                );
+              })}
               <Link
                 href={`/novel/${encodeURIComponent(id)}`}
                 onClick={() => setShowChapters(false)}
