@@ -38,6 +38,7 @@ import { useManhwaStatus } from "@/hooks/useManhwaStatus";
 import ManhwaTrackerButton from "@/components/manhwa/ManhwaTrackerButton";
 import { useNovelStatus } from "@/hooks/useNovelStatus";
 import NovelTrackerButton from "@/components/novel/NovelTrackerButton";
+import { novelCover } from "@/lib/novelImage";
 
 export default function PublicProfilePage() {
   const { username } = useParams();
@@ -841,7 +842,7 @@ export default function PublicProfilePage() {
                         <AnimatePresence>
                           {displayedItems.map((item, i) => {
                             const revealIndex = isExpanded ? Math.max(0, i - 6) : i;
-                            const cover = item.coverImage ? `/api/novel-image?url=${encodeURIComponent(item.coverImage)}` : null;
+                            const cover = novelCover(item.coverImage);
                             return (
                             <motion.div
                               initial={{ opacity: 0, y: 12, scale: 0.98 }}

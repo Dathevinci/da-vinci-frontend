@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNovelModal } from "@/components/providers/NovelModalProvider";
 import type { NovelResult } from "@/lib/novel/ReadNovelFull";
+import { novelCover } from "@/lib/novelImage";
 
 export default function NovelHeroCarousel({ items }: { items: NovelResult[] }) {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -30,7 +31,7 @@ export default function NovelHeroCarousel({ items }: { items: NovelResult[] }) {
     return { x, scale, zIndex, opacity };
   };
 
-  const coverSrc = (n: NovelResult) => (n.cover ? `/api/novel-image?url=${encodeURIComponent(n.cover)}` : null);
+  const coverSrc = (n: NovelResult) => novelCover(n.cover);
 
   return (
     <div className="relative w-full h-[320px] md:h-[400px] overflow-hidden flex items-center justify-center bg-[#09090b] mb-12 py-10">

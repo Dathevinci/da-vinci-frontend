@@ -8,6 +8,7 @@ import Link from "next/link";
 import type { NovelInfo, NovelResult } from "@/lib/novel/ReadNovelFull";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import NovelTrackerButton from "@/components/novel/NovelTrackerButton";
+import { novelCover } from "@/lib/novelImage";
 
 const reveal = (delay: number) => ({
   initial: { opacity: 0, y: 16 },
@@ -65,7 +66,7 @@ export default function NovelQuickViewModal({
 
   const display = full || (novel as any);
   const title = display.title || "Loading…";
-  const cover = display.cover ? `/api/novel-image?url=${encodeURIComponent(display.cover)}` : null;
+  const cover = novelCover(display.cover);
   const chapters = full?.chapters || [];
   const firstCh = chapters[0];
   const detailHref = `/novel/${encodeURIComponent(novel.id)}`;

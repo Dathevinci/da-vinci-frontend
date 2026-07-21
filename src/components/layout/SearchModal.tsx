@@ -151,7 +151,7 @@ export default function SearchModal({ onClose }: SearchModalProps) {
                   const image = isManhwa
                     ? `/api/manhwa-image?url=${encodeURIComponent(item.image)}`
                     : isNovel
-                    ? (item.cover ? `/api/novel-image?url=${encodeURIComponent(item.cover)}` : "")
+                    ? (novelCover(item.cover) || "")
                     : (item.images?.jpg?.large_image_url || item.images?.jpg?.image_url);
                   const subtext = isManhwa ? `Rating: ${item.rating || 'N/A'}` : isNovel ? (item.latestChapter || "Light Novel") : `${item.type} • ${item.year || "?"}`;
 

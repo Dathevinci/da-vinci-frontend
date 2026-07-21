@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { NovelResult } from "@/lib/novel/ReadNovelFull";
 import { useNovelModal } from "@/components/providers/NovelModalProvider";
 import NovelTrackerButton from "@/components/novel/NovelTrackerButton";
+import { novelCover } from "@/lib/novelImage";
 
 export default function NovelCard({ novel }: { novel: NovelResult }) {
   const { openNovel } = useNovelModal();
@@ -15,7 +16,7 @@ export default function NovelCard({ novel }: { novel: NovelResult }) {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  const cover = novel.cover ? `/api/novel-image?url=${encodeURIComponent(novel.cover)}` : null;
+  const cover = novelCover(novel.cover);
 
   const closeHover = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { BookOpen, Loader2, Play, List, ChevronRight, User as UserIcon, Search } from "lucide-react";
 import type { NovelInfo } from "@/lib/novel/ReadNovelFull";
 import NovelTrackerButton from "@/components/novel/NovelTrackerButton";
+import { novelCover } from "@/lib/novelImage";
 
 const MAX_LIST = 300; // cap rendered chapter links; the search box finds the rest
 
@@ -34,7 +35,7 @@ export default function NovelDetailPage() {
     }
   }, [id]);
 
-  const cover = novel?.cover ? `/api/novel-image?url=${encodeURIComponent(novel.cover)}` : null;
+  const cover = novelCover(novel?.cover);
   const chapters = novel?.chapters || [];
   const filtered = chapterFilter
     ? chapters.filter((c) => c.title.toLowerCase().includes(chapterFilter.toLowerCase()) || String(c.number).includes(chapterFilter))
