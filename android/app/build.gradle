@@ -1,0 +1,53 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'xyz.dathevinci.twa'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'xyz.dathevinci.twa'
+        minSdk 21
+        targetSdk 34
+        // Passed in by CI from the git tag / run number; sane fallbacks for a
+        // plain local build.
+        versionCode (project.findProperty('vcode') ?: '1').toString().toInteger()
+        versionName (project.findProperty('vname') ?: '1.0.0').toString()
+    }
+
+    signingConfigs {
+        release {
+            def ksPath = System.getenv('ANDROID_KEYSTORE_PATH')
+            if (ksPath) {
+                storeFile file(ksPath)
+                storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('ANDROID_KEY_ALIAS')
+                keyPassword System.getenv('ANDROID_KEY_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            // Only attach the signing config when a keystore is actually present
+            // (env set), so `assembleDebug` etc. still work without secrets.
+            if (System.getenv('ANDROID_KEYSTORE_PATH')) {
+                signingConfig signingConfigs.release
+            }
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    // The Trusted Web Activity launcher — no app code needed, the whole app is
+    // this library's LauncherActivity pointed at the site (see AndroidManifest).
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+}

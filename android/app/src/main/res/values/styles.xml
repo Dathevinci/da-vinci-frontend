@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- A plain solid-background theme shown for the split second before the
+         Trusted Web Activity hands off to the site. AppCompat parent so the
+         library's LauncherActivity is happy on every Android version. -->
+    <style name="Theme.LauncherActivity" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@color/colorPrimary</item>
+        <item name="android:statusBarColor">@color/colorPrimary</item>
+        <item name="android:navigationBarColor">@color/colorPrimary</item>
+    </style>
+</resources>

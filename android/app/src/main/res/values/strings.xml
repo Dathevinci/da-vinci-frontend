@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="appName">Da Vinci</string>
+    <string name="launchUrl">https://www.dathevinci.xyz/</string>
+
+    <!-- Tells the app which site it is allowed to open chrome-less. The host
+         here must match the site serving /.well-known/assetlinks.json -->
+    <string name="assetStatements" translatable="false">
+        [{
+            \"relation\": [\"delegate_permission/common.handle_all_urls\"],
+            \"target\": {
+                \"namespace\": \"web\",
+                \"site\": \"https://www.dathevinci.xyz\"
+            }
+        }]
+    </string>
+</resources>

@@ -1,0 +1,5 @@
+// Root build script. The Android Gradle Plugin version is pinned to match the
+// Gradle version the CI installs (see .github/workflows/android-apk.yml).
+plugins {
+    id 'com.android.application' version '8.5.2' apply false
+}
