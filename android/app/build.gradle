@@ -25,6 +25,7 @@ android {
             def ksPath = System.getenv('ANDROID_KEYSTORE_PATH')
             if (ksPath) {
                 storeFile file(ksPath)
+                storeType 'PKCS12'   // generated with OpenSSL (.p12); store & key password are the same
                 storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
                 keyAlias System.getenv('ANDROID_KEY_ALIAS')
                 keyPassword System.getenv('ANDROID_KEY_PASSWORD')
