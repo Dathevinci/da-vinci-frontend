@@ -91,10 +91,14 @@ export default function Navbar() {
         <button className={`hover:text-white ${accentHover} transition flex items-center gap-1`}>
           Discover <ChevronDown className="w-4 h-4 transition-transform group-hover:rotate-180" />
         </button>
-        <div className="absolute top-full left-0 mt-6 w-48 bg-[#0f0f11] border border-white/10 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all flex flex-col overflow-hidden py-2 before:absolute before:-top-6 before:left-0 before:w-full before:h-6 before:bg-transparent">
-          <Link href="/airing" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><Activity className="w-4 h-4" /> Airing Now</Link>
-          <Link href="/upcoming" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><Compass className="w-4 h-4" /> Upcoming</Link>
-          <Link href="/calendar" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><Calendar className="w-4 h-4" /> Schedule</Link>
+        {/* pt-3 = a flush transparent hover bridge (see the "More" menu below);
+            replaces the old mt-6 dead gap that closed the menu mid-reach. */}
+        <div className="absolute top-full left-0 w-48 pt-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+          <div className="bg-[#0f0f11] border border-white/10 rounded-xl shadow-xl flex flex-col overflow-hidden py-2">
+            <Link href="/airing" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><Activity className="w-4 h-4" /> Airing Now</Link>
+            <Link href="/upcoming" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><Compass className="w-4 h-4" /> Upcoming</Link>
+            <Link href="/calendar" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><Calendar className="w-4 h-4" /> Schedule</Link>
+          </div>
         </div>
       </div>
       <Link href="/updates" className={`hover:text-white ${accentHover} transition whitespace-nowrap`}>Updates</Link>
@@ -176,10 +180,18 @@ export default function Navbar() {
                 <button className={`hover:text-white ${accentHover} transition flex items-center gap-1`}>
                   More <ChevronDown className="w-4 h-4 transition-transform group-hover:rotate-180" />
                 </button>
-                <div className="absolute top-full left-0 mt-6 w-48 bg-[#0f0f11] border border-white/10 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all flex flex-col overflow-hidden py-2 before:absolute before:-top-6 before:left-0 before:w-full before:h-6 before:bg-transparent">
-                  <Link href="/community" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><Users className="w-4 h-4" /> Community</Link>
-                  <Link href="/shop" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><ShoppingBag className="w-4 h-4" /> Shop</Link>
-                  <Link href="/support" className="px-4 py-2 hover:bg-white/5 text-[#ff5e5b] hover:text-[#ff4542] transition flex items-center gap-2"><Heart className="w-4 h-4" /> Support Us</Link>
+                {/* The pt-3 on this wrapper is a transparent hover "bridge" that
+                    sits flush under the button — so moving the cursor down into the
+                    menu never crosses a dead gap that snaps it shut. The old design
+                    used an mt-6 margin (a real 24px gap) with a :before bridge that
+                    never rendered (Tailwind pseudo-elements need content-['']), so
+                    it closed on people mid-reach depending on cursor speed. */}
+                <div className="absolute top-full left-0 w-48 pt-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+                  <div className="bg-[#0f0f11] border border-white/10 rounded-xl shadow-xl flex flex-col overflow-hidden py-2">
+                    <Link href="/community" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><Users className="w-4 h-4" /> Community</Link>
+                    <Link href="/shop" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><ShoppingBag className="w-4 h-4" /> Shop</Link>
+                    <Link href="/support" className="px-4 py-2 hover:bg-white/5 text-[#ff5e5b] hover:text-[#ff4542] transition flex items-center gap-2"><Heart className="w-4 h-4" /> Support Us</Link>
+                  </div>
                 </div>
               </div>
             </nav>
