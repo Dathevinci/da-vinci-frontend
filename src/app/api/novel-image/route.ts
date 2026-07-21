@@ -27,20 +27,17 @@ export async function GET(req: NextRequest) {
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
   const referer = host.includes("novelfull") ? "https://novelfull.net/" : host.includes("fanmtl") ? "https://www.fanmtl.com/" : "https://readnovelfull.com/";
 
-  // novelfull.net only serves small (~200px) thumbnails, which look mushy blown
-  // up to card size. Upscale + sharpen them to a crisp 480x720 webp via
-  // images.weserv.nl (its covers aren't referer-gated, so weserv can fetch them).
-  // Fall back to the raw cover if weserv is unavailable. readnovelfull/fanmtl
-  // already serve larger covers and are referer-gated, so those stay direct.
+  // Every source serves low-res covers (novelfull ~180-220px, readnovelfull
+  // ~266px), so upscale + sharpen them ALL to a consistent crisp 480x720 webp
+  // via images.weserv.nl (it can fetch all our sources server-side). `sharp`
+  // (unsharp mask) restores edge definition the plain upscale would leave soft.
+  // Fall back to a direct fetch (with the source's referer) if weserv is
+  // unavailable, so covers never break.
   async function upstream(): Promise<Response | null> {
-    if (host.includes("novelfull")) {
-      const bare = url.replace(/^https?:\/\//, "");
-      // Source covers are only ~220px, so upscaling alone stays soft — `sharp`
-      // (unsharp mask) restores edge definition and makes them look crisp.
-      const weserv = `https://images.weserv.nl/?url=${encodeURIComponent(bare)}&w=480&h=720&fit=cover&output=webp&q=85&sharp=3`;
-      const r = await fetch(weserv, { headers: { "User-Agent": UA } }).catch(() => null);
-      if (r && r.ok) return r;
-    }
+    const bare = url.replace(/^https?:\/\//, "");
+    const weserv = `https://images.weserv.nl/?url=${encodeURIComponent(bare)}&w=480&h=720&fit=cover&output=webp&q=85&sharp=3`;
+    const r = await fetch(weserv, { headers: { "User-Agent": UA } }).catch(() => null);
+    if (r && r.ok) return r;
     return fetch(url, { headers: { Referer: referer, "User-Agent": UA } }).catch(() => null);
   }
 

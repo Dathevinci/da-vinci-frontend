@@ -95,24 +95,27 @@ export async function searchAll(query: string, page = 1): Promise<{ results: Nov
   return result;
 }
 
-// Browse the catalog (the list tabs) — novelfull.net.
+// Browse + home shelves use READNOVELFULL, whose list pages carry proper
+// portrait covers (~266x399). novelfull.net's list/browse/home pages only serve
+// tiny 180x80 thumbnails — its good 221x324 covers live ONLY on detail pages, so
+// pulling them for every shelf item would mean ~40 detail fetches per home load.
+// So novelfull stays the SEARCH + reading source (where its unique licensed
+// titles + full chapter lists matter) and readnovelfull powers the crisp shelves.
 export async function browseNovels(page = 1, list = "most-popular-novel") {
-  return NF.browseNovels(page, list);
+  return RNF.browseNovels(page, list);
 }
 
-// Home shelves — all from novelfull.net's lists. (The `fanmtl` key is retained
-// for frontend compatibility but now carries a novelfull "hot" shelf.)
 export async function homeShelves() {
-  const [trending, latest, completed, hot] = await Promise.allSettled([
-    NF.browseNovels(1, "most-popular"),
-    NF.browseNovels(1, "latest-release-novel"),
-    NF.browseNovels(1, "completed-novel"),
-    NF.browseNovels(1, "hot-novel"),
+  const [trending, latest, completed, more] = await Promise.allSettled([
+    RNF.browseNovels(1, "most-popular-novel"),
+    RNF.browseNovels(1, "latest-release-novel"),
+    RNF.browseNovels(1, "completed-novel"),
+    RNF.browseNovels(2, "most-popular-novel"),
   ]);
   return {
     trending: trending.status === "fulfilled" ? trending.value.results : [],
     latestUpdates: latest.status === "fulfilled" ? latest.value.results : [],
     completed: completed.status === "fulfilled" ? completed.value.results : [],
-    fanmtl: hot.status === "fulfilled" ? hot.value.results : [],
+    fanmtl: more.status === "fulfilled" ? more.value.results : [],
   };
 }
