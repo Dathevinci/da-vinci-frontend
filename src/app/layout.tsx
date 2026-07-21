@@ -40,6 +40,17 @@ const ebGaramond = EB_Garamond({
   variable: "--font-garamond",
 });
 
+// Extra reading faces for the novel chapter reader's font picker. next/font
+// SELF-HOSTS these at build time (no runtime Google CDN / CSP issue). preload
+// is off so they only download when a reader actually picks them — zero cost to
+// every other page.
+import { Lora, Merriweather, Literata, Lexend } from "next/font/google";
+
+const lora = Lora({ weight: ["400", "700"], style: ["normal", "italic"], subsets: ["latin"], variable: "--font-lora", display: "swap", preload: false });
+const merriweather = Merriweather({ weight: ["400", "700"], style: ["normal", "italic"], subsets: ["latin"], variable: "--font-merriweather", display: "swap", preload: false });
+const literata = Literata({ weight: ["400", "700"], style: ["normal", "italic"], subsets: ["latin"], variable: "--font-literata", display: "swap", preload: false });
+const lexend = Lexend({ weight: ["400", "700"], subsets: ["latin"], variable: "--font-lexend", display: "swap", preload: false });
+
 import Navbar from "@/components/layout/Navbar";
 import ModeTransition from "@/components/layout/ModeTransition";
 import Footer from "@/components/layout/Footer";
@@ -72,7 +83,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className="dark">
-      <body className={`${geistSans.variable} ${geistMono.variable} ${permanentMarker.variable} ${cinzel.variable} ${ebGaramond.variable} ${fellEnglish.variable} bg-[#050505] text-white antialiased min-h-screen flex flex-col transition-colors duration-300 overflow-x-hidden`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} ${permanentMarker.variable} ${cinzel.variable} ${ebGaramond.variable} ${fellEnglish.variable} ${lora.variable} ${merriweather.variable} ${literata.variable} ${lexend.variable} bg-[#050505] text-white antialiased min-h-screen flex flex-col transition-colors duration-300 overflow-x-hidden`}>
         <ThemeProvider>
           <AppMotionConfig>
           <AppModeProvider>

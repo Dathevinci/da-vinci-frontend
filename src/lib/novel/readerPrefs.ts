@@ -28,9 +28,15 @@ export const READER_THEMES: ReaderTheme[] = [
   { id: "paper", name: "Paper", bg: "#fbfaf7", panel: "#efece5", text: "#262626", muted: "#6a6a6a", border: "rgba(0,0,0,0.10)", dark: false },
 ];
 
+// ids "serif"/"sans"/"mono" are kept for back-compat with saved prefs; the
+// display names are the real font names now that there's a whole shelf of them.
 export const READER_FONTS = [
-  { id: "serif", name: "Serif", css: "var(--font-garamond), Georgia, 'Times New Roman', serif" },
-  { id: "sans", name: "Sans", css: "var(--font-geist-sans), system-ui, sans-serif" },
+  { id: "serif", name: "Garamond", css: "var(--font-garamond), Georgia, 'Times New Roman', serif" },
+  { id: "lora", name: "Lora", css: "var(--font-lora), Georgia, serif" },
+  { id: "merriweather", name: "Merriweather", css: "var(--font-merriweather), Georgia, serif" },
+  { id: "literata", name: "Literata", css: "var(--font-literata), Georgia, serif" },
+  { id: "sans", name: "Geist Sans", css: "var(--font-geist-sans), system-ui, sans-serif" },
+  { id: "lexend", name: "Lexend", css: "var(--font-lexend), system-ui, sans-serif" },
   { id: "mono", name: "Mono", css: "var(--font-geist-mono), ui-monospace, monospace" },
 ];
 

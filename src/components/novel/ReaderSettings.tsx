@@ -82,17 +82,17 @@ export default function ReaderSettings({
           </div>
         </div>
 
-        {/* Font */}
+        {/* Font — each chip previews itself in its own typeface */}
         <div>
           <Label>Font</Label>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {READER_FONTS.map((f) => {
               const on = prefs.font === f.id;
               return (
                 <button
                   key={f.id}
                   onClick={() => update({ font: f.id })}
-                  className={`${chipBase} py-2.5 ${on ? activeCls : "hover:opacity-80"}`}
+                  className={`${chipBase} py-2.5 text-[15px] ${on ? activeCls : "hover:opacity-80"}`}
                   style={on ? { fontFamily: f.css } : { ...inactive, fontFamily: f.css }}
                 >
                   {f.name}
