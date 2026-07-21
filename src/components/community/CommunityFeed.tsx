@@ -30,12 +30,18 @@ const RankIcons: Record<string, any> = {
 };
 import { useToast } from '@/components/ui/Toast';
 import MentionsTextarea from '@/components/ui/MentionsTextarea';
+import Link from 'next/link';
 
 interface Comment {
   id: string;
   parentId: string | null;
   animeId?: number;
   animeTitle?: string;
+  mangaId?: string;
+  mangaTitle?: string;
+  chapterTitle?: string;
+  novelId?: string;
+  novelTitle?: string;
   mediaUrl?: string;
   content: string;
   isPinned?: boolean;
@@ -132,7 +138,7 @@ const CommentThread = ({
   handleEdit,
   handleBless,
   handlePin,
-  showAnimeContext
+  showContext
 }: {
   node: CommentNode;
   depth?: number;
@@ -151,7 +157,7 @@ const CommentThread = ({
   handleEdit: (id: string, content: string, mediaUrl?: string) => Promise<void>;
   handleBless: (commentId: string, username: string) => void;
   handlePin: (id: string) => Promise<void>;
-  showAnimeContext?: boolean;
+  showContext?: boolean;
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(node.content);
@@ -328,9 +334,10 @@ const CommentThread = ({
           </div>
         </div>
         
-        {/* Anime Context */}
-        {showAnimeContext && node.animeTitle && node.animeId && (
-          <button 
+        {/* Source context (global feed only): which anime / manhwa / novel this
+            comment was posted on, linking back to it. */}
+        {showContext && node.animeTitle && node.animeId ? (
+          <button
             type="button"
             onClick={(e) => {
               e.preventDefault();
@@ -338,18 +345,30 @@ const CommentThread = ({
               openAnime({
                 mal_id: node.animeId as number,
                 title: node.animeTitle as string,
-                // Pass minimal required fields, the modal will fetch the rest
                 images: { jpg: { image_url: '', large_image_url: '', small_image_url: '' }, webp: { image_url: '', large_image_url: '', small_image_url: '' } },
                 url: '',
               } as Anime);
-            }} 
+            }}
             className="mb-3 inline-block self-start cursor-pointer text-left"
           >
             <span className="text-xs bg-white/5 hover:bg-white/10 border border-white/10 px-2 py-1 rounded-md text-slate-400 flex items-center gap-1 transition">
               on <span className="font-bold text-purple-300 hover:text-purple-400 truncate max-w-[250px]">{node.animeTitle}</span>
             </span>
           </button>
-        )}
+        ) : showContext && node.novelTitle && node.novelId ? (
+          <Link href={`/novel/${encodeURIComponent(node.novelId)}`} onClick={(e) => e.stopPropagation()} className="mb-3 inline-block self-start">
+            <span className="text-xs bg-white/5 hover:bg-white/10 border border-white/10 px-2 py-1 rounded-md text-slate-400 flex items-center gap-1 transition">
+              on <span className="font-bold text-pink-300 hover:text-pink-400 truncate max-w-[250px]">{node.novelTitle}</span>
+            </span>
+          </Link>
+        ) : showContext && node.mangaTitle && node.mangaId ? (
+          <Link href={`/manhwa/${encodeURIComponent(node.mangaId)}`} onClick={(e) => e.stopPropagation()} className="mb-3 inline-block self-start">
+            <span className="text-xs bg-white/5 hover:bg-white/10 border border-white/10 px-2 py-1 rounded-md text-slate-400 flex items-center gap-1 transition">
+              on <span className="font-bold text-red-300 hover:text-red-400 truncate max-w-[220px]">{node.mangaTitle}</span>
+              {node.chapterTitle ? <span className="text-slate-500 truncate max-w-[120px]">· {node.chapterTitle}</span> : null}
+            </span>
+          </Link>
+        ) : null}
 
         {/* Content */}
         {isEditing ? (
@@ -544,7 +563,7 @@ const CommentThread = ({
                     handleEdit={handleEdit}
                     handleBless={handleBless}
                     handlePin={handlePin}
-                    showAnimeContext={showAnimeContext}
+                    showContext={showContext}
                   />
                 ))
               )}
@@ -629,7 +648,7 @@ const CommentThread = ({
                     handleEdit={handleEdit}
                     handleBless={handleBless}
                     handlePin={handlePin}
-                    showAnimeContext={showAnimeContext}
+                    showContext={showContext}
                   />
                 ))}
               </>
@@ -641,14 +660,16 @@ const CommentThread = ({
   );
 };
 
-export default function CommunityFeed({ 
+export default function CommunityFeed({
   animeId, animeTitle,
   mangaId, mangaTitle,
-  chapterId, chapterTitle
-}: { 
+  chapterId, chapterTitle,
+  novelId, novelTitle
+}: {
   animeId?: number, animeTitle?: string,
   mangaId?: string, mangaTitle?: string,
-  chapterId?: string, chapterTitle?: string
+  chapterId?: string, chapterTitle?: string,
+  novelId?: string, novelTitle?: string
 }) {
   const { user } = useUser();
   const [comments, setComments] = useState<Comment[]>([]);
@@ -688,6 +709,7 @@ export default function CommunityFeed({
       if (animeId) url.searchParams.set('animeId', animeId.toString());
       if (mangaId) url.searchParams.set('mangaId', mangaId);
       if (chapterId) url.searchParams.set('chapterId', chapterId);
+      if (novelId) url.searchParams.set('novelId', novelId);
       if (user) url.searchParams.set('userId', user.id);
       url.searchParams.set('sort', sortBy);
       if (searchQuery.trim()) url.searchParams.set('search', searchQuery.trim());
@@ -717,7 +739,8 @@ export default function CommunityFeed({
   useEffect(() => {
     setPage(1);
     fetchComments(1, false);
-  }, [animeId, user?.id, sortBy, mediaOnly]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [animeId, mangaId, chapterId, novelId, user?.id, sortBy, mediaOnly]);
 
   const handlePin = async (commentId: string) => {
     if (!user) return;
@@ -764,6 +787,8 @@ export default function CommunityFeed({
           mangaTitle,
           chapterId,
           chapterTitle,
+          novelId,
+          novelTitle,
           content,
           parentId,
           mediaUrl
@@ -1063,7 +1088,7 @@ export default function CommunityFeed({
                 handleEdit={handleEdit}
                 handleBless={handleBless}
                 handlePin={handlePin}
-                showAnimeContext={!animeId}
+                showContext={!animeId && !mangaId && !novelId}
               />
             ))}
             

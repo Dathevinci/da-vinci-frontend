@@ -7,6 +7,7 @@ import { BookOpen, Loader2, Play, List, ChevronRight, User as UserIcon, Search }
 import type { NovelInfo } from "@/lib/novel/ReadNovelFull";
 import NovelTrackerButton from "@/components/novel/NovelTrackerButton";
 import { novelCover } from "@/lib/novelImage";
+import CommunityFeed from "@/components/community/CommunityFeed";
 
 const MAX_LIST = 300; // cap rendered chapter links; the search box finds the rest
 
@@ -166,6 +167,12 @@ export default function NovelDetailPage() {
             Showing first {MAX_LIST} of {filtered.length}. Use the search box to jump to a specific chapter.
           </p>
         )}
+      </div>
+
+      {/* Novel-level discussion (not per-chapter). Posts show on the community
+          feed tagged with this novel. */}
+      <div className="max-w-[1000px] mx-auto px-4 md:px-8 mt-12 border-t border-white/5 pt-4">
+        <CommunityFeed novelId={id} novelTitle={novel.title} />
       </div>
     </div>
   );
