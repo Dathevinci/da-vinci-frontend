@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useUser } from "./useUser";
+import { earnPoints } from "@/lib/earn";
 
 // Single-source status enum for tracked novels (mirrors useManhwaStatus).
 export type NovelUserStatus = "Interested" | "Reading" | "Waiting" | "Finished" | "Dropped" | "None";
@@ -100,6 +101,9 @@ export function useNovelStatus() {
   ) => {
     const currentTracked = globalTracked[novelId];
     const backendId = currentTracked?.id;
+    // Adding a novel to your library the first time earns Arise Points (server
+    // dedups per title, so remove→re-add never double-pays).
+    const isNewAdd = status !== "None" && !currentTracked;
 
     if (status === "None") {
       delete globalTracked[novelId];
@@ -118,6 +122,10 @@ export function useNovelStatus() {
       localStorage.setItem("davinci_novel_status", JSON.stringify(globalTracked));
     }
     emitChange();
+
+    if (user && isNewAdd) {
+      earnPoints(user.id, "track", `novel:${novelId}`);
+    }
 
     if (user) {
       try {

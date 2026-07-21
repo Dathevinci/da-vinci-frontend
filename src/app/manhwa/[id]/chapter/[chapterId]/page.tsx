@@ -5,6 +5,8 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, ArrowLeft, Loader2, Lock } from "lucide-react";
 import { IMangaChapterPage, IMangaInfo } from "@/lib/asura/models";
 import CommunityFeed from "@/components/community/CommunityFeed";
+import { useUser } from "@/hooks/useUser";
+import { earnPoints } from "@/lib/earn";
 
 export default function ManhwaChapterPage({ params }: { params: Promise<{ id: string; chapterId: string }> }) {
   const resolvedParams = use(params);
@@ -14,6 +16,7 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
   const [pages, setPages] = useState<IMangaChapterPage[]>([]);
   const [manhwa, setManhwa] = useState<IMangaInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const { user } = useUser();
 
   // Fetch manhwa info for navigation
   useEffect(() => {
@@ -45,6 +48,19 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
         setLoading(false);
       });
   }, [id, chapterId]);
+
+  // Reward reading: once the pages are up and you've dwelled a few seconds,
+  // grant Arise Points. Deduped server-side per chapter, so re-reads never
+  // re-award. Skipped for locked chapters (you can't read those).
+  useEffect(() => {
+    if (!user || loading || pages.length === 0) return;
+    const cc = manhwa?.chapters?.find((c) => c.id === chapterId);
+    if ((cc as any)?.isLocked) return;
+    const t = setTimeout(() => {
+      earnPoints(user.id, "read", `manhwa:${id}:${chapterId}`);
+    }, 3500);
+    return () => clearTimeout(t);
+  }, [user, loading, pages.length, manhwa, id, chapterId]);
 
   // Figure out prev/next chapter
   let prevChapterId: string | null = null;

@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2, ChevronLeft, ChevronRight, List, ArrowLeft, Minus, Plus, X, Type } from "lucide-react";
 import type { NovelInfo, ChapterContent } from "@/lib/novel/ReadNovelFull";
+import { useUser } from "@/hooks/useUser";
+import { earnPoints } from "@/lib/earn";
 
 export default function NovelReaderPage() {
   const params = useParams();
@@ -17,6 +19,7 @@ export default function NovelReaderPage() {
   const [loading, setLoading] = useState(true);
   const [fontSize, setFontSize] = useState(19);
   const [showChapters, setShowChapters] = useState(false);
+  const { user } = useUser();
 
   // Restore / persist font preference.
   useEffect(() => {
@@ -61,6 +64,16 @@ export default function NovelReaderPage() {
       .then((data) => setNovel(data && data.error ? null : data))
       .catch(() => {});
   }, [id]);
+
+  // Reward reading: after a short dwell on a loaded chapter, grant Arise Points.
+  // Deduped server-side per chapter, so re-reads never re-award.
+  useEffect(() => {
+    if (!user || !chapter || !chapter.content?.length) return;
+    const t = setTimeout(() => {
+      earnPoints(user.id, "read", `novel:${id}:${chapterId}`);
+    }, 3500);
+    return () => clearTimeout(t);
+  }, [user, chapter, id, chapterId]);
 
   const chapters = novel?.chapters || [];
   const idx = chapters.findIndex((c) => c.id === chapterId);

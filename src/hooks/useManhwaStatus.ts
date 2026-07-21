@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useUser } from "./useUser";
+import { earnPoints } from "@/lib/earn";
 
 export type ManhwaUserStatus = "Interested" | "Reading" | "Waiting" | "Finished" | "Dropped" | "None";
 
@@ -94,6 +95,9 @@ export function useManhwaStatus() {
   const setStatus = async (mangaId: string, title: string, coverImage: string | undefined, status: ManhwaUserStatus) => {
     const currentTracked = globalTracked[mangaId];
     const backendId = currentTracked?.id;
+    // Adding a manhwa to your library the first time earns Arise Points (server
+    // dedups per title, so remove→re-add never double-pays).
+    const isNewAdd = status !== "None" && !currentTracked;
 
     if (status === "None") {
       delete globalTracked[mangaId];
@@ -112,6 +116,10 @@ export function useManhwaStatus() {
       localStorage.setItem("davinci_manhwa_status", JSON.stringify(globalTracked));
     }
     emitChange();
+
+    if (user && isNewAdd) {
+      earnPoints(user.id, "track", `manhwa:${mangaId}`);
+    }
 
     if (user) {
       try {
