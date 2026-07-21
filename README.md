@@ -1,62 +1,67 @@
 <div align="center">
-  <img src="public/logo.png" alt="Da Vinci Logo" width="150" height="150" style="border-radius: 50%; box-shadow: 0 0 40px rgba(99,102,241,0.5);" />
-  <br/>
-  <h1 style="color: #a855f7;">Da Vinci</h1>
-  <p><strong>The Ultimate Cinematic Anime Tracking & Social Platform</strong></p>
-  <p>A sleek, premium, Next.js-powered tracker built for the elite anime community.</p>
+  <img src="public/logo.png" width="140" height="140" alt="Da Vinci" />
+  <h1>Da Vinci</h1>
+  <p><b>An invitation-only atelier for the devoted student of the anime, manhwa &amp; light-novel arts.</b></p>
+
+  <p>
+    <a href="https://www.dathevinci.xyz"><img src="https://img.shields.io/badge/live-dathevinci.xyz-a855f7?style=for-the-badge&logo=vercel&logoColor=white" alt="Live site"></a>
+    <a href="https://github.com/Dathevinci/da-vinci-frontend/releases/latest"><img src="https://img.shields.io/badge/Android-Download_APK-3ddc84?style=for-the-badge&logo=android&logoColor=white" alt="Download the Android app"></a>
+  </p>
+  <p>
+    <img src="https://img.shields.io/badge/Next.js_16-000000?logo=nextdotjs&logoColor=white" alt="Next.js 16">
+    <img src="https://img.shields.io/badge/React_19-149ECA?logo=react&logoColor=white" alt="React 19">
+    <img src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" alt="TypeScript">
+    <img src="https://img.shields.io/badge/Tailwind_4-06B6D4?logo=tailwindcss&logoColor=white" alt="Tailwind CSS 4">
+    <img src="https://img.shields.io/badge/Prisma-2D3748?logo=prisma&logoColor=white" alt="Prisma">
+    <img src="https://img.shields.io/badge/Postgres-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL">
+  </p>
 </div>
 
 ---
 
-## 🎬 The Netflix-Style Experience
+**Da Vinci** is a cinematic, community-driven library for three worlds — **anime**, **manhwa**, and **light novels** — behind a single invitation-only door. Track what you watch and read, earn a community currency for taking part, and spend it on animated profile cosmetics that range from a subtle glow to a screen-consuming, SSS-grade domain expansion.
 
-Da Vinci is built from the ground up to feel like a premium streaming platform. Every pixel is optimized for maximum cinematic impact:
-- **Buttery Smooth Carousels:** Glide horizontally through perfectly snapped rows of the latest Trending, Highly Anticipated, and Recently Finished anime.
-- **Epic AMV Hub:** A dedicated section bringing you the most explosive, high-definition Anime Music Videos directly embedded from YouTube. From Jujutsu Kaisen to Demon Slayer, watch the best edits without ever leaving the dashboard.
-- **Hardware-Accelerated UI:** Utilizing pure GPU-accelerated CSS, the platform features ultra-smooth scaling animations, gorgeous translucent glassmorphism, and zero Javascript choppiness.
+## ✦ Three modes, one atelier
 
----
+The whole app re-skins itself around the world you're in — accent, navigation, and library all shift.
 
-## ✧ The Arise Points Economy
+| | Mode | What's inside |
+|:--:|---|---|
+| 🟣 | **Anime** | AniList-powered discovery, embedded trailers, an airing schedule down to the second, and personal watchlist tracking. |
+| 🔴 | **Manhwa** | Browse and read chapters in-app, with per-chapter progress saved to your profile. |
+| 🩷 | **Novels** | A scraped light-novel library with a fully customizable reader — 5 themes, 7 reading fonts, adjustable size, spacing, width, and justification. |
 
-Progression is everything. Built directly into the Da Vinci backend is the highly competitive **Arise Points (✧)** system. Earn your rank by contributing to the platform:
-- **Follow the Lead Dev:** Earn a massive **10 ✧** for following the creator of Da Vinci!
-- **Customize Your Profile:** Earn **2 ✧** for uploading a custom Avatar, and another **2 ✧** for setting a custom Profile Banner.
-- **Build Your Watchlist:** Every single time you add an anime to your tracking list, you are instantly awarded **2 ✧**.
+## ✦ Features
 
-All points are protected by a robust anti-farming algorithm, ensuring the leaderboard stays legitimate.
+- **✧ Arise Points economy** — earn the community currency for watching, reading, tracking titles, commenting, and following. Every payout is whitelisted and de-duplicated server-side, so the leaderboard stays honest.
+- **The Shop** — spend points on animated **avatar frames** and full-profile **effects**, from common sparkles up to hand-tuned **SSS-grade cinematics** (Infinite Void, Temporal Echo, …) and **limited-time drops** with live countdowns.
+- **Profiles** — levels and ranks, badges, live watch/read stats, and your equipped cosmetics playing across the whole card.
+- **Community** — a global activity feed, discussion threads on individual anime / manhwa / novels, following, and direct messages.
+- **Supporter perks** — a Ko-fi integration grants a Supporter badge and bonus points.
+- **Signed identity** — JWT-backed sessions gate every sensitive action.
 
----
+## 📱 Da Vinci for Android
 
-## 👑 Lead Developer: dejavuh
+A **Trusted Web Activity**: a tiny (~2.7 MB) native shell that opens the live site fullscreen with no browser bar — so it **updates itself** on every deploy, no reinstall needed.
 
-The platform is spearheaded by the Lead Developer, **`dejavuh`**. 
-- **Exclusive Aesthetics:** Visiting the Lead Developer's profile triggers an exclusive, screen-shattering **Hollow Purple** animation—a massive collision of blue and red orbs that creates a blinding shockwave. 
-- **Neon Badging:** The developer profile is distinctly marked with glowing purple neon typography and custom "DEV" and "Lead Developer" insignias.
+**[⬇ Download the latest APK](https://github.com/Dathevinci/da-vinci-frontend/releases/latest)** &nbsp;·&nbsp; built and signed automatically by GitHub Actions on every `v*` tag — see [`android/`](android/README.md).
 
----
+## 🛠 Built with
 
-## 📡 Live AniList Integration
+- **Frontend** — Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, Framer Motion, and hand-written HTML5 Canvas for the profile effects. Deployed on **Vercel**.
+- **Backend** — Express + Prisma over a **Neon** PostgreSQL database, hosting the social graph, economy, and auth. Deployed on **Render**. *(repo: `da-vinci-backend`)*
+- **Data** — AniList GraphQL v2 for anime; server-side scrapers for the manhwa and light-novel libraries.
 
-We don't rely on stale data. Da Vinci is deeply integrated with the official **AniList GraphQL API**.
-- **Real-Time Data:** Get the exact seconds until the next episode of your favorite seasonal anime airs.
-- **Deep Discovery:** Explore cast members, view embedded YouTube trailers, and find related media with lightning-fast Next.js server caching.
-- **Personalized Tracking:** Sync your personal Watchlist (Watching, Planning, Completed) directly to the platform's PostgreSQL database.
+## 🚀 Local development
 
----
+```bash
+npm install
+npm run dev        # → http://localhost:3000
+```
 
-## 🛠 Tech Stack
+Point `NEXT_PUBLIC_API_URL` at your running `da-vinci-backend` instance. The library itself sits behind the invitation gate.
 
-- **Frontend:** Next.js (App Router), React 19, TypeScript, Tailwind CSS 4.
-- **Animations:** Hardware-accelerated native CSS + Framer Motion (for complex orchestrations like Splash Screens).
-- **Backend/Database:** Express.js, PostgreSQL (Prisma ORM) handling social following, notifications, and Arise Point logic.
-- **APIs:** AniList GraphQL v2 & YouTube Embeds.
-
----
-
-## 🚀 Getting Started
-
-1. Clone the repository.
-2. Install dependencies: `npm install`.
-3. Start the cinematic experience: `npm run dev`.
-4. Open [http://localhost:3000](http://localhost:3000) and begin earning your Arise Points!
+<div align="center">
+  <br/>
+  <sub>Crafted by <b>Dejavuh</b> · <a href="https://www.dathevinci.xyz">dathevinci.xyz</a></sub>
+</div>
