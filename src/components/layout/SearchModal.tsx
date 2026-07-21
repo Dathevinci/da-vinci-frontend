@@ -12,6 +12,7 @@ import { useNovelModal } from "@/components/providers/NovelModalProvider";
 import { useAppMode } from "@/components/providers/AppModeProvider";
 import { Anime } from "@tutkli/jikan-ts";
 import { IMangaResult } from "@/lib/asura/models";
+import { novelCover } from "@/lib/novelImage";
 
 interface SearchModalProps {
   onClose: () => void;
