@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -74,6 +74,22 @@ import { AppModeProvider } from "@/components/providers/AppModeProvider";
 export const metadata: Metadata = {
   title: "Da Vinci",
   description: "A modern, educational anime discovery platform.",
+  applicationName: "Da Vinci",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/icons/icon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/icons/apple-touch-icon.png",
+  },
+  // Lets iOS "Add to Home Screen" launch fullscreen like an app, too.
+  appleWebApp: { capable: true, title: "Da Vinci", statusBarStyle: "black-translucent" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#09090b",
 };
 
 export default function RootLayout({
