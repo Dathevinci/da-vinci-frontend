@@ -52,6 +52,7 @@ import InviteOnlyGuard from "@/components/layout/InviteOnlyGuard";
 import { Suspense } from "react";
 
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import AppMotionConfig from "@/components/providers/AppMotionConfig";
 import { ToastProvider } from "@/components/ui/Toast";
 import AnimeModalProvider from "@/components/providers/AnimeModalProvider";
 import ManhwaModalProvider from "@/components/providers/ManhwaModalProvider";
@@ -73,6 +74,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning className="dark">
       <body className={`${geistSans.variable} ${geistMono.variable} ${permanentMarker.variable} ${cinzel.variable} ${ebGaramond.variable} ${fellEnglish.variable} bg-[#050505] text-white antialiased min-h-screen flex flex-col transition-colors duration-300 overflow-x-hidden`}>
         <ThemeProvider>
+          <AppMotionConfig>
           <AppModeProvider>
             <ModeTransition />
             <ToastProvider>
@@ -97,6 +99,7 @@ export default function RootLayout({
               </AnimeModalProvider>
             </ToastProvider>
           </AppModeProvider>
+          </AppMotionConfig>
         </ThemeProvider>
       </body>
     </html>

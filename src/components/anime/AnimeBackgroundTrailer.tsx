@@ -12,7 +12,7 @@ interface Props {
 export default function AnimeBackgroundTrailer({ trailerId, bannerUrl }: Props) {
   const { preferences } = usePreferences();
   const [isMuted, setIsMuted] = useState(true);
-  const [isPlaying, setIsPlaying] = useState(preferences.autoplayTrailers);
+  const [isPlaying, setIsPlaying] = useState(preferences.autoplayTrailers && !preferences.dataSaver);
   const [isLoaded, setIsLoaded] = useState(false);
   const [volume, setVolume] = useState(50);
   const [actualPlaying, setActualPlaying] = useState(false);
@@ -97,7 +97,7 @@ export default function AnimeBackgroundTrailer({ trailerId, bannerUrl }: Props) 
       <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 min-w-full min-h-full w-auto h-auto aspect-video pointer-events-none transition-opacity duration-1000 ${(isLoaded && actualPlaying) ? 'opacity-50 mix-blend-screen' : 'opacity-0'}`}>
         <iframe
           ref={iframeRef}
-          src={`https://www.youtube.com/embed/${trailerId}?autoplay=${preferences.autoplayTrailers ? '1' : '0'}&mute=1&controls=0&showinfo=0&rel=0&disablekb=1&fs=0&iv_load_policy=3&modestbranding=1&playsinline=1&enablejsapi=1`}
+          src={`https://www.youtube.com/embed/${trailerId}?autoplay=${preferences.autoplayTrailers && !preferences.dataSaver ? '1' : '0'}&mute=1&controls=0&showinfo=0&rel=0&disablekb=1&fs=0&iv_load_policy=3&modestbranding=1&playsinline=1&enablejsapi=1`}
           className="w-full h-full"
           allow="autoplay; encrypted-media"
           title="Anime Trailer"

@@ -17,6 +17,7 @@ import { MangoLocoCardRealm } from "@/components/profile/MangoLoco";
 import { JungleCardRealm } from "@/components/profile/JungleDepths";
 import { UnblinkingCardRealm } from "@/components/profile/UnblinkingGaze";
 import { VoidCardDomain } from "@/components/profile/InfiniteVoid";
+import { usePreferences } from "@/hooks/usePreferences";
 
 /**
  * Discord-style "Profile Effect" — a full-card animated overlay that plays when
@@ -42,7 +43,12 @@ const FIELD = {
 };
 
 export function ProfileEffect({ effect }: { effect?: string | null }) {
-  if (!effect) return null;
+  // Performance Mode turns off the heavy card-filling canvas domains entirely —
+  // this is the single biggest cost on a profile, so it's what "reduces 3D
+  // effects" actually means. The avatar/name styling stays; only the animated
+  // overlay is dropped.
+  const { preferences } = usePreferences();
+  if (!effect || preferences.reducedMotion) return null;
   if (effect === "effect_ascension") return <StormField />;
   if (effect === "effect_tempest") return <TempestCardStorm />;
   if (effect === "effect_fool") return <FoolCardMist />;

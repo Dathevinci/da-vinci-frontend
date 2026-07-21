@@ -46,6 +46,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [preferences.reducedMotion]);
 
   useEffect(() => {
+    // Data Saver → a body flag any component can read via CSS, plus it gates the
+    // heavy autoplay trailer (see AnimeBackgroundTrailer). Universal across modes.
+    document.body.classList.toggle("data-saver", preferences.dataSaver);
+  }, [preferences.dataSaver]);
+
+  useEffect(() => {
     // Clear any existing theme classes
     document.body.classList.remove("theme-neon", "theme-crimson");
     
