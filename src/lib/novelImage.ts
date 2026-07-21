@@ -3,7 +3,7 @@
 // the browser cache whenever the proxy's image treatment changes — bump it and
 // every stale cached cover is re-fetched at the new quality. (The proxy ignores
 // `v`; it only reads `url`.)
-const COVER_V = "hd2";
+const COVER_V = "hd3";
 
 export function novelCover(url?: string | null): string | null {
   if (!url) return null;

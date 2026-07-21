@@ -120,7 +120,19 @@ export async function searchNovels(keyword: string, page = 1): Promise<{ results
 }
 
 // ── detail + chapters ──────────────────────────────────────────────────────────
-// Chapters live on the paginated detail page inside <ul class="list-chapter">.
+// The FULL chapter list (all of it, in one call) comes from the ajax endpoint as
+// a <select> of <option value="/<slug>/<chapter>.html">Title</option>.
+function parseChapterOptions(html: string): NovelChapter[] {
+  const out: NovelChapter[] = [];
+  const re = /<option[^>]*value="\/[a-z0-9-]+\/([^"/]+?)\.html"[^>]*>([^<]*)/gi;
+  for (const m of html.matchAll(re)) {
+    out.push({ id: m[1], title: decodeEntities(m[2] || m[1]), number: out.length + 1 });
+  }
+  return out;
+}
+
+// Fallback: chapters also appear on the paginated detail page inside
+// <ul class="list-chapter"> (25/page) — used only if the ajax option list fails.
 function parseChapters(html: string): NovelChapter[] {
   const m = html.match(/<ul class="list-chapter">([\s\S]*?)<\/ul>/i);
   const block = m ? m[1] : "";
@@ -157,20 +169,34 @@ export async function getNovelInfo(slug: string): Promise<NovelInfo> {
   const descBlock = html.match(/<div class="desc-text"[^>]*>([\s\S]*?)<\/div>/i)?.[1] || "";
   const synopsis = decodeEntities(descBlock.replace(/<[^>]+>/g, " "));
 
-  // Walk the paginated chapter list.
-  let chapters = parseChapters(html);
-  const maxPage = Math.min(maxPageOf(html, 1), MAX_CHAPTER_PAGES);
-  if (maxPage > 1) {
-    const rest = await Promise.allSettled(
-      Array.from({ length: maxPage - 1 }, (_, i) => fetchHtml(`/${slug}.html?page=${i + 2}`))
-    );
-    const seen = new Set(chapters.map((c) => c.id));
-    for (const r of rest) {
-      if (r.status !== "fulfilled") continue;
-      for (const ch of parseChapters(r.value)) {
-        if (seen.has(ch.id)) continue;
-        seen.add(ch.id);
-        chapters.push({ ...ch, number: chapters.length + 1 });
+  // Chapters: the ajax-chapter-option endpoint returns the ENTIRE list in one
+  // call (2000+ chapters for long novels), so use it as the source of truth.
+  const numericId = html.match(/data-novel-id="(\d+)"/i)?.[1] || "";
+  let chapters: NovelChapter[] = [];
+  if (numericId) {
+    try {
+      const opt = await fetchHtml(`/ajax-chapter-option?novelId=${numericId}`);
+      chapters = parseChapterOptions(opt);
+    } catch {
+      /* fall back to pagination below */
+    }
+  }
+  // Fallback (ajax failed / no id): walk the paginated detail page (bounded).
+  if (chapters.length === 0) {
+    chapters = parseChapters(html);
+    const maxPage = Math.min(maxPageOf(html, 1), MAX_CHAPTER_PAGES);
+    if (maxPage > 1) {
+      const rest = await Promise.allSettled(
+        Array.from({ length: maxPage - 1 }, (_, i) => fetchHtml(`/${slug}.html?page=${i + 2}`))
+      );
+      const seen = new Set(chapters.map((c) => c.id));
+      for (const r of rest) {
+        if (r.status !== "fulfilled") continue;
+        for (const ch of parseChapters(r.value)) {
+          if (seen.has(ch.id)) continue;
+          seen.add(ch.id);
+          chapters.push({ ...ch, number: chapters.length + 1 });
+        }
       }
     }
   }

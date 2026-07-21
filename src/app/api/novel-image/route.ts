@@ -35,7 +35,9 @@ export async function GET(req: NextRequest) {
   async function upstream(): Promise<Response | null> {
     if (host.includes("novelfull")) {
       const bare = url.replace(/^https?:\/\//, "");
-      const weserv = `https://images.weserv.nl/?url=${encodeURIComponent(bare)}&w=480&h=720&fit=cover&output=webp&q=82`;
+      // Source covers are only ~220px, so upscaling alone stays soft — `sharp`
+      // (unsharp mask) restores edge definition and makes them look crisp.
+      const weserv = `https://images.weserv.nl/?url=${encodeURIComponent(bare)}&w=480&h=720&fit=cover&output=webp&q=85&sharp=3`;
       const r = await fetch(weserv, { headers: { "User-Agent": UA } }).catch(() => null);
       if (r && r.ok) return r;
     }
