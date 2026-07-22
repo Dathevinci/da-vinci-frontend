@@ -8,8 +8,7 @@ import { useNovelModal } from "@/components/providers/NovelModalProvider";
 import NovelTrackerButton from "@/components/novel/NovelTrackerButton";
 import { novelCover } from "@/lib/novelImage";
 
-// In-memory cache to prevent re-fetching the same cover across multiple cards
-const coverCache = new Map<string, string | null>();
+import { useNovelCover } from "@/lib/novel/useNovelCover";
 
 export default function NovelCard({ novel }: { novel: NovelResult }) {
   const { openNovel } = useNovelModal();
@@ -19,33 +18,7 @@ export default function NovelCard({ novel }: { novel: NovelResult }) {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  const [highResCover, setHighResCover] = useState<string | null | undefined>(coverCache.has(novel.title) ? coverCache.get(novel.title) : undefined);
-  const baseCover = novelCover(novel.cover);
-  const cover = highResCover || baseCover;
-
-  useEffect(() => {
-    if (highResCover !== undefined) return;
-    
-    // Check if another card already fetched this
-    if (coverCache.has(novel.title)) {
-      setHighResCover(coverCache.get(novel.title) || null);
-      return;
-    }
-
-    fetch(`/api/novels/cover?title=${encodeURIComponent(novel.title)}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.cover) {
-          coverCache.set(novel.title, data.cover);
-          setHighResCover(data.cover);
-        } else {
-          coverCache.set(novel.title, null);
-        }
-      })
-      .catch(() => {
-        coverCache.set(novel.title, null);
-      });
-  }, [novel.title, highResCover]);
+  const { cover, onError } = useNovelCover(novel.title, novel.cover);
 
   const closeHover = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
