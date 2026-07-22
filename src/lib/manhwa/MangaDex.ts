@@ -40,20 +40,13 @@ function qs(params: Record<string, unknown>): string {
   return p.toString();
 }
 
-async function mdx(path: string, revalidate = 300, attempt = 0): Promise<any> {
+async function mdx(path: string, revalidate = 300): Promise<any> {
   const res = await fetch(`${API}${path}`, {
     headers: { "User-Agent": "DaVinci/1.0 (+https://www.dathevinci.xyz)" },
     // Cache metadata briefly to stay well under MangaDex's rate limits; the
     // image-server call passes revalidate:0 since its token is short-lived.
     next: { revalidate },
   } as any);
-  // MangaDex rate-limits per IP (~5/s); Vercel's shared IP occasionally gets a
-  // 429. Retry with backoff so a transient limit doesn't silently drop this
-  // source from the merged results.
-  if ((res.status === 429 || res.status >= 500) && attempt < 2) {
-    await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
-    return mdx(path, revalidate, attempt + 1);
-  }
   if (!res.ok) throw new Error(`MangaDex ${res.status} for ${path}`);
   return res.json();
 }
@@ -100,11 +93,6 @@ const BASE_SEARCH = {
   "availableTranslatedLanguage[]": ["en"],
   "contentRating[]": RATINGS,
   "includes[]": ["cover_art"],
-  // Drop titles with zero chapters. (Licensed mega-hits like Solo Leveling
-  // have their chapters as EXTERNAL links, which still count as "available", so
-  // this can't fully exclude them — those degrade gracefully to the detail
-  // page's "no chapters" state, since our reader filters external chapters out.)
-  hasAvailableChapters: "true",
 };
 
 export async function search(query: string, page = 1): Promise<ISearch<IMangaResult>> {
