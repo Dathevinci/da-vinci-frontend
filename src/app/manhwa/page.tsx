@@ -20,7 +20,7 @@ export default function ManhwaPage() {
   return (
     <Suspense
       fallback={
-        <LoadingScreen message="Loading AsuraScans" />
+        <LoadingScreen message="Loading comics" />
       }
     >
       <ManhwaPageInner />
@@ -107,7 +107,9 @@ function ManhwaPageInner() {
       <AnimatePresence mode="wait">
         {loading ? (
           <motion.div key="loader" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <LoadingScreen fullscreen={false} message="Loading AsuraScans" />
+            {/* "Loading comics", not "Loading AsuraScans" — there are two
+                sources now and the page waits on both. */}
+            <LoadingScreen fullscreen={false} message="Loading comics" />
           </motion.div>
         ) : isHome ? (
           <motion.div key="home" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }} className="w-full">
@@ -156,7 +158,7 @@ function ManhwaPageInner() {
                   <div>
                     <h1 className="text-3xl font-black tracking-tight text-white drop-shadow-sm">Manhwa</h1>
                     <p className="text-[#a3a3a3] text-xs font-bold uppercase tracking-widest mt-1">
-                      Powered by AsuraScans
+                      Powered by AsuraScans · MangaDex
                     </p>
                   </div>
                 </div>
