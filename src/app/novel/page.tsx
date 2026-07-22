@@ -13,7 +13,7 @@ import type { NovelResult } from "@/lib/novel/ReadNovelFull";
 const LISTS = [
   { key: "most-popular-novel", label: "Popular", icon: Flame },
   { key: "latest-release-novel", label: "Latest", icon: Clock },
-  { key: "genre/Korean", label: "Korean", icon: BookOpen },
+  { key: "korean", label: "Korean", icon: BookOpen },
   { key: "completed-novel", label: "Completed", icon: CheckCircle2 },
 ];
 
@@ -107,7 +107,7 @@ function NovelInner() {
             <div className="relative z-20 space-y-2 max-w-[1600px] mx-auto">
               <NovelCarousel title="Trending Now" icon={<Flame className="w-6 h-6 text-orange-500" />} items={trending} seeAllLink="/novel?view=all&list=most-popular-novel" />
               <NovelCarousel title="Recently Updated" icon={<Clock className="w-6 h-6 text-pink-400" />} items={latest} seeAllLink="/novel?view=all&list=latest-release-novel" />
-              <NovelCarousel title="Korean Novels" icon={<BookOpen className="w-6 h-6 text-blue-400" />} items={korean} seeAllLink="/novel?view=all&list=genre/Korean" />
+              <NovelCarousel title="Korean Novels" icon={<BookOpen className="w-6 h-6 text-blue-400" />} items={korean} seeAllLink="/novel?view=all&list=korean" />
               <NovelCarousel title="Completed" icon={<CheckCircle2 className="w-6 h-6 text-green-500" />} items={completed} seeAllLink="/novel?view=all&list=completed-novel" />
               <NovelCarousel title="More Novels" icon={<BookOpen className="w-6 h-6 text-pink-400" />} items={fanmtl} seeAllLink="/novel?view=all" />
 

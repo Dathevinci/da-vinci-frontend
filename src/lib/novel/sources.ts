@@ -102,6 +102,7 @@ export async function searchAll(query: string, page = 1): Promise<{ results: Nov
 // So novelfull stays the SEARCH + reading source (where its unique licensed
 // titles + full chapter lists matter) and readnovelfull powers the crisp shelves.
 export async function browseNovels(page = 1, list = "most-popular-novel") {
+  if (list === "korean") return FMTL.browseNovels(page, "korean");
   if (list.startsWith("genre/")) return NF.browseNovels(page, list);
   return RNF.browseNovels(page, list);
 }
