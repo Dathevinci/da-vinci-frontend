@@ -29,6 +29,8 @@ export default function NovelQuickViewModal({
   const [isExpanded, setIsExpanded] = useState(false);
   const [lastRead, setLastRead] = useState<string | null>(null);
 
+  const [imgError, setImgError] = useState(false);
+
   useLockBodyScroll();
   useEffect(() => setMounted(true), []);
 
@@ -66,7 +68,6 @@ export default function NovelQuickViewModal({
 
   const display = full || (novel as any);
   const title = display.title || "Loading…";
-  const [imgError, setImgError] = useState(false);
   const cover = imgError ? null : novelCover(display.cover);
   const chapters = full?.chapters || [];
   const firstCh = chapters[0];
