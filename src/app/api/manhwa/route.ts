@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { searchManhwa, browseManhwa } from '@/lib/manhwa/sources';
+import { AsuraScans } from '@/lib/asura';
 
 export async function GET(request: Request) {
   try {
@@ -9,13 +9,18 @@ export async function GET(request: Request) {
     const status = searchParams.get('status') || undefined;
     const sort = searchParams.get('sort') || undefined;
     const filters = { status, sort };
+    const asura = new AsuraScans();
 
-    // Merges AsuraScans + MangaDex (one being down still returns the other).
-    const data = query ? await searchManhwa(query, page, filters) : await browseManhwa(page, filters);
+    let data;
+    if (query) {
+      data = await asura.search(query, page, filters);
+    } else {
+      data = await asura.getSeries(page, filters);
+    }
 
     return NextResponse.json(data);
   } catch (error: any) {
-    console.error('Manhwa API Error:', error);
+    console.error('AsuraScans API Error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

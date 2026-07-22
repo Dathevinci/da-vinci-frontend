@@ -1,13 +1,20 @@
 import { NextResponse } from 'next/server';
-import { manhwaHome } from '@/lib/manhwa/sources';
+import { AsuraScans } from '@/lib/asura';
 
 export async function GET() {
   try {
-    // Trending + latest, merged across AsuraScans + MangaDex.
-    const { trending, latestUpdates } = await manhwaHome();
-    return NextResponse.json({ trending, latestUpdates });
+    const asura = new AsuraScans();
+    const [popular, latest] = await Promise.all([
+      asura.getPopularToday(),
+      asura.getLatestUpdates(1)
+    ]);
+
+    return NextResponse.json({
+      trending: popular.results || [],
+      latestUpdates: latest.results || [],
+    });
   } catch (error: any) {
-    console.error('Manhwa Home API Error:', error);
+    console.error('AsuraScans Home API Error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
