@@ -7,6 +7,7 @@ import { IMangaChapterPage, IMangaInfo } from "@/lib/asura/models";
 import CommunityFeed from "@/components/community/CommunityFeed";
 import { useUser } from "@/hooks/useUser";
 import { earnPoints } from "@/lib/earn";
+import { recordReading } from "@/lib/readingHistory";
 
 export default function ManhwaChapterPage({ params }: { params: Promise<{ id: string; chapterId: string }> }) {
   const resolvedParams = use(params);
@@ -49,9 +50,9 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
       });
   }, [id, chapterId]);
 
-  // Remember where you're up to, so the detail page + quick-view can offer a
-  // "Continue" jump straight back to this chapter. Only saved once the chapter
-  // has actually loaded and isn't locked.
+  // Remember where you're up to, so the detail page + quick-view + the home
+  // "Continue Reading" shelf can jump straight back to this chapter. Only saved
+  // once the chapter has actually loaded and isn't locked.
   useEffect(() => {
     if (loading || pages.length === 0) return;
     const cc = manhwa?.chapters?.find((c) => c.id === chapterId);
@@ -60,6 +61,9 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
       localStorage.setItem(`manhwa-progress:${id}`, chapterId);
     } catch {
       /* ignore */
+    }
+    if (manhwa?.title) {
+      recordReading("manhwa", { id, title: manhwa.title, cover: manhwa.image, chapterId, chapterTitle: cc?.title });
     }
   }, [loading, pages.length, manhwa, id, chapterId]);
 

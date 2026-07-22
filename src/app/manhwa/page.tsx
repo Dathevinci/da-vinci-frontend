@@ -5,6 +5,7 @@ import ManhwaCard from "@/components/manhwa/ManhwaCard";
 import ManhwaFilters from "@/components/manhwa/ManhwaFilters";
 import ManhwaHeroCarousel from "@/components/manhwa/ManhwaHeroCarousel";
 import ManhwaCarousel from "@/components/manhwa/ManhwaCarousel";
+import ContinueReading from "@/components/reading/ContinueReading";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, BookMarked, Loader2, Flame, Clock, Star } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -117,6 +118,8 @@ function ManhwaPageInner() {
             
             {/* Netflix-style horizontal shelves — same feel as anime mode */}
             <div className="relative z-20 space-y-2 pt-6 max-w-[1600px] mx-auto">
+              {/* Resume where you left off (client-side; hidden until you've read something) */}
+              <ContinueReading kind="manhwa" />
               <ManhwaCarousel title="Trending Now" icon={<Flame className="w-6 h-6 text-orange-500" />} items={trending} />
               <ManhwaCarousel title="Recently Added" icon={<Clock className="w-6 h-6 text-[#dc2626]" />} items={latestUpdates} />
               {topRated.length > 0 && (

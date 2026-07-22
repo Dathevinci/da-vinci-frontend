@@ -7,6 +7,7 @@ import { Loader2, BookOpen, ChevronLeft, ChevronRight, Flame, Clock, CheckCircle
 import NovelCard from "@/components/novel/NovelCard";
 import NovelCarousel from "@/components/novel/NovelCarousel";
 import NovelHeroCarousel from "@/components/novel/NovelHeroCarousel";
+import ContinueReading from "@/components/reading/ContinueReading";
 import { motion, AnimatePresence } from "framer-motion";
 import type { NovelResult } from "@/lib/novel/ReadNovelFull";
 
@@ -105,6 +106,8 @@ function NovelInner() {
             <NovelHeroCarousel items={trending.slice(0, 10)} />
 
             <div className="relative z-20 space-y-2 max-w-[1600px] mx-auto">
+              {/* Resume where you left off (client-side; hidden until you've read something) */}
+              <ContinueReading kind="novel" />
               <NovelCarousel title="Trending Now" icon={<Flame className="w-6 h-6 text-orange-500" />} items={trending} seeAllLink="/novel?view=all&list=most-popular-novel" />
               <NovelCarousel title="Recently Updated" icon={<Clock className="w-6 h-6 text-pink-400" />} items={latest} seeAllLink="/novel?view=all&list=latest-release-novel" />
               <NovelCarousel title="Korean Novels" icon={<BookOpen className="w-6 h-6 text-blue-400" />} items={korean} seeAllLink="/novel?view=all&list=korean" />

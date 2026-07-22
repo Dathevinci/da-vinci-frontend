@@ -7,6 +7,7 @@ import { Loader2, ChevronLeft, ChevronRight, List, ArrowLeft, X, Server } from "
 import type { NovelInfo, ChapterContent } from "@/lib/novel/ReadNovelFull";
 import { useUser } from "@/hooks/useUser";
 import { earnPoints } from "@/lib/earn";
+import { recordReading } from "@/lib/readingHistory";
 import { useNovelReaderPrefs, themeById, fontById, spacingById, widthById } from "@/lib/novel/readerPrefs";
 import ReaderSettings from "@/components/novel/ReaderSettings";
 
@@ -56,6 +57,13 @@ export default function NovelReaderPage() {
       .then((data) => setNovel(data && data.error ? null : data))
       .catch(() => {});
   }, [id]);
+
+  // Record a rich entry (title + cover + chapter) for the home "Continue
+  // Reading" shelf, once both the novel info and the chapter have loaded.
+  useEffect(() => {
+    if (!novel?.title || !chapter) return;
+    recordReading("novel", { id, title: novel.title, cover: novel.cover, chapterId, chapterTitle: chapter.title });
+  }, [novel, chapter, id, chapterId]);
 
   // Reward reading: after a short dwell on a loaded chapter, grant Arise Points.
   // Deduped server-side per chapter, so re-reads never re-award.
