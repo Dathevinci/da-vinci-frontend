@@ -58,8 +58,9 @@ export async function getNovelInfo(id: string): Promise<NovelInfo> {
     for (const res of searchRes.value.results) {
       const altSrc = resolveSource(res.id).source;
       if (altSrc !== source && !alternatives.find(a => a.source === altSrc)) {
-        // Only add if title is very similar
-        if (res.title.toLowerCase() === info.title.toLowerCase()) {
+        // Only add if title is very similar (ignoring punctuation and spacing)
+        const clean = (t: string) => t.toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (clean(res.title) === clean(info.title)) {
           alternatives.push({
             source: altSrc,
             id: res.id,
