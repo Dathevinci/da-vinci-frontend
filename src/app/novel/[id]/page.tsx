@@ -18,7 +18,10 @@ export default function NovelDetailPage() {
   const [novel, setNovel] = useState<NovelInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [chapterFilter, setChapterFilter] = useState("");
+  const [chapterPage, setChapterPage] = useState(0);
   const [lastRead, setLastRead] = useState<string | null>(null);
+
+  useEffect(() => setChapterPage(0), [chapterFilter]);
 
   useEffect(() => {
     setLoading(true);
@@ -38,10 +41,12 @@ export default function NovelDetailPage() {
 
   const cover = novelCover(novel?.cover);
   const chapters = novel?.chapters || [];
+  const PAGE_SIZE = 100;
   const filtered = chapterFilter
     ? chapters.filter((c) => c.title.toLowerCase().includes(chapterFilter.toLowerCase()) || String(c.number).includes(chapterFilter))
     : chapters;
-  const shown = filtered.slice(0, MAX_LIST);
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const shown = filtered.slice(chapterPage * PAGE_SIZE, (chapterPage + 1) * PAGE_SIZE);
   const firstCh = chapters[0];
 
   if (loading)
@@ -177,6 +182,30 @@ export default function NovelDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Range Selector */}
+        {totalPages > 1 && (
+          <div className="flex flex-wrap gap-1.5 mb-4 max-h-[160px] overflow-y-auto custom-scrollbar p-1">
+            {Array.from({ length: totalPages }).map((_, i) => {
+              const start = i * PAGE_SIZE + 1;
+              const end = Math.min((i + 1) * PAGE_SIZE, filtered.length);
+              return (
+                <button
+                  key={i}
+                  onClick={() => setChapterPage(i)}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition ${
+                    chapterPage === i 
+                      ? "bg-pink-500 text-black border-pink-500" 
+                      : "bg-[#151518] text-slate-400 border-white/10 hover:border-pink-500/50 hover:text-pink-400"
+                  }`}
+                >
+                  {start} - {end}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {shown.map((ch) => (
             <Link
@@ -192,11 +221,6 @@ export default function NovelDetailPage() {
           ))}
         </div>
         {filtered.length === 0 && <p className="text-slate-500 text-sm py-6 text-center">No chapters match your search.</p>}
-        {filtered.length > MAX_LIST && (
-          <p className="text-slate-600 text-xs text-center mt-4">
-            Showing first {MAX_LIST} of {filtered.length}. Use the search box to jump to a specific chapter.
-          </p>
-        )}
       </div>
 
       {/* Novel-level discussion (not per-chapter). Posts show on the community
