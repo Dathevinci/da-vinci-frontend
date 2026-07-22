@@ -19,7 +19,7 @@ export default function ManhwaPage() {
       fallback={
         <div className="bg-[#0b0b0c] min-h-screen pt-16 flex flex-col items-center justify-center py-40 gap-4">
           <Loader2 className="w-10 h-10 text-red-500 animate-spin" />
-          <p className="text-[#a3a3a3] text-sm font-bold uppercase tracking-widest">Loading AsuraScans...</p>
+          <p className="text-[#a3a3a3] text-sm font-bold uppercase tracking-widest">Loading comics…</p>
         </div>
       }
     >
@@ -108,7 +108,7 @@ function ManhwaPageInner() {
         {loading ? (
           <motion.div key="loader" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center py-40 gap-4">
             <Loader2 className="w-10 h-10 text-red-500 animate-spin" />
-            <p className="text-[#a3a3a3] text-sm font-bold uppercase tracking-widest">Loading AsuraScans...</p>
+            <p className="text-[#a3a3a3] text-sm font-bold uppercase tracking-widest">Loading comics…</p>
           </motion.div>
         ) : isHome ? (
           <motion.div key="home" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }} className="w-full">
@@ -146,7 +146,7 @@ function ManhwaPageInner() {
                   <div>
                     <h1 className="text-3xl font-black tracking-tight text-white drop-shadow-sm">Manhwa</h1>
                     <p className="text-[#a3a3a3] text-xs font-bold uppercase tracking-widest mt-1">
-                      Powered by AsuraScans
+                      Powered by AsuraScans · MangaDex
                     </p>
                   </div>
                 </div>
