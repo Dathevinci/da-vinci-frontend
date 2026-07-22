@@ -102,20 +102,23 @@ export async function searchAll(query: string, page = 1): Promise<{ results: Nov
 // So novelfull stays the SEARCH + reading source (where its unique licensed
 // titles + full chapter lists matter) and readnovelfull powers the crisp shelves.
 export async function browseNovels(page = 1, list = "most-popular-novel") {
+  if (list.startsWith("genre/")) return NF.browseNovels(page, list);
   return RNF.browseNovels(page, list);
 }
 
 export async function homeShelves() {
-  const [trending, latest, completed, more] = await Promise.allSettled([
+  const [trending, latest, completed, korean, more] = await Promise.allSettled([
     RNF.browseNovels(1, "most-popular-novel"),
     RNF.browseNovels(1, "latest-release-novel"),
     RNF.browseNovels(1, "completed-novel"),
+    NF.browseNovels(1, "genre/Korean"),
     RNF.browseNovels(2, "most-popular-novel"),
   ]);
   return {
     trending: trending.status === "fulfilled" ? trending.value.results : [],
     latestUpdates: latest.status === "fulfilled" ? latest.value.results : [],
     completed: completed.status === "fulfilled" ? completed.value.results : [],
+    korean: korean.status === "fulfilled" ? korean.value.results : [],
     fanmtl: more.status === "fulfilled" ? more.value.results : [],
   };
 }

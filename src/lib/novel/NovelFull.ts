@@ -105,7 +105,7 @@ function maxPageOf(html: string, current: number): number {
 }
 
 export async function browseNovels(page = 1, list = "most-popular"): Promise<{ results: NovelResult[]; hasNextPage: boolean }> {
-  const nfList = LIST_MAP[list] || "most-popular";
+  const nfList = LIST_MAP[list] || (list.startsWith("genre/") ? list : "most-popular");
   const html = await fetchHtml(`/${nfList}?page=${Math.max(1, page)}`);
   const results = parseListRows(html);
   const maxPage = maxPageOf(html, page);
