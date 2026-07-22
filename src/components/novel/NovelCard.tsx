@@ -88,7 +88,16 @@ export default function NovelCard({ novel }: { novel: NovelResult }) {
       {/* Base cover */}
       <button onClick={handleOpen} className="relative w-full aspect-[2/3] overflow-hidden rounded-lg shadow-md block text-left">
         {cover ? (
-          <img src={cover} alt={novel.title} loading="lazy" decoding="async" className="w-full h-full object-cover hq-image" />
+          <img
+            src={cover}
+            alt={novel.title}
+            loading="lazy"
+            decoding="async"
+            onError={() => {
+              if (highResCover) setHighResCover(null);
+            }}
+            className="w-full h-full object-cover hq-image"
+          />
         ) : (
           <div className="w-full h-full bg-[#151518] flex items-center justify-center text-slate-600">
             <BookOpen className="w-10 h-10" />

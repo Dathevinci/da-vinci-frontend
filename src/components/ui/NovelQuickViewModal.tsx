@@ -66,7 +66,8 @@ export default function NovelQuickViewModal({
 
   const display = full || (novel as any);
   const title = display.title || "Loading…";
-  const cover = novelCover(display.cover);
+  const [imgError, setImgError] = useState(false);
+  const cover = imgError ? null : novelCover(display.cover);
   const chapters = full?.chapters || [];
   const firstCh = chapters[0];
   const detailHref = `/novel/${encodeURIComponent(novel.id)}`;
@@ -103,12 +104,12 @@ export default function NovelQuickViewModal({
               {/* Header */}
               <div className="relative flex flex-col md:flex-row p-6 sm:p-8 gap-6 border-b border-[#2a2a32] bg-gradient-to-b from-[#151518] to-[#0b0b0c]">
                 {cover && (
-                  <img src={cover} alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover scale-110 blur-3xl opacity-20 pointer-events-none" />
+                  <img src={cover} alt="" aria-hidden onError={() => setImgError(true)} className="absolute inset-0 w-full h-full object-cover scale-110 blur-3xl opacity-20 pointer-events-none" />
                 )}
                 <motion.div {...reveal(0.05)} className="relative w-[150px] md:w-[190px] shrink-0 mx-auto md:mx-0 z-10">
                   <div className="w-full aspect-[2/3] rounded-lg overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.5)] border border-white/10">
                     {cover ? (
-                      <img src={cover} alt={title} className="w-full h-full object-cover hq-image" />
+                      <img src={cover} alt={title} onError={() => setImgError(true)} className="w-full h-full object-cover hq-image" />
                     ) : (
                       <div className="w-full h-full bg-[#151518] flex items-center justify-center text-slate-600">
                         <BookOpen className="w-12 h-12" />

@@ -18,7 +18,8 @@ export async function GET(req: NextRequest) {
   const allowed =
     host === "novelfull.net" || host.endsWith(".novelfull.net") ||
     host === "img.readnovelfull.com" || host.endsWith(".readnovelfull.com") ||
-    host === "www.fanmtl.com" || host.endsWith(".fanmtl.com");
+    host === "www.fanmtl.com" || host.endsWith(".fanmtl.com") ||
+    host.endsWith("anilist.co") || host.endsWith("kitsu.io");
   if (!allowed) {
     return new NextResponse("Domain not allowed", { status: 403 });
   }
