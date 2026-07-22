@@ -111,7 +111,7 @@ export async function homeShelves() {
     RNF.browseNovels(1, "most-popular-novel"),
     RNF.browseNovels(1, "latest-release-novel"),
     RNF.browseNovels(1, "completed-novel"),
-    NF.browseNovels(1, "genre/Korean"),
+    FMTL.browseNovels(1, "korean"),
     RNF.browseNovels(2, "most-popular-novel"),
   ]);
   return {

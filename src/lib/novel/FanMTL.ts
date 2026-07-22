@@ -67,8 +67,8 @@ function parseItems(html: string): NovelResult[] {
   return out;
 }
 
-export async function browseNovels(page = 1): Promise<{ results: NovelResult[]; hasNextPage: boolean }> {
-  const html = await fetchHtml(`/list/all/all-onclick-${Math.max(1, page)}.html`);
+export async function browseNovels(page = 1, category = "all"): Promise<{ results: NovelResult[]; hasNextPage: boolean }> {
+  const html = await fetchHtml(`/list/${category}/all-onclick-${Math.max(1, page)}.html`);
   const results = parseItems(html);
   return { results, hasNextPage: results.length > 0 };
 }
