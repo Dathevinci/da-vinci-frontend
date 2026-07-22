@@ -13,7 +13,8 @@ import { AlertTriangle, X } from "lucide-react";
  */
 const NOTICE = {
   id: "render-outage-2026-07-21",
-  active: true,
+  active: false, // ← outage resolved 2026-07-21; flip to true (+ bump id/message) to reuse
+
   // Safety net: auto-hides after this instant even if we forget to flip it off.
   until: Date.parse("2026-07-24T00:00:00Z"),
 };
