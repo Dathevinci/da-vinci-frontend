@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { BookOpen, Loader2, Play, List, ChevronRight, User as UserIcon, Search } from "lucide-react";
+import { BookOpen, Loader2, Play, List, ChevronRight, User as UserIcon, Search, Server } from "lucide-react";
 import type { NovelInfo } from "@/lib/novel/ReadNovelFull";
 import NovelTrackerButton from "@/components/novel/NovelTrackerButton";
 import { novelCover } from "@/lib/novelImage";
@@ -137,14 +137,44 @@ export default function NovelDetailPage() {
           <h2 className="text-xl font-black flex items-center gap-2">
             <List className="w-5 h-5 text-pink-400" /> Chapters
           </h2>
-          <div className="relative w-full sm:w-64">
-            <input
-              value={chapterFilter}
-              onChange={(e) => setChapterFilter(e.target.value)}
-              placeholder="Find a chapter…"
-              className="w-full bg-[#151518] border border-white/10 rounded-lg py-2 pl-9 pr-3 text-sm focus:outline-none focus:border-pink-500/50"
-            />
-            <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+          
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            {novel.alternativeServers && novel.alternativeServers.length > 1 && (
+              <div className="relative group flex-1 sm:flex-none">
+                <div className="flex items-center gap-2 bg-[#151518] border border-white/10 px-3 py-2 rounded-lg text-sm cursor-pointer hover:border-pink-500/50 transition">
+                  <Server className="w-4 h-4 text-pink-400" />
+                  <span className="font-bold whitespace-nowrap">
+                    {novel.alternativeServers.find(s => s.id === id)?.name || "Server"}
+                  </span>
+                </div>
+                {/* Dropdown */}
+                <div className="absolute right-0 top-full mt-1 w-48 bg-[#151518] border border-white/10 rounded-lg shadow-xl overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                  {novel.alternativeServers.map(s => (
+                    <Link
+                      key={s.id}
+                      href={`/novel/${encodeURIComponent(s.id)}`}
+                      className={`block px-4 py-3 text-sm transition-colors ${
+                        s.id === id 
+                          ? "bg-pink-500/10 text-pink-400 font-bold" 
+                          : "text-slate-300 hover:bg-white/5"
+                      }`}
+                    >
+                      {s.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="relative flex-1 sm:w-64">
+              <input
+                value={chapterFilter}
+                onChange={(e) => setChapterFilter(e.target.value)}
+                placeholder="Find a chapter…"
+                className="w-full bg-[#151518] border border-white/10 rounded-lg py-2 pl-9 pr-3 text-sm focus:outline-none focus:border-pink-500/50"
+              />
+              <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            </div>
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

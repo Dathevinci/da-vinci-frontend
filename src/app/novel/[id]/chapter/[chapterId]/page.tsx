@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, ChevronLeft, ChevronRight, List, ArrowLeft, X } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight, List, ArrowLeft, X, Server } from "lucide-react";
 import type { NovelInfo, ChapterContent } from "@/lib/novel/ReadNovelFull";
 import { useUser } from "@/hooks/useUser";
 import { earnPoints } from "@/lib/earn";
@@ -88,6 +88,37 @@ export default function NovelReaderPage() {
             <ArrowLeft className="w-4 h-4 shrink-0" /> <span className="hidden sm:inline line-clamp-1">{novel?.title || "Back"}</span>
           </Link>
           <div className="flex items-center gap-1">
+            {novel?.alternativeServers && novel.alternativeServers.length > 1 && (
+              <div className="relative group mr-2">
+                <div 
+                  className="flex items-center gap-1.5 px-2 h-9 rounded-lg hover:bg-pink-500/10 hover:text-pink-400 transition cursor-pointer"
+                  style={{ color: t.muted }}
+                  title="Switch Server"
+                >
+                  <Server className="w-4 h-4" />
+                </div>
+                {/* Dropdown */}
+                <div 
+                  className="absolute right-0 top-full mt-1 w-48 border rounded-lg shadow-xl overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50"
+                  style={{ backgroundColor: t.panel, borderColor: t.border }}
+                >
+                  {novel.alternativeServers.map(s => (
+                    <Link
+                      key={s.id}
+                      href={`/novel/${encodeURIComponent(s.id)}`}
+                      className={`block px-4 py-3 text-sm transition-colors ${
+                        s.id === id 
+                          ? "bg-pink-500/10 text-pink-400 font-bold" 
+                          : "hover:bg-white/5"
+                      }`}
+                      style={s.id === id ? {} : { color: t.muted }}
+                    >
+                      {s.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
             <button
               onClick={() => setShowSettings(true)}
               className="flex items-center gap-1.5 px-3 h-9 rounded-lg hover:bg-pink-500/10 hover:text-pink-400 transition font-black"

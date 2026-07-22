@@ -22,11 +22,56 @@ export function resolveSource(id: string): { source: "nf" | "fmtl" | "rnf"; slug
   return { source: "rnf", slug: id.replace(/^rnf:/, "") };
 }
 
+import { getNovelCover } from '../anilist';
+
 export async function getNovelInfo(id: string): Promise<NovelInfo> {
   const { source, slug } = resolveSource(id);
-  if (source === "nf") return NF.getNovelInfo(slug);
-  if (source === "fmtl") return FMTL.getNovelInfo(slug);
-  return RNF.getNovelInfo(slug);
+  
+  let infoPromise: Promise<NovelInfo>;
+  if (source === "nf") infoPromise = NF.getNovelInfo(slug);
+  else if (source === "fmtl") infoPromise = FMTL.getNovelInfo(slug);
+  else infoPromise = RNF.getNovelInfo(slug);
+
+  const info = await infoPromise;
+
+  // Run alternative search & anilist cover fetch in parallel
+  const [searchRes, anilistCover] = await Promise.allSettled([
+    searchAll(info.title, 1),
+    getNovelCover(info.title)
+  ]);
+
+  if (anilistCover.status === "fulfilled" && anilistCover.value) {
+    info.cover = anilistCover.value;
+  }
+
+  const alternatives: { source: string; id: string; name: string }[] = [];
+  
+  // Add current source as an option
+  alternatives.push({
+    source,
+    id,
+    name: source === "nf" ? "NovelFull" : source === "fmtl" ? "FanMTL" : "ReadNovelFull"
+  });
+
+  if (searchRes.status === "fulfilled") {
+    // Add alternatives found in search (deduped by source)
+    for (const res of searchRes.value.results) {
+      const altSrc = resolveSource(res.id).source;
+      if (altSrc !== source && !alternatives.find(a => a.source === altSrc)) {
+        // Only add if title is very similar
+        if (res.title.toLowerCase() === info.title.toLowerCase()) {
+          alternatives.push({
+            source: altSrc,
+            id: res.id,
+            name: altSrc === "nf" ? "NovelFull" : altSrc === "fmtl" ? "FanMTL" : "ReadNovelFull"
+          });
+        }
+      }
+    }
+  }
+
+  info.alternativeServers = alternatives;
+  return info;
 }
 
 export async function getChapterContent(id: string, chapterId: string): Promise<ChapterContent> {

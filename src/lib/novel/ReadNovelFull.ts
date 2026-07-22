@@ -29,7 +29,7 @@ export interface NovelChapter {
 
 export interface NovelInfo {
   id: string;
-  novelId: string; // readnovelfull numeric id (for chapter-archive)
+  novelId: string; // numeric id
   title: string;
   cover: string;
   author: string;
@@ -37,6 +37,7 @@ export interface NovelInfo {
   genres: string[];
   synopsis: string;
   chapters: NovelChapter[];
+  alternativeServers?: { source: string; id: string; name: string }[];
 }
 
 export interface ChapterContent {
