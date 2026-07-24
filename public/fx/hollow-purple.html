@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>HOLLOW PURPLE — Imaginary Mass (SSS)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: #08060d;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    color: #e5e7eb;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .stage {
+    position: relative;
+    width: min(1200px, 96vw);
+    aspect-ratio: 2 / 1;
+    max-height: 92vh;
+    border-radius: 24px;
+    overflow: hidden;
+    border: 1px solid rgba(167, 36, 240, 0.25);
+    background:
+      radial-gradient(90% 80% at 50% 30%, rgba(106, 13, 173, 0.16), transparent 60%),
+      radial-gradient(120% 100% at 50% 100%, rgba(27, 79, 224, 0.08), transparent 55%),
+      #08060d;
+    box-shadow: 0 0 90px rgba(106, 13, 173, 0.25), 0 30px 60px rgba(0, 0, 0, 0.8);
+  }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  /* Dummy avatar in the lower-center negative space — the effect wraps around it */
+  .avatar {
+    position: absolute;
+    left: 50%;
+    bottom: 7%;
+    transform: translateX(-50%);
+    width: 132px;
+    height: 132px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #241b33, #0c0913 70%);
+    border: 3px solid rgba(199, 36, 240, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    font-weight: 900;
+    color: rgba(229, 231, 235, 0.9);
+    text-shadow: 0 0 18px rgba(199, 36, 240, 0.5);
+    z-index: 5;
+    user-select: none;
+  }
+  .label {
+    position: absolute;
+    top: 14px;
+    left: 18px;
+    z-index: 6;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 3px;
+    color: rgba(221, 214, 254, 0.55);
+  }
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+  <canvas id="fx"></canvas>
+  <div class="avatar">悟</div>
+  <div class="label">HOLLOW PURPLE · SSS · LIVE CANVAS</div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const stage = document.getElementById("stage");
+  const canvas = document.getElementById("fx");
+  const ctx = canvas.getContext("2d");
+  const TAU = Math.PI * 2;
+  const DPR = Math.min(window.devicePixelRatio || 1, 1.5);
+
+  let W = 0, H = 0;
+  const resize = () => {
+    W = stage.clientWidth; H = stage.clientHeight;
+    canvas.width = Math.round(W * DPR);
+    canvas.height = Math.round(H * DPR);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  };
+  resize();
+  window.addEventListener("resize", resize);
+
+  const rand = (i, s) => { const x = Math.sin((i + 1) * 12.9898 + s * 78.233) * 43758.5453; return x - Math.floor(x); };
+  const easeOutExpo = (x) => (x >= 1 ? 1 : 1 - Math.pow(2, -10 * x));
+  const easeInCubic = (x) => x * x * x;
+  const clamp01 = (x) => Math.max(0, Math.min(1, x));
+
+  /* ── pre-rendered glow sprites: drawImage beats shadowBlur ~50x ── */
+  const makeGlow = (rgb, hard = 0.35) => {
+    const s = 64, c = document.createElement("canvas");
+    c.width = c.height = s;
+    const g = c.getContext("2d");
+    const grad = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+    grad.addColorStop(0, `rgba(${rgb},1)`);
+    grad.addColorStop(hard, `rgba(${rgb},0.5)`);
+    grad.addColorStop(1, `rgba(${rgb},0)`);
+    g.fillStyle = grad;
+    g.fillRect(0, 0, s, s);
+    return c;
+  };
+  const G = {
+    violet: makeGlow("167,36,240"),
+    magenta: makeGlow("199,36,240"),
+    blue: makeGlow("27,79,224"),
+    crimson: makeGlow("224,27,60"),
+    white: makeGlow("255,255,255", 0.25),
+    ash: makeGlow("148,143,160", 0.5),
+  };
+
+  /* ── hex lattice sprite: cursed-energy geometry, pre-rendered once ── */
+  const makeHex = (R) => {
+    const s = R * 2 + 8, c = document.createElement("canvas");
+    c.width = c.height = s;
+    const g = c.getContext("2d");
+    g.translate(s / 2, s / 2);
+    g.strokeStyle = "rgba(230,200,255,0.5)";
+    g.lineWidth = 1;
+    const hr = R / 4.2;
+    for (let q = -4; q <= 4; q++) for (let r = -4; r <= 4; r++) {
+      const x = hr * 1.5 * q, y = hr * Math.sqrt(3) * (r + q / 2);
+      if (Math.hypot(x, y) > R - hr) continue;
+      g.beginPath();
+      for (let k = 0; k < 6; k++) {
+        const a = (k / 6) * TAU + Math.PI / 6;
+        const px = x + Math.cos(a) * hr, py = y + Math.sin(a) * hr;
+        k ? g.lineTo(px, py) : g.moveTo(px, py);
+      }
+      g.closePath(); g.stroke();
+    }
+    // fade the lattice toward the rim so it looks wrapped on a sphere
+    g.globalCompositeOperation = "destination-in";
+    const m = g.createRadialGradient(0, 0, 0, 0, 0, R);
+    m.addColorStop(0, "rgba(0,0,0,0.9)");
+    m.addColorStop(0.75, "rgba(0,0,0,0.55)");
+    m.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = m;
+    g.fillRect(-s / 2, -s / 2, s, s);
+    return c;
+  };
+  let hexSprite = makeHex(90);
+
+  /* ── state ── */
+  const CYCLE = 8;           // one full loop: collide → bloom → idle
+  const COLLIDE_T = 1.15;    // spheres rush in
+  const motes = Array.from({ length: 54 }, (_, i) => ({
+    x: rand(i, 1), y: rand(i, 2), v: 6 + rand(i, 3) * 18,
+    amp: 8 + rand(i, 4) * 26, f: 0.12 + rand(i, 5) * 0.4,
+    ph: rand(i, 6) * TAU, s: 1.5 + rand(i, 7) * 3.5,
+    a: 0.12 + rand(i, 8) * 0.3, kind: i % 5, // 0-2 violet, 3 white, 4 ash
+  }));
+  const rings = [];      // shockwaves {born, speed, width, alpha}
+  let bolts = [];        // lightning {pts:[[x,y]..], born, life}
+  let debris = [];       // implosion streaks toward the blue sphere
+
+  const mkBolt = (cx, cy, R, big) => {
+    const a0 = Math.random() * TAU;
+    const pts = [];
+    let a = a0, r = R * (0.9 + Math.random() * 0.25);
+    let x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+    pts.push([x, y]);
+    const n = big ? 6 : 4;
+    for (let i = 0; i < n; i++) {
+      a += (Math.random() - 0.5) * 1.4;
+      r += (big ? 26 : 14) + Math.random() * (big ? 40 : 18);
+      x = cx + Math.cos(a) * r; y = cy + Math.sin(a) * r;
+      pts.push([x, y]);
+    }
+    return { pts, born: t, life: 0.14 + Math.random() * 0.12 };
+  };
+
+  let t = 0, last = performance.now(), raf = 0, paused = false;
+
+  const frame = (now) => {
+    const dt = Math.min((now - last) / 1000, 0.05);
+    last = now; t += dt;
+
+    const orbX = W * 0.5, orbY = H * 0.32;
+    const baseR = Math.min(W, H) * 0.155;
+    const cyc = t % CYCLE;
+
+    // phase envelopes
+    const collideP = clamp01(cyc / COLLIDE_T);                       // 0→1 spheres rushing
+    const impact = cyc >= COLLIDE_T && cyc < COLLIDE_T + 0.28;       // the flash
+    const bloom = clamp01((cyc - COLLIDE_T) / 0.9);                  // orb birthing
+    const orbAlpha = cyc < COLLIDE_T ? 0.25 + collideP * 0.2 : 0.55 + 0.45 * easeOutExpo(bloom);
+    const pulse = 1 + 0.05 * Math.sin(t * 1.7);
+    const R = baseR * pulse * (cyc < COLLIDE_T ? 0.55 : 0.55 + 0.45 * easeOutExpo(bloom));
+
+    ctx.clearRect(0, 0, W, H);
+
+    // avatar keep-clear zone (the dummy avatar's rect)
+    const av = document.querySelector(".avatar").getBoundingClientRect();
+    const st = stage.getBoundingClientRect();
+    const ax = av.left - st.left + av.width / 2, ay = av.top - st.top + av.height / 2, arad = av.width / 2 + 6;
+
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+
+    /* ash + violet motes (skip inside the avatar disc) */
+    for (const m of motes) {
+      const y = ((m.y * H - t * m.v) % (H + 30) + H + 30) % (H + 30) - 15;
+      const x = m.x * W + Math.sin(t * m.f * TAU + m.ph) * m.amp;
+      if ((x - ax) ** 2 + (y - ay) ** 2 < arad * arad) continue;
+      const spr = m.kind < 3 ? G.violet : m.kind === 3 ? G.white : G.ash;
+      ctx.globalAlpha = m.a * (0.7 + 0.3 * Math.sin(t * 2 + m.ph));
+      ctx.drawImage(spr, x - m.s * 2, y - m.s * 2, m.s * 4, m.s * 4);
+    }
+    ctx.globalAlpha = 1;
+
+    /* ── PHASE: the two spheres rush in ── */
+    if (cyc < COLLIDE_T) {
+      const p = easeInCubic(collideP);
+      const bx = W * 0.12 + (orbX - W * 0.12) * p;
+      const rx = W * 0.88 - (W * 0.88 - orbX) * p;
+      const sR = baseR * 0.62;
+      // cobalt sphere — imploding: debris spiralling IN
+      ctx.drawImage(G.blue, bx - sR * 2, orbY - sR * 2, sR * 4, sR * 4);
+      ctx.drawImage(G.white, bx - sR * 0.7, orbY - sR * 0.7, sR * 1.4, sR * 1.4);
+      if (Math.random() < 0.6) debris.push({ a: Math.random() * TAU, r: sR * (2 + Math.random() * 1.5), born: t, sph: 0 });
+      // crimson sphere — exploding: jagged repulsion arcs
+      ctx.drawImage(G.crimson, rx - sR * 2, orbY - sR * 2, sR * 4, sR * 4);
+      ctx.drawImage(G.white, rx - sR * 0.6, orbY - sR * 0.6, sR * 1.2, sR * 1.2);
+      if (Math.random() < 0.35) bolts.push(mkBolt(rx, orbY, sR * 0.8, false));
+      // debris streaks spiral into the blue sphere
+      ctx.strokeStyle = "rgba(120,170,255,0.75)";
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      for (let i = debris.length - 1; i >= 0; i--) {
+        const d = debris[i];
+        const age = t - d.born;
+        if (age > 0.5) { debris.splice(i, 1); continue; }
+        const rr = d.r * (1 - age * 1.8);
+        if (rr <= 2) { debris.splice(i, 1); continue; }
+        const aa = d.a + age * 7;
+        const x1 = bx + Math.cos(aa) * rr, y1 = orbY + Math.sin(aa) * rr;
+        const x2 = bx + Math.cos(aa + 0.28) * (rr + 9), y2 = orbY + Math.sin(aa + 0.28) * (rr + 9);
+        ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+      }
+      ctx.stroke();
+    }
+
+    /* ── PHASE: impact — flash, shockwaves, chromatic aberration ── */
+    if (impact) {
+      const fp = 1 - (cyc - COLLIDE_T) / 0.28;
+      ctx.globalAlpha = fp * 0.85;
+      ctx.drawImage(G.white, orbX - R * 3.2, orbY - R * 3.2, R * 6.4, R * 6.4);
+      ctx.globalAlpha = 1;
+      if (rings.length < 8 && Math.random() < 0.5) rings.push({ born: t, speed: 340 + Math.random() * 240, width: 2 + Math.random() * 3, alpha: 0.5 });
+      if (Math.random() < 0.8) bolts.push(mkBolt(orbX, orbY, R, true));
+      // chromatic aberration: offset red/blue orb ghosts
+      ctx.globalAlpha = fp * 0.5;
+      ctx.drawImage(G.crimson, orbX - R * 1.5 + 4, orbY - R * 1.5, R * 3, R * 3);
+      ctx.drawImage(G.blue, orbX - R * 1.5 - 4, orbY - R * 1.5, R * 3, R * 3);
+      ctx.globalAlpha = 1;
+    }
+
+    /* ── the orb itself (all phases; faint before impact) ── */
+    ctx.globalAlpha = orbAlpha;
+    ctx.drawImage(G.violet, orbX - R * 2.1, orbY - R * 2.1, R * 4.2, R * 4.2);
+    ctx.drawImage(G.magenta, orbX - R * 1.35, orbY - R * 1.35, R * 2.7, R * 2.7);
+    ctx.drawImage(G.white, orbX - R * 0.62, orbY - R * 0.62, R * 1.24, R * 1.24);
+    ctx.globalAlpha = 1;
+
+    /* hex lattice flicker on the orb surface */
+    if (cyc >= COLLIDE_T) {
+      const flick = 0.16 + 0.14 * Math.sin(t * 5.1) + 0.1 * Math.sin(t * 13.7);
+      ctx.globalAlpha = Math.max(0, flick) * easeOutExpo(bloom);
+      const hs = R * 2 + 8;
+      ctx.save();
+      ctx.translate(orbX, orbY);
+      ctx.rotate(t * 0.22);
+      ctx.drawImage(hexSprite, -hs / 2, -hs / 2, hs, hs);
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    }
+
+    /* concentric shockwave rings (clipped OUT of the avatar disc) */
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, W, H);
+    ctx.arc(ax, ay, arad, 0, TAU, true);
+    ctx.clip("evenodd");
+    for (let i = rings.length - 1; i >= 0; i--) {
+      const rg = rings[i];
+      const age = t - rg.born;
+      const rr = R + age * rg.speed;
+      const aa = rg.alpha * (1 - age / 1.6);
+      if (aa <= 0 || rr > Math.max(W, H)) { rings.splice(i, 1); continue; }
+      ctx.strokeStyle = `rgba(180,90,255,${aa})`;
+      ctx.lineWidth = rg.width;
+      ctx.beginPath(); ctx.arc(orbX, orbY, rr, 0, TAU); ctx.stroke();
+    }
+    ctx.restore();
+    // ambient ring every so often even in idle
+    if (Math.random() < dt * 0.5 && rings.length < 5) rings.push({ born: t, speed: 120, width: 1.5, alpha: 0.22 });
+
+    /* lightning arcs — batched: one dark halo pass, one bright core pass */
+    if (Math.random() < dt * 1.2 && cyc > COLLIDE_T) bolts.push(mkBolt(orbX, orbY, R, false));
+    if (bolts.length) {
+      const drawPass = (style, width) => {
+        ctx.strokeStyle = style; ctx.lineWidth = width;
+        ctx.lineJoin = "round"; ctx.lineCap = "round";
+        ctx.beginPath();
+        for (const b of bolts) {
+          const age = t - b.born;
+          if (age > b.life) continue;
+          ctx.moveTo(b.pts[0][0], b.pts[0][1]);
+          for (let i = 1; i < b.pts.length; i++) ctx.lineTo(b.pts[i][0], b.pts[i][1]);
+        }
+        ctx.stroke();
+      };
+      drawPass("rgba(60,8,90,0.9)", 4);        // void-black-violet halo
+      drawPass("rgba(240,210,255,0.95)", 1.4); // white-hot core
+      bolts = bolts.filter((b) => t - b.born <= b.life);
+    }
+
+    /* six-eyes motif — two elongated cyan slits, pulsing twice per cycle */
+    const eyeWin = (at) => {
+      const p = clamp01((cyc - CYCLE * at) / 0.5);
+      return p > 0 && p < 1 ? Math.sin(p * Math.PI) : 0;
+    };
+    const eyeA = Math.max(eyeWin(0.3) * 0.32, eyeWin(0.62) * 0.5);
+    if (eyeA > 0.01) {
+      ctx.globalAlpha = eyeA;
+      const ew = R * 0.9, eh = R * 0.09, gap = R * 0.62;
+      for (const s of [-1, 1]) {
+        const ex = orbX + s * gap;
+        ctx.save();
+        ctx.translate(ex, orbY - R * 1.7);
+        ctx.scale(1, eh / ew);
+        /* gradient at the ORIGIN — gradients are mapped through the transform
+           at paint time; absolute coords + translate = invisible slits */
+        const grd = ctx.createRadialGradient(0, 0, 0, 0, 0, ew / 2);
+        grd.addColorStop(0, "rgba(190,250,255,0.9)");
+        grd.addColorStop(1, "rgba(190,250,255,0)");
+        ctx.fillStyle = grd;
+        ctx.beginPath(); ctx.arc(0, 0, ew / 2, 0, TAU); ctx.fill();
+        ctx.restore();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    /* wispy tendrils curling around the avatar zone */
+    ctx.strokeStyle = "rgba(167,36,240,0.28)";
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    for (let i = 0; i < 3; i++) {
+      const base = t * (0.35 + i * 0.12) + (i * TAU) / 3;
+      let px = ax + Math.cos(base) * (arad + 10);
+      let py = ay + Math.sin(base) * (arad + 6);
+      ctx.moveTo(px, py);
+      for (let s = 1; s <= 10; s++) {
+        const aa = base + s * 0.5;
+        const rr = arad + 10 + Math.sin(t * 1.3 + i * 2 + s) * 7 + s * 1.5;
+        px = ax + Math.cos(aa) * rr;
+        py = ay + Math.sin(aa) * rr * 0.82;
+        ctx.lineTo(px, py);
+      }
+    }
+    ctx.stroke();
+
+    ctx.restore();
+    if (!paused) raf = requestAnimationFrame(frame);
+  };
+  raf = requestAnimationFrame(frame);
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) { if (!paused) { paused = true; cancelAnimationFrame(raf); } }
+    else if (paused) { paused = false; last = performance.now(); raf = requestAnimationFrame(frame); }
+  });
+})();
+</script>
+</body>
+</html>

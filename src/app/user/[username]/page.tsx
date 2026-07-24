@@ -307,6 +307,9 @@ export default function PublicProfilePage() {
   // (Not to be confused with the legacy isDejaVu var, which belongs to effect_ascension.)
   const isDejavuEcho = effectiveEffect === "effect_dejavu";
   const dejavuEchoName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#f9fafb,#9ca3af,#8b0000,#00ffff,#f9fafb)] drop-shadow-[0_0_10px_rgba(139,0,0,0.55)]";
+  // The SSS-grade Hollow Purple fuses cobalt and crimson into imaginary mass.
+  const isHollow = effectiveEffect === "effect_hollow";
+  const hollowName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#93c5fd,#a855f7,#c724f0,#f87171,#93c5fd)] drop-shadow-[0_0_10px_rgba(167,36,240,0.65)]";
   // When a bought frame (or the Voltaic ring) is equipped, drop the rank/role
   // border + glow so it doesn't override the frame the user chose.
   const ringOverridesRank = hasFrameRing((profileUser as any).activeFrame, effectiveEffect);
@@ -349,7 +352,7 @@ export default function PublicProfilePage() {
 
         {/* ═══ LEFT: the profile card — the effect fills it as a whole ═══ */}
         <div className="w-full lg:w-[370px] lg:shrink-0 lg:sticky lg:top-24">
-        <div className={`relative rounded-3xl shadow-2xl border overflow-hidden ${rankTheme.bgCardClass} ${isCrimson ? "!border-red-600/50 shadow-[0_0_45px_rgba(255,0,0,0.35)]" : isDejaVu ? "!border-purple-500/50 shadow-[0_0_45px_rgba(168,85,247,0.4)]" : isTempest ? "!border-sky-500/50 shadow-[0_0_45px_rgba(56,189,248,0.35)]" : isFool ? "!border-amber-500/40 shadow-[0_0_45px_rgba(245,158,11,0.3)]" : isEvernight ? "!border-rose-500/40 shadow-[0_0_45px_rgba(225,29,72,0.3)]" : isMahoraga ? "!border-yellow-500/50 shadow-[0_0_45px_rgba(255,215,0,0.35)]" : isRitual ? "!border-slate-200/50 shadow-[0_0_50px_rgba(255,255,255,0.35)]" : isCanopy ? "!border-emerald-500/50 shadow-[0_0_45px_rgba(16,185,129,0.35)]" : isSamurai ? "!border-red-500/40 shadow-[0_0_45px_rgba(185,28,28,0.4)]" : isHimalaya ? "!border-sky-300/40 shadow-[0_0_45px_rgba(191,219,254,0.4)]" : isLotus ? "!border-emerald-400/40 shadow-[0_0_45px_rgba(52,211,153,0.4)]" : isMango ? "!border-orange-400/50 shadow-[0_0_45px_rgba(255,140,0,0.45)]" : isJungle ? "!border-green-500/45 shadow-[0_0_45px_rgba(31,107,56,0.5)]" : isUnblinking ? "!border-red-900/50 shadow-[0_0_45px_rgba(139,0,0,0.45)]" : isVoid ? "!border-cyan-400/50 shadow-[0_0_50px_rgba(34,211,238,0.35)]" : isDejavuEcho ? "!border-red-900/60 shadow-[0_0_50px_rgba(139,0,0,0.4),0_0_24px_rgba(0,255,255,0.15)]" : ""}`}>
+        <div className={`relative rounded-3xl shadow-2xl border overflow-hidden ${rankTheme.bgCardClass} ${isCrimson ? "!border-red-600/50 shadow-[0_0_45px_rgba(255,0,0,0.35)]" : isDejaVu ? "!border-purple-500/50 shadow-[0_0_45px_rgba(168,85,247,0.4)]" : isTempest ? "!border-sky-500/50 shadow-[0_0_45px_rgba(56,189,248,0.35)]" : isFool ? "!border-amber-500/40 shadow-[0_0_45px_rgba(245,158,11,0.3)]" : isEvernight ? "!border-rose-500/40 shadow-[0_0_45px_rgba(225,29,72,0.3)]" : isMahoraga ? "!border-yellow-500/50 shadow-[0_0_45px_rgba(255,215,0,0.35)]" : isRitual ? "!border-slate-200/50 shadow-[0_0_50px_rgba(255,255,255,0.35)]" : isCanopy ? "!border-emerald-500/50 shadow-[0_0_45px_rgba(16,185,129,0.35)]" : isSamurai ? "!border-red-500/40 shadow-[0_0_45px_rgba(185,28,28,0.4)]" : isHimalaya ? "!border-sky-300/40 shadow-[0_0_45px_rgba(191,219,254,0.4)]" : isLotus ? "!border-emerald-400/40 shadow-[0_0_45px_rgba(52,211,153,0.4)]" : isMango ? "!border-orange-400/50 shadow-[0_0_45px_rgba(255,140,0,0.45)]" : isJungle ? "!border-green-500/45 shadow-[0_0_45px_rgba(31,107,56,0.5)]" : isUnblinking ? "!border-red-900/50 shadow-[0_0_45px_rgba(139,0,0,0.45)]" : isVoid ? "!border-cyan-400/50 shadow-[0_0_50px_rgba(34,211,238,0.35)]" : isDejavuEcho ? "!border-red-900/60 shadow-[0_0_50px_rgba(139,0,0,0.4),0_0_24px_rgba(0,255,255,0.15)]" : isHollow ? "!border-purple-500/60 shadow-[0_0_50px_rgba(167,36,240,0.4),0_0_24px_rgba(27,79,224,0.2)]" : ""}`}>
           {backgroundUrl && (
             <>
               <div
@@ -420,7 +423,7 @@ export default function PublicProfilePage() {
                 <h1 className={`text-3xl font-black drop-shadow-lg pb-1 leading-tight break-words relative z-10
                   ${profileUser.activeFont === 'font_cyber' ? 'font-mono tracking-widest' : ''} 
                   ${profileUser.activeFont === 'font_pixel' ? 'font-serif tracking-tight' : ''} 
-                  ${isCrimson ? crimsonName : isDejaVu ? dejaVuName : isTempest ? tempestName : isFool ? foolName : isEvernight ? evernightName : isMahoraga ? mahoragaName : isRitual ? ritualName : isCanopy ? canopyName : isSamurai ? samuraiName : isHimalaya ? himalayaName : isLotus ? lotusName : isMango ? mangoName : isJungle ? jungleName : isUnblinking ? unblinkingName : isVoid ? voidName : isDejavuEcho ? dejavuEchoName : (nameColorClass(profileUser.activeColor) || rankTheme.textGradient)}`}>
+                  ${isCrimson ? crimsonName : isDejaVu ? dejaVuName : isTempest ? tempestName : isFool ? foolName : isEvernight ? evernightName : isMahoraga ? mahoragaName : isRitual ? ritualName : isCanopy ? canopyName : isSamurai ? samuraiName : isHimalaya ? himalayaName : isLotus ? lotusName : isMango ? mangoName : isJungle ? jungleName : isUnblinking ? unblinkingName : isVoid ? voidName : isDejavuEcho ? dejavuEchoName : isHollow ? hollowName : (nameColorClass(profileUser.activeColor) || rankTheme.textGradient)}`}>
                   {profileUser.username}
                 </h1>
                 

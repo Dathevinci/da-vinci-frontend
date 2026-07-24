@@ -37,6 +37,8 @@ export function effectNameClass(effect?: string | null): string {
       return "text-transparent bg-clip-text bg-[linear-gradient(to_right,#e0f2fe,#67e8f9,#6366f1,#67e8f9,#e0f2fe)] drop-shadow-[0_0_10px_rgba(34,211,238,0.6)]";
     case "effect_dejavu":
       return "text-transparent bg-clip-text bg-[linear-gradient(to_right,#f9fafb,#9ca3af,#8b0000,#00ffff,#f9fafb)] drop-shadow-[0_0_10px_rgba(139,0,0,0.55)]";
+    case "effect_hollow":
+      return "text-transparent bg-clip-text bg-[linear-gradient(to_right,#93c5fd,#a855f7,#c724f0,#f87171,#93c5fd)] drop-shadow-[0_0_10px_rgba(167,36,240,0.65)]";
     default:
       return "";
   }
@@ -61,6 +63,7 @@ export function effectCardBorderClass(effect?: string | null): string {
     case "effect_unblinking": return "!border-red-900/50 shadow-[0_0_45px_rgba(139,0,0,0.45)]";
     case "effect_void": return "!border-cyan-400/50 shadow-[0_0_50px_rgba(34,211,238,0.35)]";
     case "effect_dejavu": return "!border-red-900/60 shadow-[0_0_50px_rgba(139,0,0,0.4),0_0_24px_rgba(0,255,255,0.15)]";
+    case "effect_hollow": return "!border-purple-500/60 shadow-[0_0_50px_rgba(167,36,240,0.4),0_0_24px_rgba(27,79,224,0.2)]";
     default: return "!border-white/10";
   }
 }
