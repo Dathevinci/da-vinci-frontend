@@ -80,6 +80,26 @@ function useDejavuCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       hue: rand(i, 7),
       jitterSeed: rand(i, 8) * 100,
     }));
+
+    // Pre-rendered glow sprites for the quantum field. drawImage of a cached
+    // sprite costs a fraction of per-particle ctx.shadowBlur (the old approach,
+    // which was the effect's single biggest per-frame cost).
+    const makeGlow = (rgb: string) => {
+      const s = 16;
+      const c = document.createElement("canvas");
+      c.width = c.height = s;
+      const g = c.getContext("2d")!;
+      const grad = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+      grad.addColorStop(0, `rgba(${rgb},1)`);
+      grad.addColorStop(0.4, `rgba(${rgb},0.5)`);
+      grad.addColorStop(1, `rgba(${rgb},0)`);
+      g.fillStyle = grad;
+      g.fillRect(0, 0, s, s);
+      return c;
+    };
+    const glowCyan = makeGlow("0,255,255");
+    const glowWhite = makeGlow("249,250,251");
+
     const ghosts: Ghost[] = [];
     let nextGhostAt = 1.4;
 
@@ -196,14 +216,15 @@ function useDejavuCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
         ctx.strokeStyle = `rgba(156,163,175,${ring.alpha * 0.5})`;
         ctx.lineWidth = 1;
         ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.stroke();
+        // Tick marks — one path + one stroke per ring (was 24 separate strokes).
+        ctx.strokeStyle = `rgba(0,255,255,${ring.alpha * 0.6})`;
+        ctx.beginPath();
         for (let k = 0; k < 24; k++) {
           const a = rot * 1.5 + (k / 24) * TAU;
-          ctx.strokeStyle = `rgba(0,255,255,${ring.alpha * 0.6})`;
-          ctx.beginPath();
           ctx.moveTo(cx + Math.cos(a) * (R - 3), cy + Math.sin(a) * (R - 3));
           ctx.lineTo(cx + Math.cos(a) * (R + 3), cy + Math.sin(a) * (R + 3));
-          ctx.stroke();
         }
+        ctx.stroke();
 
         ctx.font = `${ring.font}px "Courier New", monospace`;
         ctx.textAlign = "center";
@@ -220,11 +241,12 @@ function useDejavuCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
             ctx.translate(x, y);
             ctx.rotate(a + Math.PI / 2);
             const flicker = 0.72 + 0.28 * Math.sin(t * 2.2 + cI * 1.7 + e * 9 + ri * 30);
+            // No shadowBlur — the additive "lighter" blend already glows the
+            // runes; per-glyph shadow was the effect's biggest per-frame cost.
+            // Alphas bumped a touch to make up for the lost shadow brightness.
             ctx.fillStyle = (cI + e) % 7 === 0
-              ? `rgba(139,0,0,${ring.alpha * 1.35 * flicker})`
-              : `rgba(103,232,249,${ring.alpha * flicker})`;
-            ctx.shadowColor = "#00ffff";
-            ctx.shadowBlur = 6;
+              ? `rgba(255,64,64,${ring.alpha * 1.5 * flicker})`
+              : `rgba(103,232,249,${ring.alpha * 1.2 * flicker})`;
             ctx.fillText(eq[cI], 0, 0);
             ctx.restore();
           }
@@ -243,13 +265,12 @@ function useDejavuCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
         const x = cx + Math.cos(ang) * r;
         const y = cy + Math.sin(ang) * r;
         const tw = 0.45 + 0.55 * Math.sin(t * 3 + q.jitterSeed);
-        ctx.fillStyle = q.hue < 0.7
-          ? `rgba(0,255,255,${0.5 * tw})`
-          : `rgba(249,250,251,${0.65 * tw})`;
-        ctx.shadowColor = q.hue < 0.7 ? "#00ffff" : "#f9fafb";
-        ctx.shadowBlur = 8;
-        ctx.beginPath(); ctx.arc(x, y, q.size, 0, TAU); ctx.fill();
+        // Cached glow sprite (additive) instead of per-particle shadowBlur.
+        const half = q.size + 5;
+        ctx.globalAlpha = (q.hue < 0.7 ? 0.55 : 0.7) * tw;
+        ctx.drawImage(q.hue < 0.7 ? glowCyan : glowWhite, x - half, y - half, half * 2, half * 2);
       }
+      ctx.globalAlpha = 1;
       ctx.restore();
 
       // PHASE 1 — afterimage ghosts: drift out, snap back
@@ -265,14 +286,17 @@ function useDejavuCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
         const gx = cx + g.dx * k + (g.glitch ? (Math.random() - 0.5) * 3 : 0);
         const gy = cy + g.dy * k;
         const gr = ar * (1 + (g.scale - 1) * k) + 2;
+        // Soft double-stroke instead of ctx.filter="blur()" — canvas filters
+        // force a whole extra raster pass every frame a ghost is alive (which is
+        // most of the time). A wide faint ring + a thin chroma ring reads just
+        // as ethereal for a fraction of the cost.
         ctx.save();
-        ctx.globalAlpha = Math.max(alpha, 0) * 0.85;
-        ctx.filter = "blur(4px)";
-        ctx.strokeStyle = "rgba(229,231,235,0.9)";
-        ctx.lineWidth = 2.5;
+        ctx.globalAlpha = Math.max(alpha, 0) * 0.7;
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = "rgba(229,231,235,0.7)";
         ctx.beginPath(); ctx.arc(gx, gy, gr, 0, TAU); ctx.stroke();
-        ctx.strokeStyle = g.glitch ? "rgba(139,0,0,0.9)" : "rgba(0,255,255,0.8)";
-        ctx.lineWidth = 1.4;
+        ctx.lineWidth = 1.6;
+        ctx.strokeStyle = g.glitch ? "rgba(190,36,36,0.85)" : "rgba(0,255,255,0.75)";
         ctx.beginPath(); ctx.arc(gx + (g.glitch ? 2.5 : -2), gy, gr, 0, TAU); ctx.stroke();
         ctx.restore();
       }
