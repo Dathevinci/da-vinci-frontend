@@ -747,69 +747,80 @@ export default function ShopPage() {
             const pExpired = pMsLeft !== null && pMsLeft <= 0;
             return (
               <>
-                {/* Each layer is a TOP-LEVEL fixed element so its z-index competes
-                    directly with the effect's own z-80 body-level canvas:
-                    backdrop(75) < mock card(75) < effect canvas(80) < controls(90). */}
                 {/* backdrop — dims the whole shop */}
                 <div className="fixed inset-0 z-[75] bg-black/85 backdrop-blur-sm" onClick={() => setPreviewItem(null)} />
-                {/* mock profile card — the effect canvas (z-80) plays OVER it */}
-                <div className="pointer-events-none fixed inset-0 z-[75] flex items-center justify-center p-4">
+
+                {/* Discord-style preview: a mock profile with the effect playing
+                    across it (left) + the item's details & actions (right).
+                    Stacks on mobile; the effect canvas is a child of the profile
+                    panel so it stays clipped to that card. */}
+                <div className="fixed inset-0 z-[80] flex items-center justify-center overflow-y-auto p-3 sm:p-4">
                   <motion.div
                     role="dialog"
                     aria-modal="true"
-                    initial={{ opacity: 0, scale: 0.94 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="pointer-events-auto relative w-full max-w-[420px] overflow-hidden rounded-3xl border border-white/15 bg-[#0d0d16] shadow-[0_30px_80px_rgba(0,0,0,0.65)]"
+                    initial={{ opacity: 0, scale: 0.96, y: 12 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ type: "spring", damping: 26, stiffness: 300 }}
+                    className="relative flex w-full max-w-4xl max-h-[92vh] flex-col overflow-hidden rounded-3xl border border-white/15 bg-[#0b0b12] shadow-[0_40px_100px_rgba(0,0,0,0.7)] md:h-[560px] md:max-h-[88vh] md:flex-row"
                   >
-                    {pv.type === "effect" && <ProfileEffect effect={pv.id} />}
-                    <div className={`relative z-[2] h-28 bg-gradient-to-br ${pv.gradient} opacity-70`} />
-                    <div className="relative z-[10] -mt-14 flex items-end gap-4 px-6 pb-6">
-                      <div className="relative h-24 w-24 shrink-0">
-                        <div className="relative z-10 flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-4 border-[#0d0d16] bg-gradient-to-br from-purple-500 to-fuchsia-600 text-3xl font-black text-white">
-                          {user.avatar ? <img src={user.avatar} alt="" className="h-full w-full object-cover" /> : user.username?.[0]?.toUpperCase() || "?"}
+                    {/* ── LEFT · the mock profile, effect playing over the card ── */}
+                    <div className="relative h-[300px] shrink-0 overflow-hidden bg-gradient-to-b from-[#15151d] to-[#0b0b12] sm:h-[340px] md:h-full md:w-[56%]">
+                      {pv.type === "effect" && <ProfileEffect effect={pv.id} />}
+
+                      <div className={`relative z-[2] h-24 bg-gradient-to-br ${pv.gradient} opacity-80`} />
+
+                      <div className="relative z-[10] -mt-12 px-6">
+                        <div className="relative h-24 w-24">
+                          <div className="relative z-10 flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-4 border-[#0b0b12] bg-gradient-to-br from-purple-500 to-fuchsia-600 text-3xl font-black text-white">
+                            {user.avatar ? <img src={user.avatar} alt="" className="h-full w-full object-cover" /> : user.username?.[0]?.toUpperCase() || "?"}
+                          </div>
+                          <AvatarDecoration frame={pv.type === "frame" ? pv.id : null} effect={pv.type === "effect" ? pv.id : null} size="lg" />
                         </div>
-                        <AvatarDecoration frame={pv.type === "frame" ? pv.id : null} effect={pv.type === "effect" ? pv.id : null} size="lg" />
+
+                        <div className="mt-3">
+                          <div className="text-2xl font-black text-white drop-shadow-md">{user.username || "your name"}</div>
+                          <div className="text-sm font-semibold text-slate-400">@{(user.username || "you").toLowerCase()}</div>
+                        </div>
+
+                        <div className="mt-4 hidden rounded-xl border border-white/10 bg-black/30 p-3 backdrop-blur-sm sm:block">
+                          <div className="mb-1 text-[10px] font-black uppercase tracking-widest text-slate-500">About me</div>
+                          <p className="line-clamp-2 text-xs leading-relaxed text-slate-300">Previewing <b className="text-white">{pv.name}</b> across the whole profile — exactly how visitors will see it.</p>
+                        </div>
                       </div>
-                      <div className="min-w-0 pb-3">
-                        <div className={`truncate text-2xl font-black bg-gradient-to-r ${pv.gradient} bg-clip-text text-transparent`}>{user.username || "your name"}</div>
-                        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Live preview</div>
+
+                      <div className="absolute bottom-3 left-6 z-[10] flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-white/50">
+                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" /> Live preview
                       </div>
                     </div>
-                  </motion.div>
-                </div>
-                {/* close */}
-                <button
-                  onClick={() => setPreviewItem(null)}
-                  className="fixed right-5 top-5 z-[90] grid h-11 w-11 place-items-center rounded-full border border-white/15 bg-black/50 text-xl text-white backdrop-blur transition hover:bg-white/10"
-                >
-                  ✕
-                </button>
-                {/* info + actions */}
-                <div className="fixed inset-x-0 bottom-0 z-[90] p-5">
-                  <div className="mx-auto max-w-md rounded-2xl border border-white/10 bg-[#0b0b12]/90 p-5 shadow-2xl backdrop-blur-xl">
-                    <div className="mb-2 flex items-center gap-2">
-                      <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${pChip.cls}`}>{pChip.label}</span>
-                      {(pv as any).limited && (
-                        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${
-                          pExpired
-                            ? "border-white/15 bg-black/50 text-slate-500"
-                            : "border-red-700/60 bg-red-950/70 text-red-300"
-                        }`}>
-                          <Hourglass className={`h-3 w-3 ${pExpired ? "" : "animate-pulse"}`} />
-                          {pExpired ? "Window closed" : pMsLeft !== null ? <span className="font-mono tabular-nums">{fmtLeft(pMsLeft)}</span> : "Limited"}
-                        </span>
-                      )}
-                      {pOwned && (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-400">
-                          <Check className="h-3 w-3" /> Owned
-                        </span>
-                      )}
-                    </div>
-                    <h3 className={`mb-1 text-xl font-black ${pv.color}`}>{pv.name}</h3>
-                    <div className="custom-scrollbar mb-4 max-h-40 overflow-y-auto pr-1">
-                      <p className="text-sm leading-relaxed text-slate-400">{pv.description}</p>
-                    </div>
-                    <div className="flex gap-2">
+
+                    {/* ── RIGHT · details + actions ── */}
+                    <div className="flex min-h-0 flex-1 flex-col bg-[#0b0b12] p-5 sm:p-6">
+                      <div className="mb-3 flex flex-wrap items-center gap-2">
+                        <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${pChip.cls}`}>{pChip.label}</span>
+                        {(pv as any).limited && (
+                          <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${
+                            pExpired
+                              ? "border-white/15 bg-black/50 text-slate-500"
+                              : "border-red-700/60 bg-red-950/70 text-red-300"
+                          }`}>
+                            <Hourglass className={`h-3 w-3 ${pExpired ? "" : "animate-pulse"}`} />
+                            {pExpired ? "Window closed" : pMsLeft !== null ? <span className="font-mono tabular-nums">{fmtLeft(pMsLeft)}</span> : "Limited"}
+                          </span>
+                        )}
+                        {pOwned && (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-400">
+                            <Check className="h-3 w-3" /> Owned
+                          </span>
+                        )}
+                      </div>
+
+                      <h3 className={`mb-3 text-2xl font-black ${pv.color}`}>{pv.name}</h3>
+
+                      <div className="custom-scrollbar mb-5 min-h-0 flex-1 overflow-y-auto pr-1">
+                        <p className="text-sm leading-relaxed text-slate-300/90">{pv.description}</p>
+                      </div>
+
+                      <div className="flex gap-2">
                       {!pOwned ? (
                         pExpired ? (
                           <button
@@ -868,6 +879,14 @@ export default function ShopPage() {
                       </button>
                     </div>
                   </div>
+                    {/* close */}
+                    <button
+                      onClick={() => setPreviewItem(null)}
+                      className="absolute right-3 top-3 z-[40] grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-black/50 text-white backdrop-blur transition hover:bg-white/15"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </motion.div>
                 </div>
               </>
             );
