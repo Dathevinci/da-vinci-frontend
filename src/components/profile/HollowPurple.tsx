@@ -155,10 +155,11 @@ function useHollowCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       let a = Math.random() * TAU;
       let r = R * (0.9 + Math.random() * 0.25);
       pts.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]);
-      const n = big ? 6 : 4;
+      // short + jagged: crackle hugging the rim, not threads wandering the card
+      const n = big ? 5 : 3;
       for (let i = 0; i < n; i++) {
         a += (Math.random() - 0.5) * 1.4;
-        r += (big ? 22 : 12) + Math.random() * (big ? 34 : 16);
+        r += (big ? 14 : 9) + Math.random() * (big ? 18 : 10);
         pts.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]);
       }
       return { pts, born: t, life: 0.14 + Math.random() * 0.12 };
@@ -187,10 +188,11 @@ function useHollowCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
         }
       });
 
-      // the orb hovers in the card's open upper region, offset from the avatar
-      const orbX = Math.min(W * 0.68, ax + arad * 2.4);
-      const orbY = Math.max(H * 0.1, ay - arad * 0.5);
-      const baseR = Math.min(W, H) * 0.16;
+      // the sphere hovers beside/above the avatar — clamped so the WHOLE ball
+      // (rim included) stays on the card instead of bleeding off the edge
+      const baseR = Math.min(W, H) * 0.175;
+      const orbX = Math.min(W - baseR * 1.6, Math.max(W * 0.52, ax + arad + baseR * 0.95));
+      const orbY = Math.max(baseR * 1.7, ay + arad * 0.1);
 
       const cyc = t % CYCLE;
       const collideP = clamp01(cyc / COLLIDE_T);
@@ -226,6 +228,13 @@ function useHollowCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
         ctx.drawImage(G.crimson, rx - sR * 2, orbY - sR * 2, sR * 4, sR * 4);
         ctx.drawImage(G.white, rx - sR * 0.6, orbY - sR * 0.6, sR * 1.2, sR * 1.2);
         if (Math.random() < 0.35) bolts.push(mkBolt(rx, orbY, sR * 0.8, false));
+        // motion trails behind each sphere so the rush-in reads as SPEED
+        for (let k = 1; k <= 3; k++) {
+          ctx.globalAlpha = 0.3 / k;
+          ctx.drawImage(G.blue, bx - k * 26 - sR * 1.2, orbY - sR * 1.2, sR * 2.4, sR * 2.4);
+          ctx.drawImage(G.crimson, rx + k * 26 - sR * 1.2, orbY - sR * 1.2, sR * 2.4, sR * 2.4);
+        }
+        ctx.globalAlpha = 1;
         // implosion streaks spiralling into the cobalt sphere — one batched path
         ctx.strokeStyle = "rgba(120,170,255,0.75)";
         ctx.lineWidth = 1.3;
@@ -256,25 +265,67 @@ function useHollowCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
         ctx.globalAlpha = 1;
       }
 
-      // ── the singularity orb ──
+      // ── the singularity: a cel-shaded SPHERE with a real silhouette ──
+      // (was three stacked soft glows, which read as a formless blob)
       ctx.globalAlpha = orbAlpha;
-      ctx.drawImage(G.violet, orbX - R * 2.1, orbY - R * 2.1, R * 4.2, R * 4.2);
-      ctx.drawImage(G.magenta, orbX - R * 1.35, orbY - R * 1.35, R * 2.7, R * 2.7);
-      ctx.drawImage(G.white, orbX - R * 0.62, orbY - R * 0.62, R * 1.24, R * 1.24);
+      ctx.drawImage(G.violet, orbX - R * 1.9, orbY - R * 1.9, R * 3.8, R * 3.8); // halo, subordinate
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(orbX, orbY, R, 0, TAU);
+      ctx.clip();
+      // body + two hard cel steps toward the upper-left light
+      ctx.fillStyle = "rgba(70,18,120,0.95)";
+      ctx.fillRect(orbX - R, orbY - R, R * 2, R * 2);
+      ctx.fillStyle = "rgba(110,30,175,0.95)";
+      ctx.beginPath();
+      ctx.arc(orbX - R * 0.13, orbY - R * 0.13, R * 0.92, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = "rgba(152,48,226,0.95)";
+      ctx.beginPath();
+      ctx.arc(orbX - R * 0.22, orbY - R * 0.22, R * 0.72, 0, TAU);
+      ctx.fill();
+      // swirl bands drifting across the surface
+      const sw = t * 0.5;
+      ctx.lineWidth = R * 0.055;
+      ctx.strokeStyle = "rgba(214,120,255,0.7)";
+      ctx.beginPath();
+      ctx.ellipse(orbX, orbY + R * 0.28, R * 0.95, R * 0.4, 0, 2.9 + Math.sin(sw) * 0.25, 5.9 + Math.sin(sw) * 0.25);
+      ctx.stroke();
+      ctx.lineWidth = R * 0.04;
+      ctx.strokeStyle = "rgba(230,170,255,0.55)";
+      ctx.beginPath();
+      ctx.ellipse(orbX, orbY - R * 0.05, R * 0.9, R * 0.34, 0, 3.3 - Math.sin(sw * 0.8) * 0.2, 6.0 - Math.sin(sw * 0.8) * 0.2);
+      ctx.stroke();
+      // faint cursed-geometry lattice rotating INSIDE the ball
+      const flick = 0.1 + 0.08 * Math.sin(t * 5.1);
+      ctx.globalAlpha = orbAlpha * Math.max(0, flick) * easeOutExpo(bloom);
+      const hs = R * 2 + 8;
+      ctx.translate(orbX, orbY);
+      ctx.rotate(t * 0.22);
+      ctx.drawImage(hexSprite, -hs / 2, -hs / 2, hs, hs);
+      ctx.restore(); // pops the clip + transform together
+      ctx.globalAlpha = orbAlpha;
+      // white-hot core, offset toward the light
+      const coreX = orbX - R * 0.3;
+      const coreY = orbY - R * 0.3;
+      ctx.drawImage(G.white, coreX - R * 0.5, coreY - R * 0.5, R, R);
+      // crisp rim + outer ring + cel rim-light arc
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "rgba(199,36,240,0.95)";
+      ctx.beginPath();
+      ctx.arc(orbX, orbY, R, 0, TAU);
+      ctx.stroke();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "rgba(235,160,255,0.35)";
+      ctx.beginPath();
+      ctx.arc(orbX, orbY, R + 4, 0, TAU);
+      ctx.stroke();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "rgba(255,225,255,0.85)";
+      ctx.beginPath();
+      ctx.arc(orbX, orbY, R - 2, Math.PI * 0.83, Math.PI * 1.47);
+      ctx.stroke();
       ctx.globalAlpha = 1;
-
-      // hex lattice flicker wrapped on the orb
-      if (cyc >= COLLIDE_T) {
-        const flick = 0.16 + 0.14 * Math.sin(t * 5.1) + 0.1 * Math.sin(t * 13.7);
-        ctx.globalAlpha = Math.max(0, flick) * easeOutExpo(bloom);
-        const hs = R * 2 + 8;
-        ctx.save();
-        ctx.translate(orbX, orbY);
-        ctx.rotate(t * 0.22);
-        ctx.drawImage(hexSprite, -hs / 2, -hs / 2, hs, hs);
-        ctx.restore();
-        ctx.globalAlpha = 1;
-      }
 
       // shockwave rings — clipped OUT of the avatar disc so the face stays clear
       ctx.save();
@@ -286,12 +337,13 @@ function useHollowCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
         const rg = rings[i];
         const age = t - rg.born;
         const rr = R + age * rg.speed;
-        const aa = rg.alpha * (1 - age / 1.6);
-        if (aa <= 0 || rr > Math.max(W, H) * 1.2) { rings.splice(i, 1); continue; }
-        ctx.strokeStyle = `rgba(180,90,255,${aa})`;
+        // fade sooner + cull earlier so waves stay composed on the card
+        const aa = rg.alpha * (1 - age / 1.2);
+        if (aa <= 0 || rr > W * 0.85) { rings.splice(i, 1); continue; }
+        ctx.strokeStyle = `rgba(190,100,255,${aa})`;
         ctx.lineWidth = rg.width;
         ctx.beginPath();
-        ctx.arc(orbX, orbY, rr, 0, TAU);
+        ctx.ellipse(orbX, orbY, rr, rr * 0.92, 0, 0, TAU);
         ctx.stroke();
       }
       ctx.restore();
@@ -327,10 +379,10 @@ function useHollowCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       const eyeA = Math.max(eyeWin(0.3) * 0.3, eyeWin(0.62) * 0.45);
       if (eyeA > 0.01) {
         ctx.globalAlpha = eyeA;
-        const ew = R * 0.9;
-        const eh = R * 0.09;
-        const gap = R * 0.62;
-        const ey = Math.max(12, orbY - R * 1.55);
+        const ew = R * 0.72;
+        const eh = R * 0.05;
+        const gap = R * 0.55;
+        const ey = Math.max(20, orbY - R * 1.45);
         for (const s of [-1, 1]) {
           const ex = orbX + s * gap;
           ctx.save();
@@ -351,24 +403,21 @@ function useHollowCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
         ctx.globalAlpha = 1;
       }
 
-      // wispy tendrils curling around the avatar's rim — one batched path
-      ctx.strokeStyle = "rgba(167,36,240,0.26)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
+      // smoke tendrils breathing around the avatar's rim — stamped soft glow
+      // dots along a spiral (a stroked polyline read as a jagged scribble)
       for (let i = 0; i < 3; i++) {
-        const base = t * (0.35 + i * 0.12) + (i * TAU) / 3;
-        let px = ax + Math.cos(base) * (arad + 8);
-        let py = ay + Math.sin(base) * (arad + 5);
-        ctx.moveTo(px, py);
-        for (let s = 1; s <= 10; s++) {
-          const aa = base + s * 0.5;
-          const rr = arad + 8 + Math.sin(t * 1.3 + i * 2 + s) * 6 + s * 1.2;
-          px = ax + Math.cos(aa) * rr;
-          py = ay + Math.sin(aa) * rr * 0.85;
-          ctx.lineTo(px, py);
+        const base = t * (0.3 + i * 0.09) + (i * TAU) / 3;
+        for (let s = 0; s < 14; s++) {
+          const aa = base + s * 0.3;
+          const rr = arad + 6 + s * 3 + Math.sin(t * 1.3 + i * 2 + s) * 3;
+          const tx = ax + Math.cos(aa) * rr;
+          const ty = ay + Math.sin(aa) * rr * 0.9;
+          const sz = 8 - s * 0.3;
+          ctx.globalAlpha = (1 - s / 14) * 0.26;
+          ctx.drawImage(G.violet, tx - sz, ty - sz, sz * 2, sz * 2);
         }
       }
-      ctx.stroke();
+      ctx.globalAlpha = 1;
 
       ctx.restore();
       if (!paused) raf = requestAnimationFrame(frame);
