@@ -4,90 +4,108 @@ import { AnimatePresence, motion } from "framer-motion";
 import { BookMarked, Tv, BookOpen } from "lucide-react";
 import { useAppMode } from "@/components/providers/AppModeProvider";
 
-// Strong easeInOutQuint — gives the curtain a weighty, cinematic close/open.
-const easeCurtain: [number, number, number, number] = [0.83, 0, 0.17, 1];
-
 /**
- * Full-screen curtain that plays when the user switches Anime <-> Manhwa mode.
- * The AppModeProvider swaps the route + theme WHILE the curtain is closed, so
- * the change never flashes — the panels part to reveal the new mode already set.
+ * Full-screen cover that plays while the app switches Anime <-> Manhwa <-> Novel.
+ *
+ * AppModeProvider swaps the route + theme at 500ms and lifts this at 1000ms, so
+ * the screen MUST be fully opaque before 500ms or the change flashes. The old
+ * two-panel curtain finished closing at exactly 500ms — no margin at all, so a
+ * single dropped frame showed the swap — and its emblem only appeared at 660ms,
+ * leaving it legible for ~340ms before it started leaving again. It also split
+ * the screen with a hard bright seam, which read as harsh rather than premium.
+ *
+ * This version: an opaque mode-tinted wash lands at ~280ms (safe margin), the
+ * emblem is up by ~450ms and holds, and a ring + bar track the wait so the pause
+ * feels intentional instead of like a flicker.
  */
+const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
+
 export default function ModeTransition() {
   const { transition } = useAppMode();
 
-  // Themed per destination mode: manhwa = crimson, novel = pink, anime = amethyst.
   const theme =
     transition.target === "manhwa"
-      ? { accent: "#dc2626", dim: "rgba(220,38,38,0.55)", glow: "rgba(220,38,38,0.35)", panel: "rgba(60,10,10,0.92)", label: "Manhwa Mode", sub: "Enter the library", Icon: BookMarked }
+      ? { accent: "#f05252", soft: "rgba(220,38,38,0.5)", glow: "rgba(220,38,38,0.45)", wash: "rgba(70,10,10,1)", label: "Manhwa", sub: "Enter the library", Icon: BookMarked }
       : transition.target === "novel"
-      ? { accent: "#ec4899", dim: "rgba(236,72,153,0.55)", glow: "rgba(236,72,153,0.35)", panel: "rgba(55,10,40,0.92)", label: "Novels Mode", sub: "Enter the archive", Icon: BookOpen }
-      : { accent: "#8b5cf6", dim: "rgba(139,92,246,0.55)", glow: "rgba(139,92,246,0.35)", panel: "rgba(30,16,60,0.92)", label: "Anime Mode", sub: "Enter the theater", Icon: Tv };
+      ? { accent: "#f472b6", soft: "rgba(236,72,153,0.5)", glow: "rgba(236,72,153,0.45)", wash: "rgba(62,10,44,1)", label: "Novels", sub: "Enter the archive", Icon: BookOpen }
+      : { accent: "#a78bfa", soft: "rgba(139,92,246,0.5)", glow: "rgba(139,92,246,0.45)", wash: "rgba(34,18,68,1)", label: "Anime", sub: "Enter the theater", Icon: Tv };
 
-  const accent = theme.accent;
-  const accentDim = theme.dim;
-  const glow = theme.glow;
-  const label = theme.label;
-  const sub = theme.sub;
-  const Icon = theme.Icon;
-  const panelBg = `radial-gradient(ellipse at center, ${theme.panel} 0%, #050505 72%)`;
+  const { accent, soft, glow, wash, label, sub, Icon } = theme;
+  const R = 34;
+  const CIRC = 2 * Math.PI * R;
 
   return (
     <AnimatePresence>
       {transition.active && (
         <motion.div
           key="mode-transition"
-          className="fixed inset-0 z-[99990] pointer-events-auto overflow-hidden"
-          initial="hidden"
-          animate="cover"
-          exit="reveal"
+          className="pointer-events-auto fixed inset-0 z-[99990] overflow-hidden"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0, transition: { duration: 0.3, ease: "easeInOut" } }}
+          transition={{ duration: 0.28, ease: "easeOut" }}
+          style={{ background: `radial-gradient(ellipse 120% 90% at 50% 45%, ${wash} 0%, #050507 68%)` }}
         >
-          {/* Top panel slides down to meet the middle, then lifts away */}
+          {/* a slow breathing bloom so the hold isn't visually dead */}
           <motion.div
-            variants={{ hidden: { y: "-101%" }, cover: { y: "0%" }, reveal: { y: "-101%" } }}
-            transition={{ duration: 0.5, ease: easeCurtain }}
-            className="absolute top-0 left-0 w-full h-[51%]"
-            style={{ background: panelBg, borderBottom: `1px solid ${accent}`, boxShadow: `inset 0 -1px 34px ${accentDim}` }}
-          />
-          {/* Bottom panel slides up to meet the middle, then drops away */}
-          <motion.div
-            variants={{ hidden: { y: "101%" }, cover: { y: "0%" }, reveal: { y: "101%" } }}
-            transition={{ duration: 0.5, ease: easeCurtain }}
-            className="absolute bottom-0 left-0 w-full h-[51%]"
-            style={{ background: panelBg, borderTop: `1px solid ${accent}`, boxShadow: `inset 0 1px 34px ${accentDim}` }}
+            aria-hidden
+            className="absolute inset-0"
+            style={{ background: `radial-gradient(circle 42% at 50% 50%, ${glow}, transparent 70%)` }}
+            initial={{ opacity: 0.25, scale: 0.9 }}
+            animate={{ opacity: [0.25, 0.55, 0.35], scale: [0.9, 1.05, 1] }}
+            transition={{ duration: 1.1, ease: "easeInOut" }}
           />
 
-          {/* Seam flare where the panels meet */}
-          <motion.div
-            variants={{ hidden: { opacity: 0, scaleX: 0.2 }, cover: { opacity: 1, scaleX: 1 }, reveal: { opacity: 0, scaleX: 0.2 } }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-            className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-[2px] origin-center"
-            style={{ background: `linear-gradient(to right, transparent, ${accent}, transparent)`, boxShadow: `0 0 26px 4px ${glow}` }}
-          />
-
-          {/* Emblem + wordmark, revealed once the curtain is closed */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-6">
             <motion.div
-              initial={{ opacity: 0, scale: 0.82, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.94, y: -8, transition: { duration: 0.22, ease: "easeIn" } }}
-              transition={{ delay: 0.26, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
               className="flex flex-col items-center"
+              initial={{ opacity: 0, y: 14, scale: 0.94 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.97, transition: { duration: 0.22, ease: "easeIn" } }}
+              transition={{ delay: 0.12, duration: 0.34, ease: EASE }}
             >
-              <div
-                className="relative flex h-16 w-16 items-center justify-center rounded-full mb-5"
-                style={{ border: `1px solid ${accentDim}`, boxShadow: `0 0 44px ${glow}`, background: "rgba(5,5,5,0.6)" }}
-              >
-                <Icon className="h-7 w-7" style={{ color: accent }} strokeWidth={1.5} />
+              {/* emblem with a ring that sweeps once across the wait */}
+              <div className="relative mb-6 grid h-[88px] w-[88px] place-items-center">
+                <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 88 88">
+                  <circle cx="44" cy="44" r={R} fill="none" stroke="rgba(255,255,255,0.09)" strokeWidth="2" />
+                  <motion.circle
+                    cx="44" cy="44" r={R} fill="none"
+                    stroke={accent} strokeWidth="2" strokeLinecap="round"
+                    strokeDasharray={CIRC}
+                    initial={{ strokeDashoffset: CIRC }}
+                    animate={{ strokeDashoffset: 0 }}
+                    transition={{ delay: 0.12, duration: 0.85, ease: "easeInOut" }}
+                    style={{ filter: `drop-shadow(0 0 6px ${glow})` }}
+                  />
+                </svg>
+                <div
+                  className="grid h-[62px] w-[62px] place-items-center rounded-full"
+                  style={{ background: "rgba(6,6,10,0.75)", boxShadow: `0 0 38px ${glow}` }}
+                >
+                  <Icon className="h-7 w-7" style={{ color: accent }} strokeWidth={1.5} />
+                </div>
               </div>
+
               <div
-                className="font-fell text-2xl md:text-3xl font-bold uppercase tracking-[0.35em] pl-[0.35em] text-white"
-                style={{ textShadow: `0 0 26px ${glow}` }}
+                className="font-fell text-[26px] font-bold uppercase leading-none tracking-[0.34em] text-white md:text-3xl"
+                style={{ paddingLeft: "0.34em", textShadow: `0 0 30px ${glow}` }}
               >
                 {label}
               </div>
-              <div className="mt-3 h-px w-24" style={{ background: `linear-gradient(to right, transparent, ${accentDim}, transparent)` }} />
-              <div className="mt-3 font-garamond italic text-sm tracking-[0.25em]" style={{ color: accentDim }}>
+
+              <div className="mt-3.5 font-garamond text-[13px] italic tracking-[0.22em]" style={{ color: soft }}>
                 {sub}
+              </div>
+
+              {/* a real progress bar — gives the pause a purpose */}
+              <div className="mt-6 h-[2px] w-40 overflow-hidden rounded-full bg-white/10">
+                <motion.div
+                  className="h-full rounded-full"
+                  style={{ background: `linear-gradient(to right, transparent, ${accent})`, boxShadow: `0 0 12px ${glow}` }}
+                  initial={{ width: "0%" }}
+                  animate={{ width: "100%" }}
+                  transition={{ delay: 0.1, duration: 0.88, ease: "easeInOut" }}
+                />
               </div>
             </motion.div>
           </div>

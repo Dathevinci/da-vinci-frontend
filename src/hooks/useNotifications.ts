@@ -8,6 +8,14 @@ export interface NotificationItem {
   id: string;
   message: string;
   type: ToastType;
+  /**
+   * The server's ORIGINAL notification type ("blessing", "gift", "tip",
+   * "mention", "NEW_FOLLOWER", "reply", "ARISE_POINTS_*", …). `type` above is
+   * only a coarse success/info bucket for toast styling — collapsing to it
+   * threw away everything the panel needs to show a meaningful icon, so all
+   * thirteen server types rendered as the same generic dot.
+   */
+  rawType?: string;
   timestamp: number;
   read: boolean;
   link?: string;
@@ -30,6 +38,7 @@ export function useNotifications() {
           id: n.id,
           message: n.message,
           type: n.type === "like" || n.type === "success" ? "success" : "info",
+          rawType: n.type,
           timestamp: new Date(n.createdAt).getTime(),
           read: n.isRead,
           link: n.link,

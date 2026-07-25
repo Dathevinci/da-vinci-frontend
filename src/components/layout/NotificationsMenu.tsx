@@ -1,11 +1,41 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Bell, CheckCircle2, AlertCircle, Info, CheckCheck, Trash2, X } from "lucide-react";
+import { Bell, CheckCircle2, AlertCircle, Info, CheckCheck, Trash2, X, UserPlus, Heart, MessageSquare, AtSign, Sparkles, Gift, Diamond, Wand2 } from "lucide-react";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useRouter, usePathname } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { AnimatePresence, motion } from "framer-motion";
+
+/**
+ * Every notification type the server actually emits, mapped to its own icon and
+ * accent. Previously the panel only handled "success" | "error" | "info", so a
+ * blessing, a gift, a new follower and an Arise Points payout all rendered the
+ * same generic dot — or none at all.
+ */
+const NOTIF_STYLE: Record<string, { Icon: any; tint: string; ring: string }> = {
+  NEW_FOLLOWER: { Icon: UserPlus, tint: "text-sky-300", ring: "bg-sky-500/15 border-sky-500/25" },
+  like: { Icon: Heart, tint: "text-rose-300", ring: "bg-rose-500/15 border-rose-500/25" },
+  reply: { Icon: MessageSquare, tint: "text-purple-300", ring: "bg-purple-500/15 border-purple-500/25" },
+  mention: { Icon: AtSign, tint: "text-purple-300", ring: "bg-purple-500/15 border-purple-500/25" },
+  blessing: { Icon: Sparkles, tint: "text-amber-300", ring: "bg-amber-400/15 border-amber-400/30" },
+  tip: { Icon: Sparkles, tint: "text-amber-300", ring: "bg-amber-400/15 border-amber-400/30" },
+  gift: { Icon: Gift, tint: "text-fuchsia-300", ring: "bg-fuchsia-500/15 border-fuchsia-500/25" },
+  effect: { Icon: Wand2, tint: "text-fuchsia-300", ring: "bg-fuchsia-500/15 border-fuchsia-500/25" },
+  frame: { Icon: Wand2, tint: "text-fuchsia-300", ring: "bg-fuchsia-500/15 border-fuchsia-500/25" },
+  success: { Icon: CheckCircle2, tint: "text-emerald-300", ring: "bg-emerald-500/15 border-emerald-500/25" },
+  error: { Icon: AlertCircle, tint: "text-red-300", ring: "bg-red-500/15 border-red-500/25" },
+};
+
+function styleFor(notif: { rawType?: string; type?: string }) {
+  const raw = notif.rawType || "";
+  if (NOTIF_STYLE[raw]) return NOTIF_STYLE[raw];
+  // every ARISE_POINTS_* variant is a currency payout
+  if (raw.startsWith("ARISE_POINTS")) {
+    return { Icon: Diamond, tint: "text-emerald-300", ring: "bg-emerald-500/15 border-emerald-500/25" };
+  }
+  return NOTIF_STYLE[notif.type || "info"] || { Icon: Info, tint: "text-slate-300", ring: "bg-white/10 border-white/15" };
+}
 
 export default function NotificationsMenu() {
   const router = useRouter();
@@ -68,27 +98,33 @@ export default function NotificationsMenu() {
 
             <div className="flex flex-col flex-1 overflow-hidden rounded-2xl relative z-10 bg-[#0f0f13]">
             {/* Header */}
-            <div className="p-4 border-b border-white/10 bg-white/5 flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2 border-b border-white/10 bg-white/[0.04] px-4 py-3">
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-white text-sm">Notifications</h3>
+                <h3 className="text-sm font-black tracking-tight text-white">Notifications</h3>
                 {unreadCount > 0 && (
-                  <span className="bg-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                    {unreadCount} new
+                  <span className="rounded-full bg-purple-600 px-2 py-0.5 text-[10px] font-black text-white">
+                    {unreadCount}
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-3">
-                <button 
-                  onClick={markAllAsRead} 
-                  className="text-xs text-purple-400 hover:text-purple-300 font-bold transition"
+              {/* icon-only actions with tooltips — two competing red/purple text
+                  links read as the loudest thing in the panel */}
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={markAllAsRead}
+                  disabled={unreadCount === 0}
+                  title="Mark all as read"
+                  className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
                 >
-                  Mark all read
+                  <CheckCheck className="h-4 w-4" />
                 </button>
-                <button 
-                  onClick={clearAll} 
-                  className="text-xs text-red-400 hover:text-red-300 font-bold transition"
+                <button
+                  onClick={clearAll}
+                  disabled={notifications.length === 0}
+                  title="Clear all"
+                  className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-500/15 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-30"
                 >
-                  Clear
+                  <Trash2 className="h-4 w-4" />
                 </button>
               </div>
             </div>
@@ -105,48 +141,52 @@ export default function NotificationsMenu() {
                 </div>
               ) : (
                 <div className="divide-y divide-white/5">
-                  {notifications.map((notif) => (
-                    <div 
-                      key={notif.id} 
-                      onClick={() => {
-                        if (!notif.read) markAsRead(notif.id);
-                        if (notif.link) {
-                          setIsOpen(false);
-                          router.push(notif.link);
-                        }
-                      }}
-                      className={`p-4 flex gap-3 group transition-colors relative ${notif.read ? 'bg-transparent' : 'bg-purple-900/10 hover:bg-purple-900/20'} ${notif.link ? 'cursor-pointer hover:bg-white/5' : ''}`}
-                    >
-                      {!notif.read && (
-                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-purple-500 rounded-r-full"></div>
-                      )}
-                      
-                      <div className="shrink-0 mt-0.5">
-                        {notif.type === "success" && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
-                        {notif.type === "error" && <AlertCircle className="w-5 h-5 text-red-400" />}
-                        {notif.type === "info" && <Info className="w-5 h-5 text-purple-400" />}
-                      </div>
-                      
-                      <div className="flex-1 min-w-0 pr-6">
-                        <p className={`text-sm break-words leading-tight ${notif.read ? 'text-slate-300' : 'text-white font-medium'}`}>
-                          {notif.message}
-                        </p>
-                        <span className="text-[10px] text-slate-500 mt-1 block">
-                          {formatDistanceToNow(notif.timestamp, { addSuffix: true })}
-                        </span>
-                      </div>
-                      
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeNotification(notif.id);
+                  {notifications.map((notif) => {
+                    const { Icon, tint, ring } = styleFor(notif as any);
+                    return (
+                      <div
+                        key={notif.id}
+                        onClick={() => {
+                          if (!notif.read) markAsRead(notif.id);
+                          if (notif.link) {
+                            setIsOpen(false);
+                            router.push(notif.link);
+                          }
                         }}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 text-slate-500 hover:text-white transition-opacity p-1 hover:bg-white/10 rounded-full"
+                        className={`group relative flex gap-3 px-4 py-3 transition-colors ${
+                          notif.read ? "hover:bg-white/[0.04]" : "bg-purple-500/[0.07] hover:bg-purple-500/[0.12]"
+                        } ${notif.link ? "cursor-pointer" : ""}`}
                       >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
+                        {!notif.read && (
+                          <span className="absolute left-0 top-1/2 h-7 w-[3px] -translate-y-1/2 rounded-r-full bg-purple-500" />
+                        )}
+
+                        <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${ring}`}>
+                          <Icon className={`h-4 w-4 ${tint}`} />
+                        </div>
+
+                        <div className="min-w-0 flex-1 pr-5">
+                          <p className={`break-words text-sm leading-snug ${notif.read ? "text-slate-400" : "font-medium text-white"}`}>
+                            {notif.message}
+                          </p>
+                          <span className="mt-1 block text-[10px] tabular-nums text-slate-500">
+                            {formatDistanceToNow(notif.timestamp, { addSuffix: true })}
+                          </span>
+                        </div>
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeNotification(notif.id);
+                          }}
+                          aria-label="Dismiss"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-500 opacity-0 transition hover:bg-white/10 hover:text-white group-hover:opacity-100"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
