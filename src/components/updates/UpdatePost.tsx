@@ -14,6 +14,7 @@ import CommentsDrawer from "@/components/ui/CommentsDrawer";
 import { AvatarDecoration, hasFrameRing } from "@/components/profile/AvatarDecoration";
 import UserLink from "@/components/profile/UserLink";
 import MentionsInput from "@/components/ui/MentionsInput";
+import { authHeaders } from "@/lib/authToken";
 
 interface Comment {
   id: string;
@@ -161,7 +162,7 @@ export default function UpdatePost({ post, onDelete }: UpdatePostProps) {
     try {
       const res = await fetch(`${API_URL}/api/announcements/${post.id}`, {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ userId: user?.id }),
       });
       if (res.ok) {
@@ -201,7 +202,7 @@ export default function UpdatePost({ post, onDelete }: UpdatePostProps) {
     try {
       const res = await fetch(`${API_URL}/api/announcements/${post.id}/comments`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ userId: user.id, content: newComment.trim() }),
       });
       const data = await res.json();
@@ -223,7 +224,7 @@ export default function UpdatePost({ post, onDelete }: UpdatePostProps) {
     try {
       const res = await fetch(`${API_URL}/api/announcements/${post.id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ userId: user?.id, title: editPostTitle, content: editPostContent }),
       });
       const data = await res.json();
@@ -245,7 +246,7 @@ export default function UpdatePost({ post, onDelete }: UpdatePostProps) {
     try {
       const res = await fetch(`${API_URL}/api/announcements/comments/${commentToDelete}`, {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ userId: user?.id }),
       });
       if (res.ok) {
@@ -266,7 +267,7 @@ export default function UpdatePost({ post, onDelete }: UpdatePostProps) {
     try {
       const res = await fetch(`${API_URL}/api/announcements/comments/${commentId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ userId: user?.id, content: editCommentContent }),
       });
       const data = await res.json();

@@ -6,6 +6,7 @@ import { X, UploadCloud, Loader2 } from "lucide-react";
 import { isAdmin } from "@/lib/admin";
 import { useUser } from "@/hooks/useUser";
 import { useToast } from "@/components/ui/Toast";
+import { authHeaders } from "@/lib/authToken";
 
 interface CreateUpdateModalProps {
   onClose: () => void;
@@ -69,7 +70,7 @@ export default function CreateUpdateModal({ onClose, onCreated }: CreateUpdateMo
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
       const res = await fetch(`${API_URL}/api/announcements`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({
           userId: user.id,
           title,

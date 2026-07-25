@@ -29,6 +29,7 @@ const RankIcons: Record<string, any> = {
   ArrowUpRight
 };
 import { useToast } from '@/components/ui/Toast';
+import { authHeaders } from "@/lib/authToken";
 import MentionsTextarea from '@/components/ui/MentionsTextarea';
 import Link from 'next/link';
 
@@ -176,10 +177,11 @@ const CommentThread = ({
   const isDejavuh = isLeadDev(node.user?.username);
   // A bought frame / Voltaic ring takes priority over the Lead-Dev accent ring.
   const nodeHasRing = hasFrameRing((node.user as any)?.activeFrame, node.user?.activeEffect);
+  // isAdmin() already unions ADMIN + LEAD_DEV (and honours the persistent role),
+  // so a second hardcoded username list here only created drift.
   const isViewerDev = isAdmin(user);
-  const isViewerAdmin = user?.username?.toLowerCase() === 'davinci' || user?.username?.toLowerCase() === 'xhackerdevil';
   const isAuthor = user?.id === node.user?.id;
-  const canManage = isAuthor || isViewerDev || isViewerAdmin;
+  const canManage = isAuthor || isViewerDev;
   
   const rankTheme = getRankTheme((node.user as any)?.xp || 0, node.user?.username || 'Unknown');
   const RankIcon = rankTheme.badgeIcon ? RankIcons[rankTheme.badgeIcon] : null;
@@ -297,7 +299,7 @@ const CommentThread = ({
           </UserLink>
           
           <div className="flex items-center gap-2 shrink-0">
-            {(isViewerDev || isViewerAdmin) && !isDejavuh && !node.blessed && (
+            {isViewerDev && !isDejavuh && !node.blessed && (
               <button
                 onClick={() => handleBless(node.id, node.user?.username || 'Unknown')}
                 className="text-amber-400 hover:text-amber-300 p-1 sm:p-1.5 rounded hover:bg-amber-400/10 transition flex items-center gap-1 text-xs font-bold"
@@ -316,7 +318,7 @@ const CommentThread = ({
                 >
                   <Edit className="w-4 h-4" />
                 </button>
-                {(isViewerDev || isViewerAdmin) && (
+                {isViewerDev && (
                   <button 
                     onClick={() => handlePin(node.id)}
                     className={`p-1 sm:p-1.5 rounded transition flex items-center gap-1 text-xs font-bold ${node.isPinned ? "text-amber-400 hover:text-amber-300 hover:bg-amber-400/10" : "text-slate-500 hover:text-amber-400 hover:bg-amber-400/10"}`}
@@ -327,10 +329,10 @@ const CommentThread = ({
                 )}
                 <button 
                   onClick={() => handleDelete(node.id)}
-                  className={`p-1 sm:p-1.5 rounded transition flex items-center gap-1 text-xs font-bold ${(!isAuthor && (isViewerDev || isViewerAdmin)) ? "text-red-500 hover:text-red-400 hover:bg-red-500/10" : "text-slate-500 hover:text-red-500 hover:bg-red-500/10"}`}
+                  className={`p-1 sm:p-1.5 rounded transition flex items-center gap-1 text-xs font-bold ${(!isAuthor && isViewerDev) ? "text-red-500 hover:text-red-400 hover:bg-red-500/10" : "text-slate-500 hover:text-red-500 hover:bg-red-500/10"}`}
                   title={!isAuthor ? "Nuke Post" : "Delete Post"}
                 >
-                  {(!isAuthor && (isViewerDev || isViewerAdmin)) ? <Flame className="w-4 h-4" /> : <Trash2 className="w-4 h-4" />}
+                  {(!isAuthor && isViewerDev) ? <Flame className="w-4 h-4" /> : <Trash2 className="w-4 h-4" />}
                 </button>
               </>
             )}
@@ -764,7 +766,7 @@ export default function CommunityFeed({
     try {
       const res = await fetch(`${API_URL}/api/comments/${commentId}/pin`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ userId: user.id })
       });
       const data = await res.json().catch(() => ({}));
@@ -791,7 +793,7 @@ export default function CommunityFeed({
     try {
       const res = await fetch(`${API_URL}/api/comments`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({
           userId: user.id,
           animeId,
@@ -855,7 +857,7 @@ export default function CommunityFeed({
     try {
       const res = await fetch(`${API_URL}/api/comments/${commentId}/vote`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ userId: user.id, value: newValue })
       });
       if (!res.ok) throw new Error("Vote failed");
@@ -871,7 +873,7 @@ export default function CommunityFeed({
     try {
       const res = await fetch(`${API_URL}/api/comments/${commentId}/tip`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ userId: user.id }),
       });
       const data = await res.json();
@@ -912,7 +914,7 @@ export default function CommunityFeed({
     try {
       const res = await fetch(`${API_URL}/api/comments/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ userId: user.id, content, mediaUrl })
       });
       const data = await res.json().catch(() => ({}));
@@ -932,7 +934,7 @@ export default function CommunityFeed({
     try {
       const res = await fetch(`${API_URL}/api/comments/${commentToDelete}`, {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ userId: user.id })
       });
       const data = await res.json().catch(() => ({}));
@@ -961,7 +963,7 @@ export default function CommunityFeed({
     try {
       const res = await fetch(`${API_URL}/api/comments/${commentId}/bless`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ userId: user.id }),
       });
       const data = await res.json();
