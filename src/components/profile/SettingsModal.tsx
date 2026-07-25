@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Moon, Sun, Lock, Unlock, Save, PlayCircle, EyeOff, Zap, Wifi, Key, User as UserIcon, Link as LinkIcon, Image as ImageIcon, Copy, Camera, UploadCloud, AlertCircle, RefreshCw, Database, Trash2 } from "lucide-react";
+import { X, Moon, Sun, Lock, Unlock, Save, PlayCircle, EyeOff, Zap, Wifi, Key, User as UserIcon, Link as LinkIcon, Image as ImageIcon, Copy, Camera, UploadCloud, AlertCircle, RefreshCw, Database, Trash2, ShieldCheck, SlidersHorizontal } from "lucide-react";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { useToast } from "@/components/ui/Toast";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
@@ -402,27 +402,46 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 20 }}
             onClick={e => e.stopPropagation()}
-            className="bg-[#09090b] border border-white/10 rounded-3xl p-6 w-full max-w-2xl shadow-2xl relative max-h-[85vh] flex flex-col"
+            className="relative flex h-[86vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#09090b] shadow-2xl md:h-[80vh] md:flex-row"
           >
-            <button 
+            <button
               onClick={onClose}
-              className="absolute top-5 right-5 text-slate-500 hover:text-white transition bg-white/5 hover:bg-white/10 p-2 rounded-full"
+              className="absolute right-4 top-4 z-20 rounded-full bg-white/5 p-2 text-slate-500 transition hover:bg-white/10 hover:text-white"
             >
-              <X className="w-5 h-5" />
+              <X className="h-5 w-5" />
             </button>
-            
-            <h2 className="text-2xl font-black mb-6 text-white tracking-tight flex-shrink-0">Settings</h2>
 
-            <div className="flex gap-2 mb-6 border-b border-white/10 pb-2 overflow-x-auto scrollbar-none shrink-0">
-              <button onClick={() => setActiveTab('profile')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition ${activeTab === 'profile' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>Profile</button>
-              <button onClick={() => setActiveTab('account')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition ${activeTab === 'account' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>Account</button>
-              <button onClick={() => setActiveTab('preferences')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition ${activeTab === 'preferences' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>Preferences</button>
-              <button onClick={() => setActiveTab('integrations')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition ${activeTab === 'integrations' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>Integrations</button>
-              <button onClick={() => setActiveTab('invites')} className={`px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap transition ${activeTab === 'invites' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>Invite Keys</button>
-            </div>
+            {/* ── Sidebar nav — five cramped pills on one scrolling row made it
+                   easy to miss whole sections; icons + labels down the side are
+                   scannable. Collapses to a horizontal rail on mobile. ── */}
+            <aside className="shrink-0 border-b border-white/10 bg-white/[0.02] p-4 md:w-56 md:border-b-0 md:border-r md:p-5">
+              <h2 className="mb-4 pr-10 text-xl font-black tracking-tight text-white md:mb-5">Settings</h2>
+              <nav className="flex gap-1.5 overflow-x-auto scrollbar-none md:flex-col md:overflow-visible">
+                {([
+                  { key: "profile", label: "Profile", Icon: UserIcon },
+                  { key: "account", label: "Account", Icon: ShieldCheck },
+                  { key: "preferences", label: "Preferences", Icon: SlidersHorizontal },
+                  { key: "integrations", label: "Integrations", Icon: Database },
+                  { key: "invites", label: "Invite Keys", Icon: Key },
+                ] as const).map(({ key, label, Icon }) => (
+                  <button
+                    key={key}
+                    onClick={() => setActiveTab(key)}
+                    className={`flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-xl px-3.5 py-2.5 text-sm font-bold transition-colors md:w-full ${
+                      activeTab === key
+                        ? "bg-purple-600 text-white"
+                        : "text-slate-400 hover:bg-white/5 hover:text-white"
+                    }`}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    {label}
+                  </button>
+                ))}
+              </nav>
+            </aside>
 
             {/* Scrollable Content Area */}
-            <div className="overflow-y-auto pr-2 -mr-2 space-y-6 scrollbar-thin scrollbar-thumb-white/10 flex-1 min-h-[50vh]">
+            <div className="min-w-0 flex-1 space-y-6 overflow-y-auto p-5 scrollbar-thin scrollbar-thumb-white/10 sm:p-6">
               
               {activeTab === 'profile' && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
@@ -435,33 +454,55 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                     </div>
                   )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-400 mb-2">Profile Picture</label>
-                      <div className="flex items-center gap-4">
-                        <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={(e) => handleFileSelect(e, false)} />
-                        <button 
-                          onClick={() => fileInputRef.current?.click()}
-                          disabled={uploadingImage}
-                          className="flex-1 flex flex-col items-center justify-center gap-2 border-2 border-dashed border-white/20 hover:border-purple-400 bg-white/5 hover:bg-white/10 text-white font-bold h-32 rounded-2xl transition disabled:opacity-50"
-                        >
-                          {uploadingImage ? <RefreshCw className="w-6 h-6 animate-spin text-purple-400" /> : <Camera className="w-6 h-6 text-slate-400" />}
-                          <span className="text-sm text-slate-300">{uploadingImage ? "Uploading..." : "Upload Avatar"}</span>
-                        </button>
+                  {/* Live previews — the old dashed boxes never showed what you
+                      currently HAVE, so you couldn't tell if an upload landed. */}
+                  <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
+                    <input type="file" accept="image/*" className="hidden" ref={bannerInputRef} onChange={(e) => handleFileSelect(e, true)} />
+                    <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={(e) => handleFileSelect(e, false)} />
+
+                    <button
+                      onClick={() => bannerInputRef.current?.click()}
+                      disabled={uploadingBanner}
+                      title="Change banner"
+                      className="group relative block h-28 w-full overflow-hidden disabled:opacity-60"
+                    >
+                      {user?.bannerUrl ? (
+                        <img
+                          src={user.bannerUrl}
+                          alt=""
+                          style={{ objectPosition: `center ${bannerPos}%` }}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-full w-full bg-gradient-to-br from-purple-600/40 to-fuchsia-600/25" />
+                      )}
+                      <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/45 text-sm font-bold text-white opacity-0 transition group-hover:opacity-100">
+                        {uploadingBanner ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+                        {uploadingBanner ? "Uploading…" : user?.bannerUrl ? "Change banner" : "Add a banner"}
                       </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-400 mb-2">Background Banner</label>
-                      <div className="flex items-center gap-4">
-                        <input type="file" accept="image/*" className="hidden" ref={bannerInputRef} onChange={(e) => handleFileSelect(e, true)} />
-                        <button 
-                          onClick={() => bannerInputRef.current?.click()}
-                          disabled={uploadingBanner}
-                          className="flex-1 flex flex-col items-center justify-center gap-2 border-2 border-dashed border-white/20 hover:border-purple-400 bg-white/5 hover:bg-white/10 text-white font-bold h-32 rounded-2xl transition disabled:opacity-50"
-                        >
-                          {uploadingBanner ? <RefreshCw className="w-6 h-6 animate-spin text-purple-400" /> : <ImageIcon className="w-6 h-6 text-slate-400" />}
-                          <span className="text-sm text-slate-300">{uploadingBanner ? "Uploading..." : "Upload Banner"}</span>
-                        </button>
+                    </button>
+
+                    <div className="flex items-end gap-4 px-4 pb-4">
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingImage}
+                        title="Change avatar"
+                        className="group relative -mt-9 h-20 w-20 shrink-0 overflow-hidden rounded-full border-4 border-[#09090b] bg-[#141418] disabled:opacity-60"
+                      >
+                        {user?.avatar ? (
+                          <img src={user.avatar} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-purple-500 to-fuchsia-600 text-2xl font-black text-white">
+                            {(user?.username || "U").charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/55 opacity-0 transition group-hover:opacity-100">
+                          {uploadingImage ? <RefreshCw className="h-5 w-5 animate-spin text-white" /> : <Camera className="h-5 w-5 text-white" />}
+                        </div>
+                      </button>
+                      <div className="min-w-0 pb-1">
+                        <p className="truncate text-sm font-bold text-white">{user?.username || "your name"}</p>
+                        <p className="text-xs text-slate-500">Click the avatar or banner to change it.</p>
                       </div>
                     </div>
                   </div>
