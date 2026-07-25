@@ -81,9 +81,11 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
   const fetchInvites = async () => {
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      // Prefer the signed token (verified server-side); fall back to the raw id
+      // for pre-JWT sessions. The invite routes accept either.
       const token = localStorage.getItem("davinci_token");
       const res = await fetch(`${API_URL}/api/invites`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("davinci_token") || user?.id}` }
+        headers: { Authorization: `Bearer ${token || user?.id}` }
       });
       const data = await res.json();
       if (data.success) {
@@ -101,7 +103,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
       const token = localStorage.getItem("davinci_token");
       const res = await fetch(`${API_URL}/api/invites`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${localStorage.getItem("davinci_token") || user?.id}` }
+        headers: { Authorization: `Bearer ${token || user?.id}` }
       });
       const data = await res.json();
       if (data.success) {
@@ -121,9 +123,10 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
     setBuyingInvite(true);
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      const token = localStorage.getItem("davinci_token");
       const res = await fetch(`${API_URL}/api/invites/purchase`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${user?.id}` },
+        headers: { Authorization: `Bearer ${token || user?.id}` },
       });
       const data = await res.json();
       if (data.success) {

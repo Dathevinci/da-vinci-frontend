@@ -5,33 +5,32 @@ import type { RefObject } from "react";
 import { motion } from "framer-motion";
 
 /**
- * "Hollow Purple" (Kyoshiki Murasaki) — the SSS-grade effect_hollow.
+ * "Hollow Purple" (Kyoshiki Murasaki) — the SSS-grade effect_hollow, v4.
  *
- * A 4-phase cinematic, not a static orb. It ORIGINATES on the avatar's border
- * and then erases the card:
+ * A 4-phase cinematic originating on the avatar's border:
+ *   I · CONVERGENCE — Lapse Blue (left edge) and Reversal Red (right edge)
+ *       orbit the avatar patiently, breathing on the rim, then spin up
+ *       exponentially with motion-STRETCHED orbs + after-image trails while
+ *       cursed-energy arcs whip the rim and space itself is sucked inward
+ *       (spiralling debris streaks). At 85% the orbit BREAKS: both orbs lunge
+ *       straight for the dead centre behind a contracting warning ring.
+ *   II · THE SPARK — impact, then a TRUE micro-silence: ~0.25s where nothing
+ *       moves but a white-hot pinpoint, a frozen violet ring, and two
+ *       imploding red/blue rings collapsing into it — then the black-and-
+ *       purple vortex churns with coherent rotating spokes.
+ *   III · HOLLOW PURPLE — flashbang frame, then the eruption engulfs the card:
+ *       layered white→violet→void gradient, a blinding blast-front ring with
+ *       an echo ring behind it, anime burst-lines exploding radially, the torn
+ *       black rim rendered as filled teeth, chromatic blue/red split, shell
+ *       lightning, 0.4s violent shake.
+ *   IV · SPACE SHATTER — progressive glass cracks with glints at each growing
+ *       tip, the horizontal ERASED TRENCH scar of violet haze, and ~120
+ *       high-velocity embers blowing sideways. Seamless ~7.8s cycle.
  *
- *   I · CONVERGENCE — Lapse Blue spawns on the avatar's left edge, Reversal Red
- *       on the right. They orbit the profile picture, spinning up exponentially,
- *       trailing after-images, while jagged cursed-energy arcs snap off both
- *       orbs and whip around the avatar's rim.
- *   II · THE SPARK — they smash together in the avatar's dead centre and ALL
- *       motion suspends for the anime micro-silence: a violently shaking,
- *       ultra-dense black-and-purple vortex around a white-hot pinpoint.
- *   III · HOLLOW PURPLE — a colossal sphere erupts and engulfs the whole card:
- *       blinding white core, thick neon-violet body, aggressive torn black rim,
- *       lightning lashing along the shell, chromatic blue/red fringing being
- *       ripped apart — with a violent 0.4s shake.
- *   IV · SPACE SHATTER — jagged white cracks tear across the card as space
- *       gives out under the imaginary mass, then high-velocity violet embers
- *       blow sideways: the erased trench left behind.
- *
- * Then it resets seamlessly (~8.2s cycle).
- *
- * Perf: NO shadowBlur / ctx.filter anywhere in the loop — every glow is a
- * pre-rendered radial sprite drawn additively, and every batch of identical
- * strokes is one path + one stroke. Card-anchored (never a viewport-fixed
- * portal); the shake is applied to the CANVAS, never to parentElement (framer
- * owns that transform in the shop preview).
+ * Perf: zero shadowBlur / ctx.filter in the loop — pre-rendered radial glow
+ * sprites + batched stroke passes. Card-anchored (never viewport-fixed); the
+ * shake targets the CANVAS only (framer owns parentElement's transform in the
+ * shop preview) and is reset in cleanup.
  */
 
 // The avatar registers here; the technique originates on the largest one's rim.
@@ -41,22 +40,25 @@ const TAU = Math.PI * 2;
 const easeInExpo = (x: number) => (x <= 0 ? 0 : Math.pow(2, 10 * x - 10));
 const easeOutExpo = (x: number) => (x >= 1 ? 1 : 1 - Math.pow(2, -10 * x));
 const easeOutCubic = (x: number) => 1 - Math.pow(1 - x, 3);
+const easeInCubic = (x: number) => x * x * x;
 const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x);
 const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 
 // phase clock
-const P1 = 3.4;
+const P1 = 3.0;
 const P2 = 0.42;
-const P3 = 1.3;
-const P4 = 3.05;
+const P3 = 1.35;
+const P4 = 3.0;
 const T1 = P1;
 const T2 = T1 + P2;
 const T3 = T2 + P3;
 const CYCLE = T3 + P4;
+const LUNGE = 0.85; // fraction of P1 where the orbit breaks into the lunge
 
 type Poly = [number, number][];
 type Crack = { pts: Poly; w: number; delay: number };
 type Ember = { x: number; y: number; vx: number; vy: number; s: number; life: number; age: number; hot: boolean };
+type Debris = { a: number; r: number; sp: number; cx: number; cy: number };
 
 function useHollowCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
   useEffect(() => {
@@ -106,7 +108,6 @@ function useHollowCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       white: makeGlow("235,225,255", true),
     };
 
-    // ── procedural cursed-energy arcs ──
     const makeArc = (x0: number, y0: number, x1: number, y1: number, segs: number, chaos: number): Poly => {
       const pts: Poly = [[x0, y0]];
       for (let i = 1; i < segs; i++) {
@@ -145,13 +146,25 @@ function useHollowCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       ctx.globalAlpha = 1;
     };
 
-    // ── space-shatter cracks, rebuilt once per cycle at the eruption ──
+    // an orb drawn with motion-stretch along its direction of travel
+    const drawOrb = (spr: HTMLCanvasElement, x: number, y: number, size: number, ang: number, stretch: number) => {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(ang);
+      ctx.scale(stretch, 1);
+      ctx.drawImage(spr, -size, -size, size * 2, size * 2);
+      ctx.restore();
+    };
+
+    // suction debris pulled into the collision (imaginary-mass gravity)
+    let debris: Debris[] = [];
+
+    // space-shatter cracks, rebuilt once per cycle at the eruption
     let cracks: Crack[] = [];
     const buildCracks = (cx: number, cy: number) => {
       cracks = [];
-      const main = 9;
-      for (let i = 0; i < main; i++) {
-        const a = (i / main) * TAU + Math.random() * 0.5;
+      for (let i = 0; i < 9; i++) {
+        const a = (i / 9) * TAU + Math.random() * 0.5;
         const len = DIAG * (0.55 + Math.random() * 0.5);
         const pts: Poly = [[cx, cy]];
         let x = cx;
@@ -159,9 +172,8 @@ function useHollowCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
         let ang = a;
         for (let s = 0; s < 7; s++) {
           ang += (Math.random() - 0.5) * 0.5;
-          const seg = len / 7;
-          x += Math.cos(ang) * seg;
-          y += Math.sin(ang) * seg;
+          x += Math.cos(ang) * (len / 7);
+          y += Math.sin(ang) * (len / 7);
           pts.push([x, y]);
         }
         cracks.push({ pts, w: 1.1 + Math.random() * 2, delay: Math.random() * 0.22 });
@@ -185,7 +197,6 @@ function useHollowCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       }
     };
 
-    // ── embers: the erased trench blowing sideways ──
     let embers: Ember[] = [];
     const seedEmbers = (cx: number, cy: number) => {
       embers = [];
@@ -240,44 +251,75 @@ function useHollowCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
         buildCracks(ax, ay);
         seedEmbers(ax, ay);
         shakeUntil = t + 0.4;
+        // Drop any suction streaks still alive when the orbit ended, so they
+        // can't sit frozen through phases 2-4 and then pop back in (at stale
+        // coordinates) during the NEXT cycle's calm opening orbit.
+        debris.length = 0;
       }
 
       ctx.clearRect(0, 0, W, H);
 
-      // ── I · CONVERGENCE ──
+      // ── I · CONVERGENCE: patient orbit → spin-up → the LUNGE ──
       if (cyc < T1) {
         const p = cyc / P1;
-        const spin = easeInExpo(p) * 26 + p * 5;
-        const orbitR = arad * 1.06 * (1 - easeInExpo(p) * 0.99);
+        const spin = easeInExpo(p) * 24 + p * 6;
+        let orbitR: number;
+        if (p < LUNGE) {
+          orbitR = arad * (1.06 + 0.05 * Math.sin(t * 3.1));
+        } else {
+          orbitR = arad * 1.06 * (1 - easeInCubic((p - LUNGE) / (1 - LUNGE)));
+        }
         const orbR = lerp(arad * 0.32, arad * 0.48, easeOutCubic(p));
+        const stretch = 1 + easeInExpo(p) * 1.9;
+
         const bA = Math.PI + spin;
         const rA = spin;
         const bx = ax + Math.cos(bA) * orbitR;
         const by = ay + Math.sin(bA) * orbitR;
         const rx = ax + Math.cos(rA) * orbitR;
         const ry = ay + Math.sin(rA) * orbitR;
+        const bDir = p < LUNGE ? bA + Math.PI / 2 : Math.atan2(ay - by, ax - bx);
+        const rDir = p < LUNGE ? rA + Math.PI / 2 : Math.atan2(ay - ry, ax - rx);
 
         ctx.globalCompositeOperation = "lighter";
 
-        // after-image trails sell the exponential spin-up
+        // suction: space dragged into the coming collision (capped)
+        if (p > 0.55 && debris.length < 40 && Math.random() < (p - 0.55) * 2.2) {
+          const a = Math.random() * TAU;
+          debris.push({ a, r: arad * (2.4 + Math.random() * 2.2), sp: 2.2 + Math.random() * 2.4, cx: ax, cy: ay });
+        }
+        if (debris.length) {
+          ctx.strokeStyle = "rgba(196,150,255,0.6)";
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          for (let i = debris.length - 1; i >= 0; i--) {
+            const d = debris[i];
+            d.r -= d.sp * arad * dt * (1.4 + easeInExpo(p) * 3);
+            d.a += dt * 2.6;
+            if (d.r < arad * 0.3) {
+              debris.splice(i, 1);
+              continue;
+            }
+            ctx.moveTo(d.cx + Math.cos(d.a) * d.r, d.cy + Math.sin(d.a) * d.r);
+            ctx.lineTo(d.cx + Math.cos(d.a + 0.1) * (d.r + arad * 0.34), d.cy + Math.sin(d.a + 0.1) * (d.r + arad * 0.34));
+          }
+          ctx.stroke();
+        }
+
+        // after-image trails
         for (let k = 5; k >= 1; k--) {
-          const lagA = spin - k * (0.16 + p * 0.3);
+          const lagA = spin - k * (0.15 + p * 0.34);
           ctx.globalAlpha = (0.16 / k) * (0.4 + p);
-          const tbx = ax + Math.cos(Math.PI + lagA) * orbitR;
-          const tby = ay + Math.sin(Math.PI + lagA) * orbitR;
-          const trx = ax + Math.cos(lagA) * orbitR;
-          const try_ = ay + Math.sin(lagA) * orbitR;
-          ctx.drawImage(SPR.azure, tbx - orbR, tby - orbR, orbR * 2, orbR * 2);
-          ctx.drawImage(SPR.crimson, trx - orbR, try_ - orbR, orbR * 2, orbR * 2);
+          drawOrb(SPR.azure, ax + Math.cos(Math.PI + lagA) * orbitR, ay + Math.sin(Math.PI + lagA) * orbitR, orbR, Math.PI + lagA + Math.PI / 2, stretch);
+          drawOrb(SPR.crimson, ax + Math.cos(lagA) * orbitR, ay + Math.sin(lagA) * orbitR, orbR, lagA + Math.PI / 2, stretch);
         }
         ctx.globalAlpha = 1;
 
-        const pulse = 1 + 0.09 * Math.sin(t * 22);
-        const sz = orbR * 1.55 * pulse;
-        ctx.drawImage(SPR.azure, bx - sz, by - sz, sz * 2, sz * 2);
-        ctx.drawImage(SPR.crimson, rx - sz, ry - sz, sz * 2, sz * 2);
+        const pulse = 1 + 0.09 * Math.sin(t * (14 + p * 22));
+        drawOrb(SPR.azure, bx, by, orbR * 1.55 * pulse, bDir, stretch);
+        drawOrb(SPR.crimson, rx, ry, orbR * 1.55 * pulse, rDir, stretch);
 
-        // cursed energy: arcs off each orb + whipping round the avatar rim
+        // cursed energy: arcs off the orbs + whipping around the avatar rim
         const inten = 0.35 + p * 0.65;
         const rim: Poly[] = [];
         const core: Poly[] = [];
@@ -297,7 +339,7 @@ function useHollowCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
         strokePolys(core, "rgba(90,160,255,0.5)", 3.2, inten * 0.7);
         strokePolys(core, "rgba(255,255,255,0.95)", 1.2, inten);
 
-        // the space between them begins to glow violet as they close
+        // violet pressure building + a contracting warning ring before impact
         if (p > 0.45) {
           const g = (p - 0.45) / 0.55;
           ctx.globalAlpha = g * 0.7;
@@ -305,66 +347,110 @@ function useHollowCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
           ctx.drawImage(SPR.violet, ax - vr, ay - vr, vr * 2, vr * 2);
           ctx.globalAlpha = 1;
         }
+        if (p > 0.94) {
+          const q = (p - 0.94) / 0.06;
+          ctx.globalAlpha = q * 0.9;
+          ctx.strokeStyle = "rgba(255,255,255,0.95)";
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.arc(ax, ay, arad * (1.7 - q * 1.5), 0, TAU);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
       }
 
-      // ── II · THE SPARK (all motion suspended; the vortex shakes) ──
+      // ── II · THE SPARK: true micro-silence, then the vortex churns ──
       else if (cyc < T2) {
         const p = (cyc - T1) / P2;
-        const jx = (Math.random() - 0.5) * 7;
-        const jy = (Math.random() - 0.5) * 7;
+        const still = p < 0.6; // first ~0.25s: SUSPENDED
+        const jm = still ? 1.6 : 7;
+        const jx = (Math.random() - 0.5) * jm;
+        const jy = (Math.random() - 0.5) * jm;
 
         ctx.globalCompositeOperation = "lighter";
-        const cr = arad * (0.3 + 0.08 * Math.sin(p * 40));
+        const cr = arad * (still ? 0.3 : 0.3 + 0.08 * Math.sin(p * 40));
         ctx.drawImage(SPR.white, ax + jx - cr, ay + jy - cr, cr * 2, cr * 2);
 
-        // ultra-dense black + purple vortex — source-over so the black reads
-        ctx.globalCompositeOperation = "source-over";
-        ctx.lineWidth = 2;
-        for (let i = 0; i < 42; i++) {
-          const a = (i / 42) * TAU + p * 26 + Math.random() * 0.1;
-          const r0 = arad * (0.16 + Math.random() * 0.2);
-          const r1 = r0 + arad * (0.3 + Math.random() * 0.55);
-          ctx.strokeStyle = i % 3 === 0 ? "rgba(6,2,12,0.92)" : "rgba(96,26,168,0.75)";
+        // imploding red/blue rings collapse INTO the point during the silence
+        const ringP = clamp01(p / 0.6);
+        for (let i = 0; i < 2; i++) {
+          const rp = clamp01(ringP * 1.3 - i * 0.3);
+          if (rp <= 0 || rp >= 1) continue;
+          ctx.globalAlpha = rp * 0.8;
+          ctx.strokeStyle = i ? "rgba(0,191,255,0.9)" : "rgba(255,60,60,0.9)";
+          ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.moveTo(ax + jx + Math.cos(a) * r0, ay + jy + Math.sin(a) * r0);
-          ctx.lineTo(ax + jx + Math.cos(a) * r1, ay + jy + Math.sin(a) * r1);
+          ctx.arc(ax + jx, ay + jy, arad * lerp(2.1, 0.36, easeInCubic(rp)), 0, TAU);
           ctx.stroke();
         }
-
-        ctx.globalCompositeOperation = "lighter";
-        ctx.globalAlpha = 0.85;
-        const hr = arad * 0.95;
-        ctx.drawImage(SPR.violet, ax + jx - hr, ay + jy - hr, hr * 2, hr * 2);
         ctx.globalAlpha = 1;
+
+        if (still) {
+          // a single thin violet ring, frozen — the held breath
+          ctx.strokeStyle = "rgba(170,90,255,0.8)";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(ax + jx, ay + jy, arad * 0.52, 0, TAU);
+          ctx.stroke();
+        } else {
+          // the vortex: coherent spokes rotating hard, black cutting through
+          const q = (p - 0.6) / 0.4;
+          ctx.globalCompositeOperation = "source-over";
+          ctx.lineWidth = 2;
+          const rot = q * 9;
+          for (let i = 0; i < 42; i++) {
+            const a = (i / 42) * TAU + rot + idx * 1.7 + Math.sin(t * 90 + i) * 0.03;
+            const r0 = arad * (0.16 + ((i * 37) % 20) / 100);
+            const r1 = r0 + arad * (0.3 + ((i * 53) % 55) / 100);
+            ctx.strokeStyle = i % 3 === 0 ? "rgba(6,2,12,0.92)" : "rgba(96,26,168,0.75)";
+            ctx.beginPath();
+            ctx.moveTo(ax + jx + Math.cos(a) * r0, ay + jy + Math.sin(a) * r0);
+            ctx.lineTo(ax + jx + Math.cos(a) * r1, ay + jy + Math.sin(a) * r1);
+            ctx.stroke();
+          }
+          ctx.globalCompositeOperation = "lighter";
+          ctx.globalAlpha = 0.85;
+          const hr = arad * 0.95;
+          ctx.drawImage(SPR.violet, ax + jx - hr, ay + jy - hr, hr * 2, hr * 2);
+          ctx.globalAlpha = 1;
+        }
       }
 
-      // ── III · HOLLOW PURPLE (the eruption engulfs the card) ──
+      // ── III · HOLLOW PURPLE: flashbang, blast front, burst lines ──
       else if (cyc < T3) {
         const p = (cyc - T2) / P3;
         const grow = easeOutExpo(Math.min(p * 1.35, 1));
         const R = arad * 0.3 + grow * DIAG * 0.8;
-        // peak is deliberately brief so the card's own text stays legible
-        const fade = p > 0.5 ? clamp01(1 - (p - 0.5) / 0.5) : 1;
+        const fade = p > 0.6 ? 1 - (p - 0.6) / 0.4 : 1;
 
-        // aggressive torn black rim, behind the light
+        // flashbang: the first instant whites the whole card
+        if (p < 0.12) {
+          ctx.globalCompositeOperation = "lighter";
+          ctx.globalAlpha = (1 - p / 0.12) * 0.55;
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, W, H);
+          ctx.globalAlpha = 1;
+        }
+
+        // torn black rim as filled teeth (evenodd ring), behind the light
         ctx.globalCompositeOperation = "source-over";
-        ctx.globalAlpha = fade * 0.9;
+        ctx.globalAlpha = fade * 0.85;
         ctx.beginPath();
         for (let i = 0; i <= 64; i++) {
           const a = (i / 64) * TAU;
-          const rr = R * (1 + (i % 2 ? 0.11 : 0.02) + Math.sin(i * 3.7 + t * 9) * 0.035);
+          const rr = R * (1 + (i % 2 ? 0.13 : 0.02) + Math.sin(i * 3.7 + t * 9) * 0.04);
           const x = ax + Math.cos(a) * rr;
           const y = ay + Math.sin(a) * rr;
           if (i) ctx.lineTo(x, y);
           else ctx.moveTo(x, y);
         }
         ctx.closePath();
-        ctx.strokeStyle = "rgba(24,4,44,0.95)";
-        ctx.lineWidth = Math.max(3, R * 0.05);
-        ctx.stroke();
+        ctx.arc(ax, ay, R * 0.97, 0, TAU, true);
+        ctx.fillStyle = "rgba(22,4,42,0.95)";
+        ctx.fill("evenodd");
         ctx.globalAlpha = 1;
 
-        // layered radial gradient: blinding core → neon violet → void
+        // the eruption body
         ctx.globalCompositeOperation = "lighter";
         const g = ctx.createRadialGradient(ax, ay, 0, ax, ay, R);
         g.addColorStop(0.0, `rgba(255,255,255,${0.9 * fade})`);
@@ -378,6 +464,36 @@ function useHollowCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
         ctx.arc(ax, ay, R, 0, TAU);
         ctx.fill();
 
+        // blinding blast-front ring + echo ring behind it
+        ctx.globalAlpha = fade * 0.9;
+        ctx.strokeStyle = "rgba(255,252,255,0.95)";
+        ctx.lineWidth = Math.max(2.5, R * 0.014);
+        ctx.beginPath();
+        ctx.arc(ax, ay, R, 0, TAU);
+        ctx.stroke();
+        ctx.globalAlpha = fade * 0.35;
+        ctx.strokeStyle = "rgba(210,150,255,0.9)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(ax, ay, R * 0.85, 0, TAU);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+
+        // anime burst lines exploding radially in the first third
+        if (p < 0.35) {
+          ctx.globalAlpha = (1 - p / 0.35) * 0.5;
+          ctx.strokeStyle = "rgba(240,220,255,0.9)";
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          for (let i = 0; i < 24; i++) {
+            const a = (i / 24) * TAU + idx * 0.9 + Math.sin(t * 60 + i * 7) * 0.02;
+            ctx.moveTo(ax + Math.cos(a) * R * 0.25, ay + Math.sin(a) * R * 0.25);
+            ctx.lineTo(ax + Math.cos(a) * R * (0.95 + (i % 3) * 0.06), ay + Math.sin(a) * R * (0.95 + (i % 3) * 0.06));
+          }
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+
         // the blue/red being torn apart (chromatic split)
         ctx.globalAlpha = fade * 0.5 * (1 - grow);
         const fr = R * 0.5;
@@ -389,42 +505,61 @@ function useHollowCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
         const bolts: Poly[] = [];
         for (let i = 0; i < 6; i++) {
           const a = Math.random() * TAU;
-          const r0 = R * 0.45;
           bolts.push(
-            makeArc(ax + Math.cos(a) * r0, ay + Math.sin(a) * r0, ax + Math.cos(a) * R * 1.02, ay + Math.sin(a) * R * 1.02, 7, R * 0.16)
+            makeArc(ax + Math.cos(a) * R * 0.45, ay + Math.sin(a) * R * 0.45, ax + Math.cos(a) * R * 1.02, ay + Math.sin(a) * R * 1.02, 7, R * 0.16)
           );
         }
         strokePolys(bolts, "rgba(150,80,255,0.6)", 5, fade * 0.7);
         strokePolys(bolts, "rgba(255,250,255,0.95)", 1.6, fade);
       }
 
-      // ── IV · SPACE SHATTER & DISSIPATION ──
+      // ── IV · SPACE SHATTER, the erased trench, dissipation ──
       else {
         const p = (cyc - T3) / P4;
         const fade = p < 0.14 ? 1 : clamp01(1 - (p - 0.14) / 0.86);
+        // Phase 3 drives every layer to zero by its final frame, so phase 4 has
+        // to ease UP from black over its first ~0.1s — otherwise the seam is a
+        // one-frame cut from an empty canvas to a near-full-card violet flash.
+        const seam = clamp01(p / 0.1);
 
         ctx.globalCompositeOperation = "lighter";
-        ctx.globalAlpha = clamp01(1 - p * 2.6) * 0.8;
+        ctx.globalAlpha = clamp01(1 - p * 2.6) * 0.8 * seam;
         const ar2 = DIAG * 0.5 * (1 - easeOutCubic(Math.min(p * 2.2, 1)) * 0.72);
         ctx.drawImage(SPR.violet, ax - ar2, ay - ar2, ar2 * 2, ar2 * 2);
         ctx.globalAlpha = 1;
 
-        // space shatters — jagged white cracks, drawn source-over
+        // the erased trench: a horizontal scar of violet haze through the point
+        ctx.globalAlpha = fade * 0.38 * seam;
+        ctx.drawImage(SPR.violet, ax - DIAG * 0.62, ay - arad * 0.55, DIAG * 1.24, arad * 1.1);
+        ctx.globalAlpha = fade * 0.22 * seam;
+        ctx.drawImage(SPR.white, ax - DIAG * 0.5, ay - arad * 0.2, DIAG, arad * 0.4);
+        ctx.globalAlpha = 1;
+
+        // space shatters — progressive cracks with a glint at each growing tip
         ctx.globalCompositeOperation = "source-over";
         const reveal = easeOutCubic(clamp01(p / 0.3));
-        const halo: Poly[] = [];
+        const polys: Poly[] = [];
+        const tips: [number, number][] = [];
         for (const c of cracks) {
           const rv = clamp01((reveal - c.delay) / (1 - c.delay));
           if (rv <= 0) continue;
           const upto = 1 + Math.floor(rv * (c.pts.length - 1));
           const seg = c.pts.slice(0, upto + 1);
-          if (seg.length > 1) halo.push(seg);
+          if (seg.length > 1) {
+            polys.push(seg);
+            if (rv < 1) tips.push(seg[seg.length - 1]);
+          }
         }
-        strokePolys(halo, "rgba(120,50,210,0.5)", 5, fade * 0.5);
-        strokePolys(halo, "rgba(255,255,255,0.95)", 1.3, fade * 0.9);
-
-        // violet embers blown sideways — the erased trench
+        strokePolys(polys, "rgba(120,50,210,0.5)", 5, fade * 0.5);
+        strokePolys(polys, "rgba(255,255,255,0.95)", 1.3, fade * 0.9);
         ctx.globalCompositeOperation = "lighter";
+        for (const tp of tips) {
+          ctx.globalAlpha = 0.9;
+          ctx.drawImage(SPR.white, tp[0] - 6, tp[1] - 6, 12, 12);
+        }
+        ctx.globalAlpha = 1;
+
+        // embers blown sideways along the trench
         for (let i = embers.length - 1; i >= 0; i--) {
           const e = embers[i];
           e.age += dt;
@@ -437,7 +572,7 @@ function useHollowCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
           e.x += e.vx * dt;
           e.y += e.vy * dt;
           const s = e.s * 3.2;
-          ctx.globalAlpha = (1 - e.age / e.life) * 0.8;
+          ctx.globalAlpha = (1 - e.age / e.life) * 0.8 * seam;
           ctx.drawImage(e.hot ? SPR.white : SPR.violet, e.x - s, e.y - s, s * 2, s * 2);
         }
         ctx.globalAlpha = 1;
