@@ -499,7 +499,7 @@ export default function PublicProfilePage() {
               {/* Level Progress Bar */}
               <div className="w-full bg-black/40 rounded-full h-2.5 mt-2 mb-1 border border-white/10 relative overflow-hidden">
                 <div 
-                  className="bg-gradient-to-r from-purple-500 to-purple-500 h-2.5 rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(168,85,247,0.5)]" 
+                  className="bg-gradient-to-r from-purple-600 to-fuchsia-500 h-2.5 rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(168,85,247,0.5)]"
                   style={{ width: `${progressPercent}%` }}
                 ></div>
                 <div className="absolute inset-0 bg-white/5 opacity-30 mix-blend-overlay"></div>
@@ -513,35 +513,53 @@ export default function PublicProfilePage() {
               <BioRenderer bio={cleanBio || "No bio set."} className="text-purple-200 font-medium drop-shadow-md" />
               <div className="h-px bg-white/10 my-4" />
 
-              {/* Hours Watched — the time actually poured into anime. This is what
-                  the finish payout is priced on, so it's the number worth flexing. */}
-              <div className="mb-4 flex items-center gap-3 rounded-xl border border-purple-500/25 bg-gradient-to-r from-purple-500/15 via-purple-500/10 to-transparent px-3 py-2.5">
-                <Clock className="h-5 w-5 shrink-0 text-purple-300 drop-shadow-[0_0_6px_rgba(129,140,248,0.7)]" />
-                <div className="min-w-0">
-                  <div className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-500">Hours Watched</div>
-                  <div className={`text-lg font-black leading-tight drop-shadow-md ${rankTheme.textColorClass}`}>
+              {/* Stat grid — every number gets the same treatment. Hours Watched
+                  used to be the only one in a card while followers / following /
+                  Arise Points were plain inline text, which read as an
+                  afterthought next to it. */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5">
+                  <div className="mb-0.5 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.16em] text-slate-500">
+                    <Clock className="h-3 w-3 text-purple-300" /> Hours
+                  </div>
+                  <div className={`text-lg font-black leading-tight ${rankTheme.textColorClass}`}>
                     {hoursWatched.toLocaleString()}
-                    <span className="ml-1 text-xs font-bold text-slate-400">{hoursWatched === 1 ? "hr" : "hrs"}</span>
+                    <span className="ml-1 text-[11px] font-bold text-slate-400">{hoursWatched === 1 ? "hr" : "hrs"}</span>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex flex-wrap items-center justify-start gap-x-5 gap-y-2 text-sm font-bold text-slate-300">
-                <button 
+                <div className="rounded-xl border border-purple-500/25 bg-purple-500/[0.09] px-3 py-2.5">
+                  <div className="mb-0.5 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.16em] text-slate-500">
+                    <Sparkles className="h-3 w-3 text-purple-300" /> Arise
+                  </div>
+                  <div className={`text-lg font-black leading-tight ${rankTheme.textColorClass}`}>
+                    {displayArisePoints(profileUser)}
+                  </div>
+                </div>
+
+                <button
                   onClick={() => setModalData({ title: 'Followers', users: (profileUser.followers || []).map((f: any) => f.follower) })}
-                  className="hover:text-white hover:underline transition"
+                  className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left transition-colors hover:border-white/20 hover:bg-white/[0.08]"
                 >
-                  <span>{(profileUser.followers || []).length} Followers</span>
+                  <div className="mb-0.5 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.16em] text-slate-500">
+                    <Users className="h-3 w-3 text-purple-300" /> Followers
+                  </div>
+                  <div className="text-lg font-black leading-tight text-white">
+                    {(profileUser.followers || []).length.toLocaleString()}
+                  </div>
                 </button>
-                <button 
+
+                <button
                   onClick={() => setModalData({ title: 'Following', users: (profileUser.following || []).map((f: any) => f.following) })}
-                  className="hover:text-white hover:underline transition"
+                  className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left transition-colors hover:border-white/20 hover:bg-white/[0.08]"
                 >
-                  <span>{(profileUser.following || []).length} Following</span>
+                  <div className="mb-0.5 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.16em] text-slate-500">
+                    <UserPlus className="h-3 w-3 text-purple-300" /> Following
+                  </div>
+                  <div className="text-lg font-black leading-tight text-white">
+                    {(profileUser.following || []).length.toLocaleString()}
+                  </div>
                 </button>
-                  <span className={`ml-2 drop-shadow-md font-black ${rankTheme.textColorClass}`}>
-                  ✧ {displayArisePoints(profileUser)} Arise Points
-                  </span>
               </div>
             </div>
             
