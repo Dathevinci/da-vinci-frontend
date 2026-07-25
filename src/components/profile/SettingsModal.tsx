@@ -90,9 +90,12 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
       const data = await res.json();
       if (data.success) {
         setInvites(data.data);
+      } else {
+        toast(data.message || "Couldn't load your invite keys.", "error");
       }
     } catch (err) {
-      console.error("Failed to fetch invites");
+      console.error("Failed to fetch invites", err);
+      toast("Couldn't load your invite keys.", "error");
     }
   };
 
@@ -142,6 +145,9 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
               window.dispatchEvent(new Event("davinci_user_updated"));
             } catch {}
           }
+          // The modal renders from the initialUser prop, so patch the parent too
+          // or the "you have N AP" line keeps showing the pre-purchase balance.
+          onUpdate?.({ arisePoints: data.arisePoints });
         }
       } else {
         toast(data.message || "Couldn't buy invite.", "error");
@@ -159,7 +165,12 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
       const payload: any = { isPrivate, bio };
       // Fallback for standalone API save if updateProfile isn't available
       if (updateProfile) {
-        await updateProfile(payload);
+        const result: any = await updateProfile(payload);
+        // it resolves with { success: false } rather than throwing
+        if (result && result.success === false) {
+          toast(result.message || "Error saving profile", "error");
+          return;
+        }
       } else {
         const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
         await fetch(`${API_URL}/api/users/${user.id}`, {
@@ -496,6 +507,8 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                         onChange={e => setBannerPos(Number(e.target.value))}
                         onMouseUp={() => { updateProfile({ bannerPosition: bannerPos } as any); onUpdate?.({ bannerPosition: bannerPos }); }}
                         onTouchEnd={() => { updateProfile({ bannerPosition: bannerPos } as any); onUpdate?.({ bannerPosition: bannerPos }); }}
+                        onKeyUp={() => { updateProfile({ bannerPosition: bannerPos } as any); onUpdate?.({ bannerPosition: bannerPos }); }}
+                        onBlur={() => { updateProfile({ bannerPosition: bannerPos } as any); onUpdate?.({ bannerPosition: bannerPos }); }}
                         className="w-full accent-purple-500 cursor-pointer"
                       />
                       <p className="text-xs text-slate-500">Drag to choose which part of the banner shows in the cover.</p>
@@ -609,7 +622,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                         </div>
                         <div>
                           <h3 className="font-bold text-white text-sm">Cinematic Autoplay</h3>
-                          <p className="text-[11px] text-slate-500 mt-0.5 max-w-[200px]">Auto-play trailers on hover.</p>
+                          <p className="text-[11px] text-slate-500 mt-0.5 max-w-[200px]">Auto-play the background trailer on anime pages.</p>
                         </div>
                       </div>
                       <button onClick={() => updatePreference('autoplayTrailers', !preferences.autoplayTrailers)} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${preferences.autoplayTrailers ? 'bg-purple-600' : 'bg-white/10'}`}>
@@ -624,7 +637,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                         </div>
                         <div>
                           <h3 className="font-bold text-white text-sm">Safe Browsing</h3>
-                          <p className="text-[11px] text-slate-500 mt-0.5 max-w-[200px]">Blur NSFW or sensitive content.</p>
+                          <p className="text-[11px] text-slate-500 mt-0.5 max-w-[200px]">Blur mature anime covers.</p>
                         </div>
                       </div>
                       <button onClick={() => updatePreference('blurSensitiveContent', !preferences.blurSensitiveContent)} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${preferences.blurSensitiveContent ? 'bg-red-500' : 'bg-white/10'}`}>
@@ -638,8 +651,8 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                           <Zap className={`w-4 h-4 ${preferences.reducedMotion ? 'text-yellow-400' : 'text-slate-400'}`} />
                         </div>
                         <div>
-                          <h3 className="font-bold text-white text-sm">Reduced Motion</h3>
-                          <p className="text-[11px] text-slate-500 mt-0.5 max-w-[200px]">Disable heavy 3D shuffles for performance.</p>
+                          <h3 className="font-bold text-white text-sm">Performance Mode</h3>
+                          <p className="text-[11px] text-slate-500 mt-0.5 max-w-[200px]">Turns off profile 3D effects & heavy motion.</p>
                         </div>
                       </div>
                       <button onClick={() => updatePreference('reducedMotion', !preferences.reducedMotion)} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${preferences.reducedMotion ? 'bg-yellow-500' : 'bg-white/10'}`}>
@@ -654,7 +667,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                         </div>
                         <div>
                           <h3 className="font-bold text-white text-sm">Data Saver</h3>
-                          <p className="text-[11px] text-slate-500 mt-0.5 max-w-[200px]">Load lower resolution images.</p>
+                          <p className="text-[11px] text-slate-500 mt-0.5 max-w-[200px]">Skip autoplaying trailers to save bandwidth.</p>
                         </div>
                       </div>
                       <button onClick={() => updatePreference('dataSaver', !preferences.dataSaver)} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${preferences.dataSaver ? 'bg-green-500' : 'bg-white/10'}`}>
@@ -667,24 +680,37 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
 
               {activeTab === 'integrations' && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-                  <div className="bg-[#2b2d42] border border-blue-500/30 p-6 rounded-2xl">
-                    <h3 className="font-bold flex items-center gap-2 text-white mb-2"><Database className="w-5 h-5 text-blue-400" /> MyAnimeList Sync</h3>
-                    <p className="text-slate-300 text-sm mb-4">Import your anime list directly from MyAnimeList. This will merge with your existing Tracker.</p>
-                    <div className="flex gap-2">
-                      <input 
-                        type="text" 
-                        placeholder="MAL Username" 
+                  {/* MAL killed the public list feed in May 2022, so this can no
+                      longer work for anyone. Say so plainly instead of leaving a
+                      button that always fails and reads as the user's fault. */}
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      <h3 className="flex items-center gap-2 font-bold text-white">
+                        <Database className="h-5 w-5 text-blue-400" /> MyAnimeList Import
+                      </h3>
+                      <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-300">
+                        Unavailable
+                      </span>
+                    </div>
+                    <p className="mb-4 text-sm leading-relaxed text-slate-400">
+                      MyAnimeList shut off the public list feed this used to read, so importing isn&apos;t possible
+                      right now. Bringing it back needs an official MAL sign-in flow — it&apos;s on the list.
+                    </p>
+                    <div className="flex gap-2 opacity-50">
+                      <input
+                        type="text"
+                        disabled
+                        placeholder="MAL Username"
                         value={anilistUsername}
                         onChange={e => setAnilistUsername(e.target.value)}
-                        className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-blue-500" 
+                        className="flex-1 cursor-not-allowed rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-white"
                       />
-                      <button 
-                        onClick={handleMALSync}
-                        disabled={syncingAnilist}
-                        className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-2 whitespace-nowrap"
+                      <button
+                        disabled
+                        title="MyAnimeList no longer exposes user lists publicly"
+                        className="flex cursor-not-allowed items-center gap-2 whitespace-nowrap rounded-xl bg-white/10 px-4 py-2.5 font-bold text-slate-400"
                       >
-                        {syncingAnilist ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
-                        {syncingAnilist ? "Syncing..." : "Sync List"}
+                        <UploadCloud className="h-4 w-4" /> Sync List
                       </button>
                     </div>
                   </div>
@@ -736,7 +762,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                         <div key={invite.id} className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between">
                           <div>
                             <p className="font-mono font-bold text-emerald-400 tracking-wider text-lg">{invite.code}</p>
-                            <p className="text-xs text-slate-500 mt-1">{invite.isUsed ? `Used by ${invite.usedBy || 'Unknown'}` : 'Unused'}</p>
+                            <p className="text-xs text-slate-500 mt-1">{invite.isUsed ? `Used by ${invite.usedByUser?.username || 'Unknown'}` : 'Unused'}</p>
                           </div>
                           <button 
                             onClick={() => {

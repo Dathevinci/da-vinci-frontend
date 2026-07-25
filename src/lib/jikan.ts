@@ -464,8 +464,21 @@ export async function getCalendarData() {
   }
 }
 
+/**
+ * NOTE: MyAnimeList discontinued the public user-animelist feed on 2022-05-01,
+ * and Jikan marks this path deprecated — it now answers 504 for every user.
+ * Without the res.ok check below a failure decoded to `undefined` and surfaced
+ * to the user as "list is empty", which blamed them for a dead upstream.
+ * Importing for real needs MAL's official OAuth2 API v2 via a backend route
+ * (the client id must not ship to the browser).
+ */
 export async function fetchUserMAL(username: string) {
   const res = await fetch(`https://api.jikan.moe/v4/users/${username}/animelist`);
+  if (!res.ok) {
+    throw new Error(
+      "MyAnimeList import is unavailable — MAL discontinued the public list feed, so it can't be read anymore."
+    );
+  }
   const data = await res.json();
   return data.data;
 }
