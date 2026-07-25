@@ -74,7 +74,7 @@ export default function ExploreFilters() {
     <div className="w-full lg:w-72 flex-shrink-0 flex flex-col gap-6">
       {/* Mobile Toggle */}
       <button 
-        className="lg:hidden w-full flex items-center justify-center gap-2 bg-indigo- hover:bg-purple-500 text-white py-3 rounded-xl font-bold transition"
+        className="lg:hidden w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-500 text-white py-3 rounded-xl font-bold transition"
         onClick={() => setIsMobileFiltersOpen(true)}
       >
         <Filter className="w-5 h-5" /> Filters & Search
@@ -139,7 +139,7 @@ export default function ExploreFilters() {
                   onClick={() => toggleGenre(genre)}
                   className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
                     isSelected 
-                      ? 'bg-indigo- text-white' 
+                      ? 'bg-purple-600 text-white' 
                       : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-300'
                   }`}
                 >

@@ -724,7 +724,7 @@ export default function WatchOverlay({
                         )}
                       </div>
                     ) : (
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 font-black text-sm transition ${isActive ? "bg-indigo- text-white" : "bg-white/10 text-slate-400 group-hover:bg-white/20"}`}>
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 font-black text-sm transition ${isActive ? "bg-purple-600 text-white" : "bg-white/10 text-slate-400 group-hover:bg-white/20"}`}>
                         {epNo}
                       </div>
                     )}

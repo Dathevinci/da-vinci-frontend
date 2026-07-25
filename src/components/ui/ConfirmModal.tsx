@@ -57,7 +57,7 @@ export default function ConfirmModal({ isOpen, title, message, onConfirm, onCanc
               </button>
               <button 
                 onClick={() => { onConfirm(); onCancel(); }}
-                className="flex-1 bg-red- hover:bg-red-500 text-white py-2.5 rounded-xl font-bold shadow-lg shadow-red-600/20 transition"
+                className="flex-1 bg-red-600 hover:bg-red-500 text-white py-2.5 rounded-xl font-bold shadow-lg shadow-red-600/20 transition"
               >
                 {confirmText}
               </button>

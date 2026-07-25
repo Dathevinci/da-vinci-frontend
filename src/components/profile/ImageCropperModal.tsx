@@ -84,7 +84,7 @@ export default function ImageCropperModal({ imageSrc, isBanner, isGif, onClose, 
             </button>
             <button 
               onClick={handleSave}
-              className="px-6 py-2.5 bg-indigo- hover:bg-purple-500 text-white rounded-lg font-bold shadow-lg flex items-center gap-2 transition"
+              className="px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-bold shadow-lg flex items-center gap-2 transition"
             >
               <Check className="w-5 h-5" /> Apply Crop
             </button>

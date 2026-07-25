@@ -185,7 +185,7 @@ export default function CreateUpdateModal({ onClose, onCreated }: CreateUpdateMo
             <button 
               type="submit" 
               disabled={submitting || !title || !content}
-              className="bg-indigo- hover:bg-purple-500 text-white px-6 py-2 rounded-lg font-bold transition flex items-center gap-2 disabled:opacity-50"
+              className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-2 rounded-lg font-bold transition flex items-center gap-2 disabled:opacity-50"
             >
               {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
               Post Update

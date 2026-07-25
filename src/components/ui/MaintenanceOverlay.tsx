@@ -42,7 +42,7 @@ export default function MaintenanceOverlay() {
   // The God Exception
   if (isLoaded && isLeadDev(user)) {
     return (
-      <div className="fixed bottom-4 left-4 z-[9999] bg-red- text-white px-4 py-2 rounded-full font-bold shadow-[0_0_20px_rgba(220,38,38,0.8)] animate-pulse text-sm pointer-events-none border border-red-400">
+      <div className="fixed bottom-4 left-4 z-[9999] bg-red-600 text-white px-4 py-2 rounded-full font-bold shadow-[0_0_20px_rgba(220,38,38,0.8)] animate-pulse text-sm pointer-events-none border border-red-400">
         ⚠️ SERVER OFFLINE FOR USERS
       </div>
     );

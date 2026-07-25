@@ -137,7 +137,7 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
         <div className="absolute top-2 left-2 right-2 flex justify-between items-start gap-1 z-10">
           <AnimeStatusBadge status={anime.status || "Unknown"} />
           {anime.score && (
-            <span className="bg-indigo-/90 text-white px-1.5 py-0.5 rounded text-[10px] font-bold shadow-md">
+            <span className="bg-purple-600/90 text-white px-1.5 py-0.5 rounded text-[10px] font-bold shadow-md">
               ★ {anime.score}
             </span>
           )}

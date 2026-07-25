@@ -204,12 +204,15 @@ const CommentThread = ({
         <div className="absolute -inset-[2px] bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-400 rounded-xl blur-[6px] opacity-50 pointer-events-none" />
       )}
 
-      <div className={`rounded-2xl flex flex-col overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.12)] relative z-10 p-4 sm:p-5 transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.2)] ${
-        isDejavuh 
-          ? 'bg-[#121214]/90 backdrop-blur-md border border-purple-500/50 ring-1 ring-purple-500/20' 
-          : node.isPinned 
-            ? 'bg-gradient-to-br from-amber-500/10 to-[#0a0a0c]/90 backdrop-blur-md border border-amber-500/30 ring-1 ring-amber-500/20' 
-            : 'bg-[#121214]/80 backdrop-blur-md border border-white/5 hover:border-white/10 ring-1 ring-white/5'
+      {/* Solid surfaces — a backdrop-blur on every card down a long feed is a
+          real scroll-jank source, and the blur was invisible over the flat
+          page background anyway. */}
+      <div className={`relative z-10 flex flex-col overflow-hidden rounded-2xl p-4 transition-colors duration-200 sm:p-5 ${
+        isDejavuh
+          ? 'border border-purple-500/50 bg-[#141018]'
+          : node.isPinned
+            ? 'border border-amber-500/30 bg-gradient-to-br from-amber-500/[0.07] to-[#121214]'
+            : 'border border-white/[0.07] bg-[#121214] hover:border-white/[0.14]'
       }`}>
         
         {/* Pinned Badge */}
@@ -396,7 +399,7 @@ const CommentThread = ({
                   setIsEditing(false);
                 }}
                 disabled={!editContent.trim()}
-                className="px-3 py-1.5 rounded-md text-xs font-bold bg-indigo- text-white hover:bg-purple-500 disabled:opacity-50"
+                className="px-3 py-1.5 rounded-md text-xs font-bold bg-purple-600 text-white hover:bg-purple-500 disabled:opacity-50"
               >
                 Save
               </button>
@@ -435,9 +438,10 @@ const CommentThread = ({
           </div>
         )}
 
-        {/* Action Bar (Instagram Style) */}
-        <div className="flex items-center gap-4 mt-auto pt-2 border-t border-white/5">
-          <button 
+        {/* Action bar — larger hit areas + colour that only appears on hover,
+            so the row reads calm until you reach for it. */}
+        <div className="mt-auto flex items-center gap-1 border-t border-white/5 pt-2">
+          <button
             onClick={(e) => {
               const newVote = node.userVote === 1 ? 0 : 1;
               if (newVote === 1) {
@@ -447,16 +451,19 @@ const CommentThread = ({
               }
               handleVote(node.id, newVote);
             }}
-            className="group flex items-center gap-1.5 transition relative"
+            title={node.userVote === 1 ? "Remove like" : "Like this post"}
+            className={`group relative flex items-center gap-2 rounded-lg px-2.5 py-1.5 transition-colors hover:bg-red-500/10 ${
+              node.userVote === 1 ? "text-red-500" : "text-slate-400 hover:text-red-400"
+            }`}
           >
-            <motion.div whileTap={{ scale: 0.8 }}>
-              <Heart className={`w-5 h-5 transition ${node.userVote === 1 ? 'text-red-500 fill-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'text-slate-400 group-hover:text-slate-300'}`} />
-            </motion.div>
-            <span className="text-xs sm:text-sm font-bold text-slate-400">{node.score}</span>
+            <motion.span whileTap={{ scale: 0.82 }} className="flex">
+              <Heart className={`h-[18px] w-[18px] transition-colors ${node.userVote === 1 ? "fill-red-500" : ""}`} />
+            </motion.span>
+            <span className="text-sm font-bold tabular-nums">{node.score}</span>
             <HeartExplosion show={showHeartExplosion} coordinates={clickCoords} />
           </button>
-          
-          <button 
+
+          <button
             onClick={() => {
               if (depth === 0) {
                 setShowDrawer(true);
@@ -464,24 +471,25 @@ const CommentThread = ({
                 setReplyingToId(replyingToId === node.id ? null : node.id);
               }
             }}
-            className="group flex items-center gap-1.5 transition"
+            title={depth === 0 ? "View replies" : "Reply"}
+            className="group flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-slate-400 transition-colors hover:bg-purple-500/10 hover:text-purple-300"
           >
-            <motion.div whileTap={{ scale: 0.8 }}>
-              <MessageSquare className="w-5 h-5 text-slate-400 group-hover:text-slate-300" />
-            </motion.div>
-            <span className="text-xs sm:text-sm font-bold text-slate-400">{node.children?.length || 0}</span>
+            <motion.span whileTap={{ scale: 0.82 }} className="flex">
+              <MessageSquare className="h-[18px] w-[18px]" />
+            </motion.span>
+            <span className="text-sm font-bold tabular-nums">{node.children?.length || 0}</span>
           </button>
 
           {!isAuthor && (
             <button
               onClick={() => handleTip(node.id)}
-              className="group ml-auto flex items-center gap-1.5 transition"
-              title="Tip 10 Arise Points to this comment"
+              className="group ml-auto flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-slate-400 transition-colors hover:bg-amber-400/10 hover:text-amber-400"
+              title="Tip 10 Arise Points to this post"
             >
-              <motion.div whileTap={{ scale: 0.85 }}>
-                <Sparkles className="w-5 h-5 text-slate-400 transition group-hover:text-amber-400" />
-              </motion.div>
-              <span className="text-xs font-bold text-slate-400 transition group-hover:text-amber-400 sm:text-sm">Tip</span>
+              <motion.span whileTap={{ scale: 0.85 }} className="flex">
+                <Sparkles className="h-[18px] w-[18px]" />
+              </motion.span>
+              <span className="text-sm font-bold">Tip</span>
             </button>
           )}
         </div>
@@ -525,7 +533,7 @@ const CommentThread = ({
                     <button
                       onClick={() => handlePost(node.id, replyContent, replyMediaUrl)}
                       disabled={isReplying || !replyContent.trim()}
-                      className="bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 shadow-[0_0_15px_rgba(79,70,229,0.3)] hover:shadow-[0_0_20px_rgba(79,70,229,0.5)] disabled:opacity-50 disabled:shadow-none text-white px-5 py-1.5 rounded-full text-xs sm:text-sm font-bold transition-all hover:scale-[1.02]"
+                      className="bg-purple-600 hover:bg-purple-500 shadow-[0_0_15px_rgba(79,70,229,0.3)] hover:shadow-[0_0_20px_rgba(79,70,229,0.5)] disabled:opacity-50 disabled:shadow-none text-white px-5 py-1.5 rounded-full text-xs sm:text-sm font-bold transition-all hover:scale-[1.02]"
                     >
                       {isReplying ? 'Replying...' : 'Reply'}
                     </button>
@@ -599,7 +607,7 @@ const CommentThread = ({
                         }
                       }}
                       disabled={isReplying || !replyContent.trim()}
-                      className="bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 shadow-[0_0_15px_rgba(79,70,229,0.3)] hover:shadow-[0_0_20px_rgba(79,70,229,0.5)] disabled:opacity-50 text-white px-5 py-1.5 rounded-full text-xs font-bold transition-all"
+                      className="bg-purple-600 hover:bg-purple-500 shadow-[0_0_15px_rgba(79,70,229,0.3)] hover:shadow-[0_0_20px_rgba(79,70,229,0.5)] disabled:opacity-50 text-white px-5 py-1.5 rounded-full text-xs font-bold transition-all"
                     >
                       {isReplying ? 'Replying...' : 'Reply'}
                     </button>
@@ -685,6 +693,11 @@ export default function CommunityFeed({
   const [mediaOnly, setMediaOnly] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+
+  // Composer: collapsed to a single prompt row until focused, so the feed isn't
+  // pushed below the fold by an empty box; the media field is opt-in.
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [showMediaInput, setShowMediaInput] = useState(false);
 
   const [replyingToId, setReplyingToId] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState("");
@@ -974,98 +987,224 @@ export default function CommunityFeed({
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="fixed top-20 right-4 bg-red-/90 backdrop-blur-md border border-red-400 text-white px-4 py-2 rounded-lg font-bold shadow-2xl z-50 flex items-center gap-2"
+            className="fixed top-20 right-4 bg-red-600/90 backdrop-blur-md border border-red-400 text-white px-4 py-2 rounded-lg font-bold shadow-2xl z-50 flex items-center gap-2"
           >
             <span>⚠️</span> {error}
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="flex items-center gap-3 mb-6 sm:mb-8 pl-2 sm:pl-0">
-        <div className="p-2 bg-purple-500/10 rounded-xl ring-1 ring-purple-500/20 shadow-[0_0_15px_rgba(79,70,229,0.2)]">
-          <MessageSquare className="w-6 h-6 sm:w-8 sm:h-8 text-purple-400" />
+      <div className="mb-5 flex items-end justify-between gap-4 px-2 sm:px-0">
+        <div>
+          <h2 className="flex items-center gap-2.5 text-2xl font-black tracking-tight text-white sm:text-3xl">
+            <MessageSquare className="h-6 w-6 text-purple-400 sm:h-7 sm:w-7" />
+            Community
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            {comments.length > 0 ? `${comments.length} view${comments.length === 1 ? "" : "s"} shared` : "Share what you're watching and reading"}
+          </p>
         </div>
-        <h2 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-br from-white to-slate-400">Community Views</h2>
       </div>
 
-      {/* Controls Bar */}
-      <div className="flex flex-col md:flex-row gap-3 mb-6 bg-[#0a0a0c]/80 backdrop-blur-xl p-3 rounded-2xl border border-white/10 ring-1 ring-white/5 shadow-2xl mx-2 sm:mx-0">
-        <div className="flex-1 flex items-center bg-black/40 rounded-xl px-4 py-2.5 border border-white/5 focus-within:border-purple-500/50 focus-within:bg-purple-500/5 transition-all">
-          <Search className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
-          <input 
-            type="text" 
-            placeholder="Search comments..." 
+      {/* Controls: search + sort pills + media filter */}
+      <div className="mx-2 mb-5 flex flex-col gap-3 sm:mx-0 sm:flex-row sm:items-center">
+        <div className="group flex flex-1 items-center rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5 transition-colors focus-within:border-purple-500/50 focus-within:bg-purple-500/[0.06]">
+          <Search className="mr-2.5 h-4 w-4 shrink-0 text-slate-500 transition-colors group-focus-within:text-purple-400" />
+          <input
+            type="text"
+            placeholder="Search the feed…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && (setPage(1), fetchComments(1, false))}
-            className="bg-transparent text-sm text-white w-full outline-none"
+            onKeyDown={(e) => e.key === "Enter" && (setPage(1), fetchComments(1, false))}
+            className="w-full bg-transparent text-sm text-white placeholder-slate-500 outline-none"
           />
+          {searchQuery && (
+            <button
+              onClick={() => { setSearchQuery(""); setPage(1); fetchComments(1, false); }}
+              aria-label="Clear search"
+              className="ml-2 shrink-0 rounded-full p-1 text-slate-500 transition hover:bg-white/10 hover:text-white"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
-        
-        <div className="flex items-center gap-3">
-          <select 
-            value={sortBy} 
-            onChange={(e) => setSortBy(e.target.value as any)}
-            className="bg-black/40 border border-white/5 text-white text-sm rounded-xl px-4 py-2.5 outline-none focus:border-purple-500/50 focus:bg-purple-500/5 cursor-pointer appearance-none transition-all hover:bg-black/60"
-          >
-            <option value="newest" className="bg-[#121214]">Newest</option>
-            <option value="top" className="bg-[#121214]">Top Votes</option>
-            <option value="oldest" className="bg-[#121214]">Oldest</option>
-          </select>
-          
-          <button 
+
+        <div className="flex items-center gap-2">
+          {/* segmented sort — replaces a native <select> that rendered with the
+              OS dropdown styling and broke the dark theme */}
+          <div className="flex items-center gap-0.5 rounded-xl border border-white/10 bg-white/[0.04] p-1">
+            {([
+              { key: "newest", label: "New" },
+              { key: "top", label: "Top" },
+              { key: "oldest", label: "Old" },
+            ] as const).map((opt) => (
+              <button
+                key={opt.key}
+                onClick={() => setSortBy(opt.key)}
+                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${
+                  sortBy === opt.key ? "bg-purple-600 text-white shadow-sm" : "text-slate-400 hover:bg-white/5 hover:text-white"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          <button
             onClick={() => setMediaOnly(!mediaOnly)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-bold transition-all ${
-              mediaOnly 
-                ? 'bg-purple-500/20 border-purple-500/50 text-purple-300 shadow-[0_0_15px_rgba(79,70,229,0.15)]' 
-                : 'bg-black/40 border-white/5 text-slate-400 hover:text-white hover:bg-black/60 hover:border-white/10'
+            title="Only show posts with images"
+            className={`flex h-[42px] items-center gap-2 rounded-xl border px-3.5 text-xs font-bold transition-colors ${
+              mediaOnly
+                ? "border-purple-500/50 bg-purple-500/15 text-purple-300"
+                : "border-white/10 bg-white/[0.04] text-slate-400 hover:text-white"
             }`}
           >
-            <ImageIcon className="w-4 h-4" />
-            <span className="hidden sm:inline">Media Only</span>
+            <ImageIcon className="h-4 w-4" />
+            <span className="hidden sm:inline">Media</span>
           </button>
         </div>
       </div>
 
       {user ? (
-        <div className="bg-gradient-to-br from-[#18181b]/95 to-[#0f0f11]/95 backdrop-blur-xl border border-white/10 ring-1 ring-white/5 rounded-3xl p-5 sm:p-6 mb-8 shadow-[0_15px_40px_rgba(0,0,0,0.5)] relative overflow-hidden mx-2 sm:mx-0">
-          <MentionsTextarea
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            placeholder="Share your views or review..."
-            className="w-full bg-transparent text-white placeholder-slate-500 text-sm sm:text-base resize-none outline-none min-h-[80px] sm:min-h-[100px]"
-          />
-          <div className="mt-3 mb-3 flex items-center gap-3 px-4 py-2.5 bg-black/50 rounded-2xl border border-white/5 focus-within:border-purple-500/50 focus-within:bg-purple-500/5 transition-all ring-1 ring-black/20">
-            <ImageIcon className="w-5 h-5 text-slate-400 shrink-0" />
-            <input 
-              type="url"
-              placeholder="Attach Image/GIF URL (optional)"
-              value={newMediaUrl}
-              onChange={(e) => setNewMediaUrl(e.target.value)}
-              className="bg-transparent text-sm sm:text-base text-white placeholder-slate-500 w-full outline-none"
-            />
-          </div>
-          <div className="flex justify-end mt-4 pt-4 border-t border-white/5">
-            <button
-              onClick={() => handlePost(null, newComment, newMediaUrl)}
-              disabled={isPosting || !newComment.trim()}
-              className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_25px_rgba(79,70,229,0.5)] disabled:opacity-50 disabled:shadow-none text-white px-6 sm:px-8 py-2.5 rounded-full text-sm sm:text-base font-bold transition-all duration-300 hover:scale-[1.02]"
-            >
-              <Send className="w-4 h-4" />
-              <span className="hidden sm:inline">Post View</span>
-              <span className="inline sm:hidden">Post</span>
-            </button>
+        <div className="mx-2 mb-6 rounded-2xl border border-white/10 bg-[#121214] transition-colors focus-within:border-purple-500/40 sm:mx-0">
+          <div className="flex gap-3 p-4">
+            <div className="relative h-10 w-10 shrink-0">
+              <img
+                src={user.avatar || "https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=100&q=80"}
+                alt=""
+                className="relative z-10 h-10 w-10 rounded-full object-cover"
+              />
+              <AvatarDecoration frame={(user as any)?.activeFrame} effect={(user as any)?.activeEffect} />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              {/* Collapsed until focused — an always-open empty box pushed the
+                  actual feed below the fold. */}
+              {!composerOpen && !newComment ? (
+                <button
+                  onClick={() => setComposerOpen(true)}
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-left text-sm text-slate-500 transition hover:border-white/20 hover:bg-white/[0.06] hover:text-slate-400"
+                >
+                  Share your views, @mention someone…
+                </button>
+              ) : (
+                <>
+                  <MentionsTextarea
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    onKeyDown={(e: any) => {
+                      // ⌘/Ctrl+Enter posts, Escape collapses an empty composer
+                      if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && newComment.trim() && !isPosting) {
+                        handlePost(null, newComment, newMediaUrl);
+                      } else if (e.key === "Escape" && !newComment.trim()) {
+                        setComposerOpen(false);
+                        setShowMediaInput(false);
+                      }
+                    }}
+                    autoFocus
+                    placeholder="Share your views, @mention someone…"
+                    className="min-h-[76px] w-full resize-none bg-transparent text-sm text-white placeholder-slate-500 outline-none sm:text-base"
+                  />
+
+                  {showMediaInput && (
+                    <div className="mt-2 flex items-center gap-2.5 rounded-xl border border-white/10 bg-black/40 px-3 py-2 transition-colors focus-within:border-purple-500/50">
+                      <ImageIcon className="h-4 w-4 shrink-0 text-slate-500" />
+                      <input
+                        type="url"
+                        autoFocus
+                        placeholder="Paste an image or GIF link…"
+                        value={newMediaUrl}
+                        onChange={(e) => setNewMediaUrl(e.target.value)}
+                        className="w-full bg-transparent text-sm text-white placeholder-slate-500 outline-none"
+                      />
+                      <button
+                        onClick={() => { setNewMediaUrl(""); setShowMediaInput(false); }}
+                        aria-label="Remove attachment"
+                        className="shrink-0 rounded-full p-1 text-slate-500 transition hover:bg-white/10 hover:text-white"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* live preview so a bad link is obvious before posting */}
+                  {newMediaUrl.trim() && (
+                    <div className="mt-2 overflow-hidden rounded-xl border border-white/10 bg-black/40">
+                      <img
+                        src={newMediaUrl}
+                        alt="Attachment preview"
+                        className="max-h-52 w-auto object-contain"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                      />
+                    </div>
+                  )}
+
+                  <div className="mt-3 flex items-center justify-between gap-3 border-t border-white/5 pt-3">
+                    <button
+                      onClick={() => setShowMediaInput((v) => !v)}
+                      title="Attach an image or GIF"
+                      className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-bold transition-colors ${
+                        showMediaInput || newMediaUrl ? "bg-purple-500/15 text-purple-300" : "text-slate-400 hover:bg-white/5 hover:text-white"
+                      }`}
+                    >
+                      <ImageIcon className="h-4 w-4" /> Media
+                    </button>
+
+                    <div className="flex items-center gap-3">
+                      {newComment.length > 0 && (
+                        <span className={`text-xs tabular-nums ${newComment.length > 1000 ? "text-red-400" : "text-slate-500"}`}>
+                          {newComment.length}
+                        </span>
+                      )}
+                      <button
+                        onClick={() => handlePost(null, newComment, newMediaUrl)}
+                        disabled={isPosting || !newComment.trim()}
+                        className="flex items-center gap-2 rounded-full bg-purple-600 px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        {isPosting ? (
+                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                        ) : (
+                          <Send className="h-4 w-4" />
+                        )}
+                        {isPosting ? "Posting…" : "Post"}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       ) : (
-        <div className="bg-purple-600/10 border border-purple-500/20 rounded-xl p-4 sm:p-6 mb-8 text-center mx-2 sm:mx-0">
-          <p className="text-purple-200 text-sm sm:text-base font-medium">Log in to share your views with the community!</p>
+        <div className="mx-2 mb-6 rounded-2xl border border-purple-500/20 bg-purple-600/10 p-5 text-center sm:mx-0">
+          <p className="text-sm font-medium text-purple-200">Log in to share your views with the community.</p>
         </div>
       )}
 
       {loading ? (
-        <div className="flex justify-center py-12">
-          <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin" />
+        // Skeletons that mirror the real card shape — a bare spinner made the
+        // feed feel empty and shifted layout hard when the posts landed.
+        <div className="space-y-4 px-2 sm:px-0">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="animate-pulse rounded-2xl border border-white/5 bg-[#121214] p-4 sm:p-5">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-white/10" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 w-32 rounded bg-white/10" />
+                  <div className="h-2.5 w-16 rounded bg-white/[0.07]" />
+                </div>
+              </div>
+              <div className="mt-4 space-y-2">
+                <div className="h-3 w-full rounded bg-white/[0.07]" />
+                <div className="h-3 w-[85%] rounded bg-white/[0.07]" />
+                <div className="h-3 w-[60%] rounded bg-white/[0.07]" />
+              </div>
+              <div className="mt-4 flex gap-4 border-t border-white/5 pt-3">
+                <div className="h-4 w-12 rounded bg-white/[0.07]" />
+                <div className="h-4 w-12 rounded bg-white/[0.07]" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         <div className="space-y-2 px-2 sm:px-0">
@@ -1093,22 +1232,40 @@ export default function CommunityFeed({
             ))}
             
             {commentTree.length === 0 && (
-              <div className="text-center py-10 sm:py-20 text-slate-500 text-sm sm:text-base font-medium">
-                No views have been posted yet. Be the first to start the discussion!
+              <div className="flex flex-col items-center rounded-2xl border border-dashed border-white/10 px-6 py-16 text-center">
+                <div className="mb-4 rounded-2xl border border-purple-500/20 bg-purple-500/10 p-3.5">
+                  <MessageSquare className="h-7 w-7 text-purple-400" />
+                </div>
+                <h3 className="mb-1.5 text-lg font-black text-white">
+                  {searchQuery || mediaOnly ? "Nothing matches that" : "No views yet"}
+                </h3>
+                <p className="max-w-xs text-sm text-slate-500">
+                  {searchQuery || mediaOnly
+                    ? "Try a different search, or clear the filters to see the whole feed."
+                    : "Be the first to share what you're watching or reading."}
+                </p>
+                {(searchQuery || mediaOnly) && (
+                  <button
+                    onClick={() => { setSearchQuery(""); setMediaOnly(false); setPage(1); fetchComments(1, false); }}
+                    className="mt-5 rounded-full bg-white/5 px-5 py-2 text-sm font-bold text-white transition hover:bg-white/10"
+                  >
+                    Clear filters
+                  </button>
+                )}
               </div>
             )}
 
             {hasMore && commentTree.length > 0 && (
-              <div className="flex justify-center mt-8 pb-8">
-                <button 
+              <div className="mt-6 flex justify-center pb-8">
+                <button
                   onClick={() => {
                     const nextPage = page + 1;
                     setPage(nextPage);
                     fetchComments(nextPage, true);
                   }}
-                  className="px-6 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-sm transition flex items-center gap-2"
+                  className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-6 py-2.5 text-sm font-bold text-white transition hover:border-purple-500/40 hover:bg-white/10"
                 >
-                  <ChevronDown className="w-4 h-4" /> Load More
+                  <ChevronDown className="h-4 w-4" /> Load more
                 </button>
               </div>
             )}

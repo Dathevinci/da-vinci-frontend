@@ -76,14 +76,14 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
         <div className="flex bg-white/5 rounded-lg p-1 mb-6">
           <button 
             type="button"
-            className={`flex-1 py-2 rounded-md text-sm font-bold transition ${mode === 'login' ? 'bg-indigo- text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+            className={`flex-1 py-2 rounded-md text-sm font-bold transition ${mode === 'login' ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
             onClick={() => setMode('login')}
           >
             Log In
           </button>
           <button 
             type="button"
-            className={`flex-1 py-2 rounded-md text-sm font-bold transition ${mode === 'signup' ? 'bg-indigo- text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+            className={`flex-1 py-2 rounded-md text-sm font-bold transition ${mode === 'signup' ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
             onClick={() => setMode('signup')}
           >
             Sign Up
@@ -191,7 +191,7 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full bg-indigo- hover:bg-purple-500 text-white font-bold py-3 rounded-lg transition disabled:opacity-50 mt-4 shadow-lg shadow-purple-500/20"
+            className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-lg transition disabled:opacity-50 mt-4 shadow-lg shadow-purple-500/20"
           >
             {loading ? "Connecting..." : mode === 'login' ? "Log In" : "Create Account"}
           </button>

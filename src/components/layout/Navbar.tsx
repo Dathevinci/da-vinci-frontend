@@ -305,7 +305,7 @@ export default function Navbar() {
             <div className="mt-auto p-6 border-t border-white/10">
               <button 
                 onClick={() => { setIsMobileMenuOpen(false); setShowLogin(true); }}
-                className="w-full bg-indigo- hover:bg-purple-500 text-white font-bold py-4 rounded-xl text-lg transition"
+                className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-4 rounded-xl text-lg transition"
               >
                 Sign In
               </button>

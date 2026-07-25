@@ -72,7 +72,7 @@ function UserCard({ user, currentUser, handleFollowToggle }: { user: User, curre
           {currentUser && (
             <button 
               onClick={(e) => handleFollowToggle(user, e)}
-              className={`w-full mt-auto pt-4 py-2 rounded-lg font-bold transition flex items-center justify-center gap-2 ${isFollowing ? "bg-white/5 hover:bg-red-500/20 text-slate-300 hover:text-red-400" : "bg-indigo-/20 hover:bg-purple-600 text-purple-300 hover:text-white"}`}
+              className={`w-full mt-auto pt-4 py-2 rounded-lg font-bold transition flex items-center justify-center gap-2 ${isFollowing ? "bg-white/5 hover:bg-red-500/20 text-slate-300 hover:text-red-400" : "bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white"}`}
             >
               {isFollowing ? <><UserMinus className="w-4 h-4" /> Unfollow</> : <><UserPlus className="w-4 h-4" /> Follow</>}
             </button>
@@ -167,13 +167,13 @@ export default function CommunityPage() {
           <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-1.5 rounded-full flex gap-2 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
             <button 
               onClick={() => setActiveTab('feed')} 
-              className={`px-6 md:px-8 py-2.5 rounded-full font-bold text-sm md:text-base transition-all ${activeTab === 'feed' ? 'bg-indigo- text-white shadow-md scale-105' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+              className={`px-6 md:px-8 py-2.5 rounded-full font-bold text-sm md:text-base transition-all ${activeTab === 'feed' ? 'bg-purple-600 text-white shadow-md scale-105' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
             >
               Community Views
             </button>
             <button 
               onClick={() => setActiveTab('directory')} 
-              className={`px-6 md:px-8 py-2.5 rounded-full font-bold text-sm md:text-base transition-all ${activeTab === 'directory' ? 'bg-indigo- text-white shadow-md scale-105' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+              className={`px-6 md:px-8 py-2.5 rounded-full font-bold text-sm md:text-base transition-all ${activeTab === 'directory' ? 'bg-purple-600 text-white shadow-md scale-105' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
             >
               User Directory
             </button>
