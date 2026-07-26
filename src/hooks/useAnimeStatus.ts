@@ -11,6 +11,12 @@ export interface TrackedAnime {
   status: AnimeUserStatus;
   anime: Anime;
   updatedAt: number;
+  // Server-side resume point. Continue Watching used to read this only from
+  // localStorage, so it showed a bare "CONTINUE" on any device that hadn't
+  // played the episode locally.
+  progressEpisode?: number | null;
+  progressSeconds?: number | null;
+  progressDuration?: number | null;
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -105,6 +111,9 @@ export function useAnimeStatus() {
                 backendId: item.id,
                 status: (item.status.charAt(0).toUpperCase() + item.status.slice(1).toLowerCase()) as AnimeUserStatus,
                 updatedAt: new Date(item.updatedAt).getTime(),
+                progressEpisode: item.progressEpisode ?? null,
+                progressSeconds: item.progressSeconds ?? null,
+                progressDuration: item.progressDuration ?? null,
                 anime: {
                   mal_id: item.anilistId,
                   title: item.title,

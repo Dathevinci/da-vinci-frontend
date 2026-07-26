@@ -68,7 +68,16 @@ export default function ContinueWatchingCarousel() {
           className="flex gap-4 overflow-x-auto hide-scrollbar scroll-smooth px-2 pt-4 pb-8 -mt-4 -mb-4 snap-x snap-mandatory"
         >
           {watchingList.map(item => (
-            <ContinueWatchingCard key={item.anime.mal_id} anime={item.anime} />
+            <ContinueWatchingCard
+              key={item.anime.mal_id}
+              anime={item.anime}
+              // Server-side resume point, used when this browser has no local
+              // record. Without this the card only knew about episodes played on
+              // this device.
+              serverEpisode={item.progressEpisode ?? null}
+              serverSeconds={item.progressSeconds ?? null}
+              serverDuration={item.progressDuration ?? null}
+            />
           ))}
         </div>
 

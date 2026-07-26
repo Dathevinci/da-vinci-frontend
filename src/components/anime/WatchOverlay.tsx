@@ -8,6 +8,7 @@ import Hls from "hls.js";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUser } from "@/hooks/useUser";
 import { useAnimeStatus } from "@/hooks/useAnimeStatus";
+import { authHeaders } from "@/lib/authToken";
 
 function formatTime(seconds: number): string {
   if (!isFinite(seconds) || seconds < 0) return "0:00";
@@ -38,7 +39,7 @@ export default function WatchOverlay({
   allEpisodes,
   onClose,
 }: WatchOverlayProps) {
-  const { addXpForWatching } = useUser();
+  const { addXpForWatching, user } = useUser();
   const { isTracked, setStatus } = useAnimeStatus();
   // Current state
   const [activeEpisode, setActiveEpisode] = useState<AnikotoEpisode | null>(null);
@@ -127,7 +128,20 @@ export default function WatchOverlay({
       // full page load.
       window.dispatchEvent(new CustomEvent("davinci:progress", { detail: { malId: anime.mal_id } }));
     } catch (e) {}
-  }, [activeEpisode, activeEpisodeNo, anime.mal_id]);
+
+    // Mirror the episode to the server so the resume point survives this browser.
+    // Fire-and-forget: a failed save must never interrupt playback.
+    if (user?.id) {
+      const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      fetch(`${API}/api/watchlist/progress`, {
+        method: "POST",
+        headers: authHeaders(),
+        // anilistId is the column name but it stores the MAL id — see
+        // useAnimeStatus.ts. Sending mal_id is correct, not a bug.
+        body: JSON.stringify({ userId: user.id, anilistId: anime.mal_id, episode: activeEpisodeNo }),
+      }).catch(() => {});
+    }
+  }, [activeEpisode, activeEpisodeNo, anime.mal_id, user?.id]);
 
   useEffect(() => {
     const now = Date.now();
@@ -151,9 +165,26 @@ export default function WatchOverlay({
         localStorage.setItem(`davinci_progress_${anime.mal_id}`, JSON.stringify(progressObj));
         lastStorageUpdateRef.current = now;
         window.dispatchEvent(new CustomEvent("davinci:progress", { detail: { malId: anime.mal_id } }));
+
+        // Mirror the position too, on the same 5s throttle, so the % bar survives
+        // this browser. Fire-and-forget — never block playback on a network call.
+        if (user?.id && currentTime > 0 && duration > 0) {
+          const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+          fetch(`${API}/api/watchlist/progress`, {
+            method: "POST",
+            headers: authHeaders(),
+            body: JSON.stringify({
+              userId: user.id,
+              anilistId: anime.mal_id,
+              episode: activeEpisodeNo,
+              seconds: Math.floor(currentTime),
+              duration: Math.floor(duration),
+            }),
+          }).catch(() => {});
+        }
       } catch (e) {}
     }
-  }, [hasStarted, currentTime, duration, activeEpisode, activeEpisodeNo, anime.mal_id]);
+  }, [hasStarted, currentTime, duration, activeEpisode, activeEpisodeNo, anime.mal_id, user?.id]);
 
   // Toggle play/pause on the underlying video element
   const togglePlay = useCallback(() => {

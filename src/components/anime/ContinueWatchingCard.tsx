@@ -11,9 +11,18 @@ import { usePreferences } from '@/hooks/usePreferences';
 
 interface ContinueWatchingCardProps {
   anime: Anime;
+  /** Resume point from the watchlist row — survives devices and cleared storage. */
+  serverEpisode?: number | null;
+  serverSeconds?: number | null;
+  serverDuration?: number | null;
 }
 
-export default function ContinueWatchingCard({ anime }: ContinueWatchingCardProps) {
+export default function ContinueWatchingCard({
+  anime,
+  serverEpisode = null,
+  serverSeconds = null,
+  serverDuration = null,
+}: ContinueWatchingCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [transformOrigin, setTransformOrigin] = useState("center center");
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -38,23 +47,35 @@ export default function ContinueWatchingCard({ anime }: ContinueWatchingCardProp
    */
   useEffect(() => {
     const read = () => {
+      // Start from the server's resume point so a device that has never played
+      // this anime locally still shows the right episode instead of "CONTINUE".
+      let ep: number | null =
+        typeof serverEpisode === "number" && serverEpisode > 0 ? serverEpisode : null;
+      let secs = typeof serverSeconds === "number" ? serverSeconds : 0;
+      let dur = typeof serverDuration === "number" ? serverDuration : 0;
+
       const data = localStorage.getItem(`davinci_progress_${anime.mal_id}`);
-      if (!data) return;
-      try {
-        const parsed = JSON.parse(data);
-        // Reset rather than leaving a stale bar: a fresh episode legitimately has
-        // no position yet, and keeping the old percentage misreports it.
-        setProgressPercent(
-          parsed.duration > 0 && parsed.currentTime > 0
-            ? Math.min(100, (parsed.currentTime / parsed.duration) * 100)
-            : 0
-        );
-        // Episode numbers are 1-based, so a plain truthy check is fine here —
-        // but read it explicitly so an episode 0 edge case can't blank the label.
-        setSavedEpisodeNo(
-          typeof parsed.episodeNo === "number" && parsed.episodeNo >= 0 ? parsed.episodeNo : null
-        );
-      } catch (e) {}
+      if (data) {
+        try {
+          const parsed = JSON.parse(data);
+          const localEp =
+            typeof parsed.episodeNo === "number" && parsed.episodeNo > 0 ? parsed.episodeNo : null;
+          // Local wins only when it's at least as far along. The server can be
+          // ahead if you watched on another device, and the throttled save means
+          // this browser's copy may be a few seconds stale — but it must never
+          // drag a further-along resume point backwards.
+          if (localEp !== null && (ep === null || localEp >= ep)) {
+            ep = localEp;
+            secs = typeof parsed.currentTime === "number" ? parsed.currentTime : 0;
+            dur = typeof parsed.duration === "number" ? parsed.duration : 0;
+          }
+        } catch (e) {}
+      }
+
+      setSavedEpisodeNo(ep);
+      // Reset rather than leaving a stale bar: a fresh episode legitimately has
+      // no position yet, and keeping the old percentage misreports it.
+      setProgressPercent(dur > 0 && secs > 0 ? Math.min(100, (secs / dur) * 100) : 0);
     };
 
     read();
@@ -73,7 +94,10 @@ export default function ContinueWatchingCard({ anime }: ContinueWatchingCardProp
       window.removeEventListener("davinci:progress", onProgress);
       window.removeEventListener("focus", onFocus);
     };
-  }, [anime.mal_id]);
+    // The server props must be deps: the watchlist is fetched async, so they
+    // arrive as null on first render and only then populate. Without them the
+    // card would keep whatever it computed before the data landed.
+  }, [anime.mal_id, serverEpisode, serverSeconds, serverDuration]);
 
   const closeHover = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
