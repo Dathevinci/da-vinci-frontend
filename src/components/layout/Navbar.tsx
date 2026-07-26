@@ -1,19 +1,28 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut, Users, Palette, ShoppingBag, Menu, X, Settings, Heart, ChevronDown, Tv, BookMarked, BookOpen } from 'lucide-react';
-import { isAdmin, isLeadDev } from "@/lib/admin";
+import { isAdmin, isLeadDev, displayArisePoints } from "@/lib/admin";
 import LoginModal from './LoginModal';
 import SearchModal from './SearchModal';
 import ArisePointPopup from '../ui/ArisePointPopup';
 import ControlCenter from './ControlCenter';
 import NotificationsMenu from './NotificationsMenu';
 import { useUser } from '@/hooks/useUser';
+import { usePreferences } from '@/hooks/usePreferences';
 import { useAppMode } from '@/components/providers/AppModeProvider';
 import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
-import UserLink from "@/components/profile/UserLink";
+import { StaticDecoration } from "@/components/profile/StaticDecoration";
+import { useEffectSlot } from "@/components/profile/useEffectSlot";
+import { EffectSwitcher } from "@/components/profile/EffectSwitcher";
+import { getEffectMeta, TIER_CHIP } from "@/lib/effectMeta";
+import { effectNameClass, effectCardBorderClass } from "@/lib/effectTheme";
+import { nameColorClass } from "@/lib/cosmetics";
+
+const FALLBACK_AVATAR = 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=100&q=80';
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -22,8 +31,12 @@ export default function Navbar() {
   const [modeMenuOpen, setModeMenuOpen] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showControlCenter, setShowControlCenter] = useState(false);
-  
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+  const profileTriggerRef = useRef<HTMLButtonElement>(null);
+
   const { user, isLoaded, logout } = useUser();
+  const { preferences, isLoaded: prefsLoaded } = usePreferences();
 
   const [prevPoints, setPrevPoints] = useState<number | null>(null);
   const [popupData, setPopupData] = useState<{ amount: number } | null>(null);
@@ -125,6 +138,73 @@ export default function Navbar() {
     { m: 'novel' as const, label: 'Novels', cls: 'text-pink-400', Icon: BookOpen },
   ];
 
+  // ── Profile menu ────────────────────────────────────────────────────────
+  // Derived ABOVE the /chapter/ early return — hooks must run unconditionally.
+  const slot = useEffectSlot();
+  const effectiveEffect = slot.effective;
+  const effectMeta = getEffectMeta(effectiveEffect);
+  // Render the static decoration until preferences load, never the reverse:
+  // one imperceptible tick for everyone, vs. a frame of animation flashing at
+  // exactly the users who turned it off.
+  const animate = prefsLoaded && !preferences.reducedMotion;
+  const nameClass =
+    nameColorClass((user as any)?.activeColor) ||
+    effectNameClass(effectiveEffect) ||
+    (isAdmin(user) ? 'text-purple-300' : 'text-slate-200');
+
+  // Close on outside pointerdown + on scroll. Gated on `open` so no listener
+  // exists while closed. Matches NotificationsMenu exactly — and because each
+  // menu's outside-handler fires on the other's trigger, the two are mutually
+  // exclusive without any coordinating state.
+  useEffect(() => {
+    if (!profileMenuOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
+        setProfileMenuOpen(false);
+      }
+    };
+    const onScroll = () => setProfileMenuOpen(false);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setProfileMenuOpen(false);
+        profileTriggerRef.current?.focus();
+      }
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKey);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKey);
+      window.removeEventListener('scroll', onScroll);
+    };
+  }, [profileMenuOpen]);
+
+  useEffect(() => { setProfileMenuOpen(false); }, [pathname]);
+
+  // Roving focus. The generic on querySelectorAll is required — a bare call
+  // yields Element, which has no .focus(), and ignoreBuildErrors would let that
+  // ship as a runtime TypeError.
+  const handleMenuKeyDown = (e: React.KeyboardEvent) => {
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return;
+    const items = Array.from(
+      profileMenuRef.current?.querySelectorAll<HTMLElement>('[data-menu-item]:not([disabled])') || []
+    );
+    if (!items.length) return;
+    e.preventDefault();
+    const i = items.indexOf(document.activeElement as HTMLElement);
+    // i === -1 means focus is on the trigger (or a non-item link). Treat that as
+    // "before the list": ArrowDown -> first, ArrowUp -> last. The naive modulo
+    // sent ArrowUp to the SECOND-to-last item.
+    const next =
+      e.key === 'Home' ? 0
+      : e.key === 'End' ? items.length - 1
+      : i === -1 ? (e.key === 'ArrowDown' ? 0 : items.length - 1)
+      : e.key === 'ArrowDown' ? (i + 1) % items.length
+      : (i - 1 + items.length) % items.length;
+    items[next]?.focus();
+  };
+
   // Immersive readers (manhwa/novel chapter pages) render their own top bar —
   // hide the global navbar so it doesn't overlap them.
   if (pathname && pathname.includes('/chapter/')) return null;
@@ -211,29 +291,145 @@ export default function Navbar() {
             
             {isLoaded && (
               user ? (
-                <div className="hidden lg:flex items-center gap-3 xl:gap-4 relative shrink-0">
-                  <UserLink username={user.username} className="flex items-center gap-2 text-sm font-bold bg-white/10 hover:bg-white/20 px-3 py-2 xl:px-4 xl:py-2 border border-white/10 rounded-full transition shadow-lg text-white whitespace-nowrap group">
-                    <span className="relative inline-flex shrink-0">
-                      <img src={user.avatar || 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=100&q=80'} className="relative z-10 w-6 h-6 rounded-full object-cover" />
-                      <AvatarDecoration frame={(user as any).activeFrame} />
-                    </span>
-                    <span className={`hidden xl:inline transition
-                      ${user.activeFont === 'font_cyber' ? 'font-mono tracking-widest' : ''} 
-                      ${user.activeFont === 'font_pixel' ? 'font-serif tracking-tight' : ''} 
-                      ${user.activeColor === 'color_gold' ? 'text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]' :
-                        user.activeColor === 'color_neon_pink' ? 'text-fuchsia-400 drop-shadow-[0_0_8px_rgba(232,121,249,0.8)]' :
-                        isAdmin(user) ? 'text-purple-300 group-hover:text-purple-400' : 
-                        'text-slate-200 group-hover:text-purple-400'}`}>
-                      {user.username}
-                    </span>
-                  </UserLink>
+                <div className="hidden lg:flex items-center gap-3 xl:gap-4 shrink-0">
+                  {/* The ref wraps ONLY trigger + panel so the outside-pointerdown
+                      handler treats the notification bell as "outside". */}
+                  {/* onKeyDown lives HERE, not on the panel: the trigger is the
+                      panel's sibling, so a handler on the panel never sees
+                      trigger keydowns — ArrowDown would fall through to the
+                      page, scroll it, and the scroll listener would close the
+                      menu the user had just opened. */}
+                  <div className="relative" ref={profileMenuRef} onKeyDown={handleMenuKeyDown}>
+                    <button
+                      type="button"
+                      ref={profileTriggerRef}
+                      onClick={() => { setShowControlCenter(false); setProfileMenuOpen(v => !v); }}
+                      aria-haspopup="menu"
+                      aria-expanded={profileMenuOpen}
+                      aria-controls="profile-menu"
+                      aria-label={`Account menu for ${user.username}`}
+                      className="group flex items-center gap-2 h-10 pl-1.5 pr-2 xl:pr-3 text-sm font-bold bg-white/10 hover:bg-white/[0.16] border border-white/10 rounded-full transition-colors duration-150 shadow-lg text-white whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400/60"
+                    >
+                      {/* gpu-layer keeps the always-running glow from repainting
+                          the blur-heavy header on every frame. */}
+                      <span className="relative inline-flex shrink-0 gpu-layer">
+                        <img src={user.avatar || FALLBACK_AVATAR} alt="" className="relative z-10 w-7 h-7 rounded-full object-cover" />
+                        {animate
+                          ? <AvatarDecoration frame={(user as any).activeFrame} effect={effectiveEffect} />
+                          : <StaticDecoration frame={(user as any).activeFrame} effect={effectiveEffect} />}
+                      </span>
+                      <span className={`hidden xl:inline max-w-[14ch] truncate
+                        ${user.activeFont === 'font_cyber' ? 'font-mono tracking-widest' : ''}
+                        ${user.activeFont === 'font_pixel' ? 'font-serif tracking-tight' : ''}
+                        ${nameClass}`}>
+                        {user.username}
+                      </span>
+                      <ChevronDown className={`w-3.5 h-3.5 shrink-0 text-slate-400 transition-transform duration-200 ${profileMenuOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {/* NOTE: no live <ProfileEffect> renders in this menu, at any
+                        size, deliberately. Two effects play audio on mount
+                        (MahoragaRitual, VerdantCanopy) — opening a menu is a user
+                        gesture, so autoplay succeeds and a summon chant fires
+                        every time you click your own avatar. And 15 effect files
+                        centre themselves on the largest anchor in the DOCUMENT,
+                        so a header instance mis-centres or paints nothing.
+                        The identity here is static gradients. Keep it that way. */}
+                    <AnimatePresence>
+                      {profileMenuOpen && (
+                        <motion.div
+                          id="profile-menu"
+                          role="menu"
+                          aria-label="Profile menu"
+                          initial={{ opacity: 0, scale: 0.96, y: -8 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.96, y: -8 }}
+                          transition={animate ? { type: 'spring', stiffness: 400, damping: 30, mass: 0.6 } : { duration: 0 }}
+                          // max-h + an inner scroller: the panel is absolute
+                          // inside a FIXED header, so page scroll can never
+                          // reach an overflowing bottom — and onScroll closes
+                          // the menu anyway. Without this, Log out simply falls
+                          // below the fold on a short window.
+                          className={`absolute top-full right-0 mt-3 w-80 max-h-[calc(100dvh-7rem)] bg-[#0f0f13] border rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] z-[200] flex flex-col origin-top-right will-change-transform ${effectCardBorderClass(effectiveEffect)}`}
+                        >
+                          {/* overflow-hidden lives on the INNER wrapper — on the
+                              outer it clips both arrow squares. */}
+                          <div className="absolute -top-[6px] right-6 w-3 h-3 bg-[#0f0f13] border-t border-l border-white/10 rotate-45 z-[-1]" />
+                          <div className="absolute -top-[5px] right-6 w-3 h-3 bg-[#0f0f13] rotate-45 z-0" />
+
+                          <div className="relative z-10 flex min-h-0 flex-col rounded-2xl overflow-y-auto overscroll-contain custom-scrollbar bg-[#0f0f13] p-1.5">
+                            {/* Identity plate */}
+                            <div className="relative overflow-hidden rounded-xl border border-white/10 px-3 py-3 mb-1">
+                              {effectMeta && (
+                                <>
+                                  <span aria-hidden className={`absolute inset-0 opacity-[0.18] bg-gradient-to-br ${effectMeta.gradient}`} />
+                                  <span aria-hidden className="absolute inset-0 bg-[radial-gradient(120%_100%_at_50%_0%,transparent,rgba(15,15,19,0.92))]" />
+                                </>
+                              )}
+                              <div className="relative z-10 flex items-center gap-3">
+                                <span className="relative inline-flex shrink-0">
+                                  <img src={user.avatar || FALLBACK_AVATAR} alt="" className="relative z-10 w-11 h-11 rounded-full object-cover" />
+                                  {animate
+                                    ? <AvatarDecoration frame={(user as any).activeFrame} effect={effectiveEffect} />
+                                    : <StaticDecoration frame={(user as any).activeFrame} effect={effectiveEffect} />}
+                                </span>
+                                <span className="flex flex-col min-w-0">
+                                  <span className={`text-sm font-bold truncate ${nameClass}`}>{user.username}</span>
+                                  <span className="text-[11px] font-semibold text-amber-300/90 tabular-nums">
+                                    {displayArisePoints(user)} AP
+                                  </span>
+                                  {effectMeta && (
+                                    <span className="mt-1 flex items-center gap-1.5 min-w-0">
+                                      <span className={`truncate text-[11px] font-bold ${effectNameClass(effectiveEffect) || 'text-slate-300'}`}>
+                                        {effectMeta.name}
+                                      </span>
+                                      {TIER_CHIP[effectMeta.tier] && (
+                                        <span className={`shrink-0 rounded border px-1 py-px text-[8px] font-black uppercase tracking-wider ${TIER_CHIP[effectMeta.tier]}`}>
+                                          {effectMeta.tier === 'exclusive' ? 'Exclusive' : effectMeta.tier}
+                                        </span>
+                                      )}
+                                    </span>
+                                  )}
+                                </span>
+                              </div>
+                            </div>
+
+                            <EffectSwitcher slot={slot} user={user} onNavigate={() => setProfileMenuOpen(false)} />
+
+                            <div className="h-px bg-white/[0.07] mx-2 my-1.5" />
+
+                            <Link href={`/user/${user.username}`} data-menu-item role="menuitem" onClick={() => setProfileMenuOpen(false)}
+                              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400/60">
+                              <UserIcon className="w-4 h-4" /> My Profile
+                            </Link>
+                            <Link href="/shop" data-menu-item role="menuitem" onClick={() => setProfileMenuOpen(false)}
+                              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400/60">
+                              <Palette className="w-4 h-4" /> Effects &amp; Frames
+                            </Link>
+                            <button type="button" data-menu-item role="menuitem"
+                              onClick={() => { setProfileMenuOpen(false); setShowControlCenter(true); }}
+                              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400/60">
+                              <Settings className="w-4 h-4" /> Control Center
+                            </button>
+                            <button type="button" data-menu-item role="menuitem"
+                              onClick={() => { setProfileMenuOpen(false); logout(); }}
+                              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-400/90 hover:bg-red-500/10 hover:text-red-400 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400/60">
+                              <LogOut className="w-4 h-4" /> Log out
+                            </button>
+
+                            {prefsLoaded && preferences.reducedMotion && (
+                              <button type="button" data-menu-item role="menuitem"
+                                onClick={() => { setProfileMenuOpen(false); setShowControlCenter(true); }}
+                                className="w-full text-left px-3 py-2 text-[11px] text-slate-500 hover:text-slate-300 transition-colors duration-150">
+                                Performance Mode is on — profile effects are paused. <span className="text-purple-400 font-semibold">Change</span>
+                              </button>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                   <NotificationsMenu />
-                  <button onClick={() => setShowControlCenter(true)} className="text-slate-400 hover:text-white transition p-1" title="Control Center">
-                    <Settings className="w-5 h-5" />
-                  </button>
-                  <button onClick={logout} className="text-slate-400 hover:text-red-400 transition p-1" title="Logout">
-                    <LogOut className="w-5 h-5" />
-                  </button>
                 </div>
               ) : (
                 <button 
@@ -268,7 +464,12 @@ export default function Navbar() {
             </button>
           </div>
           
-          <div className="flex flex-col p-6 gap-6 text-xl font-bold text-slate-300">
+          {/* The LINKS scroll; the account block below stays pinned. Previously
+              neither had min-h-0, so the links column (overflow:visible, hence an
+              immovable auto min-height) refused to shrink and the account block —
+              the only flex item that could — absorbed all the negative space and
+              collapsed to a hairline, putting Log out out of reach on a phone. */}
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-6 gap-6 text-xl font-bold text-slate-300">
             {mode === 'anime' ? (
               <>
                 <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className={accentHover}>Dashboard</Link>
@@ -312,7 +513,37 @@ export default function Navbar() {
             </div>
           )}
           {isLoaded && user && (
-            <div className="mt-auto p-6 border-t border-white/10 flex flex-col gap-4 overflow-y-auto max-h-[50vh]">
+            <div className="shrink-0 p-6 border-t border-white/10 flex flex-col gap-4 overflow-y-auto max-h-[60vh]">
+              {/* Identity + effect switcher — the mobile equivalent of the
+                  desktop profile menu. Same component, single-column variant. */}
+              <div className="shrink-0 relative overflow-hidden rounded-xl border border-white/10 p-4">
+                {effectMeta && (
+                  <>
+                    <span aria-hidden className={`absolute inset-0 opacity-[0.18] bg-gradient-to-br ${effectMeta.gradient}`} />
+                    <span aria-hidden className="absolute inset-0 bg-[radial-gradient(120%_100%_at_50%_0%,transparent,rgba(15,15,19,0.92))]" />
+                  </>
+                )}
+                <div className="relative z-10 flex items-center gap-3">
+                  <span className="relative inline-flex shrink-0">
+                    <img src={user.avatar || FALLBACK_AVATAR} alt="" className="relative z-10 w-14 h-14 rounded-full object-cover" />
+                    {animate
+                      ? <AvatarDecoration frame={(user as any).activeFrame} effect={effectiveEffect} />
+                      : <StaticDecoration frame={(user as any).activeFrame} effect={effectiveEffect} />}
+                  </span>
+                  <span className="flex flex-col min-w-0">
+                    <span className={`text-base font-bold truncate ${nameClass}`}>{user.username}</span>
+                    <span className="text-xs font-semibold text-amber-300/90 tabular-nums">{displayArisePoints(user)} AP</span>
+                    <span className={`truncate text-xs font-bold ${effectNameClass(effectiveEffect) || 'text-slate-400'}`}>
+                      {effectMeta ? effectMeta.name : 'No effect equipped'}
+                    </span>
+                  </span>
+                </div>
+              </div>
+
+              <div className="shrink-0 rounded-xl border border-white/10 bg-white/[0.02] pb-1">
+                <EffectSwitcher slot={slot} user={user} variant="sheet" onNavigate={() => setIsMobileMenuOpen(false)} />
+              </div>
+
               <Link href={`/user/${user.username}`} onClick={() => setIsMobileMenuOpen(false)} className="w-full bg-white/10 hover:bg-white/20 text-white font-bold py-4 rounded-xl text-lg transition flex justify-center items-center gap-2 border border-white/10 shadow-lg">
                 <Compass className="w-5 h-5 text-purple-400" /> My Tracker
               </Link>
