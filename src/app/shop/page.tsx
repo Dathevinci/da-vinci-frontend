@@ -551,16 +551,38 @@ export default function ShopPage() {
     const members = collectionItems(sectionKey);
     if (members.length === 0) return null;
 
+    /**
+     * Expiry is computed here rather than reusing `isExpired` — that identifier
+     * is a local BOOLEAN inside the item-card scope, not a function, so calling
+     * it from here threw "isExpired is not a function" and took the whole shop
+     * page down the moment a collection tab was opened.
+     *
+     * Same rule as the cards use: a drop is closed only once we have a clock
+     * (nowTs starts null before the mount effect runs) and its window has passed.
+     */
+    const expired = (it: typeof SHOP_ITEMS[0]) => {
+      const endsAt = (it as any).endsAt as number | undefined;
+      return !!endsAt && nowTs !== null && endsAt - nowTs <= 0;
+    };
+
     const missing = members.filter(
-      (it) => !getInventoryArray(it.type).includes(it.id) && !isExpired(it)
+      (it) => !getInventoryArray(it.type).includes(it.id) && !expired(it)
     );
     const full = missing.reduce((sum, it) => sum + it.price, 0);
+    // Staff buy free, mirroring the server — otherwise the button would show a
+    // price to someone who will be charged nothing.
+    const price = isAdmin(user) ? 0 : Math.round(full * (1 - BUNDLE_DISCOUNT));
     return {
       bundleId,
       name: COLLECTIONS.find((c) => c.key === sectionKey)?.title || "Collection",
       missing,
       full,
-      price: Math.round(full * (1 - BUNDLE_DISCOUNT)),
+      price,
+      // Surface affordability as button state. Without this a normal account
+      // sees a confident "Buy the set" and gets a red 402 toast for clicking it,
+      // which reads as a bug rather than as "you can't afford this yet".
+      canAfford: (user?.arisePoints || 0) >= price,
+      short: Math.max(0, price - (user?.arisePoints || 0)),
     };
   };
 
@@ -587,8 +609,10 @@ export default function ShopPage() {
       if (data.data?.expiredSkipped) {
         toast(`${data.data.expiredSkipped} item(s) skipped — their limited window has closed.`, "info");
       }
-      // Refresh inventory + balance from the server's answer.
-      await updateProfile({ arisePoints: data.data?.arisePoints } as any);
+      // Reload to pick up the new inventory and balance. Not updateProfile —
+      // that PATCH deliberately refuses client-written arisePoints (it's what
+      // stops a browser minting its own points), so sending the balance back
+      // would have been a no-op dressed up as a sync.
       if (typeof window !== "undefined") window.location.reload();
     } catch {
       toast("Network error — try again.", "error");
@@ -863,6 +887,16 @@ export default function ShopPage() {
                         </span>
                       );
                     }
+                    if (!b.canAfford) {
+                      return (
+                        <span
+                          title={`You need ${b.short.toLocaleString()} more Arise Points`}
+                          className="shrink-0 cursor-not-allowed rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold text-slate-400"
+                        >
+                          Set costs {b.price.toLocaleString()} AP · need {b.short.toLocaleString()} more
+                        </span>
+                      );
+                    }
                     return (
                       <button
                         onClick={() => buyBundle(b.bundleId, b.name)}
@@ -871,10 +905,14 @@ export default function ShopPage() {
                       >
                         {bundleBusy === b.bundleId
                           ? "Buying…"
+                          : b.price === 0
+                          ? "Claim the set · Free"
                           : `Buy the set · ${b.price.toLocaleString()} AP`}
-                        <span className="ml-1.5 text-[11px] font-bold text-white/70 line-through">
-                          {b.full.toLocaleString()}
-                        </span>
+                        {b.price > 0 && (
+                          <span className="ml-1.5 text-[11px] font-bold text-white/70 line-through">
+                            {b.full.toLocaleString()}
+                          </span>
+                        )}
                       </button>
                     );
                   })()}
