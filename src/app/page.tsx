@@ -8,6 +8,7 @@ import { Info, Clock, PlayCircle, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import PageTransition from "@/components/layout/PageTransition";
 import ContinueWatchingCarousel from "@/components/anime/ContinueWatchingCarousel";
+import DailyQuests from "@/components/quests/DailyQuests";
 
 // Revalidate the dashboard frequently so a transient API outage can't leave a
 // stale "empty feed" cached for long — it recovers within ~1 minute.
@@ -58,6 +59,13 @@ export default async function Home() {
 
       {/* Carousels */}
       <div className="relative z-20 space-y-4 pt-2">
+        {/* Client component — renders nothing when signed out or before its
+            first fetch resolves, so it can't leave an empty shell on the
+            dashboard for guests. */}
+        <div className="container mx-auto px-4 sm:px-6">
+          <DailyQuests />
+        </div>
+
         <ContinueWatchingCarousel />
         
         {(() => {
