@@ -88,9 +88,36 @@ export default function WatchOverlay({
     return () => { document.body.style.overflow = ""; };
   }, [isBrowser]);
 
-  // Auto-track and auto-save progress
-  // (Auto-track as "Watching" has been disabled per user request)
   const lastStorageUpdateRef = useRef(0);
+
+  /**
+   * Auto-add to the tracker once you've genuinely started an episode, so
+   * "Continue watching" picks up anything you left partway through without
+   * needing to tap Add to Tracker first.
+   *
+   * This was previously disabled because it fired on OPEN — merely clicking an
+   * anime dumped it into your tracker, so browsing polluted the list. The fix
+   * isn't to leave it off, it's to require real playback: AUTO_TRACK_AFTER
+   * seconds of actual watching separates "I'm watching this" from "I clicked it
+   * and bounced".
+   *
+   * Only ever ADDS. If the anime is already tracked we leave it completely alone,
+   * so this can't overwrite a status the user set deliberately.
+   */
+  const AUTO_TRACK_AFTER = 60; // seconds of playback
+  const autoTrackedRef = useRef(false);
+
+  useEffect(() => {
+    if (autoTrackedRef.current) return;
+    if (!hasStarted || currentTime < AUTO_TRACK_AFTER) return;
+
+    // Latch before the async work so a burst of timeupdates can't queue several
+    // identical writes.
+    autoTrackedRef.current = true;
+    if (isTracked(anime.mal_id)) return;
+    setStatus(anime, "Watching");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasStarted, currentTime, anime.mal_id]);
 
   /**
    * WHICH episode you're on is written immediately and unthrottled.
