@@ -40,6 +40,10 @@ interface Comment {
   animeTitle?: string;
   mangaId?: string;
   mangaTitle?: string;
+  // chapterId was missing here while chapterTitle was present, so the context
+  // chip could render "· Chapter 8" but had no id to link to — it silently fell
+  // back to the series page. The backend has always sent it.
+  chapterId?: string;
   chapterTitle?: string;
   novelId?: string;
   novelTitle?: string;
@@ -365,13 +369,36 @@ const CommentThread = ({
             </span>
           </button>
         ) : showContext && node.novelTitle && node.novelId ? (
-          <Link href={`/novel/${encodeURIComponent(node.novelId)}`} onClick={(e) => e.stopPropagation()} className="mb-3 inline-block self-start">
+          // Novel discussion is novel-level today, but the chapter route exists
+          // and the schema shares one chapterId column, so honour it if it's set
+          // rather than silently dropping the reader back to the series page.
+          <Link
+            href={
+              node.chapterId
+                ? `/novel/${encodeURIComponent(node.novelId)}/chapter/${encodeURIComponent(node.chapterId)}`
+                : `/novel/${encodeURIComponent(node.novelId)}`
+            }
+            onClick={(e) => e.stopPropagation()}
+            className="mb-3 inline-block self-start"
+          >
             <span className="text-xs bg-white/5 hover:bg-white/10 border border-white/10 px-2 py-1 rounded-md text-slate-400 flex items-center gap-1 transition">
               on <span className="font-bold text-pink-300 hover:text-pink-400 truncate max-w-[250px]">{node.novelTitle}</span>
+              {node.chapterTitle ? <span className="text-slate-500 truncate max-w-[120px]">· {node.chapterTitle}</span> : null}
             </span>
           </Link>
         ) : showContext && node.mangaTitle && node.mangaId ? (
-          <Link href={`/manhwa/${encodeURIComponent(node.mangaId)}`} onClick={(e) => e.stopPropagation()} className="mb-3 inline-block self-start">
+          // Link to the CHAPTER the comment was actually left on. The chip has
+          // always shown "· Chapter N"; the href ignored it and sent you to the
+          // series page, which is the whole complaint.
+          <Link
+            href={
+              node.chapterId
+                ? `/manhwa/${encodeURIComponent(node.mangaId)}/chapter/${encodeURIComponent(node.chapterId)}`
+                : `/manhwa/${encodeURIComponent(node.mangaId)}`
+            }
+            onClick={(e) => e.stopPropagation()}
+            className="mb-3 inline-block self-start"
+          >
             <span className="text-xs bg-white/5 hover:bg-white/10 border border-white/10 px-2 py-1 rounded-md text-slate-400 flex items-center gap-1 transition">
               on <span className="font-bold text-red-300 hover:text-red-400 truncate max-w-[220px]">{node.mangaTitle}</span>
               {node.chapterTitle ? <span className="text-slate-500 truncate max-w-[120px]">· {node.chapterTitle}</span> : null}
