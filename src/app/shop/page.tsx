@@ -127,6 +127,11 @@ export default function ShopPage() {
   // Widened to string because the themed collection keys join the rarity/type
   // keys here; a fixed union would have to be kept in sync with COLLECTIONS.
   const [category, setCategory] = useState<string>("all");
+  // Declared up here with the other state, NOT beside buyBundle further down —
+  // this component early-returns while loading and when signed out, so a hook
+  // below those would change the hook count between renders and React would
+  // throw "rendered fewer hooks than expected".
+  const [bundleBusy, setBundleBusy] = useState<string | null>(null);
   const [owned, setOwned] = useState<"all" | "unowned" | "owned">("all");
   // Live clock for limited-drop countdowns. Starts null and is set on mount so
   // the SSR/prerender markup never bakes in a build-time Date.now() (hydration
@@ -520,6 +525,78 @@ export default function ShopPage() {
     })).filter((t) => t.count > 0),
   ];
 
+  /**
+   * Bundle pricing for a collection tab.
+   *
+   * Mirrors the server's rule — you pay only for what you don't already own,
+   * minus the discount — purely so the button can show a number before you
+   * click. The backend recomputes all of this from your real inventory, so a
+   * tampered client just gets a different (correct) charge.
+   *
+   * Keys map to the server's SHOP_BUNDLES ids.
+   */
+  const BUNDLE_DISCOUNT = 0.2;
+  const BUNDLE_ID_FOR: Record<string, string> = {
+    jujutsu: "bundle_jujutsu",
+    mysteries: "bundle_mysteries",
+    nature: "bundle_nature",
+    cosmic: "bundle_cosmic",
+  };
+
+  const bundleFor = (sectionKey: string) => {
+    const bundleId = BUNDLE_ID_FOR[sectionKey];
+    // Only on the collection's own tab — a buy-the-set button next to a rarity
+    // heading on "All" would be selling something other than what's listed.
+    if (!bundleId || category !== sectionKey) return null;
+    const members = collectionItems(sectionKey);
+    if (members.length === 0) return null;
+
+    const missing = members.filter(
+      (it) => !getInventoryArray(it.type).includes(it.id) && !isExpired(it)
+    );
+    const full = missing.reduce((sum, it) => sum + it.price, 0);
+    return {
+      bundleId,
+      name: COLLECTIONS.find((c) => c.key === sectionKey)?.title || "Collection",
+      missing,
+      full,
+      price: Math.round(full * (1 - BUNDLE_DISCOUNT)),
+    };
+  };
+
+  const buyBundle = async (bundleId: string, name: string) => {
+    if (!user || bundleBusy) return;
+    setBundleBusy(bundleId);
+    try {
+      const res = await fetch(`${API_URL}/api/users/purchase-bundle`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ userId: user.id, bundleId }),
+      });
+      const data = await res.json();
+      if (!data?.success) {
+        toast(data?.message || "Couldn't buy that collection.", "error");
+        return;
+      }
+      const n = data.data?.granted?.length ?? 0;
+      toast(
+        `${name} unlocked — ${n} item${n === 1 ? "" : "s"} for ${(data.data?.cost ?? 0).toLocaleString()} AP` +
+          (data.data?.saved ? ` (saved ${data.data.saved.toLocaleString()})` : ""),
+        "success"
+      );
+      if (data.data?.expiredSkipped) {
+        toast(`${data.data.expiredSkipped} item(s) skipped — their limited window has closed.`, "info");
+      }
+      // Refresh inventory + balance from the server's answer.
+      await updateProfile({ arisePoints: data.data?.arisePoints } as any);
+      if (typeof window !== "undefined") window.location.reload();
+    } catch {
+      toast("Network error — try again.", "error");
+    } finally {
+      setBundleBusy(null);
+    }
+  };
+
   // What the user is wearing right now — quick glance + one-tap unequip.
   const equippedItems = SHOP_ITEMS.filter((it) => getActiveField(it.type) === it.id);
 
@@ -773,6 +850,34 @@ export default function ShopPage() {
                       Shop all <ArrowRight className="h-4 w-4" />
                     </button>
                   )}
+                  {/* Buy-the-set, only on a collection's own tab. The price shown
+                      is for what you DON'T already own — the server recomputes it
+                      from your real inventory, so this is a preview, not the
+                      authority. */}
+                  {bundleFor(section.key) && (() => {
+                    const b = bundleFor(section.key)!;
+                    if (b.missing.length === 0) {
+                      return (
+                        <span className="shrink-0 rounded-full border border-emerald-400/25 bg-emerald-500/10 px-4 py-2 text-sm font-bold text-emerald-300">
+                          Collection complete
+                        </span>
+                      );
+                    }
+                    return (
+                      <button
+                        onClick={() => buyBundle(b.bundleId, b.name)}
+                        disabled={bundleBusy === b.bundleId}
+                        className="shrink-0 rounded-full bg-gradient-to-r from-purple-600 to-fuchsia-600 px-4 py-2 text-sm font-black text-white shadow-lg transition hover:brightness-110 disabled:opacity-50"
+                      >
+                        {bundleBusy === b.bundleId
+                          ? "Buying…"
+                          : `Buy the set · ${b.price.toLocaleString()} AP`}
+                        <span className="ml-1.5 text-[11px] font-bold text-white/70 line-through">
+                          {b.full.toLocaleString()}
+                        </span>
+                      </button>
+                    );
+                  })()}
                 </div>
                 <motion.div
                   initial={{ opacity: 0 }}
