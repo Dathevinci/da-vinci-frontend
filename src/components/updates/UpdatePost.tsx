@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { isAdmin } from "@/lib/admin";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Tag as TagIcon } from "lucide-react";
+import { ChevronDown, Sparkles, Tag as TagIcon } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { useToast } from "@/components/ui/Toast";
 import Link from "next/link";
@@ -12,7 +12,6 @@ import { Code2 as IconCode2, ShieldAlert, Sparkles as IconSparkles, Crown as Ico
 const ICON_MAP: Record<string, any> = { Code2: IconCode2, ShieldAlert, Sparkles: IconSparkles, Crown: IconCrown, Flame: IconFlame, Zap: IconZap, Compass: IconCompass, Leaf: IconLeaf, ArrowUpRight, Feather: IconFeather, Eye: IconEye };
 import { AvatarDecoration, hasFrameRing } from "@/components/profile/AvatarDecoration";
 import UserLink from "@/components/profile/UserLink";
-import MentionsInput from "@/components/ui/MentionsInput";
 import { authHeaders } from "@/lib/authToken";
 
 interface Comment {
@@ -68,10 +67,21 @@ function renderMentions(text: string): ReactNode {
   });
 }
 
-const isDivider = (l: string) => /^[ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒâ€šÃ‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬=_]{3,}$/.test(l.trim());
+const isDivider = (l: string) => /^[━─=_]{3,}$/.test(l.trim());
 
-// Turn the raw Dev-Blog text (ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ HEADER ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ section blocks + paragraphs) into a
-// formatted changelog. Section headers like "NEW ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â X" get a coloured chip.
+// Colour the section chip by what kind of change it is, so a long changelog can
+// be skimmed by category instead of read top to bottom.
+const KIND_CHIP: Record<string, string> = {
+  NEW: "border-emerald-400/30 bg-emerald-500/15 text-emerald-300",
+  FIXED: "border-amber-400/30 bg-amber-500/15 text-amber-300",
+  FIX: "border-amber-400/30 bg-amber-500/15 text-amber-300",
+  IMPROVED: "border-sky-400/30 bg-sky-500/15 text-sky-300",
+  CHANGED: "border-violet-400/30 bg-violet-500/15 text-violet-300",
+  REMOVED: "border-rose-400/30 bg-rose-500/15 text-rose-300",
+};
+
+// Turn the raw Dev-Blog text (── HEADER ── section blocks + paragraphs) into a
+// formatted changelog. Section headers like "NEW — X" get a coloured chip.
 function ChangelogBody({ content }: { content: string }) {
   const lines = content.split("\n");
   const blocks: ReactNode[] = [];
@@ -81,17 +91,19 @@ function ChangelogBody({ content }: { content: string }) {
   while (i < lines.length) {
     const line = lines[i];
 
-    // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ HEADER ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ block
+    // ── HEADER ── block
     if (isDivider(line) && i + 2 < lines.length && isDivider(lines[i + 2])) {
       const header = lines[i + 1].trim();
-      const m = header.match(/^(NEW|FIX|FIXED|IMPROVED|CHANGED|REMOVED)\s*[ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ-]\s*(.*)$/i);
+      const m = header.match(/^(NEW|FIX|FIXED|IMPROVED|CHANGED|REMOVED)\s*[—–-]\s*(.*)$/i);
+      const kind = m ? m[1].toUpperCase() : "";
       blocks.push(
-        <div key={key++} className="flex items-center gap-2.5 pt-5 first:pt-0">
-          <span className="h-6 w-1.5 shrink-0 rounded-full bg-gradient-to-b from-fuchsia-400 to-purple-600" />
-          <h3 className="flex items-center gap-2 text-lg font-black text-white">
+        <div key={key++} className="flex items-center gap-2.5 pt-6 first:pt-0">
+          <h3 className="flex flex-wrap items-center gap-2 text-base font-black text-white sm:text-lg">
             {m ? (
               <>
-                <span className="rounded-full border border-fuchsia-500/30 bg-fuchsia-500/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-fuchsia-300">{m[1]}</span>
+                <span className={`rounded-md border px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${KIND_CHIP[kind] || "border-white/15 bg-white/10 text-slate-300"}`}>
+                  {m[1]}
+                </span>
                 {m[2]}
               </>
             ) : (
@@ -104,26 +116,58 @@ function ChangelogBody({ content }: { content: string }) {
       continue;
     }
 
-    // Skip blank lines and the duplicated "Da Vinci ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Dev Blog X.Y" heading line.
-    if (line.trim() === "" || /^da\s*vinci\s*[ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ-]\s*dev\s*blog/i.test(line.trim())) {
+    // Skip blank lines and the duplicated "Da Vinci — Dev Blog X.Y" heading line.
+    if (line.trim() === "" || /^da\s*vinci\s*[—–-]\s*dev\s*blog/i.test(line.trim())) {
       i++;
       continue;
     }
 
+    // Consecutive "• " lines become one real list instead of a run of loose
+    // paragraphs — the single biggest readability win on a long changelog.
+    if (/^[•·*]\s+/.test(line.trim())) {
+      const items: string[] = [];
+      while (i < lines.length && /^[•·*]\s+/.test(lines[i].trim())) {
+        items.push(lines[i].trim().replace(/^[•·*]\s+/, ""));
+        i++;
+      }
+      blocks.push(
+        <ul key={key++} className="space-y-1.5 pl-1">
+          {items.map((it, n) => (
+            <li key={n} className="flex gap-2.5 text-[14px] leading-relaxed text-slate-400">
+              <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-purple-400/70" />
+              <span>{renderMentions(it)}</span>
+            </li>
+          ))}
+        </ul>
+      );
+      continue;
+    }
+
     blocks.push(
-      <p key={key++} className="text-[15px] leading-relaxed text-slate-300">
+      <p key={key++} className="text-[14px] leading-relaxed text-slate-400">
         {renderMentions(line)}
       </p>
     );
     i++;
   }
 
-  return <div className="space-y-3">{blocks}</div>;
+  return <div className="space-y-2.5">{blocks}</div>;
 }
 
 export default function UpdatePost({ post, onDelete }: UpdatePostProps) {
   const { user } = useUser();
   const { toast } = useToast();
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [newComment, setNewComment] = useState("");
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
+
+  // Collapse anything longer than a screenful. Measured on the raw text so the
+  // threshold doesn't depend on how the parser happens to lay it out.
+  const isLong = post.content.length > 900;
+  const [expanded, setExpanded] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -134,8 +178,10 @@ export default function UpdatePost({ post, onDelete }: UpdatePostProps) {
   const [isEditingPost, setIsEditingPost] = useState(false);
   const [editPostTitle, setEditPostTitle] = useState(post.title);
   const [editPostContent, setEditPostContent] = useState(post.content);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editCommentContent, setEditCommentContent] = useState("");
 
-  // Version badge (e.g. "1.5.1") + a cleaner display title (drop the "ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ :" prefix).
+  // Version badge (e.g. "1.5.1") + a cleaner display title (drop the "… :" prefix).
   const version = post.title.match(/(\d+\.\d+(?:\.\d+)?)/)?.[1] || null;
   const displayTitle = post.title.includes(":") ? post.title.split(":").slice(1).join(":").trim() : post.title;
   const tags = post.tag ? post.tag.split(",").map((t) => t.trim()).filter(Boolean) : [];
@@ -167,6 +213,48 @@ export default function UpdatePost({ post, onDelete }: UpdatePostProps) {
     }
   };
 
+  const fetchComments = async () => {
+    setLoadingComments(true);
+    try {
+      const res = await fetch(`${API_URL}/api/announcements/${post.id}/comments`);
+      const data = await res.json();
+      if (data.success) setComments(data.data || []);
+    } catch {
+      toast("Failed to load comments", "error");
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+
+  const toggleComments = () => {
+    if (!showComments && comments.length === 0) fetchComments();
+    setShowComments(!showComments);
+  };
+
+  const submitComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return toast("You must be logged in to comment.", "error");
+    if (!newComment.trim()) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${API_URL}/api/announcements/${post.id}/comments`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ userId: user.id, content: newComment.trim() }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setComments([...comments, data.data]);
+        setNewComment("");
+      } else {
+        toast(data.error || "Failed to post comment", "error");
+      }
+    } catch {
+      toast("Error posting comment", "error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const handleSavePostEdit = async () => {
     if (!editPostTitle.trim() || !editPostContent.trim()) return;
@@ -190,6 +278,47 @@ export default function UpdatePost({ post, onDelete }: UpdatePostProps) {
     }
   };
 
+  const confirmDeleteComment = async () => {
+    if (!commentToDelete) return;
+    try {
+      const res = await fetch(`${API_URL}/api/announcements/comments/${commentToDelete}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+        body: JSON.stringify({ userId: user?.id }),
+      });
+      if (res.ok) {
+        setComments(comments.filter((c) => c.id !== commentToDelete));
+        toast("Comment deleted", "success");
+      } else {
+        toast("Failed to delete comment", "error");
+      }
+    } catch {
+      toast("Error deleting comment", "error");
+    } finally {
+      setCommentToDelete(null);
+    }
+  };
+
+  const handleSaveCommentEdit = async (commentId: string) => {
+    if (!editCommentContent.trim()) return;
+    try {
+      const res = await fetch(`${API_URL}/api/announcements/comments/${commentId}`, {
+        method: "PUT",
+        headers: authHeaders(),
+        body: JSON.stringify({ userId: user?.id, content: editCommentContent }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setComments(comments.map((c) => (c.id === commentId ? { ...c, content: editCommentContent } : c)));
+        setEditingCommentId(null);
+        toast("Comment updated", "success");
+      } else {
+        toast(data.error || "Failed to edit comment", "error");
+      }
+    } catch {
+      toast("Error editing comment", "error");
+    }
+  };
 
   const timeAgo = (dateStr: string) => {
     const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
@@ -260,7 +389,25 @@ export default function UpdatePost({ post, onDelete }: UpdatePostProps) {
         ) : (
           <>
             <h2 className="mb-5 text-2xl font-black leading-tight tracking-tight md:text-3xl">{displayTitle}</h2>
-            <ChangelogBody content={post.content} />
+            {/* Long posts collapse behind a fade. Every changelog rendered in
+                full meant the page opened as one continuous wall of text and you
+                couldn't see what releases even existed without scrolling past
+                all of them. Short posts are never clipped. */}
+            <div className={`relative ${isLong && !expanded ? "max-h-[22rem] overflow-hidden" : ""}`}>
+              <ChangelogBody content={post.content} />
+              {isLong && !expanded && (
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#141418] to-transparent" />
+              )}
+            </div>
+            {isLong && (
+              <button
+                onClick={() => setExpanded((v) => !v)}
+                className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-bold text-slate-300 transition hover:border-purple-500/40 hover:text-white"
+              >
+                {expanded ? "Show less" : "Read full changelog"}
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expanded ? "rotate-180" : ""}`} />
+              </button>
+            )}
           </>
         )}
 
@@ -283,10 +430,9 @@ export default function UpdatePost({ post, onDelete }: UpdatePostProps) {
             </div>
           </UserLink>
 
-          {/* Commenting on dev blog posts was removed ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â discussion happens in
-              the community feed and on Discord instead. The backend endpoints
-              still exist and existing comments are untouched in the database, so
-              this is reversible by restoring the button and drawer. */}
+          {/* Commenting on dev blog posts was removed — discussion lives in the
+              community feed and on Discord. Backend endpoints and existing rows
+              are untouched, so restoring the button and drawer brings it back. */}
         </div>
       </div>
 
