@@ -45,9 +45,7 @@ export const DECOR_EFFECTS = new Set(["effect_snow", "effect_embers", "effect_au
 
 // The extreme-rare "Voltaic Ascension" gives its own crackling electric ring,
 // shown even when no frame is equipped — so the storm follows the avatar everywhere.
-// Exported so StaticDecoration can render a freeze-frame of this ring in
-// Performance Mode from the SAME palette — a parallel copy would drift.
-export const ASCENSION_RING = {
+const ASCENSION_RING = {
   ring: "conic-gradient(from 0deg, #faf5ff, #a855f7, #ede9fe, #7c3aed, #f5d0fe, #6d28d9, #faf5ff)",
   glow: "rgba(168,85,247,0.85)",
   speed: 3,
@@ -102,12 +100,6 @@ export function AvatarDecoration({
 // Rendered at full fidelity only on the large profile avatar; a cheap glow stands
 // in everywhere else so lists of avatars don't melt the page.
 const HEAVY_EFFECTS = new Set([
-  // Snow and embers are cheap on a big profile card but wrong on a 28px navbar
-  // avatar: their particle field is -inset-2 z-20, so it paints OUTSIDE the pill
-  // (which has no overflow-hidden) and over the username. On any small surface
-  // they collapse to the contained glow below, like every other effect.
-  "effect_snow",
-  "effect_embers",
   "effect_blackhole",
   "effect_froggie",
   "effect_tempest",
@@ -128,17 +120,7 @@ const HEAVY_EFFECTS = new Set([
   "effect_hollow",
 ]);
 
-// Exported so StaticDecoration can freeze-frame these keyframes in Performance
-// Mode. Index [1] is the bright mid-keyframe — the one worth holding still.
-export const LITE_GLOW: Record<string, string[]> = {
-  // snow/embers are read by the small-surface branch above; aura is NOT in
-  // HEAVY_EFFECTS (its live form is already a single cheap boxShadow and is the
-  // intended look) — its entry exists purely so StaticDecoration has something
-  // to freeze in Performance Mode. Without these three, the most commonly owned
-  // effects vanished entirely from every avatar once the battery saver was on.
-  effect_snow: ["0 0 8px 1px rgba(224,242,254,0.35)", "0 0 16px 4px rgba(191,219,254,0.55)", "0 0 8px 1px rgba(224,242,254,0.35)"],
-  effect_embers: ["0 0 8px 1px rgba(251,146,60,0.4)", "0 0 16px 4px rgba(249,115,22,0.6)", "0 0 8px 1px rgba(251,146,60,0.4)"],
-  effect_aura: ["0 0 10px 2px rgba(168,85,247,0.45)", "0 0 22px 6px rgba(217,70,239,0.65)", "0 0 10px 2px rgba(168,85,247,0.45)"],
+const LITE_GLOW: Record<string, string[]> = {
   effect_blackhole: ["0 0 8px 1px rgba(251,146,60,0.5)", "0 0 18px 5px rgba(168,85,247,0.6)", "0 0 8px 1px rgba(251,146,60,0.5)"],
   effect_froggie: ["0 0 8px 1px rgba(52,211,153,0.45)", "0 0 18px 5px rgba(163,230,53,0.6)", "0 0 8px 1px rgba(52,211,153,0.45)"],
   effect_tempest: ["0 0 8px 1px rgba(56,189,248,0.45)", "0 0 18px 5px rgba(99,102,241,0.6)", "0 0 8px 1px rgba(56,189,248,0.45)"],
