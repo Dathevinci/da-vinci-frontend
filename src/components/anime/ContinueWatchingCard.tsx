@@ -28,19 +28,51 @@ export default function ContinueWatchingCard({ anime }: ContinueWatchingCardProp
   const [progressPercent, setProgressPercent] = useState(0);
   const [savedEpisodeNo, setSavedEpisodeNo] = useState<number | null>(null);
 
+  /**
+   * Re-read on mount AND whenever the player saves.
+   *
+   * This used to run only on mount. The watch player is an overlay, not a route,
+   * so closing it never remounted this card — after watching episode 5 the card
+   * would still say "Ep 4" until a full page reload. It also re-reads on tab
+   * focus, which covers watching in a second tab.
+   */
   useEffect(() => {
-    const data = localStorage.getItem(`davinci_progress_${anime.mal_id}`);
-    if (data) {
+    const read = () => {
+      const data = localStorage.getItem(`davinci_progress_${anime.mal_id}`);
+      if (!data) return;
       try {
         const parsed = JSON.parse(data);
-        if (parsed.duration > 0 && parsed.currentTime > 0) {
-          setProgressPercent(Math.min(100, (parsed.currentTime / parsed.duration) * 100));
-        }
-        if (parsed.episodeNo) {
-          setSavedEpisodeNo(parsed.episodeNo);
-        }
-      } catch(e) {}
-    }
+        // Reset rather than leaving a stale bar: a fresh episode legitimately has
+        // no position yet, and keeping the old percentage misreports it.
+        setProgressPercent(
+          parsed.duration > 0 && parsed.currentTime > 0
+            ? Math.min(100, (parsed.currentTime / parsed.duration) * 100)
+            : 0
+        );
+        // Episode numbers are 1-based, so a plain truthy check is fine here —
+        // but read it explicitly so an episode 0 edge case can't blank the label.
+        setSavedEpisodeNo(
+          typeof parsed.episodeNo === "number" && parsed.episodeNo >= 0 ? parsed.episodeNo : null
+        );
+      } catch (e) {}
+    };
+
+    read();
+
+    const onProgress = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      // Only re-read for THIS card — a carousel of 20 cards shouldn't all parse
+      // localStorage every five seconds while something plays.
+      if (!detail?.malId || detail.malId === anime.mal_id) read();
+    };
+    const onFocus = () => read();
+
+    window.addEventListener("davinci:progress", onProgress);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      window.removeEventListener("davinci:progress", onProgress);
+      window.removeEventListener("focus", onFocus);
+    };
   }, [anime.mal_id]);
 
   const closeHover = () => {

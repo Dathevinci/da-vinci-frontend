@@ -90,28 +90,67 @@ export default function WatchOverlay({
   // Auto-track and auto-save progress
   // (Auto-track as "Watching" has been disabled per user request)
   const lastStorageUpdateRef = useRef(0);
-  
+
+  /**
+   * WHICH episode you're on is written immediately and unthrottled.
+   *
+   * This used to share the throttled effect below, so switching episodes within
+   * 5s of the last write silently dropped the new episode number and Continue
+   * Watching kept showing the previous one. Worse, that effect spread
+   * `...existingObj` forward, so the old episode's currentTime/duration were
+   * re-attributed to the new episode and the progress bar was wrong too.
+   *
+   * Position is throttled because it fires on every timeupdate; episode identity
+   * is a rare, important event and must never be dropped.
+   */
+  useEffect(() => {
+    if (activeEpisodeNo == null) return;
+    try {
+      const existing = localStorage.getItem(`davinci_progress_${anime.mal_id}`);
+      const existingObj = existing ? JSON.parse(existing) : {};
+
+      // Only carry the saved position forward when it belongs to THIS episode.
+      const sameEpisode = existingObj.episodeNo === activeEpisodeNo;
+
+      localStorage.setItem(
+        `davinci_progress_${anime.mal_id}`,
+        JSON.stringify({
+          episodeId: activeEpisode?.id,
+          episodeNo: activeEpisodeNo,
+          currentTime: sameEpisode ? existingObj.currentTime : 0,
+          duration: sameEpisode ? existingObj.duration : 0,
+          timestamp: Date.now(),
+        })
+      );
+      // Continue Watching cards read localStorage once on mount, and closing this
+      // overlay doesn't remount them — without this they'd stay stale until a
+      // full page load.
+      window.dispatchEvent(new CustomEvent("davinci:progress", { detail: { malId: anime.mal_id } }));
+    } catch (e) {}
+  }, [activeEpisode, activeEpisodeNo, anime.mal_id]);
+
   useEffect(() => {
     const now = Date.now();
     if (hasStarted && now - lastStorageUpdateRef.current > 5000) {
       try {
         const existing = localStorage.getItem(`davinci_progress_${anime.mal_id}`);
         const existingObj = existing ? JSON.parse(existing) : {};
-        
+
         const progressObj = {
           ...existingObj,
           episodeId: activeEpisode?.id,
           episodeNo: activeEpisodeNo,
           timestamp: now
         };
-        
+
         if (currentTime > 0 && duration > 0) {
           progressObj.currentTime = currentTime;
           progressObj.duration = duration;
         }
-        
+
         localStorage.setItem(`davinci_progress_${anime.mal_id}`, JSON.stringify(progressObj));
         lastStorageUpdateRef.current = now;
+        window.dispatchEvent(new CustomEvent("davinci:progress", { detail: { malId: anime.mal_id } }));
       } catch (e) {}
     }
   }, [hasStarted, currentTime, duration, activeEpisode, activeEpisodeNo, anime.mal_id]);
