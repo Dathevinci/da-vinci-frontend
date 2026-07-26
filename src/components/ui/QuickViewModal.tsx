@@ -313,10 +313,11 @@ export default function QuickViewModal({ anime, options, onClose, onPlayTrailer 
               </div>
 
               {activeTab === "episodes" ? (
-                <EpisodeList 
-                  anime={displayAnime} 
-                  autoPlayProp={options?.autoPlay} 
-                  autoPlayEpProp={options?.startEpisode} 
+                <EpisodeList
+                  anime={displayAnime}
+                  autoPlayProp={options?.autoPlay}
+                  autoPlayEpProp={options?.startEpisode}
+                  resumeSecondsProp={options?.startSeconds}
                 />
               ) : (
                 <CommunityFeed

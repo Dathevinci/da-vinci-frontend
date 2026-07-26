@@ -11,14 +11,17 @@ import { useSearchParams } from 'next/navigation';
 
 const EPISODES_PER_SEASON = 12;
 
-export default function EpisodeList({ 
-  anime, 
-  autoPlayProp, 
-  autoPlayEpProp 
-}: { 
+export default function EpisodeList({
+  anime,
+  autoPlayProp,
+  autoPlayEpProp,
+  resumeSecondsProp
+}: {
   anime: Anime;
   autoPlayProp?: boolean;
   autoPlayEpProp?: number | null;
+  /** Seconds to resume the opened episode from (Continue Watching). */
+  resumeSecondsProp?: number | null;
 }) {
   const [episodes, setEpisodes] = useState<AnikotoEpisode[]>([]);
   const [loading, setLoading] = useState(true);
@@ -492,6 +495,7 @@ export default function EpisodeList({
           consumetAnimeId={consumetId}
           initialEpisodeId={watchEpisodeId}
           initialEpisodeNo={watchEpisodeNo || 1}
+          initialSeconds={resumeSecondsProp ?? null}
           allEpisodes={episodes}
           onClose={() => { setWatchEpisodeId(null); setWatchEpisodeNo(null); }}
         />

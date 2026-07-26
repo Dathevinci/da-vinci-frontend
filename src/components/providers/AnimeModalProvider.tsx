@@ -15,6 +15,8 @@ export interface AnimeModalOptions {
   startEpisode?: number;
   autoPlay?: boolean;
   startTab?: "episodes" | "discussions";
+  /** Seconds to resume from — the Netflix-style "pick up where you left off". */
+  startSeconds?: number;
 }
 
 interface AnimeModalContextValue {

@@ -27,6 +27,8 @@ interface WatchOverlayProps {
   consumetAnimeId: string | null;
   initialEpisodeId: string;
   initialEpisodeNo: number;
+  /** Seconds to resume this episode from. Null/0 starts at the beginning. */
+  initialSeconds?: number | null;
   allEpisodes: AnikotoEpisode[];
   onClose: () => void;
 }
@@ -36,6 +38,7 @@ export default function WatchOverlay({
   consumetAnimeId,
   initialEpisodeId,
   initialEpisodeNo,
+  initialSeconds = null,
   allEpisodes,
   onClose,
 }: WatchOverlayProps) {
@@ -73,6 +76,42 @@ export default function WatchOverlay({
   const [duration, setDuration] = useState(0);
   const [bufferedEnd, setBufferedEnd] = useState(0);
   const [isSeeking, setIsSeeking] = useState(false);
+
+  /**
+   * Where to resume the CURRENT episode from.
+   *
+   * Prefers the value passed in from Continue Watching, but falls back to the
+   * locally saved position — so reopening an episode any other way (the episode
+   * list, a direct link) also picks up where you left off, which is what makes
+   * this feel like Netflix rather than a one-off shortcut.
+   *
+   * Only ever resumes the episode the position actually belongs to.
+   */
+  const [resumeTarget, setResumeTarget] = useState<number | null>(
+    initialSeconds && initialSeconds > 0 ? initialSeconds : null
+  );
+  const resumeAppliedRef = useRef(false);
+
+  useEffect(() => {
+    // A new episode means the old position is meaningless.
+    resumeAppliedRef.current = false;
+
+    if (activeEpisodeNo === initialEpisodeNo && initialSeconds && initialSeconds > 0) {
+      setResumeTarget(initialSeconds);
+      return;
+    }
+    try {
+      const raw = localStorage.getItem(`davinci_progress_${anime.mal_id}`);
+      const saved = raw ? JSON.parse(raw) : null;
+      setResumeTarget(
+        saved && saved.episodeNo === activeEpisodeNo && saved.currentTime > 0 ? saved.currentTime : null
+      );
+    } catch {
+      setResumeTarget(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeEpisodeNo, anime.mal_id]);
+
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -104,7 +143,10 @@ export default function WatchOverlay({
    * Only ever ADDS. If the anime is already tracked we leave it completely alone,
    * so this can't overwrite a status the user set deliberately.
    */
-  const AUTO_TRACK_AFTER = 60; // seconds of playback
+  // 15s: long enough to ignore a misclick, short enough that anything you
+  // genuinely sat down to watch lands on the home feed. 60s was too strict —
+  // Netflix shows a title in Continue Watching almost immediately.
+  const AUTO_TRACK_AFTER = 15; // seconds of playback
   const autoTrackedRef = useRef(false);
 
   useEffect(() => {
@@ -529,7 +571,26 @@ export default function WatchOverlay({
                   }
                 }
               }}
-              onLoadedMetadata={(e) => setDuration(e.currentTarget.duration || 0)}
+              onLoadedMetadata={(e) => {
+                const el = e.currentTarget;
+                setDuration(el.duration || 0);
+
+                // Netflix-style resume. Seeking must happen here, not earlier:
+                // before metadata loads the element has no duration and assigning
+                // currentTime is discarded.
+                if (!resumeAppliedRef.current && resumeTarget != null && resumeTarget > 0) {
+                  resumeAppliedRef.current = true;
+                  // Don't drop someone 2s from the end of an episode they've
+                  // effectively finished — start it over instead.
+                  const dur = el.duration || 0;
+                  if (!dur || resumeTarget < dur - 15) {
+                    try {
+                      el.currentTime = resumeTarget;
+                      setCurrentTime(resumeTarget);
+                    } catch { /* seek can throw on some sources; harmless */ }
+                  }
+                }
+              }}
               onProgress={(e) => {
                 const now = Date.now();
                 if (now - lastProgressUpdateRef.current > 1000) {

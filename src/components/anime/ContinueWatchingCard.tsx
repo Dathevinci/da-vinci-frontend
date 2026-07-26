@@ -36,6 +36,9 @@ export default function ContinueWatchingCard({
 
   const [progressPercent, setProgressPercent] = useState(0);
   const [savedEpisodeNo, setSavedEpisodeNo] = useState<number | null>(null);
+  // Raw seconds, kept alongside the percentage so Play can resume the exact spot
+  // rather than restarting the episode.
+  const [savedSeconds, setSavedSeconds] = useState(0);
 
   /**
    * Re-read on mount AND whenever the player saves.
@@ -73,6 +76,7 @@ export default function ContinueWatchingCard({
       }
 
       setSavedEpisodeNo(ep);
+      setSavedSeconds(secs > 0 ? secs : 0);
       // Reset rather than leaving a stale bar: a fresh episode legitimately has
       // no position yet, and keeping the old percentage misreports it.
       setProgressPercent(dur > 0 && secs > 0 ? Math.min(100, (secs / dur) * 100) : 0);
@@ -112,9 +116,11 @@ export default function ContinueWatchingCard({
   const handlePlay = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     closeHover();
-    openAnime(anime, { 
-      startEpisode: savedEpisodeNo || undefined, 
-      autoPlay: true 
+    openAnime(anime, {
+      startEpisode: savedEpisodeNo || undefined,
+      // Resume the exact spot, not just the right episode.
+      startSeconds: savedSeconds > 0 ? savedSeconds : undefined,
+      autoPlay: true
     });
   };
 
