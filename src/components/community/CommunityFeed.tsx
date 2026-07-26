@@ -98,19 +98,23 @@ const buildCommentTree = (comments: Comment[], currentSortBy: 'newest' | 'top' |
 
   const sortNodes = (nodes: CommentNode[]) => {
     nodes.sort((a, b) => {
-      // Pinned posts always at top of feed for root comments
-      if (!a.parentId && !b.parentId) {
-        if (a.isPinned && !b.isPinned) return -1;
-        if (!a.isPinned && b.isPinned) return 1;
+      if (currentSortBy === 'top') {
+        // Pinned leads only here — in "top" a pinned post reading first is
+        // intentional. Forcing it first in New/Old made an explicit
+        // chronological choice open with a weeks-old comment, which is what made
+        // the sort look broken.
+        if (!a.parentId && !b.parentId && a.isPinned !== b.isPinned) {
+          return a.isPinned ? -1 : 1;
+        }
+        if (b.score !== a.score) return b.score - a.score;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       }
 
-      if (currentSortBy === 'top') {
-        if (b.score !== a.score) return b.score - a.score;
-      } else if (currentSortBy === 'oldest') {
+      if (currentSortBy === 'oldest') {
         return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       }
-      
-      // Default / Newest fallback
+
+      // newest
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
     
