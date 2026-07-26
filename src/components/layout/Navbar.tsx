@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut, Users, Palette, ShoppingBag, Menu, X, Settings, Heart, ChevronDown, Tv, BookMarked, BookOpen } from 'lucide-react';
+import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut, Users, Palette, ShoppingBag, Menu, X, Settings, Heart, ChevronDown, Tv, BookMarked, BookOpen, Swords } from 'lucide-react';
 import { isAdmin, isLeadDev } from "@/lib/admin";
 import LoginModal from './LoginModal';
 import SearchModal from './SearchModal';
@@ -189,6 +189,7 @@ export default function Navbar() {
                 <div className="absolute top-full left-0 w-48 pt-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
                   <div className="bg-[#0f0f11] border border-white/10 rounded-xl shadow-xl flex flex-col overflow-hidden py-2">
                     <Link href="/community" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><Users className="w-4 h-4" /> Community</Link>
+                    <Link href="/quests" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><Swords className="w-4 h-4" /> Daily Quests</Link>
                     <Link href="/shop" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><ShoppingBag className="w-4 h-4" /> Shop</Link>
                     <Link href="/support" className="px-4 py-2 hover:bg-white/5 text-[#ff5e5b] hover:text-[#ff4542] transition flex items-center gap-2"><Heart className="w-4 h-4" /> Support Us</Link>
                   </div>
@@ -292,6 +293,9 @@ export default function Navbar() {
             <hr className="border-white/10 my-2" />
             <Link href="/community" onClick={() => setIsMobileMenuOpen(false)} className={`${accentHover} flex items-center gap-3`}>
               <Users className="w-6 h-6" /> Community
+            </Link>
+            <Link href="/quests" onClick={() => setIsMobileMenuOpen(false)} className={`${accentHover} flex items-center gap-3`}>
+              <Swords className="w-6 h-6" /> Daily Quests
             </Link>
             <Link href="/shop" onClick={() => setIsMobileMenuOpen(false)} className={`${accentHover} flex items-center gap-3`}>
               <ShoppingBag className="w-6 h-6" /> Shop
