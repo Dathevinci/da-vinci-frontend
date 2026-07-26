@@ -124,7 +124,9 @@ export default function ShopPage() {
   };
   // Discovery controls — as the catalog grows these keep everything findable.
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState<"all" | "sss" | "rare" | "frame" | "effect">("all");
+  // Widened to string because the themed collection keys join the rarity/type
+  // keys here; a fixed union would have to be kept in sync with COLLECTIONS.
+  const [category, setCategory] = useState<string>("all");
   const [owned, setOwned] = useState<"all" | "unowned" | "owned">("all");
   // Live clock for limited-drop countdowns. Starts null and is set on mount so
   // the SSR/prerender markup never bakes in a build-time Date.now() (hydration
@@ -414,15 +416,61 @@ export default function ShopPage() {
     );
   };
 
+  /**
+   * Themed collections — a second way to browse, cutting across rarity.
+   *
+   * Membership is an explicit id list rather than anything inferred from names,
+   * so renaming an item can never silently drop it out of its set. An id that
+   * isn't in the catalog is simply ignored, so this can't crash if an item is
+   * ever removed.
+   */
+  const COLLECTIONS = [
+    {
+      key: "jujutsu",
+      title: "The Sorcery Collection",
+      blurb: "Domains, cursed techniques and the things that answer when you call them.",
+      ids: ["effect_void", "effect_hollow", "effect_mahoraga", "effect_ritual"],
+    },
+    {
+      key: "mysteries",
+      title: "The Mysteries Collection",
+      blurb: "Grey fog, borrowed divinity, and the pathways between them.",
+      ids: ["effect_fool", "effect_evernight"],
+    },
+    {
+      key: "nature",
+      title: "The Wild Collection",
+      blurb: "Mountains, canopies and still water — the quiet end of the catalog.",
+      ids: ["effect_himalaya", "effect_jungle", "effect_lotus", "effect_canopy"],
+    },
+    {
+      key: "cosmic",
+      title: "The Cosmic Collection",
+      blurb: "Gravity, lightning and the dark between stars.",
+      ids: ["effect_blackhole", "effect_ascension", "effect_unblinking"],
+    },
+  ] as const;
+
+  const collectionItems = (key: string) => {
+    const set = COLLECTIONS.find((c) => c.key === key);
+    if (!set) return [];
+    // Preserve the order declared above, not catalog order — a collection reads
+    // better curated than alphabetical.
+    return set.ids.map((id) => SHOP_ITEMS.find((it) => it.id === id)).filter(Boolean) as typeof SHOP_ITEMS;
+  };
+
   const SECTIONS = [
     { key: "sss", title: "SSS Grade", blurb: "Beyond rarity. One exists — and it costs accordingly." },
     { key: "rare", title: "Extreme Rare", blurb: "The single rarest power on the platform. The whole profile, transformed." },
     { key: "frame", title: "Avatar Frames", blurb: "An animated ring that spins around your avatar — everywhere it appears." },
     { key: "effect", title: "Avatar Effects", blurb: "Floating particles around your avatar, plus a matching flourish across your whole profile." },
+    ...COLLECTIONS.map((c) => ({ key: c.key, title: c.title, blurb: c.blurb })),
   ];
 
   const sectionItems = (key: string) =>
-    key === "sss"
+    COLLECTIONS.some((c) => c.key === key)
+      ? collectionItems(key)
+      : key === "sss"
       ? SHOP_ITEMS.filter((it) => (it as any).sss)
       : key === "rare"
         ? SHOP_ITEMS.filter((it) => (it as any).rare && !(it as any).sss)
@@ -437,7 +485,14 @@ export default function ShopPage() {
     return true;
   };
 
-  const sectionData = SECTIONS.filter((s) => category === "all" || s.key === category).map((s) => ({
+  /**
+   * On "All", show only the rarity/type sections. Collections are a different
+   * VIEW of the same items, not extra items — including them here would render
+   * every themed effect twice on the default tab.
+   */
+  const sectionData = SECTIONS.filter((s) =>
+    category === "all" ? !COLLECTIONS.some((c) => c.key === s.key) : s.key === category
+  ).map((s) => ({
     ...s,
     items: sectionItems(s.key).filter(matchesFilters),
   }));
@@ -450,11 +505,19 @@ export default function ShopPage() {
   };
 
   const TABS = [
-    { key: "all" as const, label: "All", icon: LayoutGrid, count: SHOP_ITEMS.length },
-    { key: "sss" as const, label: "SSS", icon: Target, count: sectionItems("sss").length },
-    { key: "rare" as const, label: "Extreme Rare", icon: Zap, count: sectionItems("rare").length },
-    { key: "frame" as const, label: "Frames", icon: Aperture, count: sectionItems("frame").length },
-    { key: "effect" as const, label: "Effects", icon: Sparkles, count: sectionItems("effect").length },
+    { key: "all", label: "All", icon: LayoutGrid, count: SHOP_ITEMS.length },
+    { key: "sss", label: "SSS", icon: Target, count: sectionItems("sss").length },
+    { key: "rare", label: "Extreme Rare", icon: Zap, count: sectionItems("rare").length },
+    { key: "frame", label: "Frames", icon: Aperture, count: sectionItems("frame").length },
+    { key: "effect", label: "Effects", icon: Sparkles, count: sectionItems("effect").length },
+    // Themed sets, after the rarity/type tabs. Collections with no surviving
+    // items are dropped so an empty tab can never render.
+    ...COLLECTIONS.map((c) => ({
+      key: c.key as string,
+      label: c.title.replace(/^The\s+|\s+Collection$/g, ""),
+      icon: Gift,
+      count: collectionItems(c.key).length,
+    })).filter((t) => t.count > 0),
   ];
 
   // What the user is wearing right now — quick glance + one-tap unequip.
