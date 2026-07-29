@@ -231,7 +231,20 @@ export async function getChapterContent(slug: string, chapterId: string): Promis
   const startM = html.match(/id="chapter-content"[^>]*>/i);
   if (startM && startM.index != null) {
     let rest = html.slice(startM.index + startM[0].length);
-    const cut = rest.search(/id="chapter-nav|class="[^"]*chapter-nav|id="comment|class="[^"]*comment|<footer|class="ads/i);
+    /**
+     * Cut only at markers that genuinely FOLLOW the chapter.
+     *
+     * `class="ads` used to be in this list, and that silently truncated
+     * chapters mid-way: this site injects ad blocks INSIDE the chapter body, so
+     * the first inline ad ended the capture and every paragraph after it was
+     * thrown away. The reader showed a chapter that just stopped.
+     *
+     * Inline ads never needed handling here — htmlToParagraphs below already
+     * strips <script>, <style>, <ins> and ad/banner/adsbygoogle divs out of the
+     * captured block. Removing them is right; cutting the chapter short at them
+     * is not.
+     */
+    const cut = rest.search(/id="chapter-nav|class="[^"]*chapter-nav|id="comment|class="[^"]*comment|<footer/i);
     block = cut > 0 ? rest.slice(0, cut) : rest;
   }
   const content = htmlToParagraphs(block);
