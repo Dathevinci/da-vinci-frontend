@@ -565,7 +565,7 @@ const CommentThread = ({
                     </button>
                     <button
                       onClick={() => handlePost(node.id, replyContent, replyMediaUrl)}
-                      disabled={isReplying || !replyContent.trim()}
+                      disabled={isReplying || (!replyContent.trim() && !replyMediaUrl.trim())}
                       className="bg-purple-600 hover:bg-purple-500 shadow-[0_0_15px_rgba(79,70,229,0.3)] hover:shadow-[0_0_20px_rgba(79,70,229,0.5)] disabled:opacity-50 disabled:shadow-none text-white px-5 py-1.5 rounded-full text-xs sm:text-sm font-bold transition-all hover:scale-[1.02]"
                     >
                       {isReplying ? 'Replying...' : 'Reply'}
@@ -639,7 +639,7 @@ const CommentThread = ({
                           setReplyMediaUrl("");
                         }
                       }}
-                      disabled={isReplying || !replyContent.trim()}
+                      disabled={isReplying || (!replyContent.trim() && !replyMediaUrl.trim())}
                       className="bg-purple-600 hover:bg-purple-500 shadow-[0_0_15px_rgba(79,70,229,0.3)] hover:shadow-[0_0_20px_rgba(79,70,229,0.5)] disabled:opacity-50 text-white px-5 py-1.5 rounded-full text-xs font-bold transition-all"
                     >
                       {isReplying ? 'Replying...' : 'Reply'}
@@ -815,7 +815,10 @@ export default function CommunityFeed({
 
   const handlePost = async (parentId: string | null = null, content: string, mediaUrl?: string) => {
     if (!user) return setError("You must be logged in to post.");
-    if (!content.trim()) return;
+    // A GIF on its own is a valid post. This used to require text and then
+    // SILENTLY return, so attaching an image and hitting Post did nothing at
+    // all — no error, no post, just a dead button.
+    if (!content.trim() && !mediaUrl?.trim()) return;
 
     if (parentId) setIsReplying(true);
     else setIsPosting(true);
@@ -1127,7 +1130,7 @@ export default function CommunityFeed({
                     onChange={(e) => setNewComment(e.target.value)}
                     onKeyDown={(e: any) => {
                       // ⌘/Ctrl+Enter posts, Escape collapses an empty composer
-                      if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && newComment.trim() && !isPosting) {
+                      if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && (newComment.trim() || newMediaUrl.trim()) && !isPosting) {
                         handlePost(null, newComment, newMediaUrl);
                       } else if (e.key === "Escape" && !newComment.trim()) {
                         setComposerOpen(false);
@@ -1191,7 +1194,7 @@ export default function CommunityFeed({
                       )}
                       <button
                         onClick={() => handlePost(null, newComment, newMediaUrl)}
-                        disabled={isPosting || !newComment.trim()}
+                        disabled={isPosting || (!newComment.trim() && !newMediaUrl.trim())}
                         className="flex items-center gap-2 rounded-full bg-purple-600 px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         {isPosting ? (
