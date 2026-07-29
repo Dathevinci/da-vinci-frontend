@@ -20,24 +20,30 @@ import { calculateLevel } from "./levels";
  * user has equipped. The THEME (colours/glow) still comes from this file:
  * staff themes for staff, otherwise the theme of the level reached.
  *
- * The 10 level titles (Watcher … Delusion Entity) each carry their own colour
+ * The 10 level titles (see heartRanks.ts) each carry their own colour
  * theme so the whole profile escalates as you climb.
  */
-export const LEVEL_TITLES: Record<number, string> = {
-  1: "Watcher",
-  2: "Overseer",
-  3: "Sleepless",
-  4: "Peak Seeker",
-  5: "Maniac",
-  6: "Conqueror",
-  7: "Eye of Calamity",
-  8: "High Dimensional Overseer",
-  9: "Will of Eternity",
-  10: "Delusion Entity",
-};
+// Safe to import: heartRanks.ts has no imports of its own, so no cycle.
+import { HEART_RANKS } from "./heartRanks";
+
+/**
+ * Level titles now come from the Heart Cultivation ranks (lib/heartRanks.ts).
+ *
+ * There used to be a SECOND, separate set of level titles defined here, so a
+ * profile displayed two different names for the same level — the old list next
+ * to the heart rank. That system is gone; heart ranks are the one source of a
+ * level's name, everywhere.
+ *
+ * Kept as a derived map rather than deleted outright because the per-level
+ * THEMES below (colour, glow, badge icon) still key off it, and every consumer
+ * reads `rankTheme.title`.
+ */
+export const LEVEL_TITLES: Record<number, string> = Object.fromEntries(
+  Object.entries(HEART_RANKS).map(([level, rank]) => [level, rank.name])
+) as Record<number, string>;
 
 // Per-level theme. Colours climb from a cool cyan watcher up to a cosmic,
-// void-touched Delusion Entity at max level.
+// void-touched theme at max level.
 const LEVEL_THEMES: Record<number, RankTheme> = {
   1: {
     title: LEVEL_TITLES[1],

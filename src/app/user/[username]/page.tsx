@@ -429,7 +429,12 @@ export default function PublicProfilePage() {
                 
                 {/* Titles stack side by side — the staff/level title, the Heart
                     Cultivation rank, and any shop-bought title all coexist. */}
-                {rankTheme.title && (
+                {/* Level titles are now the Heart Cultivation names, and the
+                    richer heart badge below already shows that name with its
+                    numeral and lore. Render this one only when it says something
+                    DIFFERENT — i.e. the staff badge (LEAD DEV / ADMIN) — so the
+                    same word never appears twice in a row. */}
+                {rankTheme.title && rankTheme.title !== getHeartRank(currentLevel).name && (
                   <div className={`shrink-0 px-3 py-1 rounded-full flex items-center gap-1 ${rankTheme.badgeClass}`}>
                     {RankIcon && <RankIcon className="w-4 h-4" />}
                     <span className="text-xs font-black tracking-wider uppercase">
