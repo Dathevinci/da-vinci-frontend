@@ -5,7 +5,7 @@ import { useAnimeModal } from '@/components/providers/AnimeModalProvider';
 import { Anime } from '@tutkli/jikan-ts';
 import { useUser } from '@/hooks/useUser';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, Heart, Trash2, Send, CornerDownRight, Zap, Flame, Crown, Code2, Sparkles, Feather, Leaf, User as UserIcon, Image as ImageIcon, Edit, Shield, Star, ShieldAlert, Eye, Compass, ArrowUpRight, Pin, Search, Filter, ChevronDown, ChevronUp } from 'lucide-react';
+import { MessageSquare, Heart, Trash2, Send, CornerDownRight, Zap, Flame, Crown, Code2, Sparkles, Feather, Leaf, User as UserIcon, Image as ImageIcon, Edit, Shield, Star, ShieldAlert, Eye, Compass, ArrowUpRight, Pin, Search, Filter, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { isAdmin, isLeadDev } from "@/lib/admin";
 import { nameColorClass } from "@/lib/cosmetics";
 import { AvatarDecoration, hasFrameRing } from "@/components/profile/AvatarDecoration";
