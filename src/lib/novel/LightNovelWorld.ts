@@ -72,6 +72,9 @@ async function fetchHtml(path: string, revalidate = 300): Promise<string> {
 
 const decode = (s: string) =>
   s
+    // Hex entities FIRST — this site emits &#x27; for apostrophes, which the
+    // decimal rule below can't see, so titles rendered as "King&#x27;s Bride".
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCharCode(parseInt(h, 16)))
     .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(Number(d)))
     .replace(/&quot;/g, '"')
     .replace(/&#0?39;|&apos;/g, "'")
