@@ -2,86 +2,120 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Info, PlayCircle } from "lucide-react";
 import { useNovelModal } from "@/components/providers/NovelModalProvider";
 import type { NovelResult } from "@/lib/novel/ReadNovelFull";
 import { useNovelCover } from "@/lib/novel/useNovelCover";
 
-function HeroCard({ item, i, activeIndex, getCardStyle, setActiveIndex, openNovel }: any) {
-  const isActive = i === activeIndex;
-  const style = getCardStyle(i);
-  const { cover: src } = useNovelCover(item.title, item.cover);
-
-  return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, x: style.x > 0 ? 300 : -300, scale: 0.5 }}
-      animate={{ opacity: style.opacity, x: style.x, scale: style.scale, zIndex: style.zIndex, pointerEvents: style.opacity === 0 ? "none" : "auto" }}
-      transition={{ type: "spring", stiffness: 300, damping: 30, mass: 0.8 }}
-      className="absolute w-[180px] h-[260px] md:w-[220px] md:h-[320px] rounded-xl overflow-hidden cursor-pointer border border-[#2a2a32] shadow-2xl bg-[#09090b]"
-      onClick={() => setActiveIndex(i)}
-      style={{
-        boxShadow: isActive ? "0 20px 40px rgba(0,0,0,0.8), 0 0 20px rgba(236,72,153,0.3)" : "0 10px 20px rgba(0,0,0,0.5)",
-        filter: isActive ? "none" : "brightness(0.6)",
-      }}
-    >
-      {isActive ? (
-        <button onClick={() => openNovel(item)} className="block w-full h-full relative text-left">
-          {src ? <img src={src} alt={item.title} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-[#151518]" />}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-end p-4">
-            <h3 className="text-white font-black text-sm md:text-base leading-tight drop-shadow-md text-center">{item.title}</h3>
-            {item.latestChapter && <p className="text-slate-300 text-[11px] text-center mt-1 line-clamp-1">{item.latestChapter}</p>}
-          </div>
-        </button>
-      ) : (
-        <div className="w-full h-full relative">{src ? <img src={src} alt={item.title} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-[#151518]" />}</div>
-      )}
-    </motion.div>
-  );
-}
-
+/**
+ * Full-bleed hero for Novel mode.
+ *
+ * Replaces the old 3D card carousel. Identical layout to the anime and manhwa
+ * heroes and deliberately sparse: title, one dot-separated meta line, two
+ * actions. The synopsis and chapter list live behind More Info.
+ *
+ * Accent is pink here — anime is purple, manhwa crimson — so each mode keeps
+ * its identity while the shape stays the same.
+ */
 export default function NovelHeroCarousel({ items }: { items: NovelResult[] }) {
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const { openNovel } = useNovelModal();
 
   useEffect(() => {
     if (items.length <= 1) return;
-    const interval = setInterval(() => setActiveIndex((prev) => (prev + 1) % items.length), 4000);
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % items.length);
+    }, 7000);
     return () => clearInterval(interval);
-  }, [items]);
+  }, [items.length]);
 
-  if (!items || items.length === 0) return null;
+  const hero = items && items.length > 0 ? items[currentIndex] : null;
+  // Hook order must stay stable, so this runs before any early return.
+  const { cover } = useNovelCover(hero?.title || "", hero?.cover);
 
-  const getCardStyle = (index: number) => {
-    const diff = (index - activeIndex + items.length) % items.length;
-    let offset = diff;
-    if (offset > items.length / 2) offset -= items.length;
-    if (Math.abs(offset) > 3) return { opacity: 0, x: offset > 0 ? 1000 : -1000, scale: 0.5, zIndex: 0 };
-    const absOffset = Math.abs(offset);
-    const scale = offset === 0 ? 1 : 0.85 - absOffset * 0.05;
-    const x = offset * 220;
-    const zIndex = 10 - absOffset;
-    const opacity = offset === 0 ? 1 : 0.5 - absOffset * 0.1;
-    return { x, scale, zIndex, opacity };
-  };
+  if (!hero) return null;
 
   return (
-    <div className="relative w-full h-[320px] md:h-[400px] overflow-hidden flex items-center justify-center bg-[#09090b] mb-12 py-10">
-      <div className="absolute inset-0 bg-pink-900/20 blur-[100px] pointer-events-none" />
+    <div className="relative mb-10 h-[75vh] w-full overflow-hidden bg-[#09090b] md:h-[85vh]">
+      <AnimatePresence initial={false}>
+        <motion.img
+          key={currentIndex}
+          src={cover || ""}
+          alt=""
+          initial={{ opacity: 0, scale: 1.06 }}
+          animate={{ opacity: 0.4, scale: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{
+            opacity: { duration: 1.1, ease: "easeInOut" },
+            scale: { duration: 7, ease: "easeOut" },
+          }}
+          className="absolute inset-0 z-0 h-full w-full object-cover"
+          style={{ willChange: "opacity, transform" }}
+        />
+      </AnimatePresence>
 
-      <div className="relative w-full max-w-[1200px] h-[300px] flex items-center justify-center">
-        <AnimatePresence initial={false} mode="popLayout">
-          {items.map((item, i) => (
-            <HeroCard
-              key={item.id}
-              item={item}
-              i={i}
-              activeIndex={activeIndex}
-              getCardStyle={getCardStyle}
-              setActiveIndex={setActiveIndex}
-              openNovel={openNovel}
-            />
-          ))}
+      {/* Static overlays, outside the animated layer so they never re-composite
+          on a slide change. */}
+      <div className="absolute inset-0 z-10 bg-gradient-to-r from-[#09090b] via-[#09090b]/80 to-transparent" />
+      <div className="absolute inset-0 z-10 bg-gradient-to-t from-[#09090b] via-transparent to-transparent" />
+
+      <div className="relative z-20 container mx-auto h-full max-w-4xl">
+        <AnimatePresence>
+          <motion.div
+            key={currentIndex}
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+            className="absolute inset-0 mt-10 flex flex-col justify-center px-4 md:mt-16 md:px-12"
+          >
+            <h1 className="mb-3 line-clamp-3 pb-1 text-3xl font-black uppercase leading-[1.05] tracking-tight text-white drop-shadow-2xl sm:text-5xl md:mb-4 md:text-6xl lg:text-7xl">
+              {hero.title}
+            </h1>
+
+            <div className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs font-bold text-slate-300 drop-shadow md:text-sm">
+              <span className="text-pink-400">#{currentIndex + 1} Trending</span>
+              <span className="text-white/25">•</span>
+              <span>Light Novel</span>
+              {hero.latestChapter ? (
+                <>
+                  <span className="text-white/25">•</span>
+                  <span className="line-clamp-1">{hero.latestChapter}</span>
+                </>
+              ) : null}
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => openNovel(hero)}
+                className="flex items-center justify-center gap-2 rounded-full bg-white px-7 py-3 text-base font-black text-black transition hover:bg-white/90 md:px-9"
+              >
+                <PlayCircle className="h-5 w-5" fill="currentColor" strokeWidth={0} />
+                Read
+              </button>
+              <button
+                onClick={() => openNovel(hero)}
+                className="flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/10 px-6 py-3 text-base font-bold text-white backdrop-blur-sm transition hover:bg-white/20 md:px-7"
+              >
+                <Info className="h-5 w-5" />
+                More Info
+              </button>
+            </div>
+          </motion.div>
         </AnimatePresence>
+      </div>
+
+      <div className="absolute bottom-8 left-0 right-0 z-30 flex justify-center gap-2">
+        {items.map((_, idx) => (
+          <button
+            key={idx}
+            onClick={() => setCurrentIndex(idx)}
+            aria-label={`Go to slide ${idx + 1}`}
+            className={`h-1.5 rounded-full transition-all duration-500 ${
+              idx === currentIndex ? "w-8 bg-pink-500" : "w-2 bg-white/20 hover:bg-white/40"
+            }`}
+          />
+        ))}
       </div>
     </div>
   );
