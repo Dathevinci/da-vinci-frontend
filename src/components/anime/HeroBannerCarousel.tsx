@@ -58,15 +58,17 @@ export default function HeroBannerCarousel({ animes }: Props) {
   return (
     <div className="relative w-full h-[56vh] md:h-[66vh] overflow-hidden bg-[#09090b] mb-10">
 
-      {/* Cinematic key-art background — a clean opacity crossfade with a slow,
-          GPU-friendly zoom. No embedded player, so no stray controls and no lag. */}
+      {/* Cinematic key-art background with a slow, GPU-friendly zoom.
+          It CROSSFADES OUT as the trailer arrives — both were previously held at
+          0.45 with the video stacked on top, so you saw the still and the video
+          at once as a ghosted double image. Only one is ever visible now. */}
       <AnimatePresence initial={false}>
         <motion.img
           key={currentIndex}
           src={bannerImg}
           alt="Banner"
           initial={{ opacity: 0, scale: 1.06 }}
-          animate={{ opacity: 0.45, scale: 1 }}
+          animate={{ opacity: trailerId && showTrailer ? 0 : 0.45, scale: 1 }}
           exit={{ opacity: 0 }}
           transition={{
             opacity: { duration: 1.1, ease: "easeInOut" },
