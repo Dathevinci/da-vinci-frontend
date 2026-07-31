@@ -14,11 +14,13 @@
 import * as RNF from "./ReadNovelFull";
 import * as NF from "./NovelFull";
 import * as FMTL from "./FanMTL";
+import * as LNW from "./LightNovelWorld";
 import type { NovelResult, NovelInfo, ChapterContent } from "./ReadNovelFull";
 
-export function resolveSource(id: string): { source: "nf" | "fmtl" | "rnf"; slug: string } {
+export function resolveSource(id: string): { source: "nf" | "fmtl" | "rnf" | "lnw"; slug: string } {
   if (id.startsWith("nf:")) return { source: "nf", slug: id.slice(3) };
   if (id.startsWith("fmtl:")) return { source: "fmtl", slug: id.slice(5) };
+  if (id.startsWith("lnw:")) return { source: "lnw", slug: id.slice(4) };
   return { source: "rnf", slug: id.replace(/^rnf:/, "") };
 }
 
@@ -30,6 +32,7 @@ export async function getNovelInfo(id: string): Promise<NovelInfo> {
   let infoPromise: Promise<NovelInfo>;
   if (source === "nf") infoPromise = NF.getNovelInfo(slug);
   else if (source === "fmtl") infoPromise = FMTL.getNovelInfo(slug);
+  else if (source === "lnw") infoPromise = LNW.getNovelInfo(slug);
   else infoPromise = RNF.getNovelInfo(slug);
 
   const info = await infoPromise;
@@ -79,6 +82,7 @@ export async function getChapterContent(id: string, chapterId: string): Promise<
   const { source, slug } = resolveSource(id);
   if (source === "nf") return NF.getChapterContent(slug, chapterId);
   if (source === "fmtl") return FMTL.getChapterContent(slug, chapterId);
+  if (source === "lnw") return LNW.getChapterContent(slug, chapterId);
   return RNF.getChapterContent(slug, chapterId);
 }
 
@@ -86,15 +90,20 @@ export async function getChapterContent(id: string, chapterId: string): Promise<
 // since it's the richer source), deduped by title. A source that fails is
 // skipped, so search still works if one is down.
 async function runSearch(query: string, page: number): Promise<{ results: NovelResult[]; hasNextPage: boolean }> {
-  const [nf, rnf] = await Promise.allSettled([NF.searchNovels(query, page), RNF.searchNovels(query, page)]);
+  const [nf, rnf, lnw] = await Promise.allSettled([
+    NF.searchNovels(query, page),
+    RNF.searchNovels(query, page),
+    LNW.searchNovels(query, page),
+  ]);
   const a = nf.status === "fulfilled" ? nf.value.results : [];
   const b = rnf.status === "fulfilled" ? rnf.value.results : [];
+  const c = lnw.status === "fulfilled" ? lnw.value.results : [];
 
   const merged: NovelResult[] = [];
   const seen = new Set<string>();
-  const max = Math.max(a.length, b.length);
+  const max = Math.max(a.length, b.length, c.length);
   for (let i = 0; i < max; i++) {
-    for (const item of [a[i], b[i]]) {
+    for (const item of [a[i], b[i], c[i]]) {
       if (!item) continue;
       const key = item.title.toLowerCase().trim();
       if (seen.has(key)) continue;
