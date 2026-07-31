@@ -32,7 +32,7 @@ export default function HeroBannerCarousel({ animes }: Props) {
     "") as string;
 
   return (
-    <div className="relative w-full h-[75vh] md:h-[85vh] overflow-hidden bg-[#09090b] mb-10">
+    <div className="relative w-full h-[56vh] md:h-[66vh] overflow-hidden bg-[#09090b] mb-10">
 
       {/* Cinematic key-art background — a clean opacity crossfade with a slow,
           GPU-friendly zoom. No embedded player, so no stray controls and no lag. */}

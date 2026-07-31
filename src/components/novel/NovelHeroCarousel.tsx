@@ -36,7 +36,7 @@ export default function NovelHeroCarousel({ items }: { items: NovelResult[] }) {
   if (!hero) return null;
 
   return (
-    <div className="relative mb-10 h-[75vh] w-full overflow-hidden bg-[#09090b] md:h-[85vh]">
+    <div className="relative mb-10 h-[56vh] w-full overflow-hidden bg-[#09090b] md:h-[66vh]">
       <AnimatePresence initial={false}>
         <motion.img
           key={currentIndex}

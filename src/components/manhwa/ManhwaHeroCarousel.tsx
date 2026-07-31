@@ -37,7 +37,7 @@ export default function ManhwaHeroCarousel({ items }: { items: IMangaResult[] })
   const bannerImg = hero.image ? `/api/manhwa-image?url=${encodeURIComponent(hero.image)}` : "";
 
   return (
-    <div className="relative mb-10 h-[75vh] w-full overflow-hidden bg-[#09090b] md:h-[85vh]">
+    <div className="relative mb-10 h-[56vh] w-full overflow-hidden bg-[#09090b] md:h-[66vh]">
       <AnimatePresence initial={false}>
         <motion.img
           key={currentIndex}
