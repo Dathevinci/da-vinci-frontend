@@ -1,0 +1,795 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Outer God: Abyssal Gaze — SSS Effect Prototype</title>
+<style>html,body{margin:0;padding:0;background:#010204}</style>
+</head>
+<body>
+<style>
+  /* ————— The Sanity-Draining Void — page shell ————— */
+  .og-root {
+    position: fixed;
+    inset: 0;
+    background: #010204;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+    color: #e8ece1;
+  }
+
+  /* Heavy CSS vignette — plunges the UI into a deep-sea abyss (above the
+     canvas so the gloom presses in on the effect too). */
+  .og-vignette {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    pointer-events: none;
+    background: radial-gradient(ellipse at 50% 46%,
+      transparent 30%,
+      rgba(0, 2, 4, 0.45) 62%,
+      rgba(0, 1, 2, 0.92) 100%);
+  }
+
+  /* ————— The profile card (the altar) ————— */
+  .og-card {
+    position: relative;
+    z-index: 10;
+    background: rgba(2, 5, 8, 0.95);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 128, 128, 0.28);
+    border-radius: 20px;
+    padding: 44px 60px 38px;
+    text-align: center;
+    box-shadow: 0 0 60px rgba(0, 0, 0, 0.85), inset 0 0 40px rgba(0, 10, 12, 0.6);
+    max-width: 92vw;
+  }
+
+  /* Dummy 150×150 circular avatar — the epicenter the effect tracks. */
+  .og-avatar {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    margin: 0 auto 22px;
+    position: relative;
+    background: radial-gradient(circle at 34% 30%, #123b3e 0%, #071a20 46%, #02060a 100%);
+    border: 2px solid rgba(0, 160, 150, 0.55);
+    box-shadow: 0 0 34px rgba(0, 140, 130, 0.35), inset 0 0 26px rgba(0, 0, 0, 0.8);
+  }
+  .og-avatar-core {
+    position: absolute;
+    inset: 16%;
+    border-radius: 50%;
+    background: conic-gradient(from 210deg,
+      rgba(216, 31, 180, 0.55), rgba(0, 128, 128, 0.6),
+      rgba(10, 5, 25, 0.95), rgba(216, 31, 180, 0.55));
+    filter: blur(7px);
+    opacity: 0.85;
+    animation: ogSpin 16s linear infinite;
+  }
+  .og-avatar::after {
+    /* pale corpse-white catchlight */
+    content: "";
+    position: absolute;
+    left: 26%; top: 18%;
+    width: 18%; height: 12%;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(232, 236, 225, 0.5), transparent);
+  }
+  @keyframes ogSpin { to { transform: rotate(360deg); } }
+
+  .og-chips {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 14px;
+  }
+  .og-chip {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    padding: 4px 10px;
+    border-radius: 999px;
+    text-transform: uppercase;
+  }
+  .og-chip--sss {
+    color: #2ee6d6;
+    border: 1px solid rgba(46, 230, 214, 0.45);
+    background: rgba(0, 128, 128, 0.12);
+    text-shadow: 0 0 12px rgba(46, 230, 214, 0.6);
+  }
+  .og-chip--off {
+    color: #ff9df0;
+    border: 1px solid rgba(216, 31, 180, 0.5);
+    background: rgba(216, 31, 180, 0.12);
+  }
+
+  .og-title {
+    font-family: "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: clamp(22px, 4vw, 34px);
+    font-weight: 700;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    margin: 0 0 4px;
+    background: linear-gradient(92deg, #2ee6d6 10%, #9db8b2 45%, #d81fb4 90%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-wrap: balance;
+  }
+  .og-sub {
+    font-size: 11px;
+    letter-spacing: 0.34em;
+    text-transform: uppercase;
+    color: rgba(157, 184, 178, 0.55);
+    margin-bottom: 20px;
+  }
+
+  .og-price {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 10px;
+    font-variant-numeric: tabular-nums;
+  }
+  .og-price s {
+    color: rgba(157, 184, 178, 0.45);
+    font-size: 14px;
+  }
+  .og-price strong {
+    font-size: 22px;
+    color: #e8ece1;
+    text-shadow: 0 0 18px rgba(0, 160, 150, 0.5);
+  }
+  .og-price span { font-size: 12px; color: rgba(157, 184, 178, 0.7); }
+
+  .og-hint {
+    margin-top: 22px;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(157, 184, 178, 0.4);
+    animation: ogPulse 4s ease-in-out infinite;
+  }
+  @keyframes ogPulse { 50% { color: rgba(216, 31, 180, 0.55); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .og-avatar-core, .og-hint { animation: none; }
+  }
+</style>
+
+<div class="og-root">
+  <div class="og-card">
+    <div class="og-avatar" id="og-avatar"><div class="og-avatar-core"></div></div>
+    <div class="og-chips">
+      <span class="og-chip og-chip--sss">SSS-Grade</span>
+      <span class="og-chip og-chip--off">−10%</span>
+    </div>
+    <h1 class="og-title">Outer God: Abyssal Gaze</h1>
+    <div class="og-sub">Profile Effect · Lovecraftian Cosmic Horror</div>
+    <div class="og-price">
+      <s>12,000</s>
+      <strong>10,800</strong>
+      <span>Arise Points</span>
+    </div>
+    <div class="og-hint">Click anywhere — provoke the Gaze</div>
+  </div>
+  <div class="og-vignette"></div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  const TAU = Math.PI * 2;
+  const AVATAR = document.getElementById("og-avatar");
+
+  /* ————— GLOBAL SCREEN ESCAPE ——————————————————————————————
+     Canvas is created dynamically and appended straight to document.body so
+     it escapes every stacking context, then fixed over the whole viewport. */
+  const canvas = document.createElement("canvas");
+  document.body.appendChild(canvas);
+  canvas.style.cssText =
+    "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; " +
+    "z-index: 9999; pointer-events: none; mix-blend-mode: normal;";
+  const ctx = canvas.getContext("2d");
+
+  // Everything is drawn to an offscreen scene each frame, then composited to
+  // the visible canvas — that indirection is what makes Phase 4's chromatic
+  // aberration and screen tears possible (you can't channel-split a canvas
+  // you drew directly into).
+  const scene = document.createElement("canvas");
+  const sctx = scene.getContext("2d");
+  const chan = document.createElement("canvas"); // scratch for one RGB channel
+  const chctx = chan.getContext("2d");
+
+  let W = 0, H = 0, DPR = 1;
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 1.5); // cap: glow, not heat
+    W = window.innerWidth; H = window.innerHeight;
+    for (const c of [canvas, scene, chan]) {
+      c.width = Math.round(W * DPR);
+      c.height = Math.round(H * DPR);
+    }
+    // Art is drawn in CSS px on the scene; compositing happens in device px.
+    sctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    chctx.setTransform(1, 0, 0, 1, 0, 0);
+  }
+  resize();
+  window.addEventListener("resize", resize);
+
+  /* ————— Pre-rendered glow sprites —————
+     One blurred raster each, made once. drawImage'ing these gives soft
+     bioluminescence for free; per-frame shadowBlur would cost a separate
+     blurred raster per call and is never used here. */
+  function makeSprite(inner, mid, size = 128) {
+    const c = document.createElement("canvas");
+    c.width = c.height = size;
+    const g = c.getContext("2d");
+    const rg = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    rg.addColorStop(0, inner);
+    rg.addColorStop(0.35, mid);
+    rg.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = rg;
+    g.fillRect(0, 0, size, size);
+    return c;
+  }
+  const tealGlow    = makeSprite("rgba(120,255,242,0.9)", "rgba(0,128,128,0.4)");
+  const magentaGlow = makeSprite("rgba(255,120,235,0.9)", "rgba(216,31,180,0.35)");
+  const corpseGlow  = makeSprite("rgba(240,244,236,0.85)", "rgba(180,190,180,0.28)");
+  // Feathered punch: opaque center fading at the rim, used with
+  // destination-out to cut the avatar's disc out of everything drawn so far —
+  // that hole is what makes the void read as BEHIND the profile picture.
+  const holeFeather = (() => {
+    const c = document.createElement("canvas");
+    c.width = c.height = 256;
+    const g = c.getContext("2d");
+    const rg = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+    rg.addColorStop(0, "rgba(255,255,255,1)");
+    rg.addColorStop(0.82, "rgba(255,255,255,1)");
+    rg.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = rg;
+    g.fillRect(0, 0, 256, 256);
+    return c;
+  })();
+
+  /* ————— Shared state ————— */
+  const mouse = { x: innerWidth / 2, y: innerHeight * 0.3 };
+  window.addEventListener("pointermove", (e) => { mouse.x = e.clientX; mouse.y = e.clientY; });
+
+  let cx = W / 2, cy = H / 2, aR = 75; // avatar epicenter, re-read every frame
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
+  const easeOutCubic = (v) => 1 - Math.pow(1 - v, 3);
+  const easeInOut = (v) => (v < 0.5 ? 4 * v * v * v : 1 - Math.pow(-2 * v + 2, 3) / 2);
+  // deterministic per-vertex jaggedness for the void tear
+  const hash = (n) => { const s = Math.sin(n * 127.1) * 43758.5453; return s - Math.floor(s); };
+
+  // Catmull-Rom through points, emitted as cubic beziers.
+  function pathCatmull(g, p, continued) {
+    if (continued) g.lineTo(p[0].x, p[0].y); else g.moveTo(p[0].x, p[0].y);
+    for (let i = 0; i < p.length - 1; i++) {
+      const p0 = p[Math.max(0, i - 1)], p1 = p[i], p2 = p[i + 1], p3 = p[Math.min(p.length - 1, i + 2)];
+      g.bezierCurveTo(
+        p1.x + (p2.x - p0.x) / 6, p1.y + (p2.y - p0.y) / 6,
+        p2.x - (p3.x - p1.x) / 6, p2.y - (p3.y - p1.y) / 6,
+        p2.x, p2.y
+      );
+    }
+  }
+
+  function distToEdge(x, y, ang) {
+    const dx = Math.cos(ang), dy = Math.sin(ang);
+    let d = 1e9;
+    if (dx >  1e-6) d = Math.min(d, (W - x) / dx);
+    if (dx < -1e-6) d = Math.min(d, (0 - x) / dx);
+    if (dy >  1e-6) d = Math.min(d, (H - y) / dy);
+    if (dy < -1e-6) d = Math.min(d, (0 - y) / dy);
+    return d;
+  }
+
+  /* ————— PHASE 2: the writhing appendages ————— */
+  const TENT_N = 7, SEG = 26;
+  const tents = Array.from({ length: TENT_N }, (_, i) => ({
+    baseAng: (i / TENT_N) * TAU + rand(-0.22, 0.22),
+    // three stacked wave systems — the third nests sin inside sin, so the
+    // rhythm never quite repeats and the motion reads as muscle, not metronome
+    w1: rand(0.16, 0.28), k1: rand(2.2, 3.4), p1: rand(0, TAU), a1: rand(0.5, 0.75),
+    w2: rand(0.06, 0.13), k2: rand(4.5, 6.5), p2: rand(0, TAU), a2: rand(0.35, 0.6),
+    w3: rand(0.2, 0.33),  w4: rand(0.05, 0.1), k3: rand(1.5, 2.8), a3: rand(0.16, 0.28),
+    wanderW: rand(0.05, 0.11), wanderP: rand(0, TAU),
+    reachW: rand(0.04, 0.08), reachP: rand(0, TAU),
+    hasEyes: i % 3 === 1,
+    grow: 0,
+  }));
+
+  function spinePoints(T, t) {
+    const reach = 0.5 + 0.42 * (0.5 + 0.5 * Math.sin(t * T.reachW + T.reachP));
+    const L = distToEdge(cx, cy, T.baseAng) * reach * T.grow;
+    const step = Math.max(L, 1) / SEG;
+    let ang0 = T.baseAng + Math.sin(t * T.wanderW + T.wanderP) * 0.35;
+    let x = cx + Math.cos(T.baseAng) * aR * 0.55;
+    let y = cy + Math.sin(T.baseAng) * aR * 0.55;
+    const pts = [];
+    for (let i = 0; i <= SEG; i++) {
+      pts.push({ x, y });
+      const s = i / SEG;
+      const bend =
+        Math.sin(t * T.w1 + s * T.k1 + T.p1) * T.a1 * s +
+        Math.sin(t * T.w2 + s * T.k2 + T.p2) * T.a2 * s * s +
+        Math.sin(t * T.w3 + Math.sin(t * T.w4 + s * T.k3) * 2.0) * T.a3 * s;
+      const a = ang0 + bend;
+      x += Math.cos(a) * step;
+      y += Math.sin(a) * step;
+    }
+    return pts;
+  }
+
+  function drawTentacle(T, t) {
+    const pts = spinePoints(T, t);
+    const w0 = aR * 0.36 * Math.min(1, T.grow * 1.4);
+    const left = [], right = [], widths = [], normals = [];
+    for (let i = 0; i < pts.length; i++) {
+      const pA = pts[Math.max(0, i - 1)], pB = pts[Math.min(pts.length - 1, i + 1)];
+      let nx = -(pB.y - pA.y), ny = pB.x - pA.x;
+      const nl = Math.hypot(nx, ny) || 1;
+      nx /= nl; ny /= nl;
+      const s = i / (pts.length - 1);
+      const w = w0 * Math.pow(1 - s, 1.18) + 1.4;
+      widths.push(w); normals.push({ x: nx, y: ny });
+      left.push({ x: pts[i].x + nx * w, y: pts[i].y + ny * w });
+      right.push({ x: pts[i].x - nx * w, y: pts[i].y - ny * w });
+    }
+
+    // body: one closed ribbon, shaded root-black → drowned teal at the tip
+    sctx.beginPath();
+    pathCatmull(sctx, left, false);
+    pathCatmull(sctx, right.slice().reverse(), true);
+    sctx.closePath();
+    const tip = pts[pts.length - 1];
+    const g = sctx.createLinearGradient(pts[0].x, pts[0].y, tip.x, tip.y);
+    g.addColorStop(0, "#020507");
+    g.addColorStop(0.55, "#07161a");
+    g.addColorStop(1, "#0d3336");
+    sctx.fillStyle = g;
+    sctx.fill();
+
+    // single rim light along one edge — bioluminescence catching the muscle
+    sctx.beginPath();
+    pathCatmull(sctx, left, false);
+    sctx.strokeStyle = "rgba(35,200,190,0.2)";
+    sctx.lineWidth = 1.4;
+    sctx.stroke();
+
+    // suckers along the INNER curve (the side facing the avatar), batched
+    // into two fills instead of one fill per cup
+    const cups = [];
+    for (let i = 3; i < pts.length - 2; i += 3) {
+      const s = i / (pts.length - 1);
+      if (s < 0.12 || s > 0.9) continue;
+      const n = normals[i];
+      const toC = (cx - pts[i].x) * n.x + (cy - pts[i].y) * n.y;
+      const sgn = toC > 0 ? 1 : -1;
+      cups.push({
+        x: pts[i].x + n.x * sgn * widths[i] * 0.55,
+        y: pts[i].y + n.y * sgn * widths[i] * 0.55,
+        r: Math.max(widths[i] * 0.4, 1.1),
+      });
+    }
+    sctx.fillStyle = "rgba(226,232,222,0.32)";
+    sctx.beginPath();
+    for (const c of cups) { sctx.moveTo(c.x + c.r, c.y); sctx.arc(c.x, c.y, c.r, 0, TAU); }
+    sctx.fill();
+    sctx.fillStyle = "rgba(5,24,26,0.85)";
+    sctx.beginPath();
+    for (const c of cups) { const r2 = c.r * 0.5; sctx.moveTo(c.x + r2, c.y); sctx.arc(c.x, c.y, r2, 0, TAU); }
+    sctx.fill();
+
+    // a few tentacles grow eyes instead — they also watch the cursor
+    if (T.hasEyes && T.grow > 0.6) {
+      for (const idx of [8, 16]) {
+        const p = pts[idx], q = pts[idx + 1];
+        const tang = Math.atan2(q.y - p.y, q.x - p.x);
+        const w = widths[idx];
+        sctx.save();
+        sctx.translate(p.x, p.y);
+        sctx.rotate(tang);
+        sctx.fillStyle = "rgba(230,235,228,0.8)";
+        sctx.beginPath();
+        sctx.ellipse(0, 0, w * 0.55, w * 0.3, 0, 0, TAU);
+        sctx.fill();
+        const pa = Math.atan2(mouse.y - p.y, mouse.x - p.x) - tang;
+        sctx.fillStyle = "#d81fb4";
+        sctx.beginPath();
+        sctx.arc(Math.cos(pa) * w * 0.18, Math.sin(pa) * w * 0.1, Math.max(w * 0.14, 1), 0, TAU);
+        sctx.fill();
+        sctx.restore();
+      }
+    }
+  }
+
+  /* ————— PHASE 1: the tear in reality ————— */
+  const voidLayers = [
+    { base: 1.62, rot: 0.0, rs:  0.05,  pw: 0.9, seed: 11, K: 24 },
+    { base: 1.36, rot: 2.1, rs: -0.075, pw: 1.3, seed: 37, K: 20 },
+    { base: 1.16, rot: 4.2, rs:  0.06,  pw: 1.7, seed: 71, K: 26 },
+  ];
+
+  function drawVoid(t, growV) {
+    // bioluminescent halo bleeding out of the tear
+    sctx.globalCompositeOperation = "lighter";
+    const pulse = 0.5 + 0.5 * Math.sin(t * 0.7);
+    sctx.globalAlpha = (0.3 + 0.12 * pulse) * growV;
+    const gs = aR * 5.2 * growV;
+    sctx.drawImage(tealGlow, cx - gs / 2, cy - gs / 2, gs, gs);
+    sctx.globalAlpha = (0.16 + 0.1 * (1 - pulse)) * growV;
+    const ms = aR * 3.4 * growV;
+    sctx.drawImage(magentaGlow, cx - ms / 2, cy - ms / 2, ms, ms);
+    sctx.globalAlpha = 1;
+    sctx.globalCompositeOperation = "source-over";
+
+    // overlapping jagged polygons of pure black — straight lineTo on purpose,
+    // a tear has edges, not curves
+    for (let li = 0; li < voidLayers.length; li++) {
+      const L = voidLayers[li];
+      const rot = L.rot + t * L.rs;
+      sctx.beginPath();
+      for (let i = 0; i < L.K; i++) {
+        const a = rot + (i / L.K) * TAU;
+        const jag = hash(i * 7.13 + L.seed);
+        const fang = jag > 0.7 ? 1.3 + 0.24 * Math.sin(t * 1.1 + i * 3.1) : 1 - 0.1 * jag;
+        const r = L.base * aR * growV * (1 + 0.13 * Math.sin(t * L.pw + i * 2.7)) * fang;
+        const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+        if (i === 0) sctx.moveTo(x, y); else sctx.lineTo(x, y);
+      }
+      sctx.closePath();
+      sctx.fillStyle = "rgba(0,0,0,1)";
+      sctx.fill();
+      if (li === 0) {
+        sctx.strokeStyle = "rgba(0,150,145,0.32)";
+        sctx.lineWidth = 1.6;
+        sctx.stroke();
+      } else if (li === 1) {
+        sctx.strokeStyle = "rgba(216,31,180,0.16)";
+        sctx.lineWidth = 1.2;
+        sctx.stroke();
+      }
+    }
+  }
+
+  /* ————— mist: teal motes spiraling INTO the tear, gravity be damned ————— */
+  const MIST_N = 110;
+  let mist = null;
+  function spawnMote(anywhere) {
+    const tint = Math.random();
+    return {
+      ang: rand(0, TAU),
+      rad: aR * (anywhere ? rand(1.15, 4.6) : rand(4.1, 4.8)),
+      swirl: rand(0.5, 1.4) * (Math.random() < 0.85 ? 1 : -1),
+      pull: rand(9, 26),
+      size: rand(10, 34),
+      a: rand(0.1, 0.34),
+      sprite: tint < 0.1 ? corpseGlow : tint < 0.2 ? magentaGlow : tealGlow,
+    };
+  }
+  function drawMist(dt, growM) {
+    if (!mist) mist = Array.from({ length: MIST_N }, () => spawnMote(true));
+    sctx.globalCompositeOperation = "lighter";
+    const maxR = aR * 4.8;
+    for (const p of mist) {
+      p.rad -= (p.pull + 20 * (1 - p.rad / maxR)) * dt;
+      p.ang += (p.swirl * 46 / Math.max(p.rad, 24)) * dt;
+      if (p.rad < aR * 0.95) Object.assign(p, spawnMote(false));
+      const x = cx + Math.cos(p.ang) * p.rad;
+      const y = cy + Math.sin(p.ang) * p.rad;
+      const edgeFade = clamp01((maxR - p.rad) / (aR * 0.9)) * clamp01((p.rad - aR) / (aR * 0.5));
+      sctx.globalAlpha = p.a * edgeFade * growM;
+      sctx.drawImage(p.sprite, x - p.size / 2, y - p.size / 2, p.size, p.size);
+    }
+    sctx.globalAlpha = 1;
+    sctx.globalCompositeOperation = "source-over";
+  }
+
+  /* ————— PHASE 3: the gaze of the outer god ————— */
+  const EYE_ZONES = [
+    [0.12, 0.16], [0.86, 0.13], [0.08, 0.55], [0.92, 0.5],
+    [0.16, 0.85], [0.84, 0.86], [0.5, 0.09],
+  ];
+  const gaze = { state: "idle", t: 0, eyes: [], next: 8 };
+
+  function openGaze(elapsed) {
+    const zones = EYE_ZONES.slice();
+    for (let i = zones.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [zones[i], zones[j]] = [zones[j], zones[i]];
+    }
+    const n = 3 + Math.floor(Math.random() * 3); // 3–5 eyes
+    const eyes = [];
+    for (const z of zones) {
+      if (eyes.length >= n) break;
+      const x = z[0] * W + rand(-0.04, 0.04) * W;
+      const y = z[1] * H + rand(-0.04, 0.04) * H;
+      const rx = rand(70, 160);
+      if (Math.hypot(x - cx, y - cy) < aR * 2.6 + rx) continue; // never near the avatar
+      // iris gradient defined AT THE ORIGIN — it is painted under a translate,
+      // and canvas gradients live in paint-time user space, not creation-time
+      const irisR = rx * 0.55;
+      const ig = sctx.createRadialGradient(0, 0, 0, 0, 0, irisR);
+      ig.addColorStop(0, "#ff9df0");
+      ig.addColorStop(0.18, "#e93fd0");
+      ig.addColorStop(0.45, "#8b12a8");
+      ig.addColorStop(0.75, "rgba(60,6,90,0.6)");
+      ig.addColorStop(1, "rgba(20,2,40,0)");
+      // veins: fixed jagged polylines from the corners toward the iris
+      const veins = [];
+      for (let v = 0; v < 6; v++) {
+        const side = v % 2 === 0 ? -1 : 1;
+        const pts = [{ x: side * rx * 0.95, y: rand(-6, 6) }];
+        for (let s = 1; s <= 3; s++) {
+          pts.push({
+            x: side * rx * (0.95 - s * 0.22) + rand(-5, 5),
+            y: rand(-rx * 0.12, rx * 0.12),
+          });
+        }
+        veins.push(pts);
+      }
+      eyes.push({
+        x, y, rx,
+        ry: rx * rand(0.4, 0.52),
+        tilt: rand(-0.16, 0.16),
+        delay: eyes.length * 0.18,
+        irisR, irisGrad: ig, veins,
+        blinkAt: elapsed + rand(2, 4),
+        blinkT: -1,
+      });
+    }
+    gaze.eyes = eyes;
+    gaze.state = "opening";
+    gaze.t = 0;
+    gaze.watchDur = rand(3.6, 5.4);
+    // PHASE 4 rides on the gaze: one hard glitch as reality buckles open,
+    // then 1–2 aftershocks while it watches
+    glitches.length = 0;
+    glitches.push({ at: elapsed + 0.12, dur: 0.5 });
+    glitches.push({ at: elapsed + 1.6 + Math.random() * 1.8, dur: 0.3 });
+    if (Math.random() < 0.5) glitches.push({ at: elapsed + 3.4, dur: 0.25 });
+  }
+
+  function eyeOpenness(e, elapsed) {
+    let open = 0;
+    if (gaze.state === "opening") open = easeOutCubic(clamp01((gaze.t - e.delay) / 1.2));
+    else if (gaze.state === "watching") open = 1;
+    else if (gaze.state === "closing") open = 1 - clamp01(gaze.t / 0.8);
+    // blink while watching
+    if (gaze.state === "watching") {
+      if (e.blinkT < 0 && elapsed >= e.blinkAt) { e.blinkT = 0; e.blinkAt = elapsed + rand(1.6, 3.2); }
+      if (e.blinkT >= 0) {
+        open *= 1 - 0.92 * Math.sin(Math.PI * clamp01(e.blinkT / 0.24));
+        if (e.blinkT > 0.24) e.blinkT = -1;
+      }
+    }
+    return open;
+  }
+
+  function drawEye(e, open) {
+    if (open <= 0.02) return;
+    sctx.save();
+    sctx.translate(e.x, e.y);
+    sctx.rotate(e.tilt);
+    const ry = e.ry * open;
+
+    // dread-glow beneath the lids
+    sctx.globalCompositeOperation = "lighter";
+    sctx.globalAlpha = 0.28 * open;
+    const gs = e.rx * 2.8;
+    sctx.drawImage(magentaGlow, -gs / 2, -gs / 2, gs, gs);
+    sctx.globalAlpha = 1;
+    sctx.globalCompositeOperation = "source-over";
+
+    // lens (two quadratics = upper and lower lids)
+    sctx.beginPath();
+    sctx.moveTo(-e.rx, 0);
+    sctx.quadraticCurveTo(0, -ry * 2, e.rx, 0);
+    sctx.quadraticCurveTo(0, ry * 2, -e.rx, 0);
+    sctx.closePath();
+    sctx.fillStyle = "#08030f";
+    sctx.fill();
+
+    sctx.save();
+    sctx.clip();
+    // sclera veins
+    sctx.strokeStyle = "rgba(216,60,120,0.22)";
+    sctx.lineWidth = 1.2;
+    sctx.beginPath();
+    for (const vn of e.veins) {
+      sctx.moveTo(vn[0].x, vn[0].y);
+      for (let i = 1; i < vn.length; i++) sctx.lineTo(vn[i].x, vn[i].y);
+    }
+    sctx.stroke();
+    // iris — intensely glowing mutated magenta
+    sctx.fillStyle = e.irisGrad;
+    sctx.beginPath();
+    sctx.arc(0, 0, e.irisR, 0, TAU);
+    sctx.fill();
+    // striations, batched into a single stroke
+    sctx.strokeStyle = "rgba(255,180,240,0.13)";
+    sctx.lineWidth = 1;
+    sctx.beginPath();
+    for (let k = 0; k < 22; k++) {
+      const a = (k / 22) * TAU;
+      sctx.moveTo(Math.cos(a) * e.irisR * 0.22, Math.sin(a) * e.irisR * 0.22);
+      sctx.lineTo(Math.cos(a) * e.irisR * 0.88, Math.sin(a) * e.irisR * 0.88);
+    }
+    sctx.stroke();
+    // pupil SNAPS to the cursor — no easing, per the old rites
+    const lm = { x: mouse.x - e.x, y: mouse.y - e.y };
+    const c = Math.cos(-e.tilt), s = Math.sin(-e.tilt);
+    const lx = lm.x * c - lm.y * s, ly = lm.x * s + lm.y * c;
+    const ll = Math.hypot(lx, ly) || 1;
+    const off = Math.min(ll * 0.03, e.irisR * 0.32);
+    const px = (lx / ll) * off, py = (ly / ll) * off;
+    sctx.fillStyle = "#050208";
+    sctx.beginPath();
+    sctx.ellipse(px, py, e.irisR * 0.14, e.irisR * 0.6 * Math.max(open, 0.25), 0, 0, TAU);
+    sctx.fill();
+    sctx.fillStyle = "rgba(240,244,236,0.5)";
+    sctx.beginPath();
+    sctx.arc(px + e.irisR * 0.1, py - e.irisR * 0.2, e.irisR * 0.05, 0, TAU);
+    sctx.fill();
+    sctx.restore();
+
+    // lid line
+    sctx.strokeStyle = "rgba(200,160,190,0.25)";
+    sctx.lineWidth = 1.5;
+    sctx.stroke();
+    sctx.restore();
+  }
+
+  /* ————— PHASE 4: sanity drain ————— */
+  const glitches = [];
+  function glitchPower(elapsed) {
+    let p = 0;
+    for (const q of glitches) {
+      if (elapsed >= q.at && elapsed <= q.at + q.dur) {
+        p = Math.max(p, Math.sin(Math.PI * (elapsed - q.at) / q.dur));
+      }
+    }
+    return p;
+  }
+
+  function drawChannel(tint, dx, dy) {
+    chctx.globalCompositeOperation = "source-over";
+    chctx.clearRect(0, 0, chan.width, chan.height);
+    chctx.drawImage(scene, 0, 0);
+    chctx.globalCompositeOperation = "multiply";
+    chctx.fillStyle = tint;
+    chctx.fillRect(0, 0, chan.width, chan.height);
+    chctx.globalCompositeOperation = "destination-in";
+    chctx.drawImage(scene, 0, 0); // restore the scene's alpha after multiply
+    ctx.drawImage(chan, dx, dy);
+  }
+
+  function composite(power) {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (power <= 0.02) {
+      ctx.drawImage(scene, 0, 0);
+      return;
+    }
+    // chromatic aberration: same frame, three channels, shifted apart
+    const s = (3 + 11 * power) * DPR * rand(0.6, 1.4);
+    ctx.globalCompositeOperation = "lighter";
+    drawChannel("#ff0000", -s, 0);
+    drawChannel("#00ff00", 0, 0);
+    drawChannel("#0000ff", s, s * 0.25);
+    ctx.globalCompositeOperation = "source-over";
+    // screen tear: slice horizontal bands and shove them sideways
+    const bands = 2 + Math.floor(rand(0, 4) * power);
+    for (let b = 0; b < bands; b++) {
+      const by = Math.random() * canvas.height;
+      const bh = (6 + Math.random() * 42) * DPR;
+      const bx = (Math.random() * 2 - 1) * (18 + 90 * power) * DPR;
+      ctx.drawImage(scene, 0, by, canvas.width, bh, bx, by, canvas.width, bh);
+    }
+    // inverse-color spasm — alien, migraine-bright, gone in a frame or two
+    if (power > 0.55 && Math.random() < 0.3) {
+      ctx.globalCompositeOperation = "difference";
+      ctx.fillStyle = "rgba(0,190,170,0.85)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.globalCompositeOperation = "source-over";
+    }
+  }
+
+  /* ————— conductor ————— */
+  let last = performance.now(), elapsed = 0, dim = 0;
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) last = performance.now();
+  });
+  window.addEventListener("pointerdown", () => {
+    if (gaze.state === "idle") gaze.next = elapsed; // provoke it
+  });
+
+  function frame(now) {
+    requestAnimationFrame(frame);
+    let dt = (now - last) / 1000;
+    last = now;
+    if (dt > 0.05) dt = 0.05; // tab-return spike clamp
+    elapsed += dt;
+
+    // avatar epicenter, re-read live so the effect tracks layout/resize
+    const r = AVATAR.getBoundingClientRect();
+    cx = r.left + r.width / 2;
+    cy = r.top + r.height / 2;
+    aR = r.width / 2;
+
+    // intro: the tear forms first, appendages follow
+    const growV = easeOutCubic(clamp01((elapsed - 0.4) / 2.2));
+    for (let i = 0; i < tents.length; i++) {
+      tents[i].grow = easeInOut(clamp01((elapsed - 3.0 - i * 0.35) / 2.6));
+    }
+
+    // gaze state machine
+    if (gaze.state === "idle") {
+      if (elapsed >= gaze.next) openGaze(elapsed);
+    } else {
+      gaze.t += dt;
+      if (gaze.state === "opening" && gaze.t > 1.2 + 0.18 * gaze.eyes.length) { gaze.state = "watching"; gaze.t = 0; }
+      else if (gaze.state === "watching" && gaze.t > gaze.watchDur) { gaze.state = "closing"; gaze.t = 0; }
+      else if (gaze.state === "closing" && gaze.t > 0.8) {
+        gaze.state = "idle";
+        gaze.eyes = [];
+        gaze.next = elapsed + rand(10, 15); // every 10–15 s, as decreed
+      }
+    }
+    const dimTarget =
+      gaze.state === "opening" ? 0.34 * clamp01(gaze.t / 1.2) :
+      gaze.state === "watching" ? 0.34 + 0.05 * Math.sin(elapsed * 2.1) :
+      gaze.state === "closing" ? 0.34 * (1 - clamp01(gaze.t / 0.8)) : 0;
+    dim += (dimTarget - dim) * Math.min(1, dt * 6);
+
+    /* — scene — */
+    sctx.clearRect(0, 0, W, H);
+    // 1 · the gloom presses in
+    if (dim > 0.004) {
+      sctx.fillStyle = `rgba(1,3,7,${dim})`;
+      sctx.fillRect(0, 0, W, H);
+    }
+    // 2 · eyes open in the deep background
+    for (const e of gaze.eyes) drawEye(e, eyeOpenness(e, elapsed));
+    // 3 · the tear in reality
+    if (growV > 0.01) drawVoid(elapsed, growV);
+    // 4 · the appendages
+    for (const T of tents) if (T.grow > 0.02) drawTentacle(T, elapsed);
+    // 5 · punch the avatar's disc out of ALL of it — the void now sits
+    //     behind the profile picture, and the gloom never dims the face
+    sctx.globalCompositeOperation = "destination-out";
+    const hr = aR + 12;
+    sctx.drawImage(holeFeather, cx - hr, cy - hr, hr * 2, hr * 2);
+    sctx.globalCompositeOperation = "source-over";
+    // 6 · rim light where reality still holds
+    sctx.strokeStyle = "rgba(30,190,180,0.45)";
+    sctx.lineWidth = 1.6;
+    sctx.beginPath();
+    sctx.arc(cx, cy, aR + 1.5, 0, TAU);
+    sctx.stroke();
+    const rot = elapsed * 0.5;
+    sctx.strokeStyle = "rgba(216,31,180,0.55)";
+    sctx.beginPath();
+    sctx.arc(cx, cy, aR + 1.5, rot, rot + 1.1);
+    sctx.stroke();
+    // 7 · the indrawn mist crosses everything
+    drawMist(dt, clamp01(elapsed / 2));
+
+    composite(glitchPower(elapsed));
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</body>
+</html>
