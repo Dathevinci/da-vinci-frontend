@@ -173,12 +173,25 @@ export async function browseNovels(page = 1, list = "most-popular-novel") {
   return RNF.browseNovels(page, list);
 }
 
+/**
+ * Shelf sourcing is split deliberately.
+ *
+ * readnovelfull is the only source with genuinely DISTINCT lists — popular,
+ * latest-release and completed each return different novels. lightnovelworld
+ * ignores its sort params (verified: ?sort=latest and ?sort=popular return the
+ * same first title as the unsorted list), so driving several shelves from it
+ * would render the same books three times.
+ *
+ * What it IS good for is fresh titles the other source doesn't carry. So it
+ * takes over the last shelf, which used to be readnovelfull page 2 — i.e. more
+ * of what was already above it.
+ */
 export async function homeShelves() {
   const [trending, latest, completed, more] = await Promise.allSettled([
     RNF.browseNovels(1, "most-popular-novel"),
     RNF.browseNovels(1, "latest-release-novel"),
     RNF.browseNovels(1, "completed-novel"),
-    RNF.browseNovels(2, "most-popular-novel"),
+    LNW.browseNovels(1),
   ]);
   return {
     trending: trending.status === "fulfilled" ? trending.value.results : [],
