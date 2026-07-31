@@ -234,15 +234,15 @@ function useOuterGodCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       const g = sctx.createLinearGradient(pts[0].x, pts[0].y, tip.x, tip.y);
       g.addColorStop(0, "rgba(2,5,7,0.96)");
       g.addColorStop(0.55, "rgba(7,22,26,0.94)");
-      g.addColorStop(1, "rgba(13,51,54,0.9)");
+      g.addColorStop(1, "rgba(18,84,86,0.92)");
       sctx.fillStyle = g;
       sctx.fill();
 
       // single rim light along one edge — bioluminescence catching the muscle
       sctx.beginPath();
       pathCatmull(sctx, left, false);
-      sctx.strokeStyle = "rgba(35,200,190,0.2)";
-      sctx.lineWidth = 1.3;
+      sctx.strokeStyle = "rgba(45,215,205,0.4)";
+      sctx.lineWidth = 1.6;
       sctx.stroke();
 
       // suckers along the INNER curve (the side facing the avatar), batched
@@ -260,7 +260,7 @@ function useOuterGodCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
           r: Math.max(widths[i] * 0.4, 1),
         });
       }
-      sctx.fillStyle = "rgba(226,232,222,0.3)";
+      sctx.fillStyle = "rgba(226,232,222,0.45)";
       sctx.beginPath();
       for (const c of cups) { sctx.moveTo(c.x + c.r, c.y); sctx.arc(c.x, c.y, c.r, 0, TAU); }
       sctx.fill();
@@ -302,10 +302,10 @@ function useOuterGodCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       // bioluminescent halo bleeding out of the tear
       sctx.globalCompositeOperation = "lighter";
       const pulse = 0.5 + 0.5 * Math.sin(t * 0.7);
-      sctx.globalAlpha = (0.28 + 0.12 * pulse) * growV;
-      const gs = aR * 4.6 * growV;
+      sctx.globalAlpha = (0.42 + 0.16 * pulse) * growV;
+      const gs = aR * 5.0 * growV;
       sctx.drawImage(tealGlow, ax - gs / 2, ay - gs / 2, gs, gs);
-      sctx.globalAlpha = (0.14 + 0.1 * (1 - pulse)) * growV;
+      sctx.globalAlpha = (0.22 + 0.12 * (1 - pulse)) * growV;
       const ms = aR * 3.1 * growV;
       sctx.drawImage(magentaGlow, ax - ms / 2, ay - ms / 2, ms, ms);
       sctx.globalAlpha = 1;
@@ -330,12 +330,12 @@ function useOuterGodCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
         sctx.fillStyle = "rgba(0,0,0,1)";
         sctx.fill();
         if (li === 0) {
-          sctx.strokeStyle = "rgba(0,150,145,0.32)";
-          sctx.lineWidth = 1.5;
+          sctx.strokeStyle = "rgba(0,190,180,0.55)";
+          sctx.lineWidth = 2;
           sctx.stroke();
         } else if (li === 1) {
-          sctx.strokeStyle = "rgba(216,31,180,0.16)";
-          sctx.lineWidth = 1.1;
+          sctx.strokeStyle = "rgba(216,31,180,0.3)";
+          sctx.lineWidth = 1.3;
           sctx.stroke();
         }
       }
@@ -348,8 +348,8 @@ function useOuterGodCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       rad: aR * (anywhere ? rand(1.15, 4.2) : rand(3.8, 4.4)),
       swirl: rand(0.5, 1.4) * (Math.random() < 0.85 ? 1 : -1),
       pull: rand(8, 22),
-      size: rand(8, 26),
-      a: rand(0.1, 0.3),
+      size: rand(10, 30),
+      a: rand(0.16, 0.42),
       tint: Math.random(),
     });
     const drawMist = (dt: number, growM: number) => {
@@ -465,7 +465,7 @@ function useOuterGodCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
 
       // dread-glow beneath the lids
       sctx.globalCompositeOperation = "lighter";
-      sctx.globalAlpha = 0.26 * open;
+      sctx.globalAlpha = 0.36 * open;
       const gs = e.rx * 2.6;
       sctx.drawImage(magentaGlow, -gs / 2, -gs / 2, gs, gs);
       sctx.globalAlpha = 1;
@@ -483,7 +483,7 @@ function useOuterGodCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       sctx.save();
       sctx.clip();
       // sclera veins
-      sctx.strokeStyle = "rgba(216,60,120,0.22)";
+      sctx.strokeStyle = "rgba(216,60,120,0.3)";
       sctx.lineWidth = 1.1;
       sctx.beginPath();
       for (const vn of e.veins) {
@@ -497,7 +497,7 @@ function useOuterGodCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       sctx.arc(0, 0, e.irisR, 0, TAU);
       sctx.fill();
       // striations, batched into a single stroke
-      sctx.strokeStyle = "rgba(255,180,240,0.13)";
+      sctx.strokeStyle = "rgba(255,180,240,0.18)";
       sctx.lineWidth = 1;
       sctx.beginPath();
       for (let k = 0; k < 18; k++) {
@@ -681,13 +681,14 @@ function useOuterGodCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       sctx.drawImage(holeFeather, ax - hr, ay - hr, hr * 2, hr * 2);
       sctx.globalCompositeOperation = "source-over";
       // rim light where reality still holds
-      sctx.strokeStyle = "rgba(30,190,180,0.45)";
-      sctx.lineWidth = 1.5;
+      sctx.strokeStyle = "rgba(30,200,190,0.7)";
+      sctx.lineWidth = 2;
       sctx.beginPath();
       sctx.arc(ax, ay, aR + 1.5, 0, TAU);
       sctx.stroke();
       const rot = elapsed * 0.5;
-      sctx.strokeStyle = "rgba(216,31,180,0.55)";
+      sctx.strokeStyle = "rgba(230,45,195,0.8)";
+      sctx.lineWidth = 2;
       sctx.beginPath();
       sctx.arc(ax, ay, aR + 1.5, rot, rot + 1.1);
       sctx.stroke();
@@ -752,10 +753,13 @@ export function OuterGodCardDomain() {
     <>
       {/* abyssal wash BEHIND the card's text (z-6 < text's z-10) — the deep-sea
           gloom lives here so the canvas never has to darken the words */}
+      {/* The wash is deliberately LIGHTER than the first cut (0.9→0.72 core):
+          the canvas art is dark teal on near-black, and the murkier the wash,
+          the more the tear/tentacles vanished into it. Less wash = more pop. */}
       <motion.span
         aria-hidden
         className="pointer-events-none absolute inset-0 z-[6]"
-        style={{ background: "radial-gradient(120% 100% at 50% 25%, rgba(2,10,12,0.9), rgba(2,5,8,0.75) 55%, rgba(1,2,4,0.6) 100%)" }}
+        style={{ background: "radial-gradient(120% 100% at 50% 25%, rgba(2,10,12,0.72), rgba(2,5,8,0.55) 55%, rgba(1,2,4,0.42) 100%)" }}
         initial={{ opacity: 0 }}
         animate={{ opacity: [0, 1, 0.95] }}
         transition={{ duration: 1.2, ease: "easeOut" }}
@@ -763,7 +767,7 @@ export function OuterGodCardDomain() {
       <motion.span
         aria-hidden
         className="pointer-events-none absolute inset-0 z-[6]"
-        style={{ background: "radial-gradient(70% 55% at 50% 28%, rgba(0,128,128,0.14), transparent 68%)" }}
+        style={{ background: "radial-gradient(70% 55% at 50% 28%, rgba(0,128,128,0.2), transparent 68%)" }}
         animate={{ opacity: [0.4, 0.9, 0.4] }}
         transition={{ duration: 6.4, repeat: Infinity, ease: "easeInOut" }}
       />
