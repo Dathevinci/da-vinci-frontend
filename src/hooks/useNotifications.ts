@@ -54,9 +54,51 @@ export function useNotifications() {
     if (user) {
       fetchNotifications();
       setIsLoaded(true);
-      // Setup a polling interval for new notifications (e.g., every 30 seconds)
-      const interval = setInterval(fetchNotifications, 30000);
-      return () => clearInterval(interval);
+
+      /**
+       * Poll only while the tab is actually being looked at.
+       *
+       * This used to fire every 30s unconditionally — 120 requests an hour from
+       * every open tab, including ones sitting in the background for days. Each
+       * one hits the database, and Neon only suspends compute once there are NO
+       * connections for a while, so the database never got an idle window and
+       * burned its entire monthly compute allowance staying awake for tabs
+       * nobody was reading.
+       *
+       * Backgrounded tabs now poll nothing at all, and the interval is 2 minutes
+       * rather than 30 seconds. A fetch fires immediately on returning to the
+       * tab, so notifications still feel current where it matters.
+       */
+      const POLL_MS = 120_000;
+      let interval: ReturnType<typeof setInterval> | null = null;
+
+      const stop = () => {
+        if (interval) {
+          clearInterval(interval);
+          interval = null;
+        }
+      };
+      const start = () => {
+        stop();
+        interval = setInterval(fetchNotifications, POLL_MS);
+      };
+
+      const onVisibility = () => {
+        if (document.hidden) {
+          stop();
+        } else {
+          fetchNotifications(); // catch up on whatever arrived while away
+          start();
+        }
+      };
+
+      if (!document.hidden) start();
+      document.addEventListener("visibilitychange", onVisibility);
+
+      return () => {
+        stop();
+        document.removeEventListener("visibilitychange", onVisibility);
+      };
     } else {
       // Load local if no user
       const stored = localStorage.getItem("davinci_notifications");
