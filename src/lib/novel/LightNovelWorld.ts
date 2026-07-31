@@ -85,18 +85,18 @@ const decode = (s: string) =>
     .trim();
 
 /**
- * Absolute-ise a cover path AND route it through the image proxy.
+ * Absolute-ise a cover path. This site serves them relative ("/media/covers/…"),
+ * and a relative src resolves against OUR domain, so it 404s.
  *
- * Two problems, one helper. The site serves cover srcs relative
- * ("/media/covers/…"), and it hotlink-protects them — requested straight from
- * the browser they fail and the card renders bare alt text. The proxy attaches
- * the Referer the CDN expects, exactly as it already does for the other
- * sources.
+ * Return the plain absolute URL and nothing more. Proxying happens later, in
+ * novelCover() (lib/novelImage.ts), which wraps every non-AniList URL in
+ * /api/novel-image. Proxying here as well double-wrapped it — the proxy then
+ * received its own relative path as the `url` parameter, couldn't parse it, and
+ * rejected every cover.
  */
 const absCover = (src: string) => {
   if (!src) return "";
-  const abs = src.startsWith("http") ? src : `${BASE}${src.startsWith("/") ? "" : "/"}${src}`;
-  return `/api/novel-image?url=${encodeURIComponent(abs)}`;
+  return src.startsWith("http") ? src : `${BASE}${src.startsWith("/") ? "" : "/"}${src}`;
 };
 
 /** Both browse and search render the same card, so one parser covers both. */
