@@ -5,6 +5,8 @@ import { Anime } from "@tutkli/jikan-ts";
 import { Info, PlayCircle } from "lucide-react";
 import { useAnimeModal } from "@/components/providers/AnimeModalProvider";
 import { motion, AnimatePresence } from "framer-motion";
+import { getYouTubeId } from "@/lib/jikan";
+import { usePreferences } from "@/hooks/usePreferences";
 
 interface Props {
   animes: Anime[];
@@ -13,12 +15,28 @@ interface Props {
 export default function HeroBannerCarousel({ animes }: Props) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const { openAnime } = useAnimeModal();
+  const { preferences, isLoaded: prefsLoaded } = usePreferences();
+
+  /**
+   * Trailer starts a beat AFTER the slide, never with it.
+   *
+   * The key art is up instantly; the video fades in over it once it has had a
+   * moment to buffer. Mounting the iframe on the same tick meant a black
+   * rectangle while YouTube negotiated, which looked worse than no video at all.
+   */
+  const [showTrailer, setShowTrailer] = useState(false);
+
+  useEffect(() => {
+    setShowTrailer(false);
+    const t = setTimeout(() => setShowTrailer(true), 1200);
+    return () => clearTimeout(t);
+  }, [currentIndex]);
 
   useEffect(() => {
     if (animes.length <= 1) return;
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % animes.length);
-    }, 7000); // 7 seconds per slide
+    }, 12000); // longer, so a trailer gets time to actually play
     return () => clearInterval(interval);
   }, [animes.length]);
 
@@ -30,6 +48,12 @@ export default function HeroBannerCarousel({ animes }: Props) {
     heroAnime.images?.jpg?.large_image_url ||
     heroAnime.images?.jpg?.image_url ||
     "") as string;
+
+  // Performance Mode switches the trailer off entirely — an autoplaying video is
+  // exactly the kind of thing that setting exists to stop. Also held back until
+  // preferences load, so someone who turned it off never sees a frame of it.
+  const motionOk = prefsLoaded && !preferences.reducedMotion;
+  const trailerId = motionOk ? getYouTubeId(heroAnime.trailer) : null;
 
   return (
     <div className="relative w-full h-[56vh] md:h-[66vh] overflow-hidden bg-[#09090b] mb-10">
@@ -52,6 +76,39 @@ export default function HeroBannerCarousel({ animes }: Props) {
           style={{ willChange: "opacity, transform" }}
         />
       </AnimatePresence>
+
+      {/**
+        * Muted trailer over the key art.
+        *
+        * This was removed once for "stray controls and lag", so both are handled
+        * rather than reintroduced:
+        *   · controls/keyboard/branding/related are all disabled, and the layer
+        *     is pointer-events-none, so no YouTube chrome is reachable.
+        *   · scale-150 crops YouTube's letterboxing and any residual UI outside
+        *     the frame, so only picture shows.
+        *   · it renders ONLY after the delay above and ONLY when Performance
+        *     Mode is off, so it never costs anything for people who opted out.
+        * The key art stays mounted underneath, so a title with no trailer — or a
+        * blocked embed — simply keeps the image.
+        */}
+      {trailerId && showTrailer && (
+        <motion.div
+          key={`trailer-${currentIndex}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.45 }}
+          transition={{ duration: 1.2, ease: "easeInOut" }}
+          className="pointer-events-none absolute inset-0 z-[5] overflow-hidden"
+          aria-hidden
+        >
+          <iframe
+            src={`https://www.youtube-nocookie.com/embed/${trailerId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${trailerId}&modestbranding=1&playsinline=1&rel=0&disablekb=1&iv_load_policy=3&fs=0`}
+            allow="autoplay; encrypted-media"
+            title=""
+            tabIndex={-1}
+            className="pointer-events-none absolute left-1/2 top-1/2 h-[100vh] w-[177.78vh] min-h-full min-w-full -translate-x-1/2 -translate-y-1/2 scale-150 border-0"
+          />
+        </motion.div>
+      )}
 
       {/* Static gradient overlays — outside the animated layer so they never
           re-composite on a slide change. */}
