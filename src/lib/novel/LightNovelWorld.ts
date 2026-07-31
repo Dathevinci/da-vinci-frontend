@@ -99,23 +99,29 @@ const absCover = (src: string) => {
   return src.startsWith("http") ? src : `${BASE}${src.startsWith("/") ? "" : "/"}${src}`;
 };
 
+/** Internal shape — rating is carried so shelves can rank on it, but it isn't
+ *  part of the shared NovelResult contract. */
+type Card = NovelResult & { rating: number };
+
 /** Both browse and search render the same card, so one parser covers both. */
-function parseCards(html: string): NovelResult[] {
-  const out: NovelResult[] = [];
+function parseCards(html: string): Card[] {
+  const out: Card[] = [];
   const seen = new Set<string>();
 
-  // Each card opens with the cover link, then the <img> carrying src + alt.
+  // Each card opens with the cover link, then the <img> carrying src + alt, and
+  // (usually) a .card-rating badge shortly after.
   const re =
-    /<a\s+href="\/novel\/([a-z0-9-]+)\/"\s+class="card-cover-link"[\s\S]{0,400}?<img\s+src="([^"]+)"\s+alt="([^"]*)"/g;
+    /<a\s+href="\/novel\/([a-z0-9-]+)\/"\s+class="card-cover-link"[\s\S]{0,400}?<img\s+src="([^"]+)"\s+alt="([^"]*)"([\s\S]{0,300}?)(?=<a\s+href="\/novel\/|$)/g;
 
   let m: RegExpExecArray | null;
   while ((m = re.exec(html))) {
-    const [, slug, cover, title] = m;
+    const [, slug, cover, title, tail] = m;
     if (!slug || seen.has(slug)) continue;
     seen.add(slug);
+    const rating = Number(tail?.match(/class="card-rating"[^>]*>[^0-9]*([0-9.]+)/)?.[1] || 0);
     // Prefixed here, the same way NovelFull tags its own ids, so resolveSource
     // can route a result back to this source without guessing.
-    out.push({ id: `lnw:${slug}`, title: decode(title) || slug, cover: absCover(cover) });
+    out.push({ id: `lnw:${slug}`, title: decode(title) || slug, cover: absCover(cover), rating });
   }
   return out;
 }
@@ -126,6 +132,38 @@ export async function browseNovels(page = 1, _list = "popular"): Promise<{ resul
   // Pagination is ?page=N; a link to the next page existing is the honest test.
   const hasNextPage = new RegExp(`href="\\?page=${page + 1}"`).test(html);
   return { results, hasNextPage };
+}
+
+/**
+ * Top Rated shelf.
+ *
+ * The site's own ?sort= params are ignored (verified: ?sort=popular and
+ * ?sort=latest both return the same first title as the unsorted list), so a
+ * "popular" list can't be requested — it has to be derived. Each card carries a
+ * rating badge, so several pages are pulled and ranked by it.
+ *
+ * Pages are fetched in parallel and a failure is tolerated: three pages is a
+ * wide enough sample that losing one still yields a sensible ranking, and a
+ * shelf should degrade rather than disappear.
+ */
+export async function browseTopRated(pages = 3): Promise<{ results: NovelResult[]; hasNextPage: boolean }> {
+  const settled = await Promise.allSettled(
+    Array.from({ length: pages }, (_, i) => fetchHtml(`/genre-all/${i > 0 ? `?page=${i + 1}` : ""}`, 900))
+  );
+
+  const seen = new Set<string>();
+  const all: Card[] = [];
+  for (const s of settled) {
+    if (s.status !== "fulfilled") continue;
+    for (const c of parseCards(s.value)) {
+      if (seen.has(c.id)) continue;
+      seen.add(c.id);
+      all.push(c);
+    }
+  }
+
+  all.sort((a, b) => b.rating - a.rating);
+  return { results: all.slice(0, 24), hasNextPage: false };
 }
 
 export async function searchNovels(keyword: string, page = 1): Promise<{ results: NovelResult[]; hasNextPage: boolean }> {

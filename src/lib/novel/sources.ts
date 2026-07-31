@@ -173,6 +173,7 @@ export async function browseNovels(page = 1, list = "most-popular-novel") {
   // dropping you into a readnovelfull list that shares none of the titles you
   // just clicked from.
   if (list === "lightnovelworld") return LNW.browseNovels(page);
+  if (list === "lightnovelworld-top") return LNW.browseTopRated();
   if (list.startsWith("genre/")) return NF.browseNovels(page, list);
   return RNF.browseNovels(page, list);
 }
@@ -191,19 +192,23 @@ export async function browseNovels(page = 1, list = "most-popular-novel") {
  * of what was already above it.
  */
 export async function homeShelves() {
-  const [trending, latest, completed, more] = await Promise.allSettled([
+  const [trending, latest, completed, more, lnwTop] = await Promise.allSettled([
     RNF.browseNovels(1, "most-popular-novel"),
     RNF.browseNovels(1, "latest-release-novel"),
     RNF.browseNovels(1, "completed-novel"),
     LNW.browseNovels(1),
+    LNW.browseTopRated(),
   ]);
   return {
     trending: trending.status === "fulfilled" ? trending.value.results : [],
     latestUpdates: latest.status === "fulfilled" ? latest.value.results : [],
     completed: completed.status === "fulfilled" ? completed.value.results : [],
-    // Kept in the shape so consumers reading these keys don't break; both are
-    // now sourced from readnovelfull rather than the MTL site.
+    // Kept in the shape so consumers reading this key don't break — the MTL
+    // source that fed it is gone.
     korean: [],
     fanmtl: more.status === "fulfilled" ? more.value.results : [],
+    // Ranked by rating rather than requested as "popular", since this source
+    // ignores its own sort params.
+    lnwTop: lnwTop.status === "fulfilled" ? lnwTop.value.results : [],
   };
 }

@@ -50,6 +50,7 @@ function NovelInner() {
   const [latest, setLatest] = useState<NovelResult[]>([]);
   const [completed, setCompleted] = useState<NovelResult[]>([]);
   const [fanmtl, setFanmtl] = useState<NovelResult[]>([]);
+  const [lnwTop, setLnwTop] = useState<NovelResult[]>([]);
   const [hasNext, setHasNext] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -63,6 +64,7 @@ function NovelInner() {
           setLatest(res.latestUpdates || []);
           setCompleted(res.completed || []);
           setFanmtl(res.fanmtl || []);
+          setLnwTop(res.lnwTop || []);
           setLoading(false);
         })
         .catch(() => setLoading(false));
@@ -114,6 +116,9 @@ function NovelInner() {
                   than as a vague "More" — these are titles the other sources
                   don't carry. */}
               <NovelCarousel title="New on LightNovelWorld" icon={<BookOpen className="w-6 h-6 text-pink-400" />} items={fanmtl} seeAllLink="/novel?view=all&list=lightnovelworld" />
+              {/* Ranked by rating, not requested as "popular" — this source
+                  ignores its own sort params, so the order is derived here. */}
+              <NovelCarousel title="Top Rated on LightNovelWorld" icon={<Flame className="w-6 h-6 text-orange-500" />} items={lnwTop} seeAllLink="/novel?view=all&list=lightnovelworld-top" />
 
               <div className="flex justify-center pt-4 pb-2 pl-4 md:pl-12">
                 <button
