@@ -307,8 +307,8 @@ export default function ShopPage() {
           ${isActive ? "ring-1 ring-fuchsia-400/60" : ""}`}
       >
         {/* Preview tile — your avatar wearing the item; tap for the full live preview */}
-        <button onClick={() => setPreviewItem(item)} className="relative block aspect-[5/4] w-full overflow-hidden">
-          <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient} opacity-25 transition-opacity duration-300 group-hover:opacity-40`} />
+        <button onClick={() => setPreviewItem(item)} title={`Preview ${item.name}`} className="relative block aspect-[5/4] w-full cursor-pointer overflow-hidden">
+          <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient} opacity-[0.16] transition-opacity duration-300 group-hover:opacity-30`} />
           <div className="absolute inset-0 bg-[radial-gradient(85%_65%_at_50%_100%,rgba(0,0,0,0.6),transparent)]" />
           <span className={`absolute left-2 top-2 z-20 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] ${rarity.chip}`}>
             {rarity.label}
@@ -338,18 +338,18 @@ export default function ShopPage() {
                 {user.avatar ? <img src={user.avatar} alt="" className="h-full w-full object-cover" /> : (user.username?.[0]?.toUpperCase() || "?")}
               </div>
               {isPreviewable && (
+                // size="sm" ON PURPOSE: at "lg" every SSS/heavy tile ran its
+                // full avatar effect — ~25 simultaneous infinite box-shadow
+                // animations (box-shadow can't composite; each one repaints
+                // every frame). "sm" is the designed cheap-glow path for
+                // lists; the full effect plays in the preview modal + hero.
                 <AvatarDecoration
                   frame={item.type === "frame" ? item.id : null}
                   effect={item.type === "effect" ? item.id : null}
-                  size="lg"
+                  size="sm"
                 />
               )}
             </div>
-          </div>
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center pb-2 opacity-0 transition group-hover:opacity-100">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/60 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur">
-              <Eye className="h-3 w-3" /> Preview
-            </span>
           </div>
         </button>
 
@@ -653,37 +653,36 @@ export default function ShopPage() {
       {/* overflow-clip (not hidden) contains the glow blobs WITHOUT creating a
           scroll container, so the sticky shop toolbar below keeps working. */}
       <div className="min-h-screen bg-[#050505] pt-24 pb-24 text-white relative overflow-clip">
-        {/* Background Ambient Glows */}
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-fuchsia-600/10 blur-[120px] rounded-full pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-purple-600/10 blur-[150px] rounded-full pointer-events-none" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[400px] bg-blue-600/5 blur-[100px] rounded-full pointer-events-none transform rotate-45" />
+        {/* Background ambient glows — radial gradients, NOT filter:blur().
+            The old 600-1000px blur-[120-150px] layers made the compositor
+            re-blur enormous surfaces on scroll; a gradient is a flat paint
+            that looks the same and costs nothing. Two are plenty. */}
+        <div className="absolute top-0 right-0 h-[700px] w-[700px] pointer-events-none bg-[radial-gradient(closest-side,rgba(192,38,211,0.07),transparent_70%)]" />
+        <div className="absolute bottom-0 left-0 h-[800px] w-[800px] pointer-events-none bg-[radial-gradient(closest-side,rgba(147,51,234,0.07),transparent_70%)]" />
 
         <div className="max-w-7xl mx-auto px-4 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: -16 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-8 flex flex-wrap items-center justify-between gap-4"
+            className="mb-6 flex flex-wrap items-center justify-between gap-4"
           >
             <div>
-              <h1 className="flex items-center gap-3 text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-fuchsia-400 to-pink-500 md:text-5xl">
-                <ShoppingBag className="h-8 w-8 text-fuchsia-500 drop-shadow-[0_0_15px_rgba(217,70,239,0.5)] md:h-11 md:w-11" />
+              <h1 className="flex items-center gap-2.5 text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-fuchsia-400 to-pink-500 md:text-4xl">
+                <ShoppingBag className="h-7 w-7 text-fuchsia-500 md:h-9 md:w-9" />
                 Arise Shop
               </h1>
-              <p className="mt-1.5 text-sm text-slate-400 md:text-base">Animated frames &amp; effects that follow you across Da Vinci.</p>
+              <p className="mt-1 text-xs text-slate-500 md:text-sm">Frames &amp; effects that follow you across Da Vinci.</p>
             </div>
-            <div className="flex items-center gap-2.5">
-              <div className="flex items-center gap-2.5 rounded-2xl border border-white/10 bg-white/5 px-4 py-2">
-                <Diamond className="h-5 w-5 text-fuchsia-400" />
-                <div className="leading-tight">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Balance</p>
-                  <p className="text-base font-black text-white">
-                    {isLeadDev(user) ? <span className="text-fuchsia-400">∞ AP</span> : `${displayArisePoints(user)} AP`}
-                  </p>
-                </div>
+            <div className="flex items-center gap-2">
+              <div className="flex h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3.5">
+                <Diamond className="h-4 w-4 text-fuchsia-400" />
+                <p className="text-sm font-black text-white">
+                  {isLeadDev(user) ? <span className="text-fuchsia-400">∞ AP</span> : `${displayArisePoints(user)} AP`}
+                </p>
               </div>
               <button
                 onClick={() => setShowBuyPoints(true)}
-                className="inline-flex h-[52px] items-center gap-1.5 rounded-2xl bg-gradient-to-r from-purple-600 to-fuchsia-600 px-4 text-sm font-black text-white shadow-[0_0_16px_rgba(168,85,247,0.45)] transition hover:scale-105"
+                className="inline-flex h-11 items-center gap-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 px-4 text-sm font-black text-white transition hover:brightness-110"
               >
                 <Diamond className="h-4 w-4" /> Buy Points
               </button>
@@ -816,12 +815,12 @@ export default function ShopPage() {
               animate={{ opacity: 1, y: 0 }}
               className="relative overflow-hidden rounded-3xl p-6 mb-8 border border-red-600/50 bg-gradient-to-b from-red-900/25 to-black/60 shadow-[0_0_38px_rgba(220,38,38,0.28)]"
             >
-              <motion.div
+              {/* static sheen — the old infinitely-animated backgroundPosition
+                  shimmer repainted this whole panel on every frame, forever */}
+              <div
                 aria-hidden
                 className="absolute inset-0 pointer-events-none"
-                style={{ background: "linear-gradient(115deg, transparent 34%, rgba(220,38,38,0.16) 50%, transparent 66%)", backgroundSize: "220% 100%" }}
-                animate={{ backgroundPosition: ["120% 0%", "-120% 0%"] }}
-                transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
+                style={{ background: "linear-gradient(115deg, transparent 40%, rgba(220,38,38,0.12) 52%, transparent 64%)" }}
               />
               <div className="relative z-10 flex flex-col sm:flex-row sm:items-center gap-6">
                 <div className="relative w-16 h-16 shrink-0">
@@ -855,8 +854,8 @@ export default function ShopPage() {
 
           {/* ── Toolbar: search, ownership, category tabs (not sticky — it scrolls
               away with the page so it never overlaps the item grid) ── */}
-          <div className="z-30 mb-8 md:sticky md:top-[72px]">
-            <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-[#0b0b10]/95 backdrop-blur-xl p-3 shadow-[0_8px_30px_rgba(0,0,0,0.45)] md:p-4">
+          <div className="z-30 mb-6 md:sticky md:top-[72px]">
+            <div className="flex flex-col gap-2.5 rounded-2xl border border-white/10 bg-[#0b0b10]/95 backdrop-blur-xl p-3 shadow-[0_8px_30px_rgba(0,0,0,0.45)]">
               <div className="flex flex-col gap-3 md:flex-row md:items-center">
                 {/* search */}
                 <div className="relative min-w-0 flex-1">
@@ -904,24 +903,20 @@ export default function ShopPage() {
                   const TabIcon = t.icon;
                   const active = category === t.key;
                   return (
+                    // Count badge only on the ACTIVE tab — eight number chips
+                    // in a row read as noise, one reads as information.
                     <button
                       key={t.key}
                       onClick={() => setCategory(t.key)}
-                      className={`flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-bold transition ${
+                      className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-bold transition ${
                         active
-                          ? "border-transparent bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-[0_0_16px_rgba(168,85,247,0.45)]"
-                          : "border-white/10 bg-white/5 text-slate-300 hover:border-purple-500/40 hover:text-white"
+                          ? "border-transparent bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white"
+                          : "border-white/10 bg-white/5 text-slate-400 hover:border-purple-500/40 hover:text-white"
                       }`}
                     >
-                      <TabIcon className="h-4 w-4" />
+                      <TabIcon className="h-3.5 w-3.5" />
                       {t.label}
-                      <span
-                        className={`rounded-full px-1.5 py-0.5 text-[10px] font-black ${
-                          active ? "bg-white/20 text-white" : "bg-white/10 text-slate-400"
-                        }`}
-                      >
-                        {t.count}
-                      </span>
+                      {active && <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] font-black text-white">{t.count}</span>}
                     </button>
                   );
                 })}
@@ -967,21 +962,21 @@ export default function ShopPage() {
             const isRare = section.key === "rare";
             const isSSSSection = section.key === "sss";
             return (
-              <div key={section.key} className="mb-14">
-                <div className="mb-6 flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className={`h-7 w-1.5 rounded-full ${isSSSSection ? "bg-gradient-to-b from-white to-slate-500 shadow-[0_0_16px_rgba(255,255,255,0.8)]" : isRare ? "bg-gradient-to-b from-fuchsia-300 to-purple-600 shadow-[0_0_14px_rgba(217,70,239,0.7)]" : "bg-gradient-to-b from-purple-400 to-fuchsia-500 shadow-[0_0_12px_rgba(217,70,239,0.5)]"}`} />
-                    <div className="flex items-center gap-2.5">
-                      <h2 className="text-xl md:text-2xl font-black text-white leading-tight">{section.title}</h2>
-                      <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs font-black text-slate-300">{items.length}</span>
+              <div key={section.key} className="mb-12">
+                <div className="mb-4 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`h-5 w-1 rounded-full ${isSSSSection ? "bg-gradient-to-b from-white to-slate-500" : isRare ? "bg-gradient-to-b from-fuchsia-300 to-purple-600" : "bg-gradient-to-b from-purple-400 to-fuchsia-500"}`} />
+                    <div className="flex items-baseline gap-2">
+                      <h2 className="text-lg md:text-xl font-black text-white leading-tight">{section.title}</h2>
+                      <span className="text-xs font-bold text-slate-500">{items.length}</span>
                     </div>
                   </div>
                   {category === "all" && (
                     <button
                       onClick={() => setCategory(section.key as typeof category)}
-                      className="hidden shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold text-purple-200 transition hover:border-fuchsia-500/40 hover:text-white sm:inline-flex"
+                      className="hidden shrink-0 items-center gap-1 rounded-full px-2 py-1 text-xs font-bold text-slate-400 transition hover:text-white sm:inline-flex"
                     >
-                      Shop all <ArrowRight className="h-4 w-4" />
+                      Shop all <ArrowRight className="h-3.5 w-3.5" />
                     </button>
                   )}
                   {/* Buy-the-set, only on a collection's own tab. The price shown
