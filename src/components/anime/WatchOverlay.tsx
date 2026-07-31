@@ -149,17 +149,43 @@ export default function WatchOverlay({
   const AUTO_TRACK_AFTER = 15; // seconds of playback
   const autoTrackedRef = useRef(false);
 
-  useEffect(() => {
+  const track = useCallback(() => {
     if (autoTrackedRef.current) return;
-    if (!hasStarted || currentTime < AUTO_TRACK_AFTER) return;
-
-    // Latch before the async work so a burst of timeupdates can't queue several
+    // Latch before the async work so repeated triggers can't queue several
     // identical writes.
     autoTrackedRef.current = true;
     if (isTracked(anime.mal_id)) return;
     setStatus(anime, "Watching");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasStarted, currentTime, anime.mal_id]);
+  }, [anime.mal_id]);
+
+  // Native <video>: track once real playback passes the threshold.
+  useEffect(() => {
+    if (!hasStarted || currentTime < AUTO_TRACK_AFTER) return;
+    track();
+  }, [hasStarted, currentTime, track]);
+
+  /**
+   * Embedded sources: track on a timer instead.
+   *
+   * Many sources play inside an <iframe> (see the isEmbed branch in the player
+   * below), and an iframe fires NO onPlay and NO onTimeUpdate — so hasStarted
+   * stays false and currentTime stays 0 no matter how long you watch. The
+   * playback-based rule above could never fire for them, which is why anime
+   * watched on an embed never appeared in Continue Watching at all.
+   *
+   * We genuinely cannot see inside the iframe, so this uses the best signal
+   * available: the episode has been open for a while. Longer than the playback
+   * threshold precisely because it's a weaker signal — it should not fire for
+   * someone who opened an episode and immediately closed it.
+   */
+  const EMBED_TRACK_AFTER_MS = 45_000;
+
+  useEffect(() => {
+    if (!activeSourceObj?.isEmbed) return;
+    const t = setTimeout(track, EMBED_TRACK_AFTER_MS);
+    return () => clearTimeout(t);
+  }, [activeSourceObj?.isEmbed, track]);
 
   /**
    * WHICH episode you're on is written immediately and unthrottled.
