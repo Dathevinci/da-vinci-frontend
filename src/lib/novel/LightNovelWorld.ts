@@ -150,7 +150,15 @@ export async function browseNovels(page = 1, _list = "popular"): Promise<{ resul
  * wide enough sample that losing one still yields a sensible ranking, and a
  * shelf should degrade rather than disappear.
  */
-export async function browseTopRated(pages = 3): Promise<{ results: NovelResult[]; hasNextPage: boolean }> {
+/**
+ * This source ignores its own sort params, so "top rated" is derived here: pull
+ * N pages, sort by the rating on each card, keep the best `limit`.
+ *
+ * Both knobs are caller-set because the two callers want different things — the
+ * home shelf wants a fast row (3 pages), the browse grid wants a page worth of
+ * results and can afford the extra parallel fetches.
+ */
+export async function browseTopRated(pages = 3, limit = 24): Promise<{ results: NovelResult[]; hasNextPage: boolean }> {
   const settled = await Promise.allSettled(
     Array.from({ length: pages }, (_, i) => fetchHtml(`/genre-all/${i > 0 ? `?page=${i + 1}` : ""}`, 900))
   );
@@ -167,7 +175,7 @@ export async function browseTopRated(pages = 3): Promise<{ results: NovelResult[
   }
 
   all.sort((a, b) => b.rating - a.rating);
-  return { results: all.slice(0, 24), hasNextPage: false };
+  return { results: all.slice(0, limit), hasNextPage: false };
 }
 
 export async function searchNovels(keyword: string, page = 1): Promise<{ results: NovelResult[]; hasNextPage: boolean }> {

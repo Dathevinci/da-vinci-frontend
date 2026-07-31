@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, BookOpen, ChevronLeft, ChevronRight, Flame, Clock, CheckCircle2, BookMarked } from "lucide-react";
+import { Loader2, BookOpen, ChevronLeft, ChevronRight, Flame, Clock, CheckCircle2, BookMarked, Star, Sparkles } from "lucide-react";
 import NovelCard from "@/components/novel/NovelCard";
 import NovelCarousel from "@/components/novel/NovelCarousel";
 import NovelHeroCarousel from "@/components/novel/NovelHeroCarousel";
@@ -13,10 +13,16 @@ import type { NovelResult } from "@/lib/novel/ReadNovelFull";
 
 // The "Korean" list was served entirely by FanMTL (machine translation), so it
 // went with that source — its titles read badly and were frequently stale.
+// The first three come from readnovelfull, the last two from lightnovelworld.
+// They're mixed into one row on purpose — from the reader's side these are just
+// five ways to browse, and splitting them by which site they came from would
+// surface an implementation detail nobody cares about.
 const LISTS = [
   { key: "most-popular-novel", label: "Popular", icon: Flame },
   { key: "latest-release-novel", label: "Latest", icon: Clock },
   { key: "completed-novel", label: "Completed", icon: CheckCircle2 },
+  { key: "lightnovelworld", label: "New Arrivals", icon: Sparkles },
+  { key: "lightnovelworld-top", label: "Top Rated", icon: Star },
 ];
 
 // useSearchParams must sit inside a Suspense boundary or `next build` fails to
@@ -139,7 +145,7 @@ function NovelInner() {
               </div>
               <div>
                 <h1 className="text-3xl font-black tracking-tight">Light Novels</h1>
-                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">NovelFull &middot; ReadNovelFull</p>
+                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">NovelFull &middot; ReadNovelFull &middot; LightNovelWorld</p>
               </div>
             </div>
 

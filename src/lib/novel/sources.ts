@@ -173,7 +173,10 @@ export async function browseNovels(page = 1, list = "most-popular-novel") {
   // dropping you into a readnovelfull list that shares none of the titles you
   // just clicked from.
   if (list === "lightnovelworld") return LNW.browseNovels(page);
-  if (list === "lightnovelworld-top") return LNW.browseTopRated();
+  // Deeper than the home shelf: 6 pages scanned, best 48 kept. The shelf's 24
+  // was a dead end as a browse destination — clicking through to "see all" and
+  // landing on the same row you just left is worse than not offering the link.
+  if (list === "lightnovelworld-top") return LNW.browseTopRated(6, 48);
   if (list.startsWith("genre/")) return NF.browseNovels(page, list);
   return RNF.browseNovels(page, list);
 }
