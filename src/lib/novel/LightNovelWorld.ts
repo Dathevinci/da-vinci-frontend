@@ -110,8 +110,12 @@ function parseCards(html: string): Card[] {
 
   // Each card opens with the cover link, then the <img> carrying src + alt, and
   // (usually) a .card-rating badge shortly after.
+  // The tail is a plain bounded window — NO lookahead. A lazy group anchored on
+  // "the next card link" fails outright whenever the next card is further away
+  // than the bound, and that silently emptied every shelf rather than just
+  // dropping the rating.
   const re =
-    /<a\s+href="\/novel\/([a-z0-9-]+)\/"\s+class="card-cover-link"[\s\S]{0,400}?<img\s+src="([^"]+)"\s+alt="([^"]*)"([\s\S]{0,300}?)(?=<a\s+href="\/novel\/|$)/g;
+    /<a\s+href="\/novel\/([a-z0-9-]+)\/"\s+class="card-cover-link"[\s\S]{0,400}?<img\s+src="([^"]+)"\s+alt="([^"]*)"([\s\S]{0,300})/g;
 
   let m: RegExpExecArray | null;
   while ((m = re.exec(html))) {
