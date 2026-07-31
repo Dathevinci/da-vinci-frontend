@@ -5,7 +5,7 @@ import PageTransition from "@/components/layout/PageTransition";
 import { useUser } from "@/hooks/useUser";
 import { isAdmin, isLeadDev, displayArisePoints } from "@/lib/admin";
 import { useToast } from "@/components/ui/Toast";
-import { MountainSnow, ShoppingBag, Sparkles, Check, Diamond, Aperture, CircleDot, Orbit, Snowflake, Flame, Sun, Zap, Leaf, Search, X, LayoutGrid, CloudLightning, CloudFog, Moon, Cog, Target, Trees, Gift, Swords, Flower2, Skull, Sprout, Eye, ArrowRight, Infinity as InfinityIcon, History, Hourglass, Atom } from "lucide-react";
+import { MountainSnow, ShoppingBag, Sparkles, Check, Diamond, Aperture, CircleDot, Orbit, Snowflake, Flame, Sun, Zap, Leaf, Search, X, LayoutGrid, CloudLightning, CloudFog, Moon, Cog, Target, Trees, Gift, Swords, Flower2, Skull, Sprout, Eye, ArrowRight, Infinity as InfinityIcon, History, Hourglass, Atom, Shell, Tag } from "lucide-react";
 import GiftModal from "@/components/shop/GiftModal";
 import BuyPointsModal from "@/components/shop/BuyPointsModal";
 import { authHeaders } from "@/lib/authToken";
@@ -28,7 +28,9 @@ import { motion } from "framer-motion";
 const DEJAVU_ENDS_AT = Date.parse("2026-07-24T23:59:59Z");
 
 const SHOP_ITEMS = [
-  // ---- SSS GRADE: one exists ----
+  // ---- SSS GRADE ----
+  { id: "effect_outergod", type: "effect", sss: true, discountPercent: 10, name: "Outer God: Abyssal Gaze", description: "「 It has noticed you. 」 A tear in reality rips open behind your avatar — a jagged black wound rimmed in sickly bioluminescent teal, breathing. Colossal appendages writhe out of it, dreadfully slow, lined with pale suckers — and some grow eyes that follow the viewer's cursor. A spiral of glowing deep-sea mist is dragged inward, ignoring gravity entirely. Then, every ten to fifteen seconds, the abyss LOOKS BACK: the card darkens and immense mutated-magenta eyes crack open in the deep, their pupils snapping to the viewer's every movement — while reality buckles. Colours split apart, the card tears sideways, sanity drains. The eyes seal shut. It does not leave. SSS grade. Launch sale — 10% off.", price: 12000, icon: Shell, color: "text-teal-300", glow: "shadow-[0_0_26px_rgba(13,148,136,0.75)]", gradient: "from-teal-400 via-purple-900 to-fuchsia-600" },
+
   { id: "effect_dejavu", type: "effect", sss: true, limited: true, endsAt: DEJAVU_ENDS_AT, name: "Dejavu: Temporal Echo", description: "「 …you have read this before, haven't you? 」 LIMITED — 3 days, then it vanishes forever. The card plunges into a psychological void of pitch black and ash grey. A volatile quantum field orbits your avatar, never certain of its own position — and every few seconds the moment REPEATS: translucent, glitching afterimages of your avatar split away, drift, and snap back like a memory refusing to stay in the past. Three colossal time-dilation rings turn slowly behind you, inscribed with faintly glowing runes and relativity equations. Then reality itself TEARS — the whole card rips horizontally for a fifth of a second and jagged blood-red threads crack out from your avatar like corrupted nerves — while grey ash falls upward through a frozen moment in time. Time does not pass here. It circles. SSS grade. Limited.", price: 15000, icon: History, color: "text-slate-200", glow: "shadow-[0_0_26px_rgba(139,0,0,0.7)]", gradient: "from-slate-100 via-red-900 to-cyan-500" },
 
   { id: "effect_hollow", type: "effect", sss: true, name: "Hollow Technique: Purple", description: "「 Nine Ropes, Polarized Light, Crow and Declaration… 」 The collision of opposites. A cobalt sphere rushes in from the left, IMPLODING — light and debris spiral helplessly into it. A crimson sphere erupts from the right, EXPLODING with jagged repulsion arcs. They slam together above your profile and give birth to an imaginary mass: a violent violet-magenta singularity with a blinding white core. Concentric shockwaves ripple across the card, a hexagonal cursed-energy lattice fractures over the orb's surface, void-black lightning crackles at its rim — and twice a cycle, two pale slits of Six-Eyes light pulse in the dark, almost subliminal. Wisps of purple smoke curl around your avatar, but the singularity never touches it. It re-collides. Forever. SSS grade.", price: 17500, icon: Atom, color: "text-purple-300", glow: "shadow-[0_0_26px_rgba(167,36,240,0.75)]", gradient: "from-blue-500 via-purple-600 to-red-500" },
@@ -76,6 +78,14 @@ const fmtLeft = (ms: number) => {
   const pad = (n: number) => String(n).padStart(2, "0");
   const hms = `${pad(Math.floor((s % 86400) / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`;
   return d > 0 ? `${d}d ${hms}` : hms;
+};
+
+// Per-item sale: `price` stays the list price (for the strikethrough); this is
+// what the buyer actually pays. MUST mirror the backend's priceOf() in
+// shopCatalog.ts — the server is the real authority on the charge.
+const finalPrice = (item: { price: number } & Record<string, any>) => {
+  const off = (item as any).discountPercent as number | undefined;
+  return off ? Math.round(item.price * (1 - off / 100)) : item.price;
 };
 
 export default function ShopPage() {
@@ -192,7 +202,7 @@ export default function ShopPage() {
     // fixed display (40k for admins, ∞ for the lead dev), so nothing is deducted.
     const isGod = isAdmin(user);
 
-    if (!isGod && (user.arisePoints || 0) < item.price) {
+    if (!isGod && (user.arisePoints || 0) < finalPrice(item)) {
       return toast("Not enough Arise Points!", "error");
     }
 
@@ -263,7 +273,10 @@ export default function ShopPage() {
     const isSSS = !!(item as any).sss;
     const isRare = !isSSS && !!(item as any).rare;
     const isUnique = !!(item as any).unique;
-    const canAfford = isAdmin(user) || (user.arisePoints || 0) >= item.price;
+    // Per-item sale: pay the discounted price, show the list price struck out.
+    const off = (item as any).discountPercent as number | undefined;
+    const salePrice = finalPrice(item);
+    const canAfford = isAdmin(user) || (user.arisePoints || 0) >= salePrice;
     // Limited drop: countdown while the window is open, sealed after it closes.
     const isLimited = !!(item as any).limited;
     const endsAt = (item as any).endsAt as number | undefined;
@@ -309,6 +322,11 @@ export default function ShopPage() {
               <Hourglass className="h-2.5 w-2.5" /> Limited
             </span>
           )}
+          {off ? (
+            <span className={`absolute left-2 z-20 inline-flex items-center gap-1 rounded-full border border-teal-500/50 bg-teal-950/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-teal-300 ${isLimited ? "top-14" : "top-8"}`}>
+              <Tag className="h-2.5 w-2.5" /> −{off}%
+            </span>
+          ) : null}
           {hasItem && (
             <span className="absolute right-2 top-2 z-20 inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-emerald-300">
               <Check className="h-3 w-3" /> Owned
@@ -378,7 +396,9 @@ export default function ShopPage() {
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                   ) : (
                     <>
-                      <Diamond className="h-3.5 w-3.5" /> {item.price.toLocaleString()}
+                      <Diamond className="h-3.5 w-3.5" />
+                      {off ? <s className="mr-0.5 text-[10px] font-bold text-white/50">{item.price.toLocaleString()}</s> : null}
+                      {salePrice.toLocaleString()}
                     </>
                   )}
                 </button>
@@ -388,7 +408,7 @@ export default function ShopPage() {
                   title="Not enough Arise Points — top up"
                   className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl border border-amber-400/30 bg-amber-500/10 text-xs font-black text-amber-200 transition hover:bg-amber-500/20"
                 >
-                  <Diamond className="h-3.5 w-3.5" /> {item.price.toLocaleString()} · Top up
+                  <Diamond className="h-3.5 w-3.5" /> {salePrice.toLocaleString()} · Top up
                 </button>
               )
             ) : (
@@ -670,6 +690,96 @@ export default function ShopPage() {
             </div>
           </motion.div>
 
+          {/* ── FEATURED DROP hero — the newest SSS effect, playing LIVE across
+              the banner. ProfileEffect is a child of this panel (card-anchored,
+              Discord-style), and the mock avatar registers the anchor the tear
+              opens on — the hero IS the demo, not a screenshot of it. ── */}
+          {(() => {
+            const hero = SHOP_ITEMS.find((it) => it.id === "effect_outergod");
+            if (!hero) return null;
+            const hOwned = getInventoryArray(hero.type).includes(hero.id);
+            const hActive = getActiveField(hero.type) === hero.id;
+            const hOff = (hero as any).discountPercent as number | undefined;
+            const hPrice = finalPrice(hero);
+            return (
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05 }}
+                className="relative mb-8 overflow-hidden rounded-3xl border border-teal-500/30 bg-gradient-to-br from-[#02110f] via-[#040208] to-[#12030f] shadow-[0_0_60px_rgba(13,148,136,0.18)]"
+              >
+                <ProfileEffect effect={hero.id} />
+
+                <div className="relative z-40 flex flex-col items-center gap-6 px-6 py-8 md:flex-row md:items-center md:gap-10 md:px-10 md:py-9">
+                  {/* the epicenter — the tear opens on this avatar's rim */}
+                  <div className="relative h-24 w-24 shrink-0 md:h-28 md:w-28">
+                    <div className="relative z-10 flex h-full w-full items-center justify-center overflow-hidden rounded-full border-2 border-teal-500/40 bg-gradient-to-br from-teal-900 to-fuchsia-950 text-3xl font-black text-white">
+                      {user.avatar ? <img src={user.avatar} alt="" className="h-full w-full object-cover" /> : (user.username?.[0]?.toUpperCase() || "?")}
+                    </div>
+                    <AvatarDecoration frame={null} effect={hero.id} size="lg" />
+                  </div>
+
+                  <div className="min-w-0 flex-1 text-center md:text-left">
+                    <div className="mb-2.5 flex flex-wrap items-center justify-center gap-2 md:justify-start">
+                      <span className="rounded-full bg-gradient-to-r from-white via-slate-200 to-slate-400 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-black">New · SSS</span>
+                      <span className="inline-flex items-center gap-1 rounded-full border border-teal-500/50 bg-teal-950/70 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-teal-300">
+                        <Tag className="h-3 w-3" /> −{hOff ?? 0}% Launch Sale
+                      </span>
+                    </div>
+                    <h2 className="truncate font-serif text-2xl font-black uppercase tracking-[0.14em] text-transparent bg-clip-text bg-[linear-gradient(92deg,#2ee6d6_10%,#9db8b2_45%,#d81fb4_90%)] md:text-3xl">
+                      {hero.name}
+                    </h2>
+                    <p className="mx-auto mt-1.5 max-w-xl text-xs leading-relaxed text-slate-400 md:mx-0 md:text-sm">
+                      A tear in reality opens behind your avatar. Tentacles writhe out. And every few seconds… the abyss looks back.
+                    </p>
+                  </div>
+
+                  <div className="flex shrink-0 flex-col items-center gap-3 md:items-end">
+                    <div className="flex items-baseline gap-2">
+                      {hOff ? <s className="text-sm font-bold text-slate-500">{hero.price.toLocaleString()}</s> : null}
+                      <span className="text-2xl font-black text-white drop-shadow-[0_0_14px_rgba(13,148,136,0.6)]">{hPrice.toLocaleString()}</span>
+                      <span className="text-xs font-bold text-slate-400">AP</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setPreviewItem(hero)}
+                        className="inline-flex h-11 items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-4 text-xs font-black text-white backdrop-blur transition hover:bg-white/10"
+                      >
+                        <Eye className="h-4 w-4" /> Preview
+                      </button>
+                      {hOwned ? (
+                        <button
+                          onClick={() => handleToggle(hero, !hActive)}
+                          className={`inline-flex h-11 items-center gap-1.5 rounded-xl border px-5 text-xs font-black transition ${
+                            hActive
+                              ? "border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20"
+                              : "border-teal-500/40 bg-teal-500/10 text-teal-200 hover:bg-teal-500/20"
+                          }`}
+                        >
+                          {hActive ? "Unequip" : "Equip"}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handlePurchase(hero)}
+                          disabled={buyingId === hero.id}
+                          className="inline-flex h-11 items-center gap-1.5 rounded-xl bg-gradient-to-r from-teal-600 to-fuchsia-600 px-5 text-xs font-black text-white shadow-[0_0_20px_rgba(13,148,136,0.4)] transition hover:from-teal-500 hover:to-fuchsia-500"
+                        >
+                          {buyingId === hero.id ? (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                          ) : (
+                            <>
+                              <Diamond className="h-4 w-4" /> Claim the Gaze
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })()}
+
           {/* ── Equipped now — what you're wearing, with one-tap unequip ── */}
           {equippedItems.length > 0 && (
             <motion.div
@@ -949,7 +1059,8 @@ export default function ShopPage() {
               : pUnique
               ? { label: `${(pv as any).badge || "🐸"} Unique`, cls: "text-emerald-950 bg-gradient-to-r from-emerald-300 to-lime-300" }
               : { label: pv.type === "frame" ? "Frame" : "Effect", cls: "border border-white/10 bg-white/10 text-slate-300" };
-            const canBuy = isAdmin(user) || (user.arisePoints || 0) >= pv.price;
+            const canBuy = isAdmin(user) || (user.arisePoints || 0) >= finalPrice(pv);
+            const pOff = (pv as any).discountPercent as number | undefined;
             const pEndsAt = (pv as any).endsAt as number | undefined;
             const pMsLeft = pEndsAt && nowTs !== null ? pEndsAt - nowTs : null;
             const pExpired = pMsLeft !== null && pMsLeft <= 0;
@@ -1015,6 +1126,11 @@ export default function ShopPage() {
                             {pExpired ? "Window closed" : pMsLeft !== null ? <span className="font-mono tabular-nums">{fmtLeft(pMsLeft)}</span> : "Limited"}
                           </span>
                         )}
+                        {pOff ? (
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-500/50 bg-teal-950/70 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-teal-300">
+                            <Tag className="h-3 w-3" /> −{pOff}% Launch Sale
+                          </span>
+                        ) : null}
                         {pOwned && (
                           <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-400">
                             <Check className="h-3 w-3" /> Owned
@@ -1042,7 +1158,7 @@ export default function ShopPage() {
                             onClick={() => { setPreviewItem(null); setShowBuyPoints(true); }}
                             className="flex flex-1 items-center justify-center gap-2 rounded-xl py-3 font-bold transition border border-amber-400/30 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20"
                           >
-                            <Diamond className="h-4 w-4" /> {pv.price.toLocaleString()} AP <span className="opacity-50">·</span> Buy Points
+                            <Diamond className="h-4 w-4" /> {finalPrice(pv).toLocaleString()} AP <span className="opacity-50">·</span> Buy Points
                           </button>
                         ) : (
                           <button
@@ -1054,7 +1170,9 @@ export default function ShopPage() {
                               <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                             ) : (
                               <>
-                                <Diamond className="h-4 w-4" /> {pv.price.toLocaleString()} <span className="opacity-50">·</span> Acquire
+                                <Diamond className="h-4 w-4" />
+                                {pOff ? <s className="text-xs font-bold text-white/50">{pv.price.toLocaleString()}</s> : null}
+                                {finalPrice(pv).toLocaleString()} <span className="opacity-50">·</span> Acquire
                               </>
                             )}
                           </button>
@@ -1104,7 +1222,7 @@ export default function ShopPage() {
 
       {giftTarget && (
         <GiftModal
-          item={{ id: giftTarget.id, name: giftTarget.name, price: giftTarget.price, gradient: giftTarget.gradient }}
+          item={{ id: giftTarget.id, name: giftTarget.name, price: finalPrice(giftTarget), gradient: giftTarget.gradient }}
           gifterId={user.id}
           isGod={isLeadDev(user)}
           onClose={() => setGiftTarget(null)}

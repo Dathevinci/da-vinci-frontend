@@ -230,13 +230,19 @@ function useHollowCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       const cyc = t % CYCLE;
       const idx = Math.floor(t / CYCLE);
 
-      // the avatar is the origin — tracked live, in canvas-local coordinates
+      // the avatar is the origin — tracked live, in canvas-local coordinates.
+      // Only anchors inside THIS canvas's card count: with a global scan, two
+      // simultaneously-mounted instances (e.g. a shop hero + the preview
+      // modal, the pattern that actually bit effect_outergod) would both lock
+      // onto whichever avatar happens to be widest anywhere on the page.
       const cRect = canvas.getBoundingClientRect();
+      const host = canvas.parentElement;
       let ax = W * 0.28;
       let ay = H * 0.22;
       let arad = 58;
       let best = 0;
       HOLLOW_ANCHORS.forEach((el) => {
+        if (host && !host.contains(el)) return;
         const r = el.getBoundingClientRect();
         if (r.width > best) {
           best = r.width;

@@ -643,7 +643,13 @@
     sctx.fill();
     sctx.restore();
 
-    // lid line
+    // lid line — the current path is NOT save/restore state, so the lens must
+    // be re-traced (the clip section's beginPath calls clobbered it)
+    sctx.beginPath();
+    sctx.moveTo(-e.rx, 0);
+    sctx.quadraticCurveTo(0, -ry * 2, e.rx, 0);
+    sctx.quadraticCurveTo(0, ry * 2, -e.rx, 0);
+    sctx.closePath();
     sctx.strokeStyle = "rgba(200,160,190,0.25)";
     sctx.lineWidth = 1.5;
     sctx.stroke();
