@@ -147,25 +147,37 @@ export async function searchAll(query: string, page = 1): Promise<{ results: Nov
 // pulling them for every shelf item would mean ~40 detail fetches per home load.
 // So novelfull stays the SEARCH + reading source (where its unique licensed
 // titles + full chapter lists matter) and readnovelfull powers the crisp shelves.
+/**
+ * FanMTL is no longer surfaced ANYWHERE you can browse or search.
+ *
+ * It is machine translation, which is why those titles read badly and often sit
+ * stale — the "Korean" shelf was FanMTL, so dropping that shelf and dropping the
+ * MTL source are the same change. Everything discoverable now comes from
+ * readnovelfull/novelfull, which carry human translations.
+ *
+ * FMTL is still imported on purpose: getNovelInfo and getChapterContent keep
+ * working so anyone with an existing `fmtl:` bookmark can still open what they
+ * were reading instead of hitting a dead link. Nothing NEW routes there.
+ */
 export async function browseNovels(page = 1, list = "most-popular-novel") {
-  if (list === "korean") return FMTL.browseNovels(page, "korean");
   if (list.startsWith("genre/")) return NF.browseNovels(page, list);
   return RNF.browseNovels(page, list);
 }
 
 export async function homeShelves() {
-  const [trending, latest, completed, korean, more] = await Promise.allSettled([
+  const [trending, latest, completed, more] = await Promise.allSettled([
     RNF.browseNovels(1, "most-popular-novel"),
     RNF.browseNovels(1, "latest-release-novel"),
     RNF.browseNovels(1, "completed-novel"),
-    FMTL.browseNovels(1, "korean"),
     RNF.browseNovels(2, "most-popular-novel"),
   ]);
   return {
     trending: trending.status === "fulfilled" ? trending.value.results : [],
     latestUpdates: latest.status === "fulfilled" ? latest.value.results : [],
     completed: completed.status === "fulfilled" ? completed.value.results : [],
-    korean: korean.status === "fulfilled" ? korean.value.results : [],
+    // Kept in the shape so consumers reading these keys don't break; both are
+    // now sourced from readnovelfull rather than the MTL site.
+    korean: [],
     fanmtl: more.status === "fulfilled" ? more.value.results : [],
   };
 }

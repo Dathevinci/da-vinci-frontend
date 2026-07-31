@@ -11,10 +11,11 @@ import ContinueReading from "@/components/reading/ContinueReading";
 import { motion, AnimatePresence } from "framer-motion";
 import type { NovelResult } from "@/lib/novel/ReadNovelFull";
 
+// The "Korean" list was served entirely by FanMTL (machine translation), so it
+// went with that source — its titles read badly and were frequently stale.
 const LISTS = [
   { key: "most-popular-novel", label: "Popular", icon: Flame },
   { key: "latest-release-novel", label: "Latest", icon: Clock },
-  { key: "korean", label: "Korean", icon: BookOpen },
   { key: "completed-novel", label: "Completed", icon: CheckCircle2 },
 ];
 
@@ -49,7 +50,6 @@ function NovelInner() {
   const [latest, setLatest] = useState<NovelResult[]>([]);
   const [completed, setCompleted] = useState<NovelResult[]>([]);
   const [fanmtl, setFanmtl] = useState<NovelResult[]>([]);
-  const [korean, setKorean] = useState<NovelResult[]>([]);
   const [hasNext, setHasNext] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -62,7 +62,6 @@ function NovelInner() {
           setTrending(res.trending || []);
           setLatest(res.latestUpdates || []);
           setCompleted(res.completed || []);
-          setKorean(res.korean || []);
           setFanmtl(res.fanmtl || []);
           setLoading(false);
         })
@@ -110,7 +109,6 @@ function NovelInner() {
               <ContinueReading kind="novel" />
               <NovelCarousel title="Trending Now" icon={<Flame className="w-6 h-6 text-orange-500" />} items={trending} seeAllLink="/novel?view=all&list=most-popular-novel" />
               <NovelCarousel title="Recently Updated" icon={<Clock className="w-6 h-6 text-pink-400" />} items={latest} seeAllLink="/novel?view=all&list=latest-release-novel" />
-              <NovelCarousel title="Korean Novels" icon={<BookOpen className="w-6 h-6 text-blue-400" />} items={korean} seeAllLink="/novel?view=all&list=korean" />
               <NovelCarousel title="Completed" icon={<CheckCircle2 className="w-6 h-6 text-green-500" />} items={completed} seeAllLink="/novel?view=all&list=completed-novel" />
               <NovelCarousel title="More Novels" icon={<BookOpen className="w-6 h-6 text-pink-400" />} items={fanmtl} seeAllLink="/novel?view=all" />
 
