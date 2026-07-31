@@ -169,6 +169,10 @@ export async function searchAll(query: string, page = 1): Promise<{ results: Nov
  * were reading instead of hitting a dead link. Nothing NEW routes there.
  */
 export async function browseNovels(page = 1, list = "most-popular-novel") {
+  // "See all" on the LightNovelWorld shelf browses THAT source, rather than
+  // dropping you into a readnovelfull list that shares none of the titles you
+  // just clicked from.
+  if (list === "lightnovelworld") return LNW.browseNovels(page);
   if (list.startsWith("genre/")) return NF.browseNovels(page, list);
   return RNF.browseNovels(page, list);
 }

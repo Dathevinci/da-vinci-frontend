@@ -113,7 +113,7 @@ function NovelInner() {
               {/* Sourced from LightNovelWorld, so it's labelled honestly rather
                   than as a vague "More" — these are titles the other sources
                   don't carry. */}
-              <NovelCarousel title="New on LightNovelWorld" icon={<BookOpen className="w-6 h-6 text-pink-400" />} items={fanmtl} seeAllLink="/novel?view=all" />
+              <NovelCarousel title="New on LightNovelWorld" icon={<BookOpen className="w-6 h-6 text-pink-400" />} items={fanmtl} seeAllLink="/novel?view=all&list=lightnovelworld" />
 
               <div className="flex justify-center pt-4 pb-2 pl-4 md:pl-12">
                 <button
