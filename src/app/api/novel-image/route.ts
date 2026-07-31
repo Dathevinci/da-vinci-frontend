@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
     host === "novelfull.net" || host.endsWith(".novelfull.net") ||
     host === "img.readnovelfull.com" || host.endsWith(".readnovelfull.com") ||
     host === "www.fanmtl.com" || host.endsWith(".fanmtl.com") ||
+    host === "lightnovelworld.org" || host.endsWith(".lightnovelworld.org") ||
     host.endsWith("anilist.co") || host.endsWith("kitsu.io");
   if (!allowed) {
     return new NextResponse("Domain not allowed", { status: 403 });
@@ -26,7 +27,13 @@ export async function GET(req: NextRequest) {
 
   const UA =
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
-  const referer = host.includes("novelfull") ? "https://novelfull.net/" : host.includes("fanmtl") ? "https://www.fanmtl.com/" : "https://readnovelfull.com/";
+  const referer = host.includes("novelfull")
+    ? "https://novelfull.net/"
+    : host.includes("fanmtl")
+    ? "https://www.fanmtl.com/"
+    : host.includes("lightnovelworld")
+    ? "https://lightnovelworld.org/"
+    : "https://readnovelfull.com/";
 
   // Every source serves low-res covers (novelfull ~180-220px, readnovelfull
   // ~266px), so upscale + sharpen them ALL to a consistent crisp 480x720 webp
