@@ -172,10 +172,16 @@ export async function getNovelInfo(slug: string): Promise<NovelInfo> {
         .replace(/\s+/g, " ")
     ) || "No synopsis available.";
 
-  // Chapters are sequential and unlisted on the page, so build them from the
-  // total. Newest-first to match the other sources' convention.
+  /**
+   * Chapters are sequential and the page never lists them, so they're built
+   * from the total.
+   *
+   * ASCENDING (1..N). They were emitted newest-first, and the reader paginates
+   * by slicing this array — so the "1 - 100" tab was showing chapters 274 down
+   * to 175, and opening a novel started you at the ending rather than chapter 1.
+   */
   const chapters: NovelChapter[] = [];
-  for (let n = total; n >= 1; n--) {
+  for (let n = 1; n <= total; n++) {
     chapters.push({ id: String(n), title: `Chapter ${n}`, number: n });
   }
 
@@ -198,8 +204,13 @@ function htmlToParagraphs(block: string): string[] {
     .replace(/<div class="chapter-ad-container"[\s\S]*?<\/div>/gi, "")
     .replace(/<br\s*\/?>/gi, "\n");
 
-  return cleaned
-    .split(/<\/p>|<\/div>|\n/i)
+  // Pull the <p> blocks out directly rather than splitting on every closing tag —
+  // the region contains surrounding page chrome, and splitting blindly dragged
+  // nav labels and script remnants in alongside the prose.
+  const paras = Array.from(cleaned.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)).map((m) => m[1]);
+  const source = paras.length ? paras : cleaned.split(/\n/);
+
+  return source
     .map((p) => decode(p.replace(/<[^>]+>/g, "")))
     .map((p) => p.replace(/\s+/g, " ").trim())
     .filter((p) => p.length > 1);
@@ -211,11 +222,18 @@ export async function getChapterContent(slug: string, chapterId: string): Promis
 
   const title = decode(html.match(/<h1 class="chapter-title"[^>]*>([\s\S]*?)<\/h1>/)?.[1]?.replace(/<[^>]+>/g, "") || `Chapter ${n}`);
 
-  const body = html.match(/<div class="chapter-content"[^>]*>([\s\S]*?)<div class="chapter-nav"/)?.[1]
-    || html.match(/<div class="chapter-content"[^>]*>([\s\S]*?)<\/div>\s*<\/div>/)?.[1]
-    || "";
-
-  const content = htmlToParagraphs(body);
+  /**
+   * The prose lives in #chapterText, nested inside .chapter-content.
+   *
+   * The previous attempt captured between .chapter-content and .chapter-nav,
+   * which matched nothing — the nav block is rendered BEFORE the text in the
+   * document, so that range ran backwards. Anchoring on #chapterText and
+   * pulling the <p> blocks out of it avoids depending on sibling order or on
+   * balancing nested divs with a regex.
+   */
+  const start = html.indexOf('id="chapterText"');
+  const region = start >= 0 ? html.slice(start) : html;
+  const content = htmlToParagraphs(region);
 
   const prevMatch = html.match(/href="\/novel\/[a-z0-9-]+\/chapter\/(\d+)\/"[^>]*class="[^"]*prev-btn/);
   const nextMatch = html.match(/href="\/novel\/[a-z0-9-]+\/chapter\/(\d+)\/"[^>]*class="[^"]*next-btn/);
