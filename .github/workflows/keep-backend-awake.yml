@@ -19,8 +19,17 @@ jobs:
     steps:
       - name: Ping the backend
         run: |
+          # MUST stay on /health — it returns a static JSON object and touches
+          # NOTHING else. This used to ping /api/system/status, which runs a
+          # prisma query for the maintenance flag. That meant a database hit
+          # every 5 minutes forever, and Neon only suspends compute after a
+          # stretch with no connections — so the database could never idle and
+          # burned its whole monthly compute allowance keeping Render awake.
+          #
+          # Any HTTP request keeps Render warm. It does not have to be one that
+          # reaches the database.
           code=$(curl -s -o /dev/null -m 40 -w "%{http_code}" \
-            https://da-vinci-backend.onrender.com/api/system/status || echo 000)
-          echo "backend /api/system/status -> $code"
+            https://da-vinci-backend.onrender.com/health || echo 000)
+          echo "backend /health -> $code"
           # Always succeed — a transient down backend must not spam failure emails.
           exit 0
