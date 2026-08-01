@@ -279,7 +279,7 @@ function EffectLayer({ effect, size = "sm" }: { effect: string; size?: "sm" | "l
   }
 
   if (effect === "effect_gateway") {
-    // SSS: ultraviolet→white→gold breathing glow + the gateway anchor. Gateway.tsx.
+    // Unique: ultraviolet→white→gold breathing glow + the gateway anchor. Gateway.tsx.
     return <GatewayAvatarMark />;
   }
 

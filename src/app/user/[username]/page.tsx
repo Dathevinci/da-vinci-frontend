@@ -313,7 +313,7 @@ export default function PublicProfilePage() {
   // The SSS-grade Outer God drowns it in abyssal teal and mutated magenta.
   const isOuterGod = effectiveEffect === "effect_outergod";
   const outerGodName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#99f6e4,#14b8a6,#d81fb4,#14b8a6,#99f6e4)] drop-shadow-[0_0_10px_rgba(13,148,136,0.6)]";
-  // The SSS-grade Gate & Key burns it in ultraviolet, white and corrupted gold.
+  // The unique Gate & Key burns it in ultraviolet, white and corrupted gold.
   const isGateway = effectiveEffect === "effect_gateway";
   const gatewayName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#e2beff,#8a2be2,#ffffff,#ffd700,#e2beff)] drop-shadow-[0_0_10px_rgba(138,43,226,0.65)]";
   // When a bought frame (or the Voltaic ring) is equipped, drop the rank/role

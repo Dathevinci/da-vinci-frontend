@@ -4,7 +4,7 @@ import { useEffect, useRef, type RefObject } from "react";
 import { motion } from "framer-motion";
 
 /**
- * THE GATE & THE KEY — SSS-grade profile effect. Yog-Sothoth as sacred
+ * THE GATE & THE KEY — Unique-tier profile effect. Yog-Sothoth as sacred
  * geometry gone wrong, in four continuous systems around the avatar:
  *
  *   THE CORE — a wireframe 4D tesseract (16 vertices, 32 edges, rotating in
