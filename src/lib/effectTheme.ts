@@ -41,6 +41,8 @@ export function effectNameClass(effect?: string | null): string {
       return "text-transparent bg-clip-text bg-[linear-gradient(to_right,#93c5fd,#a855f7,#c724f0,#f87171,#93c5fd)] drop-shadow-[0_0_10px_rgba(167,36,240,0.65)]";
     case "effect_outergod":
       return "text-transparent bg-clip-text bg-[linear-gradient(to_right,#99f6e4,#14b8a6,#d81fb4,#14b8a6,#99f6e4)] drop-shadow-[0_0_10px_rgba(13,148,136,0.6)]";
+    case "effect_gateway":
+      return "text-transparent bg-clip-text bg-[linear-gradient(to_right,#e2beff,#8a2be2,#ffffff,#ffd700,#e2beff)] drop-shadow-[0_0_10px_rgba(138,43,226,0.65)]";
     default:
       return "";
   }
@@ -67,6 +69,7 @@ export function effectCardBorderClass(effect?: string | null): string {
     case "effect_dejavu": return "!border-red-900/60 shadow-[0_0_50px_rgba(139,0,0,0.4),0_0_24px_rgba(0,255,255,0.15)]";
     case "effect_hollow": return "!border-purple-500/60 shadow-[0_0_50px_rgba(167,36,240,0.4),0_0_24px_rgba(27,79,224,0.2)]";
     case "effect_outergod": return "!border-teal-500/50 shadow-[0_0_50px_rgba(13,148,136,0.4),0_0_24px_rgba(216,31,180,0.25)]";
+    case "effect_gateway": return "!border-violet-500/50 shadow-[0_0_50px_rgba(138,43,226,0.4),0_0_24px_rgba(255,215,0,0.25)]";
     default: return "!border-white/10";
   }
 }

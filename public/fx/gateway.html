@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Gate &amp; The Key — SSS Effect Prototype</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #010103; }
+  .gk-root {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+    color: #efeaf7;
+  }
+  /* the absolute dark of the cosmic void */
+  .gk-card {
+    position: relative;
+    z-index: 10;
+    background: rgba(2, 2, 5, 0.95);
+    -webkit-backdrop-filter: blur(15px);
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(138, 43, 226, 0.3);
+    border-radius: 20px;
+    padding: 44px 60px 38px;
+    text-align: center;
+    box-shadow: 0 0 60px rgba(0, 0, 0, 0.9), inset 0 0 40px rgba(10, 4, 22, 0.6);
+    max-width: 92vw;
+  }
+  .gk-avatar {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    margin: 0 auto 22px;
+    position: relative;
+    background: radial-gradient(circle at 34% 30%, #2a1548 0%, #140a26 46%, #05020c 100%);
+    border: 2px solid rgba(177, 74, 255, 0.55);
+    box-shadow: 0 0 34px rgba(138, 43, 226, 0.4), inset 0 0 26px rgba(0, 0, 0, 0.8);
+  }
+  .gk-avatar-core {
+    position: absolute;
+    inset: 16%;
+    border-radius: 50%;
+    background: conic-gradient(from 40deg,
+      rgba(255, 215, 0, 0.5), rgba(138, 43, 226, 0.6),
+      rgba(255, 255, 255, 0.35), rgba(20, 8, 40, 0.9), rgba(255, 215, 0, 0.5));
+    filter: blur(7px);
+    opacity: 0.85;
+    animation: gkSpin 18s linear infinite;
+  }
+  @keyframes gkSpin { to { transform: rotate(360deg); } }
+  .gk-chips { display: flex; gap: 8px; justify-content: center; margin-bottom: 14px; }
+  .gk-chip {
+    font-size: 10px; font-weight: 800; letter-spacing: 0.18em;
+    padding: 4px 10px; border-radius: 999px; text-transform: uppercase;
+  }
+  .gk-chip--sss {
+    color: #e2beff;
+    border: 1px solid rgba(177, 74, 255, 0.5);
+    background: rgba(138, 43, 226, 0.14);
+    text-shadow: 0 0 12px rgba(177, 74, 255, 0.7);
+  }
+  .gk-title {
+    font-family: "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: clamp(22px, 4vw, 34px);
+    font-weight: 700;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    margin: 0 0 4px;
+    background: linear-gradient(92deg, #b14aff 8%, #ffffff 48%, #ffd700 92%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .gk-sub {
+    font-size: 11px; letter-spacing: 0.34em; text-transform: uppercase;
+    color: rgba(190, 176, 214, 0.55); margin-bottom: 20px;
+  }
+  .gk-price { display: flex; align-items: baseline; justify-content: center; gap: 8px; }
+  .gk-price strong { font-size: 22px; color: #fff; text-shadow: 0 0 18px rgba(138, 43, 226, 0.6); }
+  .gk-price span { font-size: 12px; color: rgba(190, 176, 214, 0.7); }
+  .gk-hint {
+    margin-top: 22px; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: rgba(190, 176, 214, 0.4);
+    animation: gkPulse 4s ease-in-out infinite;
+  }
+  @keyframes gkPulse { 50% { color: rgba(255, 215, 0, 0.6); } }
+  .gk-vignette {
+    position: fixed; inset: 0; z-index: 10000; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 46%, transparent 30%, rgba(1, 0, 4, 0.5) 64%, rgba(0, 0, 2, 0.92) 100%);
+  }
+  @media (prefers-reduced-motion: reduce) { .gk-avatar-core, .gk-hint { animation: none; } }
+</style>
+</head>
+<body>
+
+<div class="gk-root">
+  <div class="gk-card">
+    <div class="gk-avatar" id="gk-avatar"><div class="gk-avatar-core"></div></div>
+    <div class="gk-chips"><span class="gk-chip gk-chip--sss">SSS-Grade</span></div>
+    <h1 class="gk-title">The Gate &amp; The Key</h1>
+    <div class="gk-sub">Profile Effect · The Geometry of Yog-Sothoth</div>
+    <div class="gk-price"><strong>12,000</strong><span>Arise Points</span></div>
+    <div class="gk-hint">Click anywhere — glimpse the abyss</div>
+  </div>
+  <div class="gk-vignette"></div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  const TAU = Math.PI * 2;
+  const PHI = (1 + Math.sqrt(5)) / 2;
+  const clamp01 = (x) => (x < 0 ? 0 : x > 1 ? 1 : x);
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const hash = (n) => { const s = Math.sin(n * 127.1) * 43758.5453; return s - Math.floor(s); };
+  const AVATAR = document.getElementById("gk-avatar");
+
+  /* ————— GLOBAL SCREEN ESCAPE — exactly as decreed ————— */
+  const canvas = document.createElement("canvas");
+  document.body.appendChild(canvas);
+  canvas.style.cssText =
+    "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; " +
+    "z-index: 9999; pointer-events: none; mix-blend-mode: screen;";
+  const ctx = canvas.getContext("2d");
+
+  let W = 0, H = 0, DPR = 1;
+  const resize = () => {
+    DPR = Math.min(window.devicePixelRatio || 1, 1.5);
+    W = innerWidth; H = innerHeight;
+    canvas.width = Math.round(W * DPR);
+    canvas.height = Math.round(H * DPR);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  };
+  resize();
+  window.addEventListener("resize", resize);
+
+  const makeSprite = (inner, mid) => {
+    const s = 96, c = document.createElement("canvas");
+    c.width = c.height = s;
+    const g = c.getContext("2d");
+    const grad = g.createRadialGradient(s/2, s/2, 0, s/2, s/2, s/2);
+    grad.addColorStop(0, inner); grad.addColorStop(0.4, mid); grad.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = grad; g.fillRect(0, 0, s, s);
+    return c;
+  };
+  const goldMote = makeSprite("rgba(255,236,170,0.95)", "rgba(255,215,0,0.4)");
+  const uvMote = makeSprite("rgba(226,190,255,0.95)", "rgba(138,43,226,0.4)");
+  const uvHalo = makeSprite("rgba(177,74,255,0.8)", "rgba(88,24,180,0.3)");
+  const holeFeather = (() => {
+    const c = document.createElement("canvas"); c.width = c.height = 256;
+    const g = c.getContext("2d");
+    const grad = g.createRadialGradient(128,128,0,128,128,128);
+    grad.addColorStop(0, "rgba(255,255,255,1)"); grad.addColorStop(0.8, "rgba(255,255,255,1)"); grad.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = grad; g.fillRect(0,0,256,256);
+    return c;
+  })();
+
+  /* ————— polytopes ————— */
+  const TESS_VERTS = Array.from({ length: 16 }, (_, i) => [i&1?1:-1, i&2?1:-1, i&4?1:-1, i&8?1:-1]);
+  const TESS_EDGES = [];
+  for (let a = 0; a < 16; a++) for (let b = a+1; b < 16; b++) { const x = a^b; if ((x & (x-1)) === 0) TESS_EDGES.push([a, b]); }
+  const DODE_VERTS = [];
+  for (let i = 0; i < 8; i++) DODE_VERTS.push([i&1?1:-1, i&2?1:-1, i&4?1:-1]);
+  for (const s1 of [-1,1]) for (const s2 of [-1,1]) {
+    DODE_VERTS.push([0, s1/PHI, s2*PHI]);
+    DODE_VERTS.push([s1/PHI, s2*PHI, 0]);
+    DODE_VERTS.push([s1*PHI, 0, s2/PHI]);
+  }
+  const DODE_EDGES = [];
+  { const MIN = 2/PHI + 0.05;
+    for (let a = 0; a < DODE_VERTS.length; a++) for (let b = a+1; b < DODE_VERTS.length; b++) {
+      const dx = DODE_VERTS[a][0]-DODE_VERTS[b][0], dy = DODE_VERTS[a][1]-DODE_VERTS[b][1], dz = DODE_VERTS[a][2]-DODE_VERTS[b][2];
+      if (Math.hypot(dx, dy, dz) < MIN) DODE_EDGES.push([a, b]);
+    } }
+
+  let ax = W/2, ay = H/2, aR = 75;
+
+  const spheres = Array.from({ length: 12 }, (_, i) => ({ seed: i + hash(i*3.7) }));
+  const motes = Array.from({ length: 1200 }, (_, i) => ({
+    seed: hash(i*1.618),
+    om: rand(0.05, 0.2) * (Math.random() < 0.8 ? 1 : -1),
+    band: rand(0.9, 5.2),
+    size: rand(2.5, 7),
+    gold: Math.random() < 0.5,
+  }));
+
+  const burnStroke = (path, rgb, coreA) => {
+    ctx.beginPath();
+    path();
+    ctx.strokeStyle = `rgba(${rgb},0.12)`; ctx.lineWidth = 6; ctx.stroke();
+    ctx.strokeStyle = `rgba(${rgb},0.32)`; ctx.lineWidth = 2.6; ctx.stroke();
+    ctx.strokeStyle = `rgba(255,255,255,${coreA})`; ctx.lineWidth = 1; ctx.stroke();
+  };
+
+  const drawCore = (t, grow) => {
+    ctx.globalCompositeOperation = "lighter";
+    ctx.globalAlpha = (0.4 + 0.15*Math.sin(t*0.6)) * grow;
+    const hs = aR * 5.4 * grow;
+    ctx.drawImage(uvHalo, ax-hs/2, ay-hs/2, hs, hs);
+    ctx.globalAlpha = 1;
+
+    const breathe = 1 + 0.06*Math.sin(t*0.5);
+    {
+      const a = t*0.22, b = t*0.16;
+      const ca = Math.cos(a), sa = Math.sin(a), cb = Math.cos(b), sb = Math.sin(b);
+      const R = aR * 1.5 * breathe * grow;
+      const pts = TESS_VERTS.map(([x, y, z, w]) => {
+        const x1 = x*ca - w*sa, w1 = x*sa + w*ca;
+        const y1 = y*cb - z*sb, z1 = y*sb + z*cb;
+        const k4 = 1.8 / (1.8 - w1*0.55);
+        const x2 = x1*k4, y2 = y1*k4, z2 = z1*k4;
+        const k3 = 2.4 / (2.4 - z2*0.5);
+        return [ax + x2*k3*R, ay + y2*k3*R];
+      });
+      burnStroke(() => {
+        for (const [i, j] of TESS_EDGES) { ctx.moveTo(pts[i][0], pts[i][1]); ctx.lineTo(pts[j][0], pts[j][1]); }
+      }, "177,74,255", 0.75*grow);
+    }
+    {
+      const a = -t*0.13, b = t*0.09;
+      const ca = Math.cos(a), sa = Math.sin(a), cb = Math.cos(b), sb = Math.sin(b);
+      const R = aR * 2.1 * breathe * grow;
+      const pts = DODE_VERTS.map(([x, y, z]) => {
+        const x1 = x*ca - y*sa, y1 = x*sa + y*ca;
+        const y2 = y1*cb - z*sb, z2 = y1*sb + z*cb;
+        const k3 = 3.1 / (3.1 - z2*0.55);
+        return [ax + x1*k3*R*0.5, ay + y2*k3*R*0.5];
+      });
+      burnStroke(() => {
+        for (const [i, j] of DODE_EDGES) { ctx.moveTo(pts[i][0], pts[i][1]); ctx.lineTo(pts[j][0], pts[j][1]); }
+      }, "255,205,60", 0.6*grow);
+    }
+    ctx.globalCompositeOperation = "source-over";
+  };
+
+  const drawSpheres = (t, grow) => {
+    ctx.globalCompositeOperation = "lighter";
+    for (const s of spheres) {
+      const i = s.seed;
+      const ang = (i/spheres.length)*TAU + t*0.07*(Math.floor(i)%2?1:-1) + i*2.4;
+      const rad = aR * (1.5 + 0.75*Math.sin(t*0.11 + i*2.2));
+      const x = ax + Math.cos(ang)*rad;
+      const y = ay + Math.sin(ang)*rad*0.9;
+      const r = Math.max(3, aR*(0.18 + 0.13*hash(i*5.1))*(1 + 0.22*Math.sin(t*0.9 + i))*grow);
+      const mix = 0.5 + 0.5*Math.sin(t*0.23 + i*1.7);
+      const cr = Math.round(177 + (255-177)*mix);
+      const cg = Math.round(74 + (205-74)*mix);
+      const cb2 = Math.round(255 + (60-255)*mix);
+      ctx.save();
+      ctx.translate(x, y);
+      const grad = ctx.createRadialGradient(-r*0.35, -r*0.35, r*0.05, 0, 0, r);
+      grad.addColorStop(0, "rgba(255,255,255,0.85)");
+      grad.addColorStop(0.3, `rgba(${cr},${cg},${cb2},0.4)`);
+      grad.addColorStop(0.72, "rgba(90,20,160,0.22)");
+      grad.addColorStop(1, "rgba(40,8,90,0)");
+      ctx.globalAlpha = 0.66*grow;
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, TAU);
+      ctx.fill();
+      const da = Math.atan2(ay-y, ax-x);
+      const px = Math.cos(da)*r*0.3, py = Math.sin(da)*r*0.3;
+      ctx.globalAlpha = 0.75*grow;
+      ctx.strokeStyle = "rgba(255,215,0,0.7)";
+      ctx.lineWidth = 1.3;
+      ctx.beginPath();
+      ctx.arc(px, py, r*0.22, 0, TAU);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.beginPath();
+      ctx.arc(px, py, Math.max(r*0.09, 1), 0, TAU);
+      ctx.fill();
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = "source-over";
+  };
+
+  const drawMotes = (t, grow) => {
+    ctx.globalCompositeOperation = "lighter";
+    for (const p of motes) {
+      const th = p.seed*TAU + t*p.om;
+      const arm = Math.floor(p.seed*3)*2.094;
+      const r = aR*p.band + aR*0.6*Math.sin(3*th + t*0.7 + arm) + aR*0.4*Math.sin(th*PHI*2 - t*1.3);
+      const x = ax + Math.cos(th)*r;
+      const y = ay + Math.sin(th)*r*0.88 + aR*0.25*Math.sin(t*0.4 + p.seed*9);
+      ctx.globalAlpha = (0.2 + 0.32*Math.abs(Math.sin(t*1.1 + p.seed*7))) * grow;
+      ctx.drawImage(p.gold ? goldMote : uvMote, x-p.size/2, y-p.size/2, p.size, p.size);
+    }
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = "source-over";
+  };
+
+  let nextGlimpse = 8 + Math.random()*5;
+  let glimpseT = -1;
+  const GLIMPSE_DUR = 0.5;
+
+  const drawWhispers = () => {
+    ctx.globalCompositeOperation = "lighter";
+    for (let l = 0; l < 4; l++) {
+      const baseY = H*(0.2 + 0.2*l) + rand(-10, 10);
+      ctx.beginPath();
+      ctx.moveTo(0, baseY);
+      for (let x = 0; x <= W; x += 8) {
+        const spike = Math.random() < 0.07 ? (Math.random()*2 - 1)*H*0.1 : (Math.random()*2 - 1)*5;
+        ctx.lineTo(x, baseY + spike);
+      }
+      ctx.strokeStyle = l % 2 ? "rgba(255,215,0,0.8)" : "rgba(226,190,255,0.8)";
+      ctx.lineWidth = 1.8;
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(255,255,255,0.55)";
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+    }
+    ctx.globalCompositeOperation = "source-over";
+  };
+
+  let last = performance.now(), elapsed = 0;
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) last = performance.now(); });
+  window.addEventListener("pointerdown", () => { if (glimpseT < 0) nextGlimpse = elapsed; });
+
+  const frame = (now) => {
+    requestAnimationFrame(frame);
+    let dt = (now - last)/1000;
+    last = now;
+    if (dt > 0.05) dt = 0.05;
+    elapsed += dt;
+
+    const r = AVATAR.getBoundingClientRect();
+    ax = r.left + r.width/2;
+    ay = r.top + r.height/2;
+    aR = r.width/2;
+
+    const grow = clamp01((elapsed - 0.2)/1.8);
+
+    if (glimpseT >= 0) {
+      glimpseT += dt;
+      if (glimpseT > GLIMPSE_DUR) { glimpseT = -1; nextGlimpse = elapsed + rand(12, 18); }
+    } else if (elapsed >= nextGlimpse) {
+      glimpseT = 0;
+    }
+
+    ctx.clearRect(0, 0, W, H);
+    drawCore(elapsed, grow);
+    drawSpheres(elapsed, grow);
+    drawMotes(elapsed, grow);
+
+    if (glimpseT >= 0) {
+      drawWhispers();
+      ctx.globalCompositeOperation = "difference";
+      ctx.fillStyle = "rgba(255,255,255,0.92)";
+      ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = "source-over";
+    }
+
+    // punch LAST — the difference fill paints the whole rect, so an earlier
+    // punch would let the snap wash the avatar's face
+    ctx.globalCompositeOperation = "destination-out";
+    const hr = aR + 6;
+    ctx.drawImage(holeFeather, ax-hr, ay-hr, hr*2, hr*2);
+    ctx.globalCompositeOperation = "source-over";
+    ctx.strokeStyle = "rgba(226,190,255,0.85)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(ax, ay, aR + 2, 0, TAU);
+    ctx.stroke();
+    const rot = elapsed*0.4;
+    ctx.strokeStyle = "rgba(255,215,0,0.9)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(ax, ay, aR + 2, rot, rot + 0.9);
+    ctx.stroke();
+  };
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

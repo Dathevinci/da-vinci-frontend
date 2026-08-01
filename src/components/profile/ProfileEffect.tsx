@@ -20,6 +20,7 @@ import { VoidCardDomain } from "@/components/profile/InfiniteVoid";
 import { DejavuCardEcho } from "@/components/profile/DejavuEcho";
 import { HollowCardDomain } from "@/components/profile/HollowPurple";
 import { OuterGodCardDomain } from "@/components/profile/OuterGod";
+import { GatewayCardDomain } from "@/components/profile/Gateway";
 import { usePreferences } from "@/hooks/usePreferences";
 
 /**
@@ -71,6 +72,7 @@ export function ProfileEffect({ effect }: { effect?: string | null }) {
   if (effect === "effect_dejavu") return <DejavuCardEcho />;
   if (effect === "effect_hollow") return <HollowCardDomain />;
   if (effect === "effect_outergod") return <OuterGodCardDomain />;
+  if (effect === "effect_gateway") return <GatewayCardDomain />;
   if (effect === "effect_froggie") return <FroggieCardPond />;
   if (effect === "effect_aura") return <AuraField />;
   const cfg = FIELD[effect as keyof typeof FIELD];

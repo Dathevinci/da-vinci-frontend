@@ -19,6 +19,7 @@ import { VoidAvatarMark } from "@/components/profile/InfiniteVoid";
 import { DejavuAvatarMark } from "@/components/profile/DejavuEcho";
 import { HollowAvatarMark } from "@/components/profile/HollowPurple";
 import { OuterGodAvatarMark } from "@/components/profile/OuterGod";
+import { GatewayAvatarMark } from "@/components/profile/Gateway";
 
 /**
  * Discord-style avatar decorations that overlay an avatar.
@@ -42,7 +43,7 @@ export const FRAMES: Record<string, { ring: string; glow: string; speed: number 
 
 // Effects rendered by this component. effect_sparkles is intentionally excluded —
 // it has its own legacy inline rendering elsewhere, so we don't double it up.
-export const DECOR_EFFECTS = new Set(["effect_snow", "effect_embers", "effect_aura", "effect_ascension", "effect_froggie", "effect_tempest", "effect_blackhole", "effect_fool", "effect_evernight", "effect_crimson", "effect_mahoraga", "effect_ritual", "effect_canopy", "effect_samurai", "effect_himalaya", "effect_lotus", "effect_mango", "effect_jungle", "effect_unblinking", "effect_void", "effect_dejavu", "effect_hollow", "effect_outergod"]);
+export const DECOR_EFFECTS = new Set(["effect_snow", "effect_embers", "effect_aura", "effect_ascension", "effect_froggie", "effect_tempest", "effect_blackhole", "effect_fool", "effect_evernight", "effect_crimson", "effect_mahoraga", "effect_ritual", "effect_canopy", "effect_samurai", "effect_himalaya", "effect_lotus", "effect_mango", "effect_jungle", "effect_unblinking", "effect_void", "effect_dejavu", "effect_hollow", "effect_outergod", "effect_gateway"]);
 
 // The extreme-rare "Voltaic Ascension" gives its own crackling electric ring,
 // shown even when no frame is equipped — so the storm follows the avatar everywhere.
@@ -120,6 +121,7 @@ const HEAVY_EFFECTS = new Set([
   "effect_dejavu",
   "effect_hollow",
   "effect_outergod",
+  "effect_gateway",
 ]);
 
 const LITE_GLOW: Record<string, string[]> = {
@@ -142,6 +144,7 @@ const LITE_GLOW: Record<string, string[]> = {
   effect_dejavu: ["0 0 8px 1px rgba(156,163,175,0.4)", "0 0 18px 5px rgba(0,255,255,0.45)", "0 0 8px 1px rgba(139,0,0,0.55)"],
   effect_hollow: ["0 0 8px 1px rgba(27,79,224,0.5)", "0 0 18px 5px rgba(167,36,240,0.6)", "0 0 8px 1px rgba(224,27,60,0.5)"],
   effect_outergod: ["0 0 8px 1px rgba(0,150,140,0.5)", "0 0 18px 5px rgba(216,31,180,0.55)", "0 0 8px 1px rgba(0,150,140,0.5)"],
+  effect_gateway: ["0 0 8px 1px rgba(138,43,226,0.55)", "0 0 18px 5px rgba(255,215,0,0.5)", "0 0 8px 1px rgba(138,43,226,0.55)"],
 };
 
 import { BlackHoleEffect } from "./BlackHoleEffect";
@@ -273,6 +276,11 @@ function EffectLayer({ effect, size = "sm" }: { effect: string; size?: "sm" | "l
   if (effect === "effect_outergod") {
     // SSS: abyssal teal→magenta breathing glow + the tear anchor. OuterGod.tsx.
     return <OuterGodAvatarMark />;
+  }
+
+  if (effect === "effect_gateway") {
+    // SSS: ultraviolet→white→gold breathing glow + the gateway anchor. Gateway.tsx.
+    return <GatewayAvatarMark />;
   }
 
   if (effect === "effect_aura") {
