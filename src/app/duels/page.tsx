@@ -235,7 +235,7 @@ export default function DuelsPage() {
 
       <AnimatePresence>
         {showChallenge && (
-          <ChallengeModal myCards={myCards} onClose={() => setShowChallenge(false)}
+          <ChallengeModal myCards={myCards} meId={user?.id} onClose={() => setShowChallenge(false)}
             onSend={(opp, stake, deck) => post("", { opponentUsername: opp, stake, deck }, () => { setShowChallenge(false); toast("Challenge sent!", "success"); })}
             busy={busy} />
         )}
@@ -278,10 +278,36 @@ function DuelRow({ duel, me, right, onOpen }: { duel: Duel; me?: string; right: 
   );
 }
 
-function ChallengeModal({ myCards, onClose, onSend, busy }: any) {
+function ChallengeModal({ myCards, onClose, onSend, busy, meId }: any) {
   const [opp, setOpp] = useState("");
   const [stake, setStake] = useState("100");
   const [deck, setDeck] = useState<string[]>([]);
+  // Real people, not a name you have to spell from memory. The old free-text
+  // field gave no signal whether "davinci" was even an account until the
+  // request came back 404.
+  const [people, setPeople] = useState<{ id: string; username: string; avatar?: string | null }[]>([]);
+  const [picked, setPicked] = useState<{ id: string; username: string } | null>(null);
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/users`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d?.data) return;
+        setPeople(
+          d.data
+            .filter((u: any) => u.id !== meId)
+            .map((u: any) => ({ id: u.id, username: u.username, avatar: u.avatar }))
+            .sort((a: any, b: any) => a.username.localeCompare(b.username))
+        );
+      })
+      .catch(() => {});
+  }, [meId]);
+
+  const q = opp.trim().toLowerCase();
+  const matches = q
+    ? people.filter((p) => p.username.toLowerCase().includes(q)).slice(0, 6)
+    : people.slice(0, 6);
+
   const toggle = (id: string) =>
     setDeck((d) => (d.includes(id) ? d.filter((x) => x !== id) : d.length < DECK_SIZE ? [...d, id] : d));
 
@@ -295,10 +321,37 @@ function ChallengeModal({ myCards, onClose, onSend, busy }: any) {
           <button onClick={onClose}><X className="h-5 w-5 text-slate-500" /></button>
         </div>
         <div className="mb-4 grid gap-3 sm:grid-cols-2">
-          <label className="text-xs font-bold text-slate-400">Opponent username
-            <input value={opp} onChange={(e) => setOpp(e.target.value)} placeholder="who are you fighting?"
-              className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white" />
-          </label>
+          <div className="text-xs font-bold text-slate-400">Opponent
+            {picked ? (
+              <div className="mt-1 flex items-center gap-2 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2">
+                <span className="grid h-6 w-6 shrink-0 place-items-center overflow-hidden rounded-full bg-purple-600 text-[10px] font-black">
+                  {people.find((p) => p.id === picked.id)?.avatar
+                    ? <img src={people.find((p) => p.id === picked.id)!.avatar!} alt="" className="h-full w-full object-cover" />
+                    : picked.username[0]?.toUpperCase()}
+                </span>
+                <span className="flex-1 truncate text-sm font-black text-white">{picked.username}</span>
+                <button onClick={() => { setPicked(null); setOpp(""); }} className="text-slate-400 hover:text-white"><X className="h-3.5 w-3.5" /></button>
+              </div>
+            ) : (
+              <div className="relative mt-1">
+                <input value={opp} onChange={(e) => setOpp(e.target.value)} placeholder="Search a member…"
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white" />
+                <div className="absolute z-10 mt-1 max-h-44 w-full overflow-y-auto rounded-lg border border-white/15 bg-[#12121a] shadow-xl">
+                  {matches.length === 0 ? (
+                    <p className="px-3 py-2 text-xs text-slate-500">No member by that name.</p>
+                  ) : matches.map((p) => (
+                    <button key={p.id} onClick={() => { setPicked(p); setOpp(p.username); }}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left transition hover:bg-white/10">
+                      <span className="grid h-6 w-6 shrink-0 place-items-center overflow-hidden rounded-full bg-purple-600 text-[10px] font-black">
+                        {p.avatar ? <img src={p.avatar} alt="" className="h-full w-full object-cover" /> : p.username[0]?.toUpperCase()}
+                      </span>
+                      <span className="truncate text-sm font-bold text-white">{p.username}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
           <label className="text-xs font-bold text-slate-400">Stake (AP, each side)
             <input type="number" value={stake} onChange={(e) => setStake(e.target.value)}
               className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm tabular-nums text-white" />
@@ -319,10 +372,15 @@ function ChallengeModal({ myCards, onClose, onSend, busy }: any) {
             </div>
           )}
         </div>
-        <button disabled={busy || !opp || deck.length !== DECK_SIZE}
-          onClick={() => onSend(opp, Math.floor(Number(stake)) || 0, deck)}
+        {/* Requires a PICKED member, not just typed text — so a challenge can
+            never 404 on a username that was only ever a guess. */}
+        <button disabled={busy || !picked || deck.length !== DECK_SIZE}
+          onClick={() => picked && onSend(picked.username, Math.floor(Number(stake)) || 0, deck)}
           className="w-full rounded-xl bg-gradient-to-r from-rose-600 to-orange-600 py-3 font-black text-white transition hover:brightness-110 disabled:opacity-40">
-          {busy ? "Sending…" : `Stake ${Number(stake).toLocaleString()} AP and challenge`}
+          {busy ? "Sending…"
+            : !picked ? "Pick an opponent"
+            : deck.length !== DECK_SIZE ? `Pick ${DECK_SIZE - deck.length} more card${DECK_SIZE - deck.length === 1 ? "" : "s"}`
+            : `Challenge ${picked.username} for ${Number(stake).toLocaleString()} AP`}
         </button>
       </motion.div>
     </motion.div>

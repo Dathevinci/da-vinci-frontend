@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut, Users, Palette, ShoppingBag, Menu, X, Settings, Heart, ChevronDown, Tv, BookMarked, BookOpen, Swords, Terminal } from 'lucide-react';
+import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut, Users, Palette, ShoppingBag, Menu, X, Settings, Heart, ChevronDown, Tv, BookMarked, BookOpen, Swords, Terminal, Layers, Gavel } from 'lucide-react';
 import { isAdmin, isLeadDev } from "@/lib/admin";
 import LoginModal from './LoginModal';
 import SearchModal from './SearchModal';
@@ -198,6 +198,16 @@ export default function Navbar() {
                       <Link href="/console" className="px-4 py-2 hover:bg-white/5 text-fuchsia-400 hover:text-fuchsia-300 transition flex items-center gap-2"><Terminal className="w-4 h-4" /> Console</Link>
                     )}
                     <Link href="/shop" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><ShoppingBag className="w-4 h-4" /> Shop</Link>
+
+                    {/* Games — cards and duels are their own thing, not shop
+                        inventory. They were crowding the shop header. */}
+                    <div className="my-1.5 border-t border-white/10" />
+                    <span className="px-4 pb-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-600">Games</span>
+                    <Link href="/cards" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><Layers className="w-4 h-4" /> Arise Cards</Link>
+                    <Link href="/duels" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><Swords className="w-4 h-4" /> Card Duels</Link>
+                    <Link href="/auctions" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><Gavel className="w-4 h-4" /> Auction House</Link>
+                    <div className="my-1.5 border-t border-white/10" />
+
                     <Link href="/support" className="px-4 py-2 hover:bg-white/5 text-[#ff5e5b] hover:text-[#ff4542] transition flex items-center gap-2"><Heart className="w-4 h-4" /> Support Us</Link>
                   </div>
                 </div>
@@ -312,6 +322,21 @@ export default function Navbar() {
             <Link href="/shop" onClick={() => setIsMobileMenuOpen(false)} className={`${accentHover} flex items-center gap-3`}>
               <ShoppingBag className="w-6 h-6" /> Shop
             </Link>
+
+            {/* Games — their own group, not shop inventory */}
+            <hr className="border-white/10 my-2" />
+            <span className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-600">Games</span>
+            <Link href="/cards" onClick={() => setIsMobileMenuOpen(false)} className={`${accentHover} flex items-center gap-3`}>
+              <Layers className="w-6 h-6" /> Arise Cards
+            </Link>
+            <Link href="/duels" onClick={() => setIsMobileMenuOpen(false)} className={`${accentHover} flex items-center gap-3`}>
+              <Swords className="w-6 h-6" /> Card Duels
+            </Link>
+            <Link href="/auctions" onClick={() => setIsMobileMenuOpen(false)} className={`${accentHover} flex items-center gap-3`}>
+              <Gavel className="w-6 h-6" /> Auction House
+            </Link>
+            <hr className="border-white/10 my-2" />
+
             <Link href="/support" onClick={() => setIsMobileMenuOpen(false)} className="text-[#ff5e5b] hover:text-[#ff4542] flex items-center gap-3">
               <Heart className="w-6 h-6" /> Support Us
             </Link>

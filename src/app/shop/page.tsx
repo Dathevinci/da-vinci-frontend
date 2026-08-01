@@ -682,24 +682,6 @@ export default function ShopPage() {
                   {isLeadDev(user) ? <span className="text-fuchsia-400">∞ AP</span> : `${displayArisePoints(user)} AP`}
                 </p>
               </div>
-              <a
-                href="/cards"
-                className="inline-flex h-11 items-center gap-1.5 rounded-xl border border-fuchsia-500/40 bg-fuchsia-500/10 px-4 text-sm font-black text-fuchsia-300 transition hover:bg-fuchsia-500/20"
-              >
-                <Layers className="h-4 w-4" /> Cards
-              </a>
-              <a
-                href="/duels"
-                className="inline-flex h-11 items-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 text-sm font-black text-rose-300 transition hover:bg-rose-500/20"
-              >
-                <Swords className="h-4 w-4" /> Duels
-              </a>
-              <a
-                href="/auctions"
-                className="inline-flex h-11 items-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 text-sm font-black text-amber-300 transition hover:bg-amber-500/20"
-              >
-                <Gavel className="h-4 w-4" /> Auctions
-              </a>
               <button
                 onClick={() => setShowBuyPoints(true)}
                 className="inline-flex h-11 items-center gap-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 px-4 text-sm font-black text-white transition hover:brightness-110"
