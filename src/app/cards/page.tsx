@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/Toast";
 import PageTransition from "@/components/layout/PageTransition";
 import CardFace, { CardDef, CardRarity, RARITY_META } from "@/components/cards/CardFace";
 import PackReveal from "@/components/cards/PackReveal";
+import { Panel, CornerTicks, Stars, SegBar, GachaButton, Heading, StatRow, notch, GOLD, GOLD_LIT } from "@/components/cards/gacha";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -247,123 +248,207 @@ export default function CardsPage() {
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-[#050505] px-4 pb-24 pt-24 text-white">
-        <div className="mx-auto max-w-6xl">
-          {/* header */}
-          <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h1 className="flex items-center gap-3 text-3xl font-black md:text-4xl">
-                <Layers className="h-8 w-8 text-fuchsia-400" /> Arise Cards
-              </h1>
-              <p className="mt-1.5 text-sm text-slate-400">
-                Open packs, complete the set, dust your dupes into shards, and craft the cards luck won't give you.
-                {totalCards > 0 && <> You've collected <b className="text-white">{totalHave}</b> of {totalCards}.</>}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowCollectors((v) => !v)}
-                className="flex h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3.5 text-sm font-black text-slate-200 transition hover:bg-white/10"
-              >
-                <Users className="h-4 w-4 text-fuchsia-400" /> Collectors
-              </button>
-              <div className="flex h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3.5">
-                <Sparkles className="h-4 w-4 text-fuchsia-400" />
-                <span className="text-sm font-black">{user ? (isLeadDev(user) ? "∞" : displayArisePoints({ ...user, arisePoints: apDisplay } as any)) : "—"} <span className="text-slate-500">AP</span></span>
-              </div>
-              <div className="flex h-11 items-center gap-2 rounded-xl border border-cyan-500/20 bg-cyan-500/[0.07] px-3.5">
-                <Gem className="h-4 w-4 text-cyan-300" />
-                <span className="text-sm font-black text-cyan-100">{shards.toLocaleString()} <span className="text-cyan-500/70">shards</span></span>
-              </div>
-            </div>
-          </div>
+      <div className="relative min-h-screen px-4 pb-24 pt-24 text-white"
+        style={{
+          background:
+            "radial-gradient(85% 50% at 12% -5%, rgba(120,86,196,.20), transparent 60%)," +
+            "radial-gradient(70% 45% at 92% 4%, rgba(201,168,102,.14), transparent 62%)," +
+            "linear-gradient(#080a11, #05070c 60%, #04050a)",
+        }}>
+        {/* faint diagonal weave — texture, so the page is never flat black */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.055]"
+          style={{ backgroundImage: "repeating-linear-gradient(115deg, transparent 0 7px, rgba(255,255,255,.9) 7px 8px)" }} />
 
-          {/* ── collectors board — see who owns what ── */}
-          {showCollectors && (
-            <div className="mb-8 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-              <h3 className="mb-3 text-xs font-black uppercase tracking-widest text-slate-500">Collectors · ranked by distinct cards</h3>
-              {collectors.length === 0 ? (
-                <p className="py-4 text-center text-sm text-slate-500">Nobody has opened a pack yet. Be the first.</p>
-              ) : (
-                <div className="grid gap-1.5 sm:grid-cols-2">
-                  {collectors.map((c, i) => (
-                    <button
-                      key={c.userId}
-                      onClick={() => { setViewing({ id: c.userId, username: c.username }); setShowCollectors(false); }}
-                      className={`flex items-center gap-3 rounded-xl border px-3 py-2 text-left transition ${
-                        viewing?.id === c.userId ? "border-fuchsia-500/50 bg-fuchsia-500/10" : "border-white/5 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.06]"
-                      }`}
-                    >
-                      <span className="w-5 shrink-0 text-center text-xs font-black text-slate-600">{i + 1}</span>
-                      {c.avatar ? (
-                        <img src={c.avatar} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
-                      ) : (
-                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-purple-600 text-xs font-black">{c.username?.[0]?.toUpperCase()}</span>
-                      )}
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-bold text-white">{c.username}</span>
-                        {c.cardTitle && <span className="block truncate text-[10px] font-black uppercase tracking-wider text-amber-300">{c.cardTitle}</span>}
+        <div className="relative mx-auto max-w-6xl">
+          {/* ── BANNER HEADER ── the title plate, the resources, the progress */}
+          <Panel tone="gold" size={26} className="mb-7">
+            <div className="relative px-5 py-5 sm:px-7">
+              <CornerTicks />
+              <div aria-hidden className="pointer-events-none absolute inset-0"
+                style={{ background: "radial-gradient(60% 120% at 100% 0%, rgba(201,168,102,.13), transparent 70%)" }} />
+              <div className="relative flex flex-wrap items-start justify-between gap-5">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-black uppercase tracking-[0.42em]" style={{ color: GOLD }}>Da Vinci Archive</p>
+                  <h1 className="mt-1 flex items-center gap-3 text-3xl font-black uppercase tracking-[0.06em] md:text-[2.6rem] md:leading-none">
+                    <Layers className="h-8 w-8" style={{ color: GOLD_LIT }} /> Arise Cards
+                  </h1>
+                  <p className="mt-2 max-w-lg text-sm leading-relaxed text-slate-400">
+                    Open packs, complete the set, dust your dupes into shards, and craft the cards luck won&rsquo;t give you.
+                  </p>
+                </div>
+
+                <div className="flex flex-col items-stretch gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-10 items-center gap-2 px-3.5" style={{ clipPath: notch(9), background: "rgba(255,255,255,.05)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.10)" }}>
+                      <Sparkles className="h-4 w-4" style={{ color: GOLD }} />
+                      <span className="text-sm font-black tabular-nums">
+                        {user ? (isLeadDev(user) ? "∞" : displayArisePoints({ ...user, arisePoints: apDisplay } as any)) : "—"}
+                        <span className="ml-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">AP</span>
                       </span>
-                      <span className="shrink-0 text-right">
-                        <span className="block text-sm font-black text-fuchsia-300">{c.distinct}</span>
-                        <span className="block text-[9px] font-bold uppercase tracking-wider text-slate-600">cards</span>
+                    </div>
+                    <div className="flex h-10 items-center gap-2 px-3.5" style={{ clipPath: notch(9), background: "rgba(45,212,191,.07)", boxShadow: "inset 0 0 0 1px rgba(45,212,191,.22)" }}>
+                      <Gem className="h-4 w-4 text-cyan-300" />
+                      <span className="text-sm font-black tabular-nums text-cyan-100">
+                        {shards.toLocaleString()}
+                        <span className="ml-1 text-[10px] font-bold uppercase tracking-widest text-cyan-500/70">shards</span>
                       </span>
-                    </button>
-                  ))}
+                    </div>
+                  </div>
+                  <GachaButton tone="ghost" onClick={() => setShowCollectors((v) => !v)}>
+                    <Users className="h-3.5 w-3.5" /> Collectors
+                  </GachaButton>
+                </div>
+              </div>
+
+              {/* archive completion, as a notched meter */}
+              {totalCards > 0 && (
+                <div className="relative mt-5">
+                  <div className="mb-1.5 flex items-end justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Archive completion</span>
+                    <span className="text-[11px] font-black tabular-nums" style={{ color: GOLD_LIT }}>
+                      {totalHave}<span className="text-slate-600"> / {totalCards}</span>
+                    </span>
+                  </div>
+                  <SegBar value={totalHave} max={totalCards} />
                 </div>
               )}
             </div>
+          </Panel>
+
+          {/* ── collectors board — see who owns what ── */}
+          {showCollectors && (
+            <Panel className="mb-7" size={20}>
+              <div className="relative p-5">
+                <CornerTicks color="rgba(255,255,255,.22)" />
+                <Heading title="Collectors" sub="Ranked by distinct cards" />
+                {collectors.length === 0 ? (
+                  <p className="py-6 text-center text-sm text-slate-500">Nobody has opened a pack yet. Be the first.</p>
+                ) : (
+                  <div className="grid gap-1.5 sm:grid-cols-2">
+                    {collectors.map((c, i) => {
+                      const top = i < 3;
+                      const isOpen = viewing?.id === c.userId;
+                      return (
+                        <button key={c.userId}
+                          onClick={() => { setViewing({ id: c.userId, username: c.username }); setShowCollectors(false); }}
+                          className="group flex items-center gap-3 px-3 py-2 text-left transition hover:translate-x-0.5"
+                          style={{
+                            clipPath: notch(11),
+                            background: isOpen ? "rgba(201,168,102,.14)" : "rgba(255,255,255,.028)",
+                            boxShadow: `inset 0 0 0 1px ${isOpen ? "rgba(201,168,102,.5)" : "rgba(255,255,255,.07)"}`,
+                          }}>
+                          <span className="w-6 shrink-0 text-center text-sm font-black tabular-nums"
+                            style={{ color: top ? GOLD_LIT : "#4b5565" }}>
+                            {String(i + 1).padStart(2, "0")}
+                          </span>
+                          {c.avatar ? (
+                            <img src={c.avatar} alt="" className="h-9 w-9 shrink-0 object-cover" style={{ clipPath: notch(7) }} />
+                          ) : (
+                            <span className="grid h-9 w-9 shrink-0 place-items-center bg-purple-700 text-xs font-black" style={{ clipPath: notch(7) }}>
+                              {c.username?.[0]?.toUpperCase()}
+                            </span>
+                          )}
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-black text-white">{c.username}</span>
+                            {c.cardTitle && (
+                              <span className="block truncate text-[10px] font-black uppercase tracking-[0.16em]" style={{ color: GOLD }}>
+                                {c.cardTitle}
+                              </span>
+                            )}
+                          </span>
+                          <span className="shrink-0 text-right">
+                            <span className="block text-base font-black tabular-nums" style={{ color: GOLD_LIT }}>{c.distinct}</span>
+                            <span className="block text-[9px] font-bold uppercase tracking-[0.2em] text-slate-600">cards</span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </Panel>
           )}
 
           {/* ── viewing someone else's binder ── */}
           {!isMine && viewing && (
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-fuchsia-500/30 bg-fuchsia-500/[0.07] px-4 py-3">
-              <span className="text-sm font-bold text-fuchsia-100">
-                Viewing <b className="text-white">{viewing.username}</b>&rsquo;s collection — {totalHave} of {totalCards}
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3 px-4 py-3"
+              style={{ clipPath: notch(14), background: "rgba(201,168,102,.10)", boxShadow: "inset 0 0 0 1px rgba(201,168,102,.35)" }}>
+              <span className="text-sm font-bold text-slate-200">
+                Viewing <b className="text-white">{viewing.username}</b>&rsquo;s archive — {totalHave} of {totalCards}
               </span>
-              <button
-                onClick={() => setViewing(null)}
-                className="rounded-full border border-white/15 bg-white/10 px-4 py-1.5 text-xs font-black text-white transition hover:bg-white/20"
-              >
-                Back to mine
-              </button>
+              <GachaButton tone="ghost" onClick={() => setViewing(null)}>Back to mine</GachaButton>
             </div>
           )}
 
           {/* open a pack — only on your OWN binder */}
           {catalog && isMine && (
-            <div className="mb-10 flex flex-col items-center gap-3 rounded-3xl border border-fuchsia-500/25 bg-gradient-to-b from-fuchsia-500/[0.08] to-black/40 p-6 text-center">
-              <PackageOpen className="h-10 w-10 text-fuchsia-300" />
-              <h2 className="text-xl font-black">Ascension Pack</h2>
-              <p className="max-w-md text-sm text-slate-400">{catalog.packSize} cards, one chance at an epic or legendary. Duplicates aren't wasted — dust them for shards.</p>
-              <div className="mt-1 flex flex-wrap items-center justify-center gap-3">
-                <button
-                  onClick={openPack}
-                  disabled={opening}
-                  className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-fuchsia-600 to-purple-600 px-8 py-3 font-black text-white shadow-[0_0_24px_rgba(217,70,239,0.4)] transition hover:brightness-110 disabled:opacity-60"
-                >
-                  <PackageOpen className="h-5 w-5" /> {opening ? "Opening…" : `Open Pack · ${catalog.packPrice.toLocaleString()} AP`}
-                </button>
-                {/* Shard sink #3 — guaranteed epic+, bought with shards not AP */}
-                <button
-                  onClick={openRelic}
-                  disabled={shards < catalog.relicPackShards}
-                  title={shards < catalog.relicPackShards ? "Not enough shards yet" : "Guaranteed Epic or better"}
-                  className="inline-flex items-center gap-2 rounded-full border border-cyan-500/40 bg-cyan-500/10 px-6 py-3 font-black text-cyan-200 transition hover:bg-cyan-500/20 disabled:opacity-40"
-                >
-                  <Gem className="h-4 w-4" /> Relic Pack · {catalog.relicPackShards.toLocaleString()} shards
-                </button>
+            <Panel tone="gold" size={30} className="mb-8">
+              <div className="relative overflow-hidden">
+                {/* layered light — the banner glow every gacha summon screen has */}
+                <div aria-hidden className="pointer-events-none absolute inset-0"
+                  style={{ background: "radial-gradient(70% 130% at 78% 20%, rgba(168,110,255,.30), transparent 62%), radial-gradient(55% 110% at 18% 90%, rgba(201,168,102,.18), transparent 65%)" }} />
+                <div aria-hidden className="pointer-events-none absolute inset-0 opacity-30"
+                  style={{ backgroundImage: "repeating-linear-gradient(72deg, transparent 0 26px, rgba(255,255,255,.55) 26px 27px)", maskImage: "linear-gradient(100deg, transparent 35%, black 75%, transparent)" }} />
+
+                <div className="relative grid gap-6 p-6 sm:p-8 lg:grid-cols-[1fr_auto] lg:items-center">
+                  <div className="min-w-0">
+                    <span className="inline-block px-3 py-1 text-[10px] font-black uppercase tracking-[0.32em]"
+                      style={{ clipPath: "polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)", background: `linear-gradient(100deg, ${GOLD_LIT}, ${GOLD})`, color: "#1a1206" }}>
+                      Standard Banner
+                    </span>
+                    <h2 className="mt-3 text-3xl font-black uppercase tracking-[0.04em] text-white sm:text-4xl">Ascension Pack</h2>
+                    <p className="mt-2 max-w-md text-sm leading-relaxed text-slate-400">
+                      {catalog.packSize} cards a pull, with a real shot at an Epic or Legendary. No duplicate is ever wasted — dust it into shards.
+                    </p>
+
+                    {/* rarity ladder — reads as odds furniture, which is the point */}
+                    <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
+                      {(["legendary", "epic", "rare"] as CardRarity[]).map((r) => (
+                        <span key={r} className="inline-flex items-center gap-1.5">
+                          <Stars rarity={r} size={11} />
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">{RARITY_META[r]?.label ?? r}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col items-stretch gap-2.5 lg:w-[280px]">
+                    <GachaButton onClick={openPack} disabled={opening} className="!py-3.5 !text-[13px]">
+                      <PackageOpen className="h-4 w-4" />
+                      {opening ? "Opening…" : `Open · ${catalog.packPrice.toLocaleString()} AP`}
+                    </GachaButton>
+                    <GachaButton tone="jade" onClick={openRelic}
+                      disabled={shards < catalog.relicPackShards}
+                      title={shards < catalog.relicPackShards ? "Not enough shards yet" : "Guaranteed Epic or better"}
+                      className="!py-3.5 !text-[13px]">
+                      <Gem className="h-4 w-4" /> Relic · {catalog.relicPackShards.toLocaleString()}
+                    </GachaButton>
+                    <p className="mt-0.5 text-center text-[10px] font-bold uppercase tracking-[0.14em] text-slate-600">
+                      Relic guarantees Epic or better
+                    </p>
+                  </div>
+                </div>
               </div>
-              <p className="text-[11px] text-slate-500">Relic packs guarantee at least one Epic or Legendary.</p>
-            </div>
+            </Panel>
           )}
 
           {/* ── what shards do ── */}
           {catalog && (
-            <div className="mb-8 grid gap-2 rounded-2xl border border-cyan-500/15 bg-cyan-500/[0.03] p-4 text-xs text-slate-400 sm:grid-cols-3">
-              <div className="flex items-start gap-2"><Recycle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-300" /> <span><b className="text-cyan-200">Dust</b> duplicates into shards — no pull is ever wasted.</span></div>
-              <div className="flex items-start gap-2"><Hammer className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-300" /> <span><b className="text-cyan-200">Craft</b> the exact card luck won't give you, or <b className="text-cyan-200">Foil</b> one to make it fight <b className="text-cyan-200">20% harder</b> in duels.</span></div>
-              <div className="flex items-start gap-2"><Gem className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-300" /> <span><b className="text-cyan-200">Relic packs</b> turn patience into a guaranteed Epic.</span></div>
+            <div className="mb-8 grid gap-2.5 sm:grid-cols-3">
+              {[
+                { Icon: Recycle, t: "Dust", d: "Turn duplicates into shards. No pull is ever wasted." },
+                { Icon: Hammer, t: "Craft & Foil", d: "Make the card luck won't give you, or foil one to fight 20% harder." },
+                { Icon: Gem, t: "Relic Packs", d: "Trade patience for a guaranteed Epic or better." },
+              ].map(({ Icon, t, d }) => (
+                <div key={t} className="relative flex items-start gap-3 px-4 py-3.5"
+                  style={{ clipPath: notch(13), background: "rgba(45,212,191,.045)", boxShadow: "inset 0 0 0 1px rgba(45,212,191,.16)" }}>
+                  <Icon className="mt-0.5 h-4 w-4 shrink-0 text-cyan-300" />
+                  <div>
+                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-200">{t}</p>
+                    <p className="mt-1 text-xs leading-relaxed text-slate-400">{d}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 
@@ -374,51 +459,74 @@ export default function CardsPage() {
             <div className="space-y-10">
               {sets.map(({ set, cards, have, total }) => (
                 <div key={set}>
-                  <div className="mb-4 flex items-center gap-3">
-                    <h3 className="text-lg font-black">{set}</h3>
-                    <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-black text-slate-300">{have} / {total}</span>
-                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/5">
-                      <div className="h-full rounded-full bg-gradient-to-r from-fuchsia-600 to-purple-500" style={{ width: `${total ? (have / total) * 100 : 0}%` }} />
-                    </div>
-                  </div>
+                  <Heading
+                    title={set}
+                    sub={have >= total ? "Complete" : `${total - have} remaining`}
+                    right={
+                      <div className="flex min-w-[180px] flex-col items-end gap-1.5 sm:min-w-[260px]">
+                        <span className="text-[11px] font-black tabular-nums" style={{ color: have >= total ? GOLD_LIT : "#94a3b8" }}>
+                          {have}<span className="text-slate-600"> / {total}</span>
+                        </span>
+                        <SegBar value={have} max={total} tone={have >= total ? GOLD_LIT : GOLD} height={6} />
+                      </div>
+                    }
+                  />
                   {/* Set completion — the payoff. Cards aren't just a binder:
                       finishing a set pays AP, shards and a title you wear. */}
-                  {catalog?.setRewards?.[set] && (
-                    <div className={`mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-4 ${
-                      claimedSets.includes(set)
-                        ? "border-emerald-500/25 bg-emerald-500/[0.05]"
-                        : have >= total
-                        ? "border-amber-500/40 bg-amber-500/[0.08]"
-                        : "border-white/10 bg-white/[0.02]"
-                    }`}>
-                      <div className="text-sm">
-                        <div className="font-black text-white">
-                          {claimedSets.includes(set) ? "Set complete ✓" : have >= total ? "Set complete — claim your reward" : "Complete this set to earn"}
+                  {catalog?.setRewards?.[set] && (() => {
+                    const claimed = claimedSets.includes(set);
+                    const ready = have >= total && !claimed;
+                    const rw = catalog.setRewards[set];
+                    return (
+                      <Panel tone={ready ? "gold" : claimed ? "jade" : "ink"} size={16} className="mb-4">
+                        <div className="relative flex flex-wrap items-center justify-between gap-4 px-4 py-3.5"
+                          style={ready ? { background: "linear-gradient(100deg, rgba(201,168,102,.16), transparent 65%)" } : undefined}>
+                          <div>
+                            <p className="text-[11px] font-black uppercase tracking-[0.24em]"
+                              style={{ color: claimed ? "#5eead4" : ready ? GOLD_LIT : "#64748b" }}>
+                              {claimed ? "Set complete" : ready ? "Reward unlocked" : "Set reward"}
+                            </p>
+                            <p className="mt-1 text-xs text-slate-400">
+                              <b className="text-white">{rw.ap.toLocaleString()}</b> AP ·{" "}
+                              <b className="text-cyan-200">{rw.shards.toLocaleString()}</b> shards · the title{" "}
+                              <b style={{ color: GOLD_LIT }}>&ldquo;{rw.title}&rdquo;</b>
+                            </p>
+                          </div>
+                          {claimed ? (
+                            <span className="px-4 py-2 text-[11px] font-black uppercase tracking-[0.2em] text-emerald-300"
+                              style={{ clipPath: notch(9), background: "rgba(45,212,191,.10)", boxShadow: "inset 0 0 0 1px rgba(45,212,191,.3)" }}>
+                              Claimed
+                            </span>
+                          ) : (
+                            <GachaButton onClick={() => claimSet(set)} disabled={have < total || !isMine}
+                              tone={ready ? "gold" : "ghost"}>
+                              {ready ? "Claim" : `${total - have} to go`}
+                            </GachaButton>
+                          )}
                         </div>
-                        <div className="mt-0.5 text-xs text-slate-400">
-                          {catalog.setRewards[set].ap.toLocaleString()} AP · {catalog.setRewards[set].shards.toLocaleString()} shards · the title
-                          <b className="text-amber-300"> “{catalog.setRewards[set].title}”</b>
-                        </div>
-                      </div>
-                      {claimedSets.includes(set) ? (
-                        <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-xs font-black text-emerald-300">Claimed</span>
-                      ) : (
-                        <button
-                          onClick={() => claimSet(set)}
-                          disabled={have < total || !isMine}
-                          className="rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-5 py-2 text-xs font-black text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          {have >= total ? "Claim reward" : `${total - have} to go`}
-                        </button>
-                      )}
-                    </div>
-                  )}
-                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+                      </Panel>
+                    );
+                  })()}
+
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
                     {cards.map((c) => {
                       const count = owned[c.id] || 0;
+                      const has = count > 0;
                       return (
-                        <button key={c.id} onClick={() => setSelected(c)} className="flex justify-center transition hover:-translate-y-1">
-                          <CardFace card={c} owned={count > 0} count={count} foil={!!foils[c.id]} size={165} />
+                        <button key={c.id} onClick={() => setSelected(c)}
+                          className="group relative flex flex-col items-center gap-1.5 p-2 transition hover:-translate-y-1"
+                          style={{
+                            clipPath: notch(12),
+                            background: has ? "rgba(255,255,255,.035)" : "rgba(255,255,255,.012)",
+                            boxShadow: `inset 0 0 0 1px ${has ? "rgba(201,168,102,.24)" : "rgba(255,255,255,.05)"}`,
+                          }}>
+                          <CardFace card={c} owned={has} count={count} foil={!!foils[c.id]} size={150} />
+                          <span className="flex items-center gap-1.5">
+                            <Stars rarity={c.rarity} size={10} className={has ? "" : "opacity-25 grayscale"} />
+                            {c.rarity === "event" && (
+                              <span className="text-[8px] font-black uppercase tracking-[0.16em]" style={{ color: GOLD }}>Limited</span>
+                            )}
+                          </span>
                         </button>
                       );
                     })}
@@ -451,89 +559,96 @@ export default function CardsPage() {
             >
               <motion.div
                 initial={{ scale: 0.94, y: 12 }} animate={{ scale: 1, y: 0 }}
-                className="flex max-h-[92dvh] w-full max-w-2xl flex-col items-center gap-5 overflow-y-auto rounded-3xl border border-white/15 bg-[#0b0b12] p-6 text-center sm:flex-row sm:items-start sm:text-left"
-                onClick={(e) => e.stopPropagation()}
+                className="w-full max-w-3xl" onClick={(e) => e.stopPropagation()}
               >
-                {/* the card itself, big — this is the trophy shot */}
-                <div className="shrink-0"><CardFace card={selected} owned={count > 0} count={count} foil={!!foils[selected.id]} size={250} showStats stats={catalog.cardStats} /></div>
-                <div className="flex-1">
-                  <div className="mb-1 flex items-center justify-center gap-2 sm:justify-start">
-                    <span className="rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest" style={{ color: R.frame, background: `${R.frame}22` }}>{R.label}</span>
-                    <span className="text-xs font-bold text-slate-500">{selected.set}</span>
-                    {foils[selected.id] && <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-black text-amber-300">✨ FOIL</span>}
-                  </div>
-                  <h3 className="text-2xl font-black">{count > 0 ? selected.name : "Not yet collected"}</h3>
-                  <p className="mt-2 text-sm italic leading-relaxed text-slate-400">&ldquo;{selected.flavor}&rdquo;</p>
+                <Panel tone={count > 0 ? "gold" : "ink"} size={26}>
+                  <div className="relative max-h-[92dvh] overflow-y-auto">
+                    <CornerTicks color={count > 0 ? GOLD : "rgba(255,255,255,.2)"} inset={10} />
+                    {/* rarity wash behind the trophy shot */}
+                    <div aria-hidden className="pointer-events-none absolute inset-0"
+                      style={{ background: `radial-gradient(60% 90% at 22% 30%, ${R.frame}26, transparent 65%)` }} />
 
-                  {/* ── WHAT IT DOES — the stat block ── */}
-                  {(() => {
-                    const cs = catalog.cardStats?.[selected.rarity] || { atk: 0, hp: 0 };
-                    const m = foils[selected.id] ? 1.2 : 1;
-                    const atk = Math.round(cs.atk * m);
-                    const hp = Math.round(cs.hp * m);
-                    return (
-                      <div className="mt-4 rounded-2xl border border-white/10 bg-black/40 p-3">
-                        <div className="mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">In a duel</div>
-                        <div className="flex gap-2">
-                          <div className="flex flex-1 items-center gap-2 rounded-xl bg-gradient-to-br from-orange-500/15 to-red-600/10 px-3 py-2">
-                            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-orange-500 to-red-600 text-sm font-black text-white">{atk}</span>
-                            <span className="text-left">
-                              <span className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Attack</span>
-                              <span className="block text-[11px] text-slate-300">damage per strike</span>
-                            </span>
-                          </div>
-                          <div className="flex flex-1 items-center gap-2 rounded-xl bg-gradient-to-br from-emerald-500/15 to-green-700/10 px-3 py-2">
-                            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-emerald-500 to-green-700 text-sm font-black text-white">{hp}</span>
-                            <span className="text-left">
-                              <span className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Health</span>
-                              <span className="block text-[11px] text-slate-300">damage it survives</span>
-                            </span>
-                          </div>
-                        </div>
-                        <p className="mt-2 text-left text-[11px] leading-relaxed text-slate-500">
-                          Send it into the arena to strike — but it also takes the counter-attack.
-                          {foils[selected.id]
-                            ? " This foil copy fights 20% harder than a normal one."
-                            : selected.rarity !== "event" && " Foiling it would add 20% to both numbers."}
-                        </p>
+                    <div className="relative flex flex-col items-center gap-6 p-6 text-center sm:flex-row sm:items-start sm:p-7 sm:text-left">
+                      {/* the trophy shot */}
+                      <div className="shrink-0">
+                        <CardFace card={selected} owned={count > 0} count={count} foil={!!foils[selected.id]} size={250} showStats stats={catalog.cardStats} />
                       </div>
-                    );
-                  })()}
 
-                  <div className="mt-4 space-y-2">
-                    {isMine && count > 1 && (
-                      <button onClick={() => dust(selected)} className="flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-500/30 bg-cyan-500/10 py-2.5 text-sm font-black text-cyan-200 transition hover:bg-cyan-500/20">
-                        <Recycle className="h-4 w-4" /> Dust {count - 1} dupe{count - 1 === 1 ? "" : "s"} · +{(count - 1) * dustEach} shards
-                      </button>
-                    )}
-                    {isMine && count === 0 && craftable && (
-                      <button
-                        onClick={() => craft(selected)}
-                        disabled={shards < cost}
-                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-fuchsia-500/30 bg-fuchsia-500/10 py-2.5 text-sm font-black text-fuchsia-200 transition hover:bg-fuchsia-500/20 disabled:opacity-40"
-                      >
-                        <Hammer className="h-4 w-4" /> Craft · {cost.toLocaleString()} shards {shards < cost && "(need more)"}
-                      </button>
-                    )}
-                    {/* Foil — shard sink #2. Looks incredible AND fights 20%
-                        harder in duels, so the button has to SAY that. */}
-                    {isMine && count > 0 && !foils[selected.id] && selected.rarity !== "event" && (
-                      <button
-                        onClick={() => foilUp(selected)}
-                        disabled={shards < (catalog.foilCost[selected.rarity] || 0)}
-                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 py-2.5 text-sm font-black text-amber-200 transition hover:bg-amber-500/20 disabled:opacity-40"
-                      >
-                        <Sparkles className="h-4 w-4" /> Make it Foil · +20% in duels · {(catalog.foilCost[selected.rarity] || 0).toLocaleString()} shards
-                      </button>
-                    )}
-                    {foils[selected.id] && (
-                      <p className="rounded-xl border border-amber-500/25 bg-amber-500/[0.07] py-2 text-xs font-black text-amber-200">✨ Foil — fights 20% harder in duels</p>
-                    )}
-                    {count === 1 && <p className="text-xs text-slate-500">Pull another copy to dust it for shards.</p>}
-                    {count === 0 && !craftable && <p className="text-xs text-slate-500">This card only appears during events.</p>}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                          <Stars rarity={selected.rarity} size={15} />
+                          <span className="text-[10px] font-black uppercase tracking-[0.24em]" style={{ color: R.frame }}>{R.label}</span>
+                          {foils[selected.id] && (
+                            <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em]"
+                              style={{ clipPath: notch(5), background: `linear-gradient(100deg, ${GOLD_LIT}, ${GOLD})`, color: "#1a1206" }}>
+                              Foil
+                            </span>
+                          )}
+                        </div>
+
+                        <h3 className="mt-2 text-3xl font-black uppercase leading-none tracking-[0.02em]">
+                          {count > 0 ? selected.name : "Unrecorded"}
+                        </h3>
+                        <p className="mt-1 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">{selected.set}</p>
+                        <p className="mt-3 text-sm italic leading-relaxed text-slate-400">&ldquo;{selected.flavor}&rdquo;</p>
+
+                        {/* ── COMBAT DATA ── dense stat rows, not chunky cards */}
+                        {(() => {
+                          const cs = catalog.cardStats?.[selected.rarity] || { atk: 0, hp: 0 };
+                          const m = foils[selected.id] ? 1.2 : 1;
+                          const atk = Math.round(cs.atk * m);
+                          const hp = Math.round(cs.hp * m);
+                          return (
+                            <div className="mt-4 px-4 py-3 text-left"
+                              style={{ clipPath: notch(12), background: "rgba(0,0,0,.45)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.07)" }}>
+                              <p className="mb-1 text-[10px] font-black uppercase tracking-[0.28em]" style={{ color: GOLD }}>Combat data</p>
+                              <StatRow label="Attack" value={atk} tint="#ff9d6b" />
+                              <StatRow label="Health" value={hp} tint="#6ee7b7" />
+                              <StatRow label="Dust value" value={`${dustEach} shards`} tint="#67e8f9" />
+                              <p className="mt-2 border-t border-white/10 pt-2 text-[11px] leading-relaxed text-slate-500">
+                                Sent into the arena it strikes for {atk} — and takes the counter.
+                                {foils[selected.id]
+                                  ? " This foil fights 20% harder than a normal copy."
+                                  : selected.rarity !== "event" && " Foiling adds 20% to both numbers."}
+                              </p>
+                            </div>
+                          );
+                        })()}
+
+                        <div className="mt-4 flex flex-col items-stretch gap-2">
+                          {isMine && count > 1 && (
+                            <GachaButton tone="jade" onClick={() => dust(selected)}>
+                              <Recycle className="h-3.5 w-3.5" /> Dust {count - 1} dupe{count - 1 === 1 ? "" : "s"} · +{(count - 1) * dustEach}
+                            </GachaButton>
+                          )}
+                          {isMine && count === 0 && craftable && (
+                            <GachaButton tone="ghost" onClick={() => craft(selected)} disabled={shards < cost}>
+                              <Hammer className="h-3.5 w-3.5" /> Craft · {cost.toLocaleString()} shards{shards < cost ? " (need more)" : ""}
+                            </GachaButton>
+                          )}
+                          {isMine && count > 0 && !foils[selected.id] && selected.rarity !== "event" && (
+                            <GachaButton onClick={() => foilUp(selected)} disabled={shards < (catalog.foilCost[selected.rarity] || 0)}>
+                              <Sparkles className="h-3.5 w-3.5" /> Foil · +20% · {(catalog.foilCost[selected.rarity] || 0).toLocaleString()}
+                            </GachaButton>
+                          )}
+                          {foils[selected.id] && (
+                            <p className="px-3 py-2 text-center text-[11px] font-black uppercase tracking-[0.14em]"
+                              style={{ clipPath: notch(9), background: "rgba(201,168,102,.10)", boxShadow: "inset 0 0 0 1px rgba(201,168,102,.32)", color: GOLD_LIT }}>
+                              Foil — fights 20% harder in duels
+                            </p>
+                          )}
+                          {count === 1 && <p className="text-xs text-slate-500">Pull another copy to dust it for shards.</p>}
+                          {count === 0 && !craftable && <p className="text-xs text-slate-500">This card only appears during events.</p>}
+                        </div>
+                      </div>
+                    </div>
+
+                    <button onClick={() => setSelected(null)} aria-label="Close"
+                      className="absolute right-4 top-4 z-10 text-slate-500 transition hover:text-white">
+                      <X className="h-5 w-5" />
+                    </button>
                   </div>
-                </div>
-                <button onClick={() => setSelected(null)} className="absolute right-4 top-4 text-slate-500 transition hover:text-white"><X className="h-5 w-5" /></button>
+                </Panel>
               </motion.div>
             </motion.div>
           );
