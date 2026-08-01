@@ -131,7 +131,7 @@ export default function LeaderboardPage() {
                     <motion.div key={r.userId} initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.08 }}
                       className={`flex w-[30%] flex-col items-center ${place === 1 ? "-translate-y-5" : ""}`}>
-                      <Link href={`/profile/${r.username}`} className="group relative">
+                      <Link href={`/user/${r.username}`} className="group relative">
                         <span aria-hidden className="absolute -inset-3 -z-10 rounded-full blur-xl"
                           style={{ background: `${tint}40` }} />
                         {r.avatar ? (
@@ -152,7 +152,7 @@ export default function LeaderboardPage() {
                         style={{ clipPath: notch(6), background: `${tint}22`, boxShadow: `inset 0 0 0 1px ${tint}66`, color: tint }}>
                         {place === 1 ? "1st" : place === 2 ? "2nd" : "3rd"}
                       </span>
-                      <Link href={`/profile/${r.username}`}
+                      <Link href={`/user/${r.username}`}
                         className="mt-2 max-w-full truncate text-sm font-black hover:underline" style={{ color: tint }}>
                         {r.username}
                       </Link>
@@ -180,7 +180,7 @@ export default function LeaderboardPage() {
                       <span className="w-9 shrink-0 text-center text-sm font-black tabular-nums text-slate-600">
                         #{i + 4}
                       </span>
-                      <Link href={`/profile/${r.username}`} className="shrink-0">
+                      <Link href={`/user/${r.username}`} className="shrink-0">
                         {r.avatar ? (
                           <img src={r.avatar} alt="" className="h-10 w-10 rounded-full object-cover ring-1 ring-white/15" />
                         ) : (
@@ -191,7 +191,7 @@ export default function LeaderboardPage() {
                       </Link>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <Link href={`/profile/${r.username}`} className="truncate text-sm font-black text-white hover:underline">
+                          <Link href={`/user/${r.username}`} className="truncate text-sm font-black text-white hover:underline">
                             {r.username}
                           </Link>
                           {me && <span className="shrink-0 text-[9px] font-black uppercase tracking-widest" style={{ color: ACCENT }}>You</span>}

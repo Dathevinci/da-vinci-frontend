@@ -43,6 +43,8 @@ import NovelTrackerButton from "@/components/novel/NovelTrackerButton";
 import { novelCover } from "@/lib/novelImage";
 import { useManhwaModal } from "@/components/providers/ManhwaModalProvider";
 import { useNovelModal } from "@/components/providers/NovelModalProvider";
+import ShowcaseCards from "@/components/profile/ShowcaseCards";
+import RecentComments from "@/components/profile/RecentComments";
 
 export default function PublicProfilePage() {
   const { username } = useParams();
@@ -548,6 +550,20 @@ export default function PublicProfilePage() {
               )}
             </div>
           </div>
+        </div>
+
+        {/* ═══ SHOWCASE + RECENT COMMENTS ═══
+            Both components are self-contained: they fetch their own data and
+            render nothing when there is nothing worth showing, so a quiet
+            profile does not grow empty boxes and a failed fetch degrades to an
+            absent section rather than a broken page. */}
+        <div className="px-1 pt-6">
+          <ShowcaseCards
+            userId={profileUser.id}
+            isMine={isSelf}
+            initial={(profileUser as any).showcaseCards || []}
+          />
+          <RecentComments userId={profileUser.id} />
         </div>
 
         {/* ═══ TABS — sticky under the navbar ═══ */}
