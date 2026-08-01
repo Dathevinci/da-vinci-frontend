@@ -9,8 +9,11 @@ import { authHeaders } from "@/lib/authToken";
 import { useToast } from "@/components/ui/Toast";
 import PageTransition from "@/components/layout/PageTransition";
 import CardFace, { CardDef, CardRarity, RARITY_META } from "@/components/cards/CardFace";
+import PackReveal from "@/components/cards/PackReveal";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+type SetReward = { set: string; ap: number; shards: number; title: string };
 
 type Catalog = {
   cards: CardDef[];
@@ -18,6 +21,9 @@ type Catalog = {
   packSize: number;
   dustValue: Record<CardRarity, number>;
   craftCost: Record<CardRarity, number>;
+  foilCost: Record<CardRarity, number>;
+  relicPackShards: number;
+  setRewards: Record<string, SetReward>;
 };
 
 export default function CardsPage() {
@@ -25,6 +31,8 @@ export default function CardsPage() {
   const { toast } = useToast();
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [owned, setOwned] = useState<Record<string, number>>({});
+  const [foils, setFoils] = useState<Record<string, boolean>>({});
+  const [claimedSets, setClaimedSets] = useState<string[]>([]);
   const [shards, setShards] = useState(0);
   const [loading, setLoading] = useState(true);
   const [opening, setOpening] = useState(false);
@@ -64,8 +72,14 @@ export default function CardsPage() {
       const d = await r.json();
       if (d.success) {
         const map: Record<string, number> = {};
-        for (const c of d.data.cards) map[c.cardId] = c.count;
+        const fo: Record<string, boolean> = {};
+        for (const c of d.data.cards) {
+          map[c.cardId] = c.count;
+          if (c.foil) fo[c.cardId] = true;
+        }
         setOwned(map);
+        setFoils(fo);
+        setClaimedSets(d.data.claimedSets || []);
         setShards(d.data.shards || 0);
       }
     } catch {
@@ -128,6 +142,50 @@ export default function CardsPage() {
       toast("Couldn't dust.", "error");
     }
   };
+
+  // Generic shard action — foil / relic-pack / claim-set all follow the same
+  // shape, so one helper keeps the error + refresh handling consistent.
+  const shardAction = async (
+    path: string,
+    body: Record<string, unknown>,
+    onOk: (data: any) => void
+  ) => {
+    if (!user) return toast("Sign in first.", "error");
+    try {
+      const r = await fetch(`${API_URL}/api/cards/${path}`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ userId: user.id, ...body }),
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) return toast(d.message || "That didn't work.", "error");
+      onOk(d.data);
+      await loadCollection();
+    } catch {
+      toast("That didn't work.", "error");
+    }
+  };
+
+  const foilUp = (card: CardDef) =>
+    shardAction("foil", { cardId: card.id }, (d) => {
+      setShards(d.shards);
+      toast(`${card.name} is now FOIL ✨`, "success");
+      setSelected(null);
+    });
+
+  const openRelic = () =>
+    shardAction("relic-pack", {}, (d) => {
+      setShards(d.shards);
+      const byId = Object.fromEntries((catalog?.cards || []).map((c) => [c.id, c]));
+      setReveal((d.pulls as string[]).map((id) => byId[id]).filter(Boolean));
+    });
+
+  const claimSet = (setName: string) =>
+    shardAction("claim-set", { set: setName }, (d) => {
+      setShards(d.shards);
+      if (typeof d.arisePoints === "number") syncAp(d.arisePoints);
+      toast(`Set complete! +${d.ap?.toLocaleString?.() ?? ""} You are now "${d.title}"`, "success");
+    });
 
   const craft = async (card: CardDef) => {
     if (!user || !catalog) return;
@@ -196,13 +254,34 @@ export default function CardsPage() {
               <PackageOpen className="h-10 w-10 text-fuchsia-300" />
               <h2 className="text-xl font-black">Ascension Pack</h2>
               <p className="max-w-md text-sm text-slate-400">{catalog.packSize} cards, one chance at an epic or legendary. Duplicates aren't wasted — dust them for shards.</p>
-              <button
-                onClick={openPack}
-                disabled={opening}
-                className="mt-1 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-fuchsia-600 to-purple-600 px-8 py-3 font-black text-white shadow-[0_0_24px_rgba(217,70,239,0.4)] transition hover:brightness-110 disabled:opacity-60"
-              >
-                <PackageOpen className="h-5 w-5" /> {opening ? "Opening…" : `Open Pack · ${catalog.packPrice.toLocaleString()} AP`}
-              </button>
+              <div className="mt-1 flex flex-wrap items-center justify-center gap-3">
+                <button
+                  onClick={openPack}
+                  disabled={opening}
+                  className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-fuchsia-600 to-purple-600 px-8 py-3 font-black text-white shadow-[0_0_24px_rgba(217,70,239,0.4)] transition hover:brightness-110 disabled:opacity-60"
+                >
+                  <PackageOpen className="h-5 w-5" /> {opening ? "Opening…" : `Open Pack · ${catalog.packPrice.toLocaleString()} AP`}
+                </button>
+                {/* Shard sink #3 — guaranteed epic+, bought with shards not AP */}
+                <button
+                  onClick={openRelic}
+                  disabled={shards < catalog.relicPackShards}
+                  title={shards < catalog.relicPackShards ? "Not enough shards yet" : "Guaranteed Epic or better"}
+                  className="inline-flex items-center gap-2 rounded-full border border-cyan-500/40 bg-cyan-500/10 px-6 py-3 font-black text-cyan-200 transition hover:bg-cyan-500/20 disabled:opacity-40"
+                >
+                  <Gem className="h-4 w-4" /> Relic Pack · {catalog.relicPackShards.toLocaleString()} shards
+                </button>
+              </div>
+              <p className="text-[11px] text-slate-500">Relic packs guarantee at least one Epic or Legendary.</p>
+            </div>
+          )}
+
+          {/* ── what shards do ── */}
+          {catalog && (
+            <div className="mb-8 grid gap-2 rounded-2xl border border-cyan-500/15 bg-cyan-500/[0.03] p-4 text-xs text-slate-400 sm:grid-cols-3">
+              <div className="flex items-start gap-2"><Recycle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-300" /> <span><b className="text-cyan-200">Dust</b> duplicates into shards — no pull is ever wasted.</span></div>
+              <div className="flex items-start gap-2"><Hammer className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-300" /> <span><b className="text-cyan-200">Craft</b> the exact card luck won't give you, or <b className="text-cyan-200">Foil</b> one you love.</span></div>
+              <div className="flex items-start gap-2"><Gem className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-300" /> <span><b className="text-cyan-200">Relic packs</b> turn patience into a guaranteed Epic.</span></div>
             </div>
           )}
 
@@ -220,12 +299,44 @@ export default function CardsPage() {
                       <div className="h-full rounded-full bg-gradient-to-r from-fuchsia-600 to-purple-500" style={{ width: `${total ? (have / total) * 100 : 0}%` }} />
                     </div>
                   </div>
+                  {/* Set completion — the payoff. Cards aren't just a binder:
+                      finishing a set pays AP, shards and a title you wear. */}
+                  {catalog?.setRewards?.[set] && (
+                    <div className={`mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-4 ${
+                      claimedSets.includes(set)
+                        ? "border-emerald-500/25 bg-emerald-500/[0.05]"
+                        : have >= total
+                        ? "border-amber-500/40 bg-amber-500/[0.08]"
+                        : "border-white/10 bg-white/[0.02]"
+                    }`}>
+                      <div className="text-sm">
+                        <div className="font-black text-white">
+                          {claimedSets.includes(set) ? "Set complete ✓" : have >= total ? "Set complete — claim your reward" : "Complete this set to earn"}
+                        </div>
+                        <div className="mt-0.5 text-xs text-slate-400">
+                          {catalog.setRewards[set].ap.toLocaleString()} AP · {catalog.setRewards[set].shards.toLocaleString()} shards · the title
+                          <b className="text-amber-300"> “{catalog.setRewards[set].title}”</b>
+                        </div>
+                      </div>
+                      {claimedSets.includes(set) ? (
+                        <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-xs font-black text-emerald-300">Claimed</span>
+                      ) : (
+                        <button
+                          onClick={() => claimSet(set)}
+                          disabled={have < total}
+                          className="rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-5 py-2 text-xs font-black text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          {have >= total ? "Claim reward" : `${total - have} to go`}
+                        </button>
+                      )}
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
                     {cards.map((c) => {
                       const count = owned[c.id] || 0;
                       return (
                         <button key={c.id} onClick={() => setSelected(c)} className="flex justify-center transition hover:-translate-y-1">
-                          <CardFace card={c} owned={count > 0} count={count} size={165} />
+                          <CardFace card={c} owned={count > 0} count={count} foil={!!foils[c.id]} size={165} />
                         </button>
                       );
                     })}
@@ -237,29 +348,9 @@ export default function CardsPage() {
         </div>
       </div>
 
-      {/* pack reveal */}
+      {/* pack reveal — staggered flip, rarity burst, best card last */}
       <AnimatePresence>
-        {reveal && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[120] flex items-center justify-center bg-black/90 p-6 backdrop-blur"
-            onClick={() => setReveal(null)}
-          >
-            <div className="text-center">
-              <h3 className="mb-6 text-lg font-black uppercase tracking-widest text-slate-400">Your pull</h3>
-              <div className="flex flex-wrap justify-center gap-4">
-                {reveal.map((c, i) => (
-                  <motion.div key={i} initial={{ rotateY: 90, opacity: 0, y: 20 }} animate={{ rotateY: 0, opacity: 1, y: 0 }} transition={{ delay: i * 0.18, type: "spring", damping: 14 }}>
-                    <CardFace card={c} owned size={190} />
-                  </motion.div>
-                ))}
-              </div>
-              <button className="mt-8 rounded-full border border-white/15 bg-white/10 px-6 py-2.5 font-bold text-white transition hover:bg-white/20">
-                Tap anywhere to close
-              </button>
-            </div>
-          </motion.div>
-        )}
+        {reveal && <PackReveal cards={reveal} onClose={() => setReveal(null)} />}
       </AnimatePresence>
 
       {/* card detail */}
@@ -281,7 +372,7 @@ export default function CardsPage() {
                 className="flex w-full max-w-lg flex-col items-center gap-4 rounded-3xl border border-white/15 bg-[#0b0b12] p-6 text-center sm:flex-row sm:items-start sm:text-left"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="shrink-0"><CardFace card={selected} owned={count > 0} count={count} size={170} /></div>
+                <div className="shrink-0"><CardFace card={selected} owned={count > 0} count={count} foil={!!foils[selected.id]} size={170} /></div>
                 <div className="flex-1">
                   <div className="mb-1 flex items-center justify-center gap-2 sm:justify-start">
                     <span className="rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest" style={{ color: R.frame, background: `${R.frame}22` }}>{R.label}</span>
@@ -304,6 +395,19 @@ export default function CardsPage() {
                       >
                         <Hammer className="h-4 w-4" /> Craft · {cost.toLocaleString()} shards {shards < cost && "(need more)"}
                       </button>
+                    )}
+                    {/* Foil — shard sink #2. Pure prestige on a card you own. */}
+                    {count > 0 && !foils[selected.id] && selected.rarity !== "event" && (
+                      <button
+                        onClick={() => foilUp(selected)}
+                        disabled={shards < (catalog.foilCost[selected.rarity] || 0)}
+                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 py-2.5 text-sm font-black text-amber-200 transition hover:bg-amber-500/20 disabled:opacity-40"
+                      >
+                        <Sparkles className="h-4 w-4" /> Make it Foil · {(catalog.foilCost[selected.rarity] || 0).toLocaleString()} shards
+                      </button>
+                    )}
+                    {foils[selected.id] && (
+                      <p className="rounded-xl border border-amber-500/25 bg-amber-500/[0.07] py-2 text-xs font-black text-amber-200">✨ Foil — one of the finest copies on Da Vinci</p>
                     )}
                     {count === 1 && <p className="text-xs text-slate-500">Pull another copy to dust it for shards.</p>}
                     {count === 0 && !craftable && <p className="text-xs text-slate-500">This card only appears during events.</p>}
