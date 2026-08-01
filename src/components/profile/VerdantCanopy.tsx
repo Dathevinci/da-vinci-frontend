@@ -249,7 +249,11 @@ function useCanopyCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       const cRect = canvas.getBoundingClientRect();
       let target: Vec | null = null;
       let best = 0;
+      // only anchors inside THIS canvas's own card count, so a second mounted
+      // card (profile page + modal) can't steal the grove.
+      const host = canvas.parentElement;
       CANOPY_ANCHORS.forEach((el) => {
+        if (host && !host.contains(el)) return;
         const rect = el.getBoundingClientRect();
         if (rect.width > best) {
           best = rect.width;

@@ -14,6 +14,7 @@ import SettingsModal from "@/components/profile/SettingsModal";
 import LevelBadge from "@/components/profile/LevelBadge";
 import { AvatarDecoration, hasFrameRing } from "@/components/profile/AvatarDecoration";
 import { ProfileEffect } from "@/components/profile/ProfileEffect";
+import ProfileShowcase from "@/components/profile/ProfileShowcase";
 import { calculateLevel, calculateProgressPercent, xpForNextLevel } from "@/lib/levels";
 import { isAdmin, isLeadDev, displayArisePoints } from "@/lib/admin";
 import { nameColorClass } from "@/lib/cosmetics";
@@ -21,6 +22,7 @@ import { resolveActiveEffect } from "@/components/profile/CrimsonRealm";
 import { motion, AnimatePresence } from "framer-motion";
 import { getRankTheme } from "@/lib/ranks";
 import { getHeartRank, heartRankTooltip } from "@/lib/heartRanks";
+import { effectNameClass } from "@/lib/effectTheme";
 import { Code2 as IconCode2, ShieldAlert, Sparkles as IconSparkles, Crown as IconCrown, Flame as IconFlame, Zap as IconZap, Compass as IconCompass, Leaf as IconLeaf, ArrowUpRight, Feather as IconFeather, Eye as IconEye } from "lucide-react";
 const ICON_MAP: Record<string, any> = { Code2: IconCode2, ShieldAlert, Sparkles: IconSparkles, Crown: IconCrown, Flame: IconFlame, Zap: IconZap, Compass: IconCompass, Leaf: IconLeaf, ArrowUpRight, Feather: IconFeather, Eye: IconEye };
 import { useToast } from "@/components/ui/Toast";
@@ -29,7 +31,7 @@ import QuickViewModal from "@/components/ui/QuickViewModal";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 import TrailerModal from "@/components/ui/TrailerModal";
 import { getYouTubeId, getAnimeDetailsAniList } from "@/lib/jikan";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Maximize2 } from "lucide-react";
 import AnimeStatusBadge from "@/components/anime/AnimeStatusBadge";
 import TrackerButton from "@/components/anime/TrackerButton";
 import { useAnimeStatus } from "@/hooks/useAnimeStatus";
@@ -56,6 +58,7 @@ export default function PublicProfilePage() {
   const [showPointHistory, setShowPointHistory] = useState(false);
   const [showDomainExpansion, setShowDomainExpansion] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showcaseOpen, setShowcaseOpen] = useState(false);
 
   // Which tracker sections are expanded ("See all").
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
@@ -327,7 +330,11 @@ export default function PublicProfilePage() {
 
   return (
     <PageTransition>
-      <div className="relative min-h-screen pt-24 pb-12 text-white overflow-hidden">
+      {/* overflow-CLIP, not hidden: `hidden` makes this a scroll container,
+          which silently kills the profile card's `lg:sticky` below. `clip`
+          contains the glow blobs without that side effect (same fix the shop
+          toolbar needed). */}
+      <div className="relative min-h-screen pt-24 pb-12 text-white overflow-clip">
 
       {/* Full-screen banner background (only in "full" mode) */}
       <div className="fixed inset-0 z-0 bg-[#09090b] overflow-hidden">
@@ -360,7 +367,9 @@ export default function PublicProfilePage() {
         <div className="flex flex-col lg:flex-row gap-8 items-start">
 
         {/* ═══ LEFT: the profile card — the effect fills it as a whole ═══ */}
-        <div className="w-full lg:w-[370px] lg:shrink-0 lg:sticky lg:top-24">
+        {/* 420px, up from 370: ~14% more canvas for the effect and enough room
+            that the badge row stops wrapping. */}
+        <div className="w-full lg:w-[420px] lg:shrink-0 lg:sticky lg:top-24">
         <div className={`relative rounded-3xl shadow-2xl border overflow-hidden ${rankTheme.bgCardClass} ${isCrimson ? "!border-red-600/50 shadow-[0_0_45px_rgba(255,0,0,0.35)]" : isDejaVu ? "!border-purple-500/50 shadow-[0_0_45px_rgba(168,85,247,0.4)]" : isTempest ? "!border-sky-500/50 shadow-[0_0_45px_rgba(56,189,248,0.35)]" : isFool ? "!border-amber-500/40 shadow-[0_0_45px_rgba(245,158,11,0.3)]" : isEvernight ? "!border-rose-500/40 shadow-[0_0_45px_rgba(225,29,72,0.3)]" : isMahoraga ? "!border-yellow-500/50 shadow-[0_0_45px_rgba(255,215,0,0.35)]" : isRitual ? "!border-slate-200/50 shadow-[0_0_50px_rgba(255,255,255,0.35)]" : isCanopy ? "!border-emerald-500/50 shadow-[0_0_45px_rgba(16,185,129,0.35)]" : isSamurai ? "!border-red-500/40 shadow-[0_0_45px_rgba(185,28,28,0.4)]" : isHimalaya ? "!border-sky-300/40 shadow-[0_0_45px_rgba(191,219,254,0.4)]" : isLotus ? "!border-emerald-400/40 shadow-[0_0_45px_rgba(52,211,153,0.4)]" : isMango ? "!border-orange-400/50 shadow-[0_0_45px_rgba(255,140,0,0.45)]" : isJungle ? "!border-green-500/45 shadow-[0_0_45px_rgba(31,107,56,0.5)]" : isUnblinking ? "!border-red-900/50 shadow-[0_0_45px_rgba(139,0,0,0.45)]" : isVoid ? "!border-cyan-400/50 shadow-[0_0_50px_rgba(34,211,238,0.35)]" : isDejavuEcho ? "!border-red-900/60 shadow-[0_0_50px_rgba(139,0,0,0.4),0_0_24px_rgba(0,255,255,0.15)]" : isHollow ? "!border-purple-500/60 shadow-[0_0_50px_rgba(167,36,240,0.4),0_0_24px_rgba(27,79,224,0.2)]" : isOuterGod ? "!border-teal-500/50 shadow-[0_0_50px_rgba(13,148,136,0.4),0_0_24px_rgba(216,31,180,0.25)]" : isGateway ? "!border-violet-500/50 shadow-[0_0_50px_rgba(138,43,226,0.4),0_0_24px_rgba(255,215,0,0.25)]" : isWebSlinger ? "!border-cyan-400/50 shadow-[0_0_45px_rgba(34,211,238,0.35),0_0_24px_rgba(220,38,38,0.2)]" : ""}`}>
           {backgroundUrl && (
             <>
@@ -375,8 +384,10 @@ export default function PublicProfilePage() {
           {/* Discord-style Profile Effect — plays across the WHOLE card */}
           <ProfileEffect effect={effectiveEffect} />
 
-          {/* Banner — the user's cover image, or a themed gradient */}
-          <div className="relative z-[1] h-28 w-full overflow-hidden">
+          {/* Banner — the user's cover image, or a themed gradient. Taller than
+              it was (112 → 144px): this strip is the one part of the card an
+              effect gets to itself, so it doubles as the effect's stage. */}
+          <div className="relative z-[1] h-36 w-full overflow-hidden">
             {profileUser.bannerUrl ? (
               <img
                 src={profileUser.bannerUrl}
@@ -391,9 +402,9 @@ export default function PublicProfilePage() {
           </div>
 
           {/* card body — a vertical stack, avatar overlapping the banner */}
-          <div className="relative z-10 px-6 pb-6">
+          <div className="relative z-10 px-7 pb-7">
             <div
-              className="relative w-fit -mt-14 mb-1 cursor-pointer"
+              className="relative w-fit -mt-16 mb-1.5 cursor-pointer"
               onClick={() => profileUser.avatar && setPreviewImage(profileUser.avatar)}
             >
               {profileUser.avatar ? (
@@ -401,12 +412,12 @@ export default function PublicProfilePage() {
                   layoutId="profile-avatar"
                   src={profileUser.avatar}
                   alt="Avatar"
-                  className={`w-32 h-32 rounded-full object-cover border-4 bg-[#141414] transition-all duration-300 relative z-10 ${avatarBorderClass}`}
+                  className={`w-36 h-36 rounded-full object-cover border-4 bg-[#141414] transition-all duration-300 relative z-10 ${avatarBorderClass}`}
                 />
               ) : (
                 <motion.div
                   layoutId="profile-avatar"
-                  className={`w-32 h-32 bg-purple-600 rounded-full flex items-center justify-center text-4xl font-black border-4 transition-all duration-300 relative z-10 ${avatarBorderClass}`}
+                  className={`w-36 h-36 bg-purple-600 rounded-full flex items-center justify-center text-4xl font-black border-4 transition-all duration-300 relative z-10 ${avatarBorderClass}`}
                 >
                   {profileUser.username.charAt(0).toUpperCase()}
                 </motion.div>
@@ -577,6 +588,19 @@ export default function PublicProfilePage() {
               </div>
             </div>
             
+            {/* Showcase — the equipped effect with the whole viewport to play
+                in. Shown to ANY viewer (seeing someone else's effect properly
+                is half the point of owning one), and only when one is worn. */}
+            {effectiveEffect && (
+              <button
+                onClick={() => setShowcaseOpen(true)}
+                title="View this profile effect full screen"
+                className="z-10 mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.06] px-6 py-3 font-bold text-slate-200 backdrop-blur transition hover:border-fuchsia-500/40 hover:bg-white/[0.1] hover:text-white"
+              >
+                <Maximize2 className="h-4 w-4" /> Showcase
+              </button>
+            )}
+
             {!isSelf && currentUser && (
               <div className="z-10 mt-4 flex gap-2 w-full">
 
@@ -989,6 +1013,19 @@ export default function PublicProfilePage() {
           onClose={() => setPreviewImage(null)}
         />
       )}
+
+      {/* The equipped effect, full screen. Mounted unconditionally so its
+          enter/exit animation can play; it renders nothing until `open`. */}
+      <ProfileShowcase
+        open={showcaseOpen}
+        onClose={() => setShowcaseOpen(false)}
+        username={profileUser.username}
+        avatar={profileUser.avatar}
+        effect={effectiveEffect}
+        frame={(profileUser as any).activeFrame}
+        nameClass={effectNameClass(effectiveEffect)}
+        subtitle={getHeartRank(currentLevel).name}
+      />
 
       {showPointHistory && (
         <ArisePointHistoryModal

@@ -183,7 +183,10 @@ function useDejavuCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       let cy = H * 0.3;
       let ar = 44;
       let best = 0;
+      // only anchors inside THIS card count — two cards can be mounted at once
+      const host = canvas.parentElement;
       DEJAVU_ANCHORS.forEach((el) => {
+        if (host && !host.contains(el)) return;
         const r = el.getBoundingClientRect();
         if (r.width > best) {
           best = r.width;

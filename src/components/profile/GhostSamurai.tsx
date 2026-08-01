@@ -255,7 +255,11 @@ function useSamuraiCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       const cRect = canvas.getBoundingClientRect();
       let target: { x: number; y: number; r: number } | null = null;
       let best = 0;
+      // only anchors inside THIS canvas's own card count, so a second mounted
+      // card (profile page + modal) can't steal the katana.
+      const host = canvas.parentElement;
       SAMURAI_ANCHORS.forEach((el) => {
+        if (host && !host.contains(el)) return;
         const rect = el.getBoundingClientRect();
         if (rect.width > best) {
           best = rect.width;

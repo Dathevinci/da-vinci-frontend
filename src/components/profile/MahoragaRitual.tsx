@@ -261,7 +261,11 @@ function useRitualCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       const cRect = canvas.getBoundingClientRect();
       let target: Vec | null = null;
       let best = 0;
+      // Only anchors inside THIS canvas's own card count — two cards mounted at
+      // once (profile page + modal) must never steal each other's avatar.
+      const host = canvas.parentElement;
       RITUAL_ANCHORS.forEach((el) => {
+        if (host && !host.contains(el)) return;
         const rect = el.getBoundingClientRect();
         if (rect.width > best) {
           best = rect.width;

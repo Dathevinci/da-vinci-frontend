@@ -602,7 +602,11 @@ function useJungleCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       const cRect = canvas.getBoundingClientRect();
       let target: { x: number; y: number; r: number } | null = null;
       let best = 0;
+      // Only anchors inside THIS canvas's own card count — otherwise a second
+      // mounted card (profile page + modal) can steal the leaf crown.
+      const host = canvas.parentElement;
       JUNGLE_ANCHORS.forEach((el) => {
+        if (host && !host.contains(el)) return;
         const rect = el.getBoundingClientRect();
         if (rect.width > best) {
           best = rect.width;

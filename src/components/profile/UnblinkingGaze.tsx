@@ -179,7 +179,10 @@ function useUnblinkingCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       const cRect = canvas.getBoundingClientRect();
       let target: { x: number; y: number; r: number } | null = null;
       let best = 0;
+      // only anchors inside THIS card count — two cards can be mounted at once
+      const host = canvas.parentElement;
       UNBLINKING_ANCHORS.forEach((el) => {
+        if (host && !host.contains(el)) return;
         const rect = el.getBoundingClientRect();
         if (rect.width > best) {
           best = rect.width;

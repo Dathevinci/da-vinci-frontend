@@ -180,7 +180,11 @@ function useFoolCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       const cRect = canvas.getBoundingClientRect();
       let target: { x: number; y: number } | null = null;
       let best = 0;
+      // Only anchors inside THIS canvas's own card count — otherwise a second
+      // mounted card (profile page + modal) can steal the threads.
+      const host = canvas.parentElement;
       FOOL_ANCHORS.forEach((el) => {
+        if (host && !host.contains(el)) return;
         const r = el.getBoundingClientRect();
         if (r.width > best) {
           best = r.width;

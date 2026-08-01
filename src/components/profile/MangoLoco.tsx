@@ -353,7 +353,11 @@ function useMangoCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       const cRect = canvas.getBoundingClientRect();
       let target: { x: number; y: number; r: number } | null = null;
       let best = 0;
+      // only anchors inside THIS canvas's own card count, so a second mounted
+      // card (profile modal, shop preview) can't steal the wreath
+      const host = canvas.parentElement;
       MANGO_ANCHORS.forEach((el) => {
+        if (host && !host.contains(el)) return;
         const rect = el.getBoundingClientRect();
         if (rect.width > best) {
           best = rect.width;
