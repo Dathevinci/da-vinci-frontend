@@ -64,10 +64,15 @@ export default function Arena({
   // active = -1 means that side hasn't deployed yet, so the field is empty.
   const myActive = mine.active >= 0 ? mine.fighters[mine.active] : undefined;
   const foeActive = foe.active >= 0 ? foe.fighters[foe.active] : undefined;
-  // Drag-to-deploy state. Tapping does the same thing — drag is the flourish,
-  // tap is the guarantee, because HTML5 drag events don't fire on touch.
-  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  // SELECT then ACT. Tapping a card used to fire the move immediately, which
+  // made a mis-tap cost you a turn and gave drag-and-drop nothing to be better
+  // than. Now a tap only SELECTS; an explicit button commits.
+  const [sel, setSel] = useState<number | null>(null);
   const [overField, setOverField] = useState(false);
+  const selected = sel !== null ? mine.fighters[sel] : undefined;
+  const selectable = myTurn && !finished && !busy;
+  // Choosing a card that isn't the one already fighting is a REDEPLOY.
+  const isSwap = sel !== null && mine.active >= 0 && sel !== mine.active;
 
   // Damage detection so a hit is SEEN, not just read off a number.
   const prev = useRef<{ mine: number; foe: number } | null>(null);
@@ -152,12 +157,16 @@ export default function Arena({
           <motion.div animate={hit?.side === "foe" ? { y: [0, 8, 0] } : {}} transition={{ duration: 0.3 }} className="text-center">
             {foeActive && byId[foeActive.cardId] ? (
               <>
-                <CardFace card={byId[foeActive.cardId]} owned foil={foeActive.foil} size={96} showStats />
-                <p className="mt-1 max-w-[96px] truncate text-[10px] font-bold text-sky-200">{foeActive.name}</p>
+                <CardFace card={byId[foeActive.cardId]} owned foil={foeActive.foil} size={132} showStats />
+                <p className="mt-1 max-w-[132px] truncate text-[11px] font-bold text-sky-200">{foeActive.name}</p>
+                <div className="mx-auto mt-1" style={{ width: 132 }}>
+                  <Bar f={foeActive} h={7} />
+                  <div className="text-center text-[10px] font-black tabular-nums text-slate-300">{foeActive.hp}/{foeActive.maxHp}</div>
+                </div>
               </>
             ) : (
               <div className="grid place-items-center rounded-xl border-2 border-dashed border-sky-500/25"
-                style={{ width: 96, aspectRatio: "5 / 7" }}>
+                style={{ width: 132, aspectRatio: "5 / 7" }}>
                 <span className="px-2 text-center text-[9px] font-black uppercase tracking-wider text-sky-500/50">
                   {foeName} hasn&rsquo;t sent anyone
                 </span>
@@ -188,19 +197,24 @@ export default function Arena({
             animate={hit?.side === "mine" ? { y: [0, -8, 0] } : {}}
             transition={{ duration: 0.3 }}
             className="text-center"
-            onDragOver={(e) => { if (dragIdx !== null) { e.preventDefault(); setOverField(true); } }}
+            onDragOver={(e) => { e.preventDefault(); setOverField(true); }}
             onDragLeave={() => setOverField(false)}
             onDrop={(e) => {
               e.preventDefault();
               setOverField(false);
-              if (dragIdx !== null && myTurn && !busy && !finished) onAttack(dragIdx);
-              setDragIdx(null);
+              const idx = Number(e.dataTransfer.getData("text/plain"));
+              if (Number.isInteger(idx) && selectable) setSel(idx);
             }}
           >
             {myActive && byId[myActive.cardId] ? (
               <div className={overField ? "rounded-xl ring-2 ring-rose-400" : ""}>
-                <CardFace card={byId[myActive.cardId]} owned foil={myActive.foil} size={96} showStats />
-                <p className="mt-1 max-w-[96px] truncate text-[10px] font-bold text-rose-200">{myActive.name}</p>
+                <CardFace card={byId[myActive.cardId]} owned foil={myActive.foil} size={132} showStats />
+                <p className="mt-1 max-w-[132px] truncate text-[11px] font-bold text-rose-200">{myActive.name}</p>
+                {/* health of whoever is actually on the field */}
+                <div className="mx-auto mt-1" style={{ width: 132 }}>
+                  <Bar f={myActive} h={7} />
+                  <div className="text-center text-[10px] font-black tabular-nums text-slate-300">{myActive.hp}/{myActive.maxHp}</div>
+                </div>
               </div>
             ) : (
               <motion.div
@@ -209,7 +223,7 @@ export default function Arena({
                 className={`grid place-items-center rounded-xl border-2 border-dashed transition ${
                   overField ? "border-rose-400 bg-rose-500/15" : myTurn ? "border-rose-500/60 bg-rose-500/5" : "border-white/15"
                 }`}
-                style={{ width: 96, aspectRatio: "5 / 7" }}
+                style={{ width: 132, aspectRatio: "5 / 7" }}
               >
                 <span className="px-2 text-center text-[9px] font-black uppercase tracking-wider text-rose-300/70">
                   {myTurn ? "Drop a card here" : "Empty"}
@@ -258,26 +272,23 @@ export default function Arena({
               <motion.button
                 key={i}
                 whileTap={playable ? { scale: 0.94 } : {}}
-                animate={playable ? { y: [0, -3, 0] } : { y: 0 }}
-                transition={{ duration: 1.6, repeat: playable ? Infinity : 0 }}
                 disabled={!playable}
-                onClick={() => onAttack(i)}
-                // Drag is the flourish; the click above is what actually
-                // guarantees this works, since touch devices fire no drag
-                // events at all.
+                // Tap SELECTS. Committing happens on the button below, so a
+                // mis-tap costs nothing.
+                onClick={() => setSel(i)}
                 draggable={playable}
-                onDragStart={() => setDragIdx(i)}
-                onDragEnd={() => { setDragIdx(null); setOverField(false); }}
-                title={dead ? `${f.name} has fallen` : `Send in ${f.name}`}
+                onDragStart={(e: any) => e.dataTransfer?.setData("text/plain", String(i))}
+                onDragEnd={() => setOverField(false)}
+                title={dead ? `${f.name} has fallen` : `Choose ${f.name}`}
                 className={`flex flex-col items-center gap-1 rounded-xl p-1 transition ${
                   dead ? "opacity-25 grayscale"
-                    : dragIdx === i ? "opacity-40"
-                    : playable ? "cursor-grab ring-2 ring-rose-400/70 active:cursor-grabbing"
+                    : sel === i ? "bg-rose-500/25 ring-2 ring-rose-400"
+                    : playable ? "cursor-grab ring-1 ring-white/15 hover:ring-rose-400/60 active:cursor-grabbing"
                     : "opacity-70"
                 }`}
               >
-                {byId[f.cardId] && <CardFace card={byId[f.cardId]} owned foil={f.foil} size={64} showStats />}
-                <div style={{ width: 64 }}>
+                {byId[f.cardId] && <CardFace card={byId[f.cardId]} owned foil={f.foil} size={92} showStats />}
+                <div style={{ width: 92 }}>
                   <Bar f={f} h={5} />
                   <div className="text-center text-[9px] font-black tabular-nums text-slate-400">{f.hp}/{f.maxHp}</div>
                 </div>
@@ -286,16 +297,28 @@ export default function Arena({
           })}
         </div>
 
-        {/* items */}
+        {/* ACTIONS — the commit step. Selecting a card never fires a move; you
+            press the button, so a mis-tap can't waste a turn. */}
         {!finished && (
-          <div className="mt-3 flex items-center justify-center gap-2">
+          <div className="mt-3 flex items-stretch justify-center gap-2">
+            <button
+              disabled={!selectable || sel === null}
+              onClick={() => sel !== null && onAttack(sel)}
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-600 to-orange-600 py-3 text-sm font-black text-white transition hover:brightness-110 disabled:opacity-30"
+            >
+              <Swords className="h-4 w-4" />
+              {!myTurn ? "Not your turn"
+                : sel === null ? "Choose a card"
+                : isSwap ? `Redeploy ${selected?.name?.split(" ").slice(-1)[0] ?? ""} & strike`
+                : "Attack"}
+            </button>
             {ITEMS.map((it) => {
               const held = bag.filter((b) => b === it.id).length;
               const usable = myTurn && held > 0 && !busy;
               return (
                 <button key={it.id} disabled={!usable} onClick={() => onItem(it.id)}
                   title={`${it.name}${held ? ` ×${held}` : " — none left"}`}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-black disabled:opacity-25">
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-black disabled:opacity-25">
                   <it.Icon className={`h-4 w-4 ${it.tint}`} />
                   {held > 0 && <span className="text-slate-300">{held}</span>}
                 </button>

@@ -1,4 +1,5 @@
 "use client";
+import { memo } from "react";
 
 /**
  * ARISE CARD ART — every card drawn procedurally, no image assets.
@@ -669,7 +670,7 @@ export const FALLBACK_STATS: Record<CardRarity, { hp: number; atk: number }> = {
   event: { hp: 24, atk: 10 },
 };
 
-export default function CardFace({
+function CardFaceImpl({
   card,
   owned = true,
   count = 0,
@@ -798,3 +799,12 @@ export default function CardFace({
     </div>
   );
 }
+
+/**
+ * Memoised on purpose. Each card is a 20-40 node SVG scene, and the arena
+ * renders ~10 of them while polling every few seconds — without this, every
+ * poll re-rendered every card's full artwork and the board crawled. The props
+ * are all primitives plus a stable card object, so a shallow compare is exact.
+ */
+const CardFace = memo(CardFaceImpl);
+export default CardFace;
