@@ -183,6 +183,7 @@ export default function Arena({
   const pendRef = useRef<{ d: Drag; x: number; y: number } | null>(null);
   const dragRef = useRef<Drag | null>(null);
   const overRef = useRef<string | null>(null);
+  const didDragRef = useRef(false);
   const [dragUI, setDragUI] = useState<{ d: Drag; x: number; y: number; over: string | null } | null>(null);
 
   // Kept in a ref so the window listeners (mounted once) always call the
@@ -220,6 +221,10 @@ export default function Arena({
       setDragUI({ d: dragRef.current, x: e.clientX, y: e.clientY, over: overRef.current });
     };
     const end = () => {
+      // A click still fires after pointerup when the pointer moved, so without
+      // this a completed drag would ALSO run the card's onClick — attacking and
+      // then silently changing the selection underneath you.
+      didDragRef.current = !!dragRef.current;
       if (dragRef.current) resolveRef.current(dragRef.current, overRef.current);
       pendRef.current = null;
       dragRef.current = null;
@@ -238,8 +243,15 @@ export default function Arena({
 
   const startDrag = useCallback((d: Drag) => (e: React.PointerEvent) => {
     if (e.button != null && e.button !== 0) return;
+    didDragRef.current = false;
     pendRef.current = { d, x: e.clientX, y: e.clientY };
   }, []);
+  /** True once per completed drag — lets the follow-up click be ignored. */
+  const swallowClick = () => {
+    if (!didDragRef.current) return false;
+    didDragRef.current = false;
+    return true;
+  };
 
   const dragging = dragUI?.d ?? null;
   const over = dragUI?.over ?? null;
@@ -467,7 +479,7 @@ export default function Arena({
                 data-drop={`ally-${i}`}
                 whileTap={playable ? { scale: 0.95 } : {}}
                 onPointerDown={playable ? startDrag({ kind: "unit", index: i }) : undefined}
-                onClick={() => { if (playable) setSel(i); }}
+                onClick={() => { if (swallowClick()) return; if (playable) setSel(i); }}
                 role="button"
                 aria-disabled={!playable}
                 title={dead ? `${f.name} has fallen` : `Choose ${f.name}`}
@@ -515,7 +527,7 @@ export default function Arena({
                   <div
                     key={c.id}
                     onPointerDown={usable ? startDrag({ kind: "support", cardId: c.id, targeted }) : undefined}
-                    onClick={() => { if (usable && !targeted) onSupport(c.id); }}
+                    onClick={() => { if (swallowClick()) return; if (usable && !targeted) onSupport(c.id); }}
                     role="button"
                     aria-disabled={!usable}
                     title={spent ? `${c.name} — already played this duel`
