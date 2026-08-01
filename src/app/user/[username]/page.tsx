@@ -365,53 +365,37 @@ export default function PublicProfilePage() {
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         className="relative z-10 max-w-7xl mx-auto px-4 md:px-8"
       >
-        {/* Two-column: Discord-style profile card on the left, collection on the right */}
-        <div className="flex flex-col lg:flex-row gap-8 items-start">
+        {/* Channel layout: a full-bleed hero the effect actually fits in, then
+            sticky tabs, then the collection at full width. The old two-column
+            card gave effects a 420px portrait slot — nine of them are
+            landscapes (mountain ridgelines, overhead cloud banks, a sky/river
+            split at 70% height) and read as a smudge in that shape. */}
+        <div>
 
-        {/* ═══ LEFT: the profile card — the effect fills it as a whole ═══ */}
-        {/* 420px, up from 370: ~14% more canvas for the effect and enough room
-            that the badge row stops wrapping. */}
-        <div className="w-full lg:w-[420px] lg:shrink-0 lg:sticky lg:top-24">
-        <div className={`relative rounded-3xl shadow-2xl border overflow-hidden ${rankTheme.bgCardClass} ${isCrimson ? "!border-red-600/50 shadow-[0_0_45px_rgba(255,0,0,0.35)]" : isDejaVu ? "!border-purple-500/50 shadow-[0_0_45px_rgba(168,85,247,0.4)]" : isTempest ? "!border-sky-500/50 shadow-[0_0_45px_rgba(56,189,248,0.35)]" : isFool ? "!border-amber-500/40 shadow-[0_0_45px_rgba(245,158,11,0.3)]" : isEvernight ? "!border-rose-500/40 shadow-[0_0_45px_rgba(225,29,72,0.3)]" : isMahoraga ? "!border-yellow-500/50 shadow-[0_0_45px_rgba(255,215,0,0.35)]" : isRitual ? "!border-slate-200/50 shadow-[0_0_50px_rgba(255,255,255,0.35)]" : isCanopy ? "!border-emerald-500/50 shadow-[0_0_45px_rgba(16,185,129,0.35)]" : isSamurai ? "!border-red-500/40 shadow-[0_0_45px_rgba(185,28,28,0.4)]" : isHimalaya ? "!border-sky-300/40 shadow-[0_0_45px_rgba(191,219,254,0.4)]" : isLotus ? "!border-emerald-400/40 shadow-[0_0_45px_rgba(52,211,153,0.4)]" : isMango ? "!border-orange-400/50 shadow-[0_0_45px_rgba(255,140,0,0.45)]" : isJungle ? "!border-green-500/45 shadow-[0_0_45px_rgba(31,107,56,0.5)]" : isUnblinking ? "!border-red-900/50 shadow-[0_0_45px_rgba(139,0,0,0.45)]" : isVoid ? "!border-cyan-400/50 shadow-[0_0_50px_rgba(34,211,238,0.35)]" : isDejavuEcho ? "!border-red-900/60 shadow-[0_0_50px_rgba(139,0,0,0.4),0_0_24px_rgba(0,255,255,0.15)]" : isHollow ? "!border-purple-500/60 shadow-[0_0_50px_rgba(167,36,240,0.4),0_0_24px_rgba(27,79,224,0.2)]" : isOuterGod ? "!border-teal-500/50 shadow-[0_0_50px_rgba(13,148,136,0.4),0_0_24px_rgba(216,31,180,0.25)]" : isGateway ? "!border-violet-500/50 shadow-[0_0_50px_rgba(138,43,226,0.4),0_0_24px_rgba(255,215,0,0.25)]" : isWebSlinger ? "!border-cyan-400/50 shadow-[0_0_45px_rgba(34,211,238,0.35),0_0_24px_rgba(220,38,38,0.2)]" : ""}`}>
-          {backgroundUrl && (
-            <>
-              <div
-                className="absolute inset-0 z-0 bg-cover bg-center"
-                style={{ backgroundImage: `url(${backgroundUrl})` }}
-              />
-              <div className="absolute inset-0 z-0 bg-black/75 pointer-events-none" />
-            </>
-          )}
-
-          {/* Discord-style Profile Effect — plays across the WHOLE card.
-              Stood down while the Showcase is up: the overlay is opaque, so
-              this instance would be animating where nobody can see it, and
-              running two instances of the same effect at once means they can
-              fight over module-level state (Mahoraga's ritual cue) or physics
-              registries (Tempest's rain colliders). One instance at a time. */}
-          <ProfileEffect effect={showcaseOpen ? null : effectiveEffect} />
-
-          {/* Banner — the user's cover image, or a themed gradient. Taller than
-              it was (112 → 144px): this strip is the one part of the card an
-              effect gets to itself, so it doubles as the effect's stage. */}
-          <div className="relative z-[1] h-36 w-full overflow-hidden">
+        {/* ═══ HERO — the effect's stage ═══ */}
+        <div className="relative overflow-hidden border-b border-white/10">
+          <div className="absolute inset-0 z-[1]">
             {profileUser.bannerUrl ? (
               <img
                 src={profileUser.bannerUrl}
-                alt="Cover banner"
+                alt=""
                 style={{ objectPosition: `center ${(profileUser as any).bannerPosition ?? 50}%` }}
-                className="w-full h-full object-cover"
+                className="h-full w-full object-cover opacity-70"
               />
             ) : (
-              <div className="w-full h-full bg-gradient-to-br from-purple-600/70 via-purple-600/50 to-fuchsia-600/40" />
+              <div className="h-full w-full bg-[radial-gradient(120%_130%_at_50%_0%,rgba(147,51,234,0.35),transparent_60%),linear-gradient(120deg,#1a0b2e,#3b0764_45%,#4a044e)]" />
             )}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/50" />
+            {/* fade the stage into the collection so the band reads as
+                continuous without the canvas having to paint down there */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-[#09090b]/70 to-[#09090b]" />
           </div>
 
-          {/* card body — a vertical stack, avatar overlapping the banner */}
-          <div className="relative z-10 px-7 pb-7">
+          {/* the effect, with the full width of the page to perform in */}
+          <ProfileEffect effect={showcaseOpen ? null : effectiveEffect} />
+
+          <div className="relative z-20 mx-auto flex max-w-4xl flex-col items-center gap-3 px-4 py-10 text-center md:py-12">
             <div
-              className="relative w-fit -mt-16 mb-1.5 cursor-pointer"
+              className="relative w-fit cursor-pointer"
               onClick={() => profileUser.avatar && setPreviewImage(profileUser.avatar)}
             >
               {profileUser.avatar ? (
@@ -419,274 +403,181 @@ export default function PublicProfilePage() {
                   layoutId="profile-avatar"
                   src={profileUser.avatar}
                   alt="Avatar"
-                  className={`w-36 h-36 rounded-full object-cover border-4 bg-[#141414] transition-all duration-300 relative z-10 ${avatarBorderClass}`}
+                  className={`relative z-10 h-32 w-32 rounded-full border-4 bg-[#141414] object-cover shadow-[0_12px_50px_rgba(0,0,0,0.75)] transition-all duration-300 md:h-40 md:w-40 ${avatarBorderClass}`}
                 />
               ) : (
                 <motion.div
                   layoutId="profile-avatar"
-                  className={`w-36 h-36 bg-purple-600 rounded-full flex items-center justify-center text-4xl font-black border-4 transition-all duration-300 relative z-10 ${avatarBorderClass}`}
+                  className={`relative z-10 grid h-32 w-32 place-items-center rounded-full border-4 bg-purple-600 text-4xl font-black transition-all duration-300 md:h-40 md:w-40 ${avatarBorderClass}`}
                 >
                   {profileUser.username.charAt(0).toUpperCase()}
                 </motion.div>
               )}
               <AvatarDecoration frame={(profileUser as any).activeFrame} effect={effectiveEffect} size="lg" />
               {profileUser.arisePoints !== undefined && (
-                <div className="absolute -bottom-2 -right-2 z-20">
-                  <LevelBadge xp={isProfileLeadDev ? Infinity : (isProfileAdmin ? 511000 : (profileUser.xp || 0))} size="lg" className="shadow-[0_4px_20px_rgba(0,0,0,0.8)] border-[#141414]" />
+                <div className="absolute -bottom-1 -right-1 z-20">
+                  <LevelBadge xp={isProfileLeadDev ? Infinity : (isProfileAdmin ? 511000 : (profileUser.xp || 0))} size="lg" className="border-[#0b0b12] shadow-[0_4px_20px_rgba(0,0,0,0.8)]" />
                 </div>
               )}
             </div>
 
-            <div className="relative z-10 w-full text-left mt-3">
-              <div className="flex flex-wrap items-center gap-2 justify-start mb-2 relative">
-                {profileUser.activeEffect === 'effect_sparkles' && (
-                  <div className="absolute -inset-4 z-0 pointer-events-none overflow-hidden">
-                    <div className="absolute w-2 h-2 bg-yellow-300 rounded-full animate-ping left-10 top-2"></div>
-                    <div className="absolute w-1.5 h-1.5 bg-yellow-200 rounded-full animate-pulse right-10 top-0"></div>
-                    <div className="absolute w-2 h-2 bg-yellow-400 rounded-full animate-ping left-20 bottom-0"></div>
-                    <div className="absolute w-1 h-1 bg-white rounded-full animate-pulse right-20 bottom-2"></div>
-                  </div>
-                )}
-                <h1 className={`text-3xl font-black drop-shadow-lg pb-1 leading-tight break-words relative z-10
-                  ${profileUser.activeFont === 'font_cyber' ? 'font-mono tracking-widest' : ''} 
-                  ${profileUser.activeFont === 'font_pixel' ? 'font-serif tracking-tight' : ''} 
-                  ${isCrimson ? crimsonName : isDejaVu ? dejaVuName : isTempest ? tempestName : isFool ? foolName : isEvernight ? evernightName : isMahoraga ? mahoragaName : isRitual ? ritualName : isCanopy ? canopyName : isSamurai ? samuraiName : isHimalaya ? himalayaName : isLotus ? lotusName : isMango ? mangoName : isJungle ? jungleName : isUnblinking ? unblinkingName : isVoid ? voidName : isDejavuEcho ? dejavuEchoName : isHollow ? hollowName : isOuterGod ? outerGodName : isGateway ? gatewayName : isWebSlinger ? webSlingerName : (nameColorClass(profileUser.activeColor) || rankTheme.textGradient)}`}>
-                  {profileUser.username}
-                </h1>
-                
-                {/* Titles stack side by side — the staff/level title, the Heart
-                    Cultivation rank, and any shop-bought title all coexist. */}
-                {/* Level titles are now the Heart Cultivation names, and the
-                    richer heart badge below already shows that name with its
-                    numeral and lore. Render this one only when it says something
-                    DIFFERENT — i.e. the staff badge (LEAD DEV / ADMIN) — so the
-                    same word never appears twice in a row. */}
-                {rankTheme.title && rankTheme.title !== getHeartRank(currentLevel).name && (
-                  <div className={`shrink-0 px-3 py-1 rounded-full flex items-center gap-1 ${rankTheme.badgeClass}`}>
-                    {RankIcon && <RankIcon className="w-4 h-4" />}
-                    <span className="text-xs font-black tracking-wider uppercase">
-                      {rankTheme.title}
-                    </span>
-                  </div>
-                )}
+            <h1 className={`max-w-[92vw] break-words pb-1 text-4xl font-black leading-tight tracking-tight drop-shadow-lg md:text-5xl
+              ${profileUser.activeFont === 'font_cyber' ? 'font-mono tracking-widest' : ''}
+              ${profileUser.activeFont === 'font_pixel' ? 'font-serif tracking-tight' : ''}
+              ${isCrimson ? crimsonName : isDejaVu ? dejaVuName : isTempest ? tempestName : isFool ? foolName : isEvernight ? evernightName : isMahoraga ? mahoragaName : isRitual ? ritualName : isCanopy ? canopyName : isSamurai ? samuraiName : isHimalaya ? himalayaName : isLotus ? lotusName : isMango ? mangoName : isJungle ? jungleName : isUnblinking ? unblinkingName : isVoid ? voidName : isDejavuEcho ? dejavuEchoName : isHollow ? hollowName : isOuterGod ? outerGodName : isGateway ? gatewayName : isWebSlinger ? webSlingerName : (nameColorClass(profileUser.activeColor) || rankTheme.textGradient)}`}>
+              {profileUser.username}
+            </h1>
 
-                {/* Heart Cultivation — one Opening per level, lore on hover */}
-                {(() => {
-                  const heart = getHeartRank(currentLevel);
-                  return (
-                    <div
-                      className={`shrink-0 px-3 py-1 rounded-full flex items-center gap-1.5 cursor-help ${heart.badgeClass}`}
-                      title={heartRankTooltip(heart)}
-                    >
-                      <span className="text-sm leading-none">{heart.emoji}</span>
-                      <span className="text-xs font-black tracking-wider uppercase">
-                        {heart.name} · {heart.numeral}
-                      </span>
-                      <span className="text-[10px] font-bold opacity-70">{heart.hanzi}</span>
-                    </div>
-                  );
-                })()}
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {rankTheme.title && rankTheme.title !== getHeartRank(currentLevel).name && (
+                <div className={`shrink-0 px-3 py-1 rounded-full flex items-center gap-1 ${rankTheme.badgeClass}`}>
+                  {RankIcon && <RankIcon className="w-4 h-4" />}
+                  <span className="text-xs font-black tracking-wider uppercase">{rankTheme.title}</span>
+                </div>
+              )}
+              {(() => {
+                const heart = getHeartRank(currentLevel);
+                return (
+                  <div className={`shrink-0 px-3 py-1 rounded-full flex items-center gap-1.5 cursor-help ${heart.badgeClass}`} title={heartRankTooltip(heart)}>
+                    <span className="text-sm leading-none">{heart.emoji}</span>
+                    <span className="text-xs font-black tracking-wider uppercase">{heart.name} · {heart.numeral}</span>
+                    <span className="text-[10px] font-bold opacity-70">{heart.hanzi}</span>
+                  </div>
+                );
+              })()}
+              {((profileUser as any).purchasedTags?.includes('tag_supporter') || (profileUser as any).purchasedEffects?.includes('effect_crimson')) && (
+                <div className="shrink-0 px-3 py-1 rounded-full flex items-center gap-1.5 border border-amber-400/40 bg-gradient-to-r from-amber-500/20 via-rose-500/15 to-amber-500/20 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.25)] cursor-help" title="Supported Da Vinci — thank you 💛">
+                  <Heart className="w-3.5 h-3.5 fill-current" />
+                  <span className="text-xs font-black tracking-wider uppercase">Supporter</span>
+                </div>
+              )}
+              {profileUser.activeRole === 'role_watcher' && (
+                <div className="shrink-0 px-3 py-1 rounded-full flex items-center gap-1 bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                  <Shield className="w-4 h-4" />
+                  <span className="text-xs font-black tracking-wider uppercase">The Watcher</span>
+                </div>
+              )}
+              {profileUser.activeRole === 'role_elite' && (
+                <div className="shrink-0 px-3 py-1 rounded-full flex items-center gap-1 bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+                  <Star className="w-4 h-4" />
+                  <span className="text-xs font-black tracking-wider uppercase">Elite</span>
+                </div>
+              )}
+              {profileUser.activeTag === 'tag_og' && (
+                <div className="shrink-0 px-3 py-1 rounded-full flex items-center gap-1 bg-red-500/20 text-red-400">
+                  <Zap className="w-4 h-4" />
+                  <span className="text-xs font-black tracking-wider uppercase">OG</span>
+                </div>
+              )}
+              {profileUser.activeTag === 'tag_weeb' && (
+                <div className="shrink-0 px-3 py-1 rounded-full flex items-center gap-1 bg-pink-500/20 text-pink-400">
+                  <Sparkles className="w-4 h-4" />
+                  <span className="text-xs font-black tracking-wider uppercase">Weeb Lord</span>
+                </div>
+              )}
+            </div>
 
-                {/* Supporter — anyone who backed Da Vinci. Rendered off a PERSISTENT
-                    marker (owns tag_supporter, or the donor-exclusive effect_crimson),
-                    so it survives renames and doesn't consume the activeTag slot. */}
-                {((profileUser as any).purchasedTags?.includes('tag_supporter') || (profileUser as any).purchasedEffects?.includes('effect_crimson')) && (
-                  <div
-                    className="shrink-0 px-3 py-1 rounded-full flex items-center gap-1.5 border border-amber-400/40 bg-gradient-to-r from-amber-500/20 via-rose-500/15 to-amber-500/20 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.25)] cursor-help"
-                    title="Supported Da Vinci — thank you 💛"
-                  >
-                    <Heart className="w-3.5 h-3.5 fill-current" />
-                    <span className="text-xs font-black tracking-wider uppercase">Supporter</span>
-                  </div>
-                )}
+            {/* one line of facts, channel-style — four stat boxes read as a
+                dashboard, which is not what this is */}
+            <div className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1.5 text-sm text-slate-300 [font-variant-numeric:tabular-nums]">
+              <span><b className="font-black text-white">{hoursWatched.toLocaleString()}</b> {hoursWatched === 1 ? "hr" : "hrs"} watched</span>
+              <span className="text-white/25">·</span>
+              <span><b className="font-black text-white">{displayArisePoints(profileUser)}</b> Arise</span>
+              <span className="text-white/25">·</span>
+              <button
+                onClick={() => setModalData({ title: 'Followers', users: (profileUser.followers || []).map((f: any) => f.follower) })}
+                className="transition hover:text-white"
+              >
+                <b className="font-black text-white">{(profileUser.followers || []).length.toLocaleString()}</b> followers
+              </button>
+              <span className="text-white/25">·</span>
+              <button
+                onClick={() => setModalData({ title: 'Following', users: (profileUser.following || []).map((f: any) => f.following) })}
+                className="transition hover:text-white"
+              >
+                <b className="font-black text-white">{(profileUser.following || []).length.toLocaleString()}</b> following
+              </button>
+            </div>
 
-                {profileUser.activeRole === 'role_watcher' && (
-                  <div className="shrink-0 px-3 py-1 rounded-full flex items-center gap-1 bg-purple-500/20 text-purple-400 border border-purple-500/30">
-                    <Shield className="w-4 h-4" />
-                    <span className="text-xs font-black tracking-wider uppercase">The Watcher</span>
-                  </div>
-                )}
-                {profileUser.activeRole === 'role_elite' && (
-                  <div className="shrink-0 px-3 py-1 rounded-full flex items-center gap-1 bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
-                    <Star className="w-4 h-4" />
-                    <span className="text-xs font-black tracking-wider uppercase">Elite</span>
-                  </div>
-                )}
-
-                {profileUser.activeTag === 'tag_og' && (
-                  <div className="shrink-0 px-3 py-1 rounded-full flex items-center gap-1 bg-red-500/20 text-red-400">
-                    <Zap className="w-4 h-4" />
-                    <span className="text-xs font-black tracking-wider uppercase">OG</span>
-                  </div>
-                )}
-                {profileUser.activeTag === 'tag_weeb' && (
-                  <div className="shrink-0 px-3 py-1 rounded-full flex items-center gap-1 bg-pink-500/20 text-pink-400">
-                    <Sparkles className="w-4 h-4" />
-                    <span className="text-xs font-black tracking-wider uppercase">Weeb Lord</span>
-                  </div>
-                )}
-                
-              </div>
-              
-              {/* Level Progress Bar */}
-              <div className="w-full bg-black/40 rounded-full h-2.5 mt-2 mb-1 border border-white/10 relative overflow-hidden">
-                <div 
-                  className="bg-gradient-to-r from-purple-600 to-fuchsia-500 h-2.5 rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(168,85,247,0.5)]"
+            <div className="w-full max-w-sm">
+              <div className="relative h-2 w-full overflow-hidden rounded-full border border-white/10 bg-black/40">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-purple-600 to-fuchsia-500 shadow-[0_0_10px_rgba(168,85,247,0.5)] transition-all duration-1000 ease-out"
                   style={{ width: `${progressPercent}%` }}
-                ></div>
-                <div className="absolute inset-0 bg-white/5 opacity-30 mix-blend-overlay"></div>
+                />
               </div>
-              <div className="flex justify-between w-full text-[10px] font-bold text-slate-400 mb-3 px-1 tracking-wider uppercase">
+              <div className="mt-1 flex justify-between px-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
                 <span>{(isProfileLeadDev || isProfileAdmin) ? "MAX LEVEL" : `${currentXp.toLocaleString()} XP`}</span>
-                <span>{currentLevel >= 10 ? "LVL 10 (MAX)" : `${nextXp.toLocaleString()} XP (Next LVL)`}</span>
-              </div>
-              
-              <div className="text-[10px] font-black tracking-[0.18em] uppercase text-slate-500 mb-1.5">About me</div>
-              <BioRenderer bio={cleanBio || "No bio set."} className="text-purple-200 font-medium drop-shadow-md" />
-              <div className="h-px bg-white/10 my-4" />
-
-              {/* Stat grid — every number gets the same treatment. Hours Watched
-                  used to be the only one in a card while followers / following /
-                  Arise Points were plain inline text, which read as an
-                  afterthought next to it. */}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5">
-                  <div className="mb-0.5 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.16em] text-slate-500">
-                    <Clock className="h-3 w-3 text-purple-300" /> Hours
-                  </div>
-                  <div className={`text-lg font-black leading-tight ${rankTheme.textColorClass}`}>
-                    {hoursWatched.toLocaleString()}
-                    <span className="ml-1 text-[11px] font-bold text-slate-400">{hoursWatched === 1 ? "hr" : "hrs"}</span>
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-purple-500/25 bg-purple-500/[0.09] px-3 py-2.5">
-                  <div className="mb-0.5 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.16em] text-slate-500">
-                    <Sparkles className="h-3 w-3 text-purple-300" /> Arise
-                  </div>
-                  <div className={`text-lg font-black leading-tight ${rankTheme.textColorClass}`}>
-                    {displayArisePoints(profileUser)}
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => setModalData({ title: 'Followers', users: (profileUser.followers || []).map((f: any) => f.follower) })}
-                  className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left transition-colors hover:border-white/20 hover:bg-white/[0.08]"
-                >
-                  <div className="mb-0.5 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.16em] text-slate-500">
-                    <Users className="h-3 w-3 text-purple-300" /> Followers
-                  </div>
-                  <div className="text-lg font-black leading-tight text-white">
-                    {(profileUser.followers || []).length.toLocaleString()}
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => setModalData({ title: 'Following', users: (profileUser.following || []).map((f: any) => f.following) })}
-                  className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left transition-colors hover:border-white/20 hover:bg-white/[0.08]"
-                >
-                  <div className="mb-0.5 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.16em] text-slate-500">
-                    <UserPlus className="h-3 w-3 text-purple-300" /> Following
-                  </div>
-                  <div className="text-lg font-black leading-tight text-white">
-                    {(profileUser.following || []).length.toLocaleString()}
-                  </div>
-                </button>
+                <span>{currentLevel >= 10 ? "LVL 10 (MAX)" : `${nextXp.toLocaleString()} XP (Next)`}</span>
               </div>
             </div>
-            
-            {/* Showcase — the equipped effect with the whole viewport to play
-                in. Shown to ANY viewer (seeing someone else's effect properly
-                is half the point of owning one), and only when one is worn.
-                Hidden under Performance Mode: ProfileEffect renders nothing
-                when reducedMotion is set, so the button would open a black
-                rectangle with no way to tell it wasn't broken. */}
-            {effectiveEffect && !preferences.reducedMotion && (
-              <button
-                onClick={() => setShowcaseOpen(true)}
-                title="View this profile effect full screen"
-                className="z-10 mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.06] px-6 py-3 font-bold text-slate-200 backdrop-blur transition hover:border-fuchsia-500/40 hover:bg-white/[0.1] hover:text-white"
-              >
-                <Maximize2 className="h-4 w-4" /> Showcase
-              </button>
-            )}
 
-            {!isSelf && currentUser && (
-              <div className="z-10 mt-4 flex gap-2 w-full">
+            <BioRenderer bio={cleanBio || "No bio set."} className="max-w-2xl text-sm font-medium text-purple-200 drop-shadow-md" />
 
-                <button
-                  onClick={handleFollowToggle}
-                  className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold transition shadow-xl ${isFollowing ? "bg-white/10 hover:bg-red-500/20 hover:text-red-400 text-white" : "bg-purple-600 hover:bg-purple-500 text-white"}`}
-                >
-                  {isFollowing ? (
-                    <><UserMinus className="w-5 h-5" /> Unfollow</>
-                  ) : profileUser?.following?.some((f: any) => f.followingId === currentUser.id) ? (
-                    <><UserPlus className="w-5 h-5" /> Follow Back</>
-                  ) : (
-                    <><UserPlus className="w-5 h-5" /> Follow</>
-                  )}
-                </button>
-              </div>
-            )}
-            {isSelf && (
-              <div className="z-10 mt-4 flex gap-2 w-full">
+            <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
+              {isSelf ? (
                 <button
                   onClick={() => setShowSettings(true)}
-                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold transition shadow-xl bg-purple-600 hover:bg-purple-500 text-white"
+                  className="flex items-center justify-center gap-2 rounded-full bg-purple-600 px-6 py-2.5 font-bold text-white shadow-xl transition hover:bg-purple-500"
                 >
-                  <Settings className="w-5 h-5" /> Settings
+                  <Settings className="h-4 w-4" /> Settings
                 </button>
-              </div>
-            )}
+              ) : currentUser ? (
+                <button
+                  onClick={handleFollowToggle}
+                  className={`flex items-center justify-center gap-2 rounded-full px-6 py-2.5 font-bold shadow-xl transition ${isFollowing ? "bg-white/10 text-white hover:bg-red-500/20 hover:text-red-400" : "bg-purple-600 text-white hover:bg-purple-500"}`}
+                >
+                  {isFollowing ? (
+                    <><UserMinus className="h-4 w-4" /> Unfollow</>
+                  ) : profileUser?.following?.some((f: any) => f.followingId === currentUser.id) ? (
+                    <><UserPlus className="h-4 w-4" /> Follow Back</>
+                  ) : (
+                    <><UserPlus className="h-4 w-4" /> Follow</>
+                  )}
+                </button>
+              ) : null}
+
+              {effectiveEffect && !preferences.reducedMotion && (
+                <button
+                  onClick={() => setShowcaseOpen(true)}
+                  title="View this profile effect full screen"
+                  className="flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-5 py-2.5 font-bold text-slate-200 backdrop-blur transition hover:border-fuchsia-500/40 hover:bg-white/[0.1] hover:text-white"
+                >
+                  <Maximize2 className="h-4 w-4" /> Showcase
+                </button>
+              )}
+            </div>
           </div>
         </div>
-        </div>{/* ═══ end LEFT column ═══ */}
 
-        {/* ═══ RIGHT: the anime collection ═══ */}
-        <div className="flex-1 min-w-0 w-full">
-        {/* Watchlist Section */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
-          <h2 className="text-2xl font-bold flex items-center gap-3">
-            <Compass className="w-6 h-6 text-purple-400" />
-            {profileUser.username}'s Collection
-          </h2>
-
-          <div className="bg-white/5 border border-white/10 p-1 rounded-lg flex w-fit">
-            <button
-              onClick={() => setActiveTab("anime")}
-              className={`flex items-center gap-2 px-5 py-2 rounded-md text-sm font-bold transition-all ${
-                activeTab === "anime" ? "bg-purple-600 text-white shadow-md" : "text-slate-400 hover:text-white"
-              }`}
-            >
-              Anime
-              <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${
-                activeTab === "anime" ? "bg-black/30 text-slate-200" : "bg-white/10 text-slate-400"
-              }`}>{watchlist.length}</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("manhwa")}
-              className={`flex items-center gap-2 px-5 py-2 rounded-md text-sm font-bold transition-all ${
-                activeTab === "manhwa" ? "bg-purple-600 text-white shadow-md" : "text-slate-400 hover:text-white"
-              }`}
-            >
-              Manhwa
-              <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${
-                activeTab === "manhwa" ? "bg-black/30 text-slate-200" : "bg-white/10 text-slate-400"
-              }`}>{manhwaWatchlist.length}</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("novel")}
-              className={`flex items-center gap-2 px-5 py-2 rounded-md text-sm font-bold transition-all ${
-                activeTab === "novel" ? "bg-purple-600 text-white shadow-md" : "text-slate-400 hover:text-white"
-              }`}
-            >
-              Novel
-              <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${
-                activeTab === "novel" ? "bg-black/30 text-slate-200" : "bg-white/10 text-slate-400"
-              }`}>{novelWatchlist.length}</span>
-            </button>
+        {/* ═══ TABS — sticky under the navbar ═══ */}
+        <div className="sticky top-[64px] z-40 border-b border-white/10 bg-[#09090b]/95 backdrop-blur-xl">
+          <div className="mx-auto flex max-w-[1500px] items-center justify-center gap-1 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {([
+              { key: "anime", label: "Anime", count: watchlist.length },
+              { key: "manhwa", label: "Manhwa", count: manhwaWatchlist.length },
+              { key: "novel", label: "Novels", count: novelWatchlist.length },
+            ] as const).map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setActiveTab(t.key)}
+                className={`shrink-0 border-b-2 px-5 py-3.5 text-sm font-bold transition ${
+                  activeTab === t.key
+                    ? "border-fuchsia-500 text-white"
+                    : "border-transparent text-slate-400 hover:text-white"
+                }`}
+              >
+                {t.label}
+                <span className={`ml-1.5 text-[11px] font-black ${activeTab === t.key ? "text-fuchsia-300" : "text-slate-600"}`}>
+                  {t.count}
+                </span>
+              </button>
+            ))}
           </div>
         </div>
+
+        {/* ═══ COLLECTION — full width ═══ */}
+        <div className="mx-auto w-full max-w-[1500px] px-4 pt-8 md:px-8">
 
         {activeTab === "anime" && (
           <>
