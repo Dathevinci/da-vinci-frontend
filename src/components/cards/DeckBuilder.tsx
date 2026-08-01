@@ -6,7 +6,7 @@ import { Check, Shuffle, Swords } from "lucide-react";
 import CardFace, { CardDef, RARITY_META, FALLBACK_STATS } from "./CardFace";
 
 /**
- * DECK BUILDER — pick three, keep them.
+ * DECK BUILDER — pick your five, keep them.
  *
  * The old flow made you re-choose a deck every single challenge, from a
  * scrolling grid with no indication of what anything did. This shows the three
@@ -16,7 +16,7 @@ import CardFace, { CardDef, RARITY_META, FALLBACK_STATS } from "./CardFace";
  */
 
 const DECK_KEY = "davinci_deck";
-export const DECK_SIZE = 3;
+export const DECK_SIZE = 5;
 
 export function loadSavedDeck(): string[] {
   try {
@@ -88,7 +88,7 @@ export default function DeckBuilder({
   }, 0);
 
   const autoPick = () => {
-    // Strongest three you own — a sane default so a new player isn't stuck
+    // Strongest five you own — a sane default so a new player isn't stuck
     // staring at a grid wondering what's good.
     const ranked = [...units].sort((a, b) => {
       const pa = (S[a.rarity] || S.common).atk + (S[a.rarity] || S.common).hp + (foils[a.id] ? 5 : 0);
@@ -100,7 +100,7 @@ export default function DeckBuilder({
 
   return (
     <div>
-      {/* the loadout — three slots, always visible */}
+      {/* the loadout — one slot per deck card, always visible */}
       <div className="mb-3 flex items-center justify-between gap-3">
         <span className="text-xs font-black uppercase tracking-widest text-slate-500">
           Your deck · {deck.length}/{DECK_SIZE}
@@ -118,11 +118,11 @@ export default function DeckBuilder({
         </div>
       </div>
 
-      <div className="mb-4 flex items-start justify-center gap-3 rounded-2xl border border-white/10 bg-black/40 p-4 sm:gap-5">
+      <div className="mb-4 flex flex-wrap items-start justify-center gap-2 rounded-2xl border border-white/10 bg-black/40 p-3 sm:gap-3">
         {Array.from({ length: DECK_SIZE }, (_, i) => {
           const id = deck[i];
           const card = id ? byId[id] : null;
-          const slot = compact ? 110 : 150;
+          const slot = compact ? 84 : 116;
           return (
             <div key={i} className="flex flex-col items-center">
               {card ? (

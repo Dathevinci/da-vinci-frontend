@@ -13,7 +13,7 @@ import DeckBuilder, { loadSavedDeck, saveDeck } from "@/components/cards/DeckBui
 import Arena, { duelPayout } from "@/components/cards/Arena";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-const DECK_SIZE = 3;
+const DECK_SIZE = 5;
 // Mirrors MIN_STAKE / MAX_STAKE in the server's duelRules.
 const MIN_STAKE = 50;
 const MAX_STAKE = 5000;
@@ -150,7 +150,7 @@ export default function DuelsPage() {
                 <Swords className="h-8 w-8 text-rose-400" /> Card Duels
               </h1>
               <p className="mt-1.5 text-sm text-slate-400">
-                Stake Arise Points, field three cards, and fight for the pot. Rarity is power — and foils hit harder.
+                Stake Arise Points, field five cards, and fight for the pot. Rarity is power — and foils hit harder.
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -299,7 +299,9 @@ export default function DuelsPage() {
             onClose={() => setActive(null)}
             onAccept={(deck) => post(`${active.id}/accept`, { deck }, () => toast("Duel started!", "success"))}
             onMove={(action: string, index?: number, cardId?: string, target?: number) =>
-              post(`${active.id}/move`, { action, index, cardId, target })} />
+              post(`${active.id}/move`, { action, index, cardId, target })}
+            onForfeit={() => post(`${active.id}/forfeit`, {}, () =>
+              toast("You forfeited. The stake and the fine went to your opponent.", "error"))} />
         )}
       </AnimatePresence>
     </PageTransition>
@@ -451,7 +453,7 @@ function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats
   );
 }
 
-function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMove, foils, cardStats }: any) {
+function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMove, onForfeit, foils, cardStats }: any) {
   const [deck, setDeck] = useState<string[]>(() => loadSavedDeck());
   const state: DuelState | null = duel.state ? JSON.parse(duel.state) : null;
   const needsAccept = duel.status === "PENDING" && duel.opponentId === me;
@@ -491,6 +493,7 @@ function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMo
         onAttack={(i: number) => onMove("attack", i)}
         onItem={(item: string) => onMove(item)}
         onSupport={(cardId: string, target?: number) => onMove("support", undefined, cardId, target)}
+        onForfeit={onForfeit}
         onClose={onClose}
       />
     );
