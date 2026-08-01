@@ -100,21 +100,22 @@ export default function DeckBuilder({
         </div>
       </div>
 
-      <div className="mb-4 grid grid-cols-3 gap-2 rounded-2xl border border-white/10 bg-black/40 p-3">
+      <div className="mb-4 flex items-start justify-center gap-3 rounded-2xl border border-white/10 bg-black/40 p-4 sm:gap-5">
         {Array.from({ length: DECK_SIZE }, (_, i) => {
           const id = deck[i];
           const card = id ? byId[id] : null;
+          const slot = compact ? 110 : 150;
           return (
             <div key={i} className="flex flex-col items-center">
               {card ? (
                 <motion.button initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
                   onClick={() => toggle(card.id)} title="Remove from deck">
-                  <CardFace card={card} owned foil={foils[card.id]} size={compact ? 78 : 96} showStats stats={S} />
+                  <CardFace card={card} owned foil={foils[card.id]} size={slot} showStats stats={S} />
                 </motion.button>
               ) : (
                 <div className="grid place-items-center rounded-xl border-2 border-dashed border-white/15"
-                  style={{ width: compact ? 78 : 96, aspectRatio: "5 / 7" }}>
-                  <Swords className="h-5 w-5 text-slate-700" />
+                  style={{ width: slot, aspectRatio: "5 / 7" }}>
+                  <Swords className="h-6 w-6 text-slate-700" />
                 </div>
               )}
             </div>
@@ -124,19 +125,21 @@ export default function DeckBuilder({
 
       {/* the collection to pick from */}
       <p className="mb-2 text-xs font-black uppercase tracking-widest text-slate-500">Your collection</p>
-      <div className="max-h-56 overflow-y-auto rounded-xl border border-white/10 bg-white/[0.02] p-3">
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
         {myCards.length === 0 ? (
           <p className="py-6 text-center text-sm text-slate-500">No cards yet — open a pack first.</p>
         ) : (
-          <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+          // Cards scale with the viewport instead of a fixed thumbnail size, so
+          // a laptop actually shows the art rather than 72px stamps.
+          <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8">
             {myCards.map((c) => {
               const picked = deck.includes(c.id);
               return (
                 <button key={c.id} onClick={() => toggle(c.id)}
-                  className={`relative rounded-lg p-1 transition ${picked ? "bg-rose-500/25 ring-2 ring-rose-400" : "hover:bg-white/5"}`}>
-                  <CardFace card={c} owned foil={foils[c.id]} size={72} showStats stats={S} />
+                  className={`relative flex justify-center rounded-lg p-1 transition hover:-translate-y-0.5 ${picked ? "bg-rose-500/25 ring-2 ring-rose-400" : "hover:bg-white/5"}`}>
+                  <CardFace card={c} owned foil={foils[c.id]} size={compact ? 92 : 118} showStats stats={S} />
                   {picked && (
-                    <span className="absolute right-0.5 top-0.5 grid h-5 w-5 place-items-center rounded-full bg-rose-500 text-white">
+                    <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-rose-500 text-white">
                       <Check className="h-3 w-3" />
                     </span>
                   )}

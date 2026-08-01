@@ -322,7 +322,10 @@ function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats
     // and on desktop the card art deserves the room.
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-[130] flex flex-col bg-[#08080e]" style={{ height: "100dvh" }}>
-      <div className="mx-auto flex h-full w-full max-w-3xl flex-col px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
+      {/* max-w-6xl, not 3xl: the old column was so narrow the card art stayed
+          thumbnail-sized even on a laptop, which is the whole reason to go
+          full screen in the first place. */}
+      <div className="mx-auto flex h-full w-full max-w-6xl flex-col px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] sm:px-8">
         <div className="mb-4 flex shrink-0 items-center justify-between">
           <h2 className="text-xl font-black">Send a challenge</h2>
           <button onClick={onClose} className="grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-white/5">
@@ -369,7 +372,7 @@ function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats
         {/* the deck grid scrolls; the header and the action button stay put */}
         <div className="mb-4 min-h-0 flex-1 overflow-y-auto">
           <DeckBuilder myCards={myCards} foils={foils} stats={cardStats} deck={deck}
-            onChange={(d) => { setDeck(d); saveDeck(d); }} compact />
+            onChange={(d) => { setDeck(d); saveDeck(d); }} />
         </div>
         {/* Requires a PICKED member, not just typed text — so a challenge can
             never 404 on a username that was only ever a guess. */}
