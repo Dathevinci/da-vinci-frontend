@@ -67,6 +67,21 @@ function rnd(id: string, salt: number): number {
 }
 
 /** The scene. Drawn on a 100x86 art panel starting at y=0. */
+/** Stable hash of a card id — art must not reshuffle between renders. */
+function seedFrom(s: string) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+/** xorshift — deterministic, and far cheaper than anything that allocates. */
+function rng(seed: number) {
+  let x = seed || 1;
+  return () => {
+    x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
+    return ((x >>> 0) % 10000) / 10000;
+  };
+}
+
 function Motif({ card, dim }: { card: CardDef; dim: boolean }) {
   const h = card.hue;
   const R = (n: number) => rnd(card.id, n);
@@ -759,6 +774,42 @@ function CardFaceImpl({
             {foil && <animate attributeName="x1" values="-1;1" dur="3.5s" repeatCount="indefinite" />}
             {foil && <animate attributeName="x2" values="0;2" dur="3.5s" repeatCount="indefinite" />}
           </linearGradient>
+          {/* ── CINEMATIC ART STACK ────────────────────────────────────────
+              The motifs were flat symbols on a flat gradient. Modern gacha art
+              reads the way it does because of DEPTH: a lit horizon behind the
+              subject, silhouettes receding into haze, shafts of light crossing
+              the frame, drifting particulate, and a specular rim along one
+              edge. All of that is added here, once, so all 24 motifs inherit it
+              without any of them being rewritten.
+
+              Deliberately NO SVG filters. feGaussianBlur is the obvious way to
+              get bloom, but this component renders forty-plus times on the
+              collection page and filters are rasterised per element — gradients
+              and plain shapes cost effectively nothing by comparison. */}
+          <radialGradient id={`bloom-${uid}`} cx="50%" cy="78%" r="62%">
+            <stop offset="0%" stopColor={dim ? "#1b1b22" : `hsl(${h} 92% 62%)`} stopOpacity={dim ? "0.5" : "0.75"} />
+            <stop offset="45%" stopColor={dim ? "#131318" : `hsl(${(h + 24) % 360} 78% 38%)`} stopOpacity="0.35" />
+            <stop offset="100%" stopColor="#000" stopOpacity="0" />
+          </radialGradient>
+          <linearGradient id={`shaft-${uid}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={dim ? "#ffffff" : `hsl(${h} 100% 82%)`} stopOpacity="0" />
+            <stop offset="35%" stopColor={dim ? "#ffffff" : `hsl(${h} 100% 86%)`} stopOpacity={dim ? "0.05" : "0.16"} />
+            <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+          </linearGradient>
+          <linearGradient id={`haze-${uid}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={`hsl(${(h + 30) % 360} 60% 60%)`} stopOpacity="0" />
+            <stop offset="55%" stopColor={`hsl(${(h + 30) % 360} 60% 62%)`} stopOpacity={dim ? "0.05" : "0.17"} />
+            <stop offset="100%" stopColor={`hsl(${(h + 30) % 360} 60% 60%)`} stopOpacity="0" />
+          </linearGradient>
+          <linearGradient id={`rim-${uid}`} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#ffffff" stopOpacity={dim ? "0.05" : "0.18"} />
+            <stop offset="28%" stopColor="#ffffff" stopOpacity="0" />
+            <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+          </linearGradient>
+          <radialGradient id={`vig-${uid}`} cx="50%" cy="46%" r="72%">
+            <stop offset="55%" stopColor="#000" stopOpacity="0" />
+            <stop offset="100%" stopColor="#000" stopOpacity="0.62" />
+          </radialGradient>
           <clipPath id={`art-${uid}`}><rect x="7" y="9" width="86" height="78" rx="5" /></clipPath>
         </defs>
 
@@ -768,12 +819,52 @@ function CardFaceImpl({
 
         {/* art panel */}
         <g clipPath={`url(#art-${uid})`}>
+          {/* 1 — sky */}
           <rect x="7" y="9" width="86" height="78" fill={`url(#sky-${uid})`} />
+          {/* 2 — lit horizon the subject sits against */}
+          <rect x="7" y="9" width="86" height="78" fill={`url(#bloom-${uid})`} />
+          {/* 3 — receding silhouettes. Two bands at different values is all it
+                 takes to read as distance rather than as a backdrop. */}
+          <path d={`M7 ${9 + 58} L${7 + 22} ${9 + 44} L${7 + 38} ${9 + 56} L${7 + 58} ${9 + 38} L${7 + 78} ${9 + 55} L93 ${9 + 50} L93 87 L7 87 Z`}
+            fill="#000" opacity={dim ? 0.34 : 0.26} />
+          <path d={`M7 ${9 + 66} L${7 + 30} ${9 + 54} L${7 + 52} ${9 + 66} L${7 + 70} ${9 + 57} L93 ${9 + 68} L93 87 L7 87 Z`}
+            fill="#000" opacity={dim ? 0.5 : 0.44} />
+          {/* 4 — god rays across the frame */}
+          {!dim && (
+            <g opacity="0.85">
+              {[0, 1, 2, 3].map((i) => (
+                <path key={i} d={`M${18 + i * 21} 9 L${29 + i * 21} 9 L${11 + i * 21} 87 L${2 + i * 21} 87 Z`}
+                  fill={`url(#shaft-${uid})`} />
+              ))}
+            </g>
+          )}
+          {/* 5 — the subject */}
           <g transform="translate(7, 9) scale(0.86, 0.9)">
             <Motif card={card} dim={dim} />
           </g>
-          {/* depth haze */}
-          <rect x="7" y="9" width="86" height="78" fill={`url(#plate-${uid})`} opacity="0.25" />
+          {/* 6 — atmosphere in front of it, which is what pushes it back */}
+          <rect x="7" y={9 + 30} width="86" height="34" fill={`url(#haze-${uid})`} />
+          {/* 7 — drifting particulate. Seeded off the card id so a given card
+                 always looks identical rather than reshuffling every render. */}
+          {!dim && (
+            <g>
+              {(() => {
+                const rand = rng(seedFrom(uid));
+                return Array.from({ length: 14 }, (_, i) => {
+                  const x = 8 + rand() * 84;
+                  const y = 10 + rand() * 76;
+                  const r = 0.35 + rand() * 0.85;
+                  const o = 0.18 + rand() * 0.5;
+                  return <circle key={i} cx={x} cy={y} r={r} fill="#fff" opacity={o} />;
+                });
+              })()}
+            </g>
+          )}
+          {/* 8 — specular rim down the lit edge */}
+          <rect x="7" y="9" width="86" height="78" fill={`url(#rim-${uid})`} />
+          {/* 9 — vignette, so the eye lands on the subject */}
+          <rect x="7" y="9" width="86" height="78" fill={`url(#vig-${uid})`} />
+          <rect x="7" y="9" width="86" height="78" fill={`url(#plate-${uid})`} opacity="0.18" />
           {foil && <rect x="7" y="9" width="86" height="78" fill={`url(#foil-${uid})`} />}
         </g>
         <rect x="7" y="9" width="86" height="78" rx="5" fill="none"

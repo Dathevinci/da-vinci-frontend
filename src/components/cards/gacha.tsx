@@ -34,8 +34,17 @@ export function bevel(size = 14) {
   return `polygon(${size}px 0, calc(100% - ${size}px) 0, 100% ${size}px, 100% calc(100% - ${size}px), calc(100% - ${size}px) 100%, ${size}px 100%, 0 calc(100% - ${size}px), 0 ${size}px)`;
 }
 
-export const GOLD = "#c9a866";
-export const GOLD_LIT = "#f2e0b5";
+/**
+ * The accent. Everything ornamental in the kit reads from these two tokens, so
+ * repainting the whole card UI is a two-line change.
+ */
+export const ACCENT = "#a274ff";
+export const ACCENT_LIT = "#e2d0ff";
+export const ACCENT_DEEP = "#3b2168";
+
+/** @deprecated Kept so older imports keep compiling; both point at the accent. */
+export const GOLD = ACCENT;
+export const GOLD_LIT = ACCENT_LIT;
 
 /**
  * A framed panel. The metallic edge is a parent whose background shows through
@@ -60,13 +69,13 @@ export function Panel({
   const clip = shape === "bevel" ? bevel(size) : notch(size);
   const edges: Record<string, string> = {
     ink: "linear-gradient(160deg, rgba(255,255,255,.22), rgba(255,255,255,.04) 40%, rgba(255,255,255,.14))",
-    gold: `linear-gradient(160deg, ${GOLD_LIT}, ${GOLD} 35%, #6b5225 70%, ${GOLD})`,
+    gold: `linear-gradient(160deg, ${ACCENT_LIT}, ${ACCENT} 35%, ${ACCENT_DEEP} 72%, ${ACCENT})`,
     danger: "linear-gradient(160deg, #ffb4b4, #e2453f 40%, #7a1f1c)",
     jade: "linear-gradient(160deg, #bff5e4, #34d0a2 40%, #14624c)",
   };
   return (
     <div className={`relative ${className}`} style={{ clipPath: clip, background: edge || edges[tone] }}>
-      <div className="relative" style={{ clipPath: clip, margin: 1, background: "linear-gradient(165deg, #141926 0%, #0c1018 55%, #0a0d14 100%)" }}>
+      <div className="relative" style={{ clipPath: clip, margin: 1, background: "linear-gradient(165deg, #1a1230 0%, #110c20 55%, #0c0817 100%)" }}>
         {children}
       </div>
     </div>
@@ -74,7 +83,7 @@ export function Panel({
 }
 
 /** Small L-marks that make a rectangle read as a frame. */
-export function CornerTicks({ color = GOLD, inset = 6 }: { color?: string; inset?: number }) {
+export function CornerTicks({ color = ACCENT, inset = 6 }: { color?: string; inset?: number }) {
   const common = "pointer-events-none absolute h-3 w-3";
   return (
     <>
@@ -107,7 +116,7 @@ export function Stars({ rarity, size = 12, className = "" }: { rarity: string; s
 
 /** A notched meter. Discrete cells read as progress toward a countable goal —
  *  which is exactly what a set is — where a smooth bar reads as a percentage. */
-export function SegBar({ value, max, tone = GOLD, height = 7 }: { value: number; max: number; tone?: string; height?: number }) {
+export function SegBar({ value, max, tone = ACCENT, height = 7 }: { value: number; max: number; tone?: string; height?: number }) {
   const cells = Math.max(1, Math.min(max, 40));
   const filled = max > 0 ? Math.round((value / max) * cells) : 0;
   return (
@@ -134,7 +143,7 @@ export function GachaButton({
   type?: "button" | "submit";
 }) {
   const tones: Record<string, string> = {
-    gold: "text-[#1a1206] [--g1:#f5e3b6] [--g2:#c9a866]",
+    gold: "text-[#160b2b] [--g1:#d9c2ff] [--g2:#8b5cf6]",
     jade: "text-[#04231b] [--g1:#a9f2da] [--g2:#2fbf98]",
     danger: "text-[#2a0808] [--g1:#ffc0bd] [--g2:#e2453f]",
     ghost: "text-slate-200 [--g1:rgba(255,255,255,.16)] [--g2:rgba(255,255,255,.06)]",
@@ -159,10 +168,10 @@ export function Heading({ title, sub, right }: { title: string; sub?: string; ri
   return (
     <div className="mb-4 flex items-end justify-between gap-4">
       <div className="flex items-stretch gap-3">
-        <span aria-hidden className="w-[6px] shrink-0" style={{ background: `linear-gradient(${GOLD_LIT}, ${GOLD})`, transform: "skewX(-14deg)" }} />
+        <span aria-hidden className="w-[6px] shrink-0" style={{ background: `linear-gradient(${ACCENT_LIT}, ${ACCENT})`, transform: "skewX(-14deg)" }} />
         <div>
           <h3 className="text-lg font-black uppercase tracking-[0.10em] text-white">{title}</h3>
-          {sub && <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.28em]" style={{ color: GOLD }}>{sub}</p>}
+          {sub && <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.28em]" style={{ color: ACCENT }}>{sub}</p>}
         </div>
       </div>
       {right}

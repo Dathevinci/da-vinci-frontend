@@ -10,7 +10,7 @@ import { useToast } from "@/components/ui/Toast";
 import PageTransition from "@/components/layout/PageTransition";
 import CardFace, { CardDef, CardRarity, RARITY_META } from "@/components/cards/CardFace";
 import PackReveal from "@/components/cards/PackReveal";
-import { Panel, CornerTicks, Stars, SegBar, GachaButton, Heading, StatRow, notch, GOLD, GOLD_LIT } from "@/components/cards/gacha";
+import { Panel, CornerTicks, Stars, SegBar, GachaButton, Heading, StatRow, notch, ACCENT, ACCENT_LIT } from "@/components/cards/gacha";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -252,8 +252,8 @@ export default function CardsPage() {
         style={{
           background:
             "radial-gradient(85% 50% at 12% -5%, rgba(120,86,196,.20), transparent 60%)," +
-            "radial-gradient(70% 45% at 92% 4%, rgba(201,168,102,.14), transparent 62%)," +
-            "linear-gradient(#080a11, #05070c 60%, #04050a)",
+            "radial-gradient(70% 45% at 92% 4%, rgba(162,116,255,.20), transparent 62%)," +
+            "linear-gradient(#0b0716, #070410 60%, #05030c)",
         }}>
         {/* faint diagonal weave — texture, so the page is never flat black */}
         <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.055]"
@@ -265,12 +265,12 @@ export default function CardsPage() {
             <div className="relative px-5 py-5 sm:px-7">
               <CornerTicks />
               <div aria-hidden className="pointer-events-none absolute inset-0"
-                style={{ background: "radial-gradient(60% 120% at 100% 0%, rgba(201,168,102,.13), transparent 70%)" }} />
+                style={{ background: "radial-gradient(60% 120% at 100% 0%, rgba(162,116,255,.13), transparent 70%)" }} />
               <div className="relative flex flex-wrap items-start justify-between gap-5">
                 <div className="min-w-0">
-                  <p className="text-[10px] font-black uppercase tracking-[0.42em]" style={{ color: GOLD }}>Da Vinci Archive</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.42em]" style={{ color: ACCENT }}>Da Vinci Archive</p>
                   <h1 className="mt-1 flex items-center gap-3 text-3xl font-black uppercase tracking-[0.06em] md:text-[2.6rem] md:leading-none">
-                    <Layers className="h-8 w-8" style={{ color: GOLD_LIT }} /> Arise Cards
+                    <Layers className="h-8 w-8" style={{ color: ACCENT_LIT }} /> Arise Cards
                   </h1>
                   <p className="mt-2 max-w-lg text-sm leading-relaxed text-slate-400">
                     Open packs, complete the set, dust your dupes into shards, and craft the cards luck won&rsquo;t give you.
@@ -280,13 +280,13 @@ export default function CardsPage() {
                 <div className="flex flex-col items-stretch gap-2">
                   <div className="flex items-center gap-2">
                     <div className="flex h-10 items-center gap-2 px-3.5" style={{ clipPath: notch(9), background: "rgba(255,255,255,.05)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.10)" }}>
-                      <Sparkles className="h-4 w-4" style={{ color: GOLD }} />
+                      <Sparkles className="h-4 w-4" style={{ color: ACCENT }} />
                       <span className="text-sm font-black tabular-nums">
                         {user ? (isLeadDev(user) ? "∞" : displayArisePoints({ ...user, arisePoints: apDisplay } as any)) : "—"}
                         <span className="ml-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">AP</span>
                       </span>
                     </div>
-                    <div className="flex h-10 items-center gap-2 px-3.5" style={{ clipPath: notch(9), background: "rgba(45,212,191,.07)", boxShadow: "inset 0 0 0 1px rgba(45,212,191,.22)" }}>
+                    <div className="flex h-10 items-center gap-2 px-3.5" style={{ clipPath: notch(9), background: "rgba(167,139,250,.07)", boxShadow: "inset 0 0 0 1px rgba(167,139,250,.22)" }}>
                       <Gem className="h-4 w-4 text-cyan-300" />
                       <span className="text-sm font-black tabular-nums text-cyan-100">
                         {shards.toLocaleString()}
@@ -305,7 +305,7 @@ export default function CardsPage() {
                 <div className="relative mt-5">
                   <div className="mb-1.5 flex items-end justify-between">
                     <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Archive completion</span>
-                    <span className="text-[11px] font-black tabular-nums" style={{ color: GOLD_LIT }}>
+                    <span className="text-[11px] font-black tabular-nums" style={{ color: ACCENT_LIT }}>
                       {totalHave}<span className="text-slate-600"> / {totalCards}</span>
                     </span>
                   </div>
@@ -334,11 +334,11 @@ export default function CardsPage() {
                           className="group flex items-center gap-3 px-3 py-2 text-left transition hover:translate-x-0.5"
                           style={{
                             clipPath: notch(11),
-                            background: isOpen ? "rgba(201,168,102,.14)" : "rgba(255,255,255,.028)",
-                            boxShadow: `inset 0 0 0 1px ${isOpen ? "rgba(201,168,102,.5)" : "rgba(255,255,255,.07)"}`,
+                            background: isOpen ? "rgba(162,116,255,.14)" : "rgba(255,255,255,.028)",
+                            boxShadow: `inset 0 0 0 1px ${isOpen ? "rgba(162,116,255,.5)" : "rgba(255,255,255,.07)"}`,
                           }}>
                           <span className="w-6 shrink-0 text-center text-sm font-black tabular-nums"
-                            style={{ color: top ? GOLD_LIT : "#4b5565" }}>
+                            style={{ color: top ? ACCENT_LIT : "#4b5565" }}>
                             {String(i + 1).padStart(2, "0")}
                           </span>
                           {c.avatar ? (
@@ -351,13 +351,13 @@ export default function CardsPage() {
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-sm font-black text-white">{c.username}</span>
                             {c.cardTitle && (
-                              <span className="block truncate text-[10px] font-black uppercase tracking-[0.16em]" style={{ color: GOLD }}>
+                              <span className="block truncate text-[10px] font-black uppercase tracking-[0.16em]" style={{ color: ACCENT }}>
                                 {c.cardTitle}
                               </span>
                             )}
                           </span>
                           <span className="shrink-0 text-right">
-                            <span className="block text-base font-black tabular-nums" style={{ color: GOLD_LIT }}>{c.distinct}</span>
+                            <span className="block text-base font-black tabular-nums" style={{ color: ACCENT_LIT }}>{c.distinct}</span>
                             <span className="block text-[9px] font-bold uppercase tracking-[0.2em] text-slate-600">cards</span>
                           </span>
                         </button>
@@ -372,7 +372,7 @@ export default function CardsPage() {
           {/* ── viewing someone else's binder ── */}
           {!isMine && viewing && (
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3 px-4 py-3"
-              style={{ clipPath: notch(14), background: "rgba(201,168,102,.10)", boxShadow: "inset 0 0 0 1px rgba(201,168,102,.35)" }}>
+              style={{ clipPath: notch(14), background: "rgba(162,116,255,.10)", boxShadow: "inset 0 0 0 1px rgba(162,116,255,.35)" }}>
               <span className="text-sm font-bold text-slate-200">
                 Viewing <b className="text-white">{viewing.username}</b>&rsquo;s archive — {totalHave} of {totalCards}
               </span>
@@ -386,14 +386,14 @@ export default function CardsPage() {
               <div className="relative overflow-hidden">
                 {/* layered light — the banner glow every gacha summon screen has */}
                 <div aria-hidden className="pointer-events-none absolute inset-0"
-                  style={{ background: "radial-gradient(70% 130% at 78% 20%, rgba(168,110,255,.30), transparent 62%), radial-gradient(55% 110% at 18% 90%, rgba(201,168,102,.18), transparent 65%)" }} />
+                  style={{ background: "radial-gradient(70% 130% at 78% 20%, rgba(168,110,255,.30), transparent 62%), radial-gradient(55% 110% at 18% 90%, rgba(162,116,255,.18), transparent 65%)" }} />
                 <div aria-hidden className="pointer-events-none absolute inset-0 opacity-30"
                   style={{ backgroundImage: "repeating-linear-gradient(72deg, transparent 0 26px, rgba(255,255,255,.55) 26px 27px)", maskImage: "linear-gradient(100deg, transparent 35%, black 75%, transparent)" }} />
 
                 <div className="relative grid gap-6 p-6 sm:p-8 lg:grid-cols-[1fr_auto] lg:items-center">
                   <div className="min-w-0">
                     <span className="inline-block px-3 py-1 text-[10px] font-black uppercase tracking-[0.32em]"
-                      style={{ clipPath: "polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)", background: `linear-gradient(100deg, ${GOLD_LIT}, ${GOLD})`, color: "#1a1206" }}>
+                      style={{ clipPath: "polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)", background: `linear-gradient(100deg, ${ACCENT_LIT}, ${ACCENT})`, color: "#1a1206" }}>
                       Standard Banner
                     </span>
                     <h2 className="mt-3 text-3xl font-black uppercase tracking-[0.04em] text-white sm:text-4xl">Ascension Pack</h2>
@@ -441,7 +441,7 @@ export default function CardsPage() {
                 { Icon: Gem, t: "Relic Packs", d: "Trade patience for a guaranteed Epic or better." },
               ].map(({ Icon, t, d }) => (
                 <div key={t} className="relative flex items-start gap-3 px-4 py-3.5"
-                  style={{ clipPath: notch(13), background: "rgba(45,212,191,.045)", boxShadow: "inset 0 0 0 1px rgba(45,212,191,.16)" }}>
+                  style={{ clipPath: notch(13), background: "rgba(167,139,250,.045)", boxShadow: "inset 0 0 0 1px rgba(167,139,250,.16)" }}>
                   <Icon className="mt-0.5 h-4 w-4 shrink-0 text-cyan-300" />
                   <div>
                     <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-200">{t}</p>
@@ -464,10 +464,10 @@ export default function CardsPage() {
                     sub={have >= total ? "Complete" : `${total - have} remaining`}
                     right={
                       <div className="flex min-w-[180px] flex-col items-end gap-1.5 sm:min-w-[260px]">
-                        <span className="text-[11px] font-black tabular-nums" style={{ color: have >= total ? GOLD_LIT : "#94a3b8" }}>
+                        <span className="text-[11px] font-black tabular-nums" style={{ color: have >= total ? ACCENT_LIT : "#94a3b8" }}>
                           {have}<span className="text-slate-600"> / {total}</span>
                         </span>
-                        <SegBar value={have} max={total} tone={have >= total ? GOLD_LIT : GOLD} height={6} />
+                        <SegBar value={have} max={total} tone={have >= total ? ACCENT_LIT : ACCENT} height={6} />
                       </div>
                     }
                   />
@@ -480,21 +480,21 @@ export default function CardsPage() {
                     return (
                       <Panel tone={ready ? "gold" : claimed ? "jade" : "ink"} size={16} className="mb-4">
                         <div className="relative flex flex-wrap items-center justify-between gap-4 px-4 py-3.5"
-                          style={ready ? { background: "linear-gradient(100deg, rgba(201,168,102,.16), transparent 65%)" } : undefined}>
+                          style={ready ? { background: "linear-gradient(100deg, rgba(162,116,255,.16), transparent 65%)" } : undefined}>
                           <div>
                             <p className="text-[11px] font-black uppercase tracking-[0.24em]"
-                              style={{ color: claimed ? "#5eead4" : ready ? GOLD_LIT : "#64748b" }}>
+                              style={{ color: claimed ? "#5eead4" : ready ? ACCENT_LIT : "#64748b" }}>
                               {claimed ? "Set complete" : ready ? "Reward unlocked" : "Set reward"}
                             </p>
                             <p className="mt-1 text-xs text-slate-400">
                               <b className="text-white">{rw.ap.toLocaleString()}</b> AP ·{" "}
                               <b className="text-cyan-200">{rw.shards.toLocaleString()}</b> shards · the title{" "}
-                              <b style={{ color: GOLD_LIT }}>&ldquo;{rw.title}&rdquo;</b>
+                              <b style={{ color: ACCENT_LIT }}>&ldquo;{rw.title}&rdquo;</b>
                             </p>
                           </div>
                           {claimed ? (
                             <span className="px-4 py-2 text-[11px] font-black uppercase tracking-[0.2em] text-emerald-300"
-                              style={{ clipPath: notch(9), background: "rgba(45,212,191,.10)", boxShadow: "inset 0 0 0 1px rgba(45,212,191,.3)" }}>
+                              style={{ clipPath: notch(9), background: "rgba(167,139,250,.10)", boxShadow: "inset 0 0 0 1px rgba(167,139,250,.3)" }}>
                               Claimed
                             </span>
                           ) : (
@@ -518,13 +518,13 @@ export default function CardsPage() {
                           style={{
                             clipPath: notch(12),
                             background: has ? "rgba(255,255,255,.035)" : "rgba(255,255,255,.012)",
-                            boxShadow: `inset 0 0 0 1px ${has ? "rgba(201,168,102,.24)" : "rgba(255,255,255,.05)"}`,
+                            boxShadow: `inset 0 0 0 1px ${has ? "rgba(162,116,255,.24)" : "rgba(255,255,255,.05)"}`,
                           }}>
                           <CardFace card={c} owned={has} count={count} foil={!!foils[c.id]} size={150} />
                           <span className="flex items-center gap-1.5">
                             <Stars rarity={c.rarity} size={10} className={has ? "" : "opacity-25 grayscale"} />
                             {c.rarity === "event" && (
-                              <span className="text-[8px] font-black uppercase tracking-[0.16em]" style={{ color: GOLD }}>Limited</span>
+                              <span className="text-[8px] font-black uppercase tracking-[0.16em]" style={{ color: ACCENT }}>Limited</span>
                             )}
                           </span>
                         </button>
@@ -563,7 +563,7 @@ export default function CardsPage() {
               >
                 <Panel tone={count > 0 ? "gold" : "ink"} size={26}>
                   <div className="relative max-h-[92dvh] overflow-y-auto">
-                    <CornerTicks color={count > 0 ? GOLD : "rgba(255,255,255,.2)"} inset={10} />
+                    <CornerTicks color={count > 0 ? ACCENT : "rgba(255,255,255,.2)"} inset={10} />
                     {/* rarity wash behind the trophy shot */}
                     <div aria-hidden className="pointer-events-none absolute inset-0"
                       style={{ background: `radial-gradient(60% 90% at 22% 30%, ${R.frame}26, transparent 65%)` }} />
@@ -580,7 +580,7 @@ export default function CardsPage() {
                           <span className="text-[10px] font-black uppercase tracking-[0.24em]" style={{ color: R.frame }}>{R.label}</span>
                           {foils[selected.id] && (
                             <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em]"
-                              style={{ clipPath: notch(5), background: `linear-gradient(100deg, ${GOLD_LIT}, ${GOLD})`, color: "#1a1206" }}>
+                              style={{ clipPath: notch(5), background: `linear-gradient(100deg, ${ACCENT_LIT}, ${ACCENT})`, color: "#1a1206" }}>
                               Foil
                             </span>
                           )}
@@ -601,7 +601,7 @@ export default function CardsPage() {
                           return (
                             <div className="mt-4 px-4 py-3 text-left"
                               style={{ clipPath: notch(12), background: "rgba(0,0,0,.45)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.07)" }}>
-                              <p className="mb-1 text-[10px] font-black uppercase tracking-[0.28em]" style={{ color: GOLD }}>Combat data</p>
+                              <p className="mb-1 text-[10px] font-black uppercase tracking-[0.28em]" style={{ color: ACCENT }}>Combat data</p>
                               <StatRow label="Attack" value={atk} tint="#ff9d6b" />
                               <StatRow label="Health" value={hp} tint="#6ee7b7" />
                               <StatRow label="Dust value" value={`${dustEach} shards`} tint="#67e8f9" />
@@ -633,7 +633,7 @@ export default function CardsPage() {
                           )}
                           {foils[selected.id] && (
                             <p className="px-3 py-2 text-center text-[11px] font-black uppercase tracking-[0.14em]"
-                              style={{ clipPath: notch(9), background: "rgba(201,168,102,.10)", boxShadow: "inset 0 0 0 1px rgba(201,168,102,.32)", color: GOLD_LIT }}>
+                              style={{ clipPath: notch(9), background: "rgba(162,116,255,.10)", boxShadow: "inset 0 0 0 1px rgba(162,116,255,.32)", color: ACCENT_LIT }}>
                               Foil — fights 20% harder in duels
                             </p>
                           )}
