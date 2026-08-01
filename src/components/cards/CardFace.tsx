@@ -19,6 +19,14 @@ export type CardMotif =
   | "heart" | "sea" | "dawn" | "web"
   | "leviathan" | "trench" | "blade" | "mask" | "bell" | "comet";
 
+export type SupportEffect =
+  | { kind: "heal"; power: number }
+  | { kind: "shield" }
+  | { kind: "block" }
+  | { kind: "focus"; power: number }
+  | { kind: "mend"; power: number }
+  | { kind: "revive"; power: number };
+
 export interface CardDef {
   id: string;
   name: string;
@@ -27,6 +35,20 @@ export interface CardDef {
   hue: number;
   motif: CardMotif;
   flavor: string;
+  /** Present on support cards — they're played for an effect, never fielded. */
+  support?: SupportEffect;
+}
+
+/** One short line saying exactly what a support card does. */
+export function supportText(s: SupportEffect): string {
+  switch (s.kind) {
+    case "heal":   return `Restore ${s.power} HP`;
+    case "shield": return "Halve the next hit";
+    case "block":  return "Negate the next hit";
+    case "focus":  return `Next strike ×${s.power}`;
+    case "mend":   return `Heal your whole line ${s.power}`;
+    case "revive": return `Revive a fallen card at ${s.power}%`;
+  }
 }
 
 export const RARITY_META: Record<CardRarity, { label: string; frame: string; gem: string; glow: string; order: number }> = {
@@ -775,10 +797,21 @@ function CardFaceImpl({
         </span>
       )}
 
-      {/* What this card DOES. Attack bottom-left, health bottom-right, the way
-          every card game puts them — readable at a glance without opening
-          anything. */}
-      {showStats && owned && (
+      {/* SUPPORT cards have no attack or health — showing 0/0 would be a lie.
+          They get their effect spelled out across the bottom instead. */}
+      {owned && card.support && (
+        <span
+          className="absolute inset-x-1 bottom-1 rounded-md border border-cyan-400/40 bg-cyan-500/20 px-1 py-0.5 text-center font-black leading-tight text-cyan-100 backdrop-blur-sm"
+          style={{ fontSize: Math.max(7, size * 0.055) }}
+          title={supportText(card.support)}
+        >
+          {supportText(card.support)}
+        </span>
+      )}
+
+      {/* What a UNIT card does. Attack bottom-left, health bottom-right, the
+          way every card game puts them — readable at a glance. */}
+      {showStats && owned && !card.support && (
         <>
           <span
             className="absolute -bottom-1 -left-1 grid place-items-center rounded-full border-2 border-[#0b0b12] bg-gradient-to-br from-orange-500 to-red-600 font-black text-white"

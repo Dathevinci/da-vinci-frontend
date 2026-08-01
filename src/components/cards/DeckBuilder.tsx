@@ -48,7 +48,12 @@ export default function DeckBuilder({
   onChange: (deck: string[]) => void;
   compact?: boolean;
 }) {
-  const byId = Object.fromEntries(myCards.map((c) => [c.id, c]));
+  // Support cards can't be FIELDED — the server refuses to build a fighter
+  // from one, so letting you pick it here would silently send you into a duel
+  // with two cards instead of three.
+  const units = myCards.filter((c) => !c.support);
+  const supports = myCards.filter((c) => !!c.support);
+  const byId = Object.fromEntries(units.map((c) => [c.id, c]));
   const S = stats || FALLBACK_STATS;
 
   const toggle = (id: string) => {
@@ -72,7 +77,7 @@ export default function DeckBuilder({
   const autoPick = () => {
     // Strongest three you own — a sane default so a new player isn't stuck
     // staring at a grid wondering what's good.
-    const ranked = [...myCards].sort((a, b) => {
+    const ranked = [...units].sort((a, b) => {
       const pa = (S[a.rarity] || S.common).atk + (S[a.rarity] || S.common).hp + (foils[a.id] ? 5 : 0);
       const pb = (S[b.rarity] || S.common).atk + (S[b.rarity] || S.common).hp + (foils[b.id] ? 5 : 0);
       return pb - pa;
@@ -126,13 +131,13 @@ export default function DeckBuilder({
       {/* the collection to pick from */}
       <p className="mb-2 text-xs font-black uppercase tracking-widest text-slate-500">Your collection</p>
       <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
-        {myCards.length === 0 ? (
+        {units.length === 0 ? (
           <p className="py-6 text-center text-sm text-slate-500">No cards yet — open a pack first.</p>
         ) : (
           // Cards scale with the viewport instead of a fixed thumbnail size, so
           // a laptop actually shows the art rather than 72px stamps.
           <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8">
-            {myCards.map((c) => {
+            {units.map((c) => {
               const picked = deck.includes(c.id);
               return (
                 <button key={c.id} onClick={() => toggle(c.id)}
@@ -149,6 +154,25 @@ export default function DeckBuilder({
           </div>
         )}
       </div>
+
+      {/* support cards — owned, not decked. They ride along automatically. */}
+      {supports.length > 0 && (
+        <div className="mt-4">
+          <p className="mb-2 text-xs font-black uppercase tracking-widest text-cyan-400/70">
+            Support · carried into every duel
+          </p>
+          <div className="flex gap-2.5 overflow-x-auto rounded-xl border border-cyan-500/20 bg-cyan-500/[0.04] p-3">
+            {supports.map((c) => (
+              <div key={c.id} className="shrink-0">
+                <CardFace card={c} owned foil={foils[c.id]} size={compact ? 84 : 100} />
+              </div>
+            ))}
+          </div>
+          <p className="mt-1.5 text-[11px] text-slate-500">
+            You don&apos;t pick these into your deck — each one can be played once per duel from the arena.
+          </p>
+        </div>
+      )}
 
       {/* legend — what the numbers mean */}
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500">

@@ -249,7 +249,8 @@ export default function DuelsPage() {
           <DuelBoard duel={active} me={user?.id} byId={byId} myCards={myCards} bag={bag} busy={busy} foils={foils} cardStats={cardStats}
             onClose={() => setActive(null)}
             onAccept={(deck) => post(`${active.id}/accept`, { deck }, () => toast("Duel started!", "success"))}
-            onMove={(action: string, index?: number) => post(`${active.id}/move`, { action, index })} />
+            onMove={(action: string, index?: number, cardId?: string) =>
+              post(`${active.id}/move`, { action, index, cardId })} />
         )}
       </AnimatePresence>
     </PageTransition>
@@ -427,8 +428,11 @@ function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMo
         myName={myName} foeName={foeName}
         myTurn={myTurn} finished={duel.status === "FINISHED"} resultText={resultText}
         bag={bag} busy={busy} log={state.log} stake={duel.stake}
+        supports={myCards.filter((c: any) => !!c.support)}
+        usedSupports={mine.usedSupports || []}
         onAttack={(i: number) => onMove("attack", i)}
         onItem={(item: string) => onMove(item)}
+        onSupport={(cardId: string) => onMove("support", undefined, cardId)}
         onClose={onClose}
       />
     );

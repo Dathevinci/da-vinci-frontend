@@ -50,15 +50,20 @@ function Bar({ f, h = 6 }: { f: Fighter; h?: number }) {
 export default function Arena({
   mine, foe, byId, myName, foeName, myTurn, finished, resultText,
   bag = [], busy, log = [], stake,
-  onAttack, onItem, onClose,
+  supports = [], usedSupports = [],
+  onAttack, onItem, onSupport, onClose,
 }: {
   mine: ArenaSide; foe: ArenaSide;
   byId: Record<string, CardDef>;
   myName: string; foeName: string;
   myTurn: boolean; finished: boolean; resultText?: string;
   bag?: string[]; busy?: boolean; log?: string[]; stake?: number;
+  /** Support cards you OWN — never spent, but each is playable once per duel. */
+  supports?: CardDef[];
+  usedSupports?: string[];
   onAttack: (index: number) => void;
   onItem: (item: string) => void;
+  onSupport?: (cardId: string) => void;
   onClose: () => void;
 }) {
   // active = -1 means that side hasn't deployed yet, so the field is empty.
@@ -296,6 +301,33 @@ export default function Arena({
             );
           })}
         </div>
+
+        {/* SUPPORT RAIL — cards you own rather than charges you burn. Playing
+            one costs your turn, so it's a real trade and not a free heal. */}
+        {!finished && supports.length > 0 && onSupport && (
+          <div className="mt-3">
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {supports.map((c) => {
+                const spent = usedSupports.includes(c.id);
+                const usable = myTurn && !busy && !spent;
+                return (
+                  <button
+                    key={c.id}
+                    disabled={!usable}
+                    onClick={() => onSupport(c.id)}
+                    title={spent ? `${c.name} — already played this duel` : `Play ${c.name} (costs your turn)`}
+                    className={`shrink-0 rounded-lg p-0.5 transition ${
+                      usable ? "ring-1 ring-cyan-400/40 hover:-translate-y-0.5 hover:ring-cyan-300"
+                             : "opacity-30 grayscale"
+                    }`}
+                  >
+                    <CardFace card={c} owned size={64} />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* ACTIONS — the commit step. Selecting a card never fires a move; you
             press the button, so a mis-tap can't waste a turn. */}
