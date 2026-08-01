@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Swords, Trophy, Shield, Heart, Crosshair, Diamond, Gem, X, Flame } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
@@ -56,6 +56,10 @@ export default function DuelsPage() {
   const [busy, setBusy] = useState(false);
   const [showChallenge, setShowChallenge] = useState(false);
   const [tab, setTab] = useState<"duels" | "ladder">("duels");
+  // Which duel is on screen RIGHT NOW, readable from inside an in-flight
+  // request whose closure captured an older value.
+  const openIdRef = useRef<string | null>(null);
+  useEffect(() => { openIdRef.current = active?.id ?? null; }, [active?.id]);
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -83,7 +87,12 @@ export default function DuelsPage() {
       // Keep the open board fresh so the opponent's move appears.
       if (active) {
         const fresh = await fetch(`${API_URL}/api/duels/${active.id}`).then((r) => r.json());
-        if (fresh.success) setActive(fresh.data);
+        // Only apply it if that duel is STILL the one on screen. This closure
+        // captured `active` before the request went out, so closing the arena
+        // mid-flight — exactly what happens when you forfeit and immediately
+        // hit "Leave the arena", since forfeiting awaits this same load() —
+        // would otherwise re-open the board you just walked out of.
+        if (fresh.success && openIdRef.current === active.id) setActive(fresh.data);
       }
     } catch { /* offline */ }
   }, [user?.id, active?.id]);
@@ -490,7 +499,8 @@ function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMo
         bag={bag} busy={busy} log={state.log} stake={duel.stake}
         supports={myCards.filter((c: any) => !!c.support)}
         usedSupports={mine.usedSupports || []}
-        onAttack={(i: number) => onMove("attack", i)}
+        onAttack={() => onMove("attack")}
+        onDeploy={(i: number) => onMove("deploy", i)}
         onItem={(item: string) => onMove(item)}
         onSupport={(cardId: string, target?: number) => onMove("support", undefined, cardId, target)}
         onForfeit={onForfeit}
@@ -500,27 +510,36 @@ function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMo
   }
 
   return (
+    // A CENTRED child taller than the viewport cannot be scrolled back to — the
+    // overflow container clips its top and there is no way to reach it. With a
+    // five-slot deck builder plus a full collection grid this is now always the
+    // case, which is why the player being challenged could only see part of the
+    // panel. Fixed height, header and action pinned, and ONLY the deck area
+    // scrolls.
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[130] flex items-center justify-center overflow-y-auto bg-black/90 p-4 backdrop-blur" onClick={onClose}>
+      className="fixed inset-0 z-[130] flex items-center justify-center bg-black/90 p-3 backdrop-blur sm:p-4" onClick={onClose}>
       <motion.div initial={{ scale: 0.96 }} animate={{ scale: 1 }}
-        className="w-full max-w-3xl rounded-3xl border border-white/15 bg-[#0b0b12] p-4 sm:p-6" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-4 flex items-center justify-between">
+        className="flex max-h-[92dvh] w-full max-w-3xl flex-col rounded-3xl border border-white/15 bg-[#0b0b12] p-4 sm:p-6"
+        onClick={(e) => e.stopPropagation()}>
+        <div className="mb-4 flex shrink-0 items-center justify-between gap-3">
           <div className="min-w-0">
             <h2 className="truncate text-lg font-black sm:text-xl">{duel.challengerName} vs {duel.opponentName}</h2>
             <p className="text-xs text-slate-500">{duel.stake.toLocaleString()} AP each · winner takes {duelPayout(duel.stake).toLocaleString()} (10% burned)</p>
           </div>
-          <button onClick={onClose}><X className="h-5 w-5 text-slate-500" /></button>
+          <button onClick={onClose} aria-label="Close"><X className="h-5 w-5 text-slate-500" /></button>
         </div>
 
         {needsAccept ? (
           <>
-            <div className="mb-4">
+            <div className="-mx-1 mb-4 min-h-0 flex-1 overflow-y-auto px-1">
               <DeckBuilder myCards={myCards} foils={foils} stats={cardStats} deck={deck}
                 onChange={(d) => { setDeck(d); saveDeck(d); }} compact />
             </div>
             <button disabled={busy || deck.length !== DECK_SIZE} onClick={() => onAccept(deck)}
-              className="w-full rounded-xl bg-gradient-to-r from-rose-600 to-orange-600 py-3 font-black text-white disabled:opacity-40">
-              Match the {duel.stake.toLocaleString()} AP stake and fight
+              className="w-full shrink-0 rounded-xl bg-gradient-to-r from-rose-600 to-orange-600 py-3 font-black text-white disabled:opacity-40">
+              {deck.length !== DECK_SIZE
+                ? `Pick ${DECK_SIZE - deck.length} more card${DECK_SIZE - deck.length === 1 ? "" : "s"}`
+                : `Match the ${duel.stake.toLocaleString()} AP stake and fight`}
             </button>
           </>
         ) : (

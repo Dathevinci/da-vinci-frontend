@@ -108,7 +108,7 @@ export default function Arena({
   mine, foe, byId, myName, foeName, myTurn, finished, resultText, won = false,
   bag = [], busy, log = [], stake,
   supports = [], usedSupports = [],
-  onAttack, onItem, onSupport, onForfeit, onClose,
+  onAttack, onDeploy, onItem, onSupport, onForfeit, onClose,
 }: {
   mine: ArenaSide; foe: ArenaSide;
   byId: Record<string, CardDef>;
@@ -121,7 +121,9 @@ export default function Arena({
   /** Support cards you OWN — never spent, but each is playable once per duel. */
   supports?: CardDef[];
   usedSupports?: string[];
-  onAttack: (index: number) => void;
+  /** Swing with whoever is already on the field. Deploying is a separate move. */
+  onAttack: () => void;
+  onDeploy: (index: number) => void;
   onItem: (item: string) => void;
   onSupport?: (cardId: string, target?: number) => void;
   onForfeit?: () => void;
@@ -133,7 +135,9 @@ export default function Arena({
   const [sel, setSel] = useState<number | null>(null);
   const selected = sel !== null ? mine.fighters[sel] : undefined;
   const live = myTurn && !finished && !busy;
-  const isSwap = sel !== null && mine.active >= 0 && sel !== mine.active;
+  // Selecting a card that isn't the one already fighting means you want to send
+  // it in; an empty field always means deploy.
+  const wantsDeploy = mine.active < 0 || (sel !== null && sel !== mine.active);
   const [confirmQuit, setConfirmQuit] = useState(false);
 
   const playableSupports = useMemo(() => supports.filter((c) => !!c.support), [supports]);
@@ -164,19 +168,23 @@ export default function Arena({
     58 +                       // top bar
     36 +                       // turn banner
     (wide ? 0 : log.length ? 56 : 0) +
-    (hasSupport ? 76 : 0) +    // support rail
+    (hasSupport ? 96 : 0) +    // support rail
     (finished ? 0 : 58) +      // action bar
     46;                        // gaps + safe areas
-  // A card is 5:7, and under each champion sits a bar plus a buff row (~34px).
-  // bench = 0.30 champ and hand = 0.62 champ, so total card height works out to
-  // champ * 1.4 * (1 + 0.30 + 0.62). Solving for champ is the whole budget.
-  const forCards = box.h - chrome - 34;
+  // A card is 5:7. Under the champion sits a bar plus a buff row, and each
+  // bench and hand card carries its own bar — 62px of non-card furniture that
+  // the first pass forgot, which is why the hand's health bars were sheared off
+  // at the bottom edge. bench = 0.34 champ and hand = 0.58 champ, so the card
+  // height works out to champ * 1.4 * (1 + 0.34 + 0.58). Solve for champ.
+  const forCards = box.h - chrome - 62;
   const lineup = Math.max(mine.fighters.length, foe.fighters.length, 1);
   const perCard = (box.w - (wide ? 340 : 24)) / lineup;
   const champ = clamp(92, Math.min(forCards / 2.688, box.w * 0.30), 300);
-  const hand = clamp(52, Math.min(champ * 0.62, perCard - 10), 150);
-  const bench = clamp(30, Math.min(champ * 0.30, perCard - 14), 92);
-  const suppSize = clamp(44, champ * 0.32, 78);
+  const hand = clamp(56, Math.min(champ * 0.58, perCard - 10), 150);
+  // Floors matter: below ~48px a card is unreadable mush rather than a small
+  // card, and the opponent's line is how you read the game.
+  const bench = clamp(48, Math.min(champ * 0.34, perCard - 14), 92);
+  const suppSize = clamp(52, champ * 0.34, 80);
 
   // ── A selection must never outlive the card it points at ─────────────────
   const hpKey = mine.fighters.map((f) => f.hp).join(",");
@@ -225,7 +233,10 @@ export default function Arena({
   resolveRef.current = (d, target) => {
     if (!target || !live) return;
     if (d.kind === "unit") {
-      if (target === "field" || target === "foe") onAttack(d.index);
+      // Dropping a card on the battlefield SENDS IT IN. It does not swing —
+      // that used to happen in the same gesture, so a drag both committed a
+      // card and spent the attack before you'd seen the board.
+      if (target === "field" || target === "foe") onDeploy(d.index);
       return;
     }
     if (!onSupport) return;
@@ -568,13 +579,23 @@ export default function Arena({
         {/* ── ACTIONS ── */}
         {!finished ? (
           <div className="mt-2 flex items-stretch justify-center gap-2">
-            <button disabled={!live || sel === null} onClick={() => sel !== null && onAttack(sel)}
+            {/* Two different moves behind one button, decided by what you have
+                selected. Picking a card that isn't already out SENDS IT IN;
+                otherwise you swing with whoever is standing. */}
+            <button
+              disabled={!live || (wantsDeploy ? sel === null : mine.active < 0 || foe.active < 0)}
+              onClick={() => {
+                if (!live) return;
+                if (wantsDeploy && sel !== null) onDeploy(sel);
+                else onAttack();
+              }}
               className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-600 to-orange-600 py-3 text-sm font-black text-white transition hover:brightness-110 disabled:opacity-30">
               <Swords className="h-4 w-4" />
               {!myTurn ? "Not your turn"
                 : busy ? "Resolving…"
-                : sel === null ? "Choose a card"
-                : isSwap ? `Send in ${selected?.name?.split(" ").slice(-1)[0] ?? ""}`
+                : wantsDeploy
+                ? (sel === null ? "Choose a card to send in" : `Send in ${selected?.name ?? "card"}`)
+                : foe.active < 0 ? `Waiting for ${foeName}'s card`
                 : "Attack"}
             </button>
             {ITEMS.map((it) => {
