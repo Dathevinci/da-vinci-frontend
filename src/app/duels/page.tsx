@@ -8,12 +8,15 @@ import { displayArisePoints } from "@/lib/admin";
 import { authHeaders } from "@/lib/authToken";
 import { useToast } from "@/components/ui/Toast";
 import PageTransition from "@/components/layout/PageTransition";
-import CardFace, { CardDef, RARITY_META } from "@/components/cards/CardFace";
+import { CardDef } from "@/components/cards/CardFace";
 import DeckBuilder, { loadSavedDeck, saveDeck } from "@/components/cards/DeckBuilder";
-import Arena from "@/components/cards/Arena";
+import Arena, { duelPayout } from "@/components/cards/Arena";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 const DECK_SIZE = 3;
+// Mirrors MIN_STAKE / MAX_STAKE in the server's duelRules.
+const MIN_STAKE = 50;
+const MAX_STAKE = 5000;
 
 const ITEM_META: Record<string, { name: string; desc: string; shards: number; Icon: any; tint: string }> = {
   heal:   { name: "Salve", desc: "Restore 10 HP", shards: 120, Icon: Heart, tint: "text-rose-300" },
@@ -22,7 +25,13 @@ const ITEM_META: Record<string, { name: string; desc: string; shards: number; Ic
 };
 
 type Fighter = { cardId: string; name: string; rarity: any; maxHp: number; hp: number; atk: number; foil: boolean };
-type Side = { userId: string; username: string; fighters: Fighter[]; active: number };
+type Side = {
+  userId: string; username: string; fighters: Fighter[]; active: number;
+  // Server-side fields the board reads. They were missing from this type, so
+  // `mine.usedSupports` type-checked as an error the build was configured to
+  // ignore — it worked by accident rather than by declaration.
+  usedSupports?: string[]; shield?: boolean; block?: boolean; focusMult?: number;
+};
 type DuelState = { a: Side; b: Side; turn: string; log: string[]; round: number };
 type Duel = {
   id: string; challengerId: string; challengerName: string; opponentId: string; opponentName: string;
@@ -38,6 +47,7 @@ export default function DuelsPage() {
   const [board, setBoard] = useState<any[]>([]);
   const [catalog, setCatalog] = useState<CardDef[]>([]);
   const [cardStats, setCardStats] = useState<Record<string, { hp: number; atk: number }> | undefined>(undefined);
+  const [catalogFailed, setCatalogFailed] = useState(false);
   const [foils, setFoils] = useState<Record<string, boolean>>({});
   const [owned, setOwned] = useState<Record<string, number>>({});
   const [shards, setShards] = useState(0);
@@ -50,11 +60,16 @@ export default function DuelsPage() {
   const load = useCallback(async () => {
     if (!user) return;
     try {
-      const [d, l, c] = await Promise.all([
+      // The item bag is refetched HERE rather than once on mount. It used to
+      // load a single time, so after spending a Salve the button still showed a
+      // charge and the next click 400'd with "you have no Salve left".
+      const [d, l, c, u] = await Promise.all([
         fetch(`${API_URL}/api/duels/mine/${user.id}`).then((r) => r.json()),
         fetch(`${API_URL}/api/duels/leaderboard`).then((r) => r.json()),
         fetch(`${API_URL}/api/cards/collection/${user.id}`).then((r) => r.json()),
+        fetch(`${API_URL}/api/users/${user.id}`).then((r) => r.json()).catch(() => null),
       ]);
+      if (u?.data?.duelItems) setBag(u.data.duelItems);
       if (d.success) { setDuels(d.data.duels || []); setRating(d.data.rating); }
       if (l.success) setBoard(l.data || []);
       if (c.success) {
@@ -75,12 +90,32 @@ export default function DuelsPage() {
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
-    fetch(`${API_URL}/api/cards/catalog`).then((r) => r.json()).then((d) => { if (!d?.success || !Array.isArray(d?.data?.cards)) return; setCatalog(d.data.cards); setCardStats(d.data.cardStats); });
-    fetch(`${API_URL}/api/users/${user?.id}`).then((r) => r.json()).then((d) => d?.data?.duelItems && setBag(d.data.duelItems)).catch(() => {});
+    // The catalog is what turns a cardId into art and a name. Without it the
+    // arena renders a board of blanks, so a failed fetch has to be visible and
+    // retryable rather than a silent empty grid. (Render's free tier sleeps —
+    // the first request after an idle period genuinely does fail sometimes.)
+    let cancelled = false;
+    const getCatalog = () => {
+      fetch(`${API_URL}/api/cards/catalog`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (cancelled) return;
+          if (!d?.success || !Array.isArray(d?.data?.cards)) throw new Error("bad catalog");
+          setCatalog(d.data.cards);
+          setCardStats(d.data.cardStats);
+          setCatalogFailed(false);
+        })
+        .catch(() => { if (!cancelled) setCatalogFailed(true); });
+    };
+    getCatalog();
+    return () => { cancelled = true; };
   }, [user?.id]);
   // Poll while a duel is open — turns arrive without websockets (Render sleeps).
+  // PENDING is polled too: a challenge you sent needs to flip to ACTIVE the
+  // moment the other player accepts, and gating this on ACTIVE meant the
+  // waiting screen sat there forever until you backed out and reopened it.
   useEffect(() => {
-    if (!active || active.status !== "ACTIVE") return;
+    if (!active || (active.status !== "ACTIVE" && active.status !== "PENDING")) return;
     const t = setInterval(load, 4000);
     return () => clearInterval(t);
   }, [active?.id, active?.status, load]);
@@ -145,6 +180,20 @@ export default function DuelsPage() {
               </button>
             ))}
           </div>
+
+          {/* Without the catalog every card is a blank rectangle. Say so and
+              offer a retry instead of rendering an empty board silently. */}
+          {catalogFailed && (
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+              <p className="text-sm font-bold text-amber-200">
+                Couldn&rsquo;t load the card catalog — cards will show as blanks until it does.
+              </p>
+              <button onClick={() => window.location.reload()}
+                className="rounded-full bg-amber-500/20 px-4 py-1.5 text-xs font-black text-amber-100 transition hover:bg-amber-500/30">
+                Retry
+              </button>
+            </div>
+          )}
 
           {tab === "ladder" ? (
             <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
@@ -249,8 +298,8 @@ export default function DuelsPage() {
           <DuelBoard duel={active} me={user?.id} byId={byId} myCards={myCards} bag={bag} busy={busy} foils={foils} cardStats={cardStats}
             onClose={() => setActive(null)}
             onAccept={(deck) => post(`${active.id}/accept`, { deck }, () => toast("Duel started!", "success"))}
-            onMove={(action: string, index?: number, cardId?: string) =>
-              post(`${active.id}/move`, { action, index, cardId })} />
+            onMove={(action: string, index?: number, cardId?: string, target?: number) =>
+              post(`${active.id}/move`, { action, index, cardId, target })} />
         )}
       </AnimatePresence>
     </PageTransition>
@@ -288,6 +337,13 @@ function DuelRow({ duel, me, right, onOpen }: { duel: Duel; me?: string; right: 
 function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats }: any) {
   const [opp, setOpp] = useState("");
   const [stake, setStake] = useState("100");
+  const stakeNum = Math.floor(Number(stake)) || 0;
+  const stakeError =
+    !stake.trim() ? "Enter a stake."
+    : !Number.isFinite(Number(stake)) ? "That isn't a number."
+    : stakeNum < MIN_STAKE ? `Minimum stake is ${MIN_STAKE} AP.`
+    : stakeNum > MAX_STAKE ? `Maximum stake is ${MAX_STAKE.toLocaleString()} AP.`
+    : null;
   const [deck, setDeck] = useState<string[]>(() => loadSavedDeck());
   // Real people, not a name you have to spell from memory. The old free-text
   // field gave no signal whether "davinci" was even an account until the
@@ -314,9 +370,6 @@ function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats
   const matches = q
     ? people.filter((p) => p.username.toLowerCase().includes(q)).slice(0, 6)
     : people.slice(0, 6);
-
-  const toggle = (id: string) =>
-    setDeck((d) => (d.includes(id) ? d.filter((x) => x !== id) : d.length < DECK_SIZE ? [...d, id] : d));
 
   return (
     // Full screen: the deck grid + opponent search never fitted a phone modal,
@@ -365,9 +418,15 @@ function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats
               </div>
             )}
           </div>
-          <label className="text-xs font-bold text-slate-400">Stake (AP, each side)
-            <input type="number" value={stake} onChange={(e) => setStake(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm tabular-nums text-white" />
+          {/* The server enforces 50–5000. Surfacing the range here turns a
+              rejected challenge into a bound you can see before you send it. */}
+          <label className="text-xs font-bold text-slate-400">
+            Stake (AP, each side) <span className="text-slate-600">· {MIN_STAKE}–{MAX_STAKE.toLocaleString()}</span>
+            <input type="number" min={MIN_STAKE} max={MAX_STAKE} step={10}
+              value={stake} onChange={(e) => setStake(e.target.value)}
+              className={`mt-1 w-full rounded-lg border bg-white/5 px-3 py-2 text-sm tabular-nums text-white ${
+                stakeError ? "border-rose-500/60" : "border-white/10"}`} />
+            {stakeError && <span className="mt-1 block font-bold text-rose-400">{stakeError}</span>}
           </label>
         </div>
         {/* the deck grid scrolls; the header and the action button stay put */}
@@ -377,14 +436,15 @@ function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats
         </div>
         {/* Requires a PICKED member, not just typed text — so a challenge can
             never 404 on a username that was only ever a guess. */}
-        <button disabled={busy || !picked || deck.length !== DECK_SIZE}
+        <button disabled={busy || !picked || deck.length !== DECK_SIZE || !!stakeError}
           style={{ flexShrink: 0 }}
-          onClick={() => picked && onSend(picked.username, Math.floor(Number(stake)) || 0, deck)}
+          onClick={() => picked && !stakeError && onSend(picked.username, stakeNum, deck)}
           className="w-full rounded-xl bg-gradient-to-r from-rose-600 to-orange-600 py-3 font-black text-white transition hover:brightness-110 disabled:opacity-40">
           {busy ? "Sending…"
             : !picked ? "Pick an opponent"
             : deck.length !== DECK_SIZE ? `Pick ${DECK_SIZE - deck.length} more card${DECK_SIZE - deck.length === 1 ? "" : "s"}`
-            : `Challenge ${picked.username} for ${Number(stake).toLocaleString()} AP`}
+            : stakeError ? stakeError
+            : `Challenge ${picked.username} for ${stakeNum.toLocaleString()} AP`}
         </button>
       </div>
     </motion.div>
@@ -410,9 +470,6 @@ function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMo
   const foeName = inDuel ? (iAmChallenger ? duel.opponentName : duel.challengerName) : duel.challengerName;
   const myName = inDuel ? "You" : duel.opponentName;
 
-  const toggle = (id: string) =>
-    setDeck((d) => (d.includes(id) ? d.filter((x) => x !== id) : d.length < DECK_SIZE ? [...d, id] : d));
-
   // A LIVE duel takes the whole screen. Arena is `fixed inset-0` with a dvh
   // height, so it survives mobile browser chrome and the cards stay readable
   // on a phone — which they were not inside a modal.
@@ -420,19 +477,20 @@ function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMo
     const resultText = !inDuel
       ? `${duel.winnerId === duel.challengerId ? duel.challengerName : duel.opponentName} won`
       : duel.winnerId === me
-      ? `You won ${(duel.stake * 2 * 0.9).toLocaleString()} AP`
+      ? `You won ${duelPayout(duel.stake).toLocaleString()} AP`
       : "You lost this duel";
     return (
       <Arena
         mine={mine} foe={foe} byId={byId}
         myName={myName} foeName={foeName}
         myTurn={myTurn} finished={duel.status === "FINISHED"} resultText={resultText}
+        won={!!me && duel.winnerId === me}
         bag={bag} busy={busy} log={state.log} stake={duel.stake}
         supports={myCards.filter((c: any) => !!c.support)}
         usedSupports={mine.usedSupports || []}
         onAttack={(i: number) => onMove("attack", i)}
         onItem={(item: string) => onMove(item)}
-        onSupport={(cardId: string) => onMove("support", undefined, cardId)}
+        onSupport={(cardId: string, target?: number) => onMove("support", undefined, cardId, target)}
         onClose={onClose}
       />
     );
@@ -446,7 +504,7 @@ function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMo
         <div className="mb-4 flex items-center justify-between">
           <div className="min-w-0">
             <h2 className="truncate text-lg font-black sm:text-xl">{duel.challengerName} vs {duel.opponentName}</h2>
-            <p className="text-xs text-slate-500">{duel.stake.toLocaleString()} AP each · winner takes {(duel.stake * 2 * 0.9).toLocaleString()} (10% burned)</p>
+            <p className="text-xs text-slate-500">{duel.stake.toLocaleString()} AP each · winner takes {duelPayout(duel.stake).toLocaleString()} (10% burned)</p>
           </div>
           <button onClick={onClose}><X className="h-5 w-5 text-slate-500" /></button>
         </div>

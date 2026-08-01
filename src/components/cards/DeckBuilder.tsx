@@ -56,6 +56,19 @@ export default function DeckBuilder({
   const byId = Object.fromEntries(units.map((c) => [c.id, c]));
   const S = stats || FALLBACK_STATS;
 
+  // A deck saved to localStorage can name cards you no longer own — or, now that
+  // support cards aren't fieldable, cards that can never be deployed at all.
+  // Left alone the slot renders blank while `deck` still holds three entries, so
+  // the challenge button lights up and the server rejects the deck with no
+  // explanation. Guarded on the collection having actually loaded, otherwise the
+  // first render (empty catalog) would wipe a perfectly good saved deck.
+  useEffect(() => {
+    if (units.length === 0) return;
+    const clean = deck.filter((id) => !!byId[id]);
+    if (clean.length !== deck.length) onChange(clean);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deck.join(","), units.length]);
+
   const toggle = (id: string) => {
     const next = deck.includes(id)
       ? deck.filter((x) => x !== id)

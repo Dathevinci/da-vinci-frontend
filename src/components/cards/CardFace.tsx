@@ -700,6 +700,7 @@ function CardFaceImpl({
   size = 190,
   showStats = false,
   stats,
+  liveHp,
 }: {
   card: CardDef;
   owned?: boolean;
@@ -709,11 +710,20 @@ function CardFaceImpl({
   /** Show the ATK/HP badges — what this card actually does in a duel. */
   showStats?: boolean;
   stats?: Record<string, { hp: number; atk: number }>;
+  /**
+   * Current health mid-duel. In the arena the badge used to keep showing the
+   * card's MAX health while the bar beside it counted down, so the same card
+   * displayed two different "health" numbers at once. Pass this and the badge
+   * tracks the fight.
+   */
+  liveHp?: number;
 }) {
   const S = (stats || FALLBACK_STATS)[card.rarity] || FALLBACK_STATS.common;
   const mult = foil ? 1.2 : 1;
   const atk = Math.round(S.atk * mult);
-  const hp = Math.round(S.hp * mult);
+  const maxHp = Math.round(S.hp * mult);
+  const hp = typeof liveHp === "number" ? liveHp : maxHp;
+  const wounded = typeof liveHp === "number" && liveHp < maxHp;
   const R = RARITY_META[card.rarity];
   const h = card.hue;
   const dim = !owned;
@@ -799,14 +809,26 @@ function CardFaceImpl({
 
       {/* SUPPORT cards have no attack or health — showing 0/0 would be a lie.
           They get their effect spelled out across the bottom instead. */}
+      {/* Below ~90px the banner ate a third of the card and buried the name, so
+          the small rail cards get a cyan corner dot and the tooltip instead. */}
       {owned && card.support && (
-        <span
-          className="absolute inset-x-1 bottom-1 rounded-md border border-cyan-400/40 bg-cyan-500/20 px-1 py-0.5 text-center font-black leading-tight text-cyan-100 backdrop-blur-sm"
-          style={{ fontSize: Math.max(7, size * 0.055) }}
-          title={supportText(card.support)}
-        >
-          {supportText(card.support)}
-        </span>
+        size >= 90 ? (
+          <span
+            className="absolute inset-x-1 bottom-1 rounded-md border border-cyan-400/40 bg-cyan-500/20 px-1 py-0.5 text-center font-black leading-tight text-cyan-100 backdrop-blur-sm"
+            style={{ fontSize: Math.max(7, size * 0.055) }}
+            title={supportText(card.support)}
+          >
+            {supportText(card.support)}
+          </span>
+        ) : (
+          <span
+            className="absolute -bottom-1 -right-1 grid place-items-center rounded-full border-2 border-[#0b0b12] bg-gradient-to-br from-cyan-400 to-sky-600 font-black text-white"
+            style={{ width: size * 0.24, height: size * 0.24, fontSize: size * 0.13 }}
+            title={supportText(card.support)}
+          >
+            +
+          </span>
+        )
       )}
 
       {/* What a UNIT card does. Attack bottom-left, health bottom-right, the
@@ -821,9 +843,13 @@ function CardFaceImpl({
             {atk}
           </span>
           <span
-            className="absolute -bottom-1 -right-1 grid place-items-center rounded-full border-2 border-[#0b0b12] bg-gradient-to-br from-emerald-500 to-green-700 font-black text-white"
+            className={`absolute -bottom-1 -right-1 grid place-items-center rounded-full border-2 border-[#0b0b12] bg-gradient-to-br font-black text-white ${
+              hp <= 0 ? "from-slate-600 to-slate-800"
+                : wounded ? "from-amber-500 to-orange-700"
+                : "from-emerald-500 to-green-700"
+            }`}
             style={{ width: size * 0.2, height: size * 0.2, fontSize: size * 0.095 }}
-            title={`${hp} health`}
+            title={wounded ? `${hp} of ${maxHp} health` : `${hp} health`}
           >
             {hp}
           </span>
