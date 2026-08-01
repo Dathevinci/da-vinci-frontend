@@ -62,7 +62,13 @@ export default function CardsPage() {
   useEffect(() => {
     fetch(`${API_URL}/api/cards/catalog`)
       .then((r) => r.json())
-      .then((d) => d.success && setCatalog(d.data))
+      // Only accept a catalog that actually HAS its card list. Render's free
+      // tier sleeps, so a cold start can answer with a partial or error-shaped
+      // body; storing that produced a catalog object whose `.cards` was
+      // undefined, and every `catalog.cards...` read downstream then threw.
+      .then((d) => {
+        if (d?.success && Array.isArray(d?.data?.cards)) setCatalog(d.data);
+      })
       .catch(() => {});
   }, []);
 
@@ -80,7 +86,7 @@ export default function CardsPage() {
       if (d.success) {
         const map: Record<string, number> = {};
         const fo: Record<string, boolean> = {};
-        for (const c of d.data.cards) {
+        for (const c of d.data?.cards || []) {
           map[c.cardId] = c.count;
           if (c.foil) fo[c.cardId] = true;
         }
@@ -128,8 +134,8 @@ export default function CardsPage() {
         toast(d.message || "Pack failed.", "error");
         return;
       }
-      const byId = Object.fromEntries(catalog.cards.map((c) => [c.id, c]));
-      const pulled: CardDef[] = (d.data.pulls as string[]).map((id) => byId[id]).filter(Boolean);
+      const byId = Object.fromEntries((catalog.cards || []).map((c) => [c.id, c]));
+      const pulled: CardDef[] = ((d.data?.pulls || []) as string[]).map((id) => byId[id]).filter(Boolean);
       if (typeof d.data.arisePoints === "number") syncAp(d.data.arisePoints);
       setReveal(pulled);
       await loadCollection();
@@ -193,7 +199,7 @@ export default function CardsPage() {
     shardAction("relic-pack", {}, (d) => {
       setShards(d.shards);
       const byId = Object.fromEntries((catalog?.cards || []).map((c) => [c.id, c]));
-      setReveal((d.pulls as string[]).map((id) => byId[id]).filter(Boolean));
+      setReveal(((d?.pulls || []) as string[]).map((id) => byId[id]).filter(Boolean));
     });
 
   const claimSet = (setName: string) =>
@@ -226,7 +232,7 @@ export default function CardsPage() {
   const sets = useMemo(() => {
     if (!catalog) return [];
     const bySet: Record<string, CardDef[]> = {};
-    for (const c of catalog.cards) (bySet[c.set] ||= []).push(c);
+    for (const c of catalog.cards || []) (bySet[c.set] ||= []).push(c);
     return Object.entries(bySet).map(([set, cards]) => {
       cards.sort((a, b) => RARITY_META[a.rarity].order - RARITY_META[b.rarity].order || a.name.localeCompare(b.name));
       const haveCount = cards.filter((c) => (owned[c.id] || 0) > 0).length;
@@ -235,7 +241,7 @@ export default function CardsPage() {
   }, [catalog, owned]);
 
   const totalHave = Object.keys(owned).length;
-  const totalCards = catalog?.cards.length ?? 0;
+  const totalCards = catalog?.cards?.length ?? 0;
 
   return (
     <PageTransition>

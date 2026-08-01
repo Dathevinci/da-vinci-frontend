@@ -60,7 +60,7 @@ export default function DuelsPage() {
       if (c.success) {
         const m: Record<string, number> = {};
         const fo: Record<string, boolean> = {};
-        for (const x of c.data.cards) { m[x.cardId] = x.count; if (x.foil) fo[x.cardId] = true; }
+        for (const x of c.data?.cards || []) { m[x.cardId] = x.count; if (x.foil) fo[x.cardId] = true; }
         setOwned(m);
         setFoils(fo);
         setShards(c.data.shards || 0);
@@ -75,7 +75,7 @@ export default function DuelsPage() {
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
-    fetch(`${API_URL}/api/cards/catalog`).then((r) => r.json()).then((d) => { if (!d.success) return; setCatalog(d.data.cards); setCardStats(d.data.cardStats); });
+    fetch(`${API_URL}/api/cards/catalog`).then((r) => r.json()).then((d) => { if (!d?.success || !Array.isArray(d?.data?.cards)) return; setCatalog(d.data.cards); setCardStats(d.data.cardStats); });
     fetch(`${API_URL}/api/users/${user?.id}`).then((r) => r.json()).then((d) => d?.data?.duelItems && setBag(d.data.duelItems)).catch(() => {});
   }, [user?.id]);
   // Poll while a duel is open — turns arrive without websockets (Render sleeps).

@@ -752,7 +752,7 @@ export default function CardFace({
 
         {/* name plate */}
         <rect x="7" y="94" width="86" height="19" rx="4" fill="rgba(0,0,0,0.6)" stroke={dim ? "#1e1e26" : R.frame} strokeOpacity="0.3" strokeWidth="0.6" />
-        <text x="50" y="106" textAnchor="middle" fontSize={card.name.length > 17 ? 6.2 : 7.4} fontWeight="800"
+        <text x="50" y="106" textAnchor="middle" fontSize={(card.name || '').length > 17 ? 6.2 : 7.4} fontWeight="800"
           fill={dim ? "#4a4a54" : "#f4f2f7"} style={{ fontFamily: "ui-sans-serif, system-ui" }}>
           {owned ? card.name : "???"}
         </text>
