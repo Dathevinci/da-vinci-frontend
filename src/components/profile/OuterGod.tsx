@@ -63,12 +63,21 @@ type CosmicEye = {
 };
 type Glitch = { at: number; dur: number };
 
-function useOuterGodCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
+function useOuterGodCanvas(
+  canvasRef: RefObject<HTMLCanvasElement | null>,
+  glowRef: RefObject<HTMLCanvasElement | null>
+) {
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const glowCanvas = glowRef.current;
+    if (!canvas || !glowCanvas) return;
     const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    // The LIGHT rides on a second canvas ABOVE the card's text (z-30,
+    // screen-blended — it can only brighten, so no word is ever hidden).
+    // The dark inks stay on the z-8 canvas under the text. One layer under,
+    // one layer over: legibility and presence stop being a trade-off.
+    const gctx = glowCanvas.getContext("2d");
+    if (!ctx || !gctx) return;
 
     // Offscreen scene + one channel scratch — the sanity drain needs a frame
     // it can re-composite, which a directly-drawn canvas can't provide.
@@ -86,12 +95,13 @@ function useOuterGodCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       // to the card while scrolling, like a Discord profile effect.
       W = Math.max(1, canvas.clientWidth || canvas.parentElement?.clientWidth || window.innerWidth);
       H = Math.max(1, canvas.clientHeight || canvas.parentElement?.clientHeight || 420);
-      for (const c of [canvas, scene, chan]) {
+      for (const c of [canvas, glowCanvas, scene, chan]) {
         c.width = Math.max(1, Math.round(W * DPR));
         c.height = Math.max(1, Math.round(H * DPR));
       }
       // Art is drawn in CSS px on the scene; compositing happens in device px.
       sctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      gctx.setTransform(DPR, 0, 0, DPR, 0, 0);
       chctx.setTransform(1, 0, 0, 1, 0, 0);
     };
     resize();
@@ -238,12 +248,14 @@ function useOuterGodCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       sctx.fillStyle = g;
       sctx.fill();
 
-      // single rim light along one edge — bioluminescence catching the muscle
-      sctx.beginPath();
-      pathCatmull(sctx, left, false);
-      sctx.strokeStyle = "rgba(45,215,205,0.4)";
-      sctx.lineWidth = 1.6;
-      sctx.stroke();
+      // single rim light along one edge — bioluminescence catching the
+      // muscle. Glow layer: this is the line that makes a tentacle crossing
+      // a bio panel still READ as a tentacle.
+      gctx.beginPath();
+      pathCatmull(gctx, left, false);
+      gctx.strokeStyle = "rgba(45,215,205,0.6)";
+      gctx.lineWidth = 2;
+      gctx.stroke();
 
       // suckers along the INNER curve (the side facing the avatar), batched
       // into two fills instead of one fill per cup
@@ -299,17 +311,18 @@ function useOuterGodCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       { base: 1.14, rot: 4.2, rs: 0.06, pw: 1.7, seed: 71, K: 26 },
     ];
     const drawVoid = (t: number, growV: number) => {
-      // bioluminescent halo bleeding out of the tear
-      sctx.globalCompositeOperation = "lighter";
+      // bioluminescent halo bleeding out of the tear — on the GLOW layer, so
+      // it shines over the card's panels instead of being muted under them
+      gctx.globalCompositeOperation = "lighter";
       const pulse = 0.5 + 0.5 * Math.sin(t * 0.7);
-      sctx.globalAlpha = (0.42 + 0.16 * pulse) * growV;
-      const gs = aR * 5.0 * growV;
-      sctx.drawImage(tealGlow, ax - gs / 2, ay - gs / 2, gs, gs);
-      sctx.globalAlpha = (0.22 + 0.12 * (1 - pulse)) * growV;
-      const ms = aR * 3.1 * growV;
-      sctx.drawImage(magentaGlow, ax - ms / 2, ay - ms / 2, ms, ms);
-      sctx.globalAlpha = 1;
-      sctx.globalCompositeOperation = "source-over";
+      gctx.globalAlpha = (0.55 + 0.2 * pulse) * growV;
+      const gs = aR * 5.2 * growV;
+      gctx.drawImage(tealGlow, ax - gs / 2, ay - gs / 2, gs, gs);
+      gctx.globalAlpha = (0.3 + 0.14 * (1 - pulse)) * growV;
+      const ms = aR * 3.3 * growV;
+      gctx.drawImage(magentaGlow, ax - ms / 2, ay - ms / 2, ms, ms);
+      gctx.globalAlpha = 1;
+      gctx.globalCompositeOperation = "source-over";
 
       // overlapping jagged polygons of pure black — straight lineTo on
       // purpose, a tear has edges, not curves
@@ -354,7 +367,9 @@ function useOuterGodCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
     });
     const drawMist = (dt: number, growM: number) => {
       if (!mist) mist = Array.from({ length: 64 }, () => spawnMote(true));
-      sctx.globalCompositeOperation = "lighter";
+      // Glow layer: the indrawn motes drift OVER bio boxes and stat tiles —
+      // pure light, so the text under them stays perfectly readable.
+      gctx.globalCompositeOperation = "lighter";
       const maxR = aR * 4.4;
       for (const p of mist) {
         p.rad -= (p.pull + 16 * (1 - p.rad / maxR)) * dt;
@@ -363,12 +378,12 @@ function useOuterGodCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
         const x = ax + Math.cos(p.ang) * p.rad;
         const y = ay + Math.sin(p.ang) * p.rad;
         const edgeFade = clamp01((maxR - p.rad) / (aR * 0.9)) * clamp01((p.rad - aR) / (aR * 0.5));
-        sctx.globalAlpha = p.a * edgeFade * growM;
+        gctx.globalAlpha = p.a * edgeFade * growM;
         const spr = p.tint < 0.1 ? corpseGlow : p.tint < 0.2 ? magentaGlow : tealGlow;
-        sctx.drawImage(spr, x - p.size / 2, y - p.size / 2, p.size, p.size);
+        gctx.drawImage(spr, x - p.size / 2, y - p.size / 2, p.size, p.size);
       }
-      sctx.globalAlpha = 1;
-      sctx.globalCompositeOperation = "source-over";
+      gctx.globalAlpha = 1;
+      gctx.globalCompositeOperation = "source-over";
     };
 
     // ── the gaze of the outer god ──
@@ -463,13 +478,15 @@ function useOuterGodCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       sctx.rotate(e.tilt);
       const ry = e.ry * open;
 
-      // dread-glow beneath the lids
-      sctx.globalCompositeOperation = "lighter";
-      sctx.globalAlpha = 0.36 * open;
+      // dread-glow beneath the lids — glow layer (drawn at absolute coords
+      // since gctx doesn't share sctx's translate/rotate), so the magenta
+      // burn pierces the panels even where the eye itself is behind them
+      gctx.globalCompositeOperation = "lighter";
+      gctx.globalAlpha = 0.5 * open;
       const gs = e.rx * 2.6;
-      sctx.drawImage(magentaGlow, -gs / 2, -gs / 2, gs, gs);
-      sctx.globalAlpha = 1;
-      sctx.globalCompositeOperation = "source-over";
+      gctx.drawImage(magentaGlow, e.x - gs / 2, e.y - gs / 2, gs, gs);
+      gctx.globalAlpha = 1;
+      gctx.globalCompositeOperation = "source-over";
 
       // lens (two quadratics = upper and lower lids)
       sctx.beginPath();
@@ -567,6 +584,7 @@ function useOuterGodCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
         ctx.drawImage(scene, 0, 0);
         if (shook) {
           canvas.style.transform = "";
+          glowCanvas.style.transform = "";
           shook = false;
         }
         return;
@@ -593,9 +611,13 @@ function useOuterGodCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.globalCompositeOperation = "source-over";
       }
-      // jolt the CANVAS only — never parentElement (framer owns that transform
-      // in the shop preview modal); reset above and in cleanup
-      canvas.style.transform = `translate(${(Math.random() * 2 - 1) * 3 * power}px, ${(Math.random() * 2 - 1) * 2 * power}px)`;
+      // jolt the CANVASES only — never parentElement (framer owns that
+      // transform in the shop preview modal); reset above and in cleanup.
+      // Both layers get the SAME offsets so the light stays welded to the ink.
+      const jx = (Math.random() * 2 - 1) * 3 * power;
+      const jy = (Math.random() * 2 - 1) * 2 * power;
+      canvas.style.transform = `translate(${jx}px, ${jy}px)`;
+      glowCanvas.style.transform = `translate(${jx}px, ${jy}px)`;
       shook = true;
     };
 
@@ -667,6 +689,7 @@ function useOuterGodCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
 
       // — scene —
       sctx.clearRect(0, 0, W, H);
+      gctx.clearRect(0, 0, W, H);
       if (dim > 0.004) {
         sctx.fillStyle = `rgba(1,3,7,${dim})`;
         sctx.fillRect(0, 0, W, H);
@@ -680,18 +703,26 @@ function useOuterGodCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       const hr = aR + 8;
       sctx.drawImage(holeFeather, ax - hr, ay - hr, hr * 2, hr * 2);
       sctx.globalCompositeOperation = "source-over";
-      // rim light where reality still holds
-      sctx.strokeStyle = "rgba(30,200,190,0.7)";
-      sctx.lineWidth = 2;
-      sctx.beginPath();
-      sctx.arc(ax, ay, aR + 1.5, 0, TAU);
-      sctx.stroke();
+      // …and out of the glow layer too (tighter radius), or the screen-blend
+      // halo would wash the profile picture itself teal. Rim arcs + mist draw
+      // AFTER this, so light still kisses the edge and motes cross the face.
+      gctx.globalCompositeOperation = "destination-out";
+      const ghr = aR + 4;
+      gctx.drawImage(holeFeather, ax - ghr, ay - ghr, ghr * 2, ghr * 2);
+      gctx.globalCompositeOperation = "source-over";
+      // rim light where reality still holds — glow layer, riding over the
+      // avatar frame ring instead of hiding beneath it
+      gctx.strokeStyle = "rgba(30,200,190,0.85)";
+      gctx.lineWidth = 2;
+      gctx.beginPath();
+      gctx.arc(ax, ay, aR + 1.5, 0, TAU);
+      gctx.stroke();
       const rot = elapsed * 0.5;
-      sctx.strokeStyle = "rgba(230,45,195,0.8)";
-      sctx.lineWidth = 2;
-      sctx.beginPath();
-      sctx.arc(ax, ay, aR + 1.5, rot, rot + 1.1);
-      sctx.stroke();
+      gctx.strokeStyle = "rgba(230,45,195,0.95)";
+      gctx.lineWidth = 2;
+      gctx.beginPath();
+      gctx.arc(ax, ay, aR + 1.5, rot, rot + 1.1);
+      gctx.stroke();
       drawMist(dt, clamp01(elapsed / 1.6));
 
       composite(glitchPower(elapsed));
@@ -739,15 +770,17 @@ function useOuterGodCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       ro?.disconnect();
       io?.disconnect();
       canvas.style.transform = "";
+      glowCanvas.style.transform = "";
     };
-  }, [canvasRef]);
+  }, [canvasRef, glowRef]);
 }
 
 // ── Card-level: the tear in reality, anchored INSIDE the card ───────────────
 
 export function OuterGodCardDomain() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  useOuterGodCanvas(canvasRef);
+  const glowRef = useRef<HTMLCanvasElement>(null);
+  useOuterGodCanvas(canvasRef, glowRef);
 
   return (
     <>
@@ -783,6 +816,16 @@ export function OuterGodCardDomain() {
         ref={canvasRef}
         aria-hidden
         className="pointer-events-none absolute inset-0 z-[8] h-full w-full"
+      />
+      {/* the LIGHT — halos, mist, rim lines, eye-burn — rides ABOVE the text
+          at z-30, but screen-blended: it can only brighten, never occlude, so
+          the effect finally has presence over the card's panels while every
+          word stays readable */}
+      <canvas
+        ref={glowRef}
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-[30] h-full w-full"
+        style={{ mixBlendMode: "screen" }}
       />
     </>
   );

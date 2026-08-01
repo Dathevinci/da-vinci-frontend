@@ -35,6 +35,7 @@
   .wash1 { background: radial-gradient(120% 100% at 50% 25%, rgba(2,10,12,0.72), rgba(2,5,8,0.55) 55%, rgba(1,2,4,0.42) 100%); }
   .wash2 { background: radial-gradient(70% 55% at 50% 28%, rgba(0,128,128,0.2), transparent 68%); }
   canvas.fx { position: absolute; inset: 0; z-index: 8; width: 100%; height: 100%; pointer-events: none; }
+  canvas.fxglow { position: absolute; inset: 0; z-index: 30; width: 100%; height: 100%; pointer-events: none; mix-blend-mode: screen; }
   .content { position: relative; z-index: 10; padding: 0 24px 24px; }
   .avatar {
     position: relative;
@@ -78,6 +79,7 @@
   <div class="wash1"></div>
   <div class="wash2"></div>
   <canvas class="fx" id="fx"></canvas>
+  <canvas class="fxglow" id="fxglow"></canvas>
   <div class="content">
     <div class="avatar" id="og-avatar"></div>
     <div class="name">Va'runel</div>
@@ -107,8 +109,10 @@
   const hash = (n) => { const s = Math.sin(n * 127.1) * 43758.5453; return s - Math.floor(s); };
 
   const canvas = document.getElementById("fx");
+  const glowCanvas = document.getElementById("fxglow");
   const AVATAR = document.getElementById("og-avatar");
   const ctx = canvas.getContext("2d");
+  const gctx = glowCanvas.getContext("2d");
   const scene = document.createElement("canvas");
   const sctx = scene.getContext("2d");
   const chan = document.createElement("canvas");
@@ -119,11 +123,12 @@
   const resize = () => {
     W = Math.max(1, canvas.clientWidth);
     H = Math.max(1, canvas.clientHeight);
-    for (const c of [canvas, scene, chan]) {
+    for (const c of [canvas, glowCanvas, scene, chan]) {
       c.width = Math.max(1, Math.round(W * DPR));
       c.height = Math.max(1, Math.round(H * DPR));
     }
     sctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    gctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     chctx.setTransform(1, 0, 0, 1, 0, 0);
   };
   resize();
@@ -229,11 +234,11 @@
     g.addColorStop(1, "rgba(18,84,86,0.92)");
     sctx.fillStyle = g;
     sctx.fill();
-    sctx.beginPath();
-    pathCatmull(sctx, left, false);
-    sctx.strokeStyle = "rgba(45,215,205,0.4)";
-    sctx.lineWidth = 1.6;
-    sctx.stroke();
+    gctx.beginPath();
+    pathCatmull(gctx, left, false);
+    gctx.strokeStyle = "rgba(45,215,205,0.6)";
+    gctx.lineWidth = 2;
+    gctx.stroke();
 
     const cups = [];
     for (let i = 3; i < pts.length-2; i += 3) {
@@ -281,16 +286,16 @@
     { base: 1.14, rot: 4.2, rs: 0.06, pw: 1.7, seed: 71, K: 26 },
   ];
   const drawVoid = (t, growV) => {
-    sctx.globalCompositeOperation = "lighter";
+    gctx.globalCompositeOperation = "lighter";
     const pulse = 0.5 + 0.5*Math.sin(t*0.7);
-    sctx.globalAlpha = (0.42 + 0.16*pulse) * growV;
-    const gs = aR * 5.0 * growV;
-    sctx.drawImage(tealGlow, ax-gs/2, ay-gs/2, gs, gs);
-    sctx.globalAlpha = (0.22 + 0.12*(1-pulse)) * growV;
-    const ms = aR * 3.1 * growV;
-    sctx.drawImage(magentaGlow, ax-ms/2, ay-ms/2, ms, ms);
-    sctx.globalAlpha = 1;
-    sctx.globalCompositeOperation = "source-over";
+    gctx.globalAlpha = (0.55 + 0.2*pulse) * growV;
+    const gs = aR * 5.2 * growV;
+    gctx.drawImage(tealGlow, ax-gs/2, ay-gs/2, gs, gs);
+    gctx.globalAlpha = (0.3 + 0.14*(1-pulse)) * growV;
+    const ms = aR * 3.3 * growV;
+    gctx.drawImage(magentaGlow, ax-ms/2, ay-ms/2, ms, ms);
+    gctx.globalAlpha = 1;
+    gctx.globalCompositeOperation = "source-over";
 
     for (let li = 0; li < voidLayers.length; li++) {
       const L = voidLayers[li];
@@ -324,7 +329,7 @@
   });
   const drawMist = (dt, growM) => {
     if (!mist) mist = Array.from({ length: 64 }, () => spawnMote(true));
-    sctx.globalCompositeOperation = "lighter";
+    gctx.globalCompositeOperation = "lighter";
     const maxR = aR * 4.4;
     for (const p of mist) {
       p.rad -= (p.pull + 16*(1 - p.rad/maxR)) * dt;
@@ -332,12 +337,12 @@
       if (p.rad < aR*0.95) Object.assign(p, spawnMote(false));
       const x = ax + Math.cos(p.ang)*p.rad, y = ay + Math.sin(p.ang)*p.rad;
       const edgeFade = clamp01((maxR-p.rad)/(aR*0.9)) * clamp01((p.rad-aR)/(aR*0.5));
-      sctx.globalAlpha = p.a * edgeFade * growM;
+      gctx.globalAlpha = p.a * edgeFade * growM;
       const spr = p.tint < 0.1 ? corpseGlow : p.tint < 0.2 ? magentaGlow : tealGlow;
-      sctx.drawImage(spr, x-p.size/2, y-p.size/2, p.size, p.size);
+      gctx.drawImage(spr, x-p.size/2, y-p.size/2, p.size, p.size);
     }
-    sctx.globalAlpha = 1;
-    sctx.globalCompositeOperation = "source-over";
+    gctx.globalAlpha = 1;
+    gctx.globalCompositeOperation = "source-over";
   };
 
   const EYE_ZONES = [[0.16,0.14],[0.84,0.12],[0.12,0.6],[0.88,0.58],[0.5,0.84],[0.2,0.88],[0.8,0.86]];
@@ -400,12 +405,12 @@
     sctx.translate(e.x, e.y);
     sctx.rotate(e.tilt);
     const ry = e.ry * open;
-    sctx.globalCompositeOperation = "lighter";
-    sctx.globalAlpha = 0.36 * open;
+    gctx.globalCompositeOperation = "lighter";
+    gctx.globalAlpha = 0.5 * open;
     const gs = e.rx * 2.6;
-    sctx.drawImage(magentaGlow, -gs/2, -gs/2, gs, gs);
-    sctx.globalAlpha = 1;
-    sctx.globalCompositeOperation = "source-over";
+    gctx.drawImage(magentaGlow, e.x-gs/2, e.y-gs/2, gs, gs);
+    gctx.globalAlpha = 1;
+    gctx.globalCompositeOperation = "source-over";
     sctx.beginPath();
     sctx.moveTo(-e.rx, 0);
     sctx.quadraticCurveTo(0, -ry*2, e.rx, 0);
@@ -486,7 +491,7 @@
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (power <= 0.02) {
       ctx.drawImage(scene, 0, 0);
-      if (shook) { canvas.style.transform = ""; shook = false; }
+      if (shook) { canvas.style.transform = ""; glowCanvas.style.transform = ""; shook = false; }
       return;
     }
     const s = (2 + 8*power) * DPR * rand(0.6, 1.4);
@@ -508,7 +513,9 @@
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.globalCompositeOperation = "source-over";
     }
-    canvas.style.transform = `translate(${(Math.random()*2-1)*3*power}px, ${(Math.random()*2-1)*2*power}px)`;
+    const jx = (Math.random()*2-1)*3*power, jy = (Math.random()*2-1)*2*power;
+    canvas.style.transform = `translate(${jx}px, ${jy}px)`;
+    glowCanvas.style.transform = `translate(${jx}px, ${jy}px)`;
     shook = true;
   };
 
@@ -551,6 +558,7 @@
     dim += (dimTarget - dim)*Math.min(1, dt*6);
 
     sctx.clearRect(0, 0, W, H);
+    gctx.clearRect(0, 0, W, H);
     if (dim > 0.004) { sctx.fillStyle = `rgba(1,3,7,${dim})`; sctx.fillRect(0, 0, W, H); }
     for (const e of gaze.eyes) drawEye(e, eyeOpenness(e, elapsed));
     if (growV > 0.01) drawVoid(elapsed, growV);
@@ -559,17 +567,21 @@
     const hr = aR + 8;
     sctx.drawImage(holeFeather, ax-hr, ay-hr, hr*2, hr*2);
     sctx.globalCompositeOperation = "source-over";
-    sctx.strokeStyle = "rgba(30,200,190,0.7)";
-    sctx.lineWidth = 2;
-    sctx.beginPath();
-    sctx.arc(ax, ay, aR + 1.5, 0, TAU);
-    sctx.stroke();
+    gctx.globalCompositeOperation = "destination-out";
+    const ghr = aR + 4;
+    gctx.drawImage(holeFeather, ax-ghr, ay-ghr, ghr*2, ghr*2);
+    gctx.globalCompositeOperation = "source-over";
+    gctx.strokeStyle = "rgba(30,200,190,0.85)";
+    gctx.lineWidth = 2;
+    gctx.beginPath();
+    gctx.arc(ax, ay, aR + 1.5, 0, TAU);
+    gctx.stroke();
     const rot = elapsed*0.5;
-    sctx.strokeStyle = "rgba(230,45,195,0.8)";
-    sctx.lineWidth = 2;
-    sctx.beginPath();
-    sctx.arc(ax, ay, aR + 1.5, rot, rot + 1.1);
-    sctx.stroke();
+    gctx.strokeStyle = "rgba(230,45,195,0.95)";
+    gctx.lineWidth = 2;
+    gctx.beginPath();
+    gctx.arc(ax, ay, aR + 1.5, rot, rot + 1.1);
+    gctx.stroke();
     drawMist(dt, clamp01(elapsed/1.6));
 
     composite(glitchPower(elapsed));
