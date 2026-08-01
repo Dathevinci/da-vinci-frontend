@@ -5,7 +5,7 @@ import PageTransition from "@/components/layout/PageTransition";
 import { useUser } from "@/hooks/useUser";
 import { isAdmin, isLeadDev, displayArisePoints } from "@/lib/admin";
 import { useToast } from "@/components/ui/Toast";
-import { MountainSnow, ShoppingBag, Sparkles, Check, Diamond, Aperture, CircleDot, Orbit, Snowflake, Flame, Sun, Zap, Leaf, Search, X, LayoutGrid, CloudLightning, CloudFog, Moon, Cog, Target, Trees, Gift, Swords, Flower2, Skull, Sprout, Eye, ArrowRight, Infinity as InfinityIcon, History, Hourglass, Atom, Shell, Tag, Key, Network, Gavel } from "lucide-react";
+import { MountainSnow, ShoppingBag, Sparkles, Check, Diamond, Aperture, CircleDot, Orbit, Snowflake, Flame, Sun, Zap, Leaf, Search, X, LayoutGrid, CloudLightning, CloudFog, Moon, Cog, Target, Trees, Gift, Swords, Flower2, Skull, Sprout, Eye, ArrowRight, Infinity as InfinityIcon, History, Hourglass, Atom, Shell, Tag, Key, Network, Gavel, Layers } from "lucide-react";
 import GiftModal from "@/components/shop/GiftModal";
 import BuyPointsModal from "@/components/shop/BuyPointsModal";
 import { authHeaders } from "@/lib/authToken";
@@ -682,6 +682,12 @@ export default function ShopPage() {
                   {isLeadDev(user) ? <span className="text-fuchsia-400">∞ AP</span> : `${displayArisePoints(user)} AP`}
                 </p>
               </div>
+              <a
+                href="/cards"
+                className="inline-flex h-11 items-center gap-1.5 rounded-xl border border-fuchsia-500/40 bg-fuchsia-500/10 px-4 text-sm font-black text-fuchsia-300 transition hover:bg-fuchsia-500/20"
+              >
+                <Layers className="h-4 w-4" /> Cards
+              </a>
               <a
                 href="/auctions"
                 className="inline-flex h-11 items-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 text-sm font-black text-amber-300 transition hover:bg-amber-500/20"
