@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Layers, Sparkles, Gem, X, Hammer, Recycle, PackageOpen } from "lucide-react";
+import { Layers, Sparkles, Gem, X, Hammer, Recycle, PackageOpen, Users } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { isLeadDev, displayArisePoints } from "@/lib/admin";
 import { authHeaders } from "@/lib/authToken";
@@ -39,6 +39,10 @@ export default function CardsPage() {
   const [reveal, setReveal] = useState<CardDef[] | null>(null);
   const [selected, setSelected] = useState<CardDef | null>(null);
   const [ap, setAp] = useState<number | null>(null);
+  // Whose binder are we looking at? null = mine.
+  const [viewing, setViewing] = useState<{ id: string; username: string } | null>(null);
+  const [collectors, setCollectors] = useState<any[]>([]);
+  const [showCollectors, setShowCollectors] = useState(false);
 
   // Keep the navbar/shop balance in sync after a spend (mirrors the shop's
   // localStorage + event pattern).
@@ -63,12 +67,15 @@ export default function CardsPage() {
   }, []);
 
   const loadCollection = async () => {
-    if (!user) {
+    // When viewing someone else's binder we read THEIR collection; the action
+    // buttons all key off `isMine` so nothing is spendable on their behalf.
+    const targetId = viewing?.id || user?.id;
+    if (!targetId) {
       setLoading(false);
       return;
     }
     try {
-      const r = await fetch(`${API_URL}/api/cards/collection/${user.id}`);
+      const r = await fetch(`${API_URL}/api/cards/collection/${targetId}`);
       const d = await r.json();
       if (d.success) {
         const map: Record<string, number> = {};
@@ -92,7 +99,16 @@ export default function CardsPage() {
   useEffect(() => {
     loadCollection();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [user?.id, viewing?.id]);
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/cards/collectors`)
+      .then((r) => r.json())
+      .then((d) => d.success && setCollectors(d.data || []))
+      .catch(() => {});
+  }, []);
+
+  const isMine = !viewing || viewing.id === user?.id;
 
   const apDisplay = ap !== null ? ap : user?.arisePoints ?? 0;
 
@@ -237,6 +253,12 @@ export default function CardsPage() {
               </p>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowCollectors((v) => !v)}
+                className="flex h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3.5 text-sm font-black text-slate-200 transition hover:bg-white/10"
+              >
+                <Users className="h-4 w-4 text-fuchsia-400" /> Collectors
+              </button>
               <div className="flex h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3.5">
                 <Sparkles className="h-4 w-4 text-fuchsia-400" />
                 <span className="text-sm font-black">{user ? (isLeadDev(user) ? "∞" : displayArisePoints({ ...user, arisePoints: apDisplay } as any)) : "—"} <span className="text-slate-500">AP</span></span>
@@ -248,8 +270,60 @@ export default function CardsPage() {
             </div>
           </div>
 
-          {/* open a pack */}
-          {catalog && (
+          {/* ── collectors board — see who owns what ── */}
+          {showCollectors && (
+            <div className="mb-8 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+              <h3 className="mb-3 text-xs font-black uppercase tracking-widest text-slate-500">Collectors · ranked by distinct cards</h3>
+              {collectors.length === 0 ? (
+                <p className="py-4 text-center text-sm text-slate-500">Nobody has opened a pack yet. Be the first.</p>
+              ) : (
+                <div className="grid gap-1.5 sm:grid-cols-2">
+                  {collectors.map((c, i) => (
+                    <button
+                      key={c.userId}
+                      onClick={() => { setViewing({ id: c.userId, username: c.username }); setShowCollectors(false); }}
+                      className={`flex items-center gap-3 rounded-xl border px-3 py-2 text-left transition ${
+                        viewing?.id === c.userId ? "border-fuchsia-500/50 bg-fuchsia-500/10" : "border-white/5 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.06]"
+                      }`}
+                    >
+                      <span className="w-5 shrink-0 text-center text-xs font-black text-slate-600">{i + 1}</span>
+                      {c.avatar ? (
+                        <img src={c.avatar} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+                      ) : (
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-purple-600 text-xs font-black">{c.username?.[0]?.toUpperCase()}</span>
+                      )}
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-bold text-white">{c.username}</span>
+                        {c.cardTitle && <span className="block truncate text-[10px] font-black uppercase tracking-wider text-amber-300">{c.cardTitle}</span>}
+                      </span>
+                      <span className="shrink-0 text-right">
+                        <span className="block text-sm font-black text-fuchsia-300">{c.distinct}</span>
+                        <span className="block text-[9px] font-bold uppercase tracking-wider text-slate-600">cards</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── viewing someone else's binder ── */}
+          {!isMine && viewing && (
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-fuchsia-500/30 bg-fuchsia-500/[0.07] px-4 py-3">
+              <span className="text-sm font-bold text-fuchsia-100">
+                Viewing <b className="text-white">{viewing.username}</b>&rsquo;s collection — {totalHave} of {totalCards}
+              </span>
+              <button
+                onClick={() => setViewing(null)}
+                className="rounded-full border border-white/15 bg-white/10 px-4 py-1.5 text-xs font-black text-white transition hover:bg-white/20"
+              >
+                Back to mine
+              </button>
+            </div>
+          )}
+
+          {/* open a pack — only on your OWN binder */}
+          {catalog && isMine && (
             <div className="mb-10 flex flex-col items-center gap-3 rounded-3xl border border-fuchsia-500/25 bg-gradient-to-b from-fuchsia-500/[0.08] to-black/40 p-6 text-center">
               <PackageOpen className="h-10 w-10 text-fuchsia-300" />
               <h2 className="text-xl font-black">Ascension Pack</h2>
@@ -323,7 +397,7 @@ export default function CardsPage() {
                       ) : (
                         <button
                           onClick={() => claimSet(set)}
-                          disabled={have < total}
+                          disabled={have < total || !isMine}
                           className="rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-5 py-2 text-xs font-black text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           {have >= total ? "Claim reward" : `${total - have} to go`}
@@ -382,12 +456,12 @@ export default function CardsPage() {
                   <p className="mt-2 text-sm italic leading-relaxed text-slate-400">&ldquo;{selected.flavor}&rdquo;</p>
 
                   <div className="mt-5 space-y-2">
-                    {count > 1 && (
+                    {isMine && count > 1 && (
                       <button onClick={() => dust(selected)} className="flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-500/30 bg-cyan-500/10 py-2.5 text-sm font-black text-cyan-200 transition hover:bg-cyan-500/20">
                         <Recycle className="h-4 w-4" /> Dust {count - 1} dupe{count - 1 === 1 ? "" : "s"} · +{(count - 1) * dustEach} shards
                       </button>
                     )}
-                    {count === 0 && craftable && (
+                    {isMine && count === 0 && craftable && (
                       <button
                         onClick={() => craft(selected)}
                         disabled={shards < cost}
@@ -397,7 +471,7 @@ export default function CardsPage() {
                       </button>
                     )}
                     {/* Foil — shard sink #2. Pure prestige on a card you own. */}
-                    {count > 0 && !foils[selected.id] && selected.rarity !== "event" && (
+                    {isMine && count > 0 && !foils[selected.id] && selected.rarity !== "event" && (
                       <button
                         onClick={() => foilUp(selected)}
                         disabled={shards < (catalog.foilCost[selected.rarity] || 0)}
