@@ -9,6 +9,8 @@ import { authHeaders } from "@/lib/authToken";
 import { useToast } from "@/components/ui/Toast";
 import PageTransition from "@/components/layout/PageTransition";
 import CardFace, { CardDef, RARITY_META } from "@/components/cards/CardFace";
+import DeckBuilder, { loadSavedDeck, saveDeck } from "@/components/cards/DeckBuilder";
+import Arena from "@/components/cards/Arena";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 const DECK_SIZE = 3;
@@ -35,6 +37,8 @@ export default function DuelsPage() {
   const [rating, setRating] = useState<any>(null);
   const [board, setBoard] = useState<any[]>([]);
   const [catalog, setCatalog] = useState<CardDef[]>([]);
+  const [cardStats, setCardStats] = useState<Record<string, { hp: number; atk: number }> | undefined>(undefined);
+  const [foils, setFoils] = useState<Record<string, boolean>>({});
   const [owned, setOwned] = useState<Record<string, number>>({});
   const [shards, setShards] = useState(0);
   const [bag, setBag] = useState<string[]>([]);
@@ -55,8 +59,10 @@ export default function DuelsPage() {
       if (l.success) setBoard(l.data || []);
       if (c.success) {
         const m: Record<string, number> = {};
-        for (const x of c.data.cards) m[x.cardId] = x.count;
+        const fo: Record<string, boolean> = {};
+        for (const x of c.data.cards) { m[x.cardId] = x.count; if (x.foil) fo[x.cardId] = true; }
         setOwned(m);
+        setFoils(fo);
         setShards(c.data.shards || 0);
       }
       // Keep the open board fresh so the opponent's move appears.
@@ -69,7 +75,7 @@ export default function DuelsPage() {
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
-    fetch(`${API_URL}/api/cards/catalog`).then((r) => r.json()).then((d) => d.success && setCatalog(d.data.cards));
+    fetch(`${API_URL}/api/cards/catalog`).then((r) => r.json()).then((d) => { if (!d.success) return; setCatalog(d.data.cards); setCardStats(d.data.cardStats); });
     fetch(`${API_URL}/api/users/${user?.id}`).then((r) => r.json()).then((d) => d?.data?.duelItems && setBag(d.data.duelItems)).catch(() => {});
   }, [user?.id]);
   // Poll while a duel is open — turns arrive without websockets (Render sleeps).
@@ -235,12 +241,12 @@ export default function DuelsPage() {
 
       <AnimatePresence>
         {showChallenge && (
-          <ChallengeModal myCards={myCards} meId={user?.id} onClose={() => setShowChallenge(false)}
+          <ChallengeModal myCards={myCards} meId={user?.id} foils={foils} cardStats={cardStats} onClose={() => setShowChallenge(false)}
             onSend={(opp, stake, deck) => post("", { opponentUsername: opp, stake, deck }, () => { setShowChallenge(false); toast("Challenge sent!", "success"); })}
             busy={busy} />
         )}
         {active && (
-          <DuelBoard duel={active} me={user?.id} byId={byId} myCards={myCards} bag={bag} busy={busy}
+          <DuelBoard duel={active} me={user?.id} byId={byId} myCards={myCards} bag={bag} busy={busy} foils={foils} cardStats={cardStats}
             onClose={() => setActive(null)}
             onAccept={(deck) => post(`${active.id}/accept`, { deck }, () => toast("Duel started!", "success"))}
             onMove={(action) => post(`${active.id}/move`, { action })} />
@@ -278,10 +284,10 @@ function DuelRow({ duel, me, right, onOpen }: { duel: Duel; me?: string; right: 
   );
 }
 
-function ChallengeModal({ myCards, onClose, onSend, busy, meId }: any) {
+function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats }: any) {
   const [opp, setOpp] = useState("");
   const [stake, setStake] = useState("100");
-  const [deck, setDeck] = useState<string[]>([]);
+  const [deck, setDeck] = useState<string[]>(() => loadSavedDeck());
   // Real people, not a name you have to spell from memory. The old free-text
   // field gave no signal whether "davinci" was even an account until the
   // request came back 404.
@@ -357,20 +363,9 @@ function ChallengeModal({ myCards, onClose, onSend, busy, meId }: any) {
               className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm tabular-nums text-white" />
           </label>
         </div>
-        <p className="mb-2 text-xs font-black uppercase tracking-widest text-slate-500">Pick {DECK_SIZE} cards ({deck.length}/{DECK_SIZE})</p>
-        <div className="mb-4 max-h-64 overflow-y-auto rounded-xl border border-white/10 p-3">
-          {myCards.length === 0 ? (
-            <p className="py-6 text-center text-sm text-slate-500">You have no cards yet — open a pack first.</p>
-          ) : (
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-              {myCards.map((c: CardDef) => (
-                <button key={c.id} onClick={() => toggle(c.id)}
-                  className={`rounded-lg p-1 transition ${deck.includes(c.id) ? "bg-rose-500/25 ring-2 ring-rose-400" : "hover:bg-white/5"}`}>
-                  <CardFace card={c} owned size={92} />
-                </button>
-              ))}
-            </div>
-          )}
+        <div className="mb-4">
+          <DeckBuilder myCards={myCards} foils={foils} stats={cardStats} deck={deck}
+            onChange={(d) => { setDeck(d); saveDeck(d); }} compact />
         </div>
         {/* Requires a PICKED member, not just typed text — so a challenge can
             never 404 on a username that was only ever a guess. */}
@@ -387,8 +382,8 @@ function ChallengeModal({ myCards, onClose, onSend, busy, meId }: any) {
   );
 }
 
-function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMove }: any) {
-  const [deck, setDeck] = useState<string[]>([]);
+function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMove, foils, cardStats }: any) {
+  const [deck, setDeck] = useState<string[]>(() => loadSavedDeck());
   const state: DuelState | null = duel.state ? JSON.parse(duel.state) : null;
   const needsAccept = duel.status === "PENDING" && duel.opponentId === me;
   const myTurn = duel.status === "ACTIVE" && duel.turnUserId === me;
@@ -424,16 +419,9 @@ function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMo
 
         {needsAccept ? (
           <>
-            <p className="mb-2 text-xs font-black uppercase tracking-widest text-slate-500">Pick your {DECK_SIZE} ({deck.length}/{DECK_SIZE})</p>
-            <div className="mb-4 max-h-64 overflow-y-auto rounded-xl border border-white/10 p-3">
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-                {myCards.map((c: CardDef) => (
-                  <button key={c.id} onClick={() => toggle(c.id)}
-                    className={`rounded-lg p-1 transition ${deck.includes(c.id) ? "bg-rose-500/25 ring-2 ring-rose-400" : "hover:bg-white/5"}`}>
-                    <CardFace card={c} owned size={92} />
-                  </button>
-                ))}
-              </div>
+            <div className="mb-4">
+              <DeckBuilder myCards={myCards} foils={foils} stats={cardStats} deck={deck}
+                onChange={(d) => { setDeck(d); saveDeck(d); }} compact />
             </div>
             <button disabled={busy || deck.length !== DECK_SIZE} onClick={() => onAccept(deck)}
               className="w-full rounded-xl bg-gradient-to-r from-rose-600 to-orange-600 py-3 font-black text-white disabled:opacity-40">
@@ -442,30 +430,9 @@ function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMo
           </>
         ) : state && mine && foe ? (
           <>
-            <div className="mb-4 grid gap-4 sm:grid-cols-2">
-              {[foe, mine].map((side, idx) => (
-                <div key={idx} className={`rounded-2xl border p-3 ${idx === 1 ? "border-rose-500/30 bg-rose-500/[0.05]" : "border-white/10 bg-white/[0.02]"}`}>
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="text-sm font-black">{idx === 1 ? myName : foeName}</span>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">{side.fighters.filter((f: Fighter) => f.hp > 0).length} standing</span>
-                  </div>
-                  <div className="flex gap-2">
-                    {side.fighters.map((f: Fighter, i: number) => {
-                      const def = byId[f.cardId];
-                      const pct = Math.max(0, (f.hp / f.maxHp) * 100);
-                      return (
-                        <div key={i} className={`flex-1 ${f.hp <= 0 ? "opacity-30 grayscale" : ""} ${i === side.active && f.hp > 0 ? "ring-2 ring-white/40 rounded-lg" : ""}`}>
-                          {def && <CardFace card={def} owned foil={f.foil} size={76} />}
-                          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-black/50">
-                            <div className={`h-full ${pct > 50 ? "bg-emerald-500" : pct > 20 ? "bg-amber-500" : "bg-rose-600"}`} style={{ width: `${pct}%` }} />
-                          </div>
-                          <div className="text-center text-[9px] font-black tabular-nums text-slate-400">{f.hp}/{f.maxHp}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
+            <div className="mb-4">
+              <Arena mine={mine} foe={foe} byId={byId} myName={inDuel ? "You" : duel.opponentName}
+                foeName={foeName} myTurn={myTurn} finished={duel.status === "FINISHED"} />
             </div>
 
             {duel.status === "FINISHED" ? (

@@ -658,19 +658,39 @@ function Motif({ card, dim }: { card: CardDef; dim: boolean }) {
   }
 }
 
+// Combat stat line by rarity — mirrors CARD_STATS on the server. Passed in
+// from the catalog where available so the two can't drift; this is the
+// fallback for surfaces that render before the catalog resolves.
+export const FALLBACK_STATS: Record<CardRarity, { hp: number; atk: number }> = {
+  common: { hp: 10, atk: 3 },
+  rare: { hp: 14, atk: 5 },
+  epic: { hp: 20, atk: 8 },
+  legendary: { hp: 28, atk: 12 },
+  event: { hp: 24, atk: 10 },
+};
+
 export default function CardFace({
   card,
   owned = true,
   count = 0,
   foil = false,
   size = 190,
+  showStats = false,
+  stats,
 }: {
   card: CardDef;
   owned?: boolean;
   count?: number;
   foil?: boolean;
   size?: number;
+  /** Show the ATK/HP badges — what this card actually does in a duel. */
+  showStats?: boolean;
+  stats?: Record<string, { hp: number; atk: number }>;
 }) {
+  const S = (stats || FALLBACK_STATS)[card.rarity] || FALLBACK_STATS.common;
+  const mult = foil ? 1.2 : 1;
+  const atk = Math.round(S.atk * mult);
+  const hp = Math.round(S.hp * mult);
   const R = RARITY_META[card.rarity];
   const h = card.hue;
   const dim = !owned;
@@ -752,6 +772,28 @@ export default function CardFace({
         <span className="absolute -right-1.5 -top-1.5 grid h-6 min-w-6 place-items-center rounded-full border-2 border-[#0b0b12] bg-white px-1.5 text-[11px] font-black text-black">
           ×{count}
         </span>
+      )}
+
+      {/* What this card DOES. Attack bottom-left, health bottom-right, the way
+          every card game puts them — readable at a glance without opening
+          anything. */}
+      {showStats && owned && (
+        <>
+          <span
+            className="absolute -bottom-1 -left-1 grid place-items-center rounded-full border-2 border-[#0b0b12] bg-gradient-to-br from-orange-500 to-red-600 font-black text-white"
+            style={{ width: size * 0.2, height: size * 0.2, fontSize: size * 0.095 }}
+            title={`${atk} attack`}
+          >
+            {atk}
+          </span>
+          <span
+            className="absolute -bottom-1 -right-1 grid place-items-center rounded-full border-2 border-[#0b0b12] bg-gradient-to-br from-emerald-500 to-green-700 font-black text-white"
+            style={{ width: size * 0.2, height: size * 0.2, fontSize: size * 0.095 }}
+            title={`${hp} health`}
+          >
+            {hp}
+          </span>
+        </>
       )}
     </div>
   );
