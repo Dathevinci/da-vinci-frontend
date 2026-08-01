@@ -249,7 +249,7 @@ export default function DuelsPage() {
           <DuelBoard duel={active} me={user?.id} byId={byId} myCards={myCards} bag={bag} busy={busy} foils={foils} cardStats={cardStats}
             onClose={() => setActive(null)}
             onAccept={(deck) => post(`${active.id}/accept`, { deck }, () => toast("Duel started!", "success"))}
-            onMove={(action) => post(`${active.id}/move`, { action })} />
+            onMove={(action: string, index?: number) => post(`${active.id}/move`, { action, index })} />
         )}
       </AnimatePresence>
     </PageTransition>
@@ -404,14 +404,36 @@ function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMo
   const toggle = (id: string) =>
     setDeck((d) => (d.includes(id) ? d.filter((x) => x !== id) : d.length < DECK_SIZE ? [...d, id] : d));
 
+  // A LIVE duel takes the whole screen. Arena is `fixed inset-0` with a dvh
+  // height, so it survives mobile browser chrome and the cards stay readable
+  // on a phone — which they were not inside a modal.
+  if (state && mine && foe && !needsAccept) {
+    const resultText = !inDuel
+      ? `${duel.winnerId === duel.challengerId ? duel.challengerName : duel.opponentName} won`
+      : duel.winnerId === me
+      ? `You won ${(duel.stake * 2 * 0.9).toLocaleString()} AP`
+      : "You lost this duel";
+    return (
+      <Arena
+        mine={mine} foe={foe} byId={byId}
+        myName={myName} foeName={foeName}
+        myTurn={myTurn} finished={duel.status === "FINISHED"} resultText={resultText}
+        bag={bag} busy={busy} log={state.log} stake={duel.stake}
+        onAttack={(i: number) => onMove("attack", i)}
+        onItem={(item: string) => onMove(item)}
+        onClose={onClose}
+      />
+    );
+  }
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-[130] flex items-center justify-center overflow-y-auto bg-black/90 p-4 backdrop-blur" onClick={onClose}>
       <motion.div initial={{ scale: 0.96 }} animate={{ scale: 1 }}
-        className="w-full max-w-3xl rounded-3xl border border-white/15 bg-[#0b0b12] p-6" onClick={(e) => e.stopPropagation()}>
+        className="w-full max-w-3xl rounded-3xl border border-white/15 bg-[#0b0b12] p-4 sm:p-6" onClick={(e) => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-black">{duel.challengerName} vs {duel.opponentName}</h2>
+          <div className="min-w-0">
+            <h2 className="truncate text-lg font-black sm:text-xl">{duel.challengerName} vs {duel.opponentName}</h2>
             <p className="text-xs text-slate-500">{duel.stake.toLocaleString()} AP each · winner takes {(duel.stake * 2 * 0.9).toLocaleString()} (10% burned)</p>
           </div>
           <button onClick={onClose}><X className="h-5 w-5 text-slate-500" /></button>
@@ -427,44 +449,6 @@ function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMo
               className="w-full rounded-xl bg-gradient-to-r from-rose-600 to-orange-600 py-3 font-black text-white disabled:opacity-40">
               Match the {duel.stake.toLocaleString()} AP stake and fight
             </button>
-          </>
-        ) : state && mine && foe ? (
-          <>
-            <div className="mb-4">
-              <Arena mine={mine} foe={foe} byId={byId} myName={inDuel ? "You" : duel.opponentName}
-                foeName={foeName} myTurn={myTurn} finished={duel.status === "FINISHED"} />
-            </div>
-
-            {duel.status === "FINISHED" ? (
-              <div className={`rounded-xl border p-4 text-center font-black ${duel.winnerId === me ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" : "border-white/10 bg-white/5 text-slate-400"}`}>
-                {!inDuel
-                  ? `${duel.winnerId === duel.challengerId ? duel.challengerName : duel.opponentName} won`
-                  : duel.winnerId === me
-                  ? `You won ${(duel.stake * 2 * 0.9).toLocaleString()} AP`
-                  : "You lost this duel"}
-              </div>
-            ) : (
-              <div className="mb-4 flex flex-wrap gap-2">
-                <button disabled={!myTurn || busy} onClick={() => onMove("attack")}
-                  className="flex-1 rounded-xl bg-gradient-to-r from-rose-600 to-orange-600 py-3 font-black text-white disabled:opacity-30">
-                  <Swords className="mr-1.5 inline h-4 w-4" /> {myTurn ? "Attack" : "Waiting for opponent…"}
-                </button>
-                {Object.entries(ITEM_META).map(([id, m]) => {
-                  const held = bag.filter((b: string) => b === id).length;
-                  return (
-                    <button key={id} disabled={!myTurn || busy || held === 0} onClick={() => onMove(id)}
-                      title={`${m.name} — ${m.desc}`}
-                      className="rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-xs font-black disabled:opacity-25">
-                      <m.Icon className={`inline h-4 w-4 ${m.tint}`} /> {held > 0 && <span className="ml-1">{held}</span>}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            <div className="max-h-32 overflow-y-auto rounded-xl border border-white/10 bg-black/40 p-3 text-xs text-slate-400">
-              {[...state.log].reverse().map((l, i) => <div key={i} className={i === 0 ? "font-bold text-white" : ""}>{l}</div>)}
-            </div>
           </>
         ) : (
           <p className="py-10 text-center text-sm text-slate-500">Waiting for the opponent to accept…</p>

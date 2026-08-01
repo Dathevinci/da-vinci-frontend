@@ -2,21 +2,22 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import CardFace, { CardDef, RARITY_META } from "./CardFace";
+import { Swords, X, Heart, Shield, Crosshair, Trophy } from "lucide-react";
+import CardFace, { CardDef } from "./CardFace";
 
 /**
- * THE ARENA — where a duel actually reads as a fight.
+ * THE ARENA — a full-screen battle surface, built mobile-first.
  *
- * The first version was two flat panels of stats side by side; you could tell
- * who was winning by reading numbers, which is not the same as watching a
- * battle. This stages it vertically the way arena games do: the opponent's
- * line up top, yours along the bottom, and the two ACTIVE fighters facing each
- * other across a lit centre strip where the blows land.
+ * Two things drive the layout. First, a duel should own the screen: a modal
+ * on a phone left the board a few hundred pixels tall with the cards too small
+ * to read. This is `fixed inset-0` with a `dvh` height so it survives mobile
+ * browser chrome collapsing, and the only scrolling region is the log.
  *
- * The one piece of real feedback is the hit: when a fighter's HP drops between
- * polls we lunge that side forward, flash the target red and float the damage
- * number. Without it, an opponent's turn arriving by poll is just numbers
- * quietly changing while you look elsewhere.
+ * Second, YOU CHOOSE WHO FIGHTS. Your cards along the bottom are the hand —
+ * tap one to send it in, and it attacks that turn. Because the card you send
+ * also takes the counter-attack, spending a common to absorb a hit is a real
+ * play. That is the whole tactical layer, and it has to be reachable with a
+ * thumb, so the hand sits at the bottom where thumbs actually are.
  */
 
 export interface Fighter {
@@ -27,50 +28,43 @@ export interface ArenaSide {
   userId: string; username: string; fighters: Fighter[]; active: number;
 }
 
-function HealthBar({ f, big }: { f: Fighter; big?: boolean }) {
+const ITEMS = [
+  { id: "heal", name: "Salve", Icon: Heart, tint: "text-rose-300" },
+  { id: "shield", name: "Ward", Icon: Shield, tint: "text-sky-300" },
+  { id: "focus", name: "Focus", Icon: Crosshair, tint: "text-amber-300" },
+];
+
+function Bar({ f, h = 6 }: { f: Fighter; h?: number }) {
   const pct = Math.max(0, (f.hp / f.maxHp) * 100);
   return (
-    <div className={`w-full overflow-hidden rounded-full bg-black/60 ${big ? "h-2" : "h-1.5"}`}>
+    <div className="w-full overflow-hidden rounded-full bg-black/70" style={{ height: h }}>
       <motion.div
         className={`h-full rounded-full ${pct > 50 ? "bg-emerald-500" : pct > 20 ? "bg-amber-500" : "bg-rose-600"}`}
         animate={{ width: `${pct}%` }}
-        transition={{ duration: 0.45, ease: "easeOut" }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
       />
     </div>
   );
 }
 
-/** One fighter as it appears in a side's line-up. */
-function Slot({
-  f, card, isActive, isMine, size,
-}: { f: Fighter; card?: CardDef; isActive: boolean; isMine: boolean; size: number }) {
-  const dead = f.hp <= 0;
-  return (
-    <div className={`flex flex-col items-center gap-1 transition-all ${dead ? "opacity-25 grayscale" : ""}`}
-      style={{ transform: isActive && !dead ? "scale(1.08)" : "scale(0.92)" }}>
-      <div className={`rounded-xl ${isActive && !dead ? (isMine ? "ring-2 ring-rose-400" : "ring-2 ring-sky-400") : ""}`}>
-        {card ? <CardFace card={card} owned foil={f.foil} size={size} /> : <div style={{ width: size, aspectRatio: "5/7" }} className="rounded-lg bg-white/5" />}
-      </div>
-      <div style={{ width: size }}>
-        <HealthBar f={f} big={isActive} />
-        <div className="text-center text-[9px] font-black tabular-nums text-slate-400">{f.hp}/{f.maxHp}</div>
-      </div>
-    </div>
-  );
-}
-
 export default function Arena({
-  mine, foe, byId, myName, foeName, myTurn, finished,
+  mine, foe, byId, myName, foeName, myTurn, finished, resultText,
+  bag = [], busy, log = [], stake,
+  onAttack, onItem, onClose,
 }: {
   mine: ArenaSide; foe: ArenaSide;
   byId: Record<string, CardDef>;
   myName: string; foeName: string;
-  myTurn: boolean; finished: boolean;
+  myTurn: boolean; finished: boolean; resultText?: string;
+  bag?: string[]; busy?: boolean; log?: string[]; stake?: number;
+  onAttack: (index: number) => void;
+  onItem: (item: string) => void;
+  onClose: () => void;
 }) {
   const myActive = mine.fighters[mine.active];
   const foeActive = foe.fighters[foe.active];
 
-  // Detect damage between renders so a hit can be SEEN, not just read.
+  // Damage detection so a hit is SEEN, not just read off a number.
   const prev = useRef<{ mine: number; foe: number } | null>(null);
   const [hit, setHit] = useState<{ side: "mine" | "foe"; amount: number; key: number } | null>(null);
   useEffect(() => {
@@ -83,104 +77,193 @@ export default function Arena({
     prev.current = now;
   }, [myActive?.hp, foeActive?.hp]);
 
+  // Lock the page behind the arena while it owns the screen.
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prevOverflow; };
+  }, []);
+
   const aliveFoe = foe.fighters.filter((f) => f.hp > 0).length;
   const aliveMine = mine.fighters.filter((f) => f.hp > 0).length;
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-white/10"
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[140] flex flex-col"
       style={{
+        height: "100dvh",
         background:
-          "radial-gradient(120% 60% at 50% 0%, rgba(56,110,190,.20), transparent 60%)," +
-          "radial-gradient(120% 60% at 50% 100%, rgba(190,50,70,.20), transparent 60%)," +
-          "linear-gradient(#0a0a12, #0e0d18)",
-      }}>
-      {/* arena floor markings */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.13]"
-        style={{ backgroundImage: "repeating-linear-gradient(0deg, transparent 0 26px, rgba(255,255,255,.5) 26px 27px)" }} />
+          "radial-gradient(90% 45% at 50% 0%, rgba(56,110,190,.28), transparent 62%)," +
+          "radial-gradient(90% 45% at 50% 100%, rgba(190,50,70,.28), transparent 62%)," +
+          "linear-gradient(#080810, #0d0c16)",
+      }}
+    >
+      {/* floor lines */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.10]"
+        style={{ backgroundImage: "repeating-linear-gradient(0deg, transparent 0 30px, rgba(255,255,255,.6) 30px 31px)" }} />
 
-      {/* ── opponent line ── */}
-      <div className="relative px-4 pt-4">
+      {/* ── top bar ── */}
+      <div className="relative flex shrink-0 items-center justify-between px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-sky-500/20 text-[11px] font-black text-sky-200">
+              {foeName[0]?.toUpperCase()}
+            </span>
+            <span className="truncate text-sm font-black text-sky-100">{foeName}</span>
+            <span className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-black text-slate-400">{aliveFoe} left</span>
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {typeof stake === "number" && (
+            <span className="hidden rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-black text-amber-300 sm:inline">
+              {(stake * 2 * 0.9).toLocaleString()} AP pot
+            </span>
+          )}
+          <button onClick={onClose} className="grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-black/40 text-white">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* ── opponent's line ── */}
+      <div className="relative flex shrink-0 items-start justify-center gap-1.5 px-3">
+        {foe.fighters.map((f, i) => (
+          <div key={i} className={`flex flex-col items-center gap-1 transition-all ${f.hp <= 0 ? "opacity-25 grayscale" : ""}`}
+            style={{ transform: i === foe.active && f.hp > 0 ? "scale(1)" : "scale(0.86)" }}>
+            <div className={`rounded-lg ${i === foe.active && f.hp > 0 ? "ring-2 ring-sky-400" : ""}`}>
+              {byId[f.cardId] && <CardFace card={byId[f.cardId]} owned foil={f.foil} size={54} />}
+            </div>
+            <div style={{ width: 54 }}><Bar f={f} h={4} /></div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── the clash ── */}
+      <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-4 py-2">
+        <div className="absolute inset-x-6 top-1/2 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
+
+        <div className="relative flex items-center justify-center gap-4 sm:gap-10">
+          <motion.div animate={hit?.side === "foe" ? { y: [0, 8, 0] } : {}} transition={{ duration: 0.3 }} className="text-center">
+            {foeActive && byId[foeActive.cardId] && (
+              <>
+                <CardFace card={byId[foeActive.cardId]} owned foil={foeActive.foil} size={96} showStats />
+                <p className="mt-1 max-w-[96px] truncate text-[10px] font-bold text-sky-200">{foeActive.name}</p>
+              </>
+            )}
+          </motion.div>
+
+          <div className="flex flex-col items-center gap-1">
+            <span className="text-xl font-black text-white/20 sm:text-3xl">VS</span>
+            <AnimatePresence>
+              {hit && (
+                <motion.span key={hit.key}
+                  initial={{ opacity: 0, scale: 0.6, y: hit.side === "foe" ? 16 : -16 }}
+                  animate={{ opacity: 1, scale: 1.3, y: hit.side === "foe" ? -30 : 30 }}
+                  exit={{ opacity: 0 }} transition={{ duration: 0.8, ease: "easeOut" }}
+                  onAnimationComplete={() => setHit(null)}
+                  className="absolute text-2xl font-black text-rose-400 drop-shadow-[0_2px_10px_rgba(244,63,94,.75)]">
+                  −{hit.amount}
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </div>
+
+          <motion.div animate={hit?.side === "mine" ? { y: [0, -8, 0] } : {}} transition={{ duration: 0.3 }} className="text-center">
+            {myActive && byId[myActive.cardId] && (
+              <>
+                <CardFace card={byId[myActive.cardId]} owned foil={myActive.foil} size={96} showStats />
+                <p className="mt-1 max-w-[96px] truncate text-[10px] font-bold text-rose-200">{myActive.name}</p>
+              </>
+            )}
+          </motion.div>
+        </div>
+
+        <div className={`relative z-10 rounded-full border px-4 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${
+          finished ? "border-white/15 bg-black/50 text-slate-300"
+            : myTurn ? "border-rose-400/50 bg-rose-500/15 text-rose-200"
+            : "border-sky-400/40 bg-sky-500/10 text-sky-200"}`}>
+          {finished ? (resultText || "Duel over") : myTurn ? "Pick a card to send in" : `${foeName} is thinking…`}
+        </div>
+
+        {/* battle log — the only scrolling region */}
+        {log.length > 0 && (
+          <div className="mt-1 max-h-16 w-full max-w-md overflow-y-auto rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-[11px] leading-relaxed text-slate-400">
+            {[...log].reverse().slice(0, 6).map((l, i) => (
+              <div key={i} className={i === 0 ? "font-bold text-white" : ""}>{l}</div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── YOUR HAND — tap a card to send it in ── */}
+      <div className="relative shrink-0 border-t border-white/10 bg-black/50 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
         <div className="mb-2 flex items-center justify-between">
-          <span className="inline-flex items-center gap-2 text-sm font-black text-sky-200">
-            <span className="grid h-6 w-6 place-items-center rounded-full bg-sky-500/20 text-[10px]">{foeName[0]?.toUpperCase()}</span>
-            {foeName}
-          </span>
-          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">{aliveFoe} left</span>
-        </div>
-        <div className="flex items-start justify-center gap-2">
-          {foe.fighters.map((f, i) => (
-            <Slot key={i} f={f} card={byId[f.cardId]} isActive={i === foe.active} isMine={false} size={62} />
-          ))}
-        </div>
-      </div>
-
-      {/* ── the clash strip ── */}
-      <div className="relative my-3 flex items-center justify-center">
-        <div className="absolute inset-x-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
-        <motion.div
-          animate={hit ? { scale: [1, 1.25, 1] } : {}}
-          transition={{ duration: 0.4 }}
-          className="relative z-10 rounded-full border border-white/15 bg-[#0b0b14] px-4 py-1 text-[10px] font-black uppercase tracking-[0.2em]"
-          style={{ color: finished ? "#94a3b8" : myTurn ? "#fda4af" : "#7dd3fc" }}>
-          {finished ? "Duel over" : myTurn ? "Your move" : `${foeName}'s move`}
-        </motion.div>
-
-        {/* damage number floats from the side that got hit */}
-        <AnimatePresence>
-          {hit && (
-            <motion.span
-              key={hit.key}
-              initial={{ opacity: 0, y: hit.side === "foe" ? 10 : -10, scale: 0.7 }}
-              animate={{ opacity: 1, y: hit.side === "foe" ? -34 : 34, scale: 1.25 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.85, ease: "easeOut" }}
-              onAnimationComplete={() => setHit(null)}
-              className="pointer-events-none absolute text-2xl font-black text-rose-400 drop-shadow-[0_2px_10px_rgba(244,63,94,.7)]">
-              −{hit.amount}
-            </motion.span>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* ── the two champions facing off ── */}
-      <div className="relative flex items-center justify-center gap-6 px-4 pb-2">
-        <motion.div animate={hit?.side === "mine" ? { x: [0, -6, 0] } : {}} transition={{ duration: 0.3 }}
-          className={hit?.side === "foe" ? "translate-y-0" : ""}>
-          {foeActive && byId[foeActive.cardId] && (
-            <div className="text-center">
-              <CardFace card={byId[foeActive.cardId]} owned foil={foeActive.foil} size={92} showStats />
-              <p className="mt-1 max-w-[92px] truncate text-[10px] font-bold text-sky-200">{foeActive.name}</p>
-            </div>
-          )}
-        </motion.div>
-
-        <span className="text-2xl font-black text-white/20">VS</span>
-
-        <motion.div animate={hit?.side === "foe" ? { x: [0, 6, 0] } : {}} transition={{ duration: 0.3 }}>
-          {myActive && byId[myActive.cardId] && (
-            <div className="text-center">
-              <CardFace card={byId[myActive.cardId]} owned foil={myActive.foil} size={92} showStats />
-              <p className="mt-1 max-w-[92px] truncate text-[10px] font-bold text-rose-200">{myActive.name}</p>
-            </div>
-          )}
-        </motion.div>
-      </div>
-
-      {/* ── your line ── */}
-      <div className="relative px-4 pb-4">
-        <div className="flex items-start justify-center gap-2">
-          {mine.fighters.map((f, i) => (
-            <Slot key={i} f={f} card={byId[f.cardId]} isActive={i === mine.active} isMine size={62} />
-          ))}
-        </div>
-        <div className="mt-2 flex items-center justify-between">
-          <span className="inline-flex items-center gap-2 text-sm font-black text-rose-200">
+          <span className="flex items-center gap-2 text-sm font-black text-rose-100">
             <span className="grid h-6 w-6 place-items-center rounded-full bg-rose-500/20 text-[10px]">{myName[0]?.toUpperCase()}</span>
             {myName}
           </span>
-          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">{aliveMine} left</span>
+          <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-black text-slate-400">{aliveMine} left</span>
         </div>
+
+        <div className="flex items-end justify-center gap-2">
+          {mine.fighters.map((f, i) => {
+            const dead = f.hp <= 0;
+            const playable = myTurn && !dead && !finished && !busy;
+            return (
+              <motion.button
+                key={i}
+                whileTap={playable ? { scale: 0.94 } : {}}
+                animate={playable && i === mine.active ? { y: [0, -3, 0] } : { y: 0 }}
+                transition={{ duration: 1.6, repeat: playable && i === mine.active ? Infinity : 0 }}
+                disabled={!playable}
+                onClick={() => onAttack(i)}
+                title={dead ? `${f.name} has fallen` : `Send in ${f.name}`}
+                className={`flex flex-col items-center gap-1 rounded-xl p-1 transition ${
+                  dead ? "opacity-25 grayscale" : playable ? "ring-2 ring-rose-400/70" : "opacity-70"
+                }`}
+              >
+                {byId[f.cardId] && <CardFace card={byId[f.cardId]} owned foil={f.foil} size={64} showStats />}
+                <div style={{ width: 64 }}>
+                  <Bar f={f} h={5} />
+                  <div className="text-center text-[9px] font-black tabular-nums text-slate-400">{f.hp}/{f.maxHp}</div>
+                </div>
+              </motion.button>
+            );
+          })}
+        </div>
+
+        {/* items */}
+        {!finished && (
+          <div className="mt-3 flex items-center justify-center gap-2">
+            {ITEMS.map((it) => {
+              const held = bag.filter((b) => b === it.id).length;
+              const usable = myTurn && held > 0 && !busy;
+              return (
+                <button key={it.id} disabled={!usable} onClick={() => onItem(it.id)}
+                  title={`${it.name}${held ? ` ×${held}` : " — none left"}`}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-black disabled:opacity-25">
+                  <it.Icon className={`h-4 w-4 ${it.tint}`} />
+                  {held > 0 && <span className="text-slate-300">{held}</span>}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {finished && (
+          <button onClick={onClose}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-600 to-orange-600 py-3 font-black text-white">
+            <Trophy className="h-4 w-4" /> Leave the arena
+          </button>
+        )}
+
+        {!myTurn && !finished && (
+          <p className="mt-2 text-center text-[11px] font-bold text-slate-500">
+            <Swords className="mr-1 inline h-3 w-3" /> Waiting for {foeName}…
+          </p>
+        )}
       </div>
-    </div>
+    </motion.div>
   );
 }
