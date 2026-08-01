@@ -30,7 +30,7 @@ type Side = {
   // Server-side fields the board reads. They were missing from this type, so
   // `mine.usedSupports` type-checked as an error the build was configured to
   // ignore — it worked by accident rather than by declaration.
-  usedSupports?: string[]; shield?: boolean; block?: boolean; focusMult?: number;
+  usedSupports?: string[]; shield?: boolean; block?: boolean; focus?: boolean; focusMult?: number;
 };
 type DuelState = { a: Side; b: Side; turn: string; log: string[]; round: number };
 type Duel = {

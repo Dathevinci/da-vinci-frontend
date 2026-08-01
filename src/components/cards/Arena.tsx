@@ -39,6 +39,31 @@ export interface Fighter {
 }
 export interface ArenaSide {
   userId: string; username: string; fighters: Fighter[]; active: number;
+  // Buffs the server tracks. They used to be invisible, so you could raise a
+  // Ward and have no way to tell whether it was still up.
+  shield?: boolean; block?: boolean; focus?: boolean; focusMult?: number;
+}
+
+/** The active buffs on a side, spelled out under its champion. */
+function Buffs({ side }: { side: ArenaSide }) {
+  const list: { label: string; cls: string }[] = [];
+  if (side.block) list.push({ label: "Bulwark", cls: "border-violet-400/50 bg-violet-500/25 text-violet-100" });
+  if (side.shield) list.push({ label: "Ward", cls: "border-sky-400/50 bg-sky-500/25 text-sky-100" });
+  if (side.focus) list.push({ label: "Focus +75%", cls: "border-amber-400/50 bg-amber-500/25 text-amber-100" });
+  if (side.focusMult && side.focusMult > 1) {
+    list.push({ label: `Focus ×${side.focusMult}`, cls: "border-amber-400/50 bg-amber-500/25 text-amber-100" });
+  }
+  if (!list.length) return null;
+  return (
+    <div className="mt-1 flex flex-wrap justify-center gap-1">
+      {list.map((b) => (
+        <span key={b.label}
+          className={`rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${b.cls}`}>
+          {b.label}
+        </span>
+      ))}
+    </div>
+  );
 }
 
 const ITEMS = [
@@ -335,7 +360,14 @@ export default function Arena({
 
       {/* ── the clash ── */}
       <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-3 py-1">
-        <div className="pointer-events-none absolute inset-x-4 top-1/2 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
+        {/* The divide runs BETWEEN the two champions, not across them. A
+            horizontal rule in a side-by-side clash cut straight through both
+            cards and read as damage rather than as a boundary.
+            The pools underneath give the left side sky and the right side rose,
+            so the clash zone states who is who even mid-animation. */}
+        <div aria-hidden className="pointer-events-none absolute inset-y-3 left-1/2 w-px bg-gradient-to-b from-transparent via-white/30 to-transparent" />
+        <div aria-hidden className="pointer-events-none absolute inset-y-6 left-0 w-1/2 rounded-r-full bg-[radial-gradient(circle_at_35%_50%,rgba(56,189,248,.10),transparent_70%)]" />
+        <div aria-hidden className="pointer-events-none absolute inset-y-6 right-0 w-1/2 rounded-l-full bg-[radial-gradient(circle_at_65%_50%,rgba(244,63,94,.10),transparent_70%)]" />
 
         <div className="relative flex items-start justify-center gap-3 sm:gap-8">
           {/* THEIR champion — also a drop target, since dragging your card at
@@ -351,6 +383,7 @@ export default function Arena({
                 <CardFace card={byId[foeActive.cardId]} owned foil={foeActive.foil} size={champ} showStats liveHp={foeActive.hp} />
                 <div className="mx-auto mt-1.5" style={{ width: champ }}>
                   <Bar f={foeActive} h={10} showNumbers />
+                  <Buffs side={foe} />
                 </div>
               </div>
             ) : (
@@ -395,6 +428,7 @@ export default function Arena({
                 <CardFace card={byId[myActive.cardId]} owned foil={myActive.foil} size={champ} showStats liveHp={myActive.hp} />
                 <div className="mx-auto mt-1.5" style={{ width: champ }}>
                   <Bar f={myActive} h={10} showNumbers />
+                  <Buffs side={mine} />
                 </div>
                 <AnimatePresence>
                   {heal && heal.index === mine.active && (

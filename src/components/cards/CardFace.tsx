@@ -783,22 +783,37 @@ function CardFaceImpl({
         <circle cx="88.5" cy="12.5" r="4.2" fill={dim ? "#2a2a32" : R.gem} stroke="#07070c" strokeWidth="1" />
         {foil && <circle cx="88.5" cy="12.5" r="6.4" fill="none" stroke={R.gem} strokeWidth="0.7" opacity="0.7" />}
 
-        {/* name plate */}
+        {/* ── Text scales with the CARD, not with the viewBox ──────────────
+            Every label here is sized in viewBox units, so a 4.2u set line on a
+            54px roster card renders at ~2.3 real pixels — illegible grey mush
+            that only adds noise. Below the thresholds the minor lines are
+            dropped and the name grows to use the space they freed, so a small
+            card says one thing clearly instead of three things not at all. */}
         <rect x="7" y="94" width="86" height="19" rx="4" fill="rgba(0,0,0,0.6)" stroke={dim ? "#1e1e26" : R.frame} strokeOpacity="0.3" strokeWidth="0.6" />
-        <text x="50" y="106" textAnchor="middle" fontSize={(card.name || '').length > 17 ? 6.2 : 7.4} fontWeight="800"
+        <text x="50" y={size >= 78 ? 106 : 107.5} textAnchor="middle"
+          fontSize={
+            size >= 90
+              ? ((card.name || "").length > 17 ? 6.2 : 7.4)
+              : ((card.name || "").length > 14 ? 8.4 : 9.8)
+          }
+          fontWeight="800"
           fill={dim ? "#4a4a54" : "#f4f2f7"} style={{ fontFamily: "ui-sans-serif, system-ui" }}>
           {owned ? card.name : "???"}
         </text>
 
-        {/* rarity strip */}
-        <text x="50" y="124" textAnchor="middle" fontSize="5.4" fontWeight="900" letterSpacing="1.6"
-          fill={dim ? "#3a3a44" : R.frame} style={{ fontFamily: "ui-sans-serif, system-ui" }}>
-          {foil ? `FOIL ${R.label.toUpperCase()}` : R.label.toUpperCase()}
-        </text>
-        <text x="50" y="132.5" textAnchor="middle" fontSize="4.2" fontWeight="700" letterSpacing="0.8"
-          fill={dim ? "#2e2e36" : "#8b8b9a"} style={{ fontFamily: "ui-sans-serif, system-ui" }}>
-          {card.set.toUpperCase()}
-        </text>
+        {/* rarity strip — ~4.2px at 78, the floor for a letterspaced caps line */}
+        {size >= 78 && (
+          <text x="50" y="124" textAnchor="middle" fontSize="5.4" fontWeight="900" letterSpacing="1.6"
+            fill={dim ? "#3a3a44" : R.frame} style={{ fontFamily: "ui-sans-serif, system-ui" }}>
+            {foil ? `FOIL ${R.label.toUpperCase()}` : R.label.toUpperCase()}
+          </text>
+        )}
+        {size >= 110 && (
+          <text x="50" y="132.5" textAnchor="middle" fontSize="4.2" fontWeight="700" letterSpacing="0.8"
+            fill={dim ? "#2e2e36" : "#8b8b9a"} style={{ fontFamily: "ui-sans-serif, system-ui" }}>
+            {card.set.toUpperCase()}
+          </text>
+        )}
       </svg>
 
       {count > 1 && owned && (
