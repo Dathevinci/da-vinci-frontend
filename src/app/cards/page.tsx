@@ -24,6 +24,8 @@ type Catalog = {
   foilCost: Record<CardRarity, number>;
   relicPackShards: number;
   setRewards: Record<string, SetReward>;
+  cardStats?: Record<string, { hp: number; atk: number }>;
+  foilMult?: number;
 };
 
 export default function CardsPage() {
@@ -449,19 +451,56 @@ export default function CardsPage() {
             >
               <motion.div
                 initial={{ scale: 0.94, y: 12 }} animate={{ scale: 1, y: 0 }}
-                className="flex w-full max-w-lg flex-col items-center gap-4 rounded-3xl border border-white/15 bg-[#0b0b12] p-6 text-center sm:flex-row sm:items-start sm:text-left"
+                className="flex max-h-[92dvh] w-full max-w-2xl flex-col items-center gap-5 overflow-y-auto rounded-3xl border border-white/15 bg-[#0b0b12] p-6 text-center sm:flex-row sm:items-start sm:text-left"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="shrink-0"><CardFace card={selected} owned={count > 0} count={count} foil={!!foils[selected.id]} size={170} /></div>
+                {/* the card itself, big — this is the trophy shot */}
+                <div className="shrink-0"><CardFace card={selected} owned={count > 0} count={count} foil={!!foils[selected.id]} size={250} showStats stats={catalog.cardStats} /></div>
                 <div className="flex-1">
                   <div className="mb-1 flex items-center justify-center gap-2 sm:justify-start">
                     <span className="rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest" style={{ color: R.frame, background: `${R.frame}22` }}>{R.label}</span>
                     <span className="text-xs font-bold text-slate-500">{selected.set}</span>
+                    {foils[selected.id] && <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-black text-amber-300">✨ FOIL</span>}
                   </div>
                   <h3 className="text-2xl font-black">{count > 0 ? selected.name : "Not yet collected"}</h3>
                   <p className="mt-2 text-sm italic leading-relaxed text-slate-400">&ldquo;{selected.flavor}&rdquo;</p>
 
-                  <div className="mt-5 space-y-2">
+                  {/* ── WHAT IT DOES — the stat block ── */}
+                  {(() => {
+                    const cs = catalog.cardStats?.[selected.rarity] || { atk: 0, hp: 0 };
+                    const m = foils[selected.id] ? 1.2 : 1;
+                    const atk = Math.round(cs.atk * m);
+                    const hp = Math.round(cs.hp * m);
+                    return (
+                      <div className="mt-4 rounded-2xl border border-white/10 bg-black/40 p-3">
+                        <div className="mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">In a duel</div>
+                        <div className="flex gap-2">
+                          <div className="flex flex-1 items-center gap-2 rounded-xl bg-gradient-to-br from-orange-500/15 to-red-600/10 px-3 py-2">
+                            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-orange-500 to-red-600 text-sm font-black text-white">{atk}</span>
+                            <span className="text-left">
+                              <span className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Attack</span>
+                              <span className="block text-[11px] text-slate-300">damage per strike</span>
+                            </span>
+                          </div>
+                          <div className="flex flex-1 items-center gap-2 rounded-xl bg-gradient-to-br from-emerald-500/15 to-green-700/10 px-3 py-2">
+                            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-emerald-500 to-green-700 text-sm font-black text-white">{hp}</span>
+                            <span className="text-left">
+                              <span className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Health</span>
+                              <span className="block text-[11px] text-slate-300">damage it survives</span>
+                            </span>
+                          </div>
+                        </div>
+                        <p className="mt-2 text-left text-[11px] leading-relaxed text-slate-500">
+                          Send it into the arena to strike — but it also takes the counter-attack.
+                          {foils[selected.id]
+                            ? " This foil copy fights 20% harder than a normal one."
+                            : selected.rarity !== "event" && " Foiling it would add 20% to both numbers."}
+                        </p>
+                      </div>
+                    );
+                  })()}
+
+                  <div className="mt-4 space-y-2">
                     {isMine && count > 1 && (
                       <button onClick={() => dust(selected)} className="flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-500/30 bg-cyan-500/10 py-2.5 text-sm font-black text-cyan-200 transition hover:bg-cyan-500/20">
                         <Recycle className="h-4 w-4" /> Dust {count - 1} dupe{count - 1 === 1 ? "" : "s"} · +{(count - 1) * dustEach} shards
