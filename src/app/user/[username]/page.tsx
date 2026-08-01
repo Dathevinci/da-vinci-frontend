@@ -23,6 +23,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getRankTheme } from "@/lib/ranks";
 import { getHeartRank, heartRankTooltip } from "@/lib/heartRanks";
 import { effectNameClass } from "@/lib/effectTheme";
+import { usePreferences } from "@/hooks/usePreferences";
 import { Code2 as IconCode2, ShieldAlert, Sparkles as IconSparkles, Crown as IconCrown, Flame as IconFlame, Zap as IconZap, Compass as IconCompass, Leaf as IconLeaf, ArrowUpRight, Feather as IconFeather, Eye as IconEye } from "lucide-react";
 const ICON_MAP: Record<string, any> = { Code2: IconCode2, ShieldAlert, Sparkles: IconSparkles, Crown: IconCrown, Flame: IconFlame, Zap: IconZap, Compass: IconCompass, Leaf: IconLeaf, ArrowUpRight, Feather: IconFeather, Eye: IconEye };
 import { useToast } from "@/components/ui/Toast";
@@ -46,6 +47,7 @@ import { useNovelModal } from "@/components/providers/NovelModalProvider";
 export default function PublicProfilePage() {
   const { username } = useParams();
   const { user: currentUser, isLoaded: currentUserLoaded, followUser, unfollowUser } = useUser();
+  const { preferences } = usePreferences();
   const { toast } = useToast();
   
   const [profileUser, setProfileUser] = useState<User | null>(null);
@@ -381,8 +383,13 @@ export default function PublicProfilePage() {
             </>
           )}
 
-          {/* Discord-style Profile Effect — plays across the WHOLE card */}
-          <ProfileEffect effect={effectiveEffect} />
+          {/* Discord-style Profile Effect — plays across the WHOLE card.
+              Stood down while the Showcase is up: the overlay is opaque, so
+              this instance would be animating where nobody can see it, and
+              running two instances of the same effect at once means they can
+              fight over module-level state (Mahoraga's ritual cue) or physics
+              registries (Tempest's rain colliders). One instance at a time. */}
+          <ProfileEffect effect={showcaseOpen ? null : effectiveEffect} />
 
           {/* Banner — the user's cover image, or a themed gradient. Taller than
               it was (112 → 144px): this strip is the one part of the card an
@@ -590,8 +597,11 @@ export default function PublicProfilePage() {
             
             {/* Showcase — the equipped effect with the whole viewport to play
                 in. Shown to ANY viewer (seeing someone else's effect properly
-                is half the point of owning one), and only when one is worn. */}
-            {effectiveEffect && (
+                is half the point of owning one), and only when one is worn.
+                Hidden under Performance Mode: ProfileEffect renders nothing
+                when reducedMotion is set, so the button would open a black
+                rectangle with no way to tell it wasn't broken. */}
+            {effectiveEffect && !preferences.reducedMotion && (
               <button
                 onClick={() => setShowcaseOpen(true)}
                 title="View this profile effect full screen"

@@ -58,9 +58,16 @@ export default function ProfileShowcase({
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      // Don't steal Esc from anything stacked above us (a modal, a native
+      // dialog, an IME composition) — only act on a key nobody else claimed.
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      e.preventDefault();
+      onClose();
     };
     document.addEventListener("keydown", onKey);
+    // Restore the value the page had BEFORE this overlay, not a hardcoded ""
+    // — another modal may already be holding the scroll lock. Reading it here
+    // (inside the open branch) means we never capture our own "hidden".
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
@@ -142,8 +149,11 @@ export default function ProfileShowcase({
               transition={{ duration: 0.5, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
               className="flex flex-col items-center gap-2"
             >
+              {/* break-words + a max width: usernames can be long and
+                  unbroken, and at 375px an unwrapped 4xl name runs off BOTH
+                  edges with no way to scroll to it. */}
               <h2
-                className={`text-4xl font-black tracking-tight drop-shadow-2xl sm:text-5xl md:text-6xl ${
+                className={`max-w-[90vw] break-words text-center text-4xl font-black tracking-tight drop-shadow-2xl sm:text-5xl md:text-6xl ${
                   nameClass || "text-white"
                 }`}
               >
