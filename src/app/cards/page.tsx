@@ -508,7 +508,7 @@ export default function CardsPage() {
                     );
                   })()}
 
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+                  <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                     {cards.map((c) => {
                       const count = owned[c.id] || 0;
                       const has = count > 0;
@@ -520,13 +520,10 @@ export default function CardsPage() {
                             background: has ? "rgba(255,255,255,.035)" : "rgba(255,255,255,.012)",
                             boxShadow: `inset 0 0 0 1px ${has ? "rgba(162,116,255,.24)" : "rgba(255,255,255,.05)"}`,
                           }}>
-                          <CardFace card={c} owned={has} count={count} foil={!!foils[c.id]} size={150} />
-                          <span className="flex items-center gap-1.5">
-                            <Stars rarity={c.rarity} size={10} className={has ? "" : "opacity-25 grayscale"} />
-                            {c.rarity === "event" && (
-                              <span className="text-[8px] font-black uppercase tracking-[0.16em]" style={{ color: ACCENT }}>Limited</span>
-                            )}
-                          </span>
+                          {/* The card carries its own name, stars and rarity
+                              badge now that the art is full-bleed, so nothing
+                              is repeated underneath it. */}
+                          <CardFace card={c} owned={has} count={count} foil={!!foils[c.id]} size={216} />
                         </button>
                       );
                     })}
@@ -571,7 +568,7 @@ export default function CardsPage() {
                     <div className="relative flex flex-col items-center gap-6 p-6 text-center sm:flex-row sm:items-start sm:p-7 sm:text-left">
                       {/* the trophy shot */}
                       <div className="shrink-0">
-                        <CardFace card={selected} owned={count > 0} count={count} foil={!!foils[selected.id]} size={250} showStats stats={catalog.cardStats} />
+                        <CardFace card={selected} owned={count > 0} count={count} foil={!!foils[selected.id]} size={300} showStats stats={catalog.cardStats} />
                       </div>
 
                       <div className="min-w-0 flex-1">

@@ -59,6 +59,11 @@ export const RARITY_META: Record<CardRarity, { label: string; frame: string; gem
   event:     { label: "Event",     frame: "#ec4899", gem: "#f9a8d4", glow: "rgba(236,72,153,0.60)",  order: 4 },
 };
 
+/** Rarity as a star count, drawn on the card itself. Mirrors STARS in gacha.tsx. */
+export const STAR_COUNT: Record<CardRarity, number> = {
+  common: 1, rare: 2, epic: 3, legendary: 4, event: 5,
+};
+
 // Deterministic per-card pseudo-random so a card always looks identical.
 function rnd(id: string, salt: number): number {
   let h = salt * 2654435761;
@@ -810,7 +815,15 @@ function CardFaceImpl({
             <stop offset="55%" stopColor="#000" stopOpacity="0" />
             <stop offset="100%" stopColor="#000" stopOpacity="0.62" />
           </radialGradient>
-          <clipPath id={`art-${uid}`}><rect x="7" y="9" width="86" height="78" rx="5" /></clipPath>
+          {/* The scrim the name sits on. Full-bleed art means the title has no
+              plate of its own — it reads against a dark gradient rising off the
+              bottom edge, which is how a card portrait is composed. */}
+          <linearGradient id={`scrim-${uid}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#000" stopOpacity="0" />
+            <stop offset="42%" stopColor="#04030a" stopOpacity="0.72" />
+            <stop offset="100%" stopColor="#04030a" stopOpacity="0.96" />
+          </linearGradient>
+          <clipPath id={`art-${uid}`}><rect x="2.5" y="2.5" width="95" height="135" rx="8" /></clipPath>
         </defs>
 
         {/* card body */}
@@ -820,30 +833,32 @@ function CardFaceImpl({
         {/* art panel */}
         <g clipPath={`url(#art-${uid})`}>
           {/* 1 — sky */}
-          <rect x="7" y="9" width="86" height="78" fill={`url(#sky-${uid})`} />
+          <rect x="2.5" y="2.5" width="95" height="135" fill={`url(#sky-${uid})`} />
           {/* 2 — lit horizon the subject sits against */}
-          <rect x="7" y="9" width="86" height="78" fill={`url(#bloom-${uid})`} />
+          <rect x="2.5" y="2.5" width="95" height="135" fill={`url(#bloom-${uid})`} />
           {/* 3 — receding silhouettes. Two bands at different values is all it
                  takes to read as distance rather than as a backdrop. */}
-          <path d={`M7 ${9 + 58} L${7 + 22} ${9 + 44} L${7 + 38} ${9 + 56} L${7 + 58} ${9 + 38} L${7 + 78} ${9 + 55} L93 ${9 + 50} L93 87 L7 87 Z`}
+          <path d="M2.5 88 L26 72 L44 86 L64 66 L84 84 L97.5 78 L97.5 137.5 L2.5 137.5 Z"
             fill="#000" opacity={dim ? 0.34 : 0.26} />
-          <path d={`M7 ${9 + 66} L${7 + 30} ${9 + 54} L${7 + 52} ${9 + 66} L${7 + 70} ${9 + 57} L93 ${9 + 68} L93 87 L7 87 Z`}
+          <path d="M2.5 100 L32 86 L56 100 L76 90 L97.5 102 L97.5 137.5 L2.5 137.5 Z"
             fill="#000" opacity={dim ? 0.5 : 0.44} />
           {/* 4 — god rays across the frame */}
           {!dim && (
             <g opacity="0.85">
-              {[0, 1, 2, 3].map((i) => (
-                <path key={i} d={`M${18 + i * 21} 9 L${29 + i * 21} 9 L${11 + i * 21} 87 L${2 + i * 21} 87 Z`}
+              {[0, 1, 2, 3, 4].map((i) => (
+                <path key={i} d={`M${14 + i * 23} 2 L${26 + i * 23} 2 L${2 + i * 23} 138 L${-10 + i * 23} 138 Z`}
                   fill={`url(#shaft-${uid})`} />
               ))}
             </g>
           )}
-          {/* 5 — the subject */}
-          <g transform="translate(7, 9) scale(0.86, 0.9)">
+          {/* 5 — the subject. Sits in the upper two thirds; the lower third is
+                 where the scrim and the name go, exactly as a full-bleed card
+                 portrait is composed. */}
+          <g transform="translate(2.5, 4) scale(0.95, 1.16)">
             <Motif card={card} dim={dim} />
           </g>
           {/* 6 — atmosphere in front of it, which is what pushes it back */}
-          <rect x="7" y={9 + 30} width="86" height="34" fill={`url(#haze-${uid})`} />
+          <rect x="2.5" y="46" width="95" height="48" fill={`url(#haze-${uid})`} />
           {/* 7 — drifting particulate. Seeded off the card id so a given card
                  always looks identical rather than reshuffling every render. */}
           {!dim && (
@@ -851,8 +866,8 @@ function CardFaceImpl({
               {(() => {
                 const rand = rng(seedFrom(uid));
                 return Array.from({ length: 14 }, (_, i) => {
-                  const x = 8 + rand() * 84;
-                  const y = 10 + rand() * 76;
+                  const x = 3 + rand() * 94;
+                  const y = 3 + rand() * 92;
                   const r = 0.35 + rand() * 0.85;
                   const o = 0.18 + rand() * 0.5;
                   return <circle key={i} cx={x} cy={y} r={r} fill="#fff" opacity={o} />;
@@ -861,50 +876,63 @@ function CardFaceImpl({
             </g>
           )}
           {/* 8 — specular rim down the lit edge */}
-          <rect x="7" y="9" width="86" height="78" fill={`url(#rim-${uid})`} />
+          <rect x="2.5" y="2.5" width="95" height="135" fill={`url(#rim-${uid})`} />
           {/* 9 — vignette, so the eye lands on the subject */}
-          <rect x="7" y="9" width="86" height="78" fill={`url(#vig-${uid})`} />
-          <rect x="7" y="9" width="86" height="78" fill={`url(#plate-${uid})`} opacity="0.18" />
-          {foil && <rect x="7" y="9" width="86" height="78" fill={`url(#foil-${uid})`} />}
+          <rect x="2.5" y="2.5" width="95" height="135" fill={`url(#vig-${uid})`} />
+          <rect x="2.5" y="2.5" width="95" height="135" fill={`url(#plate-${uid})`} opacity="0.14" />
+          {foil && <rect x="2.5" y="2.5" width="95" height="135" fill={`url(#foil-${uid})`} />}
         </g>
-        <rect x="7" y="9" width="86" height="78" rx="5" fill="none"
-          stroke={dim ? "#26262e" : R.frame} strokeOpacity="0.55" strokeWidth="1" />
+        {/* ── SCRIM ── the name reads against this, not against a plate */}
+        <g clipPath={`url(#art-${uid})`}>
+          <rect x="2.5" y="86" width="95" height="51.5" fill={`url(#scrim-${uid})`} />
+        </g>
 
-        {/* rarity gem */}
-        <circle cx="88.5" cy="12.5" r="4.2" fill={dim ? "#2a2a32" : R.gem} stroke="#07070c" strokeWidth="1" />
-        {foil && <circle cx="88.5" cy="12.5" r="6.4" fill="none" stroke={R.gem} strokeWidth="0.7" opacity="0.7" />}
-
-        {/* ── Text scales with the CARD, not with the viewBox ──────────────
-            Every label here is sized in viewBox units, so a 4.2u set line on a
-            54px roster card renders at ~2.3 real pixels — illegible grey mush
-            that only adds noise. Below the thresholds the minor lines are
-            dropped and the name grows to use the space they freed, so a small
-            card says one thing clearly instead of three things not at all. */}
-        <rect x="7" y="94" width="86" height="19" rx="4" fill="rgba(0,0,0,0.6)" stroke={dim ? "#1e1e26" : R.frame} strokeOpacity="0.3" strokeWidth="0.6" />
-        <text x="50" y={size >= 78 ? 106 : 107.5} textAnchor="middle"
+        {/* ── TITLE ── overlaid on the art, bottom-left, as on a portrait card */}
+        <text x="8" y={size >= 96 ? 118 : 120} textAnchor="start"
           fontSize={
-            size >= 90
-              ? ((card.name || "").length > 17 ? 6.2 : 7.4)
-              : ((card.name || "").length > 14 ? 8.4 : 9.8)
+            size >= 96
+              ? ((card.name || "").length > 18 ? 7.2 : 8.6)
+              : ((card.name || "").length > 14 ? 9 : 10.4)
           }
-          fontWeight="800"
-          fill={dim ? "#4a4a54" : "#f4f2f7"} style={{ fontFamily: "ui-sans-serif, system-ui" }}>
+          fontWeight="900"
+          fill={dim ? "#5a5a66" : "#ffffff"}
+          style={{ fontFamily: "ui-sans-serif, system-ui", paintOrder: "stroke" }}
+          stroke="#04030a" strokeWidth="1.6" strokeOpacity="0.55">
           {owned ? card.name : "???"}
         </text>
 
-        {/* rarity strip — ~4.2px at 78, the floor for a letterspaced caps line */}
-        {size >= 78 && (
-          <text x="50" y="124" textAnchor="middle" fontSize="5.4" fontWeight="900" letterSpacing="1.6"
-            fill={dim ? "#3a3a44" : R.frame} style={{ fontFamily: "ui-sans-serif, system-ui" }}>
-            {foil ? `FOIL ${R.label.toUpperCase()}` : R.label.toUpperCase()}
-          </text>
+        {/* ── STARS ── rarity you read without parsing a word */}
+        {size >= 68 && (
+          <g transform="translate(8, 124)">
+            {Array.from({ length: STAR_COUNT[card.rarity] ?? 1 }, (_, i) => (
+              <path key={i} transform={`translate(${i * 7.4}, 0) scale(0.30)`}
+                d="M12 2.6l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 17.7 6.1 20.8l1.2-6.6L2.5 9.6l6.6-.9z"
+                fill={dim ? "#33333d" : R.gem} stroke="#04030a" strokeWidth="1.4" strokeOpacity="0.5" />
+            ))}
+            {size >= 110 && (
+              <text x={(STAR_COUNT[card.rarity] ?? 1) * 7.4 + 2} y="6" fontSize="4.4" fontWeight="700"
+                letterSpacing="0.7" fill={dim ? "#2e2e36" : "#9aa0b4"}
+                style={{ fontFamily: "ui-sans-serif, system-ui" }}>
+                {card.set.toUpperCase()}
+              </text>
+            )}
+          </g>
         )}
-        {size >= 110 && (
-          <text x="50" y="132.5" textAnchor="middle" fontSize="4.2" fontWeight="700" letterSpacing="0.8"
-            fill={dim ? "#2e2e36" : "#8b8b9a"} style={{ fontFamily: "ui-sans-serif, system-ui" }}>
-            {card.set.toUpperCase()}
-          </text>
+
+        {/* ── CORNER BADGES ── type left, rarity gem right */}
+        {size >= 76 && (
+          <g>
+            <rect x="6" y="6" rx="3" height="11"
+              width={(card.support ? 8 : String(R.label).length) * 3.1 + 8}
+              fill="rgba(4,3,10,.72)" stroke={dim ? "#2a2a32" : R.frame} strokeOpacity="0.55" strokeWidth="0.7" />
+            <text x={10} y="13.7" fontSize="5" fontWeight="900" letterSpacing="0.9"
+              fill={dim ? "#4a4a54" : R.gem} style={{ fontFamily: "ui-sans-serif, system-ui" }}>
+              {card.support ? "SUPPORT" : R.label.toUpperCase()}
+            </text>
+          </g>
         )}
+        <circle cx="90" cy="11.5" r="4.2" fill={dim ? "#2a2a32" : R.gem} stroke="#04030a" strokeWidth="1.2" />
+        {foil && <circle cx="90" cy="11.5" r="6.4" fill="none" stroke={R.gem} strokeWidth="0.7" opacity="0.75" />}
       </svg>
 
       {count > 1 && owned && (
@@ -920,8 +948,8 @@ function CardFaceImpl({
       {owned && card.support && (
         size >= 90 ? (
           <span
-            className="absolute inset-x-1 bottom-1 rounded-md border border-cyan-400/40 bg-cyan-500/20 px-1 py-0.5 text-center font-black leading-tight text-cyan-100 backdrop-blur-sm"
-            style={{ fontSize: Math.max(7, size * 0.055) }}
+            className="absolute inset-x-1 rounded-md border border-cyan-400/40 bg-cyan-500/25 px-1 py-0.5 text-center font-black leading-tight text-cyan-100 backdrop-blur-sm"
+            style={{ fontSize: Math.max(7, size * 0.055), bottom: size * 0.29 }}
             title={supportText(card.support)}
           >
             {supportText(card.support)}
@@ -939,11 +967,13 @@ function CardFaceImpl({
 
       {/* What a UNIT card does. Attack bottom-left, health bottom-right, the
           way every card game puts them — readable at a glance. */}
+      {/* Stats sit bottom-RIGHT now: the name occupies the bottom-left of a
+          full-bleed card, and the old -left-1 badge landed straight on top of it. */}
       {showStats && owned && !card.support && (
         <>
           <span
-            className="absolute -bottom-1 -left-1 grid place-items-center rounded-full border-2 border-[#0b0b12] bg-gradient-to-br from-orange-500 to-red-600 font-black text-white"
-            style={{ width: size * 0.2, height: size * 0.2, fontSize: size * 0.095 }}
+            className="absolute -bottom-1 grid place-items-center rounded-full border-2 border-[#0b0b12] bg-gradient-to-br from-orange-500 to-red-600 font-black text-white"
+            style={{ width: size * 0.2, height: size * 0.2, fontSize: size * 0.095, right: size * 0.19 }}
             title={`${atk} attack`}
           >
             {atk}
