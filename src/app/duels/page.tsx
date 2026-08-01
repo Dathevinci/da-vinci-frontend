@@ -1,0 +1,429 @@
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Swords, Trophy, Shield, Heart, Crosshair, Diamond, Gem, X, Flame } from "lucide-react";
+import { useUser } from "@/hooks/useUser";
+import { displayArisePoints } from "@/lib/admin";
+import { authHeaders } from "@/lib/authToken";
+import { useToast } from "@/components/ui/Toast";
+import PageTransition from "@/components/layout/PageTransition";
+import CardFace, { CardDef, RARITY_META } from "@/components/cards/CardFace";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const DECK_SIZE = 3;
+
+const ITEM_META: Record<string, { name: string; desc: string; shards: number; Icon: any; tint: string }> = {
+  heal:   { name: "Salve", desc: "Restore 10 HP", shards: 120, Icon: Heart, tint: "text-rose-300" },
+  shield: { name: "Ward",  desc: "Halve next damage", shards: 150, Icon: Shield, tint: "text-sky-300" },
+  focus:  { name: "Focus", desc: "+75% next attack", shards: 180, Icon: Crosshair, tint: "text-amber-300" },
+};
+
+type Fighter = { cardId: string; name: string; rarity: any; maxHp: number; hp: number; atk: number; foil: boolean };
+type Side = { userId: string; username: string; fighters: Fighter[]; active: number };
+type DuelState = { a: Side; b: Side; turn: string; log: string[]; round: number };
+type Duel = {
+  id: string; challengerId: string; challengerName: string; opponentId: string; opponentName: string;
+  stake: number; status: string; challengerDeck: string[]; opponentDeck: string[];
+  state: string | null; turnUserId: string | null; winnerId: string | null;
+};
+
+export default function DuelsPage() {
+  const { user } = useUser();
+  const { toast } = useToast();
+  const [duels, setDuels] = useState<Duel[]>([]);
+  const [rating, setRating] = useState<any>(null);
+  const [board, setBoard] = useState<any[]>([]);
+  const [catalog, setCatalog] = useState<CardDef[]>([]);
+  const [owned, setOwned] = useState<Record<string, number>>({});
+  const [shards, setShards] = useState(0);
+  const [bag, setBag] = useState<string[]>([]);
+  const [active, setActive] = useState<Duel | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [showChallenge, setShowChallenge] = useState(false);
+  const [tab, setTab] = useState<"duels" | "ladder">("duels");
+
+  const load = useCallback(async () => {
+    if (!user) return;
+    try {
+      const [d, l, c] = await Promise.all([
+        fetch(`${API_URL}/api/duels/mine/${user.id}`).then((r) => r.json()),
+        fetch(`${API_URL}/api/duels/leaderboard`).then((r) => r.json()),
+        fetch(`${API_URL}/api/cards/collection/${user.id}`).then((r) => r.json()),
+      ]);
+      if (d.success) { setDuels(d.data.duels || []); setRating(d.data.rating); }
+      if (l.success) setBoard(l.data || []);
+      if (c.success) {
+        const m: Record<string, number> = {};
+        for (const x of c.data.cards) m[x.cardId] = x.count;
+        setOwned(m);
+        setShards(c.data.shards || 0);
+      }
+      // Keep the open board fresh so the opponent's move appears.
+      if (active) {
+        const fresh = await fetch(`${API_URL}/api/duels/${active.id}`).then((r) => r.json());
+        if (fresh.success) setActive(fresh.data);
+      }
+    } catch { /* offline */ }
+  }, [user?.id, active?.id]);
+
+  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    fetch(`${API_URL}/api/cards/catalog`).then((r) => r.json()).then((d) => d.success && setCatalog(d.data.cards));
+    fetch(`${API_URL}/api/users/${user?.id}`).then((r) => r.json()).then((d) => d?.data?.duelItems && setBag(d.data.duelItems)).catch(() => {});
+  }, [user?.id]);
+  // Poll while a duel is open — turns arrive without websockets (Render sleeps).
+  useEffect(() => {
+    if (!active || active.status !== "ACTIVE") return;
+    const t = setInterval(load, 4000);
+    return () => clearInterval(t);
+  }, [active?.id, active?.status, load]);
+
+  const post = async (path: string, body: any, ok?: (d: any) => void) => {
+    if (!user) return toast("Sign in first.", "error");
+    setBusy(true);
+    try {
+      const r = await fetch(`${API_URL}/api/duels/${path}`, {
+        method: "POST", headers: authHeaders(), body: JSON.stringify({ userId: user.id, ...body }),
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) { toast(d.message || "That didn't work.", "error"); return; }
+      ok?.(d.data);
+      await load();
+    } catch { toast("That didn't work.", "error"); } finally { setBusy(false); }
+  };
+
+  const byId = Object.fromEntries(catalog.map((c) => [c.id, c]));
+  const myCards = catalog.filter((c) => (owned[c.id] || 0) > 0);
+  const pending = duels.filter((d) => d.status === "PENDING");
+  const running = duels.filter((d) => d.status === "ACTIVE");
+  const done = duels.filter((d) => ["FINISHED", "DECLINED", "EXPIRED"].includes(d.status));
+
+  return (
+    <PageTransition>
+      <div className="min-h-screen bg-[#050505] px-4 pb-24 pt-24 text-white">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h1 className="flex items-center gap-3 text-3xl font-black md:text-4xl">
+                <Swords className="h-8 w-8 text-rose-400" /> Card Duels
+              </h1>
+              <p className="mt-1.5 text-sm text-slate-400">
+                Stake Arise Points, field three cards, and fight for the pot. Rarity is power — and foils hit harder.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {rating && (
+                <div className="flex h-11 items-center gap-2 rounded-xl border border-rose-500/25 bg-rose-500/[0.07] px-3.5">
+                  <Trophy className="h-4 w-4 text-rose-300" />
+                  <span className="text-sm font-black text-rose-100">{rating.rating} <span className="text-rose-400/70">· {rating.wins}W {rating.losses}L</span></span>
+                </div>
+              )}
+              <div className="flex h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3.5">
+                <Diamond className="h-4 w-4 text-fuchsia-400" />
+                <span className="text-sm font-black">{user ? displayArisePoints(user) : "—"} AP</span>
+              </div>
+              <button onClick={() => setShowChallenge(true)}
+                className="inline-flex h-11 items-center gap-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-orange-600 px-4 text-sm font-black text-white transition hover:brightness-110">
+                <Swords className="h-4 w-4" /> Challenge
+              </button>
+            </div>
+          </div>
+
+          {/* tabs */}
+          <div className="mb-6 flex gap-1 border-b border-white/10">
+            {(["duels", "ladder"] as const).map((t) => (
+              <button key={t} onClick={() => setTab(t)}
+                className={`border-b-2 px-5 py-2.5 text-sm font-bold transition ${tab === t ? "border-rose-500 text-white" : "border-transparent text-slate-500 hover:text-white"}`}>
+                {t === "duels" ? "My Duels" : "Ranked Ladder"}
+              </button>
+            ))}
+          </div>
+
+          {tab === "ladder" ? (
+            <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+              {board.length === 0 ? (
+                <p className="py-10 text-center text-sm text-slate-500">No ranked duels yet. Be the first to climb.</p>
+              ) : board.map((r, i) => (
+                <div key={r.userId} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 ${r.userId === user?.id ? "bg-rose-500/10" : i % 2 ? "bg-white/[0.02]" : ""}`}>
+                  <span className={`w-7 text-center text-sm font-black ${i === 0 ? "text-amber-300" : i === 1 ? "text-slate-300" : i === 2 ? "text-orange-400" : "text-slate-600"}`}>{i + 1}</span>
+                  <span className="flex-1 truncate font-bold">{r.username}</span>
+                  {r.streak >= 3 && <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/15 px-2 py-0.5 text-[10px] font-black text-orange-300"><Flame className="h-3 w-3" />{r.streak}</span>}
+                  <span className="text-xs text-slate-500">{r.wins}W {r.losses}L</span>
+                  <span className="w-14 text-right font-black text-rose-300">{r.rating}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* item shop */}
+              <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/[0.04] p-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <h3 className="text-xs font-black uppercase tracking-widest text-cyan-300">Support items</h3>
+                  <span className="inline-flex items-center gap-1.5 text-xs font-black text-cyan-200"><Gem className="h-3.5 w-3.5" />{shards.toLocaleString()} shards</span>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {Object.entries(ITEM_META).map(([id, m]) => {
+                    const held = bag.filter((b) => b === id).length;
+                    return (
+                      <button key={id} disabled={busy || shards < m.shards}
+                        onClick={() => post("buy-item", { item: id }, (d) => { setShards(d.shards); setBag(d.duelItems || []); toast(`Bought ${m.name}`, "success"); })}
+                        className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-left transition hover:border-cyan-500/40 hover:bg-cyan-500/[0.08] disabled:opacity-40">
+                        <m.Icon className={`h-5 w-5 shrink-0 ${m.tint}`} />
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-black">{m.name} {held > 0 && <span className="text-cyan-400">×{held}</span>}</span>
+                          <span className="block text-[11px] text-slate-500">{m.desc} · {m.shards} shards</span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {pending.length > 0 && (
+                <Section title="Challenges">
+                  {pending.map((d) => (
+                    <DuelRow key={d.id} duel={d} me={user?.id} onOpen={() => setActive(d)}
+                      right={
+                        d.opponentId === user?.id ? (
+                          <div className="flex gap-2">
+                            <button onClick={() => setActive(d)} className="rounded-full bg-gradient-to-r from-rose-600 to-orange-600 px-4 py-1.5 text-xs font-black">Accept</button>
+                            <button onClick={() => post(`${d.id}/decline`, {})} className="rounded-full border border-white/15 px-4 py-1.5 text-xs font-black text-slate-300">Decline</button>
+                          </div>
+                        ) : (
+                          <button onClick={() => post(`${d.id}/decline`, {})} className="rounded-full border border-white/15 px-4 py-1.5 text-xs font-black text-slate-400">Cancel</button>
+                        )
+                      } />
+                  ))}
+                </Section>
+              )}
+
+              {running.length > 0 && (
+                <Section title="In progress">
+                  {running.map((d) => (
+                    <DuelRow key={d.id} duel={d} me={user?.id} onOpen={() => setActive(d)}
+                      right={<button onClick={() => setActive(d)}
+                        className={`rounded-full px-4 py-1.5 text-xs font-black ${d.turnUserId === user?.id ? "bg-gradient-to-r from-rose-600 to-orange-600 text-white" : "border border-white/15 text-slate-400"}`}>
+                        {d.turnUserId === user?.id ? "Your turn" : "Waiting"}
+                      </button>} />
+                  ))}
+                </Section>
+              )}
+
+              {done.length > 0 && (
+                <Section title="History">
+                  {done.slice(0, 8).map((d) => (
+                    <DuelRow key={d.id} duel={d} me={user?.id} onOpen={() => d.state && setActive(d)}
+                      right={<span className={`text-xs font-black ${d.winnerId === user?.id ? "text-emerald-400" : d.winnerId ? "text-slate-500" : "text-slate-600"}`}>
+                        {d.winnerId === user?.id ? "Won" : d.winnerId ? "Lost" : d.status.toLowerCase()}
+                      </span>} />
+                  ))}
+                </Section>
+              )}
+
+              {duels.length === 0 && (
+                <div className="flex flex-col items-center gap-3 rounded-3xl border border-white/10 bg-white/[0.02] px-6 py-20 text-center">
+                  <Swords className="h-10 w-10 text-slate-600" />
+                  <p className="text-lg font-bold text-slate-300">No duels yet.</p>
+                  <p className="max-w-sm text-sm text-slate-500">Challenge someone and put your points where your collection is.</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {showChallenge && (
+          <ChallengeModal myCards={myCards} onClose={() => setShowChallenge(false)}
+            onSend={(opp, stake, deck) => post("", { opponentUsername: opp, stake, deck }, () => { setShowChallenge(false); toast("Challenge sent!", "success"); })}
+            busy={busy} />
+        )}
+        {active && (
+          <DuelBoard duel={active} me={user?.id} byId={byId} myCards={myCards} bag={bag} busy={busy}
+            onClose={() => setActive(null)}
+            onAccept={(deck) => post(`${active.id}/accept`, { deck }, () => toast("Duel started!", "success"))}
+            onMove={(action) => post(`${active.id}/move`, { action })} />
+        )}
+      </AnimatePresence>
+    </PageTransition>
+  );
+}
+
+function Section({ title, children }: { title: string; children: any }) {
+  return (
+    <div>
+      <h3 className="mb-2 text-xs font-black uppercase tracking-widest text-slate-500">{title}</h3>
+      <div className="space-y-2">{children}</div>
+    </div>
+  );
+}
+
+function DuelRow({ duel, me, right, onOpen }: { duel: Duel; me?: string; right: any; onOpen: () => void }) {
+  const foe = duel.challengerId === me ? duel.opponentName : duel.challengerName;
+  return (
+    <div onClick={onOpen} className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3 transition hover:border-white/20">
+      <div className="min-w-0">
+        <div className="truncate font-bold">vs {foe}</div>
+        <div className="text-xs text-slate-500">{duel.stake.toLocaleString()} AP staked</div>
+      </div>
+      {right}
+    </div>
+  );
+}
+
+function ChallengeModal({ myCards, onClose, onSend, busy }: any) {
+  const [opp, setOpp] = useState("");
+  const [stake, setStake] = useState("100");
+  const [deck, setDeck] = useState<string[]>([]);
+  const toggle = (id: string) =>
+    setDeck((d) => (d.includes(id) ? d.filter((x) => x !== id) : d.length < DECK_SIZE ? [...d, id] : d));
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[130] flex items-center justify-center overflow-y-auto bg-black/85 p-4 backdrop-blur" onClick={onClose}>
+      <motion.div initial={{ scale: 0.95, y: 12 }} animate={{ scale: 1, y: 0 }}
+        className="w-full max-w-2xl rounded-3xl border border-white/15 bg-[#0b0b12] p-6" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-xl font-black">Send a challenge</h2>
+          <button onClick={onClose}><X className="h-5 w-5 text-slate-500" /></button>
+        </div>
+        <div className="mb-4 grid gap-3 sm:grid-cols-2">
+          <label className="text-xs font-bold text-slate-400">Opponent username
+            <input value={opp} onChange={(e) => setOpp(e.target.value)} placeholder="who are you fighting?"
+              className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white" />
+          </label>
+          <label className="text-xs font-bold text-slate-400">Stake (AP, each side)
+            <input type="number" value={stake} onChange={(e) => setStake(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm tabular-nums text-white" />
+          </label>
+        </div>
+        <p className="mb-2 text-xs font-black uppercase tracking-widest text-slate-500">Pick {DECK_SIZE} cards ({deck.length}/{DECK_SIZE})</p>
+        <div className="mb-4 max-h-64 overflow-y-auto rounded-xl border border-white/10 p-3">
+          {myCards.length === 0 ? (
+            <p className="py-6 text-center text-sm text-slate-500">You have no cards yet — open a pack first.</p>
+          ) : (
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+              {myCards.map((c: CardDef) => (
+                <button key={c.id} onClick={() => toggle(c.id)}
+                  className={`rounded-lg p-1 transition ${deck.includes(c.id) ? "bg-rose-500/25 ring-2 ring-rose-400" : "hover:bg-white/5"}`}>
+                  <CardFace card={c} owned size={92} />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <button disabled={busy || !opp || deck.length !== DECK_SIZE}
+          onClick={() => onSend(opp, Math.floor(Number(stake)) || 0, deck)}
+          className="w-full rounded-xl bg-gradient-to-r from-rose-600 to-orange-600 py-3 font-black text-white transition hover:brightness-110 disabled:opacity-40">
+          {busy ? "Sending…" : `Stake ${Number(stake).toLocaleString()} AP and challenge`}
+        </button>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMove }: any) {
+  const [deck, setDeck] = useState<string[]>([]);
+  const state: DuelState | null = duel.state ? JSON.parse(duel.state) : null;
+  const needsAccept = duel.status === "PENDING" && duel.opponentId === me;
+  const myTurn = duel.status === "ACTIVE" && duel.turnUserId === me;
+  const mine = state ? (state.a.userId === me ? state.a : state.b) : null;
+  const foe = state ? (state.a.userId === me ? state.b : state.a) : null;
+
+  const toggle = (id: string) =>
+    setDeck((d) => (d.includes(id) ? d.filter((x) => x !== id) : d.length < DECK_SIZE ? [...d, id] : d));
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[130] flex items-center justify-center overflow-y-auto bg-black/90 p-4 backdrop-blur" onClick={onClose}>
+      <motion.div initial={{ scale: 0.96 }} animate={{ scale: 1 }}
+        className="w-full max-w-3xl rounded-3xl border border-white/15 bg-[#0b0b12] p-6" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-black">{duel.challengerName} vs {duel.opponentName}</h2>
+            <p className="text-xs text-slate-500">{duel.stake.toLocaleString()} AP each · winner takes {(duel.stake * 2 * 0.9).toLocaleString()} (10% burned)</p>
+          </div>
+          <button onClick={onClose}><X className="h-5 w-5 text-slate-500" /></button>
+        </div>
+
+        {needsAccept ? (
+          <>
+            <p className="mb-2 text-xs font-black uppercase tracking-widest text-slate-500">Pick your {DECK_SIZE} ({deck.length}/{DECK_SIZE})</p>
+            <div className="mb-4 max-h-64 overflow-y-auto rounded-xl border border-white/10 p-3">
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+                {myCards.map((c: CardDef) => (
+                  <button key={c.id} onClick={() => toggle(c.id)}
+                    className={`rounded-lg p-1 transition ${deck.includes(c.id) ? "bg-rose-500/25 ring-2 ring-rose-400" : "hover:bg-white/5"}`}>
+                    <CardFace card={c} owned size={92} />
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button disabled={busy || deck.length !== DECK_SIZE} onClick={() => onAccept(deck)}
+              className="w-full rounded-xl bg-gradient-to-r from-rose-600 to-orange-600 py-3 font-black text-white disabled:opacity-40">
+              Match the {duel.stake.toLocaleString()} AP stake and fight
+            </button>
+          </>
+        ) : state && mine && foe ? (
+          <>
+            <div className="mb-4 grid gap-4 sm:grid-cols-2">
+              {[foe, mine].map((side, idx) => (
+                <div key={idx} className={`rounded-2xl border p-3 ${idx === 1 ? "border-rose-500/30 bg-rose-500/[0.05]" : "border-white/10 bg-white/[0.02]"}`}>
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-sm font-black">{idx === 1 ? "You" : side.username}</span>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">{side.fighters.filter((f: Fighter) => f.hp > 0).length} standing</span>
+                  </div>
+                  <div className="flex gap-2">
+                    {side.fighters.map((f: Fighter, i: number) => {
+                      const def = byId[f.cardId];
+                      const pct = Math.max(0, (f.hp / f.maxHp) * 100);
+                      return (
+                        <div key={i} className={`flex-1 ${f.hp <= 0 ? "opacity-30 grayscale" : ""} ${i === side.active && f.hp > 0 ? "ring-2 ring-white/40 rounded-lg" : ""}`}>
+                          {def && <CardFace card={def} owned foil={f.foil} size={76} />}
+                          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-black/50">
+                            <div className={`h-full ${pct > 50 ? "bg-emerald-500" : pct > 20 ? "bg-amber-500" : "bg-rose-600"}`} style={{ width: `${pct}%` }} />
+                          </div>
+                          <div className="text-center text-[9px] font-black tabular-nums text-slate-400">{f.hp}/{f.maxHp}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {duel.status === "FINISHED" ? (
+              <div className={`rounded-xl border p-4 text-center font-black ${duel.winnerId === me ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" : "border-white/10 bg-white/5 text-slate-400"}`}>
+                {duel.winnerId === me ? `You won ${(duel.stake * 2 * 0.9).toLocaleString()} AP` : "You lost this duel"}
+              </div>
+            ) : (
+              <div className="mb-4 flex flex-wrap gap-2">
+                <button disabled={!myTurn || busy} onClick={() => onMove("attack")}
+                  className="flex-1 rounded-xl bg-gradient-to-r from-rose-600 to-orange-600 py-3 font-black text-white disabled:opacity-30">
+                  <Swords className="mr-1.5 inline h-4 w-4" /> {myTurn ? "Attack" : "Waiting for opponent…"}
+                </button>
+                {Object.entries(ITEM_META).map(([id, m]) => {
+                  const held = bag.filter((b: string) => b === id).length;
+                  return (
+                    <button key={id} disabled={!myTurn || busy || held === 0} onClick={() => onMove(id)}
+                      title={`${m.name} — ${m.desc}`}
+                      className="rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-xs font-black disabled:opacity-25">
+                      <m.Icon className={`inline h-4 w-4 ${m.tint}`} /> {held > 0 && <span className="ml-1">{held}</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="max-h-32 overflow-y-auto rounded-xl border border-white/10 bg-black/40 p-3 text-xs text-slate-400">
+              {[...state.log].reverse().map((l, i) => <div key={i} className={i === 0 ? "font-bold text-white" : ""}>{l}</div>)}
+            </div>
+          </>
+        ) : (
+          <p className="py-10 text-center text-sm text-slate-500">Waiting for the opponent to accept…</p>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}

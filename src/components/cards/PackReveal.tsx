@@ -70,6 +70,42 @@ export default function PackReveal({
         )}
       </AnimatePresence>
 
+      {/* SHOCKWAVE — a ring that punches outward the instant an epic+ lands.
+          Two rings offset in time read as an impact rather than a fade. */}
+      {peakBig && [0, 0.12].map((delay) => (
+        <motion.div
+          key={`ring-${revealed}-${delay}`}
+          initial={{ opacity: 0.9, scale: 0.15 }}
+          animate={{ opacity: 0, scale: 2.2 }}
+          transition={{ duration: 1.0, delay, ease: "easeOut" }}
+          className="pointer-events-none absolute left-1/2 top-1/2 h-[46vmin] w-[46vmin] -translate-x-1/2 -translate-y-1/2 rounded-full"
+          style={{ border: `2px solid ${RARITY_META[peak!.rarity].frame}` }}
+        />
+      ))}
+
+      {/* SPARKS — a burst of embers flung outward, scaled to rarity. This is
+          the bit that makes a legendary feel like an event rather than a card
+          appearing. Fixed angles so it reads as a starburst, not confetti. */}
+      {peakBig && Array.from({ length: RARITY_META[peak!.rarity].order >= 3 ? 26 : 14 }, (_, i, arr) => {
+        const ang = (i / arr.length) * Math.PI * 2;
+        const dist = 24 + (i % 4) * 9;
+        return (
+          <motion.span
+            key={`spark-${revealed}-${i}`}
+            initial={{ opacity: 1, x: 0, y: 0, scale: 1 }}
+            animate={{
+              opacity: 0,
+              x: `${Math.cos(ang) * dist}vmin`,
+              y: `${Math.sin(ang) * dist}vmin`,
+              scale: 0.2,
+            }}
+            transition={{ duration: 1.1 + (i % 3) * 0.25, ease: "easeOut" }}
+            className="pointer-events-none absolute left-1/2 top-1/2 h-1.5 w-1.5 rounded-full"
+            style={{ background: RARITY_META[peak!.rarity].gem, boxShadow: `0 0 8px ${RARITY_META[peak!.rarity].glow}` }}
+          />
+        );
+      })}
+
       {/* god rays for legendary */}
       {peak && RARITY_META[peak.rarity].order >= 3 && (
         <motion.div
@@ -87,9 +123,31 @@ export default function PackReveal({
         />
       )}
 
-      <h3 className="relative z-10 mb-8 text-xs font-black uppercase tracking-[0.3em] text-slate-400">
-        {allOut ? title : "Opening…"}
-      </h3>
+      {/* The call-out. A legendary shouldn't be something you notice later
+          while scanning four cards — it should announce itself. */}
+      <AnimatePresence mode="wait">
+        {peakBig ? (
+          <motion.h3
+            key={`hail-${peak!.id}`}
+            initial={{ opacity: 0, scale: 0.7, letterSpacing: "0.6em" }}
+            animate={{ opacity: 1, scale: 1, letterSpacing: "0.3em" }}
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+            className="relative z-10 mb-8 text-center text-sm font-black uppercase sm:text-lg"
+            style={{ color: RARITY_META[peak!.rarity].gem, textShadow: `0 0 24px ${RARITY_META[peak!.rarity].glow}` }}
+          >
+            {RARITY_META[peak!.rarity].order >= 3 ? "★ LEGENDARY ★" : "EPIC PULL"}
+          </motion.h3>
+        ) : (
+          <motion.h3
+            key="plain"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="relative z-10 mb-8 text-xs font-black uppercase tracking-[0.3em] text-slate-400"
+          >
+            {allOut ? title : "Opening…"}
+          </motion.h3>
+        )}
+      </AnimatePresence>
 
       <div className="relative z-10 flex flex-wrap items-center justify-center gap-4 sm:gap-5">
         {ordered.map((c, i) => {

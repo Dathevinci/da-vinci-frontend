@@ -5,7 +5,7 @@
  *
  * Each card carries a `motif` that selects a genuinely different SCENE (an eye,
  * a mountain, a gate, a drowning sea…), and a `hue` that recolours it. That
- * combination is what stops 21 cards looking like 21 recolours of one shape.
+ * combination is what stops 39 cards looking like 39 recolours of one shape.
  *
  * Layers, back to front: sky gradient → depth haze → the motif → foreground
  * grain/particles → inner border → foil sheen (if foil) → frame + plate.
@@ -15,7 +15,8 @@ export type CardRarity = "common" | "rare" | "epic" | "legendary" | "event";
 export type CardMotif =
   | "eye" | "wheel" | "tendril" | "peak" | "lotus" | "storm" | "gate"
   | "ember" | "moth" | "ripple" | "seed" | "scroll" | "path" | "seal"
-  | "heart" | "sea" | "dawn" | "web";
+  | "heart" | "sea" | "dawn" | "web"
+  | "leviathan" | "trench" | "blade" | "mask" | "bell" | "comet";
 
 export interface CardDef {
   id: string;
@@ -381,6 +382,273 @@ function Motif({ card, dim }: { card: CardDef; dim: boolean }) {
           <path d={lines.join(" ")} stroke={mid} strokeWidth="0.8" fill="none" opacity="0.75" />
           <path d={rings.join(" ")} stroke={bright} strokeWidth="0.7" fill="none" opacity="0.6" />
           <circle cx="50" cy="44" r="3" fill={bright} />
+        </g>
+      );
+    }
+
+    // ── A colossal shape passing beneath the light ─────────────────────────
+    case "leviathan": {
+      const plates: string[] = [];
+      for (let i = 0; i < 9; i++) {
+        const x = 24 + i * 7;
+        const y = 60 + Math.sin(i / 2.2) * 4;
+        plates.push(`M ${x} ${y.toFixed(1)} Q ${x + 3.5} ${(y + 8).toFixed(1)} ${x + 7} ${y.toFixed(1)}`);
+      }
+      return (
+        <g opacity={O}>
+          {/* shafts of surface light falling through the water */}
+          {Array.from({ length: 4 }, (_, i) => (
+            <path key={i} d={`M ${10 + i * 24} 0 L ${22 + i * 24} 0 L ${34 + i * 24 + R(i) * 8} 86 L ${4 + i * 24} 86 Z`}
+              fill={bright} opacity={0.05 + R(i + 5) * 0.05} />
+          ))}
+          {/* a second, further body lost in the haze */}
+          <path d="M -6 60 Q 24 38 56 44 Q 84 49 106 32" stroke={deep} strokeWidth="15" fill="none" opacity="0.3" strokeLinecap="round" />
+          {/* the bulk */}
+          <path d="M -4 68 Q 20 44 50 50 Q 78 55 104 40 L 104 86 L -4 86 Z" fill={ink} />
+          <path d="M -4 68 Q 20 44 50 50 Q 78 55 104 40" stroke={mid} strokeWidth="1.6" fill="none" opacity="0.8" />
+          {/* belly plating */}
+          <path d={plates.join(" ")} stroke={mid} strokeWidth="0.9" fill="none" opacity="0.45" />
+          {/* dorsal spines riding the spine line */}
+          {Array.from({ length: 7 }, (_, i) => {
+            const x = 16 + i * 11;
+            const y = 53 - i * 1.1;
+            return <path key={i} d={`M ${x} ${y.toFixed(1)} L ${x + 3} ${(y - 8 - R(i + 20) * 5).toFixed(1)} L ${x + 6} ${y.toFixed(1)} Z`} fill={deep} opacity="0.9" />;
+          })}
+          {/* tail fluke breaking upward */}
+          <path d="M 6 70 Q 16 58 10 42 Q 23 51 25 66 Q 20 77 6 70 Z" fill={ink} />
+          <path d="M 6 70 Q 16 58 10 42" stroke={bright} strokeWidth="0.9" fill="none" opacity="0.45" />
+          {/* the head, and the eye that is already awake */}
+          <ellipse cx="86" cy="44" rx="15" ry="9" transform="rotate(-14 86 44)" fill={ink} />
+          <path d="M 72 48 Q 86 52 100 46" stroke={mid} strokeWidth="0.9" fill="none" opacity="0.6" />
+          <circle cx="88" cy="42" r="3.6" fill={bright} opacity={dim ? 0.3 : 0.95} />
+          <circle cx="88" cy="42" r="1.4" fill="#05040a" />
+          {/* bubbles going the other way */}
+          {Array.from({ length: 14 }, (_, i) => (
+            <circle key={i} cx={8 + R(i + 40) * 84} cy={6 + R(i + 60) * 42} r={0.6 + R(i + 80) * 1.4}
+              fill={bright} opacity={0.2 + R(i + 100) * 0.35} />
+          ))}
+        </g>
+      );
+    }
+
+    // ── A rift in the seafloor, going down and then further ────────────────
+    case "trench": {
+      const strata: string[] = [];
+      for (let i = 0; i < 7; i++) {
+        const y = 20 + i * 9;
+        strata.push(`M 0 ${y} L ${(29 - i * 2.4 + R(i) * 5).toFixed(1)} ${y + 4}`);
+        strata.push(`M 100 ${y + 3} L ${(71 + i * 2.4 - R(i + 9) * 5).toFixed(1)} ${y + 7}`);
+      }
+      return (
+        <g opacity={O}>
+          {/* the gap itself */}
+          <path d="M 34 0 L 66 0 L 58 86 L 42 86 Z" fill="#03040a" />
+          <path d="M 36 0 L 64 0 L 56 86 L 44 86 Z" fill={`url(#irisGrad-${card.id})`} opacity="0.22" />
+          {/* left wall */}
+          <path d="M 0 0 L 34 0 L 42 86 L 0 86 Z" fill={deep} />
+          <path d="M 0 5 L 29 2 L 39 86 L 0 86 Z" fill={ink} opacity="0.72" />
+          {/* right wall */}
+          <path d="M 66 0 L 100 0 L 100 86 L 58 86 Z" fill={deep} />
+          <path d="M 71 3 L 100 6 L 100 86 L 61 86 Z" fill={ink} opacity="0.72" />
+          {/* strata scoring the rock */}
+          <path d={strata.join(" ")} stroke={mid} strokeWidth="0.7" fill="none" opacity="0.4" />
+          {/* rim light along both lips */}
+          <path d="M 34 0 L 42 86" stroke={bright} strokeWidth="1.1" opacity="0.7" />
+          <path d="M 66 0 L 58 86" stroke={bright} strokeWidth="1.1" opacity="0.7" />
+          {/* vents smoking off the ledges */}
+          {Array.from({ length: 4 }, (_, i) => {
+            const x = i < 2 ? 12 + i * 12 : 72 + (i - 2) * 12;
+            const y = 34 + R(i + 30) * 34;
+            return (
+              <g key={i}>
+                <path d={`M ${x} ${y.toFixed(1)} q -3 -9 1 -16`} stroke={bright} strokeWidth="2.4" fill="none" opacity="0.14" strokeLinecap="round" />
+                <ellipse cx={x} cy={y.toFixed(1)} rx="3.4" ry="1.4" fill={ink} />
+              </g>
+            );
+          })}
+          {/* something lit, very far down */}
+          <ellipse cx="50" cy="74" rx="7" ry="4" fill={bright} opacity={dim ? 0.2 : 0.5} />
+          <ellipse cx="50" cy="74" rx="3" ry="1.6" fill="#fff" opacity={dim ? 0.1 : 0.6} />
+          {/* marine snow falling into it */}
+          {Array.from({ length: 18 }, (_, i) => (
+            <circle key={i} cx={6 + R(i) * 88} cy={4 + R(i + 25) * 78} r={0.5 + R(i + 50) * 1}
+              fill={bright} opacity={0.2 + R(i + 70) * 0.4} />
+          ))}
+        </g>
+      );
+    }
+
+    // ── A drawn blade, rain running off the temper line ────────────────────
+    case "blade": {
+      const hamon: string[] = ["M 33 67"];
+      for (let i = 1; i <= 9; i++) {
+        const t = i / 9;
+        const bx = 33 + t * 50 + Math.sin(i * 1.9) * 1.6;
+        const by = 67 - t * 52 + Math.cos(i * 2.3) * 1.6;
+        hamon.push(`L ${bx.toFixed(1)} ${by.toFixed(1)}`);
+      }
+      return (
+        <g opacity={O}>
+          {/* rain, slanting the other way */}
+          {Array.from({ length: 18 }, (_, i) => (
+            <line key={i} x1={2 + R(i) * 96} y1={R(i + 20) * 78} x2={-1 + R(i) * 96} y2={7 + R(i + 20) * 78 + R(i + 40) * 6}
+              stroke={mid} strokeWidth="0.6" opacity={0.25 + R(i + 60) * 0.3} />
+          ))}
+          {/* the arc the cut left in the air */}
+          <path d="M 14 76 Q 46 58 92 6" stroke={bright} strokeWidth="6" fill="none" opacity={dim ? 0.08 : 0.16} strokeLinecap="round" />
+          <path d="M 16 73 Q 48 56 90 8" stroke={bright} strokeWidth="1.2" fill="none" opacity={dim ? 0.15 : 0.45} strokeLinecap="round" />
+          {/* the blade */}
+          <path d="M 30 68 Q 52 46 84 12 L 87 15 Q 58 48 36 71 Z" fill={ink} />
+          <path d="M 30 68 Q 52 46 84 12 L 87 15 Q 58 48 36 71 Z" fill={bright} opacity={dim ? 0.25 : 0.9} />
+          <path d="M 33 69 Q 55 47 85.5 13.5" stroke="#fff" strokeWidth="0.8" fill="none" opacity={dim ? 0.15 : 0.7} />
+          <path d={hamon.join(" ")} stroke={ink} strokeWidth="0.8" fill="none" opacity="0.5" />
+          {/* the guard */}
+          <ellipse cx="28" cy="70" rx="9" ry="3.2" transform="rotate(-45 28 70)" fill={deep} />
+          <ellipse cx="28" cy="70" rx="9" ry="3.2" transform="rotate(-45 28 70)" fill="none" stroke={bright} strokeWidth="0.8" opacity="0.7" />
+          <circle cx="28" cy="70" r="1.7" fill={ink} />
+          {/* the wrapped grip running off the corner */}
+          <path d="M 26 72 L 12 86 L 6 80 L 20 66 Z" fill={ink} />
+          {Array.from({ length: 6 }, (_, i) => (
+            <line key={i} x1={19 - i * 2.9} y1={67 + i * 2.9} x2={25 - i * 2.9} y2={73 + i * 2.9}
+              stroke={mid} strokeWidth="1.1" opacity={0.75 - i * 0.05} />
+          ))}
+          {/* whatever it just met, at the tip */}
+          <circle cx="86" cy="13" r="6.5" fill={bright} opacity={dim ? 0.1 : 0.3} />
+          <circle cx="86" cy="13" r="2.6" fill="#fff" opacity={dim ? 0.2 : 0.85} />
+          {Array.from({ length: 5 }, (_, i) => {
+            const a = (i / 5) * Math.PI * 2 + R(i + 12);
+            return <line key={i} x1={86 + Math.cos(a) * 4} y1={13 + Math.sin(a) * 4}
+              x2={86 + Math.cos(a) * (9 + R(i + 24) * 5)} y2={13 + Math.sin(a) * (9 + R(i + 24) * 5)}
+              stroke={bright} strokeWidth="0.7" opacity={dim ? 0.2 : 0.65} />;
+          })}
+        </g>
+      );
+    }
+
+    // ── A carved mask, still warm from the face that left it ───────────────
+    case "mask": {
+      const cracks: string[] = [];
+      for (let i = 0; i < 5; i++) {
+        const sx = 34 + R(i) * 30, sy = 24 + R(i + 7) * 34;
+        cracks.push(`M ${sx.toFixed(1)} ${sy.toFixed(1)} l ${(-4 + R(i + 14) * 8).toFixed(1)} ${(5 + R(i + 21) * 8).toFixed(1)} l ${(-3 + R(i + 28) * 6).toFixed(1)} ${(4 + R(i + 35) * 7).toFixed(1)}`);
+      }
+      return (
+        <g opacity={O}>
+          {/* lantern light behind it */}
+          <circle cx="50" cy="42" r="32" fill={bright} opacity={dim ? 0.07 : 0.16} />
+          <circle cx="50" cy="42" r="20" fill={bright} opacity={dim ? 0.06 : 0.12} />
+          {/* the cord it hangs by */}
+          <path d="M 20 30 Q 50 16 80 30" stroke={deep} strokeWidth="1.6" fill="none" opacity="0.8" />
+          {/* horns */}
+          <path d="M 32 26 Q 21 13 25 3 Q 34 12 38 24 Z" fill={deep} />
+          <path d="M 68 26 Q 79 13 75 3 Q 66 12 62 24 Z" fill={deep} />
+          {/* the face */}
+          <path d="M 50 12 C 70 12 78 26 76 44 C 74 64 62 80 50 80 C 38 80 26 64 24 44 C 22 26 30 12 50 12 Z" fill={mid} />
+          <path d="M 50 16 C 66 16 73 28 71 44 C 69 61 60 74 50 74 C 40 74 31 61 29 44 C 27 28 34 16 50 16 Z" fill={deep} opacity="0.45" />
+          {/* brow ridges */}
+          <path d="M 30 36 Q 39 27 46 34 M 70 36 Q 61 27 54 34" stroke={ink} strokeWidth="2.2" fill="none" strokeLinecap="round" />
+          {/* eye holes, and something looking out of them */}
+          <path d="M 32 42 Q 40 35 46 42 Q 39 47 32 42 Z" fill="#04030a" />
+          <path d="M 68 42 Q 60 35 54 42 Q 61 47 68 42 Z" fill="#04030a" />
+          <circle cx="39" cy="41.5" r="1.7" fill={bright} opacity={dim ? 0.3 : 0.95} />
+          <circle cx="61" cy="41.5" r="1.7" fill={bright} opacity={dim ? 0.3 : 0.95} />
+          {/* nose and a mouth full of teeth */}
+          <path d="M 50 43 L 46.5 56 L 53.5 56 Z" fill={ink} opacity="0.65" />
+          <path d="M 36 61 Q 50 73 64 61 Q 50 66 36 61 Z" fill="#04030a" />
+          {Array.from({ length: 6 }, (_, i) => (
+            <rect key={i} x={38.5 + i * 4.2} y="61.5" width="2.3" height={2.6 + R(i) * 2.4} fill={bright} opacity="0.8" />
+          ))}
+          {/* lacquer, gone in the heat */}
+          <path d={cracks.join(" ")} stroke={ink} strokeWidth="0.6" fill="none" opacity="0.5" />
+          <path d="M 34 22 Q 44 16 52 17" stroke="#fff" strokeWidth="1.4" fill="none" opacity={dim ? 0.08 : 0.28} strokeLinecap="round" />
+        </g>
+      );
+    }
+
+    // ── A hung bell, mid-toll ──────────────────────────────────────────────
+    case "bell": {
+      const rings = Array.from({ length: 5 }, (_, i) => 20 + i * 13);
+      return (
+        <g opacity={O}>
+          {/* the sound leaving */}
+          {rings.map((r, i) => (
+            <circle key={i} cx="50" cy="48" r={r} fill="none" stroke={bright}
+              strokeWidth={1.4 - i * 0.2} opacity={(0.45 - i * 0.07) * (dim ? 0.5 : 1)} />
+          ))}
+          {/* the beam it hangs from */}
+          <rect x="2" y="5" width="96" height="7" rx="2" fill={ink} />
+          <rect x="2" y="5" width="96" height="7" rx="2" fill="none" stroke={mid} strokeWidth="0.7" opacity="0.55" />
+          {/* yoke and crown */}
+          <path d="M 46 12 L 46 20 M 54 12 L 54 20" stroke={deep} strokeWidth="3" />
+          <path d="M 43 21 Q 50 13 57 21 Z" fill={deep} />
+          <circle cx="50" cy="19" r="3.4" fill="none" stroke={bright} strokeWidth="1.4" opacity="0.85" />
+          {/* the bell */}
+          <path d="M 50 22 C 34 22 26 42 24 62 L 76 62 C 74 42 66 22 50 22 Z" fill={deep} />
+          <path d="M 50 22 C 40 22 34 42 32 62 L 46 62 C 44 42 44 22 50 22 Z" fill={mid} opacity="0.7" />
+          {/* raised bands of inscription */}
+          {Array.from({ length: 3 }, (_, i) => (
+            <path key={i} d={`M ${29 + i * 6} ${52 - i * 11} Q 50 ${47 - i * 11} ${71 - i * 6} ${52 - i * 11}`}
+              stroke={bright} strokeWidth="0.8" fill="none" opacity={0.3 + R(i) * 0.3} />
+          ))}
+          {/* studs around the waist */}
+          {Array.from({ length: 7 }, (_, i) => (
+            <circle key={i} cx={30 + i * 6.7} cy={49 - Math.abs(3 - i) * 0.9} r="1.2" fill={bright} opacity="0.7" />
+          ))}
+          {/* the flared lip */}
+          <path d="M 22 62 Q 50 56 78 62 Q 50 72 22 62 Z" fill={deep} />
+          <path d="M 22 62 Q 50 56 78 62 Q 50 72 22 62 Z" fill="none" stroke={bright} strokeWidth="1" opacity="0.75" />
+          {/* the clapper, swung out */}
+          <path d="M 52 60 L 56 72" stroke={ink} strokeWidth="1.5" strokeLinecap="round" />
+          <ellipse cx="56.5" cy="74" rx="3.6" ry="4.6" fill={ink} />
+          <ellipse cx="55.2" cy="72.4" rx="1.2" ry="1.8" fill={bright} opacity="0.55" />
+          {/* the striking log on its ropes */}
+          <path d="M 86 12 L 86 58 M 96 12 L 96 56" stroke={mid} strokeWidth="0.8" opacity="0.65" />
+          <rect x="80" y="56" width="22" height="7" rx="3.5" fill={ink} />
+          <rect x="80" y="56" width="22" height="7" rx="3.5" fill="none" stroke={bright} strokeWidth="0.6" opacity="0.55" />
+          <circle cx="82" cy="59.5" r="1.4" fill={bright} opacity="0.6" />
+        </g>
+      );
+    }
+
+    // ── A comet, and the sky it drags behind it ────────────────────────────
+    case "comet": {
+      const stars = Array.from({ length: 40 }, (_, i) => ({
+        x: R(i) * 100,
+        y: R(i + 45) * 70,
+        r: 0.35 + R(i + 90) * 1.05,
+        o: 0.2 + R(i + 135) * 0.6,
+      }));
+      return (
+        <g opacity={O}>
+          {/* the field it is crossing */}
+          {stars.map((s, i) => (
+            <circle key={i} cx={s.x.toFixed(1)} cy={s.y.toFixed(1)} r={s.r.toFixed(2)}
+              fill={i % 5 === 0 ? bright : "#fff"} opacity={s.o} />
+          ))}
+          {/* dust tail: wide, curved, lagging */}
+          <path d="M 74 22 L 2 72 L 8 82 L 78 30 Z" fill={mid} opacity={dim ? 0.14 : 0.32} />
+          {/* ion tail: thin and dead straight */}
+          <path d="M 74 22 L -4 56 L -2 62 L 76 27 Z" fill={bright} opacity={dim ? 0.12 : 0.3} />
+          {/* grain inside the tails */}
+          {Array.from({ length: 9 }, (_, i) => (
+            <line key={i} x1={70 - i * 7} y1={26 + i * 4.4 + R(i) * 5} x2={54 - i * 7} y2={34 + i * 4.4 + R(i) * 5}
+              stroke={bright} strokeWidth="0.7" opacity={0.4 - i * 0.035} />
+          ))}
+          {/* the coma */}
+          <circle cx="76" cy="20" r="15" fill={bright} opacity={dim ? 0.1 : 0.2} />
+          <circle cx="76" cy="20" r="8.5" fill={bright} opacity={dim ? 0.18 : 0.5} />
+          <circle cx="76" cy="20" r="4.4" fill="#fff" opacity={dim ? 0.25 : 0.95} />
+          <path d="M 74 18 L 78 17 L 79.5 21 L 76 23.5 L 73 21 Z" fill={ink} opacity="0.5" />
+          {/* the ridge it appears to be falling behind */}
+          <path d="M 0 74 L 14 68 L 26 74 L 40 63 L 54 74 L 70 65 L 86 74 L 100 69 L 100 86 L 0 86 Z" fill={ink} />
+          <path d="M 0 74 L 14 68 L 26 74 L 40 63 L 54 74 L 70 65 L 86 74 L 100 69" stroke={deep} strokeWidth="1" fill="none" opacity="0.9" />
+          {/* fires lit by whoever is watching it */}
+          {Array.from({ length: 3 }, (_, i) => (
+            <g key={i}>
+              <circle cx={20 + i * 30} cy={79 + R(i) * 3} r={4 + R(i + 5) * 2} fill={bright} opacity={dim ? 0.06 : 0.16} />
+              <circle cx={20 + i * 30} cy={79 + R(i) * 3} r={1.3 + R(i + 5) * 0.9} fill={bright} opacity={dim ? 0.2 : 0.75} />
+            </g>
+          ))}
         </g>
       );
     }

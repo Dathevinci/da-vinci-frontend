@@ -689,6 +689,12 @@ export default function ShopPage() {
                 <Layers className="h-4 w-4" /> Cards
               </a>
               <a
+                href="/duels"
+                className="inline-flex h-11 items-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 text-sm font-black text-rose-300 transition hover:bg-rose-500/20"
+              >
+                <Swords className="h-4 w-4" /> Duels
+              </a>
+              <a
                 href="/auctions"
                 className="inline-flex h-11 items-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 text-sm font-black text-amber-300 transition hover:bg-amber-500/20"
               >
