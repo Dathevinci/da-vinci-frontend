@@ -354,7 +354,7 @@ export default function CardsPage() {
           {catalog && (
             <div className="mb-8 grid gap-2 rounded-2xl border border-cyan-500/15 bg-cyan-500/[0.03] p-4 text-xs text-slate-400 sm:grid-cols-3">
               <div className="flex items-start gap-2"><Recycle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-300" /> <span><b className="text-cyan-200">Dust</b> duplicates into shards — no pull is ever wasted.</span></div>
-              <div className="flex items-start gap-2"><Hammer className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-300" /> <span><b className="text-cyan-200">Craft</b> the exact card luck won't give you, or <b className="text-cyan-200">Foil</b> one you love.</span></div>
+              <div className="flex items-start gap-2"><Hammer className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-300" /> <span><b className="text-cyan-200">Craft</b> the exact card luck won't give you, or <b className="text-cyan-200">Foil</b> one to make it fight <b className="text-cyan-200">20% harder</b> in duels.</span></div>
               <div className="flex items-start gap-2"><Gem className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-300" /> <span><b className="text-cyan-200">Relic packs</b> turn patience into a guaranteed Epic.</span></div>
             </div>
           )}
@@ -470,18 +470,19 @@ export default function CardsPage() {
                         <Hammer className="h-4 w-4" /> Craft · {cost.toLocaleString()} shards {shards < cost && "(need more)"}
                       </button>
                     )}
-                    {/* Foil — shard sink #2. Pure prestige on a card you own. */}
+                    {/* Foil — shard sink #2. Looks incredible AND fights 20%
+                        harder in duels, so the button has to SAY that. */}
                     {isMine && count > 0 && !foils[selected.id] && selected.rarity !== "event" && (
                       <button
                         onClick={() => foilUp(selected)}
                         disabled={shards < (catalog.foilCost[selected.rarity] || 0)}
                         className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 py-2.5 text-sm font-black text-amber-200 transition hover:bg-amber-500/20 disabled:opacity-40"
                       >
-                        <Sparkles className="h-4 w-4" /> Make it Foil · {(catalog.foilCost[selected.rarity] || 0).toLocaleString()} shards
+                        <Sparkles className="h-4 w-4" /> Make it Foil · +20% in duels · {(catalog.foilCost[selected.rarity] || 0).toLocaleString()} shards
                       </button>
                     )}
                     {foils[selected.id] && (
-                      <p className="rounded-xl border border-amber-500/25 bg-amber-500/[0.07] py-2 text-xs font-black text-amber-200">✨ Foil — one of the finest copies on Da Vinci</p>
+                      <p className="rounded-xl border border-amber-500/25 bg-amber-500/[0.07] py-2 text-xs font-black text-amber-200">✨ Foil — fights 20% harder in duels</p>
                     )}
                     {count === 1 && <p className="text-xs text-slate-500">Pull another copy to dust it for shards.</p>}
                     {count === 0 && !craftable && <p className="text-xs text-slate-500">This card only appears during events.</p>}

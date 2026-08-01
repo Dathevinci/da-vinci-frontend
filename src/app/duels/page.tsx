@@ -260,11 +260,17 @@ function Section({ title, children }: { title: string; children: any }) {
 }
 
 function DuelRow({ duel, me, right, onOpen }: { duel: Duel; me?: string; right: any; onOpen: () => void }) {
-  const foe = duel.challengerId === me ? duel.opponentName : duel.challengerName;
+  // Only name an opponent once we know who is looking. Without the `!!me`
+  // guard an unresolved viewer fell through to the challenger's name — so the
+  // challenger saw THEIR OWN name listed as the opponent.
+  const inDuel = !!me && (duel.challengerId === me || duel.opponentId === me);
+  const label = inDuel
+    ? `vs ${duel.challengerId === me ? duel.opponentName : duel.challengerName}`
+    : `${duel.challengerName} vs ${duel.opponentName}`;
   return (
     <div onClick={onOpen} className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3 transition hover:border-white/20">
       <div className="min-w-0">
-        <div className="truncate font-bold">vs {foe}</div>
+        <div className="truncate font-bold">{label}</div>
         <div className="text-xs text-slate-500">{duel.stake.toLocaleString()} AP staked</div>
       </div>
       {right}
@@ -328,8 +334,19 @@ function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMo
   const state: DuelState | null = duel.state ? JSON.parse(duel.state) : null;
   const needsAccept = duel.status === "PENDING" && duel.opponentId === me;
   const myTurn = duel.status === "ACTIVE" && duel.turnUserId === me;
-  const mine = state ? (state.a.userId === me ? state.a : state.b) : null;
-  const foe = state ? (state.a.userId === me ? state.b : state.a) : null;
+
+  // Work out which side is which from the DUEL ROW, which always carries both
+  // names, and only after we actually know who is looking. `me` is undefined on
+  // the first render (useUser hydrates from localStorage in an effect), and the
+  // old `state.a.userId === me` test silently fell through to side B in that
+  // window — which swapped the two players' names on the board.
+  const iAmChallenger = !!me && duel.challengerId === me;
+  const inDuel = !!me && (iAmChallenger || duel.opponentId === me);
+  const mine = state ? (iAmChallenger ? state.a : state.b) : null;
+  const foe = state ? (iAmChallenger ? state.b : state.a) : null;
+  // Labels come from the duel row rather than the serialized state snapshot.
+  const foeName = inDuel ? (iAmChallenger ? duel.opponentName : duel.challengerName) : duel.challengerName;
+  const myName = inDuel ? "You" : duel.opponentName;
 
   const toggle = (id: string) =>
     setDeck((d) => (d.includes(id) ? d.filter((x) => x !== id) : d.length < DECK_SIZE ? [...d, id] : d));
@@ -371,7 +388,7 @@ function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMo
               {[foe, mine].map((side, idx) => (
                 <div key={idx} className={`rounded-2xl border p-3 ${idx === 1 ? "border-rose-500/30 bg-rose-500/[0.05]" : "border-white/10 bg-white/[0.02]"}`}>
                   <div className="mb-2 flex items-center justify-between">
-                    <span className="text-sm font-black">{idx === 1 ? "You" : side.username}</span>
+                    <span className="text-sm font-black">{idx === 1 ? myName : foeName}</span>
                     <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">{side.fighters.filter((f: Fighter) => f.hp > 0).length} standing</span>
                   </div>
                   <div className="flex gap-2">
@@ -395,7 +412,11 @@ function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMo
 
             {duel.status === "FINISHED" ? (
               <div className={`rounded-xl border p-4 text-center font-black ${duel.winnerId === me ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" : "border-white/10 bg-white/5 text-slate-400"}`}>
-                {duel.winnerId === me ? `You won ${(duel.stake * 2 * 0.9).toLocaleString()} AP` : "You lost this duel"}
+                {!inDuel
+                  ? `${duel.winnerId === duel.challengerId ? duel.challengerName : duel.opponentName} won`
+                  : duel.winnerId === me
+                  ? `You won ${(duel.stake * 2 * 0.9).toLocaleString()} AP`
+                  : "You lost this duel"}
               </div>
             ) : (
               <div className="mb-4 flex flex-wrap gap-2">
