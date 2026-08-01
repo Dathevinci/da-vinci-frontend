@@ -61,8 +61,13 @@ export default function Arena({
   onItem: (item: string) => void;
   onClose: () => void;
 }) {
-  const myActive = mine.fighters[mine.active];
-  const foeActive = foe.fighters[foe.active];
+  // active = -1 means that side hasn't deployed yet, so the field is empty.
+  const myActive = mine.active >= 0 ? mine.fighters[mine.active] : undefined;
+  const foeActive = foe.active >= 0 ? foe.fighters[foe.active] : undefined;
+  // Drag-to-deploy state. Tapping does the same thing — drag is the flourish,
+  // tap is the guarantee, because HTML5 drag events don't fire on touch.
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [overField, setOverField] = useState(false);
 
   // Damage detection so a hit is SEEN, not just read off a number.
   const prev = useRef<{ mine: number; foe: number } | null>(null);
@@ -145,11 +150,18 @@ export default function Arena({
 
         <div className="relative flex items-center justify-center gap-4 sm:gap-10">
           <motion.div animate={hit?.side === "foe" ? { y: [0, 8, 0] } : {}} transition={{ duration: 0.3 }} className="text-center">
-            {foeActive && byId[foeActive.cardId] && (
+            {foeActive && byId[foeActive.cardId] ? (
               <>
                 <CardFace card={byId[foeActive.cardId]} owned foil={foeActive.foil} size={96} showStats />
                 <p className="mt-1 max-w-[96px] truncate text-[10px] font-bold text-sky-200">{foeActive.name}</p>
               </>
+            ) : (
+              <div className="grid place-items-center rounded-xl border-2 border-dashed border-sky-500/25"
+                style={{ width: 96, aspectRatio: "5 / 7" }}>
+                <span className="px-2 text-center text-[9px] font-black uppercase tracking-wider text-sky-500/50">
+                  {foeName} hasn&rsquo;t sent anyone
+                </span>
+              </div>
             )}
           </motion.div>
 
@@ -169,12 +181,40 @@ export default function Arena({
             </AnimatePresence>
           </div>
 
-          <motion.div animate={hit?.side === "mine" ? { y: [0, -8, 0] } : {}} transition={{ duration: 0.3 }} className="text-center">
-            {myActive && byId[myActive.cardId] && (
-              <>
+          {/* MY SLOT — also the drop target. Dragging a card here deploys it;
+              tapping the card in hand does the same, since drag events never
+              fire on touch. */}
+          <motion.div
+            animate={hit?.side === "mine" ? { y: [0, -8, 0] } : {}}
+            transition={{ duration: 0.3 }}
+            className="text-center"
+            onDragOver={(e) => { if (dragIdx !== null) { e.preventDefault(); setOverField(true); } }}
+            onDragLeave={() => setOverField(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setOverField(false);
+              if (dragIdx !== null && myTurn && !busy && !finished) onAttack(dragIdx);
+              setDragIdx(null);
+            }}
+          >
+            {myActive && byId[myActive.cardId] ? (
+              <div className={overField ? "rounded-xl ring-2 ring-rose-400" : ""}>
                 <CardFace card={byId[myActive.cardId]} owned foil={myActive.foil} size={96} showStats />
                 <p className="mt-1 max-w-[96px] truncate text-[10px] font-bold text-rose-200">{myActive.name}</p>
-              </>
+              </div>
+            ) : (
+              <motion.div
+                animate={myTurn ? { scale: [1, 1.04, 1] } : {}}
+                transition={{ duration: 1.8, repeat: myTurn ? Infinity : 0 }}
+                className={`grid place-items-center rounded-xl border-2 border-dashed transition ${
+                  overField ? "border-rose-400 bg-rose-500/15" : myTurn ? "border-rose-500/60 bg-rose-500/5" : "border-white/15"
+                }`}
+                style={{ width: 96, aspectRatio: "5 / 7" }}
+              >
+                <span className="px-2 text-center text-[9px] font-black uppercase tracking-wider text-rose-300/70">
+                  {myTurn ? "Drop a card here" : "Empty"}
+                </span>
+              </motion.div>
             )}
           </motion.div>
         </div>
@@ -183,7 +223,11 @@ export default function Arena({
           finished ? "border-white/15 bg-black/50 text-slate-300"
             : myTurn ? "border-rose-400/50 bg-rose-500/15 text-rose-200"
             : "border-sky-400/40 bg-sky-500/10 text-sky-200"}`}>
-          {finished ? (resultText || "Duel over") : myTurn ? "Pick a card to send in" : `${foeName} is thinking…`}
+          {finished
+            ? (resultText || "Duel over")
+            : myTurn
+            ? (mine.active < 0 ? "Send in your first card" : "Drag or tap a card to strike")
+            : `${foeName} is thinking…`}
         </div>
 
         {/* battle log — the only scrolling region */}
@@ -214,13 +258,22 @@ export default function Arena({
               <motion.button
                 key={i}
                 whileTap={playable ? { scale: 0.94 } : {}}
-                animate={playable && i === mine.active ? { y: [0, -3, 0] } : { y: 0 }}
-                transition={{ duration: 1.6, repeat: playable && i === mine.active ? Infinity : 0 }}
+                animate={playable ? { y: [0, -3, 0] } : { y: 0 }}
+                transition={{ duration: 1.6, repeat: playable ? Infinity : 0 }}
                 disabled={!playable}
                 onClick={() => onAttack(i)}
+                // Drag is the flourish; the click above is what actually
+                // guarantees this works, since touch devices fire no drag
+                // events at all.
+                draggable={playable}
+                onDragStart={() => setDragIdx(i)}
+                onDragEnd={() => { setDragIdx(null); setOverField(false); }}
                 title={dead ? `${f.name} has fallen` : `Send in ${f.name}`}
                 className={`flex flex-col items-center gap-1 rounded-xl p-1 transition ${
-                  dead ? "opacity-25 grayscale" : playable ? "ring-2 ring-rose-400/70" : "opacity-70"
+                  dead ? "opacity-25 grayscale"
+                    : dragIdx === i ? "opacity-40"
+                    : playable ? "cursor-grab ring-2 ring-rose-400/70 active:cursor-grabbing"
+                    : "opacity-70"
                 }`}
               >
                 {byId[f.cardId] && <CardFace card={byId[f.cardId]} owned foil={f.foil} size={64} showStats />}

@@ -318,13 +318,16 @@ function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats
     setDeck((d) => (d.includes(id) ? d.filter((x) => x !== id) : d.length < DECK_SIZE ? [...d, id] : d));
 
   return (
+    // Full screen: the deck grid + opponent search never fitted a phone modal,
+    // and on desktop the card art deserves the room.
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[130] flex items-center justify-center overflow-y-auto bg-black/85 p-4 backdrop-blur" onClick={onClose}>
-      <motion.div initial={{ scale: 0.95, y: 12 }} animate={{ scale: 1, y: 0 }}
-        className="w-full max-w-2xl rounded-3xl border border-white/15 bg-[#0b0b12] p-6" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-4 flex items-center justify-between">
+      className="fixed inset-0 z-[130] flex flex-col bg-[#08080e]" style={{ height: "100dvh" }}>
+      <div className="mx-auto flex h-full w-full max-w-3xl flex-col px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
+        <div className="mb-4 flex shrink-0 items-center justify-between">
           <h2 className="text-xl font-black">Send a challenge</h2>
-          <button onClick={onClose}><X className="h-5 w-5 text-slate-500" /></button>
+          <button onClick={onClose} className="grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-white/5">
+            <X className="h-4 w-4 text-slate-300" />
+          </button>
         </div>
         <div className="mb-4 grid gap-3 sm:grid-cols-2">
           <div className="text-xs font-bold text-slate-400">Opponent
@@ -363,13 +366,15 @@ function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats
               className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm tabular-nums text-white" />
           </label>
         </div>
-        <div className="mb-4">
+        {/* the deck grid scrolls; the header and the action button stay put */}
+        <div className="mb-4 min-h-0 flex-1 overflow-y-auto">
           <DeckBuilder myCards={myCards} foils={foils} stats={cardStats} deck={deck}
             onChange={(d) => { setDeck(d); saveDeck(d); }} compact />
         </div>
         {/* Requires a PICKED member, not just typed text — so a challenge can
             never 404 on a username that was only ever a guess. */}
         <button disabled={busy || !picked || deck.length !== DECK_SIZE}
+          style={{ flexShrink: 0 }}
           onClick={() => picked && onSend(picked.username, Math.floor(Number(stake)) || 0, deck)}
           className="w-full rounded-xl bg-gradient-to-r from-rose-600 to-orange-600 py-3 font-black text-white transition hover:brightness-110 disabled:opacity-40">
           {busy ? "Sending…"
@@ -377,7 +382,7 @@ function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats
             : deck.length !== DECK_SIZE ? `Pick ${DECK_SIZE - deck.length} more card${DECK_SIZE - deck.length === 1 ? "" : "s"}`
             : `Challenge ${picked.username} for ${Number(stake).toLocaleString()} AP`}
         </button>
-      </motion.div>
+      </div>
     </motion.div>
   );
 }

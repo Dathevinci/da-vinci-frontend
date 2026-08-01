@@ -86,8 +86,14 @@ export default function PackReveal({
       {/* SPARKS — a burst of embers flung outward, scaled to rarity. This is
           the bit that makes a legendary feel like an event rather than a card
           appearing. Fixed angles so it reads as a starburst, not confetti. */}
-      {peakBig && Array.from({ length: RARITY_META[peak!.rarity].order >= 3 ? 26 : 14 }, (_, i, arr) => {
-        const ang = (i / arr.length) * Math.PI * 2;
+      {peakBig && (() => {
+        // Count lives in a binding, NOT read off the callback's third arg:
+        // Array.from's mapFn is (element, index) ONLY — there is no array
+        // parameter, so `arr.length` was undefined and threw. It fired solely
+        // on epic+ pulls, which is why the crash looked random.
+        const sparks = RARITY_META[peak!.rarity].order >= 3 ? 26 : 14;
+        return Array.from({ length: sparks }, (_, i) => {
+        const ang = (i / sparks) * Math.PI * 2;
         const dist = 24 + (i % 4) * 9;
         return (
           <motion.span
@@ -104,7 +110,8 @@ export default function PackReveal({
             style={{ background: RARITY_META[peak!.rarity].gem, boxShadow: `0 0 8px ${RARITY_META[peak!.rarity].glow}` }}
           />
         );
-      })}
+        });
+      })()}
 
       {/* god rays for legendary */}
       {peak && RARITY_META[peak.rarity].order >= 3 && (
