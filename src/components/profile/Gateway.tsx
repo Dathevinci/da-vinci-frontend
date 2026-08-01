@@ -96,6 +96,18 @@ function useGatewayCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    // Frame snapshot used by the glimpse: a difference fill composites plain
+    // source-over wherever the backdrop is TRANSPARENT, so an unmasked fill
+    // would flood the whole card 92%-white — over the screen blend that means
+    // every word under the canvas goes white-on-white. The snapshot's alpha
+    // masks the inversion back to just the drawn geometry.
+    // Declared BEFORE resize(), which runs immediately and sizes it — putting
+    // this below shipped a TDZ crash ("Cannot access before initialization")
+    // the moment the effect mounted.
+    const snap = document.createElement("canvas");
+    const snapCtx = snap.getContext("2d");
+    if (!snapCtx) return;
+
     let W = 0;
     let H = 0;
     const DPR = Math.min(window.devicePixelRatio || 1, 1.5);
@@ -145,14 +157,6 @@ function useGatewayCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       g.fillRect(0, 0, 256, 256);
       return c;
     })();
-    // Frame snapshot used by the glimpse: a difference fill composites plain
-    // source-over wherever the backdrop is TRANSPARENT, so an unmasked fill
-    // would flood the whole card 92%-white — over the screen blend that means
-    // every word under the canvas goes white-on-white. The snapshot's alpha
-    // masks the inversion back to just the drawn geometry.
-    const snap = document.createElement("canvas");
-    const snapCtx = snap.getContext("2d");
-    if (!snapCtx) return;
 
     let ax = 0, ay = 0, aR = 48;
 
