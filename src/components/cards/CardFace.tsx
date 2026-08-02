@@ -1,6 +1,7 @@
 "use client";
 import { memo, type CSSProperties } from "react";
 import { cardArt } from "@/data/cardArt";
+import { CARD_BLUR } from "@/data/cardBlur";
 
 /**
  * ARISE CARD ART — every card drawn procedurally, no image assets.
@@ -947,6 +948,28 @@ function CardFaceImpl({
         {/* Painted art, over the drawn art. If the file 404s this paints
             nothing and the motif underneath is what you see — the failure is
             unreachable rather than handled. */}
+        {/* FIRST PAINT. A 14px version of the same painting, inlined in the
+            bundle and blurred up. It is on screen before any request is made,
+            so the card starts as a soft version of its own art rather than as
+            the drawn motif — the real image then resolves on top of it and the
+            visible swap you noticed on a cold load disappears.
+            Scaled past the edges because a blur samples past its own bounds
+            and would otherwise show a pale rim. */}
+        {owned && painted && CARD_BLUR[card.id] && (
+          <span
+            aria-hidden
+            style={{
+              position: "absolute",
+              inset: 0,
+              backgroundImage: `url(${CARD_BLUR[card.id]})`,
+              backgroundSize: "cover",
+              backgroundPosition: "50% 50%",
+              filter: "blur(10px)",
+              transform: "scale(1.12)",
+            }}
+          />
+        )}
+
         {owned && painted && (
           <img
             src={painted}
