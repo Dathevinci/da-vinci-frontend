@@ -201,5 +201,25 @@ body.theme-crimson::after {
    Below lg the mobile bar is still at the top and still needs the clearance,
    so this is scoped to the desktop breakpoint only. */
 @media (min-width: 1024px) {
-  .pt-24 { padding-top: 2rem; }
+  /* Scoped to PAGE SHELLS, not the utility everywhere. Shells pair the top
+     padding with min-h-screen; inner sections that legitimately want py-20
+     do not, so their spacing is untouched. Two classes also out-specify the
+     single-class utility.
+
+     The py-* entries set padding-top ONLY — the utility keeps supplying the
+     bottom padding, which is still wanted now that a floating bar sits down
+     there. */
+  .min-h-screen.pt-16,
+  .min-h-screen.pt-20,
+  .min-h-screen.pt-24,
+  .min-h-screen.pt-28,
+  .min-h-screen.pt-32,
+  .min-h-screen.pt-40,
+  .min-h-screen.py-16,
+  .min-h-screen.py-20,
+  .min-h-screen.py-24,
+  .min-h-screen.py-32,
+  .min-h-screen.py-40 {
+    padding-top: 2rem;
+  }
 }
