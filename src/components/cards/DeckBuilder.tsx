@@ -40,9 +40,14 @@ export default function DeckBuilder({
   deck,
   onChange,
   compact = false,
+  asleep = {},
 }: {
   myCards: CardDef[];
   foils?: Record<string, boolean>;
+  /** cardId -> true when the card fell in a lost duel. It cannot be fielded
+   *  until it is woken, and the server refuses the deck outright — so it has
+   *  to be visibly unpickable HERE rather than rejected after you commit. */
+  asleep?: Record<string, boolean>;
   stats?: Record<string, { hp: number; atk: number }>;
   deck: string[];
   onChange: (deck: string[]) => void;
@@ -152,11 +157,32 @@ export default function DeckBuilder({
           <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8">
             {units.map((c) => {
               const picked = deck.includes(c.id);
+              // A sleeping card is refused by the server, so it is refused
+              // here. Letting you pick one only to have the whole challenge
+              // bounce with "X is hibernating" is the same answer, delivered
+              // after you have committed to it.
+              const out = !!asleep[c.id];
               return (
-                <button key={c.id} onClick={() => toggle(c.id)}
-                  className={`relative flex justify-center rounded-lg p-1 transition hover:-translate-y-0.5 ${picked ? "bg-rose-500/25 ring-2 ring-rose-400" : "hover:bg-white/5"}`}>
-                  <CardFace card={c} owned foil={foils[c.id]} size={compact ? 92 : 118} showStats stats={S} />
-                  {picked && (
+                <button
+                  key={c.id}
+                  onClick={() => { if (!out) toggle(c.id); }}
+                  disabled={out}
+                  title={out ? `${c.name} is asleep — wake it with shards, or pull another copy` : c.name}
+                  className={`relative flex justify-center rounded-lg p-1 transition ${
+                    out
+                      ? "cursor-not-allowed"
+                      : `hover:-translate-y-0.5 ${picked ? "bg-rose-500/25 ring-2 ring-rose-400" : "hover:bg-white/5"}`
+                  }`}
+                >
+                  <span className={out ? "opacity-45 grayscale" : ""}>
+                    <CardFace card={c} owned foil={foils[c.id]} size={compact ? 92 : 118} showStats stats={S} />
+                  </span>
+                  {out && (
+                    <span className="pointer-events-none absolute inset-x-1 top-1/2 -translate-y-1/2 bg-[#061228]/90 py-1 text-center text-[9px] font-black uppercase tracking-[0.18em] text-sky-200 ring-1 ring-sky-400/50">
+                      Asleep
+                    </span>
+                  )}
+                  {picked && !out && (
                     <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-rose-500 text-white">
                       <Check className="h-3 w-3" />
                     </span>

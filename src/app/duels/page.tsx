@@ -57,6 +57,8 @@ export default function DuelsPage() {
   const [abilities, setAbilities] = useState<Record<string, any>>({});
   const [catalogFailed, setCatalogFailed] = useState(false);
   const [foils, setFoils] = useState<Record<string, boolean>>({});
+  // cardId -> true when it fell in a lost duel and cannot be fielded.
+  const [asleep, setAsleep] = useState<Record<string, boolean>>({});
   const [owned, setOwned] = useState<Record<string, number>>({});
   const [shards, setShards] = useState(0);
   const [bag, setBag] = useState<string[]>([]);
@@ -101,9 +103,18 @@ export default function DuelsPage() {
       if (c.success) {
         const m: Record<string, number> = {};
         const fo: Record<string, boolean> = {};
-        for (const x of c.data?.cards || []) { m[x.cardId] = x.count; if (x.foil) fo[x.cardId] = true; }
+        const sl: Record<string, boolean> = {};
+        for (const x of c.data?.cards || []) {
+          m[x.cardId] = x.count;
+          if (x.foil) fo[x.cardId] = true;
+          // Captured so the deck picker can grey a sleeping card out. Without
+          // it the picker showed every card as available and the server threw
+          // the deck back only after you had committed to the challenge.
+          if (x.hibernating) sl[x.cardId] = true;
+        }
         setOwned((p) => keep(p, m));
         setFoils((p) => keep(p, fo));
+        setAsleep((p) => keep(p, sl));
         setShards(c.data.shards || 0);
       }
       // Keep the open board fresh so the opponent's move appears.
@@ -403,12 +414,12 @@ export default function DuelsPage() {
 
       <AnimatePresence>
         {showChallenge && (
-          <ChallengeModal myCards={myCards} meId={user?.id} foils={foils} cardStats={cardStats} onClose={() => setShowChallenge(false)}
+          <ChallengeModal myCards={myCards} meId={user?.id} foils={foils} asleep={asleep} cardStats={cardStats} onClose={() => setShowChallenge(false)}
             onSend={(opp, stake, deck) => post("", { opponentUsername: opp, stake, deck }, () => { setShowChallenge(false); toast("Challenge sent!", "success"); })}
             busy={busy} />
         )}
         {active && (
-          <DuelBoard duel={active} me={user?.id} byId={byId} myCards={myCards} bag={bag} busy={busy} foils={foils} cardStats={cardStats} abilityIds={abilityIds}
+          <DuelBoard duel={active} me={user?.id} byId={byId} myCards={myCards} bag={bag} busy={busy} foils={foils} cardStats={cardStats} abilityIds={abilityIds} abilities={abilities} asleep={asleep}
            
             onClose={() => setActive(null)}
             onAccept={(deck) => post(`${active.id}/accept`, { deck }, () => toast("Duel started!", "success"))}
@@ -456,7 +467,7 @@ function DuelRow({ duel, me, right, onOpen }: { duel: Duel; me?: string; right: 
   );
 }
 
-function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats }: any) {
+function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats, asleep = {} }: any) {
   const [opp, setOpp] = useState("");
   const [stake, setStake] = useState("100");
   const stakeNum = Math.floor(Number(stake)) || 0;
@@ -553,7 +564,7 @@ function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats
         </div>
         {/* the deck grid scrolls; the header and the action button stay put */}
         <div className="mb-4 min-h-0 flex-1 overflow-y-auto">
-          <DeckBuilder myCards={myCards} foils={foils} stats={cardStats} deck={deck}
+          <DeckBuilder myCards={myCards} foils={foils} asleep={asleep} stats={cardStats} deck={deck}
             onChange={(d) => { setDeck(d); saveDeck(d); }} />
         </div>
         {/* Requires a PICKED member, not just typed text — so a challenge can
@@ -573,7 +584,7 @@ function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats
   );
 }
 
-function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMove, onForfeit, foils, cardStats, abilityIds }: any) {
+function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMove, onForfeit, foils, cardStats, abilityIds, abilities, asleep = {} }: any) {
   const [deck, setDeck] = useState<string[]>(() => loadSavedDeck());
   // Parsed once per state STRING, not once per render. DuelBoard re-renders
   // whenever anything on the page moves (busy, bag, a toast), and re-parsing
@@ -653,7 +664,7 @@ function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMo
         {needsAccept ? (
           <>
             <div className="-mx-1 mb-4 min-h-0 flex-1 overflow-y-auto px-1">
-              <DeckBuilder myCards={myCards} foils={foils} stats={cardStats} deck={deck}
+              <DeckBuilder myCards={myCards} foils={foils} asleep={asleep} stats={cardStats} deck={deck}
                 onChange={(d) => { setDeck(d); saveDeck(d); }} compact />
             </div>
             <button disabled={busy || deck.length !== DECK_SIZE} onClick={() => onAccept(deck)}
