@@ -28,9 +28,6 @@ export interface User {
   purchasedColors?: string[];
   purchasedFonts?: string[];
   purchasedFrames?: string[];
-  // Arena effects dress the DUEL BOARD, not the profile, so they get their own
-  // inventory and their own equipped slot rather than sharing activeEffect.
-  purchasedArenaEffects?: string[];
 
   activeRole?: string;
   activeTag?: string;
@@ -39,9 +36,6 @@ export interface User {
   activeColor?: string;
   activeFont?: string;
   activeFrame?: string;
-  activeArenaEffect?: string | null;
-  /** Arena Cache pity — duplicates opened since the last new arena. */
-  arenaChestPity?: number;
 }
 
 let isSyncing = false;

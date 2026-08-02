@@ -11,7 +11,6 @@ import PageTransition from "@/components/layout/PageTransition";
 import { CardDef } from "@/components/cards/CardFace";
 import DeckBuilder, { loadSavedDeck, saveDeck } from "@/components/cards/DeckBuilder";
 import Arena, { duelPayout } from "@/components/cards/Arena";
-import ArenaOptIn from "@/components/cards/ArenaOptIn";
 import { notch, ACCENT } from "@/components/cards/gacha";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -383,15 +382,15 @@ export default function DuelsPage() {
 
       <AnimatePresence>
         {showChallenge && (
-          <ChallengeModal myCards={myCards} meId={user?.id} foils={foils} cardStats={cardStats} myArena={user?.activeArenaEffect} onClose={() => setShowChallenge(false)}
-            onSend={(opp, stake, deck, useArena) => post("", { opponentUsername: opp, stake, deck, useArena }, () => { setShowChallenge(false); toast("Challenge sent!", "success"); })}
+          <ChallengeModal myCards={myCards} meId={user?.id} foils={foils} cardStats={cardStats} onClose={() => setShowChallenge(false)}
+            onSend={(opp, stake, deck) => post("", { opponentUsername: opp, stake, deck }, () => { setShowChallenge(false); toast("Challenge sent!", "success"); })}
             busy={busy} />
         )}
         {active && (
           <DuelBoard duel={active} me={user?.id} byId={byId} myCards={myCards} bag={bag} busy={busy} foils={foils} cardStats={cardStats}
-            myArena={user?.activeArenaEffect}
+           
             onClose={() => setActive(null)}
-            onAccept={(deck, useArena) => post(`${active.id}/accept`, { deck, useArena }, () => toast("Duel started!", "success"))}
+            onAccept={(deck) => post(`${active.id}/accept`, { deck }, () => toast("Duel started!", "success"))}
             onMove={(action: string, index?: number, cardId?: string, target?: number) =>
               post(`${active.id}/move`, { action, index, cardId, target })}
             onForfeit={() => post(`${active.id}/forfeit`, {}, () =>
@@ -436,9 +435,8 @@ function DuelRow({ duel, me, right, onOpen }: { duel: Duel; me?: string; right: 
   );
 }
 
-function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats, myArena }: any) {
+function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats }: any) {
   const [opp, setOpp] = useState("");
-  const [useArena, setUseArena] = useState(false);
   const [stake, setStake] = useState("100");
   const stakeNum = Math.floor(Number(stake)) || 0;
   const stakeError =
@@ -532,9 +530,6 @@ function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats
             {stakeError && <span className="mt-1 block font-bold text-rose-400">{stakeError}</span>}
           </label>
         </div>
-        <div className="mb-4 shrink-0">
-          <ArenaOptIn value={useArena} onChange={setUseArena} equippedId={myArena} />
-        </div>
         {/* the deck grid scrolls; the header and the action button stay put */}
         <div className="mb-4 min-h-0 flex-1 overflow-y-auto">
           <DeckBuilder myCards={myCards} foils={foils} stats={cardStats} deck={deck}
@@ -544,7 +539,7 @@ function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats
             never 404 on a username that was only ever a guess. */}
         <button disabled={busy || !picked || deck.length !== DECK_SIZE || !!stakeError}
           style={{ flexShrink: 0 }}
-          onClick={() => picked && !stakeError && onSend(picked.username, stakeNum, deck, useArena)}
+          onClick={() => picked && !stakeError && onSend(picked.username, stakeNum, deck)}
           className="w-full rounded-xl bg-gradient-to-r from-rose-600 to-orange-600 py-3 font-black text-white transition hover:brightness-110 disabled:opacity-40">
           {busy ? "Sending…"
             : !picked ? "Pick an opponent"
@@ -557,12 +552,8 @@ function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats
   );
 }
 
-function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMove, onForfeit, foils, cardStats, myArena }: any) {
+function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMove, onForfeit, foils, cardStats }: any) {
   const [deck, setDeck] = useState<string[]>(() => loadSavedDeck());
-  // Defaults to whatever the challenger asked for: if they didn't want effects
-  // the box is off and ticking it changes nothing, so pre-ticking it would be
-  // an opt-in that quietly does nothing.
-  const [useArena, setUseArena] = useState<boolean>(!!duel.challengerArena);
   // Parsed once per state STRING, not once per render. DuelBoard re-renders
   // whenever anything on the page moves (busy, bag, a toast), and re-parsing
   // built a brand-new fighters tree every time — which also handed Arena new
@@ -605,7 +596,6 @@ function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMo
         bag={bag} busy={busy} log={state.log} stake={duel.stake}
         supports={myCards.filter((c: any) => !!c.support)}
         usedSupports={mine.usedSupports || []}
-        arenaEffect={duel.arenaEffect}
         onAttack={() => onMove("attack")}
         onDeploy={(i: number) => onMove("deploy", i)}
         onItem={(item: string) => onMove(item)}
@@ -642,14 +632,7 @@ function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMo
               <DeckBuilder myCards={myCards} foils={foils} stats={cardStats} deck={deck}
                 onChange={(d) => { setDeck(d); saveDeck(d); }} compact />
             </div>
-            {/* Only offered when the challenger asked for it — otherwise the
-                answer can't matter and a dead switch is worse than none. */}
-            {duel.challengerArena && (
-              <div className="mb-3 shrink-0">
-                <ArenaOptIn value={useArena} onChange={setUseArena} equippedId={myArena} />
-              </div>
-            )}
-            <button disabled={busy || deck.length !== DECK_SIZE} onClick={() => onAccept(deck, useArena)}
+            <button disabled={busy || deck.length !== DECK_SIZE} onClick={() => onAccept(deck)}
               className="w-full shrink-0 rounded-xl bg-gradient-to-r from-rose-600 to-orange-600 py-3 font-black text-white disabled:opacity-40">
               {deck.length !== DECK_SIZE
                 ? `Pick ${DECK_SIZE - deck.length} more card${DECK_SIZE - deck.length === 1 ? "" : "s"}`

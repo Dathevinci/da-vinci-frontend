@@ -7,7 +7,6 @@ import { isAdmin, isLeadDev, displayArisePoints } from "@/lib/admin";
 import { useToast } from "@/components/ui/Toast";
 import { MountainSnow, ShoppingBag, Sparkles, Check, Diamond, Aperture, CircleDot, Orbit, Snowflake, Flame, Sun, Zap, Leaf, Search, X, LayoutGrid, CloudLightning, CloudFog, Moon, Cog, Target, Trees, Gift, Swords, Flower2, Skull, Sprout, Eye, ArrowRight, Infinity as InfinityIcon, History, Hourglass, Atom, Shell, Tag, Key, Network, Gavel, Layers } from "lucide-react";
 import GiftModal from "@/components/shop/GiftModal";
-import ArenaShop from "@/components/shop/ArenaShop";
 import BuyPointsModal from "@/components/shop/BuyPointsModal";
 import { authHeaders } from "@/lib/authToken";
 import { useRouter } from "next/navigation";
@@ -101,9 +100,6 @@ export default function ShopPage() {
   const [previewItem, setPreviewItem] = useState<typeof SHOP_ITEMS[0] | null>(null);
   // Money → Arise Points top-up modal (Ko-fi bundles).
   const [showBuyPoints, setShowBuyPoints] = useState(false);
-  // Which counter of the shop is open. Arena effects are a separate inventory
-  // with separate rules, so they get their own half rather than a category.
-  const [shopTab, setShopTab] = useState<"profile" | "arena">("profile");
 
   // After a successful gift the server has already moved the points; just sync
   // the gifter's cached balance so the navbar/shop show it immediately.
@@ -682,11 +678,7 @@ export default function ShopPage() {
                 <ShoppingBag className="h-7 w-7 text-fuchsia-500 md:h-9 md:w-9" />
                 Arise Shop
               </h1>
-              <p className="mt-1 text-xs text-slate-500 md:text-sm">
-                {shopTab === "arena"
-                  ? "Boards to fight on. Only seen inside a duel, and only when both sides agree."
-                  : "Frames & effects that follow you across Da Vinci."}
-              </p>
+              <p className="mt-1 text-xs text-slate-500 md:text-sm">Frames &amp; effects that follow you across Da Vinci.</p>
             </div>
             <div className="flex items-center gap-2">
               <div className="flex h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3.5">
@@ -704,38 +696,6 @@ export default function ShopPage() {
             </div>
           </motion.div>
 
-          {/* ── The shop's two counters. Profile effects follow you around the
-              site; arena effects only exist inside a duel. They're different
-              inventories, different rules and different prices, so they get a
-              hard split rather than another category chip in the toolbar. ── */}
-          <div className="mb-6 flex w-full gap-2 rounded-2xl border border-white/10 bg-white/[0.03] p-1.5 sm:w-fit">
-            {(
-              [
-                { key: "profile", label: "Profile Effects", sub: "Worn everywhere", icon: Sparkles },
-                { key: "arena", label: "Arena Effects", sub: "Duel board only", icon: Swords },
-              ] as const
-            ).map((t) => {
-              const TabIcon = t.icon;
-              const on = shopTab === t.key;
-              return (
-                <button
-                  key={t.key}
-                  onClick={() => setShopTab(t.key)}
-                  className={`relative flex flex-1 items-center gap-2.5 rounded-xl px-4 py-2.5 text-left transition sm:flex-none ${
-                    on ? "bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-[0_0_22px_rgba(168,85,247,0.35)]" : "text-slate-400 hover:bg-white/5 hover:text-white"
-                  }`}
-                >
-                  <TabIcon className="h-4 w-4 shrink-0" />
-                  <span className="min-w-0">
-                    <span className="block text-sm font-black leading-tight">{t.label}</span>
-                    <span className={`block text-[10px] font-bold uppercase tracking-wider ${on ? "text-white/70" : "text-slate-600"}`}>{t.sub}</span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {shopTab === "arena" ? <ArenaShop /> : <>
 
           {/* ── FEATURED DROP hero — the newest SSS effect, playing LIVE across
               the banner. ProfileEffect is a child of this panel (card-anchored,
@@ -1081,8 +1041,6 @@ export default function ShopPage() {
               </div>
             );
           })}
-
-          </>}
         </div>
       </div>
 
