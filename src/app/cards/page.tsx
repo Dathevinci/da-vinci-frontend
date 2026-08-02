@@ -280,6 +280,20 @@ export default function CardsPage() {
       fire("level", `${d.skillName} · Rank ${d.skillLevel}`);
     });
 
+  /**
+   * Spend a duplicate to advance the ability one rank, no shards.
+   *
+   * The server decrements the copy and bumps the rank in one guarded update,
+   * so the counts here are its answer rather than a local guess — otherwise a
+   * double click would show two ranks bought off one spare.
+   */
+  const attune = (card: CardDef) =>
+    shardAction("attune", { cardId: card.id }, (d) => {
+      setSkillLevels((l) => ({ ...l, [card.id]: d.skillLevel }));
+      setOwned((o) => ({ ...o, [card.id]: d.count }));
+      fire("level", `${d.skillName} · Rank ${d.skillLevel}`);
+    });
+
   const wake = (card: CardDef) =>
     shardAction("wake", { cardId: card.id }, (d) => {
       setShards(d.shards);
@@ -1001,6 +1015,16 @@ export default function CardsPage() {
 
                         {(count > 1 || (count === 0 && craftable) || (count > 0 && !foils[selected.id] && selected.rarity !== "event")) && (
                           <div className="my-1 h-px bg-white/10" />
+                        )}
+
+                        {/* Attune sits ABOVE Dust on purpose. Both consume
+                            spares, and this is the one that's usually the
+                            better answer for a card you actually play — the
+                            order is the recommendation. */}
+                        {count > 1 && sk && skLvl < skMax && !asl && (
+                          <ActionButton onClick={() => attune(selected)} Icon={Zap}>
+                            Attune · 1 copy → {isDomain ? "Domain" : "Skill"} rank {skLvl + 1}
+                          </ActionButton>
                         )}
 
                         {count > 1 && (
