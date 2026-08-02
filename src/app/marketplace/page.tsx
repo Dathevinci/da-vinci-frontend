@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
@@ -504,6 +504,13 @@ function SellSheet({ onClose, onListed }: { onClose: () => void; onListed: () =>
   const [sel, setSel] = useState<number[]>([]);
   const [price, setPrice] = useState("");
   const [busy, setBusy] = useState(false);
+  // Tapping a card in the grid used to leave you at the top of the sheet
+  // with the price and quantity controls somewhere below a whole collection
+  // — the sheet now carries you straight to them.
+  const detailRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (pick) detailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [pick?.id]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -613,7 +620,7 @@ function SellSheet({ onClose, onListed }: { onClose: () => void; onListed: () =>
           )}
 
           {pick && (
-            <div className="mt-5 grid gap-4 sm:grid-cols-[auto_1fr]">
+            <div ref={detailRef} className="mt-5 grid scroll-mt-2 gap-4 sm:grid-cols-[auto_1fr]">
               <div className="mx-auto"><CardFace card={pick} owned foil={owned[pick.id]?.foil} size={150} /></div>
               <div>
                 <p className="text-lg font-black">{pick.name}</p>
