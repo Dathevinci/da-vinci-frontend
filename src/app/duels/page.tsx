@@ -11,6 +11,7 @@ import PageTransition from "@/components/layout/PageTransition";
 import { CardDef } from "@/components/cards/CardFace";
 import DeckBuilder, { loadSavedDeck, saveDeck } from "@/components/cards/DeckBuilder";
 import Arena, { duelPayout } from "@/components/cards/Arena";
+import { notch, ACCENT } from "@/components/cards/gacha";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 const DECK_SIZE = 5;
@@ -179,39 +180,67 @@ export default function DuelsPage() {
         <div className="mx-auto max-w-5xl">
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h1 className="flex items-center gap-3 text-3xl font-black md:text-4xl">
-                <Swords className="h-8 w-8 text-rose-400" /> Card Duels
+              <p className="text-[10px] font-black uppercase tracking-[0.42em] text-rose-400/80">Da Vinci · Arena</p>
+              <h1 className="mt-1 flex items-center gap-3 font-fell text-4xl font-bold uppercase tracking-[0.1em] md:text-5xl">
+                <Swords className="h-8 w-8 shrink-0 text-rose-400" />
+                <span style={{
+                  background: "linear-gradient(100deg, #fff 10%, #ffb4c4 55%, #f43f5e 92%)",
+                  WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent",
+                  filter: "drop-shadow(0 2px 18px rgba(244,63,94,.35))",
+                }}>Card Duels</span>
               </h1>
-              <p className="mt-1.5 text-sm text-slate-400">
+              <p className="mt-2 max-w-lg text-sm leading-relaxed text-slate-400">
                 Stake Arise Points, field five cards, and fight for the pot. Rarity is power — and foils hit harder.
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {rating && (
-                <div className="flex h-11 items-center gap-2 rounded-xl border border-rose-500/25 bg-rose-500/[0.07] px-3.5">
+                <div className="flex h-11 items-center gap-2 px-4"
+                  style={{ clipPath: notch(10), background: "rgba(244,63,94,.10)", boxShadow: "inset 0 0 0 1px rgba(244,63,94,.42)" }}>
                   <Trophy className="h-4 w-4 text-rose-300" />
-                  <span className="text-sm font-black text-rose-100">{rating.rating} <span className="text-rose-400/70">· {rating.wins}W {rating.losses}L</span></span>
+                  <span className="text-sm font-black tabular-nums text-rose-50">
+                    {rating.rating}
+                    <span className="ml-1.5 text-[11px] font-bold text-rose-400/80">{rating.wins}W {rating.losses}L</span>
+                  </span>
                 </div>
               )}
-              <div className="flex h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3.5">
-                <Diamond className="h-4 w-4 text-fuchsia-400" />
-                <span className="text-sm font-black">{user ? displayArisePoints(user) : "—"} AP</span>
+              <div className="flex h-11 items-center gap-2 px-4"
+                style={{ clipPath: notch(10), background: "rgba(255,255,255,.05)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.11)" }}>
+                <Diamond className="h-4 w-4" style={{ color: ACCENT }} />
+                <span className="text-sm font-black tabular-nums">
+                  {user ? displayArisePoints(user) : "—"}
+                  <span className="ml-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">AP</span>
+                </span>
               </div>
               <button onClick={() => setShowChallenge(true)}
-                className="inline-flex h-11 items-center gap-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-orange-600 px-4 text-sm font-black text-white transition hover:brightness-110">
+                className="inline-flex h-11 items-center gap-2 px-6 text-[12px] font-black uppercase tracking-[0.16em] text-white transition hover:brightness-115"
+                style={{
+                  clipPath: "polygon(11px 0, 100% 0, calc(100% - 11px) 100%, 0 100%)",
+                  background: "linear-gradient(100deg, #b91c3c, #f97316)",
+                  boxShadow: "0 6px 24px rgba(244,63,94,.4)",
+                }}>
                 <Swords className="h-4 w-4" /> Challenge
               </button>
             </div>
           </div>
 
-          {/* tabs */}
-          <div className="mb-6 flex gap-1 border-b border-white/10">
-            {(["duels", "ladder"] as const).map((t) => (
-              <button key={t} onClick={() => setTab(t)}
-                className={`border-b-2 px-5 py-2.5 text-sm font-bold transition ${tab === t ? "border-rose-500 text-white" : "border-transparent text-slate-500 hover:text-white"}`}>
-                {t === "duels" ? "My Duels" : "Ranked Ladder"}
-              </button>
-            ))}
+          {/* tabs — sheared plates, not an underline */}
+          <div className="mb-6 flex gap-1.5">
+            {(["duels", "ladder"] as const).map((t) => {
+              const on = tab === t;
+              return (
+                <button key={t} onClick={() => setTab(t)}
+                  className={`px-6 py-2.5 text-[11px] font-black uppercase tracking-[0.18em] transition ${
+                    on ? "text-white" : "text-slate-500 hover:text-slate-300"}`}
+                  style={{
+                    clipPath: "polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%)",
+                    background: on ? "linear-gradient(100deg, rgba(244,63,94,.35), rgba(249,115,22,.22))" : "rgba(255,255,255,.04)",
+                    boxShadow: `inset 0 0 0 1px ${on ? "rgba(255,150,170,.55)" : "rgba(255,255,255,.08)"}`,
+                  }}>
+                  {t === "duels" ? "My Duels" : "Ranked Ladder"}
+                </button>
+              );
+            })}
           </div>
 
           {/* Without the catalog every card is a blank rectangle. Say so and
@@ -245,22 +274,38 @@ export default function DuelsPage() {
           ) : (
             <div className="space-y-6">
               {/* item shop */}
-              <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/[0.04] p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-xs font-black uppercase tracking-widest text-cyan-300">Support items</h3>
-                  <span className="inline-flex items-center gap-1.5 text-xs font-black text-cyan-200"><Gem className="h-3.5 w-3.5" />{shards.toLocaleString()} shards</span>
+              <div className="relative p-5"
+                style={{ clipPath: notch(20), background: "linear-gradient(160deg, rgba(34,211,238,.07), rgba(8,20,30,.5))", boxShadow: "inset 0 0 0 1px rgba(34,211,238,.28)" }}>
+                <div className="mb-3.5 flex items-center justify-between">
+                  <div className="flex items-stretch gap-2.5">
+                    <span aria-hidden className="w-[5px] shrink-0"
+                      style={{ background: "linear-gradient(#a5f3fc, #22d3ee)", transform: "skewX(-14deg)" }} />
+                    <h3 className="text-[11px] font-black uppercase tracking-[0.24em] text-cyan-200">Support items</h3>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-black tabular-nums text-cyan-100"
+                    style={{ clipPath: notch(7), background: "rgba(34,211,238,.12)", boxShadow: "inset 0 0 0 1px rgba(34,211,238,.4)" }}>
+                    <Gem className="h-3.5 w-3.5" />{shards.toLocaleString()}
+                  </span>
                 </div>
-                <div className="grid gap-2 sm:grid-cols-3">
+                <div className="grid gap-2.5 sm:grid-cols-3">
                   {Object.entries(ITEM_META).map(([id, m]) => {
                     const held = bag.filter((b) => b === id).length;
+                    const afford = shards >= m.shards;
                     return (
-                      <button key={id} disabled={busy || shards < m.shards}
+                      <button key={id} disabled={busy || !afford}
                         onClick={() => post("buy-item", { item: id }, (d) => { setShards(d.shards); setBag(d.duelItems || []); toast(`Bought ${m.name}`, "success"); })}
-                        className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-left transition hover:border-cyan-500/40 hover:bg-cyan-500/[0.08] disabled:opacity-40">
+                        className="group flex items-center gap-3 p-3.5 text-left transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-35"
+                        style={{ clipPath: notch(12), background: "rgba(255,255,255,.035)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.09)" }}>
                         <m.Icon className={`h-5 w-5 shrink-0 ${m.tint}`} />
                         <span className="min-w-0 flex-1">
-                          <span className="block text-sm font-black">{m.name} {held > 0 && <span className="text-cyan-400">×{held}</span>}</span>
-                          <span className="block text-[11px] text-slate-500">{m.desc} · {m.shards} shards</span>
+                          <span className="block text-sm font-black">
+                            {m.name}
+                            {held > 0 && <span className="ml-1.5 text-cyan-300">×{held}</span>}
+                          </span>
+                          <span className="block text-[11px] text-slate-500">{m.desc}</span>
+                          <span className="mt-0.5 block text-[10px] font-black uppercase tracking-[0.14em] text-cyan-400/80">
+                            {m.shards} shards
+                          </span>
                         </span>
                       </button>
                     );
@@ -344,7 +389,11 @@ export default function DuelsPage() {
 function Section({ title, children }: { title: string; children: any }) {
   return (
     <div>
-      <h3 className="mb-2 text-xs font-black uppercase tracking-widest text-slate-500">{title}</h3>
+      <div className="mb-2.5 flex items-stretch gap-2.5">
+        <span aria-hidden className="w-[5px] shrink-0"
+          style={{ background: "linear-gradient(#ffb4c4, #f43f5e)", transform: "skewX(-14deg)" }} />
+        <h3 className="text-[11px] font-black uppercase tracking-[0.26em] text-slate-300">{title}</h3>
+      </div>
       <div className="space-y-2">{children}</div>
     </div>
   );
@@ -359,7 +408,9 @@ function DuelRow({ duel, me, right, onOpen }: { duel: Duel; me?: string; right: 
     ? `vs ${duel.challengerId === me ? duel.opponentName : duel.challengerName}`
     : `${duel.challengerName} vs ${duel.opponentName}`;
   return (
-    <div onClick={onOpen} className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3 transition hover:border-white/20">
+    <div onClick={onOpen}
+      className="flex cursor-pointer items-center justify-between gap-3 px-4 py-3.5 transition hover:translate-x-0.5"
+      style={{ clipPath: notch(13), background: "rgba(255,255,255,.03)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.08)" }}>
       <div className="min-w-0">
         <div className="truncate font-bold">{label}</div>
         <div className="text-xs text-slate-500">{duel.stake.toLocaleString()} AP staked</div>
