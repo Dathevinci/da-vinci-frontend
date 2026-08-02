@@ -39,6 +39,8 @@ const lvlMult = (l: number) => 1 + (Math.max(1, Math.min(10, Math.floor(l || 1))
 
 type DgnCard = {
   cardId: string; count: number; foil: boolean; level: number;
+  /** Skill/domain rank — the same track the duels train. */
+  skillLevel?: number;
   dgnHp: number | null; dgnInjured: boolean; dgnDead: boolean;
   dgnDeaths?: number;
   /** Per-card revival price from the server: rarity base × prior deaths. */
@@ -277,12 +279,31 @@ export default function DungeonPage() {
     } catch { /* offline */ }
   }, [user?.id]);
 
-  const [domains, setDomains] = useState<Record<string, { name: string }>>({});
+  const [domains, setDomains] = useState<Record<string, any>>({});
+  const [skills, setSkills] = useState<Record<string, any>>({});
   useEffect(() => { loadCatalog(API_URL, (cat: any) => {
     const cardsArr: CardDef[] = cat?.cards || [];
     setById(Object.fromEntries(cardsArr.map((c) => [c.id, c])));
     setDomains(cat?.domains || {});
+    setSkills(cat?.skills || {});
   }, () => {}); }, []);
+
+  /** The hover card's ability line — defensive about the catalog's level
+   *  shape so an unexpected field never renders "[object Object]". */
+  const abilityLine = (cardId: string, rank: number): { label: string; text: string | null } | null => {
+    const dom = domains[cardId];
+    const sk = dom ?? skills[cardId];
+    if (!sk) return null;
+    const lvlDef = Array.isArray(sk.levels) ? sk.levels[Math.max(0, Math.min(rank, sk.levels.length) - 1)] : null;
+    const text = typeof lvlDef === "string" ? lvlDef
+      : typeof lvlDef?.text === "string" ? lvlDef.text
+      : typeof lvlDef?.desc === "string" ? lvlDef.desc
+      : null;
+    return {
+      label: `${dom ? "▲ DOMAIN" : "◆ SKILL"} · ${sk.name} · RANK ${rank}${dom ? "/3" : "/5"}`,
+      text,
+    };
+  };
   useEffect(() => { loadStatus(); }, [loadStatus]);
   useEffect(() => () => { stopRef.current = true; if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
@@ -645,9 +666,34 @@ export default function DungeonPage() {
                     const picked = party.includes(c.cardId);
                     const status = c.dgnDead ? "DEAD" : c.dgnInjured ? "INJURED" : s.hp < s.maxHp ? "WOUNDED" : "HEALTHY";
                     const statusTone = c.dgnDead ? "#ff5f5f" : c.dgnInjured ? "#ffd23e" : s.hp < s.maxHp ? "#ffb45f" : "#5fd18a";
+                    const rank = Math.max(1, c.skillLevel || 1);
+                    const abil = abilityLine(c.cardId, rank);
                     return (
                       <div key={c.cardId}
-                        className={`dg-panel relative p-2 ${picked ? "dg-sel" : ""} ${c.dgnDead ? "opacity-80" : ""}`}>
+                        className={`dg-panel group relative p-2 ${picked ? "dg-sel" : ""} ${c.dgnDead ? "opacity-80" : ""}`}>
+                        {/* ── HOVER CARD ── level, real stats, and the skill or
+                            domain at its trained rank. Desktop-only by nature;
+                            the same facts live in the card sheet on touch. */}
+                        <div className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-2 hidden w-60 -translate-x-1/2 group-hover:block">
+                          <div className="dg-panel p-2.5 text-left">
+                            <p className="font-pixel text-[8px] leading-relaxed text-[#e8f6ff]">{def.name.toUpperCase()}</p>
+                            <p className="mt-1 font-mono text-[10px] text-[#9fd8e8]">
+                              LV.{c.level}{c.foil ? " · ★FOIL (+20%)" : ""} · ATK {s.atk} · HP {s.hp}/{s.maxHp}
+                            </p>
+                            {abil && (
+                              <>
+                                <p className="mt-1.5 font-mono text-[10px] font-bold" style={{ color: domains[c.cardId] ? "#f0abfc" : "#c07dff" }}>
+                                  {abil.label}
+                                </p>
+                                {abil.text && <p className="mt-0.5 font-mono text-[10px] leading-snug text-[#8f86b8]">{abil.text}</p>}
+                                {domains[c.cardId] && (
+                                  <p className="mt-0.5 font-mono text-[9px] text-[#6b6390]">fires itself: boss floor, or badly hurt. once per run.</p>
+                                )}
+                              </>
+                            )}
+                            <p className="mt-1.5 font-mono text-[10px]" style={{ color: statusTone }}>{status}{c.dgnInjured ? " — heal before dispatch" : ""}</p>
+                          </div>
+                        </div>
                         <button onClick={() => toggle(c.cardId)} disabled={c.dgnDead || c.dgnInjured}
                           title={c.dgnInjured ? "Injured — heal before the next dispatch. It can still duel." : undefined}
                           className="relative block w-full text-left disabled:cursor-not-allowed">
