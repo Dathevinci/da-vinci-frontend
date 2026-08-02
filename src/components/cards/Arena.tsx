@@ -332,13 +332,35 @@ export default function Arena({
   // dead band down the left. Everything that centres now pads by the same
   // number the card maths uses, so the two agree.
   const railW = wide ? 340 : 0;
-  const usableW = box.w - railW;
+  // On a MONITOR the hand leaves the bottom of the screen entirely and stands
+  // in a left column that mirrors the log. The vertical stack drops from
+  // 1 + 0.46 + 0.58 card-heights to 1 + 0.46, and every pixel the hand gives
+  // back goes to the champions — the difference between ~210px champions in a
+  // sea of margin and cards at the size the rest of the app shows them. Both
+  // rails are 340, so the clash sits back at TRUE screen centre. 1280 is the
+  // cutoff because two rails under that leave the centre too narrow for a
+  // five-card bench. Phones and small laptops keep the stacked layout,
+  // untouched.
+  const sideHand = box.w >= 1280;
+  const leftW = sideHand ? 340 : 0;
+  const usableW = box.w - railW - leftW;
   const perCard = (usableW - (wide ? 0 : 24)) / lineup;
-  const champ = clamp(92, Math.min(forCards / 2.856, usableW * 0.30), 300);
-  const hand = clamp(56, Math.min(champ * 0.58, perCard - 10), 150);
+  // 1.4 * (1 + 0.46 [+ 0.58 only while the hand is in the stack]).
+  const stack = sideHand ? 2.044 : 2.856;
+  // The width fraction rises with the side rails: the centre is narrower, but
+  // it holds exactly two cards and a VS, and 0.30 of it would size champions
+  // SMALLER at 1280 than the layout it replaces.
+  const champ = clamp(92, Math.min(forCards / stack, usableW * (sideHand ? 0.36 : 0.30)), sideHand ? 340 : 300);
+  // In the side rail the hand is a two-column grid, so its size answers to
+  // the rail's width and its row count, not to the champion.
+  const inHand = mine.fighters.filter((_, i) => i !== mine.active).length;
+  const handRows = Math.max(1, Math.ceil(inHand / 2));
+  const hand = sideHand
+    ? clamp(72, Math.min(136, ((box.h - 150) / handRows - 38) / 1.4), 148)
+    : clamp(56, Math.min(champ * 0.58, perCard - 10), 150);
   // Floors matter: below ~48px a card is unreadable mush rather than a small
   // card, and the opponent's line is how you read the game.
-  const bench = clamp(56, Math.min(champ * 0.46, perCard - 14), 118);
+  const bench = clamp(56, Math.min(champ * 0.46, perCard - 14), sideHand ? 156 : 118);
   // 78 floor, not 52. Below the card face's ~68-76px thresholds a support
   // renders as art with no panel, no name and no grade plate — and supports
   // have no painted art, so what was left was a dim grey smudge. 78 clears
@@ -584,6 +606,60 @@ export default function Arena({
     );
   })();
 
+  /**
+   * The hand, one node per card — HOMELESS ON PURPOSE. On a phone it renders
+   * as the bottom row it has always been; on a monitor it renders inside the
+   * left rail. Same nodes, same data-drop targets, same drag handlers — only
+   * the container differs, so the two layouts cannot drift apart.
+   */
+  const handCards = mine.fighters.map((f, i) => {
+    // The card that is OUT belongs to the field, not the hand. It used
+    // to render in both at once, so deploying looked like it had
+    // duplicated the card rather than moved it.
+    if (i === mine.active) return null;
+    const dead = f.hp <= 0;
+    const canTake = aiming && (dead || f.hp < f.maxHp);
+    const playable = live && !dead;
+    const lit = over === `ally-${i}` && aiming;
+    return (
+      <motion.div key={i} data-drop={`ally-${i}`}
+        whileTap={playable ? { scale: 0.95 } : {}}
+        onPointerDown={playable ? startDrag({ kind: "unit", index: i }) : undefined}
+        onClick={() => { if (swallowClick()) return; if (playable) setSel(i); }}
+        role="button" aria-disabled={!playable}
+        // Hovering says what the card WOULD do. The board showed a
+        // stat line but never the thing you actually want before
+        // committing: how hard this one hits, and whether the swing
+        // finishes what is standing opposite.
+        title={
+          dead
+            ? `${f.name} has fallen`
+            : `${f.name} — hits for ~${f.atk}${
+                foeActive ? ` · ${foeActive.name} has ${foeActive.hp} HP left` : ""
+              }${foeActive && f.atk >= foeActive.hp ? " · this would finish it" : ""}`
+        }
+        style={{ touchAction: "none" }}
+        className={`flex cursor-pointer flex-col items-center gap-1 rounded-xl p-0.5 transition ${
+          lit ? "bg-cyan-400/30 ring-2 ring-cyan-300 shadow-[0_0_22px_rgba(34,211,238,.6)]"
+            : canTake ? "ring-2 ring-cyan-400/40"
+            : dead ? "opacity-25 grayscale"
+            : sel === i ? "bg-rose-500/25 ring-2 ring-rose-400"
+            : playable ? "cursor-grab ring-1 ring-white/15 hover:ring-rose-400/60 active:cursor-grabbing"
+            : "opacity-70"
+        } ${dragging?.kind === "unit" && dragging.index === i ? "opacity-30" : ""}`}>
+        <div className="relative">
+          {byId[f.cardId] && <CardFace card={byId[f.cardId]} owned foil={f.foil} size={hand} showStats liveHp={f.hp} liveMaxHp={f.maxHp} />}
+          {dead && (
+            <span className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 -rotate-12 border-y border-rose-500/70 bg-rose-950/80 py-0.5 text-center text-[8px] font-black uppercase tracking-[0.2em] text-rose-200">
+              Fallen
+            </span>
+          )}
+        </div>
+        <div style={{ width: hand }}><Bar f={f} h={5} showNumbers /></div>
+      </motion.div>
+    );
+  });
+
   return (
     <motion.div
       ref={shellRef}
@@ -659,9 +735,28 @@ export default function Arena({
         <div className="absolute bottom-3 right-3 top-16 z-10 w-[300px]">{logPanel}</div>
       )}
 
+      {/* On a monitor YOUR HAND is the left column — the mirror of the log.
+          Same nodes, same drop targets; see the note on handCards. */}
+      {sideHand && (
+        <div className="absolute bottom-3 left-3 top-16 z-10 flex w-[300px] flex-col overflow-hidden rounded-xl border border-white/10 bg-black/70">
+          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 px-3 py-1.5">
+            <span className="flex min-w-0 items-center gap-2 text-sm font-black text-rose-100">
+              <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-rose-500/25 text-[10px] ring-1 ring-rose-400/40">{myName[0]?.toUpperCase()}</span>
+              <span className="truncate">{myName}</span>
+            </span>
+            <span className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-black text-slate-400">
+              {aliveMine} of {mine.fighters.length} standing
+            </span>
+          </div>
+          <div className="grid min-h-0 flex-1 grid-cols-2 content-start justify-items-center gap-2 overflow-y-auto p-2.5">
+            {handCards}
+          </div>
+        </div>
+      )}
+
       {/* ── opponent's bench ── */}
       <div className="relative z-10 flex shrink-0 items-start justify-center gap-1.5 px-3"
-        style={{ paddingRight: railW || undefined }}>
+        style={{ paddingRight: railW || undefined, paddingLeft: leftW || undefined }}>
         {foe.fighters.map((f, i) => (
           <div key={i} className={`flex flex-col items-center gap-1 transition-all duration-300 ${f.hp <= 0 ? "opacity-20 grayscale" : ""}`}
             style={{ transform: i === foe.active && f.hp > 0 ? "scale(1)" : "scale(0.9)" }}>
@@ -680,7 +775,7 @@ export default function Arena({
 
       {/* ── the clash ── */}
       <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center gap-1.5 px-3"
-        style={{ paddingRight: railW || undefined }}>
+        style={{ paddingRight: railW || undefined, paddingLeft: leftW || undefined }}>
         {/* The divide runs BETWEEN the champions, not across them — a horizontal
             rule in a side-by-side clash cut through both cards and read as
             damage. The pools give left sky and right rose so the zone states
@@ -690,7 +785,7 @@ export default function Arena({
             box, so left-1/2 would have put the divide at half the full width
             while the cards centre in the width minus the rail — the line would
             have run 170px right of the VS it is supposed to run through. */}
-        <div aria-hidden className="pointer-events-none absolute inset-y-0 left-0" style={{ right: railW }}>
+        <div aria-hidden className="pointer-events-none absolute inset-y-0" style={{ right: railW, left: leftW }}>
           <div className="absolute inset-y-2 left-1/2 w-px bg-gradient-to-b from-transparent via-white/30 to-transparent" />
           <div className="absolute inset-y-4 left-0 w-1/2 rounded-r-full bg-[radial-gradient(circle_at_40%_50%,rgba(56,189,248,.10),transparent_70%)]" />
           <div className="absolute inset-y-4 right-0 w-1/2 rounded-l-full bg-[radial-gradient(circle_at_60%_50%,rgba(244,63,94,.10),transparent_70%)]" />
@@ -857,70 +952,27 @@ export default function Arena({
           background: "linear-gradient(180deg, rgba(20,10,30,.82), rgba(8,5,14,.94))",
           boxShadow: "inset 0 1px 0 rgba(162,116,255,.35), 0 -18px 40px rgba(0,0,0,.55)",
           // The panel itself still spans the full width — it is the floor of
-          // the board. Only its CONTENTS step aside for the log column, so the
-          // hand centres under the champions rather than under the viewport.
+          // the board. Only its CONTENTS step aside for the side columns, so
+          // what's left in it centres under the champions, not the viewport.
           paddingRight: railW || undefined,
+          paddingLeft: leftW || undefined,
         }}>
-        <div className="mb-1.5 flex items-center justify-between px-1">
-          <span className="flex items-center gap-2 text-sm font-black text-rose-100">
-            <span className="grid h-6 w-6 place-items-center rounded-full bg-rose-500/25 text-[10px] ring-1 ring-rose-400/40">{myName[0]?.toUpperCase()}</span>
-            {myName}
-          </span>
-          <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-black text-slate-400">
-            {aliveMine} of {mine.fighters.length} standing
-          </span>
-        </div>
+        {/* On a monitor the name row lives in the hand rail's header instead
+            — repeating it here said "You" twice on the same screen. */}
+        {!sideHand && (
+          <div className="mb-1.5 flex items-center justify-between px-1">
+            <span className="flex items-center gap-2 text-sm font-black text-rose-100">
+              <span className="grid h-6 w-6 place-items-center rounded-full bg-rose-500/25 text-[10px] ring-1 ring-rose-400/40">{myName[0]?.toUpperCase()}</span>
+              {myName}
+            </span>
+            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-black text-slate-400">
+              {aliveMine} of {mine.fighters.length} standing
+            </span>
+          </div>
+        )}
 
-        {/* the hand — each card is ALSO an ally drop target for support */}
-        <div className="flex items-end justify-center gap-1.5">
-          {mine.fighters.map((f, i) => {
-            // The card that is OUT belongs to the field, not the hand. It used
-            // to render in both at once, so deploying looked like it had
-            // duplicated the card rather than moved it.
-            if (i === mine.active) return null;
-            const dead = f.hp <= 0;
-            const canTake = aiming && (dead || f.hp < f.maxHp);
-            const playable = live && !dead;
-            const lit = over === `ally-${i}` && aiming;
-            return (
-              <motion.div key={i} data-drop={`ally-${i}`}
-                whileTap={playable ? { scale: 0.95 } : {}}
-                onPointerDown={playable ? startDrag({ kind: "unit", index: i }) : undefined}
-                onClick={() => { if (swallowClick()) return; if (playable) setSel(i); }}
-                role="button" aria-disabled={!playable}
-                // Hovering says what the card WOULD do. The board showed a
-                // stat line but never the thing you actually want before
-                // committing: how hard this one hits, and whether the swing
-                // finishes what is standing opposite.
-                title={
-                  dead
-                    ? `${f.name} has fallen`
-                    : `${f.name} — hits for ~${f.atk}${
-                        foeActive ? ` · ${foeActive.name} has ${foeActive.hp} HP left` : ""
-                      }${foeActive && f.atk >= foeActive.hp ? " · this would finish it" : ""}`
-                }
-                style={{ touchAction: "none" }}
-                className={`flex cursor-pointer flex-col items-center gap-1 rounded-xl p-0.5 transition ${
-                  lit ? "bg-cyan-400/30 ring-2 ring-cyan-300 shadow-[0_0_22px_rgba(34,211,238,.6)]"
-                    : canTake ? "ring-2 ring-cyan-400/40"
-                    : dead ? "opacity-25 grayscale"
-                    : sel === i ? "bg-rose-500/25 ring-2 ring-rose-400"
-                    : playable ? "cursor-grab ring-1 ring-white/15 hover:ring-rose-400/60 active:cursor-grabbing"
-                    : "opacity-70"
-                } ${dragging?.kind === "unit" && dragging.index === i ? "opacity-30" : ""}`}>
-                <div className="relative">
-                  {byId[f.cardId] && <CardFace card={byId[f.cardId]} owned foil={f.foil} size={hand} showStats liveHp={f.hp} liveMaxHp={f.maxHp} />}
-                  {dead && (
-                    <span className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 -rotate-12 border-y border-rose-500/70 bg-rose-950/80 py-0.5 text-center text-[8px] font-black uppercase tracking-[0.2em] text-rose-200">
-                      Fallen
-                    </span>
-                  )}
-                </div>
-                <div style={{ width: hand }}><Bar f={f} h={5} showNumbers /></div>
-              </motion.div>
-            );
-          })}
-        </div>
+        {/* the hand — lives here on phones; on a monitor it's the left rail */}
+        {!sideHand && <div className="flex items-end justify-center gap-1.5">{handCards}</div>}
 
         {/* ── SUPPORT RAIL ── */}
         {hasSupport && (
