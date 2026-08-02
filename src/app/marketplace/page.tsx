@@ -1,100 +1,131 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { Lock, ArrowUpDown, Clock, Tag, Layers, ShieldAlert, X, Sparkles, Gavel, ArrowUpRight } from "lucide-react";
+import {
+  ArrowUpDown, Tag, Layers, X, Sparkles, Gavel, ArrowUpRight, Loader2,
+  Store, Trash2, ShieldAlert,
+} from "lucide-react";
 import { useUser } from "@/hooks/useUser";
+import { authHeaders } from "@/lib/authToken";
+import { useToast } from "@/components/ui/Toast";
 import PageTransition from "@/components/layout/PageTransition";
 import CardFace, { CardDef, RARITY_META } from "@/components/cards/CardFace";
-import { Panel, CornerTicks, Stars, GachaButton, StatRow, notch, ACCENT, ACCENT_LIT } from "@/components/cards/gacha";
+import { Panel, CornerTicks, Stars, StatRow, notch, ACCENT, ACCENT_LIT } from "@/components/cards/gacha";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 /**
- * MARKETPLACE — DESIGN PREVIEW ONLY.
+ * MARKETPLACE — live player-to-player card sales.
  *
- * Every action on this page is inert on purpose. There is no listing endpoint,
- * no buy endpoint, and no card ever changes hands, because a player-to-player
- * market cannot be opened while an account can be taken over: the Discord OAuth
- * callback mints a 60-day session from an email address with no password check.
- * Today that costs someone their Arise Points. With a market it would empty
- * their collection into a stranger's hands, and a good-faith buyer makes that
- * impossible to unwind cleanly.
- *
- * So this file renders the shape of the thing and nothing else. The listings
- * below are generated from the card catalog purely so the layout can be judged
- * with realistic content — they are not real offers and are labelled as such.
- * When auth is fixed, the sample generator is deleted and real listings drop
- * into the same components.
+ * The escrow rule the server enforces, restated here because the UI has to be
+ * honest about it: LISTING a card removes it from your collection immediately,
+ * not when it sells. Cancelling gives it back. Every price is for the whole
+ * lot, not per card.
  */
 
 type Listing = {
-  key: string;
-  card: CardDef;
-  seller: string;
-  price: number;
-  topBid: number | null;
-  endsInMin: number;
-  foil: boolean;
+  id: string;
+  sellerId: string; sellerName: string;
+  cardId: string; qty: number; foil: boolean; level: number;
+  price: number; status: string;
+  buyerName?: string | null;
+  createdAt: string;
+  card: CardDef | null;
 };
 
-const SELLERS = ["dejavuh", "kaitou", "shirogane", "yuuhi", "arclight", "nozomi", "vermeil", "seiran"];
-
-/** Deterministic sample data — same catalog always yields the same shopfront. */
-function hash(s: string) {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
-  return h >>> 0;
-}
-
-function buildSamples(cards: CardDef[]): Listing[] {
-  return cards
-    .filter((c) => !c.support)
-    .slice(0, 12)
-    .map((card, i) => {
-      const h = hash(card.id);
-      const base = { common: 220, rare: 600, epic: 1800, legendary: 5200, event: 9000 }[card.rarity] ?? 300;
-      const price = base + (h % 7) * Math.round(base * 0.12);
-      return {
-        key: `${card.id}-${i}`,
-        card,
-        seller: SELLERS[h % SELLERS.length],
-        price,
-        topBid: h % 3 === 0 ? null : Math.round(price * 0.72),
-        endsInMin: 90 + (h % 2600),
-        foil: h % 11 === 0,
-      };
-    });
-}
-
-const fmtLeft = (min: number) => {
-  const hrs = Math.floor(min / 60);
-  return hrs >= 1 ? `${hrs}h ${min % 60}m` : `${min}m`;
-};
+const FEE_PERCENT = 5;
+const fmt = (n: number) => n.toLocaleString();
 
 export default function MarketplacePage() {
   const { user } = useUser();
-  const [cards, setCards] = useState<CardDef[]>([]);
-  const [sort, setSort] = useState<"low" | "high" | "soon">("low");
-  const [tab, setTab] = useState<"all" | "cards" | "effects">("all");
+  const { toast } = useToast();
+
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [mine, setMine] = useState<Listing[]>([]);
+  const [sort, setSort] = useState<"low" | "high" | "new">("low");
+  const [tab, setTab] = useState<"browse" | "mine">("browse");
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [selling, setSelling] = useState(false);
   const [open, setOpen] = useState<Listing | null>(null);
+  const [ap, setAp] = useState<number | null>(null);
 
-  useEffect(() => {
-    fetch(`${API_URL}/api/cards/catalog`)
-      .then((r) => r.json())
-      .then((d) => { if (d?.success && Array.isArray(d?.data?.cards)) setCards(d.data.cards); })
-      .catch(() => {});
-  }, []);
+  const balance = ap ?? user?.arisePoints ?? 0;
 
-  const listings = useMemo(() => {
-    const l = buildSamples(cards);
-    if (sort === "low") return [...l].sort((a, b) => a.price - b.price);
-    if (sort === "high") return [...l].sort((a, b) => b.price - a.price);
-    return [...l].sort((a, b) => a.endsInMin - b.endsInMin);
-  }, [cards, sort]);
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const reqs: Promise<any>[] = [
+        fetch(`${API_URL}/api/market?sort=${sort}`).then((r) => r.json()),
+      ];
+      if (user?.id) reqs.push(fetch(`${API_URL}/api/market?mine=${user.id}`).then((r) => r.json()));
+      const [all, own] = await Promise.all(reqs);
+      if (all?.success) setListings(all.data || []);
+      if (own?.success) setMine(own.data || []);
+    } catch {
+      /* offline */
+    } finally {
+      setLoading(false);
+    }
+  }, [sort, user?.id]);
 
-  const shown = tab === "effects" ? [] : listings;
+  useEffect(() => { load(); }, [load]);
+
+  const syncAp = (v: number) => {
+    setAp(v);
+    try {
+      const stored = localStorage.getItem("davinci_user");
+      if (stored) {
+        const u = JSON.parse(stored);
+        u.arisePoints = v;
+        localStorage.setItem("davinci_user", JSON.stringify(u));
+        window.dispatchEvent(new Event("davinci_user_updated"));
+      }
+    } catch {}
+  };
+
+  const buy = async (l: Listing) => {
+    if (!user) return toast("Sign in to buy.", "error");
+    setBusy(l.id);
+    try {
+      const r = await fetch(`${API_URL}/api/market/${l.id}/buy`, {
+        method: "POST", headers: authHeaders(), body: JSON.stringify({ userId: user.id }),
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) return toast(d.message || "Couldn't buy that.", "error");
+      if (typeof d.data?.arisePoints === "number") syncAp(d.data.arisePoints);
+      toast(`Bought ${l.card?.name ?? "card"} ×${l.qty}. It's in your collection.`, "success");
+      setOpen(null);
+      await load();
+    } catch {
+      toast("Couldn't buy that.", "error");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const cancel = async (l: Listing) => {
+    if (!user) return;
+    setBusy(l.id);
+    try {
+      const r = await fetch(`${API_URL}/api/market/${l.id}/cancel`, {
+        method: "POST", headers: authHeaders(), body: JSON.stringify({ userId: user.id }),
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) return toast(d.message || "Couldn't cancel.", "error");
+      toast("Listing pulled. The cards are back in your collection.", "success");
+      await load();
+    } catch {
+      toast("Couldn't cancel.", "error");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const shown = tab === "mine" ? mine : listings;
+  const activeMine = useMemo(() => mine.filter((l) => l.status === "ACTIVE"), [mine]);
 
   return (
     <PageTransition>
@@ -115,9 +146,17 @@ export default function MarketplacePage() {
               <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.42em]" style={{ color: ACCENT }}>
                 Da Vinci <span className="text-slate-700">/</span> Market <Tag className="h-3 w-3" />
               </p>
-              <h1 className="mt-1 text-4xl font-black tracking-tight md:text-5xl">Marketplace</h1>
+              <h1 className="mt-1 font-fell text-4xl font-bold uppercase tracking-[0.1em] md:text-5xl"
+                style={{
+                  background: `linear-gradient(100deg, #fff 10%, ${ACCENT_LIT} 55%, ${ACCENT} 92%)`,
+                  WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent",
+                  filter: `drop-shadow(0 2px 18px ${ACCENT}55)`,
+                }}>
+                Marketplace
+              </h1>
               <p className="mt-2 max-w-lg text-sm leading-relaxed text-slate-400">
-                Buy, sell and bid on Arise Cards and limited profile effects.
+                Buy and sell Arise Cards with other collectors. Listing a card takes it out of your
+                collection until it sells or you pull the listing.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -125,168 +164,169 @@ export default function MarketplacePage() {
                 style={{ clipPath: notch(9), background: "rgba(255,255,255,.05)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.10)" }}>
                 <Sparkles className="h-4 w-4" style={{ color: ACCENT }} />
                 <span className="text-sm font-black tabular-nums">
-                  {user?.arisePoints?.toLocaleString() ?? "—"}
+                  {fmt(balance)}
                   <span className="ml-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">AP</span>
                 </span>
               </div>
-              <GachaButton tone="ghost" disabled title="Disabled during the design preview">Trade</GachaButton>
-              <GachaButton disabled title="Disabled during the design preview">+ Sell item</GachaButton>
-              <GachaButton tone="ghost" disabled title="Disabled during the design preview">
-                <Layers className="h-3.5 w-3.5" /> Bulk list
-              </GachaButton>
+              <button onClick={() => (user ? setSelling(true) : toast("Sign in to sell.", "error"))}
+                className="inline-flex h-10 items-center gap-2 px-5 text-[11px] font-black uppercase tracking-[0.16em] text-white transition hover:brightness-115"
+                style={{ clipPath: "polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%)", background: `linear-gradient(100deg, #7c3aed, ${ACCENT})` }}>
+                <Store className="h-3.5 w-3.5" /> Sell a card
+              </button>
             </div>
           </div>
-
-          {/* ── THE REASON NOTHING WORKS ── stated plainly, not buried ── */}
-          <Panel tone="danger" size={18} className="mb-7">
-            <div className="relative flex flex-wrap items-start gap-4 px-5 py-4">
-              <ShieldAlert className="mt-0.5 h-6 w-6 shrink-0 text-rose-300" />
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-black uppercase tracking-[0.24em] text-rose-200">
-                  Design preview · trading is switched off
-                </p>
-                <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-slate-300">
-                  These listings are <b className="text-white">not real</b> and nothing here can be bought or sold. The market
-                  stays closed until account sign-in is hardened — right now a session can be minted from an email address
-                  alone, and a market would turn that into someone&rsquo;s collection being emptied and resold to a buyer who
-                  did nothing wrong.
-                </p>
-                <p className="mt-1.5 text-xs text-slate-500">
-                  The layout below is real, though. Tell me what to change and it&rsquo;s ready the day trading opens.
-                </p>
-              </div>
-              <span className="flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-rose-200"
-                style={{ clipPath: notch(8), background: "rgba(226,69,63,.14)", boxShadow: "inset 0 0 0 1px rgba(226,69,63,.45)" }}>
-                <Lock className="h-3 w-3" /> Locked
-              </span>
-            </div>
-          </Panel>
 
           {/* ── filters ── */}
           <div className="mb-6 flex flex-wrap items-center gap-2">
-            <span className="mr-1 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">
-              <ArrowUpDown className="h-3 w-3" /> Sort
-            </span>
-            {([["low", "Lowest price"], ["high", "Highest price"], ["soon", "Expiring soon"]] as const).map(([k, label]) => (
-              <button key={k} onClick={() => setSort(k)}
-                className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] transition ${
-                  sort === k ? "text-white" : "text-slate-500 hover:text-slate-300"}`}
-                style={{
-                  clipPath: "polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%)",
-                  background: sort === k ? "rgba(162,116,255,.20)" : "rgba(255,255,255,.04)",
-                  boxShadow: `inset 0 0 0 1px ${sort === k ? "rgba(162,116,255,.55)" : "rgba(255,255,255,.08)"}`,
-                }}>
-                {label}
-              </button>
-            ))}
-            <span aria-hidden className="mx-2 h-5 w-px bg-white/10" />
-            {/* The live auction house lives HERE now rather than in the nav.
-                It is a link, not a tab: auctions are a real, working, escrowed
-                feature and this page is a disabled preview — folding the two
-                into one surface would put a working buy button next to six
-                dead ones. */}
             <Link href="/auctions"
               className="inline-flex items-center gap-1.5 px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-amber-200 transition hover:brightness-125"
-              style={{
-                clipPath: "polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%)",
-                background: "rgba(251,191,36,.12)",
-                boxShadow: "inset 0 0 0 1px rgba(251,191,36,.45)",
-              }}>
+              style={{ clipPath: "polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%)", background: "rgba(251,191,36,.12)", boxShadow: "inset 0 0 0 1px rgba(251,191,36,.45)" }}>
               <Gavel className="h-3 w-3" /> Auction House <ArrowUpRight className="h-3 w-3" />
             </Link>
             <span aria-hidden className="mx-1 h-5 w-px bg-white/10" />
-            {([["all", "All"], ["cards", "Cards"], ["effects", "Effects"]] as const).map(([k, label]) => (
-              <button key={k} onClick={() => setTab(k)}
-                className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] transition ${
-                  tab === k ? "text-white" : "text-slate-500 hover:text-slate-300"}`}
+            {([["browse", "Browse"], ["mine", `My listings${activeMine.length ? ` (${activeMine.length})` : ""}`]] as const).map(([k, label]) => (
+              <button key={k} onClick={() => setTab(k as any)}
+                className="px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] transition"
                 style={{
-                  clipPath: "polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%)",
-                  background: tab === k ? "rgba(255,255,255,.14)" : "transparent",
-                  boxShadow: `inset 0 0 0 1px ${tab === k ? "rgba(255,255,255,.28)" : "rgba(255,255,255,.07)"}`,
+                  clipPath: notch(7),
+                  background: tab === k ? `${ACCENT}30` : "rgba(255,255,255,.03)",
+                  boxShadow: `inset 0 0 0 1px ${tab === k ? ACCENT : "rgba(255,255,255,.08)"}`,
+                  color: tab === k ? "#fff" : "#64748b",
                 }}>
                 {label}
               </button>
             ))}
+            {tab === "browse" && (
+              <>
+                <span aria-hidden className="mx-1 h-5 w-px bg-white/10" />
+                <span className="mr-1 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">
+                  <ArrowUpDown className="h-3 w-3" /> Sort
+                </span>
+                {([["low", "Cheapest"], ["high", "Priciest"], ["new", "Newest"]] as const).map(([k, label]) => (
+                  <button key={k} onClick={() => setSort(k)}
+                    className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] transition ${
+                      sort === k ? "text-white" : "text-slate-500 hover:text-slate-300"}`}
+                    style={{
+                      clipPath: "polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%)",
+                      background: sort === k ? `${ACCENT}33` : "rgba(255,255,255,.04)",
+                      boxShadow: `inset 0 0 0 1px ${sort === k ? `${ACCENT}99` : "rgba(255,255,255,.08)"}`,
+                    }}>
+                    {label}
+                  </button>
+                ))}
+              </>
+            )}
           </div>
 
           {/* ── listings ── */}
-          {shown.length === 0 ? (
-            <Panel className="py-16">
+          {loading ? (
+            <div className="grid place-items-center py-24 text-slate-600"><Loader2 className="h-6 w-6 animate-spin" /></div>
+          ) : shown.length === 0 ? (
+            <Panel className="py-20">
               <p className="text-center text-sm text-slate-500">
-                {tab === "effects" ? "No effects listed yet." : "Loading the shopfront…"}
+                {tab === "mine" ? "You haven't listed anything." : "Nothing for sale yet. Be the first."}
               </p>
             </Panel>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {shown.map((l) => (
-                <ListingCard key={l.key} listing={l} onOpen={() => setOpen(l)} />
+                <ListingCard key={l.id} listing={l} meId={user?.id} busy={busy === l.id}
+                  onOpen={() => setOpen(l)} onCancel={() => cancel(l)} />
               ))}
             </div>
           )}
-
-          <p className="mt-8 text-center text-[10px] font-black uppercase tracking-[0.3em] text-slate-700">
-            Sample listings · not real offers
-          </p>
         </div>
       </div>
 
       <AnimatePresence>
-        {open && <ListingDetail listing={open} onClose={() => setOpen(null)} />}
+        {open && (
+          <ListingDetail listing={open} meId={user?.id} balance={balance} busy={busy === open.id}
+            onBuy={() => buy(open)} onClose={() => setOpen(null)} />
+        )}
+        {selling && <SellSheet onClose={() => setSelling(false)} onListed={() => { setSelling(false); load(); }} />}
       </AnimatePresence>
     </PageTransition>
   );
 }
 
-/** One shopfront tile: full-bleed portrait, then the trade furniture beneath. */
-function ListingCard({ listing, onOpen }: { listing: Listing; onOpen: () => void }) {
-  const { card, seller, price, topBid, endsInMin, foil } = listing;
-  const R = RARITY_META[card.rarity];
+function ListingCard({ listing, meId, busy, onOpen, onCancel }: {
+  listing: Listing; meId?: string; busy: boolean; onOpen: () => void; onCancel: () => void;
+}) {
+  const { card, qty, price, sellerName, foil, level, status } = listing;
+  const isMine = meId === listing.sellerId;
+  const R = card ? RARITY_META[card.rarity] : null;
+
   return (
     <Panel size={16} className="transition hover:-translate-y-1">
       <div className="relative">
-        {/* art — the card draws its own name, stars and badges */}
-        {/* CardFace takes a pixel size, so it is sized for the NARROWEST column
-            (4-up on a 1152px container ≈ 250px) and centred. Anything larger
-            would overflow the tile at that breakpoint. */}
         <button onClick={onOpen} className="relative block w-full text-left">
           <div className="grid w-full place-items-center p-2">
-            <CardFace card={card} owned foil={foil} size={232} />
+            {card
+              ? <CardFace card={card} owned foil={foil} size={232} />
+              : <div className="grid h-[320px] w-[232px] place-items-center text-xs text-slate-600">Unknown card</div>}
           </div>
-          {/* auction clock, mirroring where a live listing would show it */}
-          <span className="absolute right-2 top-2 flex items-center gap-1 px-2 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-emerald-200"
-            style={{ clipPath: notch(6), background: "rgba(4,20,14,.78)", boxShadow: "inset 0 0 0 1px rgba(52,211,153,.4)" }}>
-            <Clock className="h-2.5 w-2.5" /> {fmtLeft(endsInMin)}
-          </span>
+          {qty > 1 && (
+            <span className="absolute right-3 top-3 px-2 py-1 text-[10px] font-black text-white"
+              style={{ clipPath: notch(6), background: `linear-gradient(100deg, #7c3aed, ${ACCENT})` }}>
+              ×{qty}
+            </span>
+          )}
+          {status !== "ACTIVE" && (
+            <span className="absolute left-3 top-3 px-2 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-slate-300"
+              style={{ clipPath: notch(6), background: "rgba(0,0,0,.75)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.2)" }}>
+              {status === "SOLD" ? `Sold${listing.buyerName ? ` · ${listing.buyerName}` : ""}` : "Cancelled"}
+            </span>
+          )}
         </button>
 
         <div className="border-t border-white/10 px-3.5 py-3">
-          <p className="text-[9px] font-black uppercase tracking-[0.22em] text-slate-600">By {seller}</p>
-
+          <p className="text-[9px] font-black uppercase tracking-[0.22em] text-slate-600">
+            By {sellerName}{level > 1 ? ` · Lv ${level}` : ""}
+          </p>
           <div className="mt-2">
-            <StatRow label="Buy now" value={<span className="inline-flex items-center gap-1"><Sparkles className="h-3 w-3" style={{ color: ACCENT }} />{price.toLocaleString()}</span>} tint={ACCENT_LIT} />
-            <StatRow label="Top bid" value={topBid ? topBid.toLocaleString() : "—"} tint={topBid ? "#cbd5e1" : "#475569"} />
+            <StatRow label="Price" value={
+              <span className="inline-flex items-center gap-1">
+                <Sparkles className="h-3 w-3" style={{ color: ACCENT }} />{fmt(price)}
+              </span>
+            } tint={ACCENT_LIT} />
           </div>
 
-          <button disabled title="Trading is disabled during the design preview"
-            className="mt-3 w-full cursor-not-allowed px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500"
-            style={{ clipPath: notch(9), background: "rgba(255,255,255,.04)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.09)" }}>
-            <Lock className="mr-1.5 inline h-3 w-3" /> Buy now
-          </button>
+          {status !== "ACTIVE" ? (
+            <p className="mt-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-600">Closed</p>
+          ) : isMine ? (
+            <button onClick={onCancel} disabled={busy}
+              className="mt-3 inline-flex w-full items-center justify-center gap-1.5 px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.2em] text-rose-200 transition hover:brightness-125 disabled:opacity-40"
+              style={{ clipPath: notch(9), background: "rgba(244,63,94,.12)", boxShadow: "inset 0 0 0 1px rgba(244,63,94,.4)" }}>
+              <Trash2 className="h-3 w-3" /> {busy ? "Pulling…" : "Pull listing"}
+            </button>
+          ) : (
+            <button onClick={onOpen}
+              className="mt-3 w-full px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.2em] text-white transition hover:brightness-115"
+              style={{ clipPath: notch(9), background: `linear-gradient(100deg, #7c3aed, ${ACCENT})` }}>
+              Buy now
+            </button>
+          )}
         </div>
 
-        <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[2px]"
-          style={{ background: `linear-gradient(90deg, transparent, ${R.frame}, transparent)`, opacity: 0.6 }} />
+        {R && (
+          <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[2px]"
+            style={{ background: `linear-gradient(90deg, transparent, ${R.frame}, transparent)`, opacity: 0.6 }} />
+        )}
       </div>
     </Panel>
   );
 }
 
-/** The listing sheet — card, stat tiles, flavour, price. */
-function ListingDetail({ listing, onClose }: { listing: Listing; onClose: () => void }) {
-  const { card, seller, price, topBid, foil } = listing;
-  const R = RARITY_META[card.rarity];
-  const stats = { common: [3, 10], rare: [5, 14], epic: [8, 20], legendary: [12, 28], event: [10, 24] }[card.rarity] ?? [3, 10];
-  const mult = foil ? 1.2 : 1;
+function ListingDetail({ listing, meId, balance, busy, onBuy, onClose }: {
+  listing: Listing; meId?: string; balance: number; busy: boolean;
+  onBuy: () => void; onClose: () => void;
+}) {
+  const { card, qty, price, sellerName, foil, level } = listing;
+  const R = card ? RARITY_META[card.rarity] : null;
+  const isMine = meId === listing.sellerId;
+  const canAfford = balance >= price;
+  const stats = card ? ({ common: [3, 10], rare: [5, 14], epic: [8, 20], legendary: [12, 28], event: [10, 24] }[card.rarity] ?? [3, 10]) : [0, 0];
+  const mult = (foil ? 1.2 : 1) * (1 + (Math.max(1, level) - 1) * 0.07);
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -296,26 +336,28 @@ function ListingDetail({ listing, onClose }: { listing: Listing; onClose: () => 
         <Panel tone="gold" size={24}>
           <div className="relative max-h-[92dvh] overflow-y-auto p-6 text-center">
             <CornerTicks inset={10} />
-            <div aria-hidden className="pointer-events-none absolute inset-0"
-              style={{ background: `radial-gradient(60% 60% at 50% 18%, ${R.frame}22, transparent 70%)` }} />
-
+            {R && (
+              <div aria-hidden className="pointer-events-none absolute inset-0"
+                style={{ background: `radial-gradient(60% 60% at 50% 18%, ${R.frame}22, transparent 70%)` }} />
+            )}
             <div className="relative">
-              <div className="mx-auto w-fit"><CardFace card={card} owned foil={foil} size={230} /></div>
+              {card && <div className="mx-auto w-fit"><CardFace card={card} owned foil={foil} size={230} /></div>}
 
-              <div className="mt-4 flex items-center justify-center gap-2">
-                <Stars rarity={card.rarity} size={16} />
-              </div>
-              <h2 className="mt-1.5 text-2xl font-black uppercase tracking-[0.02em]">{card.name}</h2>
-              <p className="mt-1 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">
-                {R.label} · {card.set} · by {seller}
-              </p>
+              {card && (
+                <>
+                  <div className="mt-4 flex items-center justify-center gap-2"><Stars rarity={card.rarity} size={16} /></div>
+                  <h2 className="mt-1.5 text-2xl font-black uppercase tracking-[0.02em]">{card.name}</h2>
+                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">
+                    {R?.label} · {card.set} · by {sellerName}
+                  </p>
+                </>
+              )}
 
-              {/* three tiles, the shape the reference uses for HP/ATK/DEF */}
               <div className="mt-5 grid grid-cols-3 gap-2">
                 {[
                   { label: "ATK", value: Math.round(stats[0] * mult), tint: "#ff9d6b", bg: "rgba(249,115,22,.10)", ring: "rgba(249,115,22,.32)" },
                   { label: "HP", value: Math.round(stats[1] * mult), tint: "#6ee7b7", bg: "rgba(16,185,129,.10)", ring: "rgba(16,185,129,.32)" },
-                  { label: "Foil", value: foil ? "Yes" : "No", tint: foil ? ACCENT_LIT : "#64748b", bg: "rgba(162,116,255,.10)", ring: "rgba(162,116,255,.30)" },
+                  { label: "Level", value: level, tint: ACCENT_LIT, bg: "rgba(162,116,255,.10)", ring: "rgba(162,116,255,.30)" },
                 ].map((s) => (
                   <div key={s.label} className="px-2 py-3"
                     style={{ clipPath: notch(10), background: s.bg, boxShadow: `inset 0 0 0 1px ${s.ring}` }}>
@@ -325,25 +367,27 @@ function ListingDetail({ listing, onClose }: { listing: Listing; onClose: () => 
                 ))}
               </div>
 
-              <p className="mt-4 text-sm italic leading-relaxed text-slate-400">&ldquo;{card.flavor}&rdquo;</p>
+              {card?.flavor && <p className="mt-4 text-sm italic leading-relaxed text-slate-400">&ldquo;{card.flavor}&rdquo;</p>}
 
               <div className="mt-5 px-4 py-3 text-left"
                 style={{ clipPath: notch(12), background: "rgba(0,0,0,.45)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.07)" }}>
-                <StatRow label="Buy now" value={`${price.toLocaleString()} AP`} tint={ACCENT_LIT} />
-                <StatRow label="Top bid" value={topBid ? `${topBid.toLocaleString()} AP` : "No bids"} />
+                <StatRow label="Copies" value={`×${qty}`} />
+                <StatRow label="Price" value={`${fmt(price)} AP`} tint={ACCENT_LIT} />
+                <StatRow label="Your balance" value={`${fmt(balance)} AP`} tint={canAfford ? "#6ee7b7" : "#f87171"} />
               </div>
 
               <div className="mt-4 flex flex-col gap-2">
-                <button disabled className="w-full cursor-not-allowed px-4 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-slate-500"
-                  style={{ clipPath: notch(10), background: "rgba(255,255,255,.04)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.09)" }}>
-                  <Lock className="mr-1.5 inline h-3 w-3" /> Buy now
-                </button>
-                <button disabled className="w-full cursor-not-allowed px-4 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-slate-500"
-                  style={{ clipPath: notch(10), background: "rgba(255,255,255,.03)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.07)" }}>
-                  <Lock className="mr-1.5 inline h-3 w-3" /> Place bid
-                </button>
-                <p className="mt-1 text-[10px] leading-relaxed text-slate-600">
-                  Sample listing. Trading opens once sign-in is hardened.
+                {isMine ? (
+                  <p className="py-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Your own listing</p>
+                ) : (
+                  <button onClick={onBuy} disabled={busy || !canAfford}
+                    className="w-full px-4 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-white transition hover:brightness-115 disabled:opacity-35"
+                    style={{ clipPath: notch(10), background: `linear-gradient(100deg, #7c3aed, ${ACCENT})` }}>
+                    {busy ? "Buying…" : canAfford ? `Buy for ${fmt(price)} AP` : "Not enough AP"}
+                  </button>
+                )}
+                <p className="text-[10px] leading-relaxed text-slate-600">
+                  The card lands in your collection immediately. Foil and level come from this listing.
                 </p>
               </div>
             </div>
@@ -354,6 +398,185 @@ function ListingDetail({ listing, onClose }: { listing: Listing; onClose: () => 
             </button>
           </div>
         </Panel>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+/** Pick a card you own, choose how many copies, name a price. */
+function SellSheet({ onClose, onListed }: { onClose: () => void; onListed: () => void }) {
+  const { user } = useUser();
+  const { toast } = useToast();
+  const [catalog, setCatalog] = useState<CardDef[]>([]);
+  const [owned, setOwned] = useState<Record<string, { count: number; foil: boolean; level: number; hibernating: boolean }>>({});
+  const [pick, setPick] = useState<CardDef | null>(null);
+  const [qty, setQty] = useState(1);
+  const [price, setPrice] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    Promise.all([
+      fetch(`${API_URL}/api/cards/catalog`).then((r) => r.json()).catch(() => null),
+      fetch(`${API_URL}/api/cards/collection/${user.id}`).then((r) => r.json()).catch(() => null),
+    ]).then(([cat, col]) => {
+      if (cat?.success && Array.isArray(cat.data?.cards)) setCatalog(cat.data.cards);
+      if (col?.success) {
+        const m: Record<string, any> = {};
+        for (const c of col.data?.cards || []) {
+          m[c.cardId] = { count: c.count, foil: !!c.foil, level: c.level || 1, hibernating: !!c.hibernating };
+        }
+        setOwned(m);
+      }
+    });
+  }, [user?.id]);
+
+  // Only cards you actually hold, awake, and not support cards.
+  const sellable = useMemo(
+    () => catalog.filter((c) => (owned[c.id]?.count || 0) > 0 && !owned[c.id]?.hibernating && !c.support),
+    [catalog, owned]
+  );
+
+  const max = pick ? owned[pick.id]?.count || 1 : 1;
+  const ask = Math.floor(Number(price) || 0);
+  const fee = Math.floor((ask * FEE_PERCENT) / 100);
+
+  const submit = async () => {
+    if (!user || !pick) return;
+    if (ask < 10) return toast("Price must be at least 10 AP.", "error");
+    setBusy(true);
+    try {
+      const r = await fetch(`${API_URL}/api/market`, {
+        method: "POST", headers: authHeaders(),
+        body: JSON.stringify({ userId: user.id, cardId: pick.id, qty, price: ask }),
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) return toast(d.message || "Couldn't list that.", "error");
+      toast(`${pick.name} ×${qty} listed.`, "success");
+      onListed();
+    } catch {
+      toast("Couldn't list that.", "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[130] grid place-items-center bg-black/85 p-4 backdrop-blur" onClick={onClose}>
+      <motion.div initial={{ scale: 0.95, y: 14 }} animate={{ scale: 1, y: 0 }}
+        className="flex max-h-[92dvh] w-full max-w-2xl flex-col p-6"
+        style={{ clipPath: notch(22), background: "linear-gradient(165deg, #16102b, #0c0818)", boxShadow: `inset 0 0 0 1px ${ACCENT}55` }}
+        onClick={(e) => e.stopPropagation()}>
+        <div className="mb-4 flex shrink-0 items-center justify-between">
+          <h2 className="text-xl font-black">Sell a card</h2>
+          <button onClick={onClose} aria-label="Close" className="text-slate-500 transition hover:text-white">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* The rule people most need to know BEFORE they list, not after. */}
+        <div className="mb-4 flex shrink-0 items-start gap-3 px-4 py-3"
+          style={{ clipPath: notch(12), background: `${ACCENT}12`, boxShadow: `inset 0 0 0 1px ${ACCENT}44` }}>
+          <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" style={{ color: ACCENT_LIT }} />
+          <p className="text-xs leading-relaxed text-slate-300">
+            Listing takes the copies <b className="text-white">out of your collection straight away</b> — you can&rsquo;t
+            duel or dust with them while they&rsquo;re up. Pull the listing any time to get them back.
+            A <b className="text-white">{FEE_PERCENT}%</b> fee comes off the sale.
+          </p>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+          <p className="mb-2 text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">Your collection</p>
+          {sellable.length === 0 ? (
+            <p className="py-8 text-center text-sm text-slate-500">Nothing sellable — open a pack first.</p>
+          ) : (
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-6">
+              {sellable.map((c) => {
+                const on = pick?.id === c.id;
+                const info = owned[c.id];
+                return (
+                  <button key={c.id}
+                    onClick={() => { setPick(c); setQty(1); }}
+                    className="relative flex justify-center p-1 transition hover:-translate-y-0.5"
+                    style={{
+                      clipPath: notch(9),
+                      background: on ? `${ACCENT}26` : "transparent",
+                      boxShadow: on ? `inset 0 0 0 1px ${ACCENT}` : "none",
+                    }}>
+                    <CardFace card={c} owned foil={info?.foil} size={84} />
+                    {info?.count > 1 && (
+                      <span className="absolute right-1 top-1 rounded-full bg-white px-1.5 text-[10px] font-black text-black">
+                        ×{info.count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {pick && (
+            <div className="mt-5 grid gap-4 sm:grid-cols-[auto_1fr]">
+              <div className="mx-auto"><CardFace card={pick} owned foil={owned[pick.id]?.foil} size={150} /></div>
+              <div>
+                <p className="text-lg font-black">{pick.name}</p>
+                <p className="text-[11px] text-slate-500">
+                  You hold {max} · Level {owned[pick.id]?.level || 1}{owned[pick.id]?.foil ? " · Foil" : ""}
+                </p>
+
+                <label className="mt-3 block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                  Copies to sell
+                </label>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {Array.from({ length: max }, (_, i) => i + 1).map((n) => (
+                    <button key={n} onClick={() => setQty(n)}
+                      className="h-9 w-9 text-sm font-black transition"
+                      style={{
+                        clipPath: notch(7),
+                        background: qty === n ? `linear-gradient(140deg, ${ACCENT_LIT}, ${ACCENT})` : "rgba(255,255,255,.05)",
+                        boxShadow: qty === n ? "none" : "inset 0 0 0 1px rgba(255,255,255,.12)",
+                        color: qty === n ? "#160b2b" : "#cbd5e1",
+                      }}>
+                      {n}
+                    </button>
+                  ))}
+                </div>
+                {qty === max && max > 1 && (
+                  <p className="mt-1.5 text-[11px] text-amber-300/80">
+                    That&rsquo;s every copy — this card will leave your collection entirely.
+                  </p>
+                )}
+
+                <label className="mt-4 block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                  Price for the whole lot
+                </label>
+                <input value={price} onChange={(e) => setPrice(e.target.value.replace(/[^\d]/g, ""))}
+                  inputMode="numeric" placeholder="e.g. 500"
+                  className="mt-1.5 w-full bg-black/50 px-3.5 py-2.5 text-sm text-white outline-none placeholder:text-slate-600"
+                  style={{ clipPath: notch(10), boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }} />
+                {ask > 0 && (
+                  <p className="mt-1.5 text-[11px] text-slate-500">
+                    Fee {fmt(fee)} AP · you receive <b style={{ color: ACCENT_LIT }}>{fmt(ask - fee)} AP</b>
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-5 flex shrink-0 justify-end gap-2">
+          <button onClick={onClose}
+            className="px-5 py-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-slate-300 transition hover:brightness-125"
+            style={{ clipPath: notch(9), background: "rgba(255,255,255,.05)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }}>
+            Cancel
+          </button>
+          <button onClick={submit} disabled={!pick || ask < 10 || busy}
+            className="px-6 py-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-white transition hover:brightness-115 disabled:opacity-35"
+            style={{ clipPath: "polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%)", background: `linear-gradient(100deg, #7c3aed, ${ACCENT})` }}>
+            {busy ? "Listing…" : "List for sale"}
+          </button>
+        </div>
       </motion.div>
     </motion.div>
   );
