@@ -8,10 +8,11 @@ import CardFace, { CardDef } from "@/components/cards/CardFace";
 import { Panel, Heading, GachaButton, notch, ACCENT, ACCENT_LIT } from "@/components/cards/gacha";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-const SLOTS = 5;
+// Four, by the owner's eye: five full-size cards crowded the row.
+const SLOTS = 4;
 
 /**
- * SHOWCASE — up to five cards pinned to a profile, shown at the same
+ * SHOWCASE — up to four cards pinned to a profile, shown at the same
  * full-art size and shape the rest of the app uses. 5:7 at 186px was the
  * one place cards still rendered in the old proportions — foil sweeps and
  * legendary auras were there but shrunk into a stamp.
