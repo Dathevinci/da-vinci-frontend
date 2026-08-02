@@ -669,6 +669,7 @@ function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMo
  * shown rather than shown wrong.
  */
 function LastDuelStats({ duel, me, byId }: { duel: Duel; me?: string; byId: Record<string, CardDef> }) {
+  const [replaying, setReplaying] = useState(false);
   const state: DuelState | null = useMemo(() => {
     try { return duel.state ? JSON.parse(duel.state) : null; } catch { return null; }
   }, [duel.state]);
@@ -734,8 +735,133 @@ function LastDuelStats({ duel, me, byId }: { duel: Duel; me?: string; byId: Reco
             </span>
           </p>
         )}
+
+        {state.log?.length > 0 && (
+          <button
+            onClick={() => setReplaying(true)}
+            className="mt-3 flex w-full items-center justify-center gap-2 py-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-white transition hover:brightness-110"
+            style={{ clipPath: notch(9), background: "linear-gradient(100deg, #7c3aed, #a855f7)" }}
+          >
+            <Swords className="h-3.5 w-3.5" /> Watch replay
+          </button>
+        )}
       </div>
+
+      <AnimatePresence>
+        {replaying && (
+          <ReplayModal log={state.log} won={won} foeName={foeName} onClose={() => setReplaying(false)} />
+        )}
+      </AnimatePresence>
     </div>
+  );
+}
+
+/**
+ * REPLAY — the fight, played back beat by beat.
+ *
+ * Built on the battle log because that is genuinely all there is: the server
+ * stores the FINAL state of a duel, not a snapshot per turn, so the board
+ * cannot be rewound. The log, though, is complete and ordered — every deploy,
+ * strike, ability and death in the sequence they happened.
+ *
+ * So this replays what was SAID rather than redrawing what was shown, which is
+ * an honest recap rather than a reconstruction that would have to invent the
+ * health totals between each line.
+ */
+function ReplayModal({
+  log, won, foeName, onClose,
+}: { log: string[]; won: boolean; foeName: string; onClose: () => void }) {
+  const [at, setAt] = useState(0);
+  const [playing, setPlaying] = useState(true);
+  const [speed, setSpeed] = useState(1);
+  const endRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!playing || at >= log.length) return;
+    const t = setTimeout(() => setAt((n) => n + 1), 900 / speed);
+    return () => clearTimeout(t);
+  }, [playing, at, log.length, speed]);
+
+  // Follow the newest line as it lands, so a long fight doesn't scroll away.
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [at]);
+
+  const done = at >= log.length;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[140] flex items-center justify-center bg-black/90 p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.96, y: 10 }} animate={{ scale: 1, y: 0 }}
+        className="flex max-h-[86dvh] w-full max-w-lg flex-col rounded-2xl border border-white/12 bg-[#0a0a11]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">Replay</p>
+            <p className="truncate text-sm font-black text-white">vs {foeName}</p>
+          </div>
+          <button onClick={onClose} aria-label="Close" className="text-slate-500 transition hover:text-white">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+          {log.slice(0, at).map((l, i) => {
+            const isDomain = l.startsWith("▲");
+            const newest = i === at - 1;
+            return (
+              <motion.div
+                key={`${i}-${l}`}
+                initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.2 }}
+                className={`py-1 text-[12px] leading-snug ${
+                  isDomain ? "font-black text-fuchsia-300" : newest ? "font-bold text-white" : "text-slate-500"
+                }`}
+              >
+                {l}
+              </motion.div>
+            );
+          })}
+          {done && (
+            <motion.p
+              initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }}
+              className={`mt-3 border-t border-white/10 pt-3 text-center text-lg font-black ${won ? "text-emerald-300" : "text-rose-300"}`}
+            >
+              {won ? "Victory" : "Defeat"}
+            </motion.p>
+          )}
+          <div ref={endRef} />
+        </div>
+
+        <div className="flex items-center gap-2 border-t border-white/10 px-4 py-3">
+          <button
+            onClick={() => (done ? (setAt(0), setPlaying(true)) : setPlaying((p) => !p))}
+            className="flex-1 py-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-white transition hover:brightness-110"
+            style={{ clipPath: notch(9), background: "linear-gradient(100deg, #7c3aed, #a855f7)" }}
+          >
+            {done ? "Watch again" : playing ? "Pause" : "Play"}
+          </button>
+          {([1, 2, 4] as const).map((x) => (
+            <button
+              key={x}
+              onClick={() => setSpeed(x)}
+              className={`px-3 py-2.5 text-[11px] font-black tabular-nums transition ${
+                speed === x ? "text-white" : "text-slate-500 hover:text-slate-300"
+              }`}
+              style={{ clipPath: notch(8), background: speed === x ? "rgba(162,116,255,.22)" : "rgba(255,255,255,.05)" }}
+            >
+              {x}×
+            </button>
+          ))}
+          <span className="shrink-0 text-[10px] font-bold tabular-nums text-slate-600">
+            {Math.min(at, log.length)}/{log.length}
+          </span>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
