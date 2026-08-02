@@ -46,6 +46,11 @@ const ebGaramond = EB_Garamond({
 // every other page.
 import { Lora, Merriweather, Literata, Lexend } from "next/font/google";
 
+// Dungeon Dispatch's arcade face. preload off, same as the reader fonts —
+// it costs nothing until someone actually walks into the dungeon.
+import { Press_Start_2P } from "next/font/google";
+const pressStart = Press_Start_2P({ weight: "400", subsets: ["latin"], variable: "--font-pixel", display: "swap", preload: false });
+
 const lora = Lora({ weight: ["400", "700"], style: ["normal", "italic"], subsets: ["latin"], variable: "--font-lora", display: "swap", preload: false });
 const merriweather = Merriweather({ weight: ["400", "700"], style: ["normal", "italic"], subsets: ["latin"], variable: "--font-merriweather", display: "swap", preload: false });
 const literata = Literata({ weight: ["400", "700"], style: ["normal", "italic"], subsets: ["latin"], variable: "--font-literata", display: "swap", preload: false });
@@ -100,7 +105,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className="dark">
-      <body className={`${geistSans.variable} ${geistMono.variable} ${permanentMarker.variable} ${cinzel.variable} ${ebGaramond.variable} ${fellEnglish.variable} ${lora.variable} ${merriweather.variable} ${literata.variable} ${lexend.variable} bg-[#050505] text-white antialiased min-h-screen flex flex-col transition-colors duration-300 overflow-x-hidden`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} ${permanentMarker.variable} ${cinzel.variable} ${ebGaramond.variable} ${fellEnglish.variable} ${pressStart.variable} ${lora.variable} ${merriweather.variable} ${literata.variable} ${lexend.variable} bg-[#050505] text-white antialiased min-h-screen flex flex-col transition-colors duration-300 overflow-x-hidden`}>
         <ThemeProvider>
           <AppMotionConfig>
           <AppModeProvider>

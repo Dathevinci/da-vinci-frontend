@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   Home, Compass, Users, User as UserIcon, Megaphone, BookOpen,
   MoreHorizontal, X, Store, Layers, Swords, ShoppingBag, Target, HelpCircle, Heart, Sparkles,
-  Trophy, Gavel,
+  Trophy, Gavel, Castle,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { useAppMode } from "@/components/providers/AppModeProvider";
@@ -60,6 +60,7 @@ export default function MobileBottomNav() {
     { label: "Marketplace", href: "/marketplace", icon: Store, hint: "Buy and sell cards" },
     { label: "Arise Cards", href: "/cards", icon: Layers, hint: "Your collection" },
     { label: "Card Duels", href: "/duels", icon: Swords, hint: "Stake and fight" },
+    { label: "Dungeon Dispatch", href: "/dungeon", icon: Castle, hint: "Send a party in" },
     { label: "Arise Shop", href: "/shop", icon: ShoppingBag, hint: "Frames and effects" },
     { label: "Quests", href: "/quests", icon: Target, hint: "Daily rewards" },
     { label: "Leaderboard", href: "/leaderboard", icon: Trophy, hint: "Who is winning" },

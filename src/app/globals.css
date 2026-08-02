@@ -12,6 +12,10 @@
   .font-graffiti {
     font-family: var(--font-graffiti), cursive;
   }
+
+  .font-pixel {
+    font-family: var(--font-pixel), "Courier New", monospace;
+  }
   
   .font-cinzel {
     font-family: var(--font-cinzel), serif;

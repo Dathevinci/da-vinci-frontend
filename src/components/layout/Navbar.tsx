@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut, Users, Palette, ShoppingBag, Menu, X, Settings, Heart, ChevronDown, Tv, BookMarked, BookOpen, Swords, Terminal, Layers, Gavel, Trophy } from 'lucide-react';
+import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut, Users, Palette, ShoppingBag, Menu, X, Settings, Heart, ChevronDown, Tv, BookMarked, BookOpen, Swords, Terminal, Layers, Gavel, Trophy, Castle } from 'lucide-react';
 import { isAdmin, isLeadDev } from "@/lib/admin";
 import LoginModal from './LoginModal';
 import SearchModal from './SearchModal';
@@ -253,6 +253,7 @@ export default function Navbar() {
                     <span className="px-4 pb-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-600">Games</span>
                     <Link href="/cards" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><Layers className="w-4 h-4" /> Arise Cards</Link>
                     <Link href="/duels" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><Swords className="w-4 h-4" /> Card Duels</Link>
+                    <Link href="/dungeon" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><Castle className="w-4 h-4" /> Dungeon Dispatch</Link>
                     <Link href="/leaderboard" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><Trophy className="w-4 h-4" /> Leaderboard</Link>
                     <Link href="/auctions" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><Gavel className="w-4 h-4" /> Auction House</Link>
                     <div className="my-1.5 border-t border-white/10" />
@@ -384,6 +385,9 @@ export default function Navbar() {
             </Link>
             <Link href="/duels" onClick={() => setIsMobileMenuOpen(false)} className={`${accentHover} flex items-center gap-3`}>
               <Swords className="w-6 h-6" /> Card Duels
+            </Link>
+            <Link href="/dungeon" onClick={() => setIsMobileMenuOpen(false)} className={`${accentHover} flex items-center gap-3`}>
+              <Castle className="w-6 h-6" /> Dungeon Dispatch
             </Link>
             <Link href="/leaderboard" onClick={() => setIsMobileMenuOpen(false)} className={`${accentHover} flex items-center gap-3`}>
               <Trophy className="w-6 h-6" /> Leaderboard
