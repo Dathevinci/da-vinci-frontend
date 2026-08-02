@@ -25,6 +25,7 @@ type Catalog = {
   foilCost: Record<CardRarity, number>;
   relicPackShards: number;
   setRewards: Record<string, SetReward>;
+  wakeCost?: Record<CardRarity, number>;
   cardStats?: Record<string, { hp: number; atk: number }>;
   foilMult?: number;
 };
@@ -35,6 +36,7 @@ export default function CardsPage() {
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [owned, setOwned] = useState<Record<string, number>>({});
   const [foils, setFoils] = useState<Record<string, boolean>>({});
+  const [asleep, setAsleep] = useState<Record<string, boolean>>({});
   const [claimedSets, setClaimedSets] = useState<string[]>([]);
   const [shards, setShards] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -89,12 +91,15 @@ export default function CardsPage() {
       if (d.success) {
         const map: Record<string, number> = {};
         const fo: Record<string, boolean> = {};
+        const hb: Record<string, boolean> = {};
         for (const c of d.data?.cards || []) {
           map[c.cardId] = c.count;
           if (c.foil) fo[c.cardId] = true;
+          if (c.hibernating) hb[c.cardId] = true;
         }
         setOwned(map);
         setFoils(fo);
+        setAsleep(hb);
         setClaimedSets(d.data.claimedSets || []);
         setShards(d.data.shards || 0);
       }
@@ -196,6 +201,12 @@ export default function CardsPage() {
       setShards(d.shards);
       toast(`${card.name} is now FOIL ✨`, "success");
       setSelected(null);
+    });
+
+  const wake = (card: CardDef) =>
+    shardAction("wake", { cardId: card.id }, (d) => {
+      setShards(d.shards);
+      toast(`${card.name} is awake.`, "success");
     });
 
   const openRelic = () =>
@@ -530,7 +541,7 @@ export default function CardsPage() {
                           {/* The card carries its own name, stars and rarity
                               badge now that the art is full-bleed, so nothing
                               is repeated underneath it. */}
-                          <CardFace card={c} owned={has} count={count} foil={!!foils[c.id]} size={216} />
+                          <CardFace card={c} owned={has} count={count} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} size={216} />
                         </button>
                       );
                     })}
@@ -575,7 +586,7 @@ export default function CardsPage() {
                     <div className="relative flex flex-col items-center gap-6 p-6 text-center sm:flex-row sm:items-start sm:p-7 sm:text-left">
                       {/* the trophy shot */}
                       <div className="shrink-0">
-                        <CardFace card={selected} owned={count > 0} count={count} foil={!!foils[selected.id]} size={300} showStats stats={catalog.cardStats} />
+                        <CardFace card={selected} owned={count > 0} count={count} foil={!!foils[selected.id]} hibernating={!!asleep[selected.id]} size={300} showStats stats={catalog.cardStats} />
                       </div>
 
                       <div className="min-w-0 flex-1">
@@ -620,6 +631,29 @@ export default function CardsPage() {
                         })()}
 
                         <div className="mt-4 flex flex-col items-stretch gap-2">
+                          {/* Waking comes first — a sleeping card can't be
+                              fielded, so it's the only thing you'd want to do
+                              with it. */}
+                          {asleep[selected.id] && (
+                            <>
+                              <p className="px-3 py-2 text-center text-[11px] font-bold leading-relaxed text-sky-200"
+                                style={{ clipPath: notch(9), background: "rgba(56,132,255,.12)", boxShadow: "inset 0 0 0 1px rgba(125,200,255,.35)" }}>
+                                Asleep — it fell in a duel you lost. It can&rsquo;t be fielded until it wakes.
+                              </p>
+                              {isMine && (() => {
+                                const wc = (catalog as any).wakeCost?.[selected.rarity] ?? 0;
+                                return (
+                                  <GachaButton onClick={() => wake(selected)} disabled={shards < wc}>
+                                    <Sparkles className="h-3.5 w-3.5" /> Wake · {wc.toLocaleString()} shards
+                                    {shards < wc ? " (need more)" : ""}
+                                  </GachaButton>
+                                );
+                              })()}
+                              <p className="text-[11px] text-slate-500">
+                                Pulling another copy from a pack wakes it for free.
+                              </p>
+                            </>
+                          )}
                           {isMine && count > 1 && (
                             <GachaButton tone="jade" onClick={() => dust(selected)}>
                               <Recycle className="h-3.5 w-3.5" /> Dust {count - 1} dupe{count - 1 === 1 ? "" : "s"} · +{(count - 1) * dustEach}

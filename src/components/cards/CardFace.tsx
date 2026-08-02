@@ -721,6 +721,7 @@ function CardFaceImpl({
   showStats = false,
   stats,
   liveHp,
+  hibernating = false,
 }: {
   card: CardDef;
   owned?: boolean;
@@ -737,6 +738,8 @@ function CardFaceImpl({
    * tracks the fight.
    */
   liveHp?: number;
+  /** Fell in a lost duel and is asleep — owned, but not fieldable until woken. */
+  hibernating?: boolean;
 }) {
   const S = (stats || FALLBACK_STATS)[card.rarity] || FALLBACK_STATS.common;
   const mult = foil ? 1.2 : 1;
@@ -934,6 +937,20 @@ function CardFaceImpl({
         <circle cx="90" cy="11.5" r="4.2" fill={dim ? "#2a2a32" : R.gem} stroke="#04030a" strokeWidth="1.2" />
         {foil && <circle cx="90" cy="11.5" r="6.4" fill="none" stroke={R.gem} strokeWidth="0.7" opacity="0.75" />}
       </svg>
+
+      {/* ── HIBERNATING ── still yours, just asleep. Deliberately reads as
+          dormant rather than as damaged or missing: a frost wash and a band,
+          not the grey-out used for cards you don't own. */}
+      {hibernating && owned && (
+        <>
+          <span aria-hidden className="pointer-events-none absolute inset-0 rounded-[7%]"
+            style={{ background: "linear-gradient(165deg, rgba(120,180,255,.30), rgba(10,20,45,.62))", backdropFilter: "saturate(0.35)" }} />
+          <span className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 -rotate-6 border-y py-1 text-center font-black uppercase tracking-[0.28em] text-sky-100"
+            style={{ fontSize: Math.max(7, size * 0.062), background: "rgba(8,20,44,.85)", borderColor: "rgba(125,200,255,.6)" }}>
+            Asleep
+          </span>
+        </>
+      )}
 
       {count > 1 && owned && (
         <span className="absolute -right-1.5 -top-1.5 grid h-6 min-w-6 place-items-center rounded-full border-2 border-[#0b0b12] bg-white px-1.5 text-[11px] font-black text-black">
