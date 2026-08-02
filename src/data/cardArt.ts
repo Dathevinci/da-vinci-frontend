@@ -40,10 +40,11 @@ export const CARD_ART: Record<string, string> = {
   card_onimask:      "/cards/card_onimask.png",
   card_voidgaze:     "/cards/card_voidgaze.png",
   card_crimsonsea:   "/cards/card_crimsonsea.png",
+  card_leviathan:    "/cards/card_leviathan.png",
+  card_hollowtide:   "/cards/card_hollowtide.png",
+  card_ninehands:    "/cards/card_ninehands.png",
 
-  // Still on drawn motifs, and fine that way: card_leviathan, card_hollowtide,
-  // card_ninehands, card_trenchmaw. Add a line here the day a file lands
-  // beside the others.
+  // Still on a drawn motif: card_trenchmaw. Add a line the day a file lands.
 };
 
 /** The image for a card, or null to keep its drawn motif. */
