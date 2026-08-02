@@ -4,6 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Swords, X, Heart, Shield, Crosshair, Trophy, Sparkles, Flag } from "lucide-react";
 import CardFace, { CardDef } from "./CardFace";
+// notch() is used by the support inspect sheet's buttons. It was missing, and
+// because the frontend builds with typescript.ignoreBuildErrors the build was
+// green while tapping a support card threw ReferenceError straight into the
+// Next error boundary — the "Try Again" page. gacha.tsx imports only React,
+// so there is no cycle here.
+import { notch } from "./gacha";
 import { ArenaBackdrop, ArenaOverlay } from "./ArenaBackdrop";
 
 /**
