@@ -14,6 +14,7 @@ import { useUser } from '@/hooks/useUser';
 import { useAppMode } from '@/components/providers/AppModeProvider';
 import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
 import UserLink from "@/components/profile/UserLink";
+import NavIsland from "./NavIsland";
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -171,50 +172,14 @@ export default function Navbar() {
 
   return (
     <>
-      {/* ── HOVER-REVEAL STRIP ────────────────────────────────────────────
-          An invisible 12px band along the very top. Reaching for the top of
-          the screen is what people already do when they want the nav back, so
-          that gesture brings it down instead of requiring a scroll up. Only
-          mounted while the bar is actually hidden, so it never eats clicks
-          meant for the bar itself. */}
-      {isDesktop && hidden && !isMobileMenuOpen && (
-        <div
-          aria-hidden
-          onMouseEnter={() => setPeek(true)}
-          className="fixed inset-x-0 top-0 z-[51] h-3"
-        />
-      )}
+      {/* ── DESKTOP ── the island replaces the bar entirely above lg. */}
+      <NavIsland onSearch={() => setShowSearchModal(true)} />
 
-      {/* ── DYNAMIC ISLAND ────────────────────────────────────────────────
-          What's left of the bar once it's away: a small floating capsule that
-          says the site is still here and gives the reveal something to aim at.
-          Scales and fades on transform/opacity only — no layout, no reflow. */}
-      <div
-        aria-hidden={!(hidden && !peek)}
-        onMouseEnter={() => setPeek(true)}
-        className="fixed left-1/2 top-2 z-[52] flex items-center gap-2 rounded-full border border-white/10 bg-[#0b0b12]/90 px-3 py-1.5 shadow-[0_8px_30px_rgba(0,0,0,.6)] backdrop-blur-xl"
-        style={{
-          transform: `translateX(-50%) ${isDesktop && hidden && !peek && !isMobileMenuOpen ? "scale(1)" : "scale(.75)"}`,
-          opacity: isDesktop && hidden && !peek && !isMobileMenuOpen ? 1 : 0,
-          pointerEvents: isDesktop && hidden && !peek && !isMobileMenuOpen ? "auto" : "none",
-          transition: "transform 240ms cubic-bezier(.34,1.4,.64,1), opacity 180ms ease",
-          willChange: "transform, opacity",
-        }}
-      >
-        <img src="/logo.png" alt="" className={`h-6 w-6 rounded-full border ${accentBorder} object-cover`} />
-        <span className={`text-[10px] font-black uppercase tracking-[0.22em] ${modeLabelColor}`}>{mode}</span>
-        <ChevronDown className="h-3 w-3 text-slate-500" />
-      </div>
-
+      {/* ── MOBILE ── the original bar, untouched, and no longer auto-hiding:
+          the island is small enough to leave up, so hiding exists for nobody.
+          `lg:hidden` is what keeps the two from ever stacking. */}
       <header
-        onMouseEnter={() => setPeek(true)}
-        onMouseLeave={() => setPeek(false)}
-        style={{
-          transform: isDesktop && hidden && !peek && !isMobileMenuOpen ? "translateY(-100%)" : "translateY(0)",
-          transition: "transform 280ms cubic-bezier(.4,0,.2,1), background-color 300ms, border-color 300ms",
-          willChange: "transform",
-        }}
-        className={`fixed top-0 w-full z-50 ${
+        className={`fixed top-0 w-full z-50 transition-all duration-300 lg:hidden ${
         isScrolled 
           ? `bg-[#030305]/90 backdrop-blur-lg border-b ${isDejavuh ? 'border-purple-500/30 shadow-[0_4px_30px_rgba(168,85,247,0.15)]' : 'border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.5)]'}`
           : 'bg-gradient-to-b from-[#030305]/80 to-transparent'
