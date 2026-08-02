@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Lock, ArrowUpDown, Clock, Tag, Layers, ShieldAlert, X, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { Lock, ArrowUpDown, Clock, Tag, Layers, ShieldAlert, X, Sparkles, Gavel, ArrowUpRight } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import PageTransition from "@/components/layout/PageTransition";
 import CardFace, { CardDef, RARITY_META } from "@/components/cards/CardFace";
@@ -179,6 +180,21 @@ export default function MarketplacePage() {
               </button>
             ))}
             <span aria-hidden className="mx-2 h-5 w-px bg-white/10" />
+            {/* The live auction house lives HERE now rather than in the nav.
+                It is a link, not a tab: auctions are a real, working, escrowed
+                feature and this page is a disabled preview — folding the two
+                into one surface would put a working buy button next to six
+                dead ones. */}
+            <Link href="/auctions"
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-amber-200 transition hover:brightness-125"
+              style={{
+                clipPath: "polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%)",
+                background: "rgba(251,191,36,.12)",
+                boxShadow: "inset 0 0 0 1px rgba(251,191,36,.45)",
+              }}>
+              <Gavel className="h-3 w-3" /> Auction House <ArrowUpRight className="h-3 w-3" />
+            </Link>
+            <span aria-hidden className="mx-1 h-5 w-px bg-white/10" />
             {([["all", "All"], ["cards", "Cards"], ["effects", "Effects"]] as const).map(([k, label]) => (
               <button key={k} onClick={() => setTab(k)}
                 className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] transition ${

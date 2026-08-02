@@ -51,7 +51,6 @@ const PLAY: Dest[] = [
   { href: "/cards", label: "Arise Cards", Icon: Layers },
   { href: "/duels", label: "Card Duels", Icon: Swords },
   { href: "/leaderboard", label: "Leaderboard", Icon: Trophy },
-  { href: "/auctions", label: "Auction House", Icon: Gavel },
   { href: "/marketplace", label: "Marketplace", Icon: Store },
 ];
 
