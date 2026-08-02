@@ -496,9 +496,12 @@ function SellSheet({ onClose, onListed }: { onClose: () => void; onListed: () =>
   const { user } = useUser();
   const { toast } = useToast();
   const [catalog, setCatalog] = useState<CardDef[]>([]);
-  const [owned, setOwned] = useState<Record<string, { count: number; foil: boolean; level: number; hibernating: boolean }>>({});
+  const [owned, setOwned] = useState<Record<string, { count: number; foil: boolean; level: number; hibernating: boolean; prints?: { serial: number; condition: string }[] }>>({});
   const [pick, setPick] = useState<CardDef | null>(null);
   const [qty, setQty] = useState(1);
+  // For legendaries: the EXACT serials being sold. Each wear tier is its own
+  // asset now — the seller points at the copies, never at a count.
+  const [sel, setSel] = useState<number[]>([]);
   const [price, setPrice] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -512,7 +515,7 @@ function SellSheet({ onClose, onListed }: { onClose: () => void; onListed: () =>
       if (col?.success) {
         const m: Record<string, any> = {};
         for (const c of col.data?.cards || []) {
-          m[c.cardId] = { count: c.count, foil: !!c.foil, level: c.level || 1, hibernating: !!c.hibernating };
+          m[c.cardId] = { count: c.count, foil: !!c.foil, level: c.level || 1, hibernating: !!c.hibernating, prints: Array.isArray(c.prints) ? c.prints : [] };
         }
         setOwned(m);
       }
@@ -526,21 +529,26 @@ function SellSheet({ onClose, onListed }: { onClose: () => void; onListed: () =>
   );
 
   const max = pick ? owned[pick.id]?.count || 1 : 1;
+  const pickPrints = pick ? owned[pick.id]?.prints || [] : [];
+  // A legendary with prints sells BY PRINT; everything else sells by count.
+  const byPrint = pick?.rarity === "legendary" && pickPrints.length > 0;
+  const selling = byPrint ? sel.length : qty;
   const ask = Math.floor(Number(price) || 0);
   const fee = Math.floor((ask * FEE_PERCENT) / 100);
 
   const submit = async () => {
     if (!user || !pick) return;
     if (ask < 10) return toast("Price must be at least 10 AP.", "error");
+    if (byPrint && sel.length === 0) return toast("Pick which prints you're selling.", "error");
     setBusy(true);
     try {
       const r = await fetch(`${API_URL}/api/market`, {
         method: "POST", headers: authHeaders(),
-        body: JSON.stringify({ userId: user.id, cardId: pick.id, qty, price: ask }),
+        body: JSON.stringify({ userId: user.id, cardId: pick.id, qty: selling, price: ask, serials: byPrint ? sel : undefined }),
       });
       const d = await r.json();
       if (!r.ok || !d.success) return toast(d.message || "Couldn't list that.", "error");
-      toast(`${pick.name} ×${qty} listed.`, "success");
+      toast(`${pick.name} ×${selling} listed.`, "success");
       onListed();
     } catch {
       toast("Couldn't list that.", "error");
@@ -585,7 +593,7 @@ function SellSheet({ onClose, onListed }: { onClose: () => void; onListed: () =>
                 const info = owned[c.id];
                 return (
                   <button key={c.id}
-                    onClick={() => { setPick(c); setQty(1); }}
+                    onClick={() => { setPick(c); setQty(1); setSel([]); }}
                     className="relative flex justify-center p-1 transition hover:-translate-y-0.5"
                     style={{
                       clipPath: notch(9),
@@ -613,27 +621,65 @@ function SellSheet({ onClose, onListed }: { onClose: () => void; onListed: () =>
                   You hold {max} · Level {owned[pick.id]?.level || 1}{owned[pick.id]?.foil ? " · Foil" : ""}
                 </p>
 
-                <label className="mt-3 block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
-                  Copies to sell
-                </label>
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {Array.from({ length: max }, (_, i) => i + 1).map((n) => (
-                    <button key={n} onClick={() => setQty(n)}
-                      className="h-9 w-9 text-sm font-black transition"
-                      style={{
-                        clipPath: notch(7),
-                        background: qty === n ? `linear-gradient(140deg, ${ACCENT_LIT}, ${ACCENT})` : "rgba(255,255,255,.05)",
-                        boxShadow: qty === n ? "none" : "inset 0 0 0 1px rgba(255,255,255,.12)",
-                        color: qty === n ? "#160b2b" : "#cbd5e1",
-                      }}>
-                      {n}
-                    </button>
-                  ))}
-                </div>
-                {qty === max && max > 1 && (
-                  <p className="mt-1.5 text-[11px] text-amber-300/80">
-                    That&rsquo;s every copy — this card will leave your collection entirely.
-                  </p>
+                {byPrint ? (
+                  <>
+                    {/* Each copy is its own graded object — you sell THESE
+                        prints, not "some copies". */}
+                    <label className="mt-3 block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                      Prints to sell — tap to pick
+                    </label>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {pickPrints.map((p) => {
+                        const on = sel.includes(p.serial);
+                        const m = PRINT_META[p.condition] || PRINT_META.factory;
+                        return (
+                          <button key={p.serial}
+                            onClick={() => setSel((s) => on ? s.filter((n) => n !== p.serial) : [...s, p.serial])}
+                            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] transition ${m.cls} ${
+                              on ? "ring-2 ring-white/80" : "opacity-70 hover:opacity-100"
+                            }`}>
+                            {m.label}
+                            <span className="font-mono normal-case tracking-normal opacity-80">#{String(p.serial).padStart(3, "0")}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {sel.length === pickPrints.length && pickPrints.length > 1 && (
+                      <p className="mt-1.5 text-[11px] text-amber-300/80">
+                        That&rsquo;s every print — this card will leave your collection entirely.
+                      </p>
+                    )}
+                    {sel.some((n) => (pickPrints.find((p) => p.serial === n)?.condition === "fresh")) && (
+                      <p className="mt-1.5 text-[11px] text-amber-200">
+                        You&rsquo;re selling a Fresh Build — the rarest wear. Price it like one.
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <label className="mt-3 block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                      Copies to sell
+                    </label>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {Array.from({ length: max }, (_, i) => i + 1).map((n) => (
+                        <button key={n} onClick={() => setQty(n)}
+                          className="h-9 w-9 text-sm font-black transition"
+                          style={{
+                            clipPath: notch(7),
+                            background: qty === n ? `linear-gradient(140deg, ${ACCENT_LIT}, ${ACCENT})` : "rgba(255,255,255,.05)",
+                            boxShadow: qty === n ? "none" : "inset 0 0 0 1px rgba(255,255,255,.12)",
+                            color: qty === n ? "#160b2b" : "#cbd5e1",
+                          }}>
+                          {n}
+                        </button>
+                      ))}
+                    </div>
+                    {qty === max && max > 1 && (
+                      <p className="mt-1.5 text-[11px] text-amber-300/80">
+                        That&rsquo;s every copy — this card will leave your collection entirely.
+                      </p>
+                    )}
+                  </>
                 )}
 
                 <label className="mt-4 block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
@@ -659,7 +705,7 @@ function SellSheet({ onClose, onListed }: { onClose: () => void; onListed: () =>
             style={{ clipPath: notch(9), background: "rgba(255,255,255,.05)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }}>
             Cancel
           </button>
-          <button onClick={submit} disabled={!pick || ask < 10 || busy}
+          <button onClick={submit} disabled={!pick || ask < 10 || busy || (byPrint && sel.length === 0)}
             className="px-6 py-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-white transition hover:brightness-115 disabled:opacity-35"
             style={{ clipPath: "polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%)", background: `linear-gradient(100deg, #7c3aed, ${ACCENT})` }}>
             {busy ? "Listing…" : "List for sale"}

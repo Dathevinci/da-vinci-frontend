@@ -737,38 +737,70 @@ export default function CardsPage() {
                       const mineInSet = cards.filter((c) => (owned[c.id] || 0) > 0);
                       const isOpen = expandedSets.includes(set);
                       return isOpen ? mineInSet : mineInSet.slice(0, SET_PREVIEW);
-                    })().map((c) => {
+                    })().flatMap((c) => {
                       const count = owned[c.id] || 0;
                       const has = count > 0;
-                      return (
+                      const tileStyle = {
+                        clipPath: notch(12),
+                        background: has ? "rgba(255,255,255,.035)" : "rgba(255,255,255,.012)",
+                        boxShadow: `inset 0 0 0 1px ${has ? "rgba(162,116,255,.24)" : "rgba(255,255,255,.05)"}`,
+                        /**
+                         * Off-screen cards are not rendered at all.
+                         *
+                         * Every card is a full SVG with gradients, rays,
+                         * particles and a vignette. A collection of forty
+                         * meant the browser laid out and painted forty of
+                         * them whether or not two were on screen — that is
+                         * what made scrolling this grid heavy.
+                         *
+                         * contain-intrinsic-size supplies a placeholder box
+                         * so the scrollbar stays honest and nothing jumps
+                         * as cards enter and leave the viewport.
+                         */
+                        contentVisibility: "auto",
+                        containIntrinsicSize: "auto 400px",
+                      } as any;
+
+                      /**
+                       * WEAR TIERS ARE THEIR OWN ENTRIES. A legendary held in
+                       * Fresh Build, Rusted and Factory New shows as THREE
+                       * binder entries; two Factory New copies stack into one
+                       * entry ×2. Same-card-different-wear never merges —
+                       * that is the whole point of a graded copy.
+                       */
+                      const held = has ? prints[c.id] || [] : [];
+                      if (held.length > 0) {
+                        const wearMeta: Record<string, { label: string; cls: string }> = {
+                          fresh:   { label: "Fresh Build", cls: "border-amber-400/60 bg-amber-500/15 text-amber-200" },
+                          rusted:  { label: "Rusted",      cls: "border-orange-700/60 bg-orange-900/40 text-orange-300" },
+                          factory: { label: "Factory New", cls: "border-slate-400/40 bg-slate-600/30 text-slate-200" },
+                        };
+                        const byWear: Record<string, number> = {};
+                        for (const p of held) byWear[p.condition] = (byWear[p.condition] || 0) + 1;
+                        return (["fresh", "rusted", "factory"] as const)
+                          .filter((w) => byWear[w])
+                          .map((w) => (
+                            <button key={`${c.id}-${w}`} onClick={() => setSelected(c)}
+                              className="group relative flex flex-col items-center gap-1.5 p-2 transition hover:-translate-y-1"
+                              style={tileStyle}>
+                              <CardFace card={c} owned count={byWear[w]} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} size={216} ratio="5 / 9" />
+                              <span className={`pointer-events-none inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] ${wearMeta[w].cls}`}>
+                                {wearMeta[w].label}{byWear[w] > 1 ? ` ×${byWear[w]}` : ""}
+                              </span>
+                            </button>
+                          ));
+                      }
+
+                      return [
                         <button key={c.id} onClick={() => setSelected(c)}
                           className="group relative flex flex-col items-center gap-1.5 p-2 transition hover:-translate-y-1"
-                          style={{
-                            clipPath: notch(12),
-                            background: has ? "rgba(255,255,255,.035)" : "rgba(255,255,255,.012)",
-                            boxShadow: `inset 0 0 0 1px ${has ? "rgba(162,116,255,.24)" : "rgba(255,255,255,.05)"}`,
-                            /**
-                             * Off-screen cards are not rendered at all.
-                             *
-                             * Every card is a full SVG with gradients, rays,
-                             * particles and a vignette. A collection of forty
-                             * meant the browser laid out and painted forty of
-                             * them whether or not two were on screen — that is
-                             * what made scrolling this grid heavy.
-                             *
-                             * contain-intrinsic-size supplies a placeholder box
-                             * so the scrollbar stays honest and nothing jumps
-                             * as cards enter and leave the viewport.
-                             */
-                            contentVisibility: "auto",
-                            containIntrinsicSize: "auto 400px",
-                          } as any}>
+                          style={tileStyle}>
                           {/* The card carries its own name, stars and rarity
                               badge now that the art is full-bleed, so nothing
                               is repeated underneath it. */}
                           <CardFace card={c} owned={has} count={count} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} size={216} ratio="5 / 9" />
-                        </button>
-                      );
+                        </button>,
+                      ];
                     })}
                   </div>
 
