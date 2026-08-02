@@ -527,6 +527,8 @@ function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats
   // request came back 404.
   const [people, setPeople] = useState<{ id: string; username: string; avatar?: string | null }[]>([]);
   const [picked, setPicked] = useState<{ id: string; username: string } | null>(null);
+  // The member list only opens on focus — see the note beside it.
+  const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     fetch(`${API_URL}/api/users`)
@@ -556,7 +558,11 @@ function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats
       {/* max-w-6xl, not 3xl: the old column was so narrow the card art stayed
           thumbnail-sized even on a laptop, which is the whole reason to go
           full screen in the first place. */}
-      <div className="mx-auto flex h-full w-full max-w-6xl flex-col px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] sm:px-8">
+      {/* Fills the window. max-w-6xl left a dead margin down both sides and
+          squeezed the collection grid into fewer columns than the screen had
+          room for, so the sheet looked boxed on a wide display while its own
+          content was still cut off at the bottom. */}
+      <div className="flex h-full w-full flex-col px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] sm:px-8">
         <div className="mb-4 flex shrink-0 items-center justify-between">
           <h2 className="text-xl font-black">Send a challenge</h2>
           <button onClick={onClose} className="grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-white/5">
@@ -578,7 +584,15 @@ function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats
             ) : (
               <div className="relative mt-1">
                 <input value={opp} onChange={(e) => setOpp(e.target.value)} placeholder="Search a member…"
+                  onFocus={() => setSearchOpen(true)}
+                  onBlur={() => setTimeout(() => setSearchOpen(false), 150)}
                   className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white" />
+                {/* Only while the field is focused or you have typed. It used
+                    to render unconditionally, so the member list sat open over
+                    the deck the moment the sheet appeared, covering the cards
+                    you came here to choose. The blur is delayed because a
+                    click on a result blurs the input before the click lands. */}
+                {(searchOpen || q) && (
                 <div className="absolute z-10 mt-1 max-h-44 w-full overflow-y-auto rounded-lg border border-white/15 bg-[#12121a] shadow-xl">
                   {matches.length === 0 ? (
                     <p className="px-3 py-2 text-xs text-slate-500">No member by that name.</p>
@@ -592,6 +606,7 @@ function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats
                     </button>
                   ))}
                 </div>
+                )}
               </div>
             )}
           </div>
