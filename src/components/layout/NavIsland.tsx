@@ -67,7 +67,6 @@ const MORE: Dest[] = [
 ];
 
 const PLAY: Dest[] = [
-  { href: "/game", label: "Pick Me Down ∞", Icon: Gamepad2 },
   { href: "/cards", label: "Arise Cards", Icon: Layers },
   { href: "/duels", label: "Card Duels", Icon: Swords },
   { href: "/dungeon", label: "Dungeon Dispatch", Icon: Castle },

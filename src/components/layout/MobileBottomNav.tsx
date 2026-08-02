@@ -57,7 +57,6 @@ export default function MobileBottomNav() {
 
   /** Everything the bar has no room for. Mirrors the desktop nav island. */
   const moreLinks = [
-    { label: "Pick Me Down ∞", href: "/game", icon: Gamepad2, hint: "The guild hall" },
     { label: "Marketplace", href: "/marketplace", icon: Store, hint: "Buy and sell cards" },
     { label: "Arise Cards", href: "/cards", icon: Layers, hint: "Your collection" },
     { label: "Card Duels", href: "/duels", icon: Swords, hint: "Stake and fight" },

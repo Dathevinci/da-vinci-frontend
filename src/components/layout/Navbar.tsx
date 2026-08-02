@@ -251,7 +251,6 @@ export default function Navbar() {
                         inventory. They were crowding the shop header. */}
                     <div className="my-1.5 border-t border-white/10" />
                     <span className="px-4 pb-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-600">Games</span>
-                    <Link href="/game" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><Gamepad2 className="w-4 h-4" /> Pick Me Down ∞</Link>
                     <Link href="/cards" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><Layers className="w-4 h-4" /> Arise Cards</Link>
                     <Link href="/duels" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><Swords className="w-4 h-4" /> Card Duels</Link>
                     <Link href="/dungeon" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><Castle className="w-4 h-4" /> Dungeon Dispatch</Link>
@@ -381,9 +380,6 @@ export default function Navbar() {
             {/* Games — their own group, not shop inventory */}
             <hr className="border-white/10 my-2" />
             <span className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-600">Games</span>
-            <Link href="/game" onClick={() => setIsMobileMenuOpen(false)} className={`${accentHover} flex items-center gap-3`}>
-              <Gamepad2 className="w-6 h-6" /> Pick Me Down ∞
-            </Link>
             <Link href="/cards" onClick={() => setIsMobileMenuOpen(false)} className={`${accentHover} flex items-center gap-3`}>
               <Layers className="w-6 h-6" /> Arise Cards
             </Link>
