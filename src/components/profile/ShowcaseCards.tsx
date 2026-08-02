@@ -40,6 +40,18 @@ export default function ShowcaseCards({
   const [picked, setPicked] = useState<string[]>(initial.slice(0, SLOTS));
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  // On a phone, 216px cards stack one per row and the showcase becomes a
+  // scroll marathon. Under 640px they drop to 150 — two per row — and the
+  // listener keeps it honest through rotation.
+  const [small, setSmall] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const sync = () => setSmall(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  const cardSize = small ? 150 : 216;
 
   useEffect(() => { setPicked(initial.slice(0, SLOTS)); }, [initial.join(",")]);
 
@@ -116,11 +128,11 @@ export default function ShowcaseCards({
               return (
                 <motion.div key={i} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.06 }}>
-                  {/* 216 crosses the full-art threshold (>=200), so the
-                      painting, the foil sweep and a legendary's aura render
-                      at the size they were made for — the same presentation
-                      as the collection grid, not a shrunken 5:7 stamp. */}
-                  <CardFace card={card} owned foil={!!foils[card.id]} size={216} ratio="5 / 9" />
+                  {/* 216 crosses the full-art threshold (>=200) on desktop, so
+                      the painting, the foil sweep and a legendary's aura render
+                      at the size they were made for; phones take the 150px
+                      two-per-row layout instead of a one-card scroll column. */}
+                  <CardFace card={card} owned foil={!!foils[card.id]} size={cardSize} ratio="5 / 9" />
                 </motion.div>
               );
             }
@@ -129,7 +141,7 @@ export default function ShowcaseCards({
             return (
               <button key={i} onClick={() => setEditing(true)}
                 className="grid place-items-center text-slate-700 transition hover:text-slate-500"
-                style={{ width: 216, aspectRatio: "5 / 9", clipPath: notch(14), background: "rgba(255,255,255,.02)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.07)" }}>
+                style={{ width: cardSize, aspectRatio: "5 / 9", clipPath: notch(14), background: "rgba(255,255,255,.02)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.07)" }}>
                 <Plus className="h-7 w-7" />
               </button>
             );

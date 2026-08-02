@@ -968,16 +968,26 @@ export default function CardsPage() {
           };
           const tag = String(Math.abs([...selected.id].reduce((a, c) => (a * 31 + c.charCodeAt(0)) | 0, 7)) % 10000).padStart(4, "0");
 
+          // The card yields to the phone: full 340 on desktop, whatever the
+          // viewport actually affords on mobile. Computed at open — the sheet
+          // is transient, so a rotation just means reopening it.
+          const sheetSize = Math.min(340, (typeof window !== "undefined" ? window.innerWidth : 640) - 72);
           return (
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[120] flex items-center justify-center bg-black/90 p-4 sm:p-6"
+              /* THE WRAPPER SCROLLS. A centred child taller than the viewport
+                 cannot be scrolled back to — this codebase has shipped that
+                 bug once already, and on a phone this sheet (card + readouts,
+                 stacked) is ALWAYS taller than the viewport. min-h-full
+                 centring below keeps the desktop look identical. */
+              className="fixed inset-0 z-[120] overflow-y-auto bg-black/90"
               onClick={() => setSelected(null)}
             >
+              <div className="flex min-h-full items-center justify-center p-4 sm:p-6">
               <motion.div
                 initial={{ scale: 0.96, y: 10 }} animate={{ scale: 1, y: 0 }}
                 transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                className="flex w-full max-w-4xl flex-col items-center gap-6 md:flex-row md:items-stretch md:justify-center"
+                className="flex w-full max-w-4xl flex-col items-center gap-6 py-2 md:flex-row md:items-stretch md:justify-center"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* ── LEFT · the card, big, lit by its own rarity ── */}
@@ -988,7 +998,7 @@ export default function CardsPage() {
                     count={count}
                     foil={!!foils[selected.id]}
                     hibernating={asl}
-                    size={340}
+                    size={sheetSize}
                     // Matches the grids. The sheet was still on the default
                     // 5/7 while the collection behind it had gone 5/9, so
                     // opening a card made it visibly squarer than the card you
@@ -999,10 +1009,12 @@ export default function CardsPage() {
                   />
                 </div>
 
-                {/* ── RIGHT · the readouts, scrolling independently of the card
-                       so the art never scrolls off while you read ── */}
+                {/* ── RIGHT · the readouts. On desktop they scroll on their own
+                       so the art never leaves the screen; on a phone the WHOLE
+                       sheet scrolls as one page, because a scroll region inside
+                       a scroll region is how mobile modals eat swipes. */}
                 <div
-                  className="flex max-h-[86dvh] w-full flex-col overflow-y-auto rounded-2xl border border-white/10 bg-[#0b0b11] md:w-[420px]"
+                  className="flex w-full flex-col rounded-2xl border border-white/10 bg-[#0b0b11] md:max-h-[86dvh] md:w-[420px] md:overflow-y-auto"
                   style={{ boxShadow: "0 24px 70px rgba(0,0,0,.7)" }}
                 >
                   <div className="flex flex-col gap-4 p-5">
@@ -1204,10 +1216,13 @@ export default function CardsPage() {
                 </div>
               </motion.div>
 
+              {/* FIXED, not absolute: the wrapper scrolls now, and an absolute
+                  button would scroll away with the top of the sheet. */}
               <button onClick={() => setSelected(null)} aria-label="Close"
-                className="absolute right-5 top-5 z-10 grid h-10 w-10 place-items-center rounded-full border border-white/15 bg-white/[0.06] text-slate-300 transition hover:bg-white/15 hover:text-white">
+                className="fixed right-5 top-5 z-10 grid h-10 w-10 place-items-center rounded-full border border-white/15 bg-black/60 text-slate-300 transition hover:bg-white/15 hover:text-white">
                 <X className="h-5 w-5" />
               </button>
+              </div>
             </motion.div>
           );
         })()}
