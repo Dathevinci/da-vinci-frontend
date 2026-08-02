@@ -910,6 +910,11 @@ export default function CardsPage() {
                     foil={!!foils[selected.id]}
                     hibernating={asl}
                     size={340}
+                    // Matches the grids. The sheet was still on the default
+                    // 5/7 while the collection behind it had gone 5/9, so
+                    // opening a card made it visibly squarer than the card you
+                    // just clicked.
+                    ratio="5 / 9"
                     showStats={false}
                     stats={catalog.cardStats}
                   />
