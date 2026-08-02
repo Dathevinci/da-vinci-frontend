@@ -294,6 +294,13 @@ export default function DuelsPage() {
   }, [deck, byId, cardStats, foils]);
   const pending = duels.filter((d) => d.status === "PENDING");
   const running = duels.filter((d) => d.status === "ACTIVE");
+  // What's waiting on YOU — the two lists that should never be below a shop.
+  const needMe = pending.filter((d) => d.opponentId === user?.id);
+  const myTurnDuels = running.filter((d) => d.turnUserId === user?.id);
+  const ladderRank = user ? board.findIndex((r: any) => r.userId === user.id) : -1;
+  const winPct = rating && rating.wins + rating.losses > 0
+    ? Math.round((rating.wins / (rating.wins + rating.losses)) * 100)
+    : null;
   const done = duels.filter((d) => ["FINISHED", "DECLINED", "EXPIRED"].includes(d.status));
   // The most recent duel that was actually FOUGHT. A declined or expired
   // challenge has no state to report on, and calling one of those "your last
@@ -399,6 +406,54 @@ export default function DuelsPage() {
             </div>
           ) : (
             <div className="space-y-6">
+              {/* ── NEEDS YOU ── the single most important thing on this page,
+                  so it comes before everything, shop included: games where the
+                  clock is on YOUR side of the table. */}
+              {(needMe.length > 0 || myTurnDuels.length > 0) && (
+                <div className="relative p-4"
+                  style={{ clipPath: notch(16), background: "linear-gradient(100deg, rgba(244,63,94,.16), rgba(249,115,22,.07))", boxShadow: "inset 0 0 0 1px rgba(244,63,94,.45)" }}>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <span className="relative flex h-2.5 w-2.5">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-70" />
+                        <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-rose-400" />
+                      </span>
+                      <p className="text-sm font-black text-white">
+                        {myTurnDuels.length > 0 && `${myTurnDuels.length} duel${myTurnDuels.length === 1 ? "" : "s"} waiting on your move`}
+                        {myTurnDuels.length > 0 && needMe.length > 0 && <span className="text-slate-500"> · </span>}
+                        {needMe.length > 0 && `${needMe.length} challenge${needMe.length === 1 ? "" : "s"} to answer`}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      {myTurnDuels[0] && (
+                        <button onClick={() => setActive(myTurnDuels[0])}
+                          className="rounded-full bg-gradient-to-r from-rose-600 to-orange-600 px-5 py-2 text-xs font-black text-white transition hover:brightness-110">
+                          Fight now
+                        </button>
+                      )}
+                      {needMe[0] && (
+                        <button onClick={() => setActive(needMe[0])}
+                          className="rounded-full border border-rose-400/40 bg-rose-500/10 px-5 py-2 text-xs font-black text-rose-200 transition hover:bg-rose-500/20">
+                          Answer the challenge
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── YOUR NUMBERS ── the record the page always had and never
+                  showed: rating, W/L, win rate, and where that puts you. */}
+              {rating && (
+                <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4 sm:gap-2">
+                  <Stat label="Rating" value={String(rating.rating)} tint="#fda4af" />
+                  <Stat label="Record" value={`${rating.wins}W · ${rating.losses}L`} tint="#7dd3fc" />
+                  <Stat label="Win rate" value={winPct === null ? "—" : `${winPct}%`} tint="#6ee7b7" />
+                  <Stat label={ladderRank >= 0 ? "Ladder rank" : "Streak"}
+                    value={ladderRank >= 0 ? `#${ladderRank + 1}` : String(rating.streak || 0)} tint="#fbbf24" />
+                </div>
+              )}
+
               {/* YOUR DECK — the five that walk into every duel. The page never
                   showed them: the deck lived inside the challenge modal, so the
                   thing every fight is fought with was invisible until you were
@@ -452,7 +507,47 @@ export default function DuelsPage() {
                 </p>
               </div>
 
-              {/* item shop */}
+              {pending.length > 0 && (
+                <Section title="Challenges">
+                  {pending.map((d) => (
+                    <DuelRow key={d.id} duel={d} me={user?.id} onOpen={() => setActive(d)}
+                      right={
+                        d.opponentId === user?.id ? (
+                          <div className="flex gap-2">
+                            <button onClick={() => setActive(d)} className="rounded-full bg-gradient-to-r from-rose-600 to-orange-600 px-4 py-1.5 text-xs font-black">Accept</button>
+                            <button onClick={() => post(`${d.id}/decline`, {})} className="rounded-full border border-white/15 px-4 py-1.5 text-xs font-black text-slate-300">Decline</button>
+                          </div>
+                        ) : (
+                          <button onClick={() => post(`${d.id}/decline`, {})} className="rounded-full border border-white/15 px-4 py-1.5 text-xs font-black text-slate-400">Cancel</button>
+                        )
+                      } />
+                  ))}
+                </Section>
+              )}
+
+              {running.length > 0 && (
+                <Section title="In progress">
+                  {running.map((d) => (
+                    <DuelRow key={d.id} duel={d} me={user?.id} onOpen={() => setActive(d)}
+                      right={<button onClick={() => setActive(d)}
+                        className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-black ${d.turnUserId === user?.id ? "bg-gradient-to-r from-rose-600 to-orange-600 text-white" : "border border-white/15 text-slate-400"}`}>
+                        {d.turnUserId === user?.id && (
+                          // the ping says "the game is waiting on YOU" from
+                          // across the page, before any text is read
+                          <span className="relative flex h-2 w-2">
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-70" />
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
+                          </span>
+                        )}
+                        {d.turnUserId === user?.id ? "Your turn" : "Waiting"}
+                      </button>} />
+                  ))}
+                </Section>
+              )}
+
+              {/* ── SUPPORT ITEMS ── below the live games now: buying wards is
+                  preparation, and preparation never outranks a fight in
+                  progress. */}
               <div className="relative p-5"
                 style={{ clipPath: notch(20), background: "linear-gradient(160deg, rgba(34,211,238,.07), rgba(8,20,30,.5))", boxShadow: "inset 0 0 0 1px rgba(34,211,238,.28)" }}>
                 <div className="mb-3.5 flex items-center justify-between">
@@ -492,43 +587,25 @@ export default function DuelsPage() {
                 </div>
               </div>
 
-              {pending.length > 0 && (
-                <Section title="Challenges">
-                  {pending.map((d) => (
-                    <DuelRow key={d.id} duel={d} me={user?.id} onOpen={() => setActive(d)}
-                      right={
-                        d.opponentId === user?.id ? (
-                          <div className="flex gap-2">
-                            <button onClick={() => setActive(d)} className="rounded-full bg-gradient-to-r from-rose-600 to-orange-600 px-4 py-1.5 text-xs font-black">Accept</button>
-                            <button onClick={() => post(`${d.id}/decline`, {})} className="rounded-full border border-white/15 px-4 py-1.5 text-xs font-black text-slate-300">Decline</button>
-                          </div>
-                        ) : (
-                          <button onClick={() => post(`${d.id}/decline`, {})} className="rounded-full border border-white/15 px-4 py-1.5 text-xs font-black text-slate-400">Cancel</button>
-                        )
-                      } />
-                  ))}
-                </Section>
-              )}
-
-              {running.length > 0 && (
-                <Section title="In progress">
-                  {running.map((d) => (
-                    <DuelRow key={d.id} duel={d} me={user?.id} onOpen={() => setActive(d)}
-                      right={<button onClick={() => setActive(d)}
-                        className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-black ${d.turnUserId === user?.id ? "bg-gradient-to-r from-rose-600 to-orange-600 text-white" : "border border-white/15 text-slate-400"}`}>
-                        {d.turnUserId === user?.id && (
-                          // the ping says "the game is waiting on YOU" from
-                          // across the page, before any text is read
-                          <span className="relative flex h-2 w-2">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-70" />
-                            <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
-                          </span>
-                        )}
-                        {d.turnUserId === user?.id ? "Your turn" : "Waiting"}
-                      </button>} />
-                  ))}
-                </Section>
-              )}
+              {/* ── HOW DUELS WORK ── the rules lived in a Discord post and
+                  nowhere on the page. Folded shut so veterans never see it;
+                  one tap for everyone who was guessing. */}
+              <details className="group"
+                style={{ clipPath: notch(14), background: "rgba(255,255,255,.025)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.09)" }}>
+                <summary className="cursor-pointer list-none px-4 py-3.5 text-[11px] font-black uppercase tracking-[0.22em] text-slate-300 transition hover:text-white">
+                  How duels work · the 60-second version
+                  <span className="ml-2 text-slate-600 group-open:hidden">＋</span>
+                  <span className="ml-2 hidden text-slate-600 group-open:inline">−</span>
+                </summary>
+                <div className="grid gap-x-8 gap-y-2.5 px-4 pb-4 text-xs leading-relaxed text-slate-400 sm:grid-cols-2">
+                  <p><b className="text-white">The stake.</b> Both sides pay it in. Winner takes the pot minus a 10% burn — competitive play is a sink, not a faucet.</p>
+                  <p><b className="text-white">Five cards, turns.</b> Deploy one to the field, attack with it, or swap it out. Rarer cards hit harder; foils hit 20% harder still.</p>
+                  <p><b className="text-white">Supports keep your turn.</b> Up to three support cards a duel, played free — heal, ward, revive — without passing the move.</p>
+                  <p><b className="text-white">Skills &amp; domains.</b> Epics carry a skill, legendaries a domain expansion — each fires once per duel, and a domain can rewrite the fight.</p>
+                  <p><b className="text-white">Fallen cards sleep.</b> Lose the duel and your fallen cards hibernate — wake them with shards, or pull another copy free.</p>
+                  <p><b className="text-white">Items are consumables.</b> Salve, Ward and Focus are bought with shards below and spent one charge at a time, any turn.</p>
+                </div>
+              </details>
 
               {lastFought && <LastDuelStats duel={lastFought} me={user?.id} byId={byId} />}
 
