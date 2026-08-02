@@ -6,7 +6,7 @@ import { displayArisePoints } from "@/lib/admin";
 import { authHeaders } from "@/lib/authToken";
 import { useToast } from "@/components/ui/Toast";
 import PageTransition from "@/components/layout/PageTransition";
-import { CardDef } from "@/components/cards/CardFace";
+import CardFace, { CardDef } from "@/components/cards/CardFace";
 import { cardArt } from "@/data/cardArt";
 import { loadCatalog } from "@/lib/catalogCache";
 
@@ -195,6 +195,18 @@ export default function DungeonPage() {
   const [itemBusy, setItemBusy] = useState(false);
   // which biome the LIVE run is in — drives the stage's environment + bestiary
   const [runBio, setRunBio] = useState(0);
+  // real card sizes for the lobby — the binder-fit lesson: fixed tiles must
+  // shrink on a phone or the page grows a sideways pan
+  const [smallScr, setSmallScr] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const sync = () => setSmallScr(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  const rosterSize = smallScr ? 130 : 150;
+  const supSize = smallScr ? 104 : 122;
 
   // ── raid state ──
   const [runId, setRunId] = useState<string | null>(null);
@@ -603,9 +615,13 @@ export default function DungeonPage() {
                         <button key={cid} title={supText(def.support)}
                           onClick={() => setPacked((p) =>
                             p.includes(cid) ? p.filter((x) => x !== cid) : p.length < packMax ? [...p, cid] : p)}
-                          className={`dg-btn dg-press px-3 py-2 font-pixel text-[8px] disabled:opacity-35 ${on ? "dg-sel" : ""}`}
-                          style={on ? { color: tone } : undefined}>
-                          {def.name.toUpperCase()}
+                          className={`dg-panel dg-press p-1.5 text-left ${on ? "dg-sel" : ""}`}>
+                          {/* the REAL card, not a name on a button */}
+                          <CardFace card={def} owned size={supSize} ratio="5 / 9" showStats={false} />
+                          <span className="mt-1.5 block font-mono text-[9px] leading-snug"
+                            style={{ width: supSize, color: on ? tone : "#8f86b8" }}>
+                            {on ? "▶ PACKED — " : ""}{supText(def.support)}
+                          </span>
                         </button>
                       );
                     })}
@@ -627,23 +643,30 @@ export default function DungeonPage() {
                     if (!def) return null;
                     const s = effStats(c, def.rarity);
                     const picked = party.includes(c.cardId);
-                    const art = cardArt(c.cardId, undefined, 64);
                     const status = c.dgnDead ? "DEAD" : c.dgnInjured ? "INJURED" : s.hp < s.maxHp ? "WOUNDED" : "HEALTHY";
                     const statusTone = c.dgnDead ? "#ff5f5f" : c.dgnInjured ? "#ffd23e" : s.hp < s.maxHp ? "#ffb45f" : "#5fd18a";
                     return (
                       <div key={c.cardId}
-                        className={`dg-panel relative p-2 ${picked ? "dg-sel" : ""} ${c.dgnDead ? "opacity-70" : ""}`}>
+                        className={`dg-panel relative p-2 ${picked ? "dg-sel" : ""} ${c.dgnDead ? "opacity-80" : ""}`}>
                         <button onClick={() => toggle(c.cardId)} disabled={c.dgnDead || c.dgnInjured}
                           title={c.dgnInjured ? "Injured — heal before the next dispatch. It can still duel." : undefined}
-                          className="flex w-full items-center gap-2 text-left disabled:cursor-not-allowed">
-                          <span className="dg-frame shrink-0" style={{ borderColor: RARITY_TINT[def.rarity] || "#9aa4b2" }}>
-                            {art
-                              ? <img src={art} alt="" className={`dg-pix h-full w-full object-cover ${c.dgnDead ? "grayscale" : ""}`} />
-                              : <span className="font-pixel text-[8px]">{def.name.slice(0, 2)}</span>}
+                          className="relative block w-full text-left disabled:cursor-not-allowed">
+                          {/* THE REAL CARD — full art, the same face as everywhere
+                              else in the app. Dungeon condition layers on top. */}
+                          <span className={`flex justify-center ${c.dgnDead ? "grayscale" : ""}`}>
+                            <CardFace card={def} owned foil={c.foil} size={rosterSize} ratio="5 / 9" showStats stats={DGN_STATS} />
                           </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate font-pixel text-[8px] leading-relaxed">{def.name}</span>
-                            <span className="block font-mono text-[10px] text-[#8f86b8]">LV.{c.level}{c.foil ? " ★FOIL" : ""} · ATK {s.atk}</span>
+                          {c.dgnDead && (
+                            <span className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 border-y-[3px] border-[#ff5f6e] bg-[#1a0a10]/95 py-1 text-center font-pixel text-[9px] tracking-widest text-[#ffb4bc]">
+                              ✕ DEAD ✕
+                            </span>
+                          )}
+                          {c.dgnInjured && !c.dgnDead && (
+                            <span className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 border-y-[3px] border-[#ffd23e] bg-[#1a1408]/95 py-1 text-center font-pixel text-[9px] tracking-widest text-[#ffe9a3]">
+                              INJURED
+                            </span>
+                          )}
+                          <span className="mt-1.5 block">
                             {domains[c.cardId] && (
                               <span className="block truncate font-mono text-[10px] text-[#f0abfc]" title="Expands automatically: on a boss floor, or when badly hurt. Once per run.">
                                 ▲ {domains[c.cardId].name}
@@ -912,10 +935,10 @@ const DG_CSS = `
 .dg-btn:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 0 0 0 #030608; }
 .dg-btn-gold { background: #1d4457; border-color: #9be8ff; color: #dff6ff; }
 .dg-btn-red { background: #4a1420; border-color: #ff5f6e; color: #ffb4bc; }
-.dg-slot { width: 52px; height: 52px; background: #0a141f; border: 3px dashed #2b4a5e; }
+.dg-slot { width: 64px; height: 64px; background: #0a141f; border: 3px dashed #2b4a5e; }
 .dg-slot img { border: none; }
 .dg-frame { display: grid; place-items: center; width: 44px; height: 44px; background: #0a141f; border: 3px solid; }
-.dg-frame-lg { display: grid; place-items: center; width: 56px; height: 56px; background: #0a141f; border: 3px solid; }
+.dg-frame-lg { display: grid; place-items: center; width: 68px; height: 68px; background: #0a141f; border: 3px solid; }
 .dg-pix { image-rendering: pixelated; }
 /* ── BIOMES ── one set of layer graphics, three costumes. The Sunless Keep
    blue is the default; the Cellars go fungal green, the Orchard goes dead
