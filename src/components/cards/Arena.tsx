@@ -324,8 +324,17 @@ export default function Arena({
   // — it would overflow into the opponent's bench on a laptop.
   const forCards = box.h - chrome - 62;
   const lineup = Math.max(mine.fighters.length, foe.fighters.length, 1);
-  const perCard = (box.w - (wide ? 340 : 24)) / lineup;
-  const champ = clamp(92, Math.min(forCards / 2.856, box.w * 0.30), 300);
+  // THE LOG RAIL IS ABSOLUTE, SO IT TAKES NO SPACE IN THE FLOW — but it very
+  // much covers the right edge of the screen. This line already subtracted it
+  // when sizing cards; the rows below did not, so they centred on the full
+  // viewport while the right 340px was occupied. The board ended up sitting
+  // right of the centre of the space actually left for it, which reads as a
+  // dead band down the left. Everything that centres now pads by the same
+  // number the card maths uses, so the two agree.
+  const railW = wide ? 340 : 0;
+  const usableW = box.w - railW;
+  const perCard = (usableW - (wide ? 0 : 24)) / lineup;
+  const champ = clamp(92, Math.min(forCards / 2.856, usableW * 0.30), 300);
   const hand = clamp(56, Math.min(champ * 0.58, perCard - 10), 150);
   // Floors matter: below ~48px a card is unreadable mush rather than a small
   // card, and the opponent's line is how you read the game.
@@ -529,13 +538,18 @@ export default function Arena({
    * assigning a round to a line here would be a guess. The current round is
    * shown once, in the header, where it is true.
    */
-  const logPanel = log.length > 0 && (() => {
-    const newest = log[log.length - 1];
-    const older = [...log].slice(0, -1).reverse();
+  // On a wide screen the panel exists from the first frame, empty or not. It
+  // holds open the column the board is padding for, so round one doesn't show
+  // a reserved band with nothing in it — and nothing resizes when the first
+  // line lands. Narrow keeps the old behaviour: no log, no panel, because the
+  // height budget above only pays for it once there is something to read.
+  const logPanel = (wide || log.length > 0) && (() => {
+    const newest = log.length > 0 ? log[log.length - 1] : null;
+    const older = log.length > 0 ? [...log].slice(0, -1).reverse() : [];
     // Domain lines are marked with a leading triangle by the engine.
-    const isBig = newest.startsWith("▲");
+    const isBig = !!newest && newest.startsWith("▲");
     return (
-      <div className={`w-full overflow-hidden rounded-xl border border-white/10 bg-black/70 ${wide ? "" : "max-w-lg"}`}>
+      <div className={`w-full overflow-hidden rounded-xl border border-white/10 bg-black/70 ${wide ? "flex h-full flex-col" : "max-w-lg"}`}>
         <div className="flex items-center justify-between gap-2 border-b border-white/10 px-3 py-1.5">
           <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.24em] text-slate-500">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
@@ -547,16 +561,21 @@ export default function Arena({
         </div>
 
         <div
-          key={newest}
-          className={`px-3 py-2 text-[12px] font-black leading-snug ${isBig ? "text-fuchsia-200" : "text-white"}`}
+          key={newest ?? "idle"}
+          className={`shrink-0 px-3 py-2 text-[12px] font-black leading-snug ${
+            !newest ? "text-slate-600" : isBig ? "text-fuchsia-200" : "text-white"
+          }`}
           style={{ background: isBig ? "rgba(217,70,239,.12)" : "rgba(255,255,255,.04)" }}
         >
-          {newest}
+          {newest ?? "No moves yet — send a card out to open the round."}
         </div>
 
-        {older.length > 0 && (
-          <div className={`overflow-y-auto px-3 py-1.5 text-[11px] leading-relaxed text-slate-500 ${wide ? "max-h-[30vh]" : "max-h-12"}`}>
-            {older.slice(0, wide ? 18 : 6).map((l, i) => (
+        {(wide || older.length > 0) && (
+          // Wide: flex-1 so the history fills the column down to the bottom of
+          // the screen instead of stopping at 30vh with reserved space under
+          // it. min-h-0 is what actually lets it scroll inside a flex parent.
+          <div className={`overflow-y-auto px-3 py-1.5 text-[11px] leading-relaxed text-slate-500 ${wide ? "min-h-0 flex-1" : "max-h-12"}`}>
+            {older.slice(0, wide ? 40 : 6).map((l, i) => (
               <div key={`${i}-${l}`}>{l}</div>
             ))}
           </div>
@@ -632,14 +651,17 @@ export default function Arena({
 
       {/* On a wide screen the log lives in the dead margin beside the board. */}
       {wide && logPanel && (
-        <div className="absolute right-3 top-16 z-10 w-[300px]">
-          <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-slate-500">Battle log</p>
-          {logPanel}
-        </div>
+        // A real column, floor to ceiling. It used to be a short box pinned to
+        // the top with the rest of the strip empty, which is why the space the
+        // board gives up for it didn't look like it was paying for anything.
+        // The heading is gone because the panel already has one — it said
+        // "Battle log" twice, stacked.
+        <div className="absolute bottom-3 right-3 top-16 z-10 w-[300px]">{logPanel}</div>
       )}
 
       {/* ── opponent's bench ── */}
-      <div className="relative z-10 flex shrink-0 items-start justify-center gap-1.5 px-3">
+      <div className="relative z-10 flex shrink-0 items-start justify-center gap-1.5 px-3"
+        style={{ paddingRight: railW || undefined }}>
         {foe.fighters.map((f, i) => (
           <div key={i} className={`flex flex-col items-center gap-1 transition-all duration-300 ${f.hp <= 0 ? "opacity-20 grayscale" : ""}`}
             style={{ transform: i === foe.active && f.hp > 0 ? "scale(1)" : "scale(0.9)" }}>
@@ -657,14 +679,22 @@ export default function Arena({
       </div>
 
       {/* ── the clash ── */}
-      <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center gap-1.5 px-3">
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center gap-1.5 px-3"
+        style={{ paddingRight: railW || undefined }}>
         {/* The divide runs BETWEEN the champions, not across them — a horizontal
             rule in a side-by-side clash cut through both cards and read as
             damage. The pools give left sky and right rose so the zone states
             who is who even mid-animation. */}
-        <div aria-hidden className="pointer-events-none absolute inset-y-2 left-1/2 w-px bg-gradient-to-b from-transparent via-white/30 to-transparent" />
-        <div aria-hidden className="pointer-events-none absolute inset-y-4 left-0 w-1/2 rounded-r-full bg-[radial-gradient(circle_at_40%_50%,rgba(56,189,248,.10),transparent_70%)]" />
-        <div aria-hidden className="pointer-events-none absolute inset-y-4 right-0 w-1/2 rounded-l-full bg-[radial-gradient(circle_at_60%_50%,rgba(244,63,94,.10),transparent_70%)]" />
+        {/* These sit in their own box that stops where the log rail starts.
+            Percentage offsets on an absolute child resolve against the PADDING
+            box, so left-1/2 would have put the divide at half the full width
+            while the cards centre in the width minus the rail — the line would
+            have run 170px right of the VS it is supposed to run through. */}
+        <div aria-hidden className="pointer-events-none absolute inset-y-0 left-0" style={{ right: railW }}>
+          <div className="absolute inset-y-2 left-1/2 w-px bg-gradient-to-b from-transparent via-white/30 to-transparent" />
+          <div className="absolute inset-y-4 left-0 w-1/2 rounded-r-full bg-[radial-gradient(circle_at_40%_50%,rgba(56,189,248,.10),transparent_70%)]" />
+          <div className="absolute inset-y-4 right-0 w-1/2 rounded-l-full bg-[radial-gradient(circle_at_60%_50%,rgba(244,63,94,.10),transparent_70%)]" />
+        </div>
 
         <div className="relative flex items-start justify-center gap-3 sm:gap-8">
           {/* THEIR champion — dragging your card at the enemy is the obvious
@@ -826,6 +856,10 @@ export default function Arena({
         style={{
           background: "linear-gradient(180deg, rgba(20,10,30,.82), rgba(8,5,14,.94))",
           boxShadow: "inset 0 1px 0 rgba(162,116,255,.35), 0 -18px 40px rgba(0,0,0,.55)",
+          // The panel itself still spans the full width — it is the floor of
+          // the board. Only its CONTENTS step aside for the log column, so the
+          // hand centres under the champions rather than under the viewport.
+          paddingRight: railW || undefined,
         }}>
         <div className="mb-1.5 flex items-center justify-between px-1">
           <span className="flex items-center gap-2 text-sm font-black text-rose-100">
