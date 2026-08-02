@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Swords, X, Heart, Shield, Crosshair, Trophy, Sparkles, Flag } from "lucide-react";
 import CardFace, { CardDef } from "./CardFace";
+import { ArenaBackdrop, ArenaOverlay } from "./ArenaBackdrop";
 
 /**
  * THE ARENA — a full-screen battle surface.
@@ -173,6 +174,7 @@ export default function Arena({
   mine, foe, byId, myName, foeName, myTurn, finished, resultText, won = false,
   bag = [], busy, log = [], stake,
   supports = [], usedSupports = [],
+  arenaEffect,
   onAttack, onDeploy, onItem, onSupport, onForfeit, onClose,
 }: {
   mine: ArenaSide; foe: ArenaSide;
@@ -186,6 +188,8 @@ export default function Arena({
   /** Support cards you OWN — never spent, but each is playable once per duel. */
   supports?: CardDef[];
   usedSupports?: string[];
+  /** The arena cosmetic BOTH players agreed to, decided by the server. */
+  arenaEffect?: string | null;
   /** Swing with whoever is already on the field. Deploying is a separate move. */
   onAttack: () => void;
   onDeploy: (index: number) => void;
@@ -425,12 +429,18 @@ export default function Arena({
       className="fixed inset-0 z-[140] flex select-none flex-col overflow-hidden"
       style={{
         height: "100dvh",
+        // Noir's overlay blends with whatever is beneath it; `isolate` keeps
+        // that confined to the board and off everything behind the arena.
+        isolation: "isolate",
         background:
           "radial-gradient(70% 38% at 50% 0%, rgba(56,110,190,.28), transparent 64%)," +
           "radial-gradient(70% 38% at 50% 100%, rgba(190,50,70,.28), transparent 64%)," +
           "linear-gradient(#07070e, #0c0b14)",
       }}
     >
+      {/* Ambience, under the cards. */}
+      <ArenaBackdrop effectId={arenaEffect} />
+
       <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.10]"
         style={{ backgroundImage: "repeating-linear-gradient(0deg, transparent 0 34px, rgba(255,255,255,.55) 34px 35px)" }} />
 
@@ -928,6 +938,13 @@ export default function Arena({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Grading, OVER the cards — Noir has to drain the colour out of the art
+          itself, not just the floor. z-[100] keeps it under every modal, which
+          all sit at 150+, so a victory panel is never washed grey. `hit.key`
+          changes on every blow landed, which is what lifts the drain for a
+          moment: the strikes bring the colour back. */}
+      <ArenaOverlay effectId={arenaEffect} flashKey={hit?.key} className="z-[100]" />
 
       {/* ── DRAG GHOST ── pointer-events:none is REQUIRED, or elementFromPoint
           would only ever hit the ghost itself. */}
