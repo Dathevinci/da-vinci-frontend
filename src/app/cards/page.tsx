@@ -453,10 +453,21 @@ export default function CardsPage() {
                       style={{ clipPath: "polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)", background: `linear-gradient(100deg, ${ACCENT_LIT}, ${ACCENT})`, color: "#1a1206" }}>
                       Standard Banner
                     </span>
-                    <h2 className="mt-3 text-3xl font-black uppercase tracking-[0.04em] text-white sm:text-4xl">Ascension Pack</h2>
+                    <h2 className="mt-3 font-fell text-3xl font-bold uppercase tracking-[0.08em] text-white sm:text-4xl">
+                      Arise Pack
+                    </h2>
+                    {/* Named for what it actually contains. It was "Ascension
+                        Pack", but the pool is every non-event card across every
+                        set — so the name promised one set and delivered five. */}
                     <p className="mt-2 max-w-md text-sm leading-relaxed text-slate-400">
-                      {catalog.packSize} cards a pull, with a real shot at an Epic or Legendary. No duplicate is ever wasted — dust it into shards.
+                      Pulls from every set in the archive, with a real shot at an Epic or Legendary.
+                      No duplicate is ever wasted — dust it into shards.
                     </p>
+                    {sets.length > 0 && (
+                      <p className="mt-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-600">
+                        {sets.map((s) => s.set).join(" · ")}
+                      </p>
+                    )}
 
                     {/* rarity ladder — reads as odds furniture, which is the point */}
                     <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
