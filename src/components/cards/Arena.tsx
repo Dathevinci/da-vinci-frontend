@@ -111,6 +111,48 @@ function Buffs({ side }: { side: ArenaSide }) {
   );
 }
 
+/**
+ * The death of a fighter, made visible: a shockwave ring, eight shards thrown
+ * outward, and K.O. stamped over the slot. Fixed element count, transform and
+ * opacity only, unmounted by the parent's timer.
+ */
+function KoBurst({ show, koKey }: { show?: boolean; koKey?: number }) {
+  return (
+    <AnimatePresence>
+      {show && (
+        <motion.div key={koKey} aria-hidden
+          className="pointer-events-none absolute inset-0 z-20 grid place-items-center overflow-visible"
+          initial={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <motion.span className="absolute rounded-full"
+            style={{ width: 150, height: 150, border: "3px solid rgba(244,63,94,.9)", willChange: "transform, opacity" }}
+            initial={{ scale: 0.2, opacity: 1 }}
+            animate={{ scale: 2.1, opacity: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          />
+          {Array.from({ length: 8 }, (_, i) => {
+            const a = (i / 8) * Math.PI * 2;
+            return (
+              <motion.span key={i} className="absolute h-2 w-2 rounded-sm"
+                style={{ background: i % 2 ? "#fda4af" : "#f43f5e", willChange: "transform, opacity" }}
+                initial={{ x: 0, y: 0, opacity: 1, rotate: 0 }}
+                animate={{ x: Math.cos(a) * 110, y: Math.sin(a) * 110, opacity: 0, rotate: 200 }}
+                transition={{ duration: 0.7, ease: "easeOut" }}
+              />
+            );
+          })}
+          <motion.span
+            className="relative text-4xl font-black uppercase tracking-[0.18em] text-rose-300 drop-shadow-[0_2px_16px_rgba(244,63,94,.9)]"
+            initial={{ scale: 2.4, opacity: 0, rotate: -8 }}
+            animate={{ scale: 1, opacity: 1, rotate: -8 }}
+            transition={{ duration: 0.22, ease: "easeIn" }}>
+            K.O.
+          </motion.span>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 export default function Arena({
   mine, foe, byId, myName, foeName, myTurn, finished, resultText, won = false,
   bag = [], busy, log = [], stake,
@@ -206,20 +248,55 @@ export default function Arena({
   // ── Damage / heal flashes ────────────────────────────────────────────────
   // Keyed on cardId as well as hp: tracking hp alone meant a REDEPLOY (a
   // different card with different hp) rendered a phantom hit.
-  const prev = useRef<{ mi?: string; mh: number; fi?: string; fh: number } | null>(null);
+  const prev = useRef<{ mi?: string; mh: number; fi?: string; fh: number; am: number; af: number } | null>(null);
   const [hit, setHit] = useState<{ side: "mine" | "foe"; amount: number; key: number } | null>(null);
   const [heal, setHeal] = useState<{ amount: number; key: number } | null>(null);
+  /**
+   * A KILLING BLOW used to show nothing at all. The server empties the field
+   * when a fighter dies (active becomes -1), so the active-card comparison
+   * above sees a vanished cardId and registers no hit — the single most
+   * important moment in a duel was invisible. Deaths are detected from the
+   * alive COUNT dropping instead, which survives the field emptying.
+   */
+  const [ko, setKo] = useState<{ side: "mine" | "foe"; key: number } | null>(null);
+  const aliveFoe = foe.fighters.filter((f) => f.hp > 0).length;
+  const aliveMine = mine.fighters.filter((f) => f.hp > 0).length;
   useEffect(() => {
-    const now = { mi: myActive?.cardId, mh: myActive?.hp ?? 0, fi: foeActive?.cardId, fh: foeActive?.hp ?? 0 };
+    const now = {
+      mi: myActive?.cardId, mh: myActive?.hp ?? 0,
+      fi: foeActive?.cardId, fh: foeActive?.hp ?? 0,
+      am: aliveMine, af: aliveFoe,
+    };
     const b = prev.current;
     if (b) {
-      if (b.fi === now.fi && now.fh < b.fh) setHit({ side: "foe", amount: b.fh - now.fh, key: now.fh + b.fh });
-      else if (b.mi === now.mi && now.mh < b.mh) setHit({ side: "mine", amount: b.mh - now.mh, key: now.mh + b.mh });
-      else if (b.mi === now.mi && now.mh > b.mh) setHeal({ amount: now.mh - b.mh, key: now.mh + b.mh });
+      if (now.af < b.af) {
+        // The fallen card WAS the active one, so its last-known hp is the
+        // least the blow dealt — honest, even if the roll gave a little more.
+        setHit({ side: "foe", amount: b.fh, key: Date.now() });
+        setKo({ side: "foe", key: Date.now() });
+      } else if (now.am < b.am) {
+        setHit({ side: "mine", amount: b.mh, key: Date.now() });
+        setKo({ side: "mine", key: Date.now() });
+      } else if (b.fi === now.fi && now.fh < b.fh) {
+        setHit({ side: "foe", amount: b.fh - now.fh, key: now.fh + b.fh });
+      } else if (b.mi === now.mi && now.mh < b.mh) {
+        setHit({ side: "mine", amount: b.mh - now.mh, key: now.mh + b.mh });
+      } else if (b.mi === now.mi && now.mh > b.mh) {
+        setHeal({ amount: now.mh - b.mh, key: now.mh + b.mh });
+      }
     }
     prev.current = now;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [myActive?.hp, foeActive?.hp, myActive?.cardId, foeActive?.cardId]);
+  }, [myActive?.hp, foeActive?.hp, myActive?.cardId, foeActive?.cardId, aliveMine, aliveFoe]);
+
+  // Cleared on a timer, not onAnimationComplete — that callback fires when the
+  // wrapper's own animation ends, not the keyframes inside it (the dust-burst
+  // lesson).
+  useEffect(() => {
+    if (!ko) return;
+    const t = setTimeout(() => setKo(null), 1000);
+    return () => clearTimeout(t);
+  }, [ko?.key]);
 
   useEffect(() => {
     const prevOverflow = document.body.style.overflow;
@@ -304,8 +381,6 @@ export default function Arena({
   const dragging = dragUI?.d ?? null;
   const over = dragUI?.over ?? null;
   const aiming = dragging?.kind === "support" && dragging.targeted;
-  const aliveFoe = foe.fighters.filter((f) => f.hp > 0).length;
-  const aliveMine = mine.fighters.filter((f) => f.hp > 0).length;
 
   const ghostCard = dragging
     ? dragging.kind === "unit"
@@ -409,16 +484,32 @@ export default function Arena({
         <div className="relative flex items-start justify-center gap-3 sm:gap-8">
           {/* THEIR champion — dragging your card at the enemy is the obvious
               way to say "attack", so it is a drop target too. */}
-          <motion.div data-drop="foe" animate={hit?.side === "foe" ? { x: [0, -7, 7, -4, 0] } : {}}
-            transition={{ duration: 0.32 }} className="text-center">
+          {/* ATTACKER LUNGES, DEFENDER SHAKES. The foe sits on the left, so
+              when it deals damage (hit on MY side) it lunges right toward me;
+              when it takes damage it recoils. Two transforms, no layout. */}
+          <motion.div data-drop="foe"
+            animate={
+              hit?.side === "foe" ? { x: [0, -8, 8, -4, 0] }
+              : hit?.side === "mine" ? { x: [0, 42, 0] } : {}
+            }
+            transition={hit?.side === "mine" ? { duration: 0.38, times: [0, 0.3, 1], ease: "easeOut" } : { duration: 0.32 }}
+            className="relative text-center">
+            <KoBurst show={ko?.side === "foe"} koKey={ko?.key} />
             {foeActive && byId[foeActive.cardId] ? (
-              <div className={`rounded-xl transition ${over === "foe" && dragging?.kind === "unit" ? "ring-4 ring-rose-400 shadow-[0_0_30px_rgba(244,63,94,.6)]" : ""}`}>
+              // Keyed on the cardId: a deploy or redeploy re-mounts this block,
+              // so a card ARRIVES on the field instead of teleporting in. One
+              // fixed-duration tween — the spring-on-SVG lesson stands.
+              <motion.div key={foeActive.cardId}
+                initial={{ y: 26, scale: 0.9, opacity: 0 }}
+                animate={{ y: 0, scale: 1, opacity: 1 }}
+                transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+                className={`rounded-xl transition ${over === "foe" && dragging?.kind === "unit" ? "ring-4 ring-rose-400 shadow-[0_0_30px_rgba(244,63,94,.6)]" : ""}`}>
                 <CardFace card={byId[foeActive.cardId]} owned foil={foeActive.foil} size={champ} showStats liveHp={foeActive.hp} />
                 <div className="mx-auto mt-1.5" style={{ width: champ }}>
                   <Bar f={foeActive} h={9} showNumbers />
                   <Buffs side={foe} />
                 </div>
-              </div>
+              </motion.div>
             ) : (
               <div className="grid place-items-center rounded-xl border-2 border-dashed border-sky-500/25"
                 style={{ width: champ, aspectRatio: "5 / 7" }}>
@@ -431,6 +522,23 @@ export default function Arena({
 
           <div className="relative flex shrink-0 flex-col items-center justify-center self-center">
             <span className="text-xl font-black tracking-widest text-white/20 sm:text-3xl">VS</span>
+            {/* impact flash — fires with every hit, behind the number */}
+            <AnimatePresence>
+              {hit && (
+                <motion.span key={`fx${hit.key}`} aria-hidden
+                  className="pointer-events-none absolute rounded-full"
+                  style={{
+                    width: 140, height: 140,
+                    background: "radial-gradient(closest-side, rgba(255,255,255,.95), rgba(244,63,94,.55) 45%, transparent 70%)",
+                    willChange: "transform, opacity",
+                  }}
+                  initial={{ scale: 0.15, opacity: 0 }}
+                  animate={{ scale: 1.5, opacity: [0, 1, 0] }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.38, ease: "easeOut" }}
+                />
+              )}
+            </AnimatePresence>
             <AnimatePresence>
               {hit && (
                 <motion.span key={hit.key}
@@ -456,10 +564,20 @@ export default function Arena({
 
           {/* MY champion — the drop target for a fighter and for an untargeted
               support card. */}
-          <motion.div data-drop="field" animate={hit?.side === "mine" ? { x: [0, 7, -7, 4, 0] } : {}}
-            transition={{ duration: 0.32 }} className="text-center">
+          <motion.div data-drop="field"
+            animate={
+              hit?.side === "mine" ? { x: [0, 8, -8, 4, 0] }
+              : hit?.side === "foe" ? { x: [0, -42, 0] } : {}
+            }
+            transition={hit?.side === "foe" ? { duration: 0.38, times: [0, 0.3, 1], ease: "easeOut" } : { duration: 0.32 }}
+            className="relative text-center">
+            <KoBurst show={ko?.side === "mine"} koKey={ko?.key} />
             {myActive && byId[myActive.cardId] ? (
-              <div className={`rounded-xl transition ${
+              <motion.div key={myActive.cardId}
+                initial={{ y: 26, scale: 0.9, opacity: 0 }}
+                animate={{ y: 0, scale: 1, opacity: 1 }}
+                transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+                className={`rounded-xl transition ${
                 over === "field" ? "ring-4 ring-emerald-400 shadow-[0_0_30px_rgba(52,211,153,.6)]"
                   : aiming ? "ring-2 ring-cyan-400/60" : ""}`}>
                 <CardFace card={byId[myActive.cardId]} owned foil={myActive.foil} size={champ} showStats liveHp={myActive.hp} />
@@ -467,7 +585,7 @@ export default function Arena({
                   <Bar f={myActive} h={9} showNumbers />
                   <Buffs side={mine} />
                 </div>
-              </div>
+              </motion.div>
             ) : (
               <motion.div animate={live ? { scale: [1, 1.035, 1] } : {}}
                 transition={{ duration: 1.8, repeat: live ? Infinity : 0 }}

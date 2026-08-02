@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Swords, Trophy, Shield, Heart, Crosshair, Diamond, Gem, X, Flame } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
@@ -74,15 +74,29 @@ export default function DuelsPage() {
         fetch(`${API_URL}/api/cards/collection/${user.id}`).then((r) => r.json()),
         fetch(`${API_URL}/api/users/${user.id}`).then((r) => r.json()).catch(() => null),
       ]);
-      if (u?.data?.duelItems) setBag(u.data.duelItems);
-      if (d.success) { setDuels(d.data.duels || []); setRating(d.data.rating); }
-      if (l.success) setBoard(l.data || []);
+      /**
+       * Every setter bails when the data is UNCHANGED. The poll runs every two
+       * seconds, and each response is a freshly-parsed object — new identity,
+       * same content. Handing those to setState re-rendered the entire page,
+       * and the arena with it, every tick of an idle duel. If every updater
+       * returns its previous value React skips the render outright, so a quiet
+       * poll now costs the fetch and nothing else. (The earlier fix did this
+       * for `active` only — these five setters were still churning.)
+       */
+      const keep = <T,>(prev: T, next: T): T =>
+        JSON.stringify(prev) === JSON.stringify(next) ? prev : next;
+      if (u?.data?.duelItems) setBag((p) => keep(p, u.data.duelItems));
+      if (d.success) {
+        setDuels((p) => keep(p, d.data.duels || []));
+        setRating((p: any) => keep(p, d.data.rating));
+      }
+      if (l.success) setBoard((p) => keep(p, l.data || []));
       if (c.success) {
         const m: Record<string, number> = {};
         const fo: Record<string, boolean> = {};
         for (const x of c.data?.cards || []) { m[x.cardId] = x.count; if (x.foil) fo[x.cardId] = true; }
-        setOwned(m);
-        setFoils(fo);
+        setOwned((p) => keep(p, m));
+        setFoils((p) => keep(p, fo));
         setShards(c.data.shards || 0);
       }
       // Keep the open board fresh so the opponent's move appears.
@@ -539,7 +553,14 @@ function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats
 
 function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMove, onForfeit, foils, cardStats }: any) {
   const [deck, setDeck] = useState<string[]>(() => loadSavedDeck());
-  const state: DuelState | null = duel.state ? JSON.parse(duel.state) : null;
+  // Parsed once per state STRING, not once per render. DuelBoard re-renders
+  // whenever anything on the page moves (busy, bag, a toast), and re-parsing
+  // built a brand-new fighters tree every time — which also handed Arena new
+  // object identities and defeated CardFace's memo further down.
+  const state: DuelState | null = useMemo(
+    () => (duel.state ? JSON.parse(duel.state) : null),
+    [duel.state]
+  );
   const needsAccept = duel.status === "PENDING" && duel.opponentId === me;
   const myTurn = duel.status === "ACTIVE" && duel.turnUserId === me;
 
