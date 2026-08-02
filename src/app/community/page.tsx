@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useRef } from "react";
 import { User, useUser } from "@/hooks/useUser";
-import { Users, UserPlus, UserMinus, Search } from "lucide-react";
+import { Users, UserPlus, UserMinus, Search, Globe, MessagesSquare } from "lucide-react";
 import UserLink from "@/components/profile/UserLink";
 import { useToast } from "@/components/ui/Toast";
 import CommunityForum from "@/components/community/CommunityForum";
 import GlobalComments from "@/components/community/GlobalComments";
+import { notch } from "@/components/cards/gacha";
 import { motion, AnimatePresence } from "framer-motion";
 import PageTransition from "@/components/layout/PageTransition";
 import BioRenderer from '@/components/profile/BioRenderer';
@@ -163,27 +164,52 @@ export default function CommunityPage() {
       <div className="bg-[#09090b] min-h-screen pt-24 pb-12 px-4 md:px-12 text-white">
       <div className="max-w-5xl mx-auto space-y-8">
         
-        {/* Tab Switcher */}
+        {/* ── TAB SWITCHER ──────────────────────────────────────────────
+            Three destinations, not three states of one thing: posting, reading
+            what's said elsewhere, and finding people. Each carries an icon so
+            they're told apart by shape before the label is read, and the active
+            one is filled rather than merely tinted.
+
+            The indicator moves by re-tinting each button, not by animating a
+            sliding element — a slider has to be measured and repositioned on
+            every resize, and this control sits above a feed that is already
+            doing real work. */}
         <div className="flex justify-center">
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-1.5 rounded-full flex gap-2 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
-            <button
-              onClick={() => setActiveTab('forum')}
-              className={`px-6 md:px-8 py-2.5 rounded-full font-bold text-sm md:text-base transition-all ${activeTab === 'forum' ? 'bg-purple-600 text-white shadow-md scale-105' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-            >
-              Forum
-            </button>
-            <button
-              onClick={() => setActiveTab('feed')}
-              className={`px-6 md:px-8 py-2.5 rounded-full font-bold text-sm md:text-base transition-all ${activeTab === 'feed' ? 'bg-purple-600 text-white shadow-md scale-105' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-            >
-              Global Comments
-            </button>
-            <button 
-              onClick={() => setActiveTab('directory')} 
-              className={`px-6 md:px-8 py-2.5 rounded-full font-bold text-sm md:text-base transition-all ${activeTab === 'directory' ? 'bg-purple-600 text-white shadow-md scale-105' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-            >
-              User Directory
-            </button>
+          <div className="flex gap-1.5 p-1.5 backdrop-blur-xl"
+            style={{
+              clipPath: notch(16),
+              background: "rgba(255,255,255,.04)",
+              boxShadow: "inset 0 0 0 1px rgba(255,255,255,.10), 0 10px 30px rgba(0,0,0,.5)",
+            }}>
+            {([
+              { key: 'forum' as const, label: 'Forum', hint: 'Post & discuss', Icon: MessagesSquare },
+              { key: 'feed' as const, label: 'Global Comments', hint: 'Read-only', Icon: Globe },
+              { key: 'directory' as const, label: 'User Directory', hint: 'Find people', Icon: Users },
+            ]).map(({ key, label, hint, Icon }) => {
+              const on = activeTab === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => setActiveTab(key)}
+                  className="group relative flex items-center gap-2.5 px-4 py-2.5 transition md:px-6"
+                  style={{
+                    clipPath: notch(12),
+                    background: on ? 'linear-gradient(100deg, #7c3aed, #a274ff)' : 'transparent',
+                    boxShadow: on ? '0 6px 22px rgba(124,58,237,.45)' : 'none',
+                  }}
+                >
+                  <Icon className={`h-4 w-4 shrink-0 transition ${on ? 'text-white' : 'text-slate-500 group-hover:text-slate-300'}`} />
+                  <span className="text-left leading-none">
+                    <span className={`block text-sm font-black transition md:text-[15px] ${on ? 'text-white' : 'text-slate-400 group-hover:text-white'}`}>
+                      {label}
+                    </span>
+                    <span className={`mt-0.5 hidden text-[9px] font-bold uppercase tracking-[0.16em] sm:block ${on ? 'text-white/70' : 'text-slate-600'}`}>
+                      {hint}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
