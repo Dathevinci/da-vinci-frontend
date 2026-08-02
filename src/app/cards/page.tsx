@@ -367,6 +367,21 @@ export default function CardsPage() {
                     </span>
                   </div>
                   <SegBar value={totalHave} max={totalCards} />
+                  {/* The count of what's LEFT. The grid only draws cards you
+                      own now, so without this number the archive gives no
+                      sense of scale — a page of ten cards looks the same
+                      whether two are missing or forty. */}
+                  <p className="mt-2 text-[11px] font-bold text-slate-500">
+                    {totalCards - totalHave > 0 ? (
+                      <>
+                        <b style={{ color: ACCENT_LIT }}>{totalCards - totalHave}</b> still undiscovered
+                        <span className="text-slate-700"> · </span>
+                        keep pulling to find them
+                      </>
+                    ) : (
+                      <b style={{ color: ACCENT_LIT }}>Every card discovered. The archive is complete.</b>
+                    )}
+                  </p>
                 </div>
               )}
             </div>
@@ -555,7 +570,7 @@ export default function CardsPage() {
                 <div key={set}>
                   <Heading
                     title={set}
-                    sub={have >= total ? "Complete" : `${total - have} remaining`}
+                    sub={have >= total ? "Complete" : `${total - have} undiscovered`}
                     right={
                       <div className="flex min-w-[180px] flex-col items-end gap-1.5 sm:min-w-[260px]">
                         <span className="text-[11px] font-black tabular-nums" style={{ color: have >= total ? ACCENT_LIT : "#94a3b8" }}>
