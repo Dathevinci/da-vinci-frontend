@@ -74,7 +74,12 @@ function UserCard({ user, currentUser, handleFollowToggle }: { user: User, curre
           {currentUser && (
             <button 
               onClick={(e) => handleFollowToggle(user, e)}
-              className={`w-full mt-auto pt-4 py-2 rounded-lg font-bold transition flex items-center justify-center gap-2 ${isFollowing ? "bg-white/5 hover:bg-red-500/20 text-slate-300 hover:text-red-400" : "bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white"}`}
+              className={`mt-auto flex w-full items-center justify-center gap-2 py-2.5 text-[11px] font-black uppercase tracking-[0.14em] transition ${isFollowing ? "text-slate-300 hover:text-red-300" : "text-white"}`}
+              style={{
+                clipPath: notch(10),
+                background: isFollowing ? "rgba(255,255,255,.05)" : "linear-gradient(100deg, #7c3aed, #a274ff)",
+                boxShadow: isFollowing ? "inset 0 0 0 1px rgba(255,255,255,.12)" : "none",
+              }}
             >
               {isFollowing ? <><UserMinus className="w-4 h-4" /> Unfollow</> : <><UserPlus className="w-4 h-4" /> Follow</>}
             </button>
@@ -90,8 +95,15 @@ function UserCard({ user, currentUser, handleFollowToggle }: { user: User, curre
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      {/* Base Card */}
-      <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl relative overflow-hidden h-full">
+      {/* Base Card — notched to match the rest of the site, and the purple
+          wash is dialled back so the avatar and name carry the tile rather
+          than competing with a flat block of colour behind them. */}
+      <div className="relative h-full overflow-hidden backdrop-blur-md"
+        style={{
+          clipPath: notch(18),
+          background: "linear-gradient(165deg, rgba(162,116,255,.09), rgba(255,255,255,.03) 55%, rgba(0,0,0,.25))",
+          boxShadow: "inset 0 0 0 1px rgba(255,255,255,.09)",
+        }}>
         {cardContent}
       </div>
 
@@ -247,19 +259,28 @@ export default function CommunityPage() {
               >
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
             <div>
-              <h1 className="text-3xl font-black mb-2 flex items-center gap-3 text-purple-400">
-                <Users className="w-8 h-8" /> User Directory
+              <p className="text-[10px] font-black uppercase tracking-[0.42em] text-purple-400/80">Da Vinci · People</p>
+              <h1 className="mt-1 flex items-center gap-3 font-fell text-4xl font-bold uppercase tracking-[0.1em] md:text-5xl">
+                <Users className="h-8 w-8 shrink-0 text-purple-400" />
+                <span style={{
+                  background: "linear-gradient(100deg, #fff 10%, #e2d0ff 55%, #a274ff 92%)",
+                  WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent",
+                  filter: "drop-shadow(0 2px 18px rgba(162,116,255,.35))",
+                }}>User Directory</span>
               </h1>
-              <p className="text-slate-400">Discover other anime fans and explore their watchlists.</p>
+              <p className="mt-2 max-w-md text-sm leading-relaxed text-slate-400">
+                Find other readers and watchers, and look through what they&rsquo;re following.
+              </p>
             </div>
-            <div className="relative w-full md:w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
-              <input 
-                type="text" 
-                placeholder="Search users..." 
+            <div className="relative w-full md:w-80">
+              <Search className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-500 w-4 h-4" />
+              <input
+                type="text"
+                placeholder="Search users..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-full pl-10 pr-4 py-3 focus:outline-none focus:border-purple-500 transition"
+                style={{ clipPath: notch(12), boxShadow: "inset 0 0 0 1px rgba(255,255,255,.11)" }}
+                className="w-full bg-black/50 pl-10 pr-4 py-3 text-sm outline-none placeholder:text-slate-600 transition"
               />
             </div>
           </div>

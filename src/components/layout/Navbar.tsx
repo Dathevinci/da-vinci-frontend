@@ -173,7 +173,7 @@ export default function Navbar() {
   return (
     <>
       {/* ── DESKTOP ── the island replaces the bar entirely above lg. */}
-      <NavIsland onSearch={() => setShowSearchModal(true)} />
+      <NavIsland onSearch={() => setShowSearchModal(true)} onSettings={() => setShowControlCenter(true)} />
 
       {/* ── MOBILE ── the original bar, untouched, and no longer auto-hiding:
           the island is small enough to leave up, so hiding exists for nobody.

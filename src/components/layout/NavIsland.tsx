@@ -12,6 +12,7 @@ import { useUser } from "@/hooks/useUser";
 import { useAppMode } from "@/components/providers/AppModeProvider";
 import { isAdmin } from "@/lib/admin";
 import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
+import NotificationsMenu from "./NotificationsMenu";
 
 /**
  * NAV ISLAND — the desktop navigation, docked to the bottom.
@@ -108,13 +109,14 @@ function Divider() {
   return <span aria-hidden className="mx-1 h-6 w-px shrink-0 bg-white/10" />;
 }
 
-export default function NavIsland({ onSearch }: { onSearch: () => void }) {
+export default function NavIsland({ onSearch, onSettings }: { onSearch: () => void; onSettings: () => void }) {
   const { user, logout } = useUser();
   const { mode, setMode } = useAppMode();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [modeOpen, setModeOpen] = useState(false);
   const [hoverSearch, setHoverSearch] = useState(false);
+  const [hoverSettings, setHoverSettings] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const accent = mode === "anime" ? "#a855f7" : mode === "manhwa" ? "#ef4444" : "#ec4899";
@@ -248,8 +250,19 @@ export default function NavIsland({ onSearch }: { onSearch: () => void }) {
 
           {user && (
             <>
-              <IslandLink href="/notifications" label="Notifications" Icon={Bell} accent={accent} active={is("/notifications")} />
-              <IslandLink href="/settings" label="Settings" Icon={Settings} accent={accent} active={is("/settings")} />
+              {/* Neither of these is a PAGE. Notifications is a dropdown and
+                  settings opens the Control Center — I had linked both to
+                  routes that do not exist, so the bell 404'd. */}
+              <div className="grid h-10 w-10 place-items-center">
+                <NotificationsMenu />
+              </div>
+              <button onClick={onSettings} aria-label="Control Center"
+                onMouseEnter={() => setHoverSettings(true)}
+                onMouseLeave={() => setHoverSettings(false)}
+                className="relative grid h-10 w-10 place-items-center rounded-full text-slate-400 transition-colors hover:text-white">
+                <Settings className="h-[18px] w-[18px]" />
+                <Tip show={hoverSettings}>Control Center</Tip>
+              </button>
               {/* The avatar IS the profile link — there was a second one beside
                   it doing the same job, which just made you choose between two
                   identical doors. */}
