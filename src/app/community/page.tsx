@@ -5,8 +5,8 @@ import { User, useUser } from "@/hooks/useUser";
 import { Users, UserPlus, UserMinus, Search } from "lucide-react";
 import UserLink from "@/components/profile/UserLink";
 import { useToast } from "@/components/ui/Toast";
-import CommunityFeed from "@/components/community/CommunityFeed";
 import CommunityForum from "@/components/community/CommunityForum";
+import GlobalComments from "@/components/community/GlobalComments";
 import { motion, AnimatePresence } from "framer-motion";
 import PageTransition from "@/components/layout/PageTransition";
 import BioRenderer from '@/components/profile/BioRenderer';
@@ -176,7 +176,7 @@ export default function CommunityPage() {
               onClick={() => setActiveTab('feed')}
               className={`px-6 md:px-8 py-2.5 rounded-full font-bold text-sm md:text-base transition-all ${activeTab === 'feed' ? 'bg-purple-600 text-white shadow-md scale-105' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
             >
-              Community Views
+              Global Comments
             </button>
             <button 
               onClick={() => setActiveTab('directory')} 
@@ -208,7 +208,7 @@ export default function CommunityPage() {
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2 }}
               >
-                <CommunityFeed />
+                <GlobalComments embedded />
               </motion.div>
             ) : (
               <motion.div 
