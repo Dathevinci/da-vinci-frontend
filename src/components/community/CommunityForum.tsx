@@ -83,15 +83,26 @@ function AuthorLine({ user, blessed }: { user?: Author; blessed?: boolean }) {
           roughly 8px past the edge and landed on the username. The wrapper is
           sized with that bleed budgeted in — mr-1 gives the effect its own
           room instead of borrowing the name's. */}
-      <div className="relative mr-1 h-11 w-11 shrink-0">
+      {/* The avatar MUST sit above the effect. Several effects render at z-20
+          (the particle ones especially), so an image with no stacking context
+          of its own gets painted straight over — which is why faces vanished
+          behind a coloured disc. `relative z-10` is what every other avatar on
+          the site already does; this one was missing it.
+
+          size="lg" asks for the REAL effect rather than the cheap single-glow
+          stand-in. They carry their own rAF pause on an IntersectionObserver,
+          so avatars scrolled out of view stop animating and a long feed does
+          not run thirty loops at once. */}
+      <div className="relative mr-1.5 h-11 w-11 shrink-0">
         {user.avatar ? (
-          <img src={user.avatar} alt="" className="h-11 w-11 rounded-full object-cover" />
+          <img src={user.avatar} alt=""
+            className="relative z-10 h-11 w-11 rounded-full object-cover ring-1 ring-black/60" />
         ) : (
-          <span className="grid h-11 w-11 place-items-center rounded-full bg-purple-700 text-sm font-black">
+          <span className="relative z-10 grid h-11 w-11 place-items-center rounded-full bg-purple-700 text-sm font-black ring-1 ring-black/60">
             {(user.username || "?")[0]?.toUpperCase()}
           </span>
         )}
-        <AvatarDecoration frame={user.activeFrame} effect={user.activeEffect} />
+        <AvatarDecoration frame={user.activeFrame} effect={user.activeEffect} size="lg" />
       </div>
       <UserLink username={user.username}
         className={`text-[15px] font-black hover:underline ${effectNameClass(user.activeEffect) || "text-white"}`}>
@@ -255,7 +266,18 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
         {/* ── header ── */}
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-black tracking-tight md:text-4xl">Community</h1>
+            {/* font-fell is the site's display face — the one the logo uses.
+                A plain sans heading read as a form label rather than a place. */}
+            <h1 className="font-fell text-4xl font-bold uppercase tracking-[0.14em] md:text-5xl"
+              style={{
+                background: `linear-gradient(100deg, #fff 10%, ${ACCENT_LIT} 55%, ${ACCENT} 90%)`,
+                WebkitBackgroundClip: "text",
+                backgroundClip: "text",
+                color: "transparent",
+                filter: `drop-shadow(0 2px 18px ${ACCENT}55)`,
+              }}>
+              Community
+            </h1>
             <span className="px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.24em]"
               style={{ clipPath: notch(6), background: `${ACCENT}22`, boxShadow: `inset 0 0 0 1px ${ACCENT}66`, color: ACCENT_LIT }}>
               Forum
