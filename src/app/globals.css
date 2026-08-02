@@ -187,3 +187,19 @@ body.theme-crimson::after {
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
 }
+
+/* ── DESKTOP NAV IS DOCKED TO THE BOTTOM ────────────────────────────────────
+   Seventeen pages reserve pt-24 (96px) to clear a fixed TOP navbar. Above lg
+   that bar no longer exists — the island lives at the bottom — so the
+   reservation became 96px of dead space at the top of every page.
+
+   Reclaimed here in one place rather than by editing seventeen files, which
+   would also mean every future page having to remember an invisible rule.
+   Deliberately unlayered: Tailwind v4 emits its utilities inside @layer, and
+   unlayered CSS wins the cascade over layered CSS regardless of order.
+
+   Below lg the mobile bar is still at the top and still needs the clearance,
+   so this is scoped to the desktop breakpoint only. */
+@media (min-width: 1024px) {
+  .pt-24 { padding-top: 2rem; }
+}

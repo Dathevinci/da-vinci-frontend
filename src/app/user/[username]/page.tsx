@@ -567,7 +567,10 @@ export default function PublicProfilePage() {
         </div>
 
         {/* ═══ TABS — sticky under the navbar ═══ */}
-        <div className="sticky top-[64px] z-40 border-b border-white/10 bg-[#09090b]/95 backdrop-blur-xl">
+        {/* Sticks under the MOBILE bar, flush to the top on desktop — the
+            desktop nav is docked to the bottom now, so a 64px offset there was
+            reserving space for a bar that isn't above it any more. */}
+        <div className="sticky top-[64px] z-40 border-b border-white/10 bg-[#09090b]/95 backdrop-blur-xl lg:top-0">
           <div className="mx-auto flex max-w-[1500px] items-center justify-center gap-1 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {([
               { key: "anime", label: "Anime", count: watchlist.length },
