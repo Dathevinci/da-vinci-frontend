@@ -700,7 +700,16 @@ export default function Arena({
   return (
     <motion.div
       ref={shellRef}
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      initial={{ opacity: 0 }}
+      // A DOMAIN SHAKES THE ROOM. One transform on the root moves the entire
+      // board — log, rails, cards, everything — which is cheaper than
+      // animating anything inside it and reads as impact across the whole
+      // window at once. Keyframes end at 0, so nothing needs putting back.
+      animate={domain
+        ? { opacity: 1, x: [0, -9, 7, -5, 3, -1, 0], y: [0, 5, -4, 3, -2, 0] }
+        : { opacity: 1, x: 0, y: 0 }}
+      exit={{ opacity: 0 }}
+      transition={{ x: { duration: 0.6, ease: "easeOut" }, y: { duration: 0.6, ease: "easeOut" } }}
       className="fixed inset-0 z-[140] flex select-none flex-col overflow-hidden"
       style={{
         height: "100dvh",
@@ -1337,20 +1346,62 @@ export default function Arena({
                 ? "radial-gradient(60% 50% at 50% 50%, rgba(217,70,239,.42), rgba(6,2,12,.94) 70%)"
                 : "radial-gradient(60% 50% at 50% 50%, rgba(244,63,94,.38), rgba(10,2,6,.94) 70%)" }}
               initial={{ scale: 1.25 }} animate={{ scale: 1 }} transition={{ duration: 0.5, ease: [0.22,1,0.36,1] }} />
-            {[0,1,2].map((i) => (
+
+            {/* cinema bars — the fight stops being a UI for two and a half seconds */}
+            <motion.div className="absolute inset-x-0 top-0 h-[9vh] bg-black"
+              initial={{ y: "-100%" }} animate={{ y: 0 }} exit={{ y: "-100%" }}
+              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }} />
+            <motion.div className="absolute inset-x-0 bottom-0 h-[9vh] bg-black"
+              initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }} />
+
+            {/* the shockline — one horizontal crack across the full window */}
+            <motion.div className="absolute inset-x-0 top-1/2 h-[2px]"
+              style={{ background: `linear-gradient(90deg, transparent, ${domain.mine ? "rgba(240,171,252,.9)" : "rgba(253,164,175,.9)"}, transparent)` }}
+              initial={{ scaleX: 0, opacity: 1 }} animate={{ scaleX: 1, opacity: [1, 0.9, 0] }}
+              transition={{ duration: 0.8, ease: "easeOut" }} />
+
+            {/* RINGS SIZED TO SWALLOW THE WINDOW. The old rings peaked at
+                1200px — a phone-sized blast on a desktop — and their border
+                colour had been eaten by the same escape-mangling pass that
+                broke the trigger, so they were invisible anyway. The end
+                scale is computed from the measured box, so the last ring
+                always leaves through the corners of the screen. */}
+            {[0, 1, 2].map((i) => (
               <motion.span key={i} className="absolute rounded-full"
-                style={{ width: 200, height: 200, border: `2px solid `, willChange: "transform, opacity" }}
-                initial={{ scale: 0.15, opacity: .95 }} animate={{ scale: 6, opacity: 0 }}
+                style={{
+                  width: 220, height: 220,
+                  border: `3px solid ${domain.mine ? "rgba(240,171,252,.85)" : "rgba(253,164,175,.85)"}`,
+                  willChange: "transform, opacity",
+                }}
+                initial={{ scale: 0.12, opacity: 0.95 }}
+                animate={{ scale: (Math.max(box.w, box.h) * 1.6) / 220, opacity: 0 }}
                 transition={{ duration: 1.5, delay: i * 0.16, ease: "easeOut" }} />
             ))}
+
+            {/* motes rising through the whole window — deterministic per index,
+                transform and opacity only */}
+            {Array.from({ length: 14 }, (_, i) => (
+              <motion.span key={`m${i}`} className="absolute bottom-0 rounded-full"
+                style={{
+                  left: `${(i * 61) % 100}%`,
+                  width: 3 + (i % 3) * 2, height: 3 + (i % 3) * 2,
+                  background: domain.mine ? "rgba(240,171,252,.8)" : "rgba(253,164,175,.8)",
+                  willChange: "transform, opacity",
+                }}
+                initial={{ y: 30, opacity: 0 }}
+                animate={{ y: -(box.h + 60), opacity: [0, 1, 1, 0] }}
+                transition={{ duration: 1.7 + (i % 5) * 0.18, delay: 0.15 + (i % 7) * 0.1, ease: "easeOut" }} />
+            ))}
+
             <div className="relative z-10 px-8 text-center">
               <motion.p className="text-[11px] font-black uppercase tracking-[0.5em]"
                 style={{ color: domain.mine ? "#f0abfc" : "#fda4af" }}
                 initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.15 }}>
                 Domain Expansion
               </motion.p>
-              <motion.p className="mt-3 text-2xl font-black leading-tight text-white drop-shadow-[0_4px_18px_rgba(0,0,0,.9)] sm:text-4xl"
-                initial={{ opacity: 0, scale: 0.86 }} animate={{ opacity: 1, scale: 1 }}
+              <motion.p className="mt-3 text-3xl font-black leading-tight text-white drop-shadow-[0_4px_18px_rgba(0,0,0,.9)] sm:text-5xl"
+                initial={{ opacity: 0, scale: 1.18 }} animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.5, delay: 0.25, ease: [0.22,1,0.36,1] }}>
                 {domain.text}
               </motion.p>

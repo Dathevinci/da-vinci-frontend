@@ -225,7 +225,21 @@ export default function DuelsPage() {
     return () => clearInterval(t);
   }, [active?.id, active?.status]);
 
-  const post = async (path: string, body: any, ok?: (d: any) => void) => {
+  /**
+   * `refresh` is why moves used to feel slow. Every action awaited load() —
+   * FIVE requests re-fetching the ladder, the collection and the user — while
+   * `busy` kept the action bar disabled, so each attack cost one round trip of
+   * game and four of page furniture. The move endpoints all return the updated
+   * duel row, which is everything the open board needs:
+   *   "none"       — apply the response, touch nothing else (mid-duel moves)
+   *   "background" — refetch the page without holding `busy` for it
+   *   "await"      — the old behaviour, for actions where the page must be
+   *                  current before the user's next look (spending shards)
+   */
+  const post = async (
+    path: string, body: any, ok?: (d: any) => void,
+    refresh: "await" | "background" | "none" = "await",
+  ) => {
     if (!user) return toast("Sign in first.", "error");
     setBusy(true);
     try {
@@ -235,7 +249,8 @@ export default function DuelsPage() {
       const d = await r.json();
       if (!r.ok || !d.success) { toast(d.message || "That didn't work.", "error"); return; }
       ok?.(d.data);
-      await load();
+      if (refresh === "await") await load();
+      else if (refresh === "background") void load();
     } catch { toast("That didn't work.", "error"); } finally { setBusy(false); }
   };
 
@@ -459,18 +474,36 @@ export default function DuelsPage() {
       <AnimatePresence>
         {showChallenge && (
           <ChallengeModal myCards={myCards} meId={user?.id} foils={foils} asleep={asleep} cardStats={cardStats} onClose={() => setShowChallenge(false)}
-            onSend={(opp, stake, deck) => post("", { opponentUsername: opp, stake, deck }, () => { setShowChallenge(false); toast("Challenge sent!", "success"); })}
+            onSend={(opp, stake, deck) => post("", { opponentUsername: opp, stake, deck }, (d) => {
+              setShowChallenge(false);
+              // Straight into the waiting room — the response IS the duel row,
+              // and the poll takes over from there. Staying is optional: closing
+              // it leaves the challenge in the list below.
+              setActive(d);
+              toast("Challenge sent!", "success");
+            }, "background")}
             busy={busy} />
         )}
         {active && (
           <DuelBoard duel={active} me={user?.id} byId={byId} myCards={myCards} bag={bag} busy={busy} foils={foils} cardStats={cardStats} abilityIds={abilityIds} abilities={abilities} asleep={asleep}
-           
             onClose={() => setActive(null)}
-            onAccept={(deck) => post(`${active.id}/accept`, { deck }, () => toast("Duel started!", "success"))}
+            onAccept={(deck) => post(`${active.id}/accept`, { deck }, (d) => { setActive(d); toast("Duel started!", "success"); }, "background")}
             onMove={(action: string, index?: number, cardId?: string, target?: number) =>
-              post(`${active.id}/move`, { action, index, cardId, target })}
-            onForfeit={() => post(`${active.id}/forfeit`, {}, () =>
-              toast("You forfeited. The stake and the fine went to your opponent.", "error"))} />
+              post(`${active.id}/move`, { action, index, cardId, target }, (d) => {
+                // The response carries the whole updated duel — showing it IS
+                // the refresh. A finished duel moved AP around, so that one
+                // refetches the page, but without holding the board for it.
+                setActive(d);
+                if (d?.status === "FINISHED") void load();
+              }, "none")}
+            onCancel={() => post(`${active.id}/decline`, {}, () => {
+              setActive(null);
+              toast("Challenge withdrawn — your stake is back.", "success");
+            })}
+            onForfeit={() => post(`${active.id}/forfeit`, {}, (d) => {
+              if (d?.id) setActive(d);
+              toast("You forfeited. The stake and the fine went to your opponent.", "error");
+            }, "background")} />
         )}
       </AnimatePresence>
     </PageTransition>
@@ -643,7 +676,7 @@ function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats
   );
 }
 
-function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMove, onForfeit, foils, cardStats, abilityIds, abilities, asleep = {} }: any) {
+function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMove, onForfeit, onCancel, foils, cardStats, abilityIds, abilities, asleep = {} }: any) {
   const [deck, setDeck] = useState<string[]>(() => loadSavedDeck());
   // Filtered ONCE per collection, not once per render. Arena memoizes its
   // playable supports off this array, so handing it a fresh one every render
@@ -741,7 +774,66 @@ function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMo
             </button>
           </>
         ) : (
-          <p className="py-10 text-center text-sm text-slate-500">Waiting for the opponent to accept…</p>
+          /* ── THE WAITING ROOM ── this used to be one grey sentence. The poll
+             is already watching the duel, so the moment the opponent accepts,
+             this same panel BECOMES the arena — staying here means walking
+             straight into the fight. Leaving is fine too: the challenge keeps
+             living in the list below, and the room reopens from there. */
+          <div className="flex flex-col items-center py-8">
+            <div className="flex items-center gap-6 sm:gap-10">
+              {/* the challenger — you */}
+              <div className="flex flex-col items-center gap-2">
+                <div className="relative">
+                  {/* pulse rings say "alive and looking", not frozen */}
+                  {[0, 1].map((i) => (
+                    <motion.span key={i} aria-hidden
+                      className="absolute inset-0 rounded-full border-2 border-rose-400/50"
+                      animate={{ scale: [1, 1.75], opacity: [0.6, 0] }}
+                      transition={{ duration: 1.8, delay: i * 0.9, repeat: Infinity, ease: "easeOut" }} />
+                  ))}
+                  <span className="grid h-16 w-16 place-items-center rounded-full bg-rose-500/25 text-xl font-black text-rose-100 ring-2 ring-rose-400/50">
+                    {duel.challengerName?.[0]?.toUpperCase()}
+                  </span>
+                </div>
+                <span className="max-w-[7rem] truncate text-xs font-black text-rose-200">{duel.challengerName}</span>
+                <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-emerald-300">Ready</span>
+              </div>
+
+              <span className="text-2xl font-black tracking-widest text-white/25">VS</span>
+
+              {/* the opponent — the one everyone is waiting on */}
+              <div className="flex flex-col items-center gap-2">
+                <motion.span
+                  animate={{ opacity: [0.45, 1, 0.45] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                  className="grid h-16 w-16 place-items-center rounded-full bg-sky-500/15 text-xl font-black text-sky-200/80 ring-2 ring-dashed ring-sky-400/40">
+                  {duel.opponentName?.[0]?.toUpperCase()}
+                </motion.span>
+                <span className="max-w-[7rem] truncate text-xs font-black text-sky-200">{duel.opponentName}</span>
+                <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-slate-400">
+                  Deciding
+                  {[0, 1, 2].map((i) => (
+                    <motion.span key={i} animate={{ opacity: [0.15, 1, 0.15] }}
+                      transition={{ duration: 1.2, delay: i * 0.2, repeat: Infinity }}>.</motion.span>
+                  ))}
+                </span>
+              </div>
+            </div>
+
+            <p className="mt-6 max-w-sm text-center text-sm leading-relaxed text-slate-400">
+              <span className="font-black text-slate-200">{duel.opponentName}</span> has been challenged for{" "}
+              <span className="font-black text-amber-300">{duel.stake.toLocaleString()} AP</span>.
+              The fight opens here by itself the second they accept — stay if you like,
+              or close this and it&apos;ll wait in your duels list.
+            </p>
+
+            {me && duel.challengerId === me && onCancel && (
+              <button onClick={onCancel} disabled={busy}
+                className="mt-5 rounded-full border border-white/15 px-5 py-2 text-xs font-black uppercase tracking-widest text-slate-400 transition hover:border-rose-500/50 hover:text-rose-300 disabled:opacity-40">
+                Withdraw the challenge
+              </button>
+            )}
+          </div>
         )}
       </motion.div>
     </motion.div>
