@@ -20,14 +20,27 @@
  * exact bug once with the landing artwork.
  */
 export const CARD_ART: Record<string, string> = {
-  card_outergod:   "/cards/card_outergod.png",
-  card_gatekey:    "/cards/card_gatekey.png",
-  card_lastronin:  "/cards/card_lastronin.png",
-  card_swordsaint: "/cards/card_swordsaint.png",
-  card_secondwind: "/cards/card_secondwind.png",
-  card_longmorrow: "/cards/card_longmorrow.png",
-  // card_leviathan and card_hollowtide have no painting yet and keep their
-  // drawn motifs. Add a line here the day a file lands beside the others.
+  // ── LEGENDARY ──
+  card_outergod:     "/cards/card_outergod.png",
+  card_gatekey:      "/cards/card_gatekey.png",
+  card_lastronin:    "/cards/card_lastronin.png",
+  card_swordsaint:   "/cards/card_swordsaint.png",
+  card_secondwind:   "/cards/card_secondwind.png",
+  card_longmorrow:   "/cards/card_longmorrow.png",
+
+  // ── EPIC ──
+  card_ironvow:      "/cards/card_ironvow.png",
+  card_gravebloom:   "/cards/card_gravebloom.png",
+  card_lastretainer: "/cards/card_lastretainer.png",
+  card_lampofhours:  "/cards/card_lampofhours.png",
+  card_fallenstar:   "/cards/card_fallenstar.png",
+  card_communion:    "/cards/card_communion.png",
+  card_blackreach:   "/cards/card_blackreach.png",
+  card_unblinking:   "/cards/card_unblinking.png",
+
+  // Still on drawn motifs, and fine that way: card_leviathan, card_hollowtide,
+  // card_voidgaze, card_ninehands, card_crimsonsea, card_trenchmaw,
+  // card_onimask. Add a line here the day a file lands beside the others.
 };
 
 /** The image for a card, or null to keep its drawn motif. */
