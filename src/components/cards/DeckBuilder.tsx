@@ -53,6 +53,19 @@ export default function DeckBuilder({
   onChange: (deck: string[]) => void;
   compact?: boolean;
 }) {
+  // Three fixed 138px tiles are ~440px of grid inside a ~356px modal on a
+  // phone — the same horizontal-overflow disease the binder had. Under 640px
+  // the tiles shrink to actually fit the three columns they're laid in.
+  const [small, setSmall] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const sync = () => setSmall(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  const tile = small ? (compact ? 84 : 100) : (compact ? 108 : 138);
+
   // Support cards can't be FIELDED — the server refuses to build a fighter
   // from one, so letting you pick it here would silently send you into a duel
   // with two cards instead of three.
@@ -176,7 +189,7 @@ export default function DeckBuilder({
                 >
                   {/* CardFace wears the crime-scene tape itself now — one
                       treatment for fallen cards everywhere. */}
-                  <CardFace card={c} owned foil={foils[c.id]} size={compact ? 108 : 138} ratio="5 / 9" showStats stats={S} hibernating={out} />
+                  <CardFace card={c} owned foil={foils[c.id]} size={tile} ratio="5 / 9" showStats stats={S} hibernating={out} />
                   {picked && !out && (
                     <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-rose-500 text-white">
                       <Check className="h-3 w-3" />

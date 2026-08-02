@@ -374,9 +374,25 @@ export default function CardsPage() {
     return () => { document.body.style.overflow = prev; };
   }, [selected]);
 
+  // THE ROOT CAUSE of "the preview messes up on mobile": fixed 216px tiles
+  // in a two-column grid are ~480px of content on a 412px phone. The page
+  // grew a horizontal pan, the layout viewport went wider than the screen —
+  // and every fixed modal then centred itself in that wider canvas, landing
+  // half off-screen. Tiles drop to 150px under 640px, so the grid actually
+  // fits the phone it is on.
+  const [smallScreen, setSmallScreen] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const sync = () => setSmallScreen(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  const gridCard = smallScreen ? 150 : 216;
+
   return (
     <PageTransition>
-      <div className="relative min-h-screen px-4 pb-24 pt-24 text-white"
+      <div className="relative min-h-screen overflow-x-hidden px-4 pb-24 pt-24 text-white"
         style={{
           background:
             "radial-gradient(85% 50% at 12% -5%, rgba(120,86,196,.20), transparent 60%)," +
@@ -784,7 +800,7 @@ export default function CardsPage() {
                          * as cards enter and leave the viewport.
                          */
                         contentVisibility: "auto",
-                        containIntrinsicSize: "auto 400px",
+                        containIntrinsicSize: `auto ${smallScreen ? 310 : 400}px`,
                       } as any;
 
                       /**
@@ -809,7 +825,7 @@ export default function CardsPage() {
                             <button key={`${c.id}-${w}`} onClick={() => setSelected(c)}
                               className="group relative flex flex-col items-center gap-1.5 p-2 transition hover:-translate-y-1"
                               style={tileStyle}>
-                              <CardFace card={c} owned count={byWear[w]} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} size={216} ratio="5 / 9" />
+                              <CardFace card={c} owned count={byWear[w]} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} size={gridCard} ratio="5 / 9" />
                               <span className={`pointer-events-none inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] ${wearMeta[w].cls}`}>
                                 {wearMeta[w].label}{byWear[w] > 1 ? ` ×${byWear[w]}` : ""}
                               </span>
@@ -824,7 +840,7 @@ export default function CardsPage() {
                           {/* The card carries its own name, stars and rarity
                               badge now that the art is full-bleed, so nothing
                               is repeated underneath it. */}
-                          <CardFace card={c} owned={has} count={count} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} size={216} ratio="5 / 9" />
+                          <CardFace card={c} owned={has} count={count} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} size={gridCard} ratio="5 / 9" />
                         </button>,
                       ];
                     })}
