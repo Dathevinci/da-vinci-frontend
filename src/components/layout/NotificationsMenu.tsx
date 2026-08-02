@@ -37,7 +37,14 @@ function styleFor(notif: { rawType?: string; type?: string }) {
   return NOTIF_STYLE[notif.type || "info"] || { Icon: Info, tint: "text-slate-300", ring: "bg-white/10 border-white/15" };
 }
 
-export default function NotificationsMenu() {
+/**
+ * `openUp` flips the panel above the bell instead of below it.
+ *
+ * The bar this lives in moved to the bottom of the screen on desktop, and a
+ * panel anchored to top-full then opens straight off the bottom edge — you
+ * click the bell and the notifications go where you can't reach them.
+ */
+export default function NotificationsMenu({ openUp = false, onOpenChange }: { openUp?: boolean; onOpenChange?: (open: boolean) => void }) {
   const router = useRouter();
   const pathname = usePathname();
   const { notifications, unreadCount, markAllAsRead, clearAll, removeNotification, markAsRead } = useNotifications();
@@ -77,6 +84,10 @@ export default function NotificationsMenu() {
     };
   }, [isOpen]);
 
+  // The bar this sits in auto-hides on pointer-out. Without telling it the
+  // panel is open, moving the mouse away would take the notifications with it.
+  useEffect(() => { onOpenChange?.(isOpen); }, [isOpen]);
+
   // Close whenever the route changes (e.g. tapping a notification link).
   useEffect(() => {
     setIsOpen(false);
@@ -114,15 +125,17 @@ export default function NotificationsMenu() {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.96, y: -8 }}
+            // Slides FROM the bell in whichever direction it opens.
+            initial={{ opacity: 0, scale: 0.96, y: openUp ? 8 : -8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: -8 }}
+            exit={{ opacity: 0, scale: 0.96, y: openUp ? 8 : -8 }}
             transition={{ type: "spring", stiffness: 400, damping: 30, mass: 0.6 }}
-            className="fixed top-16 right-4 left-4 sm:absolute sm:top-full sm:-right-4 sm:left-auto sm:mt-3 sm:w-96 max-w-sm bg-[#0f0f13] border border-white/10 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] z-[200] flex flex-col origin-top-right will-change-transform"
+            className={`fixed top-16 right-4 left-4 sm:absolute sm:-right-4 sm:left-auto sm:w-96 max-w-sm bg-[#0f0f13] border border-white/10 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] z-[200] flex flex-col will-change-transform ${openUp ? "sm:bottom-full sm:mb-3 origin-bottom-right" : "sm:top-full sm:mt-3 origin-top-right"}`}
           >
             {/* Arrow/Pointer */}
-            <div className="absolute -top-[6px] right-14 sm:right-10 w-3 h-3 bg-[#0f0f13] border-t border-l border-white/10 transform rotate-45 z-[-1]" />
-            <div className="absolute -top-[5px] right-14 sm:right-10 w-3 h-3 bg-[#0f0f13] transform rotate-45 z-0" />
+            {/* The pointer follows the panel — it sits under the bell when the menu opens upward, and above it when it opens down. */}
+            <div className={`absolute right-14 sm:right-10 w-3 h-3 bg-[#0f0f13] border-white/10 transform rotate-45 z-[-1] ${openUp ? "-bottom-[6px] border-b border-r" : "-top-[6px] border-t border-l"}`} />
+            <div className={`absolute right-14 sm:right-10 w-3 h-3 bg-[#0f0f13] transform rotate-45 z-0 ${openUp ? "-bottom-[5px]" : "-top-[5px]"}`} />
 
             <div className="flex flex-col flex-1 overflow-hidden rounded-2xl relative z-10 bg-[#0f0f13]">
             {/* Header */}

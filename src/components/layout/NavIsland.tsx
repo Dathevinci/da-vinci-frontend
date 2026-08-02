@@ -117,6 +117,7 @@ export default function NavIsland({ onSearch, onSettings }: { onSearch: () => vo
   const [modeOpen, setModeOpen] = useState(false);
   const [hoverSearch, setHoverSearch] = useState(false);
   const [hoverSettings, setHoverSettings] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const accent = mode === "anime" ? "#a855f7" : mode === "manhwa" ? "#ef4444" : "#ec4899";
@@ -143,7 +144,7 @@ export default function NavIsland({ onSearch, onSettings }: { onSearch: () => vo
 
   // The bar is out of the way whenever it isn't wanted — but never while a menu
   // inside it is open, or choosing a mode would dismiss the thing you're using.
-  const visible = open || modeOpen;
+  const visible = open || modeOpen || notifOpen;
 
   return (
     <>
@@ -254,7 +255,7 @@ export default function NavIsland({ onSearch, onSettings }: { onSearch: () => vo
                   settings opens the Control Center — I had linked both to
                   routes that do not exist, so the bell 404'd. */}
               <div className="grid h-10 w-10 place-items-center">
-                <NotificationsMenu />
+                <NotificationsMenu openUp onOpenChange={setNotifOpen} />
               </div>
               <button onClick={onSettings} aria-label="Control Center"
                 onMouseEnter={() => setHoverSettings(true)}
