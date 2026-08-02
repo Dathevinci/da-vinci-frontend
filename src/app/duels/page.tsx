@@ -34,7 +34,13 @@ type Side = {
   // ignore — it worked by accident rather than by declaration.
   usedSupports?: string[]; usedAbilities?: string[]; shield?: boolean; block?: boolean; focus?: boolean; focusMult?: number;
 };
-type DuelState = { a: Side; b: Side; turn: string; log: string[]; round: number };
+type DuelState = {
+  a: Side; b: Side; turn: string; log: string[]; round: number;
+  /** Health per side after each resolved action — recorded server-side, so
+   *  the post-match graph is authoritative rather than parsed out of a log
+   *  that only keeps its last 60 lines. Absent on duels fought before it. */
+  timeline?: { a: number; b: number }[];
+};
 type Duel = {
   id: string; challengerId: string; challengerName: string; opponentId: string; opponentName: string;
   stake: number; status: string; challengerDeck: string[]; opponentDeck: string[];
@@ -945,13 +951,120 @@ function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMo
 }
 
 /**
+ * HEALTH OVER TIME — both lines' totals across the whole fight.
+ *
+ * Drawn from state.timeline, which the SERVER appends per resolved action —
+ * never parsed out of the log (capped at 60 lines, it would invent the
+ * opening of any long fight). Each side is normalised to its OWN starting
+ * total, so the two series share one % axis no matter how the decks differ.
+ *
+ * Colours are the app's standing identities — you are rose, they are blue —
+ * snapped to steps that pass the full palette validation on this surface
+ * (lightness band, chroma, CVD ΔE 16+/22+, contrast 4.8+). Identity is never
+ * colour-alone: both lines carry a direct label and a legend.
+ */
+function HealthGraph({ timeline, mineIsA, foeName, height = 130 }: {
+  timeline: { a: number; b: number }[]; mineIsA: boolean; foeName: string; height?: number;
+}) {
+  const [hover, setHover] = useState<number | null>(null);
+  const boxRef = useRef<HTMLDivElement | null>(null);
+  if (!timeline || timeline.length < 2) return null;
+
+  const W = 560, H = height, PL = 8, PR = 46, PT = 10, PB = 8;
+  const mine = timeline.map((t) => (mineIsA ? t.a : t.b));
+  const foe = timeline.map((t) => (mineIsA ? t.b : t.a));
+  const m0 = Math.max(1, mine[0]), f0 = Math.max(1, foe[0]);
+  const YOU = "#f43f5e", FOE = "#0284c7";
+
+  const px = (i: number) => PL + (i / (timeline.length - 1)) * (W - PL - PR);
+  const py = (v: number, base: number) => PT + (1 - Math.max(0, Math.min(1, v / base))) * (H - PT - PB);
+  const path = (arr: number[], base: number) =>
+    arr.map((v, i) => `${i ? "L" : "M"}${px(i).toFixed(1)},${py(v, base).toFixed(1)}`).join(" ");
+  const area = (arr: number[], base: number) =>
+    `${path(arr, base)} L${px(arr.length - 1).toFixed(1)},${H - PB} L${px(0).toFixed(1)},${H - PB} Z`;
+
+  // Direct labels at the line ends — nudged apart if the endings collide.
+  let yMineEnd = py(mine[mine.length - 1], m0);
+  let yFoeEnd = py(foe[foe.length - 1], f0);
+  if (Math.abs(yMineEnd - yFoeEnd) < 12) {
+    if (yMineEnd <= yFoeEnd) { yMineEnd -= 6; yFoeEnd += 6; } else { yMineEnd += 6; yFoeEnd -= 6; }
+  }
+
+  const onMove = (e: React.PointerEvent) => {
+    const box = boxRef.current?.getBoundingClientRect();
+    if (!box) return;
+    const frac = Math.max(0, Math.min(1, (e.clientX - box.left) / box.width));
+    setHover(Math.round(frac * (timeline.length - 1)));
+  };
+  const hi = hover;
+
+  return (
+    <div className="mt-3">
+      {/* legend — two series, so it is always present; text stays in ink */}
+      <div className="mb-1 flex items-center gap-4 text-[10px] font-bold text-slate-400">
+        <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: YOU }} />You</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: FOE }} />{foeName}</span>
+        <span className="ml-auto text-slate-600">% of line health · per move</span>
+      </div>
+      <div ref={boxRef} className="relative select-none" onPointerMove={onMove} onPointerLeave={() => setHover(null)}>
+        <svg viewBox={`0 0 ${W} ${H}`} className="block w-full" style={{ height }}>
+          {/* recessive grid — quarters of the shared % axis */}
+          {[0.25, 0.5, 0.75].map((g) => (
+            <line key={g} x1={PL} x2={W - PR} y1={PT + (1 - g) * (H - PT - PB)} y2={PT + (1 - g) * (H - PT - PB)}
+              stroke="rgba(255,255,255,.07)" strokeWidth="1" />
+          ))}
+          <line x1={PL} x2={W - PR} y1={H - PB} y2={H - PB} stroke="rgba(255,255,255,.14)" strokeWidth="1" />
+
+          <path d={area(foe, f0)} fill={FOE} opacity="0.08" />
+          <path d={area(mine, m0)} fill={YOU} opacity="0.08" />
+          <path d={path(foe, f0)} fill="none" stroke={FOE} strokeWidth="2" strokeLinejoin="round" />
+          <path d={path(mine, m0)} fill="none" stroke={YOU} strokeWidth="2" strokeLinejoin="round" />
+
+          {/* direct labels — identity without reading the legend */}
+          <text x={W - PR + 5} y={yMineEnd + 3} fontSize="10" fontWeight="700" fill="#94a3b8">You</text>
+          <text x={W - PR + 5} y={yFoeEnd + 3} fontSize="10" fontWeight="700" fill="#94a3b8">
+            {foeName.length > 6 ? `${foeName.slice(0, 6)}…` : foeName}
+          </text>
+
+          {/* hover: crosshair + 8px markers */}
+          {hi !== null && (
+            <g>
+              <line x1={px(hi)} x2={px(hi)} y1={PT} y2={H - PB} stroke="rgba(255,255,255,.22)" strokeWidth="1" />
+              <circle cx={px(hi)} cy={py(mine[hi], m0)} r="4" fill={YOU} stroke="#0a0a11" strokeWidth="2" />
+              <circle cx={px(hi)} cy={py(foe[hi], f0)} r="4" fill={FOE} stroke="#0a0a11" strokeWidth="2" />
+            </g>
+          )}
+        </svg>
+        {hi !== null && (
+          <div className="pointer-events-none absolute -top-1 rounded-lg border border-white/15 bg-black/90 px-2.5 py-1.5 text-[10px] font-bold text-slate-300"
+            style={{ left: `${Math.min(78, Math.max(2, (hi / (timeline.length - 1)) * 100))}%` }}>
+            Move {hi} · <span style={{ color: "#fda4af" }}>{Math.round((mine[hi] / m0) * 100)}%</span>
+            {" · "}<span style={{ color: "#7dd3fc" }}>{Math.round((foe[hi] / f0) * 100)}%</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Sum of drops, rises and the single biggest drop along one health series. */
+function swings(arr: number[]) {
+  let lost = 0, healed = 0, biggest = 0;
+  for (let i = 1; i < arr.length; i++) {
+    const d = arr[i] - arr[i - 1];
+    if (d < 0) { lost += -d; biggest = Math.max(biggest, -d); }
+    else healed += d;
+  }
+  return { lost, healed, biggest };
+}
+
+/**
  * LAST DUEL — what actually happened, read off the final state.
  *
- * Everything here is DERIVED from the state the duel already carries: who was
- * left standing, what health they finished on, how many rounds it ran. Nothing
- * new is stored, and nothing is estimated — a "damage dealt" figure would have
- * to be reconstructed from the log, which is a display artefact, so it isn't
- * shown rather than shown wrong.
+ * Everything here is DERIVED from state the duel already carries: who was
+ * left standing, what health they finished on, how many rounds it ran — and,
+ * for duels fought since the server began recording it, the health timeline,
+ * which is what makes honest damage figures and a graph possible at all.
  */
 function LastDuelStats({ duel, me, byId }: { duel: Duel; me?: string; byId: Record<string, CardDef> }) {
   const [replaying, setReplaying] = useState(false);
@@ -1014,6 +1127,32 @@ function LastDuelStats({ duel, me, byId }: { duel: Duel; me?: string; byId: Reco
           <HpRow label={foeName} pct={pct(theirs)} tint="#f43f5e" />
         </div>
 
+        {/* ── THE FIGHT, AS A LINE ── plus the figures the timeline makes
+            honest: every number below is a sum over recorded health changes,
+            not a guess parsed out of the log. */}
+        {(state.timeline?.length ?? 0) >= 2 ? (() => {
+          const tl = state.timeline!;
+          const mineSeries = tl.map((t) => (iAmChallenger ? t.a : t.b));
+          const foeSeries = tl.map((t) => (iAmChallenger ? t.b : t.a));
+          const dealt = swings(foeSeries), taken = swings(mineSeries);
+          const biggestMine = dealt.biggest, biggestTheirs = taken.biggest;
+          return (
+            <>
+              <HealthGraph timeline={tl} mineIsA={iAmChallenger} foeName={foeName} />
+              <div className="mt-2 grid grid-cols-4 gap-1.5 sm:gap-2">
+                <Stat label="Dealt" value={dealt.lost.toLocaleString()} tint="#fda4af" />
+                <Stat label="Taken" value={taken.lost.toLocaleString()} tint="#7dd3fc" />
+                <Stat label="Healed" value={taken.healed.toLocaleString()} tint="#6ee7b7" />
+                <Stat label="Big hit" value={`${Math.max(biggestMine, biggestTheirs)}${biggestMine >= biggestTheirs ? "" : " (them)"}`} tint="#fbbf24" />
+              </div>
+            </>
+          );
+        })() : (
+          <p className="mt-3 text-[10px] text-slate-600">
+            Health graphs record from your next fight — this one predates them.
+          </p>
+        )}
+
         {best && (
           <p className="mt-3 border-t border-white/10 pt-2 text-[11px] text-slate-400">
             Last one standing strongest:{" "}
@@ -1037,7 +1176,9 @@ function LastDuelStats({ duel, me, byId }: { duel: Duel; me?: string; byId: Reco
 
       <AnimatePresence>
         {replaying && (
-          <ReplayModal log={state.log} won={won} foeName={foeName} onClose={() => setReplaying(false)} />
+          <ReplayModal log={state.log} won={won} foeName={foeName}
+            timeline={state.timeline} mineIsA={iAmChallenger}
+            onClose={() => setReplaying(false)} />
         )}
       </AnimatePresence>
     </div>
@@ -1057,12 +1198,23 @@ function LastDuelStats({ duel, me, byId }: { duel: Duel; me?: string; byId: Reco
  * health totals between each line.
  */
 function ReplayModal({
-  log, won, foeName, onClose,
-}: { log: string[]; won: boolean; foeName: string; onClose: () => void }) {
+  log, won, foeName, onClose, timeline, mineIsA = true,
+}: {
+  log: string[]; won: boolean; foeName: string; onClose: () => void;
+  timeline?: { a: number; b: number }[]; mineIsA?: boolean;
+}) {
   const [at, setAt] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [speed, setSpeed] = useState(1);
   const endRef = useRef<HTMLDivElement | null>(null);
+
+  // What KIND of line this is, so the log reads as beats rather than one
+  // grey column: domains loudest, falls in rose, supports/items in cyan.
+  const lineClass = (l: string, newest: boolean) =>
+    l.startsWith("▲") ? "font-black text-fuchsia-300"
+      : / fell\.$/.test(l) || /has fallen/.test(l) ? "font-bold text-rose-300"
+      : /Salve|Ward|focus|support|played|stood back up|recovered/i.test(l) ? "text-cyan-300/90"
+      : newest ? "font-bold text-white" : "text-slate-500";
 
   useEffect(() => {
     if (!playing || at >= log.length) return;
@@ -1096,18 +1248,22 @@ function ReplayModal({
           </button>
         </div>
 
+        {/* the whole fight as a line, above the beats it narrates */}
+        {(timeline?.length ?? 0) >= 2 && (
+          <div className="border-b border-white/10 px-4 pb-2">
+            <HealthGraph timeline={timeline!} mineIsA={mineIsA} foeName={foeName} height={92} />
+          </div>
+        )}
+
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
           {log.slice(0, at).map((l, i) => {
-            const isDomain = l.startsWith("▲");
             const newest = i === at - 1;
             return (
               <motion.div
                 key={`${i}-${l}`}
                 initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.2 }}
-                className={`py-1 text-[12px] leading-snug ${
-                  isDomain ? "font-black text-fuchsia-300" : newest ? "font-bold text-white" : "text-slate-500"
-                }`}
+                className={`py-1 text-[12px] leading-snug ${lineClass(l, newest)}`}
               >
                 {l}
               </motion.div>
@@ -1124,10 +1280,22 @@ function ReplayModal({
           <div ref={endRef} />
         </div>
 
+        {/* SCRUB ANYWHERE. Watching a 50-line fight from the top to reach one
+            moment was the replay's biggest ask; dragging pauses playback so
+            the scrubber never fights the timer. */}
+        <div className="border-t border-white/10 px-4 pt-3">
+          <input
+            type="range" min={0} max={log.length} step={1} value={Math.min(at, log.length)}
+            onChange={(e) => { setAt(Number(e.target.value)); setPlaying(false); }}
+            className="w-full accent-fuchsia-500"
+            aria-label="Scrub through the replay"
+          />
+        </div>
+
         {/* wrap, not overflow: a play button plus three speed chips plus the
             counter does not fit 375px on one line, and the counter was the
             piece that got pushed off the edge. */}
-        <div className="flex flex-wrap items-center gap-2 border-t border-white/10 px-3 py-3 sm:px-4">
+        <div className="flex flex-wrap items-center gap-2 px-3 pb-3 pt-1 sm:px-4">
           <button
             onClick={() => (done ? (setAt(0), setPlaying(true)) : setPlaying((p) => !p))}
             className="min-w-[7rem] flex-1 py-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-white transition hover:brightness-110"
