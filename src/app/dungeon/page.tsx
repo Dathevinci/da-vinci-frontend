@@ -586,26 +586,40 @@ export default function DungeonPage() {
 
               {/* party slots + estimate + dispatch */}
               <div className="dg-panel p-3">
+                {/* ── THE FAN ── the party as a cover-flow hand: the middle
+                    stands proud, the flanks angle away with depth. Tap a
+                    fanned card to send it back to the roster. */}
+                <div className="flex items-start justify-center overflow-hidden pb-1 pt-2"
+                  style={{ perspective: "900px" }}>
+                  {Array.from({ length: partyMax }, (_, i) => {
+                    const id = party[i];
+                    const def = id ? byId[id] : null;
+                    const fanSize = smallScr ? 96 : 128;
+                    const dist = i - (partyMax - 1) / 2;
+                    const style: React.CSSProperties = {
+                      transform: `rotateY(${Math.max(-32, Math.min(32, dist * 18))}deg) scale(${1 - Math.abs(dist) * 0.07}) translateY(${Math.abs(dist) * 8}px)`,
+                      zIndex: 20 - Math.round(Math.abs(dist) * 4),
+                      marginLeft: i === 0 ? 0 : -Math.round(fanSize * 0.26),
+                      transition: "transform .25s, filter .2s",
+                      transformStyle: "preserve-3d",
+                    };
+                    return def ? (
+                      <button key={i} onClick={() => toggle(id)} title={`${def.name} — tap to remove`}
+                        className="dg-fan-card relative shrink-0" style={style}>
+                        <CardFace card={def} owned foil={!!cards.find((c) => c.cardId === id)?.foil}
+                          size={fanSize} ratio="5 / 9" showStats stats={DGN_STATS} />
+                      </button>
+                    ) : (
+                      <span key={i} className="grid shrink-0 place-items-center"
+                        style={{ ...style, width: fanSize, height: Math.round((fanSize * 9) / 5), background: "#0a141f", border: "3px dashed #2b4a5e" }}>
+                        <span className="font-pixel text-[10px] text-[#4c4470]">+</span>
+                      </span>
+                    );
+                  })}
+                </div>
+
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    {Array.from({ length: partyMax }, (_, i) => {
-                      const id = party[i];
-                      const def = id ? byId[id] : null;
-                      const art = id ? cardArt(id, undefined, 64) : null;
-                      return (
-                        <button key={i} onClick={() => id && toggle(id)}
-                          className="dg-slot grid place-items-center overflow-hidden"
-                          title={def?.name || "Empty slot"}>
-                          {art
-                            ? <img src={art} alt="" className="dg-pix h-full w-full object-cover" />
-                            : def
-                            ? <span className="font-pixel text-[8px]">{def.name.slice(0, 2)}</span>
-                            : <span className="font-pixel text-[10px] text-[#4c4470]">+</span>}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <div className="text-right">
+                  <div>
                     <p className="font-mono text-[11px] text-[#8f86b8]">PARTY POWER <b className="text-[#e8e3d0]">{power}</b>{dgn ? ` / REC ${dgn.recPower}` : ""}</p>
                     {estimate && (
                       <p className="font-pixel mt-1 text-[9px]" style={{ color: estimate.tone }}>
@@ -1020,6 +1034,8 @@ const DG_CSS = `
   background-size: 240px 100%, 60px 100%; }
 /* the bestiary's eyes glow — dead things go dark first */
 .dg-eyes { filter: drop-shadow(0 0 4px #e8f6ffb3); }
+/* the fan: hover pulls a card forward without fighting its inline rotate */
+.dg-fan-card:hover { z-index: 40 !important; filter: brightness(1.18); }
 /* always-on cavern dust, rising slow — the room is alive even at rest */
 .dg-motes { position: absolute; inset: 0; pointer-events: none; background-repeat: repeat; background-image:
   radial-gradient(2px 2px at 20% 82%, #bfe9ff59, transparent 60%),
