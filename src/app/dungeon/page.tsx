@@ -80,6 +80,13 @@ const RARITY_TINT: Record<string, string> = {
   common: "#9aa4b2", rare: "#5fa8ff", epic: "#c07dff", legendary: "#ffcf5c", event: "#ff8ad0",
 };
 
+/** The three throwable supports — same ids as the duel bag, on purpose. */
+const PACK_META: Record<string, { label: string; desc: string; tone: string }> = {
+  heal:   { label: "SALVE", desc: "+10 HP to whoever is worst off, instantly", tone: "#7fe07f" },
+  shield: { label: "WARD",  desc: "next floor: the first 2 enemy volleys land HALVED", tone: "#9be8ff" },
+  focus:  { label: "FOCUS", desc: "next floor: the party's opening volley hits 75% HARDER", tone: "#ffd23e" },
+};
+
 /* ── PIXEL MONSTERS ── 8×8 grids drawn with one box-shadow per lit cell on a
    single scaled div. Authentically cheap: rasterised once, never repainted. */
 const MOB_GRIDS: string[][] = [
@@ -131,6 +138,15 @@ export default function DungeonPage() {
   const [dungeonSel, setDungeonSel] = useState<string>("dgn_cellars");
   const [party, setParty] = useState<string[]>([]);
 
+  // ── the pack ── support items from the DUEL bag, escrowed at dispatch and
+  // thrown in BY THE PLAYER mid-run. One bag, two battlefields.
+  const [bag, setBag] = useState<string[]>([]);
+  const [packMax, setPackMax] = useState(3);
+  const [packed, setPacked] = useState<string[]>([]);
+  const [itemsLeft, setItemsLeft] = useState<Record<string, number>>({});
+  const [armed, setArmed] = useState<{ ward?: boolean; focus?: boolean }>({});
+  const [itemBusy, setItemBusy] = useState(false);
+
   // ── raid state ──
   const [runId, setRunId] = useState<string | null>(null);
   const [units, setUnits] = useState<Unit[]>([]);
@@ -179,6 +195,8 @@ export default function DungeonPage() {
       setPartyMax(d.data.partyMax || 4);
       setHealCost(d.data.healCost ?? 80);
       setReviveCost(d.data.reviveCost ?? 500);
+      setBag(d.data.bag || []);
+      setPackMax(d.data.packMax ?? 3);
       // A run still in flight: reopen the raid screen paused between floors.
       const run = d.data.activeRun;
       if (run && run.status === "RUNNING") {
@@ -187,6 +205,8 @@ export default function DungeonPage() {
         setUnits(st.party);
         setFloorNum(st.floor);
         setBanked({ ap: st.apEarned, shards: st.shardsEarned });
+        setItemsLeft(st.items || {});
+        setArmed({ ward: !!st.pendingWard, focus: !!st.pendingFocus });
         setEnemies([]);
         setLog((l) => l.length ? l : [`> party is ${st.floor === 0 ? "at the entrance" : `resting past floor ${st.floor}`}.`]);
         setScreen("raid");
@@ -232,6 +252,8 @@ export default function DungeonPage() {
       if (ev.k === "spawn") {
         setEnemies(ev.enemies.map((e) => ({ ...e })));
         setBossFloor(!!ev.enemies[0]?.boss);
+        // whatever was armed is being spent by this floor's opening
+        setArmed({});
         pushLog(`> ${ev.enemies.length === 1 ? ev.enemies[0].name : `${ev.enemies.length} enemies`} ahead${ev.enemies[0]?.boss ? " — BOSS" : ""}.`);
         await nap(650);
       } else if (ev.k === "phit") {
@@ -325,11 +347,13 @@ export default function DungeonPage() {
     if (!user || party.length === 0) return;
     setBusy(true);
     try {
-      const d = await post("", { dungeon: dungeonSel, cardIds: party });
+      const d = await post("", { dungeon: dungeonSel, cardIds: party, items: packed });
       setRunId(d.run.id);
       setUnits(d.party);
       setFloorNum(0);
       setBanked({ ap: 0, shards: 0 });
+      setItemsLeft(d.items || {});
+      setArmed({});
       setEnemies([]);
       setLog([`> party of ${d.party.length} enters ${dungeons.find((x) => x.id === dungeonSel)?.name ?? "the dark"}.`]);
       setResult(null);
@@ -363,6 +387,29 @@ export default function DungeonPage() {
     recallRef.current = false;
     stopRef.current = false;
     timerRef.current = setTimeout(() => { void stepFloor(runId); }, 400);
+  };
+
+  /**
+   * THE PLAYER'S HELPING HAND — throw a packed item down to the party, any
+   * time the run is live. The server applies it to the TRUE state (between
+   * floors); a salve shows immediately when the stage is calm, and an armed
+   * ward/focus announces itself at the next floor's opening.
+   */
+  const useSupportItem = async (item: string) => {
+    if (!runId || itemBusy) return;
+    setItemBusy(true);
+    try {
+      const d = await post(`/${runId}/use-item`, { item });
+      setItemsLeft(d.items || {});
+      if (d.note) pushLog(d.note);
+      if (item === "shield") setArmed((a) => ({ ...a, ward: true }));
+      if (item === "focus") setArmed((a) => ({ ...a, focus: true }));
+      // Mid-reel the stage is replaying the PAST — don't jump HP around under
+      // the animation; the next floor's payload carries the healed truth.
+      if (item === "heal" && phase !== "fighting") setUnits(d.party);
+    } catch (e: any) {
+      toast(e.message || "It didn't reach them.", "error");
+    } finally { setItemBusy(false); }
   };
 
   const heal = async (cardId: string) => {
@@ -413,8 +460,8 @@ export default function DungeonPage() {
           {/* header */}
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="font-pixel text-[9px] text-[#8f86b8]">PICK ME DOWN ∞ INFINITY GACHA</p>
-              <h1 className="font-pixel mt-2 text-xl leading-relaxed text-[#ffd23e] sm:text-2xl" style={{ textShadow: "3px 3px 0 #3a2b00" }}>
+              <p className="font-pixel text-[9px] text-[#8f86b8]">DA VINCI · EXPEDITIONS</p>
+              <h1 className="font-pixel mt-2 text-xl leading-relaxed text-[#e8f6ff] sm:text-2xl" style={{ textShadow: "3px 3px 0 #0d2733" }}>
                 DUNGEON DISPATCH
               </h1>
             </div>
@@ -440,7 +487,7 @@ export default function DungeonPage() {
                     return (
                       <button key={d.id} onClick={() => setDungeonSel(d.id)}
                         className={`dg-panel dg-press p-3 text-left ${on ? "dg-sel" : ""}`}>
-                        <p className="font-pixel text-[10px] leading-relaxed" style={{ color: on ? "#ffd23e" : "#e8e3d0" }}>{d.name}</p>
+                        <p className="font-pixel text-[10px] leading-relaxed" style={{ color: on ? "#bfe9ff" : "#dfeef6" }}>{d.name}</p>
                         <p className="mt-2 font-mono text-[11px] text-[#8f86b8]">FLOORS 1–{d.depth} · BOSS EVERY 5TH</p>
                         <p className="font-mono text-[11px] text-[#8f86b8]">REC POWER {d.recPower} · PAY ×{d.apMul}</p>
                         <p className="mt-2 font-mono text-[11px] italic text-[#6b6390]">{d.flavor}</p>
@@ -484,6 +531,38 @@ export default function DungeonPage() {
                     ▶ DISPATCH
                   </button>
                 </div>
+
+                {/* ── THE PACK ── the player's mid-run hand. Items come out of
+                    the same bag the duels use; unused ones come home. */}
+                <div className="mt-3 border-t-[3px] border-[#2b4a5e] pt-3">
+                  <p className="font-pixel mb-2 text-[9px] text-[#8f86b8]">
+                    PACK SUPPORT ITEMS · {packed.length}/{packMax} — YOU throw these in while they fight
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {Object.entries(PACK_META).map(([id, m]) => {
+                      const own = bag.filter((b) => b === id).length;
+                      const inPack = packed.filter((p) => p === id).length;
+                      return (
+                        <button key={id} title={m.desc}
+                          disabled={own === 0 && inPack === 0}
+                          onClick={() => setPacked((p) => {
+                            const held = p.filter((x) => x === id).length;
+                            if (p.length < packMax && held < own) return [...p, id];
+                            return p.filter((x) => x !== id);
+                          })}
+                          className={`dg-btn dg-press px-3 py-2 font-pixel text-[8px] disabled:opacity-35 ${inPack > 0 ? "dg-sel" : ""}`}
+                          style={inPack > 0 ? { color: m.tone } : undefined}>
+                          {m.label} ×{inPack}<span className="text-[#6b6390]">/{own}</span>
+                        </button>
+                      );
+                    })}
+                    {bag.length === 0 && (
+                      <span className="font-mono text-[10px] text-[#6b6390]">
+                        bag&rsquo;s empty — buy Salves, Wards and Focus in the Duels shop. one bag, two battlefields.
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* roster */}
@@ -517,7 +596,7 @@ export default function DungeonPage() {
                                 ▲ {domains[c.cardId].name}
                               </span>
                             )}
-                            <span className="mt-1 block h-[7px] w-full border border-[#3a3357] bg-[#141024]">
+                            <span className="mt-1 block h-[7px] w-full border border-[#2b4a5e] bg-[#0a141f]">
                               <span className="block h-full" style={{
                                 width: `${Math.round((s.hp / Math.max(1, s.maxHp)) * 100)}%`,
                                 background: s.hp / s.maxHp > 0.5 ? "#5fd18a" : s.hp / s.maxHp > 0.25 ? "#ffd23e" : "#ff5f5f",
@@ -557,7 +636,7 @@ export default function DungeonPage() {
             <div className="space-y-3">
               {/* status strip */}
               <div className="dg-panel flex flex-wrap items-center justify-between gap-2 px-3 py-2">
-                <p className="font-pixel text-[11px]" style={{ color: bossFloor && phase === "fighting" ? "#ff5f5f" : "#ffd23e" }}>
+                <p className="font-pixel text-[11px]" style={{ color: bossFloor && phase === "fighting" ? "#ff5f6e" : "#bfe9ff" }}>
                   {phase === "marching" ? "DESCENDING..." : `FLOOR ${Math.max(1, floorNum + (phase === "fighting" ? 1 : 0))}`}
                   {bossFloor && phase === "fighting" ? " · BOSS" : ""}
                 </p>
@@ -584,6 +663,8 @@ export default function DungeonPage() {
                 <div aria-hidden className="dg-bg dg-bg-far" />
                 <div aria-hidden className="dg-bg dg-bg-mid" />
                 <div aria-hidden className="dg-bg dg-bg-near" />
+                <div aria-hidden className="dg-motes" />
+                <div aria-hidden className="dg-vig" />
 
                 {/* party, left */}
                 <div className="absolute bottom-6 left-3 flex items-end gap-2 sm:left-6 sm:gap-3">
@@ -602,7 +683,7 @@ export default function DungeonPage() {
                             ? <img src={art} alt={u.name} className={`dg-pix h-full w-full object-cover ${dead ? "grayscale" : ""}`} />
                             : <span className="font-pixel text-[8px]">{u.name.slice(0, 2)}</span>}
                         </div>
-                        <span className="mt-1 block h-[6px] w-12 border border-[#3a3357] bg-[#141024] sm:w-14">
+                        <span className="mt-1 block h-[6px] w-12 border border-[#2b4a5e] bg-[#0a141f] sm:w-14">
                           <span className="block h-full" style={{
                             width: `${Math.round((Math.max(0, u.hp) / Math.max(1, u.maxHp)) * 100)}%`,
                             background: u.hp / u.maxHp > 0.5 ? "#5fd18a" : u.hp / u.maxHp > 0.25 ? "#ffd23e" : "#ff5f5f",
@@ -625,11 +706,11 @@ export default function DungeonPage() {
                             {p.text}{p.crit ? "!" : ""}
                           </span>
                         ))}
-                        <div className={`${dead ? "" : "dg-bob-e"} ${hitE ? "dg-hit" : ""}`} style={{ animationDelay: `${i * 0.3}s` }}>
+                        <div className={`${dead ? "" : "dg-bob-e"} ${hitE ? "dg-hit" : ""} ${e.boss && !dead ? "dg-bossglow" : ""}`} style={{ animationDelay: `${i * 0.3}s` }}>
                           <PixelMob kind={e.kind} boss={e.boss} dead={dead} scale={e.boss ? 6 : 5} />
                         </div>
                         {!dead && (
-                          <span className="mt-1 block h-[6px] w-12 border border-[#3a3357] bg-[#141024]">
+                          <span className="mt-1 block h-[6px] w-12 border border-[#2b4a5e] bg-[#0a141f]">
                             <span className="block h-full bg-[#ff5f5f]" style={{ width: `${Math.round((e.hp / Math.max(1, e.maxHp)) * 100)}%` }} />
                           </span>
                         )}
@@ -639,15 +720,15 @@ export default function DungeonPage() {
                 </div>
 
                 {skipping && (
-                  <p className="font-pixel absolute left-1/2 top-3 -translate-x-1/2 text-[9px] text-[#ffd23e]">FAST-FORWARDING...</p>
+                  <p className="font-pixel absolute left-1/2 top-3 -translate-x-1/2 text-[9px] text-[#bfe9ff]">FAST-FORWARDING...</p>
                 )}
 
                 {/* ── DOMAIN EXPANSION ── the stage belongs to it for a beat */}
                 {domainShow && (
                   <div className="dg-domain absolute inset-0 z-20 grid place-items-center">
                     <div className="px-4 text-center">
-                      <p className="font-pixel text-[9px] tracking-widest text-[#f0abfc]">▲ DOMAIN EXPANSION ▲</p>
-                      <p className="font-pixel mt-3 text-[13px] leading-relaxed text-[#ffd23e]" style={{ textShadow: "3px 3px 0 #000" }}>
+                      <p className="font-pixel text-[9px] tracking-widest text-[#bfe9ff]">▲ DOMAIN EXPANSION ▲</p>
+                      <p className="font-pixel mt-3 text-[13px] leading-relaxed text-[#e8f6ff]" style={{ textShadow: "3px 3px 0 #04121d" }}>
                         {domainShow.name}
                       </p>
                       <p className="mt-2 font-mono text-[11px] text-[#e8e3d0]">{domainShow.who}</p>
@@ -659,10 +740,32 @@ export default function DungeonPage() {
 
               {/* log + controls */}
               <div className="grid gap-3 lg:grid-cols-[1fr_240px]">
-                <div className="dg-panel h-36 overflow-y-auto p-2 font-mono text-[11px] leading-relaxed text-[#7fe07f]">
+                <div className="dg-panel h-36 overflow-y-auto p-2 font-mono text-[11px] leading-relaxed text-[#9fd8e8]">
                   {log.map((l, i) => <div key={i}>{l}</div>)}
                 </div>
                 <div className="flex flex-col gap-2">
+                  {/* ── SUPPORT FROM TOPSIDE ── the player's helping hand.
+                      Works any time the run is live, even mid-fight. */}
+                  <div className="flex gap-1.5">
+                    {Object.entries(PACK_META).map(([id, m]) => {
+                      const n = itemsLeft[id] || 0;
+                      const blocked = (id === "shield" && armed.ward) || (id === "focus" && armed.focus);
+                      return (
+                        <button key={id} onClick={() => useSupportItem(id)}
+                          disabled={itemBusy || n === 0 || !!result || !!blocked}
+                          title={blocked ? "Already armed — it lands next floor" : m.desc}
+                          className="dg-btn flex-1 px-1.5 py-2 text-center font-pixel text-[8px] leading-relaxed disabled:opacity-35"
+                          style={n > 0 && !blocked ? { color: m.tone } : undefined}>
+                          {m.label}<br />×{n}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {(armed.ward || armed.focus) && (
+                    <p className="font-pixel text-[8px] leading-relaxed text-[#9be8ff]">
+                      ARMED:{armed.ward ? " WARD" : ""}{armed.ward && armed.focus ? " +" : ""}{armed.focus ? " FOCUS" : ""} — lands at the next floor
+                    </p>
+                  )}
                   <button onClick={recall} disabled={busy || phase !== "idle" || skipping || !!result}
                     className="dg-btn dg-btn-red flex-1 px-4 py-3 font-pixel text-[10px] disabled:opacity-40"
                     title={phase !== "idle" ? "Recall answers between floors" : "Bank everything and come home"}>
@@ -687,7 +790,7 @@ export default function DungeonPage() {
             <div className="mx-auto max-w-xl">
               <div className="dg-panel p-4 text-center">
                 <p className="font-pixel text-[13px] leading-relaxed"
-                  style={{ color: result.status === "WIPED" ? "#ff5f5f" : result.status === "CLEARED" ? "#ffd23e" : "#5fd18a" }}>
+                  style={{ color: result.status === "WIPED" ? "#ff5f5f" : result.status === "CLEARED" ? "#bfe9ff" : "#5fd18a" }}>
                   {result.status === "WIPED" ? "THE PARTY FELL" : result.status === "CLEARED" ? "DUNGEON CLEARED!" : "PARTY RECALLED"}
                 </p>
                 <div className="mt-4 grid grid-cols-3 gap-2">
@@ -739,33 +842,53 @@ export default function DungeonPage() {
 }
 
 /** All the retro in one place. steps() everywhere — smooth easing would give
- *  the whole thing away. */
+ *  the whole thing away. The palette is HOLLOW NIGHT: deep cavern blue-black,
+ *  pale bone light, cold cyan glow. Gold survives only on money. */
 const DG_CSS = `
 .dg-root { background:
-  radial-gradient(90% 40% at 50% -5%, #1c1633, transparent 70%), #0d0a18; }
-.dg-panel { background: #1a1530; border: 3px solid #3a3357; box-shadow: 0 3px 0 0 #0a0714; }
-.dg-sel { border-color: #ffd23e; box-shadow: 0 3px 0 0 #3a2b00; }
-.dg-btn { background: #2a2347; border: 3px solid #4c4470; color: #e8e3d0;
-  box-shadow: 0 3px 0 0 #0a0714; transition: none; }
-.dg-btn:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 0 0 0 #0a0714; }
-.dg-btn-gold { background: #7a5c00; border-color: #ffd23e; color: #ffe9a3; }
-.dg-btn-red { background: #5c1414; border-color: #ff5f5f; color: #ffb4b4; }
-.dg-slot { width: 52px; height: 52px; background: #141024; border: 3px dashed #3a3357; }
+  radial-gradient(90% 45% at 50% -5%, #12293c, transparent 70%), #070d14; }
+.dg-panel { background: #0d1826; border: 3px solid #2b4a5e; box-shadow: 0 3px 0 0 #030608; }
+.dg-sel { border-color: #bfe9ff; box-shadow: 0 3px 0 0 #0d2733; }
+.dg-btn { background: #14283a; border: 3px solid #3e6278; color: #dfeef6;
+  box-shadow: 0 3px 0 0 #030608; transition: none; }
+.dg-btn:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 0 0 0 #030608; }
+.dg-btn-gold { background: #1d4457; border-color: #9be8ff; color: #dff6ff; }
+.dg-btn-red { background: #4a1420; border-color: #ff5f6e; color: #ffb4bc; }
+.dg-slot { width: 52px; height: 52px; background: #0a141f; border: 3px dashed #2b4a5e; }
 .dg-slot img { border: none; }
-.dg-frame { display: grid; place-items: center; width: 44px; height: 44px; background: #141024; border: 3px solid; }
-.dg-frame-lg { display: grid; place-items: center; width: 56px; height: 56px; background: #141024; border: 3px solid; }
+.dg-frame { display: grid; place-items: center; width: 44px; height: 44px; background: #0a141f; border: 3px solid; }
+.dg-frame-lg { display: grid; place-items: center; width: 56px; height: 56px; background: #0a141f; border: 3px solid; }
 .dg-pix { image-rendering: pixelated; }
-.dg-stage { height: 300px; }
+.dg-stage { height: 300px; background: #081019; }
 @media (min-width: 640px) { .dg-stage { height: 340px; } }
 .dg-bg { position: absolute; inset: 0; background-repeat: repeat-x; }
-.dg-bg-far { background-image: linear-gradient(#181229 0 62%, #221a3d 62% 66%, transparent 66%); }
+/* far: the cavern ceiling, hanging silhouettes, and distant pale lights */
+.dg-bg-far { background-image:
+  radial-gradient(2px 2px at 18% 34%, #cfeaf780, transparent 60%),
+  radial-gradient(2px 2px at 67% 24%, #cfeaf75c, transparent 60%),
+  radial-gradient(3px 3px at 44% 50%, #cfeaf74a, transparent 60%),
+  repeating-linear-gradient(90deg, transparent 0 52px, #0a1826 52px 66px, transparent 66px 120px),
+  linear-gradient(#0a1620 0 26%, #0e1e2c 26% 30%, transparent 30%);
+  background-size: 240px 100%, 240px 100%, 240px 100%, 120px 34%, 240px 100%; }
+/* mid: broken pillars of an older kingdom */
 .dg-bg-mid { background-image:
-  repeating-linear-gradient(90deg, transparent 0 90px, #221a3d 90px 118px, transparent 118px 240px);
-  background-size: 240px 100%; opacity: .8; }
+  repeating-linear-gradient(90deg, transparent 0 70px, #0c1b2a 70px 96px, transparent 96px 240px);
+  background-size: 240px 100%; opacity: .92; }
+/* near: the path, and thorn-fringe along it */
 .dg-bg-near { background-image:
-  linear-gradient(transparent 0 82%, #241d42 82% 86%, #141024 86%),
-  repeating-linear-gradient(90deg, transparent 0 34px, #2c2450 34px 38px, transparent 38px 72px);
-  background-size: 100% 100%, 72px 100%; }
+  linear-gradient(transparent 0 80%, #11232f 80% 85%, #0a141f 85%),
+  repeating-linear-gradient(90deg, transparent 0 24px, #16303f 24px 28px, transparent 28px 60px);
+  background-size: 240px 100%, 60px 100%; }
+/* always-on cavern dust, rising slow — the room is alive even at rest */
+.dg-motes { position: absolute; inset: 0; pointer-events: none; background-repeat: repeat; background-image:
+  radial-gradient(2px 2px at 20% 82%, #bfe9ff59, transparent 60%),
+  radial-gradient(1.5px 1.5px at 56% 58%, #bfe9ff40, transparent 60%),
+  radial-gradient(2px 2px at 83% 74%, #bfe9ff4d, transparent 60%);
+  background-size: 210px 230px; animation: dg-rise 8s linear infinite; }
+@keyframes dg-rise { from { background-position-y: 0; } to { background-position-y: -230px; } }
+.dg-vig { position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(120% 95% at 50% 42%, transparent 52%, #04080cc0); }
+.dg-bossglow { filter: drop-shadow(0 0 12px #bfe9ff59); }
 .dg-marching .dg-bg-far  { animation: dg-scroll 2.4s steps(12) infinite; }
 .dg-marching .dg-bg-mid  { animation: dg-scroll 1.2s steps(12) infinite; }
 .dg-marching .dg-bg-near { animation: dg-scroll .6s steps(12) infinite; }
@@ -779,13 +902,13 @@ const DG_CSS = `
 .dg-pop { position: absolute; top: -16px; left: 50%; transform: translateX(-50%);
   animation: dg-pop .7s steps(6) forwards; pointer-events: none; white-space: nowrap; text-shadow: 2px 2px 0 #000; z-index: 30; }
 @keyframes dg-pop { from { transform: translate(-50%, 0); opacity: 1; } to { transform: translate(-50%, -26px); opacity: 0; } }
-.dg-domain { background: rgba(30, 8, 40, .92); border: 3px solid #f0abfc;
+.dg-domain { background: rgba(8, 18, 30, .94); border: 3px solid #bfe9ff;
   animation: dg-domain-in .25s steps(4); }
 @keyframes dg-domain-in { from { opacity: 0; } to { opacity: 1; } }
 .dg-crt { position: fixed; inset: 0; z-index: 40; pointer-events: none;
   background: repeating-linear-gradient(0deg, rgba(0,0,0,.22) 0 1px, transparent 1px 3px);
   mix-blend-mode: multiply; }
 @media (prefers-reduced-motion: reduce) {
-  .dg-bob, .dg-bob-e, .dg-marching .dg-bg-far, .dg-marching .dg-bg-mid, .dg-marching .dg-bg-near { animation: none !important; }
+  .dg-bob, .dg-bob-e, .dg-motes, .dg-marching .dg-bg-far, .dg-marching .dg-bg-mid, .dg-marching .dg-bg-near { animation: none !important; }
 }
 `;

@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@tutkli/jikan-ts": "^3.0.0",
-    "three": "^0.170.0",
     "axios": "^1.6.2",
     "cheerio": "^1.0.0-rc.12",
     "clsx": "^2.1.1",
