@@ -3,7 +3,7 @@
 import { useUser } from "@/hooks/useUser";
 import { useState } from "react";
 import LoginModal from "@/components/layout/LoginModal";
-import { Lock, KeyRound } from "lucide-react";
+import { Lock, KeyRound, Tv, BookMarked, BookOpen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // Shared amethyst-purple text fill, matching the splash wordmark + site theme.
@@ -17,6 +17,34 @@ const AMETHYST: React.CSSProperties = {
 };
 
 const easeCine: [number, number, number, number] = [0.16, 1, 0.3, 1];
+
+/**
+ * The landing artwork. Drop a file at `public/landing-bg.jpg` and it appears
+ * here and inside the wordmark.
+ *
+ * If the file is missing the page still works — the gradients underneath carry
+ * it, and the title falls back to the amethyst fill. Nothing breaks, it just
+ * looks like it did before.
+ */
+const LANDING_BG = "/landing-bg.jpg";
+
+/**
+ * The wordmark is a WINDOW onto the background rather than a painted colour.
+ *
+ * `background-attachment: fixed` is what makes it work: the image is anchored
+ * to the viewport, not to the letters, so the art inside the text lines up
+ * exactly with the art behind the page. Without it the fill would be a second,
+ * differently-cropped copy and the illusion collapses.
+ */
+const WORDMARK_WINDOW: React.CSSProperties = {
+  backgroundImage: `url(${LANDING_BG})`,
+  backgroundSize: "cover",
+  backgroundPosition: "center",
+  backgroundAttachment: "fixed",
+  WebkitBackgroundClip: "text",
+  backgroundClip: "text",
+  color: "transparent",
+};
 
 export default function InviteOnlyGuard({ children }: { children: React.ReactNode }) {
   const { user, isLoaded } = useUser();
@@ -36,72 +64,89 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center relative overflow-hidden text-white p-4 selection:bg-violet-500/20">
-        {/* Tri-mode ambience — anime violet (top), manhwa red (left), novel pink (right) + edge vignette */}
-        <div className="absolute inset-0 z-0 pointer-events-none bg-[radial-gradient(ellipse_at_50%_32%,rgba(139,92,246,0.20)_0%,transparent_55%)]" />
-        <div className="absolute inset-0 z-0 pointer-events-none bg-[radial-gradient(ellipse_at_20%_78%,rgba(220,38,38,0.13)_0%,transparent_50%)]" />
-        <div className="absolute inset-0 z-0 pointer-events-none bg-[radial-gradient(ellipse_at_80%_75%,rgba(236,72,153,0.14)_0%,transparent_50%)]" />
-        <div className="absolute inset-0 z-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_45%,#050505_100%)]" />
+      <div className="relative min-h-screen overflow-hidden bg-[#050505] p-4 text-white selection:bg-violet-500/20">
+        {/* ── THE ARTWORK ── full-bleed, fixed, so the wordmark's window lines
+            up with it exactly. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 z-0"
+          style={{
+            backgroundImage: `url(${LANDING_BG})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundAttachment: "fixed",
+          }}
+        />
+        {/* Scrims. Two of them: a flat darkener so text is legible over any
+            crop, and a bottom-heavy gradient so the page has a floor. */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 z-0 bg-black/55" />
+        <div aria-hidden className="pointer-events-none absolute inset-0 z-0 bg-gradient-to-b from-[#050505]/85 via-transparent to-[#050505]" />
+        {/* The original tri-mode ambience stays underneath — it is what carries
+            the page if the artwork file isn't there yet. */}
+        <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_50%_32%,rgba(139,92,246,0.18)_0%,transparent_55%)]" />
+        <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_20%_78%,rgba(220,38,38,0.12)_0%,transparent_50%)]" />
+        <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_80%_75%,rgba(236,72,153,0.12)_0%,transparent_50%)]" />
 
-        {/* Faint concentric geometry — a nod to da Vinci's proportion studies */}
-        <div className="absolute inset-0 z-0 pointer-events-none flex items-center justify-center">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1, rotate: 360 }}
-            transition={{ opacity: { duration: 2 }, scale: { duration: 2, ease: easeCine }, rotate: { duration: 160, repeat: Infinity, ease: "linear" } }}
-            className="gpu-layer w-[520px] h-[520px] md:w-[720px] md:h-[720px] rounded-full border border-violet-300/[0.10]"
-          />
-          {/* manhwa-red + novel-pink inner rings */}
-          <div className="absolute w-[440px] h-[440px] md:w-[610px] md:h-[610px] rounded-full border border-red-400/[0.07]" />
-          <div className="absolute w-[360px] h-[360px] md:w-[500px] md:h-[500px] rounded-full border border-pink-400/[0.08]" />
-        </div>
+        {/* ── FLOATING PILL BAR ── */}
+        <motion.div
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.8, ease: easeCine }}
+          className="absolute inset-x-0 top-5 z-20 flex justify-center px-4"
+        >
+          <div className="flex items-center gap-2 rounded-full border border-white/10 bg-black/50 px-3 py-2 backdrop-blur-xl sm:gap-5 sm:px-5">
+            <span className="flex items-center gap-2 pr-1 sm:pr-3">
+              <img src="/logo.png" alt="" className="h-7 w-7 rounded-full object-cover ring-1 ring-violet-400/50" />
+              <span className="font-fell text-sm font-bold uppercase tracking-[0.24em] text-white">Da Vinci</span>
+            </span>
+            <span aria-hidden className="hidden h-5 w-px bg-white/10 sm:block" />
+            <span className="hidden items-center gap-1.5 text-[11px] font-bold text-slate-300 sm:flex">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Anime
+            </span>
+            <span className="hidden items-center gap-1.5 text-[11px] font-bold text-slate-300 sm:flex">
+              <span className="h-1.5 w-1.5 rounded-full bg-red-400" /> Manhwa
+            </span>
+            <span className="hidden items-center gap-1.5 text-[11px] font-bold text-slate-300 sm:flex">
+              <span className="h-1.5 w-1.5 rounded-full bg-pink-400" /> Novels
+            </span>
+            <button
+              onClick={() => setShowLogin(true)}
+              className="rounded-full bg-white px-4 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-black transition hover:brightness-90"
+            >
+              Sign in
+            </button>
+          </div>
+        </motion.div>
 
-        <div className="z-10 flex flex-col items-center text-center max-w-2xl w-full">
-          {/* Wax-seal emblem */}
+        {/* ── HERO ── */}
+        <div className="relative z-10 flex min-h-screen flex-col items-center justify-center text-center">
           <motion.div
-            initial={{ y: 16, opacity: 0, scale: 0.95 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            transition={{ duration: 0.9, ease: easeCine }}
-            className="relative w-24 h-24 mb-10 mx-auto"
+            initial={{ y: 14, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.15, ease: easeCine }}
+            className="mb-6 inline-flex items-center gap-2 rounded-full border border-violet-300/25 bg-black/40 px-4 py-1.5 backdrop-blur"
           >
-            <div className="absolute inset-0 rounded-full bg-violet-500/15 blur-2xl" />
-            <div className="relative w-full h-full rounded-full flex items-center justify-center border border-violet-300/30 bg-gradient-to-b from-violet-400/[0.10] to-transparent shadow-[0_0_40px_rgba(139,92,246,0.22)] group">
-              <div className="absolute inset-1.5 rounded-full border border-violet-300/15" />
-              <Lock className="w-9 h-9 text-violet-200/90 group-hover:text-violet-100 transition-colors duration-500" strokeWidth={1.25} />
-            </div>
+            <Lock className="h-3 w-3 text-violet-200" strokeWidth={2} />
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-violet-100">Invitation only</span>
           </motion.div>
 
-          {/* Amethyst wordmark */}
+          {/* The wordmark — a window onto the art behind it */}
           <motion.h1
             initial={{ y: 18, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.9, delay: 0.1, ease: easeCine }}
-            className="font-fell text-5xl md:text-7xl font-bold uppercase tracking-[0.2em] pl-[0.2em] mb-3"
-            style={AMETHYST}
+            className="font-fell text-6xl font-bold uppercase leading-none tracking-[0.16em] pl-[0.16em] drop-shadow-[0_6px_40px_rgba(0,0,0,0.9)] sm:text-8xl md:text-[9rem]"
+            style={WORDMARK_WINDOW}
           >
             Da Vinci
           </motion.h1>
-
-          {/* Medium badge — the three arts studied within, each in its own hue */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.7, delay: 0.5, ease: easeCine }}
-            className="mb-6 px-4 py-1 rounded-full border border-white/15 bg-white/[0.04] text-[10px] md:text-xs font-bold tracking-[0.25em] uppercase"
-          >
-            <span className="text-violet-300">Anime</span>
-            <span className="text-slate-500"> &middot; </span>
-            <span className="text-red-400">Manhwa</span>
-            <span className="text-slate-500"> &middot; </span>
-            <span className="text-pink-400">Novels</span>
-          </motion.div>
 
           {/* Ornamental rule */}
           <motion.div
             initial={{ opacity: 0, scaleX: 0 }}
             animate={{ opacity: 1, scaleX: 1 }}
             transition={{ duration: 0.9, delay: 0.35, ease: easeCine }}
-            className="h-px w-44 md:w-56 bg-[linear-gradient(to_right,transparent,rgba(167,139,250,0.6),rgba(248,113,113,0.5),rgba(244,114,182,0.6),transparent)] origin-center mb-8"
+            className="mt-7 mb-7 h-px w-44 origin-center bg-[linear-gradient(to_right,transparent,rgba(167,139,250,0.6),rgba(248,113,113,0.5),rgba(244,114,182,0.6),transparent)] md:w-72"
           />
 
           {/* Refined Renaissance copy */}
@@ -109,7 +154,7 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
             initial={{ y: 16, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.9, delay: 0.25, ease: easeCine }}
-            className="font-garamond italic text-lg md:text-2xl text-violet-100/80 mb-3 leading-relaxed"
+            className="font-garamond mb-3 max-w-2xl text-xl italic leading-relaxed text-violet-50/90 md:text-3xl"
           >
             An invitation-only atelier for the devoted student of the anime, manhwa &amp; light-novel arts.
           </motion.p>
@@ -122,20 +167,47 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
             Present your seal to unlock the vault — anime to watch, manhwa &amp; novels to read — and begin your study.
           </motion.p>
 
-          {/* Request Access — purple-lined seal button */}
+          {/* ── CTAs ── one filled, one outlined. The filled one is the thing
+              you actually came here to do; a pair of equally-weighted outlined
+              buttons makes neither read as the answer. */}
           <motion.div
             initial={{ y: 16, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.9, delay: 0.4, ease: easeCine }}
+            className="flex flex-wrap items-center justify-center gap-3"
           >
             <button
               onClick={() => setShowLogin(true)}
-              className="group relative inline-flex items-center gap-3 px-9 py-4 rounded-full border border-violet-300/40 text-violet-100 font-cinzel tracking-[0.2em] uppercase text-sm transition-all duration-500 hover:border-violet-300/80 hover:text-white focus:outline-none focus:ring-1 focus:ring-violet-300/60 overflow-hidden"
+              className="group inline-flex items-center gap-3 rounded-full bg-white px-8 py-4 text-sm font-black uppercase tracking-[0.16em] text-black transition hover:brightness-90 focus:outline-none focus:ring-2 focus:ring-white/40"
             >
-              <span className="absolute inset-0 bg-gradient-to-r from-violet-500/10 via-violet-400/25 to-violet-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <KeyRound className="relative w-4 h-4 text-violet-200 transition-transform duration-500 group-hover:-rotate-12" strokeWidth={1.5} />
-              <span className="relative">Request Access</span>
+              <KeyRound className="h-4 w-4 transition-transform duration-500 group-hover:-rotate-12" strokeWidth={2} />
+              Request Access
             </button>
+            <button
+              onClick={() => setShowLogin(true)}
+              className="group relative inline-flex items-center gap-3 overflow-hidden rounded-full border border-violet-300/40 px-8 py-4 font-cinzel text-sm uppercase tracking-[0.18em] text-violet-100 transition-all duration-500 hover:border-violet-300/80 hover:text-white focus:outline-none focus:ring-1 focus:ring-violet-300/60"
+            >
+              <span className="absolute inset-0 bg-gradient-to-r from-violet-500/10 via-violet-400/25 to-violet-500/10 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+              <span className="relative">I have a seal</span>
+            </button>
+          </motion.div>
+
+          {/* ── THE THREE ARTS ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.55, ease: easeCine }}
+            className="mt-12 flex flex-wrap items-center justify-center gap-x-7 gap-y-2 text-[11px] font-black uppercase tracking-[0.24em]"
+          >
+            <span className="flex items-center gap-2 text-violet-300">
+              <Tv className="h-3.5 w-3.5" /> Anime
+            </span>
+            <span className="flex items-center gap-2 text-red-400">
+              <BookMarked className="h-3.5 w-3.5" /> Manhwa
+            </span>
+            <span className="flex items-center gap-2 text-pink-400">
+              <BookOpen className="h-3.5 w-3.5" /> Novels
+            </span>
           </motion.div>
         </div>
 
