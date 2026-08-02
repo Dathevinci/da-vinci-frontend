@@ -78,18 +78,23 @@ function AuthorLine({ user, blessed }: { user?: Author; blessed?: boolean }) {
   const admin = !lead && isAdmin(user.username);
   return (
     <>
-      <div className="relative shrink-0">
+      {/* EffectLayer draws at NEGATIVE insets (-inset-1 to -inset-2), so it
+          deliberately bleeds outside the avatar. On a 36px avatar that spilled
+          roughly 8px past the edge and landed on the username. The wrapper is
+          sized with that bleed budgeted in — mr-1 gives the effect its own
+          room instead of borrowing the name's. */}
+      <div className="relative mr-1 h-11 w-11 shrink-0">
         {user.avatar ? (
-          <img src={user.avatar} alt="" className="h-9 w-9 rounded-full object-cover" />
+          <img src={user.avatar} alt="" className="h-11 w-11 rounded-full object-cover" />
         ) : (
-          <span className="grid h-9 w-9 place-items-center rounded-full bg-purple-700 text-[11px] font-black">
+          <span className="grid h-11 w-11 place-items-center rounded-full bg-purple-700 text-sm font-black">
             {(user.username || "?")[0]?.toUpperCase()}
           </span>
         )}
         <AvatarDecoration frame={user.activeFrame} effect={user.activeEffect} />
       </div>
       <UserLink username={user.username}
-        className={`text-sm font-black hover:underline ${effectNameClass(user.activeEffect) || "text-white"}`}>
+        className={`text-[15px] font-black hover:underline ${effectNameClass(user.activeEffect) || "text-white"}`}>
         {user.username}
       </UserLink>
       {lead ? (
@@ -144,7 +149,7 @@ function TagChip({ tag, size = "sm" }: { tag: string; size?: "sm" | "xs" }) {
   const tint = TAG_TINT[tag] || ACCENT;
   return (
     <span
-      className={`inline-block font-black uppercase tracking-[0.16em] ${size === "xs" ? "px-1.5 py-0.5 text-[9px]" : "px-2 py-0.5 text-[10px]"}`}
+      className={`inline-block font-black uppercase tracking-[0.16em] ${size === "xs" ? "px-2 py-0.5 text-[10px]" : "px-2.5 py-1 text-[11px]"}`}
       style={{ clipPath: notch(5), background: `${tint}1f`, boxShadow: `inset 0 0 0 1px ${tint}66`, color: tint }}
     >
       {tag}
@@ -368,12 +373,12 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
               <div className="space-y-3">
                 {posts.map((p) => (
                   <motion.article key={p.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                    className="flex gap-3 p-4"
+                    className="flex gap-4 p-5"
                     style={{ clipPath: notch(16), background: "rgba(255,255,255,.028)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.075)" }}>
                     {/* vote rail */}
-                    <div className="flex w-12 shrink-0 flex-col items-center gap-1">
+                    <div className="flex w-14 shrink-0 flex-col items-center gap-1">
                       <button onClick={() => vote(p, 1)} aria-label="Upvote"
-                        className="grid h-9 w-9 place-items-center transition hover:brightness-150"
+                        className="grid h-10 w-10 place-items-center transition hover:brightness-150"
                         style={{
                           clipPath: notch(7),
                           background: p.userVote === 1 ? `${ACCENT}33` : "rgba(255,255,255,.04)",
@@ -382,12 +387,12 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                         }}>
                         <ChevronUp className="h-4 w-4" />
                       </button>
-                      <span className="text-sm font-black tabular-nums" style={{ color: (p.score || 0) > 0 ? ACCENT_LIT : "#64748b" }}>
+                      <span className="text-base font-black tabular-nums" style={{ color: (p.score || 0) > 0 ? ACCENT_LIT : "#64748b" }}>
                         {p.score ?? 0}
                       </span>
                       <span className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-700">Score</span>
                       <button onClick={() => vote(p, -1)} aria-label="Downvote"
-                        className="mt-0.5 grid h-9 w-9 place-items-center transition hover:brightness-150"
+                        className="mt-0.5 grid h-10 w-10 place-items-center transition hover:brightness-150"
                         style={{
                           clipPath: notch(7),
                           background: p.userVote === -1 ? "rgba(244,63,94,.22)" : "rgba(255,255,255,.04)",
@@ -409,12 +414,12 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                           </span>
                         )}
                         {p.tag && <TagChip tag={p.tag} size="xs" />}
-                        <span className="text-[10px] font-bold text-slate-600">{ago(p.createdAt)}</span>
+                        <span className="text-[11px] font-bold text-slate-500">{ago(p.createdAt)}</span>
                       </div>
 
-                      {p.title && <h3 className="mt-2.5 text-xl font-black leading-tight">{p.title}</h3>}
+                      {p.title && <h3 className="mt-3 text-2xl font-black leading-tight">{p.title}</h3>}
                       {p.content && (
-                        <p className="mt-1.5 whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-300">
+                        <p className="mt-2 whitespace-pre-wrap break-words text-[15px] leading-[1.65] text-slate-200">
                           {p.content}
                         </p>
                       )}
@@ -427,7 +432,7 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                       {/* ── THREAD ── a forum post you can't answer is a notice board */}
                       <button
                         onClick={() => setOpenThread(openThread === p.id ? null : p.id)}
-                        className="mt-3 inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500 transition hover:text-white">
+                        className="mt-3.5 inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-slate-400 transition hover:text-white">
                         <MessageSquare className="h-3 w-3" />
                         {(replies[p.id]?.length || 0) === 0
                           ? "Reply"
