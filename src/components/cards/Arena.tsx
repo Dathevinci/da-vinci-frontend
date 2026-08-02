@@ -317,7 +317,12 @@ export default function Arena({
   // Floors matter: below ~48px a card is unreadable mush rather than a small
   // card, and the opponent's line is how you read the game.
   const bench = clamp(48, Math.min(champ * 0.34, perCard - 14), 92);
-  const suppSize = clamp(52, champ * 0.34, 80);
+  // 78 floor, not 52. Below the card face's ~68-76px thresholds a support
+  // renders as art with no panel, no name and no grade plate — and supports
+  // have no painted art, so what was left was a dim grey smudge. 78 clears
+  // the name row and the corner plate, which is the minimum for the tray to
+  // read as cards rather than placeholders.
+  const suppSize = clamp(78, champ * 0.42, 112);
 
   // ── A selection must never outlive the card it points at ─────────────────
   const hpKey = mine.fighters.map((f) => f.hp).join(",");
@@ -816,7 +821,17 @@ export default function Arena({
                 onPointerDown={playable ? startDrag({ kind: "unit", index: i }) : undefined}
                 onClick={() => { if (swallowClick()) return; if (playable) setSel(i); }}
                 role="button" aria-disabled={!playable}
-                title={dead ? `${f.name} has fallen` : `Choose ${f.name}`}
+                // Hovering says what the card WOULD do. The board showed a
+                // stat line but never the thing you actually want before
+                // committing: how hard this one hits, and whether the swing
+                // finishes what is standing opposite.
+                title={
+                  dead
+                    ? `${f.name} has fallen`
+                    : `${f.name} — hits for ~${f.atk}${
+                        foeActive ? ` · ${foeActive.name} has ${foeActive.hp} HP left` : ""
+                      }${foeActive && f.atk >= foeActive.hp ? " · this would finish it" : ""}`
+                }
                 style={{ touchAction: "none" }}
                 className={`flex cursor-pointer flex-col items-center gap-1 rounded-xl p-0.5 transition ${
                   lit ? "bg-cyan-400/30 ring-2 ring-cyan-300 shadow-[0_0_22px_rgba(34,211,238,.6)]"
@@ -866,9 +881,12 @@ export default function Arena({
                     // was to spend it — mid-duel, on your turn.
                     onClick={() => { if (swallowClick()) return; setPeek(c); }}
                     role="button" aria-disabled={!usable}
+                    // Says what it DOES on hover, not just its name. The tray
+                    // holds a dozen of these and reading them meant tapping
+                    // each one in turn.
                     title={spent ? `${c.name} — already played`
                       : outOfSlots ? `No support slots left this duel`
-                      : `${c.name} — tap for details`}
+                      : `${c.name} — ${supportBrief(c.support).what} (free to play, keeps your turn)`}
                     style={{ touchAction: "none" }}
                     className={`shrink-0 rounded-lg p-0.5 transition ${
                       usable ? "cursor-grab ring-1 ring-cyan-400/50 hover:-translate-y-1 hover:ring-cyan-300 active:cursor-grabbing"
