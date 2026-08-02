@@ -1,12 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Pin, Plus, X, ImagePlus, Hash, ChevronUp, ChevronDown, MessageSquare, Loader2 } from "lucide-react";
+import {
+  Pin, Plus, X, ImagePlus, Hash, ChevronUp, ChevronDown, MessageSquare, Loader2,
+  Crown, Shield, Star, Sparkles, Zap, CornerDownRight, Send,
+} from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { authHeaders } from "@/lib/authToken";
 import { useToast } from "@/components/ui/Toast";
+import { isAdmin, isLeadDev } from "@/lib/admin";
 import UserLink from "@/components/profile/UserLink";
+import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
+import { effectNameClass } from "@/lib/effectTheme";
 import { ACCENT, ACCENT_LIT, notch } from "@/components/cards/gacha";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -38,18 +44,89 @@ const TAG_TINT: Record<string, string> = {
   Meme: "#fb923c",
 };
 
+type Author = {
+  id: string; username: string; avatar?: string | null;
+  activeRole?: string | null; activeTag?: string | null;
+  activeEffect?: string | null; activeFrame?: string | null;
+};
+
 type Post = {
   id: string;
+  parentId?: string | null;
   title?: string | null;
   tag?: string | null;
   content: string;
   mediaUrl?: string | null;
   isPinned?: boolean;
+  blessed?: boolean;
   createdAt: string;
   score?: number;
   userVote?: number;
-  user?: { id: string; username: string; avatar?: string | null };
+  user?: Author;
 };
+
+/**
+ * The author line, with the cosmetics people actually paid for.
+ *
+ * The forum looked bland partly because it threw all of that away: everyone
+ * rendered as a plain grey name regardless of frame, effect, role or tag. Those
+ * are the whole point of the shop, and a feed is where they get seen.
+ */
+function AuthorLine({ user, blessed }: { user?: Author; blessed?: boolean }) {
+  if (!user) return <span className="text-sm font-black text-slate-400">someone</span>;
+  const lead = isLeadDev({ username: user.username } as any);
+  const admin = !lead && isAdmin(user.username);
+  return (
+    <>
+      <div className="relative shrink-0">
+        {user.avatar ? (
+          <img src={user.avatar} alt="" className="h-9 w-9 rounded-full object-cover" />
+        ) : (
+          <span className="grid h-9 w-9 place-items-center rounded-full bg-purple-700 text-[11px] font-black">
+            {(user.username || "?")[0]?.toUpperCase()}
+          </span>
+        )}
+        <AvatarDecoration frame={user.activeFrame} effect={user.activeEffect} />
+      </div>
+      <UserLink username={user.username}
+        className={`text-sm font-black hover:underline ${effectNameClass(user.activeEffect) || "text-white"}`}>
+        {user.username}
+      </UserLink>
+      {lead ? (
+        <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-white shadow-[0_0_14px_rgba(168,85,247,.55)]">
+          <Crown className="h-2.5 w-2.5" /> Lead Dev
+        </span>
+      ) : admin ? (
+        <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-500/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-amber-300">
+          <Shield className="h-2.5 w-2.5" /> Staff
+        </span>
+      ) : user.activeRole === "role_watcher" ? (
+        <span className="inline-flex items-center gap-1 rounded-full border border-purple-500/30 bg-purple-500/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-purple-300">
+          <Shield className="h-2.5 w-2.5" /> Watcher
+        </span>
+      ) : user.activeRole === "role_elite" ? (
+        <span className="inline-flex items-center gap-1 rounded-full border border-yellow-500/30 bg-yellow-500/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-yellow-300">
+          <Star className="h-2.5 w-2.5" /> Elite
+        </span>
+      ) : null}
+      {user.activeTag === "tag_og" && (
+        <span className="inline-flex items-center gap-1 rounded-full bg-red-500/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-red-300">
+          <Zap className="h-2.5 w-2.5" /> OG
+        </span>
+      )}
+      {user.activeTag === "tag_weeb" && (
+        <span className="inline-flex items-center gap-1 rounded-full bg-pink-500/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-pink-300">
+          <Sparkles className="h-2.5 w-2.5" /> Weeb Lord
+        </span>
+      )}
+      {blessed && (
+        <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-400/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-amber-300">
+          <Sparkles className="h-2.5 w-2.5" /> Blessed
+        </span>
+      )}
+    </>
+  );
+}
 
 const ago = (iso: string) => {
   const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
@@ -80,6 +157,8 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
   const { toast } = useToast();
 
   const [posts, setPosts] = useState<Post[]>([]);
+  const [replies, setReplies] = useState<Record<string, Post[]>>({});
+  const [openThread, setOpenThread] = useState<string | null>(null);
   const [topics, setTopics] = useState<{ tag: string; count: number }[]>([]);
   const [total, setTotal] = useState(0);
   const [tag, setTag] = useState<string>("All");
@@ -99,8 +178,20 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
       const r = await fetch(url.toString());
       const d = await r.json();
       const list = Array.isArray(d?.data) ? d.data : d?.data?.comments;
-      // Replies come back in the same payload; the forum shows roots only.
-      setPosts(Array.isArray(list) ? list.filter((p: any) => !p.parentId) : []);
+      // Replies arrive in the same payload as their roots. Keep BOTH and split
+      // them here — the thread is the point of a forum, and dropping the
+      // children was why posts looked like a wall nobody could answer.
+      const all: Post[] = Array.isArray(list) ? list : [];
+      setPosts(all.filter((p) => !p.parentId));
+      const map: Record<string, Post[]> = {};
+      for (const c of all) {
+        if (!c.parentId) continue;
+        (map[c.parentId] ||= []).push(c);
+      }
+      for (const k of Object.keys(map)) {
+        map[k].sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
+      }
+      setReplies(map);
     } catch {
       /* offline */
     } finally {
@@ -310,20 +401,7 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                     {/* body */}
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        {p.user?.avatar ? (
-                          <img src={p.user.avatar} alt="" className="h-8 w-8 rounded-full object-cover" />
-                        ) : (
-                          <span className="grid h-8 w-8 place-items-center rounded-full bg-purple-700 text-[11px] font-black">
-                            {(p.user?.username || "?")[0]?.toUpperCase()}
-                          </span>
-                        )}
-                        {p.user?.username ? (
-                          <UserLink username={p.user.username} className="text-sm font-black text-white hover:underline">
-                            {p.user.username}
-                          </UserLink>
-                        ) : (
-                          <span className="text-sm font-black text-slate-400">someone</span>
-                        )}
+                        <AuthorLine user={p.user} blessed={p.blessed} />
                         {p.isPinned && (
                           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.14em]"
                             style={{ clipPath: notch(4), background: "rgba(251,191,36,.14)", boxShadow: "inset 0 0 0 1px rgba(251,191,36,.5)", color: "#fcd34d" }}>
@@ -345,6 +423,42 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                           className="mt-3 max-h-[420px] w-auto max-w-full object-contain"
                           style={{ clipPath: notch(12) }} />
                       )}
+
+                      {/* ── THREAD ── a forum post you can't answer is a notice board */}
+                      <button
+                        onClick={() => setOpenThread(openThread === p.id ? null : p.id)}
+                        className="mt-3 inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500 transition hover:text-white">
+                        <MessageSquare className="h-3 w-3" />
+                        {(replies[p.id]?.length || 0) === 0
+                          ? "Reply"
+                          : `${replies[p.id].length} ${replies[p.id].length === 1 ? "reply" : "replies"}`}
+                      </button>
+
+                      <AnimatePresence initial={false}>
+                        {openThread === p.id && (
+                          <motion.div
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            transition={{ duration: 0.15 }}
+                            className="mt-3 space-y-2.5 border-l pl-3"
+                            style={{ borderColor: `${ACCENT}44` }}>
+                            {(replies[p.id] || []).map((r) => (
+                              <div key={r.id} className="flex items-start gap-2.5">
+                                <CornerDownRight className="mt-1.5 h-3 w-3 shrink-0 text-slate-700" />
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <AuthorLine user={r.user} blessed={r.blessed} />
+                                    <span className="text-[10px] font-bold text-slate-600">{ago(r.createdAt)}</span>
+                                  </div>
+                                  <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-300">
+                                    {r.content}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                            <ReplyBox postId={p.id} onDone={load} />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   </motion.article>
                 ))}
@@ -395,6 +509,53 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
           />
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+/** Inline reply. Kept small on purpose — a thread reply isn't a new post. */
+function ReplyBox({ postId, onDone }: { postId: string; onDone: () => void }) {
+  const { user } = useUser();
+  const { toast } = useToast();
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const send = async () => {
+    if (!user) return toast("Sign in to reply.", "error");
+    if (!text.trim() || busy) return;
+    setBusy(true);
+    try {
+      const r = await fetch(`${API_URL}/api/comments`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ userId: user.id, content: text.trim(), parentId: postId }),
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) return toast(d.message || "Couldn't reply.", "error");
+      setText("");
+      onDone();
+    } catch {
+      toast("Couldn't reply.", "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-2 pt-1">
+      <input
+        value={text}
+        onChange={(e) => setText(e.target.value.slice(0, 800))}
+        onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+        placeholder="Write a reply…"
+        className="min-w-0 flex-1 bg-black/45 px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600"
+        style={{ clipPath: notch(8), boxShadow: "inset 0 0 0 1px rgba(255,255,255,.11)" }}
+      />
+      <button onClick={send} disabled={!text.trim() || busy} aria-label="Send reply"
+        className="grid h-9 w-9 shrink-0 place-items-center text-white transition hover:brightness-115 disabled:opacity-30"
+        style={{ clipPath: notch(7), background: `linear-gradient(100deg, #7c3aed, ${ACCENT})` }}>
+        <Send className="h-3.5 w-3.5" />
+      </button>
     </div>
   );
 }

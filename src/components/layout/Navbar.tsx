@@ -17,6 +17,7 @@ import UserLink from "@/components/profile/UserLink";
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [hidden, setHidden] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [modeMenuOpen, setModeMenuOpen] = useState(false);
@@ -46,12 +47,31 @@ export default function Navbar() {
     // boolean actually flips — the old handler called setState on every
     // scroll event, re-rendering the blur-heavy header and causing jank.
     let ticking = false;
+    let lastY = typeof window !== "undefined" ? window.scrollY : 0;
     const handleScroll = () => {
       if (ticking) return;
       ticking = true;
       requestAnimationFrame(() => {
+        const y = window.scrollY;
         setIsScrolled((prev) => {
-          const next = window.scrollY > 20;
+          const next = y > 20;
+          return prev === next ? prev : next;
+        });
+        /**
+         * Hide on the way DOWN, come back on the way UP. Reading is the thing
+         * this site is for, and a fixed bar costs 64-96px of every screen.
+         * Direction-based rather than position-based so the bar is always one
+         * small upward scroll away instead of a trip to the top of the page.
+         *
+         * The 6px deadzone stops trackpad jitter flickering it, and it never
+         * hides in the first 90px so it is present when a page opens. The bar
+         * animates with translateY only — a transform, so it composites on the
+         * GPU and never reflows the page beneath it.
+         */
+        setHidden((prev) => {
+          if (Math.abs(y - lastY) < 6) return prev;
+          const next = y > lastY && y > 90;
+          lastY = y;
           return prev === next ? prev : next;
         });
         ticking = false;
@@ -131,7 +151,13 @@ export default function Navbar() {
 
   return (
     <>
-      <header className={`fixed top-0 w-full z-50 transition-all duration-300 ${
+      <header
+        style={{
+          transform: hidden && !isMobileMenuOpen ? "translateY(-100%)" : "translateY(0)",
+          transition: "transform 260ms cubic-bezier(.4,0,.2,1), background-color 300ms, border-color 300ms",
+          willChange: "transform",
+        }}
+        className={`fixed top-0 w-full z-50 ${
         isScrolled 
           ? `bg-[#030305]/90 backdrop-blur-lg border-b ${isDejavuh ? 'border-purple-500/30 shadow-[0_4px_30px_rgba(168,85,247,0.15)]' : 'border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.5)]'}`
           : 'bg-gradient-to-b from-[#030305]/80 to-transparent'
