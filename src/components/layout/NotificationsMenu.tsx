@@ -130,7 +130,7 @@ export default function NotificationsMenu({ openUp = false, onOpenChange }: { op
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: openUp ? 8 : -8 }}
             transition={{ type: "spring", stiffness: 400, damping: 30, mass: 0.6 }}
-            className={`fixed top-16 right-4 left-4 sm:absolute sm:-right-4 sm:left-auto sm:w-96 max-w-sm bg-[#0f0f13] border border-white/10 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] z-[200] flex flex-col will-change-transform ${openUp ? "sm:bottom-full sm:mb-3 origin-bottom-right" : "sm:top-full sm:mt-3 origin-top-right"}`}
+            className={`fixed top-16 right-4 left-4 sm:absolute sm:-right-4 sm:left-auto sm:w-96 max-w-sm bg-[#0f0f13] border border-white/10 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] z-[200] flex flex-col will-change-transform ${openUp ? "sm:top-auto sm:bottom-full sm:mb-3 origin-bottom-right" : "sm:top-full sm:mt-3 origin-top-right"}`}
           >
             {/* Arrow/Pointer */}
             {/* The pointer follows the panel — it sits under the bell when the menu opens upward, and above it when it opens down. */}

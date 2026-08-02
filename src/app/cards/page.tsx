@@ -14,6 +14,9 @@ import { Panel, CornerTicks, Stars, SegBar, GachaButton, Heading, StatRow, notch
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
+/** Cards drawn per set before "See all". One full row on most breakpoints. */
+const SET_PREVIEW = 10;
+
 type SetReward = { set: string; ap: number; shards: number; title: string };
 
 type Catalog = {
@@ -54,6 +57,8 @@ export default function CardsPage() {
   const [viewing, setViewing] = useState<{ id: string; username: string } | null>(null);
   const [collectors, setCollectors] = useState<any[]>([]);
   const [showCollectors, setShowCollectors] = useState(false);
+  // Sets start collapsed; opening one is a deliberate act.
+  const [expandedSets, setExpandedSets] = useState<string[]>([]);
 
   // Keep the navbar/shop balance in sync after a spend (mirrors the shop's
   // localStorage + event pattern).
@@ -593,8 +598,23 @@ export default function CardsPage() {
                       portraits per page, most of them dimmed placeholders
                       nobody was looking at. What is still missing is shown as a
                       count instead. */}
+                  {/* ── COLLAPSED BY DEFAULT ──────────────────────────────
+                      Each card is a full SVG — gradients, rays, particles, a
+                      vignette. A completed set is twenty of them, and several
+                      sets on one page meant the browser building a hundred
+                      before you had scrolled anywhere.
+
+                      Only the first row and a bit is built up front; the rest
+                      is behind See all. content-visibility already skips
+                      PAINTING what is off-screen, but the elements still had
+                      to exist and be laid out — this stops them being created
+                      at all until asked for. */}
                   <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                    {cards.filter((c) => (owned[c.id] || 0) > 0).map((c) => {
+                    {(() => {
+                      const mineInSet = cards.filter((c) => (owned[c.id] || 0) > 0);
+                      const isOpen = expandedSets.includes(set);
+                      return isOpen ? mineInSet : mineInSet.slice(0, SET_PREVIEW);
+                    })().map((c) => {
                       const count = owned[c.id] || 0;
                       const has = count > 0;
                       return (
@@ -628,6 +648,31 @@ export default function CardsPage() {
                       );
                     })}
                   </div>
+
+                  {/* See all / show less — only when there is actually more */}
+                  {(() => {
+                    const mineInSet = cards.filter((c) => (owned[c.id] || 0) > 0);
+                    if (mineInSet.length <= SET_PREVIEW) return null;
+                    const isOpen = expandedSets.includes(set);
+                    return (
+                      <div className="mt-4 flex justify-center">
+                        <button
+                          onClick={() => setExpandedSets((s) =>
+                            isOpen ? s.filter((x) => x !== set) : [...s, set]
+                          )}
+                          className="inline-flex items-center gap-2 px-6 py-2.5 text-[11px] font-black uppercase tracking-[0.18em] text-slate-300 transition hover:text-white"
+                          style={{
+                            clipPath: notch(10),
+                            background: "rgba(255,255,255,.05)",
+                            boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)",
+                          }}>
+                          {isOpen
+                            ? "Show less"
+                            : `See all ${mineInSet.length} · ${mineInSet.length - SET_PREVIEW} more`}
+                        </button>
+                      </div>
+                    );
+                  })()}
                 </div>
               ))}
             </div>
