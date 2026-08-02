@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
   ArrowUpDown, Tag, Layers, X, Sparkles, Gavel, ArrowUpRight, Loader2,
-  Store, Trash2, ShieldAlert,
+  Store, Trash2, ShieldAlert, Heart, Swords,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { authHeaders } from "@/lib/authToken";
@@ -249,6 +249,19 @@ export default function MarketplacePage() {
   );
 }
 
+/**
+ * Combat stats by rarity. MUST mirror CARD_STATS in the backend duelRules —
+ * the marketplace is where people decide what a card is worth, so a figure
+ * here that disagrees with the arena is worse than no figure at all.
+ */
+const MARKET_STATS: Record<string, { hp: number; atk: number }> = {
+  common:    { hp: 18, atk: 7 },
+  rare:      { hp: 20, atk: 8 },
+  epic:      { hp: 23, atk: 9 },
+  legendary: { hp: 26, atk: 10 },
+  event:     { hp: 24, atk: 9 },
+};
+
 function ListingCard({ listing, meId, busy, onOpen, onCancel }: {
   listing: Listing; meId?: string; busy: boolean; onOpen: () => void; onCancel: () => void;
 }) {
@@ -287,6 +300,34 @@ function ListingCard({ listing, meId, busy, onOpen, onCancel }: {
           <p className="text-[9px] font-black uppercase tracking-[0.22em] text-slate-600">
             By {sellerName}{level > 1 ? ` · Lv ${level}` : ""}
           </p>
+
+          {/* Stat pills, on their own row under the art. Combat numbers are
+              what you weigh a listing on, and they were only readable by
+              squinting at the card face. Derived the same way the arena builds
+              a fighter — rarity base, then foil, then level — so the figures
+              here are the ones that actually walk into a duel. */}
+          {card && (() => {
+            const base = MARKET_STATS[card.rarity] || MARKET_STATS.common;
+            const mult = (foil ? 1.2 : 1) * (1 + (Math.max(1, level || 1) - 1) * 0.07);
+            const hp = Math.round(base.hp * mult);
+            const atk = Math.round(base.atk * mult);
+            return (
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <span className="inline-flex items-center gap-1 rounded-md bg-white/[0.055] px-2 py-1 text-[11px] font-black tabular-nums text-rose-300">
+                  <Heart className="h-3 w-3" /> {hp}
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-md bg-white/[0.055] px-2 py-1 text-[11px] font-black tabular-nums text-amber-300">
+                  <Swords className="h-3 w-3" /> {atk}
+                </span>
+                {foil && (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-white/[0.055] px-2 py-1 text-[10px] font-black uppercase tracking-widest text-cyan-200">
+                    Foil
+                  </span>
+                )}
+              </div>
+            );
+          })()}
+
           <div className="mt-2">
             <StatRow label="Price" value={
               <span className="inline-flex items-center gap-1">
