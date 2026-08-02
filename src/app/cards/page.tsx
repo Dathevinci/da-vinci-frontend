@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Layers, Sparkles, Gem, X, Hammer, Recycle, PackageOpen, Users } from "lucide-react";
+import { Layers, Sparkles, Gem, X, Hammer, Recycle, PackageOpen, Users, Heart, Swords, Zap, ArrowUp } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { isLeadDev, displayArisePoints } from "@/lib/admin";
 import { authHeaders } from "@/lib/authToken";
 import { useToast } from "@/components/ui/Toast";
 import PageTransition from "@/components/layout/PageTransition";
-import CardFace, { CardDef, CardRarity, RARITY_META } from "@/components/cards/CardFace";
+import CardFace, { CardDef, CardRarity, RARITY_META, supportText } from "@/components/cards/CardFace";
 import PackReveal from "@/components/cards/PackReveal";
 import { Panel, CornerTicks, Stars, SegBar, GachaButton, Heading, StatRow, notch, ACCENT, ACCENT_LIT } from "@/components/cards/gacha";
 
@@ -34,6 +34,7 @@ type Catalog = {
   maxCardLevel?: number;
   upgradeBase?: Record<CardRarity, number>;
   upgradeGrowth?: number;
+  levelStep?: number;
   cardStats?: Record<string, { hp: number; atk: number }>;
   foilMult?: number;
   maxSkillLevel?: number;
@@ -803,215 +804,267 @@ export default function CardsPage() {
           const craftable = selected.rarity !== "event" && (catalog.craftCost[selected.rarity] || 0) > 0;
           const cost = catalog.craftCost[selected.rarity] || 0;
           const dustEach = catalog.dustValue[selected.rarity] || 0;
+          const cs = catalog.cardStats?.[selected.rarity] || { atk: 0, hp: 0 };
+          const m = foils[selected.id] ? 1.2 : 1;
+          const lvl = levels[selected.id] || 1;
+          const maxLvl = catalog.maxCardLevel ?? 10;
+          const lvlMult = 1 + (lvl - 1) * (catalog.levelStep ?? 0.07);
+          // What the card ACTUALLY fights with: base × foil × level, matching
+          // buildFighter() on the server so the sheet can't advertise a number
+          // the arena won't honour.
+          const atk = Math.round(cs.atk * m * lvlMult);
+          const hp = Math.round(cs.hp * m * lvlMult);
+          const lvlBase = catalog.upgradeBase?.[selected.rarity] ?? 30;
+          const lvlCost = Math.round(lvlBase * Math.pow(catalog.upgradeGrowth ?? 1.35, lvl - 1));
+          const lvlCapped = lvl >= maxLvl;
+          const sk = catalog.skills?.[selected.id];
+          const skLvl = skillLevels[selected.id] || 1;
+          const skMax = catalog.maxSkillLevel ?? 5;
+          const skNow = sk?.levels?.[skLvl - 1];
+          const skCost = skNow?.cost ?? null;
+          const asl = !!asleep[selected.id];
+          // A short stable tag off the id — the reference's "#6893". Ours are
+          // string ids, so this is the readable stand-in.
+          const tag = String(Math.abs([...selected.id].reduce((a, c) => (a * 31 + c.charCodeAt(0)) | 0, 7)) % 10000).padStart(4, "0");
+
           return (
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[120] flex items-center justify-center bg-black/85 p-6 backdrop-blur"
+              className="fixed inset-0 z-[120] flex items-center justify-center bg-black/90 p-4 sm:p-6"
               onClick={() => setSelected(null)}
             >
               <motion.div
-                initial={{ scale: 0.94, y: 12 }} animate={{ scale: 1, y: 0 }}
-                className="w-full max-w-3xl" onClick={(e) => e.stopPropagation()}
+                initial={{ scale: 0.96, y: 10 }} animate={{ scale: 1, y: 0 }}
+                transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                className="flex w-full max-w-4xl flex-col items-center gap-6 md:flex-row md:items-stretch md:justify-center"
+                onClick={(e) => e.stopPropagation()}
               >
-                <Panel tone={count > 0 ? "gold" : "ink"} size={26}>
-                  <div className="relative max-h-[92dvh] overflow-y-auto">
-                    <CornerTicks color={count > 0 ? ACCENT : "rgba(255,255,255,.2)"} inset={10} />
-                    {/* rarity wash behind the trophy shot */}
-                    <div aria-hidden className="pointer-events-none absolute inset-0"
-                      style={{ background: `radial-gradient(60% 90% at 22% 30%, ${R.frame}26, transparent 65%)` }} />
+                {/* ── LEFT · the card, big, lit by its own rarity ── */}
+                <div className="shrink-0" style={{ filter: `drop-shadow(0 20px 60px ${R.glow})` }}>
+                  <CardFace
+                    card={selected}
+                    owned={count > 0}
+                    count={count}
+                    foil={!!foils[selected.id]}
+                    hibernating={asl}
+                    size={340}
+                    showStats={false}
+                    stats={catalog.cardStats}
+                  />
+                </div>
 
-                    <div className="relative flex flex-col items-center gap-6 p-6 text-center sm:flex-row sm:items-start sm:p-7 sm:text-left">
-                      {/* the trophy shot */}
-                      <div className="shrink-0">
-                        <CardFace card={selected} owned={count > 0} count={count} foil={!!foils[selected.id]} hibernating={!!asleep[selected.id]} size={300} showStats stats={catalog.cardStats} />
+                {/* ── RIGHT · the readouts, scrolling independently of the card
+                       so the art never scrolls off while you read ── */}
+                <div
+                  className="flex max-h-[86dvh] w-full flex-col overflow-y-auto rounded-2xl border border-white/10 bg-[#0b0b11] md:w-[420px]"
+                  style={{ boxShadow: "0 24px 70px rgba(0,0,0,.7)" }}
+                >
+                  <div className="flex flex-col gap-4 p-5">
+                    {/* header */}
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-2">
+                        {selected.support
+                          ? <Heart className="h-4 w-4 shrink-0 text-rose-400" />
+                          : <Gem className="h-4 w-4 shrink-0" style={{ color: R.frame }} />}
+                        <span className="truncate text-base font-black" style={{ color: R.gem }}>
+                          {selected.support ? "Support" : R.label}
+                        </span>
+                        <span className="shrink-0 text-sm font-bold text-slate-500">Lv.{lvl}</span>
                       </div>
+                      <span className="shrink-0 font-mono text-sm text-slate-600">#{tag}</span>
+                    </div>
 
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-                          <Stars rarity={selected.rarity} size={15} />
-                          <span className="text-[10px] font-black uppercase tracking-[0.24em]" style={{ color: R.frame }}>{R.label}</span>
-                          {foils[selected.id] && (
-                            <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em]"
-                              style={{ clipPath: notch(5), background: `linear-gradient(100deg, ${ACCENT_LIT}, ${ACCENT})`, color: "#1a1206" }}>
-                              Foil
-                            </span>
-                          )}
+                    {/* ── STAT TILES ── support cards genuinely have no attack
+                        or health, so they get their effect here instead of a
+                        row of zeroes pretending to be a stat line. */}
+                    {selected.support ? (
+                      <div className="rounded-xl border border-cyan-400/25 bg-cyan-500/10 px-4 py-3">
+                        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-cyan-300/80">Effect</p>
+                        <p className="mt-1 text-sm font-bold leading-relaxed text-cyan-100">{supportText(selected.support)}</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-3 gap-2.5">
+                        <StatTile Icon={Heart} value={hp} label="HP" tint="#fb7185" wash="rgba(190,24,60,.16)" edge="rgba(251,113,133,.30)" />
+                        <StatTile Icon={Swords} value={atk} label="ATK" tint="#fbbf24" wash="rgba(180,83,9,.16)" edge="rgba(251,191,36,.30)" />
+                        <StatTile Icon={Layers} value={count} label="COPIES" tint="#60a5fa" wash="rgba(30,64,175,.16)" edge="rgba(96,165,250,.30)" />
+                      </div>
+                    )}
+
+                    {/* ── LEVEL ── the reference's XP bar, on the thing we
+                        actually track. Shards, not experience: nothing in this
+                        game earns a card passive progress, and a bar that only
+                        ever moves when you pay would be a lie shaped like one
+                        that fills on its own. */}
+                    {count > 0 && (
+                      <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
+                        <div className="mb-2 flex items-baseline justify-between gap-2">
+                          <span className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.2em] text-amber-200">
+                            <Sparkles className="h-3.5 w-3.5" /> Level
+                          </span>
+                          <span className="font-mono text-xs text-slate-400">{lvl} / {maxLvl}</span>
                         </div>
+                        <SegBar value={lvl} max={maxLvl} tone="#FBBF24" />
+                        <p className="mt-2 text-[11px] text-slate-500">
+                          {lvlCapped
+                            ? "Fully levelled — nothing left to raise."
+                            : `${lvlCost.toLocaleString()} shards to level ${lvl + 1} · +${Math.round((lvl) * (catalog.levelStep ?? 0.07) * 100)}% ATK & HP at the next step`}
+                        </p>
+                      </div>
+                    )}
 
-                        <h3 className="mt-2 text-3xl font-black uppercase leading-none tracking-[0.02em]">
-                          {count > 0 ? selected.name : "Unrecorded"}
-                        </h3>
-                        <p className="mt-1 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">{selected.set}</p>
-                        <p className="mt-3 text-sm italic leading-relaxed text-slate-400">&ldquo;{selected.flavor}&rdquo;</p>
+                    {/* ── SKILL ── legendaries only */}
+                    {count > 0 && sk && (
+                      <div className="rounded-xl border border-purple-400/25 bg-purple-500/[0.07] px-4 py-3">
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                          <span className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.2em] text-purple-200">
+                            <Zap className="h-3.5 w-3.5" /> Skill
+                          </span>
+                          <span className="rounded-md bg-purple-500/25 px-2 py-0.5 font-mono text-[11px] font-bold text-purple-200">
+                            LV.{skLvl}
+                          </span>
+                        </div>
+                        <p className="text-lg font-black leading-tight text-white">{sk.name}</p>
+                        <p className="mt-1.5 text-sm leading-relaxed text-slate-400">{skNow?.text}</p>
+                        {skLvl < skMax && sk.levels?.[skLvl] && (
+                          <p className="mt-2 border-t border-white/10 pt-2 text-[11px] leading-relaxed text-slate-600">
+                            Next rank: {sk.levels[skLvl].text}
+                          </p>
+                        )}
+                      </div>
+                    )}
 
-                        {/* ── COMBAT DATA ── dense stat rows, not chunky cards */}
-                        {(() => {
-                          const cs = catalog.cardStats?.[selected.rarity] || { atk: 0, hp: 0 };
-                          const m = foils[selected.id] ? 1.2 : 1;
-                          const atk = Math.round(cs.atk * m);
-                          const hp = Math.round(cs.hp * m);
+                    {/* ── ASLEEP ── */}
+                    {asl && (
+                      <div className="rounded-xl border border-sky-400/25 bg-sky-500/[0.08] px-4 py-3">
+                        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-sky-300">Asleep</p>
+                        <p className="mt-1 text-[13px] leading-relaxed text-slate-400">
+                          It fell in a duel you lost and can&rsquo;t be fielded until it wakes. Pulling another copy wakes it free.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* ── ACTIONS ── */}
+                    {isMine && (
+                      <div className="flex flex-col gap-2">
+                        {asl && (() => {
+                          const wc = (catalog as any).wakeCost?.[selected.rarity] ?? 0;
                           return (
-                            <div className="mt-4 px-4 py-3 text-left"
-                              style={{ clipPath: notch(12), background: "rgba(0,0,0,.45)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.07)" }}>
-                              <p className="mb-1 text-[10px] font-black uppercase tracking-[0.28em]" style={{ color: ACCENT }}>Combat data</p>
-                              <StatRow label="Attack" value={atk} tint="#ff9d6b" />
-                              <StatRow label="Health" value={hp} tint="#6ee7b7" />
-                              <StatRow label="Dust value" value={`${dustEach} shards`} tint="#67e8f9" />
-                              <p className="mt-2 border-t border-white/10 pt-2 text-[11px] leading-relaxed text-slate-500">
-                                Sent into the arena it strikes for {atk} — and takes the counter.
-                                {foils[selected.id]
-                                  ? " This foil fights 20% harder than a normal copy."
-                                  : selected.rarity !== "event" && " Foiling adds 20% to both numbers."}
-                              </p>
-                            </div>
+                            <ActionButton onClick={() => wake(selected)} disabled={shards < wc} Icon={Sparkles}>
+                              Wake ({wc.toLocaleString()} shards)
+                            </ActionButton>
                           );
                         })()}
 
-                        <div className="mt-4 flex flex-col items-stretch gap-2">
-                          {/* Waking comes first — a sleeping card can't be
-                              fielded, so it's the only thing you'd want to do
-                              with it. */}
-                          {asleep[selected.id] && (
-                            <>
-                              <p className="px-3 py-2 text-center text-[11px] font-bold leading-relaxed text-sky-200"
-                                style={{ clipPath: notch(9), background: "rgba(56,132,255,.12)", boxShadow: "inset 0 0 0 1px rgba(125,200,255,.35)" }}>
-                                Asleep — it fell in a duel you lost. It can&rsquo;t be fielded until it wakes.
-                              </p>
-                              {isMine && (() => {
-                                const wc = (catalog as any).wakeCost?.[selected.rarity] ?? 0;
-                                return (
-                                  <GachaButton onClick={() => wake(selected)} disabled={shards < wc}>
-                                    <Sparkles className="h-3.5 w-3.5" /> Wake · {wc.toLocaleString()} shards
-                                    {shards < wc ? " (need more)" : ""}
-                                  </GachaButton>
-                                );
-                              })()}
-                              <p className="text-[11px] text-slate-500">
-                                Pulling another copy from a pack wakes it for free.
-                              </p>
-                            </>
-                          )}
-                          {/* ── LEVEL ── the shard sink that keeps mattering
-                              once you own everything. */}
-                          {count > 0 && !asleep[selected.id] && (() => {
-                            const lv = levels[selected.id] || 1;
-                            const max = catalog.maxCardLevel ?? 10;
-                            const base = catalog.upgradeBase?.[selected.rarity] ?? 30;
-                            const growth = catalog.upgradeGrowth ?? 1.35;
-                            // Mirrors upgradeCost() exactly, so the price shown
-                            // is the price charged.
-                            const cost = Math.round(base * Math.pow(growth, lv - 1));
-                            const capped = lv >= max;
-                            return (
-                              <div className="px-3.5 py-3 text-left"
-                                style={{ clipPath: notch(11), background: "rgba(162,116,255,.09)", boxShadow: `inset 0 0 0 1px ${ACCENT}44` }}>
-                                <div className="mb-1.5 flex items-baseline justify-between">
-                                  <span className="text-[10px] font-black uppercase tracking-[0.24em]" style={{ color: ACCENT_LIT }}>
-                                    Level {lv}<span className="text-slate-600"> / {max}</span>
-                                  </span>
-                                  <span className="text-[10px] font-bold text-slate-500">
-                                    +{Math.round((lv - 1) * 7)}% ATK &amp; HP
-                                  </span>
-                                </div>
-                                <SegBar value={lv} max={max} />
-                                {isMine && (
-                                  <div className="mt-2.5">
-                                    <GachaButton onClick={() => upgrade(selected)} disabled={capped || shards < cost}>
-                                      <Sparkles className="h-3.5 w-3.5" />
-                                      {capped ? "Max level" : `Upgrade · ${cost.toLocaleString()} shards`}
-                                    </GachaButton>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })()}
+                        {count > 0 && !asl && (
+                          <ActionButton onClick={() => upgrade(selected)} disabled={lvlCapped || shards < lvlCost} Icon={ArrowUp}>
+                            {lvlCapped ? "Max level" : `Upgrade Level (${lvlCost.toLocaleString()} shards)`}
+                          </ActionButton>
+                        )}
 
-                          {/* ── SKILL ── legendaries only, and a separate
-                              shard track from level. Level buys ATK and HP;
-                              this buys the one thing the card uniquely does,
-                              so shards stay a choice rather than a queue. */}
-                          {count > 0 && !asleep[selected.id] && catalog.skills?.[selected.id] && (() => {
-                            const sk = catalog.skills[selected.id];
-                            const lv = skillLevels[selected.id] || 1;
-                            const max = catalog.maxSkillLevel ?? 5;
-                            // Every level's wording comes from the server, so
-                            // the number shown is the number charged and the
-                            // copy can never drift from the source.
-                            const now = sk.levels?.[lv - 1];
-                            const next = sk.levels?.[lv];
-                            const capped = lv >= max;
-                            const cost = now?.cost ?? null;
-                            return (
-                              <div className="px-3.5 py-3 text-left"
-                                style={{ clipPath: notch(11), background: "rgba(251,191,36,.08)", boxShadow: "inset 0 0 0 1px rgba(251,191,36,.35)" }}>
-                                <div className="mb-1.5 flex items-baseline justify-between gap-2">
-                                  <span className="truncate text-[10px] font-black uppercase tracking-[0.24em] text-amber-200">
-                                    {sk.name}
-                                  </span>
-                                  <span className="shrink-0 text-[10px] font-bold text-slate-500">
-                                    Rank {lv} / {max}
-                                  </span>
-                                </div>
-                                <SegBar value={lv} max={max} tone="#FBBF24" />
-                                <p className="mt-2 text-xs leading-relaxed text-amber-100/80">{now?.text}</p>
-                                {next && (
-                                  <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
-                                    Next rank: {next.text}
-                                  </p>
-                                )}
-                                {isMine && (
-                                  <div className="mt-2.5">
-                                    <GachaButton
-                                      onClick={() => upgradeSkill(selected)}
-                                      disabled={capped || cost === null || shards < cost}
-                                    >
-                                      <Sparkles className="h-3.5 w-3.5" />
-                                      {capped ? "Mastered" : `Train · ${(cost ?? 0).toLocaleString()} shards`}
-                                    </GachaButton>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })()}
+                        {count > 0 && !asl && sk && (
+                          <ActionButton
+                            onClick={() => upgradeSkill(selected)}
+                            disabled={skLvl >= skMax || skCost === null || shards < skCost}
+                            Icon={Zap}
+                          >
+                            {skLvl >= skMax ? "Skill mastered" : `Upgrade Skill (${(skCost ?? 0).toLocaleString()} shards)`}
+                          </ActionButton>
+                        )}
 
-                          {isMine && count > 1 && (
-                            <GachaButton tone="jade" onClick={() => dust(selected)}>
-                              <Recycle className="h-3.5 w-3.5" /> Dust {count - 1} dupe{count - 1 === 1 ? "" : "s"} · +{(count - 1) * dustEach}
-                            </GachaButton>
-                          )}
-                          {isMine && count === 0 && craftable && (
-                            <GachaButton tone="ghost" onClick={() => craft(selected)} disabled={shards < cost}>
-                              <Hammer className="h-3.5 w-3.5" /> Craft · {cost.toLocaleString()} shards{shards < cost ? " (need more)" : ""}
-                            </GachaButton>
-                          )}
-                          {isMine && count > 0 && !foils[selected.id] && selected.rarity !== "event" && (
-                            <GachaButton onClick={() => foilUp(selected)} disabled={shards < (catalog.foilCost[selected.rarity] || 0)}>
-                              <Sparkles className="h-3.5 w-3.5" /> Foil · +20% · {(catalog.foilCost[selected.rarity] || 0).toLocaleString()}
-                            </GachaButton>
-                          )}
-                          {foils[selected.id] && (
-                            <p className="px-3 py-2 text-center text-[11px] font-black uppercase tracking-[0.14em]"
-                              style={{ clipPath: notch(9), background: "rgba(162,116,255,.10)", boxShadow: "inset 0 0 0 1px rgba(162,116,255,.32)", color: ACCENT_LIT }}>
-                              Foil — fights 20% harder in duels
-                            </p>
-                          )}
-                          {count === 1 && <p className="text-xs text-slate-500">Pull another copy to dust it for shards.</p>}
-                          {count === 0 && !craftable && <p className="text-xs text-slate-500">This card only appears during events.</p>}
-                        </div>
+                        {(count > 1 || (count === 0 && craftable) || (count > 0 && !foils[selected.id] && selected.rarity !== "event")) && (
+                          <div className="my-1 h-px bg-white/10" />
+                        )}
+
+                        {count > 1 && (
+                          <ActionButton onClick={() => dust(selected)} Icon={Recycle}>
+                            Dust {count - 1} dupe{count - 1 === 1 ? "" : "s"} (+{(count - 1) * dustEach} shards)
+                          </ActionButton>
+                        )}
+
+                        {count > 0 && !foils[selected.id] && selected.rarity !== "event" && (
+                          <ActionButton
+                            onClick={() => foilUp(selected)}
+                            disabled={shards < (catalog.foilCost[selected.rarity] || 0)}
+                            Icon={Gem}
+                          >
+                            Make Foil · +20% ({(catalog.foilCost[selected.rarity] || 0).toLocaleString()} shards)
+                          </ActionButton>
+                        )}
+
+                        {count === 0 && craftable && (
+                          <ActionButton onClick={() => craft(selected)} disabled={shards < cost} Icon={Hammer}>
+                            Craft ({cost.toLocaleString()} shards)
+                          </ActionButton>
+                        )}
                       </div>
-                    </div>
+                    )}
 
-                    <button onClick={() => setSelected(null)} aria-label="Close"
-                      className="absolute right-4 top-4 z-10 text-slate-500 transition hover:text-white">
-                      <X className="h-5 w-5" />
-                    </button>
+                    {/* footnotes */}
+                    {foils[selected.id] && (
+                      <p className="rounded-lg bg-white/[0.04] px-3 py-2 text-center text-[11px] font-bold text-purple-200">
+                        Foil — fights 20% harder in duels
+                      </p>
+                    )}
+                    {count === 1 && <p className="text-center text-[11px] text-slate-600">Pull another copy to dust it for shards.</p>}
+                    {count === 0 && !craftable && <p className="text-center text-[11px] text-slate-600">This card only appears during events.</p>}
+                    {count === 0 && <p className="text-center text-[11px] text-slate-600">Not yet collected — its stats are what it WOULD bring.</p>}
                   </div>
-                </Panel>
+                </div>
               </motion.div>
+
+              <button onClick={() => setSelected(null)} aria-label="Close"
+                className="absolute right-5 top-5 z-10 grid h-10 w-10 place-items-center rounded-full border border-white/15 bg-white/[0.06] text-slate-300 transition hover:bg-white/15 hover:text-white">
+                <X className="h-5 w-5" />
+              </button>
             </motion.div>
           );
         })()}
       </AnimatePresence>
     </PageTransition>
+  );
+}
+
+/**
+ * One big stat readout. Three of these are the top band of the card sheet —
+ * the number is the subject, the label is a footnote, and the icon carries the
+ * colour so the three read apart at a glance rather than needing to be read.
+ */
+function StatTile({
+  Icon, value, label, tint, wash, edge,
+}: {
+  Icon: ComponentType<{ className?: string }>;
+  value: number | string;
+  label: string;
+  tint: string;
+  wash: string;
+  edge: string;
+}) {
+  return (
+    <div className="rounded-xl px-2 py-3 text-center" style={{ background: wash, boxShadow: `inset 0 0 0 1px ${edge}` }}>
+      <Icon className="mx-auto h-4 w-4" />
+      <div className="mt-1 text-2xl font-black leading-none tabular-nums" style={{ color: tint }}>{value}</div>
+      <div className="mt-1 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">{label}</div>
+    </div>
+  );
+}
+
+/** A full-width action row. Flat, like everything else on the sheet. */
+function ActionButton({
+  onClick, disabled, Icon, children,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+  Icon: ComponentType<{ className?: string }>;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-4 py-3 text-sm font-bold text-slate-200 transition hover:bg-white/[0.10] hover:text-white disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-white/[0.05]"
+    >
+      <Icon className="h-4 w-4" />
+      {children}
+    </button>
   );
 }
