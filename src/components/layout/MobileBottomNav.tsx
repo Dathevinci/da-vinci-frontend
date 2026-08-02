@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   Home, Compass, Users, User as UserIcon, Megaphone, BookOpen,
   MoreHorizontal, X, Store, Layers, Swords, ShoppingBag, Target, HelpCircle, Heart, Sparkles,
-  Trophy, Gavel, Castle,
+  Trophy, Gavel, Castle, Gamepad2,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { useAppMode } from "@/components/providers/AppModeProvider";
@@ -57,6 +57,7 @@ export default function MobileBottomNav() {
 
   /** Everything the bar has no room for. Mirrors the desktop nav island. */
   const moreLinks = [
+    { label: "Pick Me Down ∞", href: "/game", icon: Gamepad2, hint: "The guild hall" },
     { label: "Marketplace", href: "/marketplace", icon: Store, hint: "Buy and sell cards" },
     { label: "Arise Cards", href: "/cards", icon: Layers, hint: "Your collection" },
     { label: "Card Duels", href: "/duels", icon: Swords, hint: "Stake and fight" },

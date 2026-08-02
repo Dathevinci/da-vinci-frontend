@@ -40,6 +40,9 @@ const lvlMult = (l: number) => 1 + (Math.max(1, Math.min(10, Math.floor(l || 1))
 type DgnCard = {
   cardId: string; count: number; foil: boolean; level: number;
   dgnHp: number | null; dgnInjured: boolean; dgnDead: boolean;
+  dgnDeaths?: number;
+  /** Per-card revival price from the server: rarity base × prior deaths. */
+  reviveCost?: number;
 };
 type Dungeon = {
   id: string; name: string; depth: number; recPower: number; flavor: string; apMul: number;
@@ -393,7 +396,9 @@ export default function DungeonPage() {
 
   const toggle = (id: string) => {
     const c = cards.find((x) => x.cardId === id);
-    if (!c || c.dgnDead) return;
+    // Injury shuts the dungeon door (the server enforces it too) — the card
+    // can still duel, where the arena heals for free.
+    if (!c || c.dgnDead || c.dgnInjured) return;
     setParty((p) => p.includes(id) ? p.filter((x) => x !== id) : p.length < partyMax ? [...p, id] : p);
   };
 
@@ -408,7 +413,7 @@ export default function DungeonPage() {
           {/* header */}
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="font-pixel text-[9px] text-[#8f86b8]">DA VINCI · EXPEDITIONS</p>
+              <p className="font-pixel text-[9px] text-[#8f86b8]">PICK ME DOWN ∞ INFINITY GACHA</p>
               <h1 className="font-pixel mt-2 text-xl leading-relaxed text-[#ffd23e] sm:text-2xl" style={{ textShadow: "3px 3px 0 #3a2b00" }}>
                 DUNGEON DISPATCH
               </h1>
@@ -496,7 +501,8 @@ export default function DungeonPage() {
                     return (
                       <div key={c.cardId}
                         className={`dg-panel relative p-2 ${picked ? "dg-sel" : ""} ${c.dgnDead ? "opacity-70" : ""}`}>
-                        <button onClick={() => toggle(c.cardId)} disabled={c.dgnDead}
+                        <button onClick={() => toggle(c.cardId)} disabled={c.dgnDead || c.dgnInjured}
+                          title={c.dgnInjured ? "Injured — heal before the next dispatch. It can still duel." : undefined}
                           className="flex w-full items-center gap-2 text-left disabled:cursor-not-allowed">
                           <span className="dg-frame shrink-0" style={{ borderColor: RARITY_TINT[def.rarity] || "#9aa4b2" }}>
                             {art
@@ -528,7 +534,9 @@ export default function DungeonPage() {
                             onClick={() => c.dgnDead ? revive(c.cardId) : heal(c.cardId)}
                             disabled={busy}
                             className="dg-btn mt-2 w-full px-2 py-1.5 font-pixel text-[8px] disabled:opacity-40">
-                            {c.dgnDead ? `REVIVE · ${reviveCost} AP` : `HEAL · ${healCost} AP`}
+                            {c.dgnDead
+                              ? `REVIVE · ${c.reviveCost ?? reviveCost} AP${(c.dgnDeaths ?? 0) > 1 ? ` (†${c.dgnDeaths})` : ""}`
+                              : `HEAL · ${healCost} AP`}
                           </button>
                         )}
                       </div>
