@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { Trophy, Crown, Medal, Swords, Layers, Gem, Zap, Flame } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
+import { displayShards } from "@/lib/admin";
 import PageTransition from "@/components/layout/PageTransition";
 import { calculateLevel } from "@/lib/levels";
 import { Panel, SegBar, notch, ACCENT, ACCENT_LIT } from "@/components/cards/gacha";
@@ -68,7 +69,9 @@ export default function LeaderboardPage() {
     if (lens === "level") return { big: `Lv ${calculateLevel(r.xp)}`, small: `${r.xp.toLocaleString()} XP` };
     if (lens === "duels") return { big: `${r.rating}`, small: `${r.wins}W ${r.losses}L` };
     if (lens === "cards") return { big: `${r.cards}`, small: "cards" };
-    return { big: r.shards.toLocaleString(), small: "shards" };
+    // The lead dev's shards are server-side unlimited, so their row says so
+    // instead of showing a stale finite number.
+    return { big: displayShards(r, r.shards), small: "shards" };
   };
 
   const top = ranked.slice(0, 3);

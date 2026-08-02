@@ -433,6 +433,12 @@ export default function PackReveal({
         )}
       </AnimatePresence>
 
+      {/* ── THE CLOUD BED ── the crash settles into weather: soft banks of
+          cloud roll up from the bottom of the screen once the reveal starts,
+          and the cards float on top of them. Every puff is a radial gradient
+          on its own compositor layer — no blur filters, nothing repaints. */}
+      {stage === "reveal" && <CloudBed still={reduce} />}
+
       {/* ── SKIP ── always reachable */}
       {!allOut && (
         <button onClick={(e) => { e.stopPropagation(); skip(); }}
@@ -473,11 +479,16 @@ export default function PackReveal({
                     opacity: { duration: 0.35, delay: out ? 0 : i * 0.06 },
                   }}
                 >
-                  {/* face-down cards breathe while they wait their turn */}
+                  {/* face-down cards breathe while they wait their turn —
+                      and once revealed they keep a slower, calmer float, so
+                      the row reads as resting ON the clouds rather than
+                      pinned above them. */}
                   <motion.div
-                    animate={out ? { y: 0 } : { y: [0, -7, 0] }}
+                    animate={out
+                      ? (reduce ? { y: 0 } : { y: [0, -5, 0] })
+                      : { y: [0, -7, 0] }}
                     transition={out
-                      ? { duration: 0.3 }
+                      ? (reduce ? { duration: 0.3 } : { duration: 3.4, repeat: Infinity, ease: "easeInOut", delay: 0.6 + i * 0.35 })
                       : { duration: 2.4, repeat: Infinity, ease: "easeInOut", delay: i * 0.4 }}
                   >
                     {/* the pillar lives OUTSIDE the 3D flipper so it doesn't spin */}
@@ -540,6 +551,55 @@ export default function PackReveal({
         </div>
       )}
     </motion.div>
+  );
+}
+
+/**
+ * SOFT CLOUDS for the reveal to rest on. Twelve overlapping puffs — flat
+ * radial gradients, deterministically placed by index — rise into the lower
+ * half of the screen and wander slowly sideways. A faint haze floor under
+ * them keeps the puffs reading as a bank rather than separate blobs.
+ * `still` renders the same weather frozen, for the reduced-motion path.
+ */
+function CloudBed({ still = false }: { still?: boolean }) {
+  const puffs = Array.from({ length: 12 }, (_, i) => ({
+    left: (i * 83) % 100,
+    bottom: (i * 37) % 34,
+    size: 180 + ((i * 61) % 240),
+    dur: 9 + (i % 5) * 2.4,
+    delay: (i % 7) * 0.9,
+    drift: 26 + ((i * 29) % 40),
+    tint: i % 3 === 0,
+  }));
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0" style={{ height: "52%" }}>
+      <div className="absolute inset-x-0 bottom-0 h-2/3"
+        style={{ background: "linear-gradient(to top, rgba(190,170,255,.10), rgba(190,170,255,.035) 55%, transparent)" }} />
+      {puffs.map((p, i) => (
+        <motion.span key={i} className="absolute rounded-full"
+          style={{
+            left: `${p.left}%`,
+            bottom: `${p.bottom}%`,
+            width: p.size,
+            height: Math.round(p.size * 0.42),
+            marginLeft: -p.size / 2,
+            background: p.tint
+              ? "radial-gradient(closest-side, rgba(203,180,255,.16), rgba(203,180,255,.05) 60%, transparent 75%)"
+              : "radial-gradient(closest-side, rgba(255,255,255,.13), rgba(255,255,255,.045) 60%, transparent 75%)",
+            willChange: still ? undefined : "transform",
+          }}
+          initial={{ opacity: 0, y: 26 }}
+          animate={still
+            ? { opacity: 1, y: 0 }
+            : { opacity: 1, y: 0, x: [0, p.drift, 0, -p.drift, 0] }}
+          transition={{
+            opacity: { duration: 1.1, delay: 0.15 + p.delay * 0.12 },
+            y: { duration: 1.1, delay: 0.15 + p.delay * 0.12, ease: [0.22, 1, 0.36, 1] },
+            ...(still ? {} : { x: { duration: p.dur, delay: p.delay, repeat: Infinity, ease: "easeInOut" } }),
+          }}
+        />
+      ))}
+    </div>
   );
 }
 

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from
 import { motion, AnimatePresence } from "framer-motion";
 import { Layers, Sparkles, Gem, X, Hammer, Recycle, PackageOpen, Users, Heart, Swords, Zap, ArrowUp } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
-import { isLeadDev, displayArisePoints } from "@/lib/admin";
+import { isLeadDev, displayArisePoints, displayShards } from "@/lib/admin";
 import { authHeaders } from "@/lib/authToken";
 import { useToast } from "@/components/ui/Toast";
 import PageTransition from "@/components/layout/PageTransition";
@@ -437,7 +437,7 @@ export default function CardsPage() {
                     <div className="flex h-10 items-center gap-2 px-3.5" style={{ clipPath: notch(9), background: "rgba(167,139,250,.07)", boxShadow: "inset 0 0 0 1px rgba(167,139,250,.22)" }}>
                       <Gem className="h-4 w-4 text-cyan-300" />
                       <span className="text-sm font-black tabular-nums text-cyan-100">
-                        {shards.toLocaleString()}
+                        {displayShards(user, shards)}
                         <span className="ml-1 text-[10px] font-bold uppercase tracking-widest text-cyan-500/70">shards</span>
                       </span>
                     </div>

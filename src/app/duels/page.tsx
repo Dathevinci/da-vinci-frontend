@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Swords, Trophy, Shield, Heart, Crosshair, Diamond, Gem, X, Flame } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
-import { displayArisePoints } from "@/lib/admin";
+import { displayArisePoints, displayShards } from "@/lib/admin";
 import { authHeaders } from "@/lib/authToken";
 import { useToast } from "@/components/ui/Toast";
 import PageTransition from "@/components/layout/PageTransition";
@@ -565,7 +565,7 @@ export default function DuelsPage() {
                   </div>
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-black tabular-nums text-cyan-100"
                     style={{ clipPath: notch(7), background: "rgba(34,211,238,.12)", boxShadow: "inset 0 0 0 1px rgba(34,211,238,.4)" }}>
-                    <Gem className="h-3.5 w-3.5" />{shards.toLocaleString()}
+                    <Gem className="h-3.5 w-3.5" />{displayShards(user, shards)}
                   </span>
                 </div>
                 <div className="grid gap-2.5 sm:grid-cols-3">

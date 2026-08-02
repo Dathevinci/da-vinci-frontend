@@ -41,3 +41,11 @@ export function displayArisePoints(user?: any): string {
   const arisePoints = typeof user === 'object' ? user?.arisePoints : undefined;
   return (arisePoints || 0).toLocaleString();
 }
+
+// The lead dev's SHARDS read ∞ too — the server never debits that account
+// (isLeadDevFree on every shard sink), so a finite number would be a lie
+// that visibly counts down and then snaps back on refresh.
+export function displayShards(user: any, shards: number): string {
+  if (isLeadDev(user)) return "∞";
+  return (shards || 0).toLocaleString();
+}
