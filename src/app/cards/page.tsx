@@ -26,6 +26,9 @@ type Catalog = {
   relicPackShards: number;
   setRewards: Record<string, SetReward>;
   wakeCost?: Record<CardRarity, number>;
+  maxCardLevel?: number;
+  upgradeBase?: Record<CardRarity, number>;
+  upgradeGrowth?: number;
   cardStats?: Record<string, { hp: number; atk: number }>;
   foilMult?: number;
 };
@@ -37,6 +40,7 @@ export default function CardsPage() {
   const [owned, setOwned] = useState<Record<string, number>>({});
   const [foils, setFoils] = useState<Record<string, boolean>>({});
   const [asleep, setAsleep] = useState<Record<string, boolean>>({});
+  const [levels, setLevels] = useState<Record<string, number>>({});
   const [claimedSets, setClaimedSets] = useState<string[]>([]);
   const [shards, setShards] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -92,14 +96,17 @@ export default function CardsPage() {
         const map: Record<string, number> = {};
         const fo: Record<string, boolean> = {};
         const hb: Record<string, boolean> = {};
+        const lv: Record<string, number> = {};
         for (const c of d.data?.cards || []) {
           map[c.cardId] = c.count;
           if (c.foil) fo[c.cardId] = true;
           if (c.hibernating) hb[c.cardId] = true;
+          lv[c.cardId] = c.level || 1;
         }
         setOwned(map);
         setFoils(fo);
         setAsleep(hb);
+        setLevels(lv);
         setClaimedSets(d.data.claimedSets || []);
         setShards(d.data.shards || 0);
       }
@@ -165,6 +172,7 @@ export default function CardsPage() {
       const d = await r.json();
       if (!r.ok || !d.success) return toast(d.message || "Couldn't dust.", "error");
       setShards(d.data.shards);
+      fire("dust");
       toast(`+${d.data.gained} shards`, "success");
       await loadCollection();
       setSelected(null);
@@ -201,6 +209,22 @@ export default function CardsPage() {
       setShards(d.shards);
       toast(`${card.name} is now FOIL ✨`, "success");
       setSelected(null);
+    });
+
+  /**
+   * A short burst keyed to an action. Rendered as ONE absolutely-positioned
+   * element that animates transform and opacity — no layout, and it unmounts
+   * itself, so nothing lingers costing frames after the moment has passed.
+   */
+  const [burst, setBurst] = useState<{ kind: "dust" | "level"; key: number } | null>(null);
+  const fire = (kind: "dust" | "level") => setBurst({ kind, key: Date.now() });
+
+  const upgrade = (card: CardDef) =>
+    shardAction("upgrade", { cardId: card.id }, (d) => {
+      setShards(d.shards);
+      setLevels((l) => ({ ...l, [card.id]: d.level }));
+      fire("level");
+      toast(`${card.name} is now level ${d.level}.`, "success");
     });
 
   const wake = (card: CardDef) =>
@@ -553,6 +577,44 @@ export default function CardsPage() {
         </div>
       </div>
 
+      {/* ── ACTION BURST ── one element, transform + opacity, self-unmounting.
+          Dusting and levelling used to happen in total silence: a number
+          changed somewhere and that was it. This is the smallest thing that
+          makes a spend feel like it landed, and it costs a single compositor
+          layer for under a second. */}
+      <AnimatePresence>
+        {burst && (
+          <motion.div
+            key={burst.key}
+            className="pointer-events-none fixed inset-0 z-[125] grid place-items-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onAnimationComplete={() => setBurst(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.4, opacity: 0 }}
+              animate={{ scale: [0.4, 1.15, 1.35], opacity: [0, 1, 0] }}
+              transition={{ duration: 0.85, ease: "easeOut" }}
+              className="grid place-items-center"
+            >
+              <span
+                className="rounded-full"
+                style={{
+                  width: 220, height: 220,
+                  background: burst.kind === "dust"
+                    ? "radial-gradient(closest-side, rgba(103,232,249,.85), transparent 70%)"
+                    : `radial-gradient(closest-side, ${ACCENT_LIT}, transparent 70%)`,
+                }}
+              />
+              <span className="absolute text-2xl font-black uppercase tracking-[0.3em] text-white drop-shadow-[0_2px_14px_rgba(0,0,0,.9)]">
+                {burst.kind === "dust" ? "Dusted" : "Level Up"}
+              </span>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* pack reveal — staggered flip, rarity burst, best card last */}
       <AnimatePresence>
         {reveal && <PackReveal cards={reveal} onClose={() => setReveal(null)} />}
@@ -654,6 +716,41 @@ export default function CardsPage() {
                               </p>
                             </>
                           )}
+                          {/* ── LEVEL ── the shard sink that keeps mattering
+                              once you own everything. */}
+                          {count > 0 && !asleep[selected.id] && (() => {
+                            const lv = levels[selected.id] || 1;
+                            const max = catalog.maxCardLevel ?? 10;
+                            const base = catalog.upgradeBase?.[selected.rarity] ?? 30;
+                            const growth = catalog.upgradeGrowth ?? 1.35;
+                            // Mirrors upgradeCost() exactly, so the price shown
+                            // is the price charged.
+                            const cost = Math.round(base * Math.pow(growth, lv - 1));
+                            const capped = lv >= max;
+                            return (
+                              <div className="px-3.5 py-3 text-left"
+                                style={{ clipPath: notch(11), background: "rgba(162,116,255,.09)", boxShadow: `inset 0 0 0 1px ${ACCENT}44` }}>
+                                <div className="mb-1.5 flex items-baseline justify-between">
+                                  <span className="text-[10px] font-black uppercase tracking-[0.24em]" style={{ color: ACCENT_LIT }}>
+                                    Level {lv}<span className="text-slate-600"> / {max}</span>
+                                  </span>
+                                  <span className="text-[10px] font-bold text-slate-500">
+                                    +{Math.round((lv - 1) * 7)}% ATK &amp; HP
+                                  </span>
+                                </div>
+                                <SegBar value={lv} max={max} />
+                                {isMine && (
+                                  <div className="mt-2.5">
+                                    <GachaButton onClick={() => upgrade(selected)} disabled={capped || shards < cost}>
+                                      <Sparkles className="h-3.5 w-3.5" />
+                                      {capped ? "Max level" : `Upgrade · ${cost.toLocaleString()} shards`}
+                                    </GachaButton>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
+
                           {isMine && count > 1 && (
                             <GachaButton tone="jade" onClick={() => dust(selected)}>
                               <Recycle className="h-3.5 w-3.5" /> Dust {count - 1} dupe{count - 1 === 1 ? "" : "s"} · +{(count - 1) * dustEach}
