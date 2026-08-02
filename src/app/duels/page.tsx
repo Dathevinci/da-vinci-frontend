@@ -52,6 +52,9 @@ export default function DuelsPage() {
   // Which cards have a skill or a domain, so the arena only offers the button
   // on cards that actually have one.
   const [abilityIds, setAbilityIds] = useState<Set<string>>(new Set());
+  // cardId -> { name, kind, levels[], isDomain }, so the arena can show what
+  // an ability actually does instead of an unlabelled button.
+  const [abilities, setAbilities] = useState<Record<string, any>>({});
   const [catalogFailed, setCatalogFailed] = useState(false);
   const [foils, setFoils] = useState<Record<string, boolean>>({});
   const [owned, setOwned] = useState<Record<string, number>>({});
@@ -152,6 +155,13 @@ export default function DuelsPage() {
         if (cancelled) return;
         setCatalog(data.cards);
         setAbilityIds(new Set([...Object.keys(data.skills || {}), ...Object.keys(data.domains || {})]));
+        // The board needs to SAY what an ability does, not just offer a
+        // button for it. Domains are tagged so the arena can label them
+        // differently — they are a different mechanic, not a bigger skill.
+        const abil: Record<string, any> = {};
+        for (const [id, s] of Object.entries<any>(data.skills || {})) abil[id] = { ...s, isDomain: false };
+        for (const [id, d] of Object.entries<any>(data.domains || {})) abil[id] = { ...d, isDomain: true };
+        setAbilities(abil);
         setCardStats(data.cardStats);
         setCatalogFailed(false);
       },
@@ -613,6 +623,7 @@ function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMo
         onSupport={(cardId: string, target?: number) => onMove("support", undefined, cardId, target)}
         onAbility={() => onMove("ability")}
         abilityIds={abilityIds}
+        abilities={abilities}
         onForfeit={onForfeit}
         onClose={onClose}
       />

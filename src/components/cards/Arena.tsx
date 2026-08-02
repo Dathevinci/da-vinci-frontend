@@ -179,7 +179,7 @@ export default function Arena({
   mine, foe, byId, myName, foeName, myTurn, finished, resultText, won = false,
   bag = [], busy, log = [], stake, round = 1,
   supports = [], usedSupports = [],
-  onAttack, onDeploy, onItem, onSupport, onAbility, abilityIds, onForfeit, onClose,
+  onAttack, onDeploy, onItem, onSupport, onAbility, abilityIds, abilities, onForfeit, onClose,
 }: {
   mine: ArenaSide; foe: ArenaSide;
   byId: Record<string, CardDef>;
@@ -203,6 +203,9 @@ export default function Arena({
   onAbility?: () => void;
   /** Card ids that HAVE an ability, so the button only offers a real move. */
   abilityIds?: Set<string>;
+  /** cardId -> { name, kind, levels[], isDomain }. Lets the board SAY what an
+   *  ability does rather than offering an unlabelled button. */
+  abilities?: Record<string, any>;
   onForfeit?: () => void;
   onClose: () => void;
 }) {
@@ -819,6 +822,44 @@ export default function Arena({
           </div>
         )}
 
+        {/* ── ABILITY BRIEF ── what the card in front of you actually does,
+            readable BEFORE you spend it. The button on its own just said
+            "Ability", which tells you nothing about a once-per-duel resource
+            you only get to use with one card. */}
+        {(() => {
+          const self = mine.active >= 0 ? mine.fighters[mine.active] : undefined;
+          const a = self ? abilities?.[self.cardId] : null;
+          if (!a) return null;
+          const ranks = a.levels?.length || 1;
+          const rank = Math.max(1, Math.min(ranks, (self as any)?.skillLevel || 1));
+          const now = a.levels?.[rank - 1];
+          const spent = (mine.usedAbilities || []).includes(self!.cardId);
+          return (
+            <div
+              className="mt-2 px-3 py-2"
+              style={{
+                clipPath: notch(10),
+                background: a.isDomain ? "rgba(217,70,239,.10)" : "rgba(162,116,255,.08)",
+                boxShadow: `inset 0 0 0 1px ${a.isDomain ? "rgba(240,171,252,.35)" : "rgba(162,116,255,.28)"}`,
+              }}
+            >
+              <div className="flex flex-wrap items-baseline gap-x-2">
+                <span
+                  className="text-[9px] font-black uppercase tracking-[0.22em]"
+                  style={{ color: a.isDomain ? "#f0abfc" : "#c4b5fd" }}
+                >
+                  {a.isDomain ? "Domain" : "Skill"} · Rank {rank}
+                </span>
+                <span className="text-[12px] font-black text-white">{a.name}</span>
+                {spent && (
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Spent</span>
+                )}
+              </div>
+              {now?.text && <p className="mt-0.5 text-[11px] leading-snug text-slate-400">{now.text}</p>}
+            </div>
+          );
+        })()}
+
         {/* ── ACTIONS ── */}
         {!finished ? (
           <div className="mt-2 flex items-stretch justify-center gap-2">
@@ -844,7 +885,7 @@ export default function Arena({
                     background: "linear-gradient(100deg, #a21caf, #d946ef)",
                   }}>
                   <Sparkles className="h-4 w-4" />
-                  {spent ? "Spent" : "Ability"}
+                  {spent ? "Spent" : abilities?.[self!.cardId]?.name || "Ability"}
                 </button>
               );
             })()}
