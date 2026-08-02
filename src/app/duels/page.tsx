@@ -190,9 +190,40 @@ export default function DuelsPage() {
     // a warm request rather than a possible cold start — and with the
     // unchanged-state bail above, a quiet turn costs one small fetch and no
     // render at all. Turns land visibly faster.
-    const t = setInterval(load, 2000);
+    /**
+     * Polls ONE endpoint, not the whole page.
+     *
+     * This used to call load(), which fires five requests — duels, ladder,
+     * collection, user, plus the duel itself. At 2s that is 150 requests a
+     * minute against a 300-per-15-minute budget, so a couple of minutes of
+     * play tripped the rate limiter and threw "Too many requests from this
+     * IP" over a live board. The comment here claimed "one small fetch"; it
+     * was five, and that gap is the whole bug.
+     *
+     * Only the duel changes between turns. Everything else load() fetches is
+     * page furniture that a poll has no reason to touch.
+     */
+    const tick = async () => {
+      const id = openIdRef.current;
+      if (!id) return;
+      try {
+        const r = await fetch(`${API_URL}/api/duels/${id}`);
+        const fresh = await r.json();
+        if (!fresh?.success || openIdRef.current !== id) return;
+        setActive((prev) => {
+          const n = fresh.data;
+          if (
+            prev && prev.id === n.id && prev.status === n.status &&
+            prev.turnUserId === n.turnUserId && prev.winnerId === n.winnerId &&
+            prev.state === n.state
+          ) return prev; // identical board — keep the reference, skip the render
+          return n;
+        });
+      } catch { /* offline */ }
+    };
+    const t = setInterval(tick, 2000);
     return () => clearInterval(t);
-  }, [active?.id, active?.status, load]);
+  }, [active?.id, active?.status]);
 
   const post = async (path: string, body: any, ok?: (d: any) => void) => {
     if (!user) return toast("Sign in first.", "error");

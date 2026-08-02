@@ -1041,7 +1041,7 @@ export default function Arena({
                     <p className="mt-2 text-sm leading-relaxed text-cyan-100">{brief.what}</p>
                     <p className="mt-1.5 text-[11px] leading-relaxed text-slate-400">{brief.how}</p>
                     <p className="mt-3 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
-                      Playing it costs your turn · {usedSupports.length}/{SUPPORTS_PER_DUEL} used
+                      Free to play — keeps your turn · {usedSupports.length}/{SUPPORTS_PER_DUEL} used
                     </p>
 
                     <div className="mt-4 flex gap-2">
