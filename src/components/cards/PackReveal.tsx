@@ -32,6 +32,15 @@ import { ACCENT, ACCENT_LIT, notch } from "./gacha";
 
 type Stage = "warp" | "hole" | "burst" | "reveal";
 
+/** A legendary copy's minted identity, straight from the pull response. */
+export type PulledPrint = { cardId: string; serial: number; condition: string };
+
+const PRINT_META: Record<string, { label: string; cls: string }> = {
+  fresh:   { label: "Fresh Build", cls: "border-amber-400/70 bg-amber-500/20 text-amber-200" },
+  rusted:  { label: "Rusted",      cls: "border-orange-700/70 bg-orange-950/60 text-orange-300" },
+  factory: { label: "Factory New", cls: "border-slate-400/50 bg-slate-800/70 text-slate-200" },
+};
+
 export default function PackReveal({
   cards,
   onClose,
@@ -39,10 +48,14 @@ export default function PackReveal({
   showStats = true,
   footer,
   calm = false,
+  prints = [],
 }: {
   cards: CardDef[];
   onClose: () => void;
   title?: string;
+  /** Prints minted by THIS pull — legendaries get their condition + serial
+   *  stamped as they flip, which is half the drama of pulling one. */
+  prints?: PulledPrint[];
   /**
    * Arena cards have no combat stats. Leaving this on would print ATK/HP off
    * the fallback table onto a card whose whole design line is that arena
@@ -66,6 +79,15 @@ export default function PackReveal({
     () => [...cards].sort((a, b) => RARITY_META[a.rarity].order - RARITY_META[b.rarity].order),
     [cards]
   );
+
+  // Prints aligned to the sorted row. Dupes are real (two of the same
+  // legendary in one pack mints two serials), so each card CONSUMES a print
+  // from its id's queue rather than looking one up.
+  const printFor = useMemo(() => {
+    const queues: Record<string, PulledPrint[]> = {};
+    for (const p of prints) (queues[p.cardId] ||= []).push(p);
+    return ordered.map((c) => queues[c.id]?.shift());
+  }, [ordered, prints]);
   const best = ordered.length ? ordered[ordered.length - 1] : null;
   const bestMeta = best ? RARITY_META[best.rarity] : null;
   const bestOrder = best ? RARITY_META[best.rarity].order : 0;
@@ -109,6 +131,10 @@ export default function PackReveal({
    * nothing happened.
    */
   const [hero, setHero] = useState<CardDef | null>(null);
+  // The hero's INDEX in the row, not just the card — two copies of one
+  // legendary are the same object, so indexOf(hero) would pin both hero
+  // moments to the first copy's serial.
+  const [heroIdx, setHeroIdx] = useState(-1);
 
   // Cards flip one at a time once the reveal starts — paused while a hero card
   // has the screen, so the rest of the pack doesn't resolve behind it.
@@ -117,7 +143,7 @@ export default function PackReveal({
     const t = setTimeout(() => {
       const next = ordered[revealed];
       setRevealed((n) => n + 1);
-      if (next && RARITY_META[next.rarity].order >= 3) setHero(next);
+      if (next && RARITY_META[next.rarity].order >= 3) { setHero(next); setHeroIdx(revealed); }
     }, revealed === 0 ? 260 : 560);
     return () => clearTimeout(t);
   }, [revealed, ordered, reduce, stage, hero]);
@@ -383,6 +409,22 @@ export default function PackReveal({
             >
               {hero.gradeLabel ?? RARITY_META[hero.rarity].label}
             </motion.p>
+            {/* the print — a legendary isn't just "a legendary" anymore, it's
+                THIS one: a condition and a number that exists exactly once */}
+            {(() => {
+              const hp = printFor[heroIdx];
+              if (!hp) return null;
+              const m = PRINT_META[hp.condition] || PRINT_META.factory;
+              return (
+                <motion.span
+                  className={`absolute bottom-[12%] inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] ${m.cls}`}
+                  initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.55 }}
+                >
+                  {m.label}
+                  <span className="font-mono normal-case tracking-normal opacity-80">#{String(hp.serial).padStart(3, "0")}</span>
+                </motion.span>
+              );
+            })()}
           </motion.div>
         )}
       </AnimatePresence>
@@ -449,8 +491,15 @@ export default function PackReveal({
                       }}
                       style={{ transformStyle: "preserve-3d", transformPerspective: 1000, willChange: "transform" }}
                     >
-                      <div style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
+                      <div className="relative" style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
                         <CardFace card={c} owned size={150} showStats={showStats} />
+                        {/* the copy's minted identity — condition + serial */}
+                        {out && printFor[i] && (
+                          <span className={`pointer-events-none absolute inset-x-1 bottom-1 z-10 flex items-center justify-center gap-1 rounded-md border px-1 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] ${(PRINT_META[printFor[i]!.condition] || PRINT_META.factory).cls}`}>
+                            {(PRINT_META[printFor[i]!.condition] || PRINT_META.factory).label}
+                            <span className="font-mono normal-case tracking-normal opacity-80">#{String(printFor[i]!.serial).padStart(3, "0")}</span>
+                          </span>
+                        )}
                       </div>
                       <div className="absolute inset-0"
                         style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>

@@ -67,11 +67,16 @@ export default function CardsPage() {
   const [levels, setLevels] = useState<Record<string, number>>({});
   // Legendary skill ranks, on their own shard track separate from level.
   const [skillLevels, setSkillLevels] = useState<Record<string, number>>({});
+  // Legendary print identities: cardId -> [{serial, condition}], server-real.
+  const [prints, setPrints] = useState<Record<string, { serial: number; condition: string }[]>>({});
   const [claimedSets, setClaimedSets] = useState<string[]>([]);
   const [shards, setShards] = useState(0);
   const [loading, setLoading] = useState(true);
   const [opening, setOpening] = useState(false);
   const [reveal, setReveal] = useState<CardDef[] | null>(null);
+  // Prints minted by the pull being revealed, so the reveal can stamp
+  // condition + serial on each legendary as it flips.
+  const [revealPrints, setRevealPrints] = useState<{ cardId: string; serial: number; condition: string }[]>([]);
   const [selected, setSelected] = useState<CardDef | null>(null);
   const [ap, setAp] = useState<number | null>(null);
   // Whose binder are we looking at? null = mine.
@@ -126,18 +131,21 @@ export default function CardsPage() {
         const hb: Record<string, boolean> = {};
         const lv: Record<string, number> = {};
         const sk: Record<string, number> = {};
+        const pr: Record<string, { serial: number; condition: string }[]> = {};
         for (const c of d.data?.cards || []) {
           map[c.cardId] = c.count;
           if (c.foil) fo[c.cardId] = true;
           if (c.hibernating) hb[c.cardId] = true;
           lv[c.cardId] = c.level || 1;
           sk[c.cardId] = c.skillLevel || 1;
+          if (Array.isArray(c.prints) && c.prints.length) pr[c.cardId] = c.prints;
         }
         setOwned(map);
         setFoils(fo);
         setAsleep(hb);
         setLevels(lv);
         setSkillLevels(sk);
+        setPrints(pr);
         setClaimedSets(d.data.claimedSets || []);
         setShards(d.data.shards || 0);
       }
@@ -149,6 +157,12 @@ export default function CardsPage() {
   };
 
   useEffect(() => {
+    // Switching binders CLEARS the previous one first. Without this, the
+    // seconds while the other user's collection loads (or forever, if the
+    // fetch fails) showed YOUR cards — and your print serials — under their
+    // name, which is exactly the kind of lie a collection page can't tell.
+    setOwned({}); setFoils({}); setAsleep({}); setLevels({});
+    setSkillLevels({}); setPrints({}); setLoading(true);
     loadCollection();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, viewing?.id]);
@@ -184,6 +198,7 @@ export default function CardsPage() {
       const byId = Object.fromEntries((catalog.cards || []).map((c) => [c.id, c]));
       const pulled: CardDef[] = ((d.data?.pulls || []) as string[]).map((id) => byId[id]).filter(Boolean);
       if (typeof d.data.arisePoints === "number") syncAp(d.data.arisePoints);
+      setRevealPrints(Array.isArray(d.data?.prints) ? d.data.prints : []);
       setReveal(pulled);
       await loadCollection();
     } catch {
@@ -304,6 +319,7 @@ export default function CardsPage() {
     shardAction("relic-pack", {}, (d) => {
       setShards(d.shards);
       const byId = Object.fromEntries((catalog?.cards || []).map((c) => [c.id, c]));
+      setRevealPrints(Array.isArray(d?.prints) ? d.prints : []);
       setReveal(((d?.pulls || []) as string[]).map((id) => byId[id]).filter(Boolean));
     });
 
@@ -850,7 +866,10 @@ export default function CardsPage() {
 
       {/* pack reveal — staggered flip, rarity burst, best card last */}
       <AnimatePresence>
-        {reveal && <PackReveal cards={reveal} onClose={() => setReveal(null)} />}
+        {reveal && (
+          <PackReveal cards={reveal} prints={revealPrints}
+            onClose={() => { setReveal(null); setRevealPrints([]); }} />
+        )}
       </AnimatePresence>
 
       {/* card detail */}
@@ -885,8 +904,19 @@ export default function CardsPage() {
           const skNow = sk?.levels?.[skLvl - 1];
           const skCost = skNow?.cost ?? null;
           const asl = !!asleep[selected.id];
-          // A short stable tag off the id — the reference's "#6893". Ours are
-          // string ids, so this is the readable stand-in.
+          // Legendaries carry REAL identities now — server-minted serials with
+          // a condition each. The hash tag below survives only as the
+          // stand-in for tiers that don't have prints.
+          const myPrints = prints[selected.id] || [];
+          const bestPrint = [...myPrints].sort((a, b) => {
+            const rank = (c: string) => (c === "fresh" ? 2 : c === "rusted" ? 1 : 0);
+            return rank(b.condition) - rank(a.condition) || a.serial - b.serial;
+          })[0];
+          const condMeta: Record<string, { label: string; cls: string }> = {
+            fresh:   { label: "Fresh Build", cls: "border-amber-400/60 bg-amber-500/15 text-amber-200" },
+            rusted:  { label: "Rusted",      cls: "border-orange-700/60 bg-orange-900/30 text-orange-300" },
+            factory: { label: "Factory New", cls: "border-slate-400/40 bg-slate-500/15 text-slate-200" },
+          };
           const tag = String(Math.abs([...selected.id].reduce((a, c) => (a * 31 + c.charCodeAt(0)) | 0, 7)) % 10000).padStart(4, "0");
 
           return (
@@ -938,8 +968,28 @@ export default function CardsPage() {
                         </span>
                         <span className="shrink-0 text-sm font-bold text-slate-500">Lv.{lvl}</span>
                       </div>
-                      <span className="shrink-0 font-mono text-sm text-slate-600">#{tag}</span>
+                      <span className="shrink-0 font-mono text-sm text-slate-600">
+                        {bestPrint ? `#${String(bestPrint.serial).padStart(3, "0")}` : `#${tag}`}
+                      </span>
                     </div>
+
+                    {/* ── PRINTS ── each legendary copy is a numbered, graded
+                        object. Every one you hold is listed; the badge colour
+                        is the condition. */}
+                    {myPrints.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {myPrints.map((p) => {
+                          const m = condMeta[p.condition] || condMeta.factory;
+                          return (
+                            <span key={p.serial}
+                              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] ${m.cls}`}>
+                              {m.label}
+                              <span className="font-mono normal-case tracking-normal opacity-80">#{String(p.serial).padStart(3, "0")}</span>
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
 
                     {/* ── STAT TILES ── support cards genuinely have no attack
                         or health, so they get their effect here instead of a

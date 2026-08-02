@@ -33,6 +33,15 @@ type Listing = {
   buyerName?: string | null;
   createdAt: string;
   card: CardDef | null;
+  /** Legendary lots only: the escrowed copies' identities. */
+  prints?: { serial: number; condition: string }[];
+};
+
+/** Condition badge styling — mirrors the collection sheet's palette. */
+const PRINT_META: Record<string, { label: string; cls: string }> = {
+  fresh:   { label: "Fresh Build", cls: "border-amber-400/60 bg-amber-500/15 text-amber-200" },
+  rusted:  { label: "Rusted",      cls: "border-orange-700/60 bg-orange-900/30 text-orange-300" },
+  factory: { label: "Factory New", cls: "border-slate-400/40 bg-slate-500/15 text-slate-200" },
 };
 
 const FEE_PERCENT = 5;
@@ -328,6 +337,24 @@ function ListingCard({ listing, meId, busy, onOpen, onCancel }: {
             );
           })()}
 
+          {/* Legendary lots carry PRINTS — a Fresh Build #3 is a different
+              asset from a Factory New #212, and the tile has to say which
+              one is actually for sale before anyone weighs the price. */}
+          {(listing.prints?.length ?? 0) > 0 && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              {listing.prints!.map((p) => {
+                const m = PRINT_META[p.condition] || PRINT_META.factory;
+                return (
+                  <span key={p.serial}
+                    className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] ${m.cls}`}>
+                    {m.label}
+                    <span className="font-mono normal-case tracking-normal opacity-80">#{String(p.serial).padStart(3, "0")}</span>
+                  </span>
+                );
+              })}
+            </div>
+          )}
+
           <div className="mt-2">
             <StatRow label="Price" value={
               <span className="inline-flex items-center gap-1">
@@ -413,6 +440,22 @@ function ListingDetail({ listing, meId, balance, busy, onBuy, onClose }: {
               </div>
 
               {card?.flavor && <p className="mt-4 text-sm italic leading-relaxed text-slate-400">&ldquo;{card.flavor}&rdquo;</p>}
+
+              {/* exactly which prints this lot hands over */}
+              {(listing.prints?.length ?? 0) > 0 && (
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-1.5">
+                  {listing.prints!.map((p) => {
+                    const m = PRINT_META[p.condition] || PRINT_META.factory;
+                    return (
+                      <span key={p.serial}
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] ${m.cls}`}>
+                        {m.label}
+                        <span className="font-mono normal-case tracking-normal opacity-80">#{String(p.serial).padStart(3, "0")}</span>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
 
               <div className="mt-5 px-4 py-3 text-left"
                 style={{ clipPath: notch(12), background: "rgba(0,0,0,.45)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.07)" }}>

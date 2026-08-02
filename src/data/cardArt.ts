@@ -32,6 +32,15 @@ export const CARD_ART: Record<string, string> = {
   card_longmorrow:   "/cards/card_longmorrow.png",
   card_leviathan:    "/cards/card_leviathan.png",
   card_hollowtide:   "/cards/card_hollowtide.png",
+  card_blacksun:     "/cards/card_blacksun.png",
+  card_crowfeast:    "/cards/card_crowfeast.png",
+  card_redmoon:      "/cards/card_redmoon.png",
+  card_palepilgrim:  "/cards/card_palepilgrim.png",
+  card_monarch:      "/cards/card_monarch.png",
+  card_grin:         "/cards/card_grin.png",
+  // The one .jpg — the manifest stores explicit paths precisely so this works;
+  // cardArt()'s sm-thumbnail rewrite handles either extension.
+  card_drownedgate:  "/cards/card_drownedgate.jpg",
 
   // ── EPIC ──
   card_ironvow:      "/cards/card_ironvow.png",
