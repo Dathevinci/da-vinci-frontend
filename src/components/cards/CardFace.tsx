@@ -869,7 +869,7 @@ function CardFaceImpl({
   const abilityText = card.support
     ? supportText(card.support)
     : hibernating && owned
-    ? "ASLEEP · NOT FIELDABLE"
+    ? "FALLEN, NOT DEAD — WAKE WITH SHARDS"
     : card.flavor;
 
   /** Every string is bounded. SVG could not do this, which is half of why the
@@ -936,7 +936,13 @@ function CardFaceImpl({
       {/* ── ART ───────────────────────────────────────────────────────────
           flex:1 with min-height:0 so every row the panel drops hands its
           height back to the picture instead of leaving a gap. */}
-      <div style={{ position: "relative", flex: 1, minHeight: 0, overflow: "hidden" }}>
+      <div style={{
+        position: "relative", flex: 1, minHeight: 0, overflow: "hidden",
+        // A fallen card goes GREY — the colour drains out of the picture while
+        // the tape (below) stays loud on top of it. Static filter, no repaint
+        // cost beyond the first.
+        filter: hibernating && owned ? "grayscale(0.85) brightness(0.82)" : undefined,
+      }}>
         <svg
           viewBox="0 0 100 87"
           preserveAspectRatio="xMidYMid slice"
@@ -1090,36 +1096,45 @@ function CardFaceImpl({
           />
         )}
 
-        {/* Asleep: one flat wash, no blur, no rotated sash. The state moves
-            into the data row below instead of decorating the picture. */}
+        {/* ── FALLEN: CRIME-SCENE TAPE ── the card is a scene now, greyed by
+            the filter on this container while two caution tapes wrap across
+            it. They run past both edges (the overflow clip cuts them at the
+            border, which is what sells "wrapped around" rather than "printed
+            on"), crossing at opposite angles like a real cordon. */}
         {hibernating && owned && (
           <>
-            <span aria-hidden style={{ position: "absolute", inset: 0, background: "rgba(56,120,200,0.22)" }} />
-            {/* A BADGE, not just a wash. The state used to live only in the
-                ability row, which doesn't render below 150px — so on the
-                collection grid a fallen card looked merely blue-ish and there
-                was nothing anywhere that said why it couldn't be fielded. */}
-            <span
-              style={{
-                position: "absolute",
-                left: 0,
-                right: 0,
-                top: "50%",
-                transform: "translateY(-50%)",
-                textAlign: "center",
-                padding: `${Math.max(2, Math.round(size * 0.018))}px 0`,
-                background: "rgba(6,18,40,0.88)",
-                borderTop: "1px solid rgba(125,211,252,.55)",
-                borderBottom: "1px solid rgba(125,211,252,.55)",
-                color: "#BAE6FD",
-                fontSize: Math.max(7, Math.round(size * 0.052)),
-                fontWeight: 900,
-                letterSpacing: "0.22em",
-                lineHeight: 1.3,
-              }}
-            >
-              ASLEEP
-            </span>
+            <span aria-hidden style={{ position: "absolute", inset: 0, background: "rgba(8,12,22,0.38)" }} />
+            {[
+              { rot: -9, top: "36%" },
+              { rot: 7, top: "55%" },
+            ].map((b, i) => (
+              <span
+                key={i}
+                aria-hidden={i > 0}
+                style={{
+                  position: "absolute",
+                  left: "-16%",
+                  right: "-16%",
+                  top: b.top,
+                  transform: `rotate(${b.rot}deg)`,
+                  background: "#eab308",
+                  color: "#111827",
+                  borderTop: `${Math.max(1, Math.round(size * 0.011))}px solid #111827`,
+                  borderBottom: `${Math.max(1, Math.round(size * 0.011))}px solid #111827`,
+                  padding: `${Math.max(1, Math.round(size * 0.014))}px 0`,
+                  overflow: "hidden",
+                  whiteSpace: "nowrap",
+                  textAlign: "center",
+                  fontWeight: 900,
+                  fontSize: Math.max(6, Math.round(size * 0.048)),
+                  letterSpacing: "0.13em",
+                  lineHeight: 1.25,
+                  boxShadow: "0 3px 10px rgba(0,0,0,.55)",
+                }}
+              >
+                {"FALLEN · BUT NOT DEAD · ".repeat(4)}
+              </span>
+            ))}
           </>
         )}
 
@@ -1259,7 +1274,7 @@ function CardFaceImpl({
                 ...clip,
                 fontSize: T.ability,
                 fontFamily: MONO,
-                color: hibernating && owned ? "#7DD3FC" : muted,
+                color: hibernating && owned ? "#FBBF24" : muted,
               }}
               title={owned ? abilityText : undefined}
             >

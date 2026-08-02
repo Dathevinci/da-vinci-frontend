@@ -174,14 +174,9 @@ export default function DeckBuilder({
                       : `hover:-translate-y-0.5 ${picked ? "bg-rose-500/25 ring-2 ring-rose-400" : "hover:bg-white/5"}`
                   }`}
                 >
-                  <span className={out ? "opacity-45 grayscale" : ""}>
-                    <CardFace card={c} owned foil={foils[c.id]} size={compact ? 108 : 138} ratio="5 / 9" showStats stats={S} />
-                  </span>
-                  {out && (
-                    <span className="pointer-events-none absolute inset-x-1 top-1/2 -translate-y-1/2 bg-[#061228]/90 py-1 text-center text-[9px] font-black uppercase tracking-[0.18em] text-sky-200 ring-1 ring-sky-400/50">
-                      Asleep
-                    </span>
-                  )}
+                  {/* CardFace wears the crime-scene tape itself now — one
+                      treatment for fallen cards everywhere. */}
+                  <CardFace card={c} owned foil={foils[c.id]} size={compact ? 108 : 138} ratio="5 / 9" showStats stats={S} hibernating={out} />
                   {picked && !out && (
                     <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-rose-500 text-white">
                       <Check className="h-3 w-3" />

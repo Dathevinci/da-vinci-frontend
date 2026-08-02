@@ -486,12 +486,7 @@ export default function DuelsPage() {
                     return c ? (
                       <button key={i} onClick={() => setEditDeck(true)} title={`${c.name} — tap to edit your deck`}
                         className="relative transition hover:-translate-y-0.5">
-                        <CardFace card={c} owned foil={foils[c.id]} size={92} ratio="5 / 9" showStats stats={cardStats} />
-                        {asleep[c.id] && (
-                          <span className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 bg-[#061228]/90 py-0.5 text-center text-[8px] font-black uppercase tracking-[0.18em] text-sky-200 ring-1 ring-sky-400/50">
-                            Asleep
-                          </span>
-                        )}
+                        <CardFace card={c} owned foil={foils[c.id]} size={92} ratio="5 / 9" showStats stats={cardStats} hibernating={!!asleep[c.id]} />
                       </button>
                     ) : (
                       <button key={i} onClick={() => setEditDeck(true)} title="Empty slot — tap to build your deck"
