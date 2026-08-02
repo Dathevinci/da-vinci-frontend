@@ -208,8 +208,21 @@ export default function DuelsPage() {
     } catch { toast("That didn't work.", "error"); } finally { setBusy(false); }
   };
 
-  const byId = Object.fromEntries(catalog.map((c) => [c.id, c]));
-  const myCards = catalog.filter((c) => (owned[c.id] || 0) > 0);
+  /**
+   * Both were rebuilt on EVERY render of this page and handed straight to the
+   * arena. `busy` alone flips twice per move and load() runs after each one, so
+   * a single attack recreated the lookup table and the collection several
+   * times over — and a new object identity re-renders the whole board even when
+   * nothing in it changed.
+   */
+  const byId = useMemo(
+    () => Object.fromEntries(catalog.map((c) => [c.id, c])),
+    [catalog]
+  );
+  const myCards = useMemo(
+    () => catalog.filter((c) => (owned[c.id] || 0) > 0),
+    [catalog, owned]
+  );
   const pending = duels.filter((d) => d.status === "PENDING");
   const running = duels.filter((d) => d.status === "ACTIVE");
   const done = duels.filter((d) => ["FINISHED", "DECLINED", "EXPIRED"].includes(d.status));
@@ -586,6 +599,13 @@ function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats
 
 function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMove, onForfeit, foils, cardStats, abilityIds, abilities, asleep = {} }: any) {
   const [deck, setDeck] = useState<string[]>(() => loadSavedDeck());
+  // Filtered ONCE per collection, not once per render. Arena memoizes its
+  // playable supports off this array, so handing it a fresh one every render
+  // made that memo recompute every time — the exact thing it exists to avoid.
+  const supportCards = useMemo(
+    () => (myCards || []).filter((c: any) => !!c.support),
+    [myCards]
+  );
   // Parsed once per state STRING, not once per render. DuelBoard re-renders
   // whenever anything on the page moves (busy, bag, a toast), and re-parsing
   // built a brand-new fighters tree every time — which also handed Arena new
@@ -626,7 +646,7 @@ function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMo
         myTurn={myTurn} finished={duel.status === "FINISHED"} resultText={resultText}
         won={!!me && duel.winnerId === me}
         bag={bag} busy={busy} log={state.log} stake={duel.stake} round={state.round}
-        supports={myCards.filter((c: any) => !!c.support)}
+        supports={supportCards}
         usedSupports={mine.usedSupports || []}
         onAttack={() => onMove("attack")}
         onDeploy={(i: number) => onMove("deploy", i)}
