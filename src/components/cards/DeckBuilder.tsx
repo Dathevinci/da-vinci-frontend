@@ -133,11 +133,11 @@ export default function DeckBuilder({
               {card ? (
                 <motion.button initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
                   onClick={() => toggle(card.id)} title="Remove from deck">
-                  <CardFace card={card} owned foil={foils[card.id]} size={slot} showStats stats={S} />
+                  <CardFace card={card} owned foil={foils[card.id]} size={slot} ratio="5 / 9" showStats stats={S} />
                 </motion.button>
               ) : (
                 <div className="grid place-items-center rounded-xl border-2 border-dashed border-white/15"
-                  style={{ width: slot, aspectRatio: "5 / 7" }}>
+                  style={{ width: slot, aspectRatio: "5 / 9" }}>
                   <Swords className="h-6 w-6 text-slate-700" />
                 </div>
               )}
@@ -175,7 +175,7 @@ export default function DeckBuilder({
                   }`}
                 >
                   <span className={out ? "opacity-45 grayscale" : ""}>
-                    <CardFace card={c} owned foil={foils[c.id]} size={compact ? 92 : 118} showStats stats={S} />
+                    <CardFace card={c} owned foil={foils[c.id]} size={compact ? 108 : 138} ratio="5 / 9" showStats stats={S} />
                   </span>
                   {out && (
                     <span className="pointer-events-none absolute inset-x-1 top-1/2 -translate-y-1/2 bg-[#061228]/90 py-1 text-center text-[9px] font-black uppercase tracking-[0.18em] text-sky-200 ring-1 ring-sky-400/50">
@@ -203,7 +203,7 @@ export default function DeckBuilder({
           <div className="flex gap-2.5 overflow-x-auto rounded-xl border border-cyan-500/20 bg-cyan-500/[0.04] p-3">
             {supports.map((c) => (
               <div key={c.id} className="shrink-0">
-                <CardFace card={c} owned foil={foils[c.id]} size={compact ? 84 : 100} />
+                <CardFace card={c} owned foil={foils[c.id]} size={compact ? 96 : 118} ratio="5 / 9" />
               </div>
             ))}
           </div>

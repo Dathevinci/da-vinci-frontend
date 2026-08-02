@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Swords, X, Heart, Shield, Crosshair, Trophy, Sparkles, Flag } from "lucide-react";
+import { Swords, X, Heart, Shield, Crosshair, Trophy, Sparkles, Flag, Maximize2 } from "lucide-react";
 import CardFace, { CardDef } from "./CardFace";
 // notch() is used by the support inspect sheet's buttons. It was missing, and
 // because the frontend builds with typescript.ignoreBuildErrors the build was
@@ -606,6 +606,23 @@ export default function Arena({
               <Flag className="h-4 w-4" />
             </button>
           )}
+          {/* TRUE fullscreen, not just a full-viewport div. The board is
+              already fixed inset-0, but browser chrome and the OS taskbar
+              still eat 100-150px of height — and this screen sizes its cards
+              off exactly that budget, so reclaiming it makes every card
+              bigger rather than just hiding the address bar. */}
+          <button
+            onClick={() => {
+              const el: any = document.documentElement;
+              if (document.fullscreenElement) document.exitFullscreen?.();
+              else (el.requestFullscreen || el.webkitRequestFullscreen)?.call(el);
+            }}
+            aria-label="Toggle fullscreen"
+            title="Fullscreen"
+            className="grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-black/40 text-slate-400 transition hover:border-purple-400/50 hover:text-purple-200"
+          >
+            <Maximize2 className="h-4 w-4" />
+          </button>
           <button onClick={onClose} aria-label="Leave the arena"
             className="grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-black/50 text-white transition hover:bg-white/10">
             <X className="h-4 w-4" />
