@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactNode } from "react";
+import { motion } from "framer-motion";
 
 /**
  * GACHA UI KIT
@@ -24,6 +25,100 @@ import { ReactNode } from "react";
  *
  * Everything here is presentational. No data, no fetching, no state.
  */
+
+/**
+ * THE AMBIENCE — the layer that makes a page feel like a summon screen
+ * instead of a settings screen: two nebulae breathing behind everything,
+ * dust motes rising through the viewport, and the shared keyframes every
+ * other ornament in this kit reads from (panel sheens, meter sweeps).
+ *
+ * Fixed to the viewport so the motes live where the eye is regardless of
+ * scroll. Every animation is transform/opacity on its own layer — the whole
+ * sky costs the compositor and nothing else — and prefers-reduced-motion
+ * stops all of it dead through the .ga-anim class.
+ *
+ * Ornaments DEGRADE INVISIBLE by design: sheen and sweep elements sit at
+ * opacity 0 and only their animation raises it, so a page that renders a
+ * SegBar without mounting the ambience shows a clean static bar, never a
+ * stuck bright streak.
+ */
+export function GachaAmbience() {
+  return (
+    <div aria-hidden className="pointer-events-none fixed inset-0 overflow-hidden">
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+@keyframes ga-drift1 { 0%,100% { transform: translate3d(-4%,-2%,0) } 50% { transform: translate3d(5%,4%,0) } }
+@keyframes ga-drift2 { 0%,100% { transform: translate3d(3%,2%,0) } 50% { transform: translate3d(-5%,-3%,0) } }
+@keyframes ga-mote { 0% { transform: translate3d(0,12vh,0); opacity: 0 } 12% { opacity: .7 } 88% { opacity: .45 } 100% { transform: translate3d(0,-104vh,0); opacity: 0 } }
+@keyframes ga-twinkle { 0%,100% { opacity: .12; transform: scale(.7) } 50% { opacity: .95; transform: scale(1) } }
+@keyframes ga-sheen { 0% { transform: translate3d(-140%,0,0); opacity: 0 } 12% { opacity: .9 } 88% { opacity: .9 } 100% { transform: translate3d(480%,0,0); opacity: 0 } }
+@keyframes sb-sweep { 0% { transform: translate3d(-110%,0,0); opacity: 0 } 15% { opacity: .55 } 85% { opacity: .55 } 100% { transform: translate3d(320%,0,0); opacity: 0 } }
+@media (prefers-reduced-motion: reduce) { .ga-anim { animation: none !important; } }
+`,
+        }}
+      />
+      <span className="ga-anim absolute rounded-full"
+        style={{ left: "-12%", top: "-10%", width: "55vw", height: "55vw", background: `radial-gradient(circle, ${ACCENT}2b, transparent 65%)`, animation: "ga-drift1 26s ease-in-out infinite", willChange: "transform" }} />
+      <span className="ga-anim absolute rounded-full"
+        style={{ right: "-14%", bottom: "-14%", width: "60vw", height: "60vw", background: "radial-gradient(circle, rgba(120,86,196,.20), transparent 65%)", animation: "ga-drift2 32s ease-in-out infinite", willChange: "transform" }} />
+      {Array.from({ length: 16 }, (_, i) => (
+        <span key={i} className="ga-anim absolute rounded-full"
+          style={{
+            left: `${(i * 61 + 7) % 100}%`,
+            bottom: "-2vh",
+            width: 2 + (i % 3), height: 2 + (i % 3),
+            background: i % 4 === 0 ? ACCENT_LIT : "rgba(255,255,255,.85)",
+            boxShadow: `0 0 6px ${i % 4 === 0 ? ACCENT : "rgba(255,255,255,.45)"}`,
+            opacity: 0,
+            animation: `ga-mote ${14 + (i % 5) * 4}s linear infinite`,
+            animationDelay: `${(i * 1.7) % 14}s`,
+            willChange: "transform, opacity",
+          }} />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Entrance for a section: fade and rise once, when it enters the viewport.
+ * Runs through framer, so Performance Mode's MotionConfig gates it for free.
+ */
+export function Rise({ children, delay = 0, className = "" }: { children: ReactNode; delay?: number; className?: string }) {
+  return (
+    <motion.div
+      className={className}
+      initial={{ opacity: 0, y: 22 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-40px" }}
+      transition={{ duration: 0.55, delay, ease: [0.22, 1, 0.36, 1] }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+/** Fixed-position glints that twinkle out of phase — banner dressing. */
+export function Twinkles({ count = 7, color = ACCENT_LIT }: { count?: number; color?: string }) {
+  return (
+    <>
+      {Array.from({ length: count }, (_, i) => (
+        <span key={i} aria-hidden className="ga-anim pointer-events-none absolute rounded-full"
+          style={{
+            left: `${(i * 137 + 11) % 96}%`,
+            top: `${(i * 53 + 9) % 88}%`,
+            width: 3 + (i % 2), height: 3 + (i % 2),
+            background: color,
+            boxShadow: `0 0 8px ${color}`,
+            opacity: 0.12,
+            animation: `ga-twinkle ${2.6 + (i % 4) * 0.9}s ease-in-out infinite`,
+            animationDelay: `${(i * 0.7) % 3}s`,
+            willChange: "transform, opacity",
+          }} />
+      ))}
+    </>
+  );
+}
 
 /** Corner-notched rectangle: top-right and bottom-left cut. The house shape. */
 export function notch(size = 18) {
@@ -58,6 +153,7 @@ export function Panel({
   size = 18,
   className = "",
   edge,
+  sheen = false,
 }: {
   children: ReactNode;
   tone?: "ink" | "gold" | "danger" | "jade";
@@ -65,6 +161,9 @@ export function Panel({
   size?: number;
   className?: string;
   edge?: string;
+  /** A light streak that runs the top edge every few seconds — summon-screen
+   *  dressing for hero panels. Degrades invisible without GachaAmbience. */
+  sheen?: boolean;
 }) {
   const clip = shape === "bevel" ? bevel(size) : notch(size);
   const edges: Record<string, string> = {
@@ -76,6 +175,15 @@ export function Panel({
   return (
     <div className={`relative ${className}`} style={{ clipPath: clip, background: edge || edges[tone] }}>
       <div className="relative" style={{ clipPath: clip, margin: 1, background: "linear-gradient(165deg, #1a1230 0%, #110c20 55%, #0c0817 100%)" }}>
+        {sheen && (
+          <span aria-hidden className="ga-anim pointer-events-none absolute left-0 top-0 z-10 h-[2px] w-1/4"
+            style={{
+              background: `linear-gradient(90deg, transparent, ${ACCENT_LIT}, transparent)`,
+              opacity: 0,
+              animation: "ga-sheen 5.5s ease-in-out infinite",
+              willChange: "transform, opacity",
+            }} />
+        )}
         {children}
       </div>
     </div>
@@ -120,15 +228,32 @@ export function SegBar({ value, max, tone = ACCENT, height = 7 }: { value: numbe
   const cells = Math.max(1, Math.min(max, 40));
   const filled = max > 0 ? Math.round((value / max) * cells) : 0;
   return (
-    <div className="flex w-full items-center gap-[2px]" style={{ height }}>
-      {Array.from({ length: cells }, (_, i) => (
-        <span key={i} className="h-full flex-1 transition-colors"
-          style={{
-            background: i < filled ? tone : "rgba(255,255,255,.07)",
-            boxShadow: i < filled ? `0 0 6px ${tone}66` : "none",
-            transform: "skewX(-18deg)",
-          }} />
-      ))}
+    <div className="relative w-full" style={{ height }}>
+      <div className="flex h-full w-full items-center gap-[2px]">
+        {Array.from({ length: cells }, (_, i) => (
+          <span key={i} className="h-full flex-1 transition-colors"
+            style={{
+              background: i < filled ? tone : "rgba(255,255,255,.07)",
+              boxShadow: i < filled ? `0 0 6px ${tone}66` : "none",
+              transform: "skewX(-18deg)",
+            }} />
+        ))}
+      </div>
+      {/* a light runs the FILLED span only — progress that reads as alive.
+          Base opacity 0; only the ga-sheen keyframes (mounted with the
+          ambience) ever raise it, so it degrades to a clean static bar. */}
+      {filled > 0 && (
+        <span aria-hidden className="pointer-events-none absolute inset-y-0 left-0 overflow-hidden"
+          style={{ width: `${(filled / cells) * 100}%` }}>
+          <span className="ga-anim absolute inset-y-0 left-0 w-1/3"
+            style={{
+              background: "linear-gradient(90deg, transparent, rgba(255,255,255,.8), transparent)",
+              opacity: 0,
+              animation: "sb-sweep 2.8s linear infinite",
+              willChange: "transform, opacity",
+            }} />
+        </span>
+      )}
     </div>
   );
 }
@@ -150,7 +275,7 @@ export function GachaButton({
   };
   return (
     <button type={type} onClick={onClick} disabled={disabled} title={title}
-      className={`group relative inline-flex select-none items-center justify-center px-6 py-2.5 text-[12px] font-black uppercase tracking-[0.14em] transition disabled:cursor-not-allowed disabled:opacity-35 ${tones[tone]} ${className}`}
+      className={`group relative inline-flex select-none items-center justify-center px-6 py-2.5 text-[12px] font-black uppercase tracking-[0.14em] transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 ${tones[tone]} ${className}`}
       style={{ clipPath: "polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%)" }}>
       <span aria-hidden className="absolute inset-0 -z-10"
         style={{ background: "linear-gradient(100deg, var(--g1), var(--g2))" }} />

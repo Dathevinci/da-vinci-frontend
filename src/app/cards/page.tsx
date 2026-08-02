@@ -10,7 +10,7 @@ import { useToast } from "@/components/ui/Toast";
 import PageTransition from "@/components/layout/PageTransition";
 import CardFace, { CardDef, CardRarity, RARITY_META, supportText } from "@/components/cards/CardFace";
 import PackReveal from "@/components/cards/PackReveal";
-import { Panel, CornerTicks, Stars, SegBar, GachaButton, Heading, StatRow, notch, ACCENT, ACCENT_LIT } from "@/components/cards/gacha";
+import { Panel, CornerTicks, Stars, SegBar, GachaButton, Heading, StatRow, notch, ACCENT, ACCENT_LIT, GachaAmbience, Rise, Twinkles } from "@/components/cards/gacha";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -377,9 +377,13 @@ export default function CardsPage() {
         <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.055]"
           style={{ backgroundImage: "repeating-linear-gradient(115deg, transparent 0 7px, rgba(255,255,255,.9) 7px 8px)" }} />
 
+        {/* the living sky — nebulae, rising motes, and the kit's keyframes */}
+        <GachaAmbience />
+
         <div className="relative mx-auto max-w-6xl">
           {/* ── BANNER HEADER ── the title plate, the resources, the progress */}
-          <Panel tone="gold" size={26} className="mb-7">
+          <Rise>
+          <Panel tone="gold" size={26} className="mb-7" sheen>
             <div className="relative px-5 py-5 sm:px-7">
               <CornerTicks />
               <div aria-hidden className="pointer-events-none absolute inset-0"
@@ -447,6 +451,7 @@ export default function CardsPage() {
               )}
             </div>
           </Panel>
+          </Rise>
 
           {/* ── collectors board — see who owns what ── */}
           {showCollectors && (
@@ -515,13 +520,16 @@ export default function CardsPage() {
 
           {/* open a pack — only on your OWN binder */}
           {catalog && isMine && (
-            <Panel tone="gold" size={30} className="mb-8">
+            <Rise delay={0.08}>
+            <Panel tone="gold" size={30} className="mb-8" sheen>
               <div className="relative overflow-hidden">
                 {/* layered light — the banner glow every gacha summon screen has */}
                 <div aria-hidden className="pointer-events-none absolute inset-0"
                   style={{ background: "radial-gradient(70% 130% at 78% 20%, rgba(168,110,255,.30), transparent 62%), radial-gradient(55% 110% at 18% 90%, rgba(162,116,255,.18), transparent 65%)" }} />
                 <div aria-hidden className="pointer-events-none absolute inset-0 opacity-30"
                   style={{ backgroundImage: "repeating-linear-gradient(72deg, transparent 0 26px, rgba(255,255,255,.55) 26px 27px)", maskImage: "linear-gradient(100deg, transparent 35%, black 75%, transparent)" }} />
+                {/* glints twinkling out of phase — the banner is never still */}
+                <Twinkles count={8} />
 
                 <div className="relative grid gap-6 p-6 sm:p-8 lg:grid-cols-[1fr_auto] lg:items-center">
                   <div className="min-w-0">
@@ -572,7 +580,9 @@ export default function CardsPage() {
                               background: headline
                                 ? `linear-gradient(140deg, ${ACCENT_LIT}, ${ACCENT})`
                                 : "rgba(255,255,255,.05)",
-                              boxShadow: headline ? "none" : "inset 0 0 0 1px rgba(255,255,255,.12)",
+                              // The headline size wears a halo — the eye should
+                              // land on the pull the banner wants you to make.
+                              boxShadow: headline ? `0 0 16px ${ACCENT}99, 0 0 34px ${ACCENT}44` : "inset 0 0 0 1px rgba(255,255,255,.12)",
                             }}>
                             <span className="text-lg font-black leading-none">×{n}</span>
                             <span className={`text-[10px] font-black uppercase tracking-[0.12em] ${headline ? "text-[#160b2b]/70" : "text-slate-500"}`}>
@@ -600,6 +610,7 @@ export default function CardsPage() {
                 </div>
               </div>
             </Panel>
+            </Rise>
           )}
 
           {/* ── what shards do ── */}
@@ -609,8 +620,9 @@ export default function CardsPage() {
                 { Icon: Recycle, t: "Dust", d: "Turn duplicates into shards. No pull is ever wasted." },
                 { Icon: Hammer, t: "Craft & Foil", d: "Make the card luck won't give you, or foil one to fight 20% harder." },
                 { Icon: Gem, t: "Relic Packs", d: "Trade patience for a guaranteed Epic or better." },
-              ].map(({ Icon, t, d }) => (
-                <div key={t} className="relative flex items-start gap-3 px-4 py-3.5"
+              ].map(({ Icon, t, d }, i) => (
+                <Rise key={t} delay={0.1 + i * 0.07}>
+                <div className="relative flex items-start gap-3 px-4 py-3.5 transition hover:-translate-y-0.5"
                   style={{ clipPath: notch(13), background: "rgba(167,139,250,.045)", boxShadow: "inset 0 0 0 1px rgba(167,139,250,.16)" }}>
                   <Icon className="mt-0.5 h-4 w-4 shrink-0 text-cyan-300" />
                   <div>
@@ -618,6 +630,7 @@ export default function CardsPage() {
                     <p className="mt-1 text-xs leading-relaxed text-slate-400">{d}</p>
                   </div>
                 </div>
+                </Rise>
               ))}
             </div>
           )}
@@ -664,7 +677,10 @@ export default function CardsPage() {
               })()}
 
               {sets.map(({ set, cards, have, total }) => (
-                <div key={set}>
+                // Each set glides in as you reach it — the page unrolls
+                // instead of arriving as one wall.
+                <Rise key={set}>
+                <div>
                   <Heading
                     title={set}
                     sub={have >= total ? "Complete" : `${total - have} undiscovered`}
@@ -829,6 +845,7 @@ export default function CardsPage() {
                     );
                   })()}
                 </div>
+                </Rise>
               ))}
             </div>
           )}
