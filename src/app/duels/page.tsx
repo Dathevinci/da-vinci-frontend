@@ -8,7 +8,7 @@ import { displayArisePoints } from "@/lib/admin";
 import { authHeaders } from "@/lib/authToken";
 import { useToast } from "@/components/ui/Toast";
 import PageTransition from "@/components/layout/PageTransition";
-import { CardDef } from "@/components/cards/CardFace";
+import CardFace, { CardDef, FALLBACK_STATS } from "@/components/cards/CardFace";
 import DeckBuilder, { loadSavedDeck, saveDeck } from "@/components/cards/DeckBuilder";
 import Arena, { duelPayout } from "@/components/cards/Arena";
 import { notch, ACCENT } from "@/components/cards/gacha";
@@ -64,6 +64,12 @@ export default function DuelsPage() {
   const [bag, setBag] = useState<string[]>([]);
   const [active, setActive] = useState<Duel | null>(null);
   const [busy, setBusy] = useState(false);
+  // The saved deck, mirrored here so the page can SHOW it. It used to live
+  // only inside the challenge modal — the one thing every duel is fought
+  // with was invisible until you were already committing to a fight.
+  const [deck, setDeck] = useState<string[]>([]);
+  const [editDeck, setEditDeck] = useState(false);
+  useEffect(() => { setDeck(loadSavedDeck()); }, []);
   const [showChallenge, setShowChallenge] = useState(false);
   const [tab, setTab] = useState<"duels" | "ladder">("duels");
   // Which duel is on screen RIGHT NOW, readable from inside an in-flight
@@ -269,6 +275,17 @@ export default function DuelsPage() {
     () => catalog.filter((c) => (owned[c.id] || 0) > 0),
     [catalog, owned]
   );
+  // Same arithmetic as the deck builder's readout, so the two never disagree.
+  const deckPower = useMemo(() => {
+    const S: any = cardStats || FALLBACK_STATS;
+    return deck.reduce((sum, id) => {
+      const c = byId[id];
+      if (!c) return sum;
+      const base = S[c.rarity] || S.common;
+      const m = foils[id] ? 1.2 : 1;
+      return sum + Math.round(base.atk * m) + Math.round(base.hp * m);
+    }, 0);
+  }, [deck, byId, cardStats, foils]);
   const pending = duels.filter((d) => d.status === "PENDING");
   const running = duels.filter((d) => d.status === "ACTIVE");
   const done = duels.filter((d) => ["FINISHED", "DECLINED", "EXPIRED"].includes(d.status));
@@ -376,6 +393,59 @@ export default function DuelsPage() {
             </div>
           ) : (
             <div className="space-y-6">
+              {/* YOUR DECK — the five that walk into every duel. The page never
+                  showed them: the deck lived inside the challenge modal, so the
+                  thing every fight is fought with was invisible until you were
+                  already committing to one. */}
+              <div className="relative p-5"
+                style={{ clipPath: notch(20), background: "linear-gradient(160deg, rgba(244,63,94,.06), rgba(28,8,16,.5))", boxShadow: "inset 0 0 0 1px rgba(244,63,94,.26)" }}>
+                <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-stretch gap-2.5">
+                    <span aria-hidden className="w-[5px] shrink-0"
+                      style={{ background: "linear-gradient(#fda4af, #f43f5e)", transform: "skewX(-14deg)" }} />
+                    <h3 className="text-[11px] font-black uppercase tracking-[0.24em] text-rose-200">Your deck</h3>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {deckPower > 0 && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-black tabular-nums text-amber-200"
+                        style={{ clipPath: notch(7), background: "rgba(245,158,11,.12)", boxShadow: "inset 0 0 0 1px rgba(245,158,11,.4)" }}>
+                        {deckPower} power
+                      </span>
+                    )}
+                    <button onClick={() => setEditDeck(true)}
+                      className="px-4 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-rose-100 transition hover:brightness-115"
+                      style={{ clipPath: notch(7), background: "rgba(244,63,94,.18)", boxShadow: "inset 0 0 0 1px rgba(244,63,94,.45)" }}>
+                      Edit
+                    </button>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-start justify-center gap-2.5 sm:justify-start">
+                  {Array.from({ length: DECK_SIZE }, (_, i) => {
+                    const c = deck[i] ? byId[deck[i]] : null;
+                    return c ? (
+                      <button key={i} onClick={() => setEditDeck(true)} title={`${c.name} — tap to edit your deck`}
+                        className="relative transition hover:-translate-y-0.5">
+                        <CardFace card={c} owned foil={foils[c.id]} size={92} ratio="5 / 9" showStats stats={cardStats} />
+                        {asleep[c.id] && (
+                          <span className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 bg-[#061228]/90 py-0.5 text-center text-[8px] font-black uppercase tracking-[0.18em] text-sky-200 ring-1 ring-sky-400/50">
+                            Asleep
+                          </span>
+                        )}
+                      </button>
+                    ) : (
+                      <button key={i} onClick={() => setEditDeck(true)} title="Empty slot — tap to build your deck"
+                        className="grid place-items-center rounded-xl border-2 border-dashed border-white/15 text-slate-700 transition hover:border-rose-400/40 hover:text-rose-400/60"
+                        style={{ width: 92, aspectRatio: "5 / 9" }}>
+                        <Swords className="h-5 w-5" />
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="mt-3 text-[11px] text-slate-500">
+                  These five walk into every challenge you send or accept. A card that falls in a loss sleeps until you wake it with shards.
+                </p>
+              </div>
+
               {/* item shop */}
               <div className="relative p-5"
                 style={{ clipPath: notch(20), background: "linear-gradient(160deg, rgba(34,211,238,.07), rgba(8,20,30,.5))", boxShadow: "inset 0 0 0 1px rgba(34,211,238,.28)" }}>
@@ -439,7 +509,15 @@ export default function DuelsPage() {
                   {running.map((d) => (
                     <DuelRow key={d.id} duel={d} me={user?.id} onOpen={() => setActive(d)}
                       right={<button onClick={() => setActive(d)}
-                        className={`rounded-full px-4 py-1.5 text-xs font-black ${d.turnUserId === user?.id ? "bg-gradient-to-r from-rose-600 to-orange-600 text-white" : "border border-white/15 text-slate-400"}`}>
+                        className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-black ${d.turnUserId === user?.id ? "bg-gradient-to-r from-rose-600 to-orange-600 text-white" : "border border-white/15 text-slate-400"}`}>
+                        {d.turnUserId === user?.id && (
+                          // the ping says "the game is waiting on YOU" from
+                          // across the page, before any text is read
+                          <span className="relative flex h-2 w-2">
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-70" />
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
+                          </span>
+                        )}
                         {d.turnUserId === user?.id ? "Your turn" : "Waiting"}
                       </button>} />
                   ))}
@@ -472,8 +550,34 @@ export default function DuelsPage() {
       </div>
 
       <AnimatePresence>
+        {editDeck && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[125] flex items-center justify-center bg-black/90 p-3 backdrop-blur sm:p-4"
+            onClick={() => setEditDeck(false)}>
+            <motion.div initial={{ scale: 0.96 }} animate={{ scale: 1 }}
+              className="flex max-h-[92dvh] w-full max-w-3xl flex-col rounded-3xl border border-white/15 bg-[#0b0b12] p-4 sm:p-6"
+              onClick={(e) => e.stopPropagation()}>
+              <div className="mb-4 flex shrink-0 items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-black sm:text-xl">Your deck</h2>
+                  <p className="text-xs text-slate-500">Saved as you tap — every duel starts from this five.</p>
+                </div>
+                <button onClick={() => setEditDeck(false)} aria-label="Close"><X className="h-5 w-5 text-slate-500" /></button>
+              </div>
+              <div className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1">
+                <DeckBuilder myCards={myCards} foils={foils} asleep={asleep} stats={cardStats} deck={deck}
+                  onChange={(d) => { setDeck(d); saveDeck(d); }} />
+              </div>
+              <button onClick={() => setEditDeck(false)}
+                className="mt-4 w-full shrink-0 rounded-xl bg-gradient-to-r from-rose-600 to-orange-600 py-3 font-black text-white">
+                Done
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
         {showChallenge && (
-          <ChallengeModal myCards={myCards} meId={user?.id} foils={foils} asleep={asleep} cardStats={cardStats} onClose={() => setShowChallenge(false)}
+          <ChallengeModal myCards={myCards} meId={user?.id} foils={foils} asleep={asleep} cardStats={cardStats}
+            onClose={() => { setShowChallenge(false); setDeck(loadSavedDeck()); }}
             onSend={(opp, stake, deck) => post("", { opponentUsername: opp, stake, deck }, (d) => {
               setShowChallenge(false);
               // Straight into the waiting room — the response IS the duel row,
@@ -486,7 +590,7 @@ export default function DuelsPage() {
         )}
         {active && (
           <DuelBoard duel={active} me={user?.id} byId={byId} myCards={myCards} bag={bag} busy={busy} foils={foils} cardStats={cardStats} abilityIds={abilityIds} abilities={abilities} asleep={asleep}
-            onClose={() => setActive(null)}
+            onClose={() => { setActive(null); setDeck(loadSavedDeck()); }}
             onAccept={(deck) => post(`${active.id}/accept`, { deck }, (d) => { setActive(d); toast("Duel started!", "success"); }, "background")}
             onMove={(action: string, index?: number, cardId?: string, target?: number) =>
               post(`${active.id}/move`, { action, index, cardId, target }, (d) => {

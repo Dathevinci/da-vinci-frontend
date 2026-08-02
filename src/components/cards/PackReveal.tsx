@@ -282,27 +282,55 @@ export default function PackReveal({
               const out = i < revealed;
               const meta = RARITY_META[c.rarity];
               return (
+                /* THREE WRAPPERS, ONE JOB EACH — entrance, idle float, flip.
+                   The old version did all of it with one spring on one element
+                   that SWAPPED its contents mid-turn, which is why every card
+                   showed its face MIRRORED for the first half of the flip —
+                   there was no second side to hide behind, and `perspective`
+                   was set on the rotating element itself, where it applies to
+                   children and did nothing. This is a real two-sided card: the
+                   face is rendered from the start (so its art is decoded
+                   before the flip, not popping in after) and stays hidden
+                   behind the back until the turn passes 90°. */
                 <motion.div key={`${c.id}-${i}`} className="relative"
-                  initial={{ y: 90, opacity: 0, rotateY: 180 }}
-                  animate={out
-                    ? { y: 0, opacity: 1, rotateY: 0, scale: 1 }
-                    : { y: 22, opacity: 0.9, rotateY: 180, scale: 0.94 }}
-                  transition={{ type: "spring", stiffness: 180, damping: 18, delay: out ? 0 : i * 0.05 }}
-                  style={{ transformStyle: "preserve-3d", perspective: 900 }}
+                  initial={{ y: 90, opacity: 0 }}
+                  animate={{ y: out ? 0 : 22, opacity: out ? 1 : 0.95 }}
+                  transition={{
+                    y: { duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: out ? 0 : i * 0.06 },
+                    opacity: { duration: 0.35, delay: out ? 0 : i * 0.06 },
+                  }}
                 >
-                  {out ? (
-                    <>
-                      {/* a legendary earns a standing pillar of light */}
-                      {meta.order >= 3 && (
-                        <motion.span aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 -z-10 -translate-x-1/2 -translate-y-1/2"
-                          style={{ width: 190, height: 320, background: `radial-gradient(closest-side, ${meta.glow}, transparent 70%)` }}
-                          initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 0.85, scale: 1 }} transition={{ duration: 0.5 }} />
-                      )}
-                      <CardFace card={c} owned size={150} showStats={showStats} />
-                    </>
-                  ) : (
-                    <CardBack size={150} />
-                  )}
+                  {/* face-down cards breathe while they wait their turn */}
+                  <motion.div
+                    animate={out ? { y: 0 } : { y: [0, -7, 0] }}
+                    transition={out
+                      ? { duration: 0.3 }
+                      : { duration: 2.4, repeat: Infinity, ease: "easeInOut", delay: i * 0.4 }}
+                  >
+                    {/* the pillar lives OUTSIDE the 3D flipper so it doesn't spin */}
+                    {out && meta.order >= 3 && (
+                      <motion.span aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 -z-10 -translate-x-1/2 -translate-y-1/2"
+                        style={{ width: 190, height: 320, background: `radial-gradient(closest-side, ${meta.glow}, transparent 70%)` }}
+                        initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 0.85, scale: 1 }} transition={{ duration: 0.5 }} />
+                    )}
+                    <motion.div className="relative"
+                      initial={false}
+                      animate={{ rotateY: out ? 0 : 180, scale: out ? [1, 1.07, 1] : 1 }}
+                      transition={{
+                        rotateY: { duration: 0.55, ease: [0.45, 0, 0.2, 1] },
+                        scale: { duration: 0.55, times: [0, 0.55, 1], ease: "easeOut" },
+                      }}
+                      style={{ transformStyle: "preserve-3d", transformPerspective: 1000, willChange: "transform" }}
+                    >
+                      <div style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
+                        <CardFace card={c} owned size={150} showStats={showStats} />
+                      </div>
+                      <div className="absolute inset-0"
+                        style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
+                        <CardBack size={150} />
+                      </div>
+                    </motion.div>
+                  </motion.div>
                 </motion.div>
               );
             })}
