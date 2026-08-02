@@ -6,6 +6,7 @@ import { Users, UserPlus, UserMinus, Search } from "lucide-react";
 import UserLink from "@/components/profile/UserLink";
 import { useToast } from "@/components/ui/Toast";
 import CommunityFeed from "@/components/community/CommunityFeed";
+import CommunityForum from "@/components/community/CommunityForum";
 import { motion, AnimatePresence } from "framer-motion";
 import PageTransition from "@/components/layout/PageTransition";
 import BioRenderer from '@/components/profile/BioRenderer';
@@ -113,7 +114,7 @@ function UserCard({ user, currentUser, handleFollowToggle }: { user: User, curre
 }
 
 export default function CommunityPage() {
-  const [activeTab, setActiveTab] = useState<'feed' | 'directory'>('feed');
+  const [activeTab, setActiveTab] = useState<'forum' | 'feed' | 'directory'>('forum');
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -165,8 +166,14 @@ export default function CommunityPage() {
         {/* Tab Switcher */}
         <div className="flex justify-center">
           <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-1.5 rounded-full flex gap-2 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
-            <button 
-              onClick={() => setActiveTab('feed')} 
+            <button
+              onClick={() => setActiveTab('forum')}
+              className={`px-6 md:px-8 py-2.5 rounded-full font-bold text-sm md:text-base transition-all ${activeTab === 'forum' ? 'bg-purple-600 text-white shadow-md scale-105' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+            >
+              Forum
+            </button>
+            <button
+              onClick={() => setActiveTab('feed')}
               className={`px-6 md:px-8 py-2.5 rounded-full font-bold text-sm md:text-base transition-all ${activeTab === 'feed' ? 'bg-purple-600 text-white shadow-md scale-105' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
             >
               Community Views
@@ -183,7 +190,17 @@ export default function CommunityPage() {
         {/* Tab Content */}
         <div className="relative">
           <AnimatePresence mode="wait">
-            {activeTab === 'feed' ? (
+            {activeTab === 'forum' ? (
+              <motion.div
+                key="forum"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <CommunityForum embedded />
+              </motion.div>
+            ) : activeTab === 'feed' ? (
               <motion.div 
                 key="feed"
                 initial={{ opacity: 0, y: 10 }}
