@@ -40,6 +40,8 @@ export interface User {
   activeFont?: string;
   activeFrame?: string;
   activeArenaEffect?: string | null;
+  /** Arena Cache pity — duplicates opened since the last new arena. */
+  arenaChestPity?: number;
 }
 
 let isSyncing = false;

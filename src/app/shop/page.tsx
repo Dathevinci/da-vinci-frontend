@@ -616,6 +616,11 @@ export default function ShopPage() {
     if (!user || bundleBusy) return;
     setBundleBusy(bundleId);
     try {
+      // Declared here, same as handlePurchase does. It was previously read as a
+      // free variable with no binding anywhere in this module, so "Buy the set"
+      // threw ReferenceError into the error boundary — invisible to the build,
+      // and only reachable from a collection tab, which is why it survived.
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
       const res = await fetch(`${API_URL}/api/users/purchase-bundle`, {
         method: "POST",
         headers: authHeaders(),

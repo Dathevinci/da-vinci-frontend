@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Check, Diamond, Swords, Info } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
@@ -9,6 +9,7 @@ import { isAdmin } from "@/lib/admin";
 import { authHeaders } from "@/lib/authToken";
 import { ARENA_LIST, GRADE_STYLE, type ArenaEffectDef } from "@/data/arenaEffects";
 import { ArenaPreview } from "@/components/cards/ArenaBackdrop";
+import ArenaChest from "@/components/shop/ArenaChest";
 
 /**
  * ARENA EFFECTS — the shop's second counter.
@@ -27,6 +28,16 @@ export default function ArenaShop() {
   const { toast } = useToast();
   const [buyingId, setBuyingId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  // The arena a chest just handed over. Its tile is scrolled to and pulsed on
+  // reveal close, so you land on the thing actually running, next to Equip.
+  const [justWon, setJustWon] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!justWon) return;
+    document.getElementById(`arena-${justWon}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    const t = setTimeout(() => setJustWon(null), 1600);
+    return () => clearTimeout(t);
+  }, [justWon]);
 
   if (!user) return null;
 
@@ -104,6 +115,10 @@ export default function ArenaShop() {
         </div>
       </div>
 
+      {/* The gamble sits above the fixed prices — cheaper than any arena above
+          A grade, but it decides which one you get. */}
+      <ArenaChest onWon={setJustWon} />
+
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
         {ARENA_LIST.map((fx, i) => {
           const owned = ownedIds.includes(fx.id) || godMode;
@@ -114,11 +129,16 @@ export default function ArenaShop() {
           return (
             <motion.div
               key={fx.id}
+              id={`arena-${fx.id}`}
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.28, delay: Math.min(i * 0.04, 0.2) }}
               className={`group relative flex flex-col overflow-hidden rounded-3xl border bg-[#0a0a11] transition-colors ${
-                active ? "border-purple-400/70 shadow-[0_0_34px_rgba(168,85,247,0.3)]" : g.ring
+                justWon === fx.id
+                  ? "border-fuchsia-300 shadow-[0_0_50px_rgba(217,70,239,0.55)]"
+                  : active
+                  ? "border-purple-400/70 shadow-[0_0_34px_rgba(168,85,247,0.3)]"
+                  : g.ring
               }`}
             >
               {/* The effect, running. A still frame would sell none of these. */}

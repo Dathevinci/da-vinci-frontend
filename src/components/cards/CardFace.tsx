@@ -37,6 +37,13 @@ export interface CardDef {
   flavor: string;
   /** Present on support cards — they're played for an effect, never fielded. */
   support?: SupportEffect;
+  /**
+   * Overrides the corner plate's rarity word. Arena effects are graded
+   * A/S/SS/SSS rather than common/legendary, and the plate is the one place
+   * the grade survives every path — the hero overlay doesn't render at all
+   * under reduced motion. Optional, so all 69 existing cards are untouched.
+   */
+  gradeLabel?: string;
 }
 
 /** One short line saying exactly what a support card does. */
@@ -944,7 +951,7 @@ function CardFaceImpl({
               fill="rgba(4,3,10,.72)" stroke={dim ? "#2a2a32" : R.frame} strokeOpacity="0.55" strokeWidth="0.7" />
             <text x={10} y="13.7" fontSize="5" fontWeight="900" letterSpacing="0.9"
               fill={dim ? "#4a4a54" : R.gem} style={{ fontFamily: "ui-sans-serif, system-ui" }}>
-              {card.support ? "SUPPORT" : R.label.toUpperCase()}
+              {card.support ? "SUPPORT" : (card.gradeLabel ?? R.label).toUpperCase()}
             </text>
           </g>
         )}

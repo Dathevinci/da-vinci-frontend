@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import CardFace, { CardDef, RARITY_META } from "./CardFace";
 import { ACCENT, ACCENT_LIT, notch } from "./gacha";
@@ -36,12 +36,30 @@ export default function PackReveal({
   cards,
   onClose,
   title = "Your pull",
+  showStats = true,
+  footer,
+  calm = false,
 }: {
   cards: CardDef[];
   onClose: () => void;
   title?: string;
+  /**
+   * Arena cards have no combat stats. Leaving this on would print ATK/HP off
+   * the fallback table onto a card whose whole design line is that arena
+   * effects never touch combat maths — an active lie on the card face.
+   */
+  showStats?: boolean;
+  /** Shown under the row once every card is out. Survives the calm path. */
+  footer?: ReactNode;
+  /**
+   * Forces the finished spread with no beats. Needed because the app wraps
+   * everything in <MotionConfig reducedMotion="never">, which makes framer
+   * ignore the OS query outright — so a caller that knows the user wants
+   * reduced motion has to say so here.
+   */
+  calm?: boolean;
 }) {
-  const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  const reduce = calm || (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
 
   // Best card last — a pack should crescendo, not peak on the first card.
   const ordered = useMemo(
@@ -229,14 +247,14 @@ export default function PackReveal({
               transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
               style={{ willChange: "transform, opacity", transform: "translateZ(0)", backfaceVisibility: "hidden" }}
             >
-              <CardFace card={hero} owned size={260} showStats />
+              <CardFace card={hero} owned size={260} showStats={showStats} />
             </motion.div>
             <motion.p
               className="absolute bottom-[18%] text-center text-sm font-black uppercase tracking-[0.4em]"
               style={{ color: RARITY_META[hero.rarity].gem }}
               initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
             >
-              {RARITY_META[hero.rarity].label}
+              {hero.gradeLabel ?? RARITY_META[hero.rarity].label}
             </motion.p>
           </motion.div>
         )}
@@ -280,7 +298,7 @@ export default function PackReveal({
                           style={{ width: 190, height: 320, background: `radial-gradient(closest-side, ${meta.glow}, transparent 70%)` }}
                           initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 0.85, scale: 1 }} transition={{ duration: 0.5 }} />
                       )}
-                      <CardFace card={c} owned size={150} showStats />
+                      <CardFace card={c} owned size={150} showStats={showStats} />
                     </>
                   ) : (
                     <CardBack size={150} />
@@ -289,6 +307,19 @@ export default function PackReveal({
               );
             })}
           </div>
+
+          {/* Caller-supplied verdict — new vs duplicate, refunds, collection
+              progress. It lives HERE rather than inside the hero overlay
+              because the hero never renders on the reduced-motion path, and
+              no fact about what you won may exist only inside a motion beat. */}
+          <AnimatePresence>
+            {allOut && footer && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+                className="mt-7 flex w-full justify-center">
+                {footer}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <AnimatePresence>
             {allOut && (
