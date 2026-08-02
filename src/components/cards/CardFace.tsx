@@ -747,6 +747,7 @@ function CardFaceImpl({
   liveHp,
   liveMaxHp,
   hibernating = false,
+  ratio = "5 / 7",
 }: {
   card: CardDef;
   owned?: boolean;
@@ -767,6 +768,8 @@ function CardFaceImpl({
   liveMaxHp?: number;
   /** Fell in a lost duel and is asleep — owned, but not fieldable until woken. */
   hibernating?: boolean;
+  /** CSS aspect-ratio for the whole card. Defaults to the arena's 5/7. */
+  ratio?: string;
 }) {
   const S = (stats || FALLBACK_STATS)[card.rarity] || FALLBACK_STATS.common;
   const mult = foil ? 1.2 : 1;
@@ -883,7 +886,11 @@ function CardFaceImpl({
       className="relative select-none"
       style={{
         width: size,
-        aspectRatio: "5 / 7",
+        // 5/7 is LOAD-BEARING in the arena: that board sizes its whole stack
+        // off this ratio and has about a fifth of a pixel of slack, so a
+        // taller card there overflows into the opponent bench. Grids have
+        // vertical room to spare, so they pass their own.
+        aspectRatio: ratio,
         // No height anywhere, overflow hidden, and not one min-height inside:
         // this is what keeps the card exactly 5:7 at every size. The duel
         // board budgets its layout against that ratio with about a fifth of a

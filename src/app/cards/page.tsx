@@ -745,12 +745,12 @@ export default function CardsPage() {
                              * as cards enter and leave the viewport.
                              */
                             contentVisibility: "auto",
-                            containIntrinsicSize: "auto 320px",
+                            containIntrinsicSize: "auto 400px",
                           } as any}>
                           {/* The card carries its own name, stars and rarity
                               badge now that the art is full-bleed, so nothing
                               is repeated underneath it. */}
-                          <CardFace card={c} owned={has} count={count} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} size={216} />
+                          <CardFace card={c} owned={has} count={count} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} size={216} ratio="5 / 9" />
                         </button>
                       );
                     })}
