@@ -4,7 +4,7 @@ import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Pin, Plus, X, ImagePlus, Hash, ChevronUp, ChevronDown, MessageSquare, Loader2,
-  Crown, Shield, Star, Sparkles, Zap, CornerDownRight, Send,
+  Crown, Shield, Star, Sparkles, Zap, CornerDownRight, Send, MoreHorizontal, Pencil, Trash2,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { authHeaders } from "@/lib/authToken";
@@ -144,6 +144,52 @@ function AuthorLine({ user, blessed }: { user?: Author; blessed?: boolean }) {
   );
 }
 
+/**
+ * The per-post menu. Staff see the same two actions on anyone's post, with a
+ * line saying so — moderating quietly, in a UI identical to editing your own,
+ * is how someone deletes a member's post thinking it was theirs.
+ */
+function PostMenu({ isOwn, onEdit, onDelete }: { isOwn: boolean; onEdit: () => void; onDelete: () => void }) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    // Deferred so the click that OPENED it doesn't immediately close it.
+    const t = setTimeout(() => document.addEventListener("click", close), 0);
+    return () => { clearTimeout(t); document.removeEventListener("click", close); };
+  }, [open]);
+
+  return (
+    <span className="relative ml-auto">
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+        aria-label="Post options"
+        className={`grid h-7 w-7 place-items-center rounded-full transition ${
+          open ? "bg-white/10 text-white" : "text-slate-500 hover:bg-white/5 hover:text-white"}`}
+      >
+        <MoreHorizontal className="h-4 w-4" />
+      </button>
+      {open && (
+        <span className="absolute right-0 top-full z-30 mt-1.5 block w-44 overflow-hidden rounded-xl border border-white/10 bg-[#0f0f16] py-1 shadow-2xl">
+          {!isOwn && (
+            <span className="block px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.18em] text-amber-300/80">
+              Moderating
+            </span>
+          )}
+          <button onClick={(e) => { e.stopPropagation(); setOpen(false); onEdit(); }}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-bold text-slate-300 transition hover:bg-white/5 hover:text-white">
+            <Pencil className="h-3.5 w-3.5" /> Edit
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); setOpen(false); onDelete(); }}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-bold text-rose-300 transition hover:bg-rose-500/10 hover:text-rose-200">
+            <Trash2 className="h-3.5 w-3.5" /> Delete
+          </button>
+        </span>
+      )}
+    </span>
+  );
+}
+
 const ago = (iso: string) => {
   const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
   if (s < 60) return "just now";
@@ -175,6 +221,11 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
   const [posts, setPosts] = useState<Post[]>([]);
   const [replies, setReplies] = useState<Record<string, Post[]>>({});
   const [openThread, setOpenThread] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [draftTitle, setDraftTitle] = useState("");
+  const [draftBody, setDraftBody] = useState("");
+  const [draftTag, setDraftTag] = useState<string>("General");
+  const [savingEdit, setSavingEdit] = useState(false);
   const [topics, setTopics] = useState<{ tag: string; count: number }[]>([]);
   const [total, setTotal] = useState(0);
   const [tag, setTag] = useState<string>("All");
@@ -264,6 +315,69 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
     const byId = new Map(posts.map((p) => [p.id, p]));
     return order.map((id) => byId.get(id)).filter(Boolean) as Post[];
   }, [order, posts]);
+
+  /**
+   * Who may edit or delete a post. Mirrors the server, which decides from the
+   * VERIFIED token — this only decides whether to draw the button, so a wrong
+   * answer here is a cosmetic bug rather than a hole.
+   */
+  const canManage = (p: Post) =>
+    !!user && (p.user?.id === user.id || isAdmin(user.username) || isLeadDev(user));
+
+  const startEdit = (p: Post) => {
+    setEditing(p.id);
+    setDraftTitle(p.title || "");
+    setDraftBody(p.content || "");
+    setDraftTag(p.tag || "General");
+  };
+
+  const saveEdit = async (p: Post) => {
+    if (!user || !draftBody.trim()) return;
+    setSavingEdit(true);
+    try {
+      const r = await fetch(`${API_URL}/api/comments/${p.id}`, {
+        method: "PUT",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          content: draftBody.trim(),
+          title: draftTitle.trim(),
+          tag: draftTag,
+          mediaUrl: p.mediaUrl || undefined,
+        }),
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) return toast(d.message || "Couldn't save that.", "error");
+      setEditing(null);
+      toast("Post updated.", "success");
+      await load();
+    } catch {
+      toast("Couldn't save that.", "error");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const removePost = async (p: Post) => {
+    if (!user) return;
+    // A delete takes the replies with it and cannot be undone, so it asks.
+    const count = replies[p.id]?.length || 0;
+    const warn = count > 0
+      ? `Delete this post and its ${count} ${count === 1 ? "reply" : "replies"}? This can't be undone.`
+      : "Delete this post? This can't be undone.";
+    if (!window.confirm(warn)) return;
+    try {
+      const r = await fetch(`${API_URL}/api/comments/${p.id}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) return toast(d.message || "Couldn't delete that.", "error");
+      toast("Post deleted.", "success");
+      await load();
+    } catch {
+      toast("Couldn't delete that.", "error");
+    }
+  };
 
   const vote = async (post: Post, value: number) => {
     if (!user) return toast("Sign in to vote.", "error");
@@ -472,13 +586,70 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                         )}
                         {p.tag && <TagChip tag={p.tag} size="xs" />}
                         <span className="text-[11px] font-bold text-slate-500">{ago(p.createdAt)}</span>
+                        {canManage(p) && (
+                          <PostMenu
+                            isOwn={p.user?.id === user?.id}
+                            onEdit={() => startEdit(p)}
+                            onDelete={() => removePost(p)}
+                          />
+                        )}
                       </div>
 
-                      {p.title && <h3 className="mt-3 text-2xl font-black leading-tight">{p.title}</h3>}
-                      {p.content && (
-                        <p className="mt-2 whitespace-pre-wrap break-words text-[15px] leading-[1.65] text-slate-200">
-                          {p.content}
-                        </p>
+                      {/* ── EDITING ── in place, not in a modal. A post is
+                          already a block of text on the page; lifting it into a
+                          dialog to change a word loses the thread around it. */}
+                      {editing === p.id ? (
+                        <div className="mt-3 space-y-2">
+                          <input
+                            value={draftTitle}
+                            onChange={(e) => setDraftTitle(e.target.value.slice(0, 30))}
+                            placeholder="Title (optional)"
+                            className="w-full bg-black/50 px-3.5 py-2 text-sm font-black text-white outline-none placeholder:text-slate-600"
+                            style={{ clipPath: notch(9), boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }}
+                          />
+                          <textarea
+                            value={draftBody}
+                            onChange={(e) => setDraftBody(e.target.value.slice(0, 1500))}
+                            rows={4}
+                            className="w-full resize-y bg-black/50 px-3.5 py-2.5 text-[15px] leading-relaxed text-white outline-none"
+                            style={{ clipPath: notch(10), boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }}
+                          />
+                          <div className="flex flex-wrap gap-1.5">
+                            {TAGS.map((t) => (
+                              <button key={t} onClick={() => setDraftTag(t)}
+                                className="px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] transition"
+                                style={{
+                                  clipPath: notch(5),
+                                  background: draftTag === t ? `${TAG_TINT[t]}30` : "rgba(255,255,255,.04)",
+                                  boxShadow: `inset 0 0 0 1px ${draftTag === t ? TAG_TINT[t] : "rgba(255,255,255,.1)"}`,
+                                  color: draftTag === t ? "#fff" : "#64748b",
+                                }}>
+                                {t}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="flex justify-end gap-2 pt-1">
+                            <button onClick={() => setEditing(null)}
+                              className="px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-300 transition hover:brightness-125"
+                              style={{ clipPath: notch(8), background: "rgba(255,255,255,.05)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }}>
+                              Cancel
+                            </button>
+                            <button onClick={() => saveEdit(p)} disabled={!draftBody.trim() || savingEdit}
+                              className="px-5 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white transition hover:brightness-115 disabled:opacity-35"
+                              style={{ clipPath: "polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%)", background: `linear-gradient(100deg, #7c3aed, ${ACCENT})` }}>
+                              {savingEdit ? "Saving…" : "Save"}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          {p.title && <h3 className="mt-3 text-2xl font-black leading-tight">{p.title}</h3>}
+                          {p.content && (
+                            <p className="mt-2 whitespace-pre-wrap break-words text-[15px] leading-[1.65] text-slate-200">
+                              {p.content}
+                            </p>
+                          )}
+                        </>
                       )}
                       {p.mediaUrl && (
                         <img src={p.mediaUrl} alt="" loading="lazy"
@@ -510,10 +681,45 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                                   <div className="flex flex-wrap items-center gap-2">
                                     <AuthorLine user={r.user} blessed={r.blessed} />
                                     <span className="text-[10px] font-bold text-slate-600">{ago(r.createdAt)}</span>
+                                    {/* A reply is someone's post too — same
+                                        rights, same controls. */}
+                                    {canManage(r) && (
+                                      <PostMenu
+                                        isOwn={r.user?.id === user?.id}
+                                        onEdit={() => startEdit(r)}
+                                        onDelete={() => removePost(r)}
+                                      />
+                                    )}
                                   </div>
-                                  <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-300">
-                                    {r.content}
-                                  </p>
+                                  {/* Replies edit inline too, body only — they
+                                      carry no title or topic of their own. */}
+                                  {editing === r.id ? (
+                                    <div className="mt-1.5 space-y-2">
+                                      <textarea
+                                        value={draftBody}
+                                        onChange={(e) => setDraftBody(e.target.value.slice(0, 800))}
+                                        rows={3}
+                                        className="w-full resize-y bg-black/50 px-3 py-2 text-sm leading-relaxed text-white outline-none"
+                                        style={{ clipPath: notch(8), boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }}
+                                      />
+                                      <div className="flex justify-end gap-2">
+                                        <button onClick={() => setEditing(null)}
+                                          className="px-3.5 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-slate-300 transition hover:brightness-125"
+                                          style={{ clipPath: notch(7), background: "rgba(255,255,255,.05)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }}>
+                                          Cancel
+                                        </button>
+                                        <button onClick={() => saveEdit(r)} disabled={!draftBody.trim() || savingEdit}
+                                          className="px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-white transition hover:brightness-115 disabled:opacity-35"
+                                          style={{ clipPath: "polygon(7px 0, 100% 0, calc(100% - 7px) 100%, 0 100%)", background: `linear-gradient(100deg, #7c3aed, ${ACCENT})` }}>
+                                          {savingEdit ? "Saving…" : "Save"}
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-300">
+                                      {r.content}
+                                    </p>
+                                  )}
                                 </div>
                               </div>
                             ))}
