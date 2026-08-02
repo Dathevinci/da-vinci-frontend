@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Volume2, VolumeX } from "lucide-react";
 import CardFace, { CardDef, RARITY_META } from "./CardFace";
 import { ACCENT, ACCENT_LIT, notch } from "./gacha";
-import { sfxFall, sfxCollapse, sfxBurst, sfxHero, sfxStop } from "@/lib/sfx";
+import { sfxFall, sfxCollapse, sfxBurst, sfxHero, sfxChime, sfxStop } from "@/lib/sfx";
 
 /**
  * PACK OPENING — the summon sequence.
@@ -158,24 +158,34 @@ export default function PackReveal({
   }, [hero]);
 
   /**
-   * SOUND — legendary pulls only, per the owner: the fall, the collapse,
-   * the crash and the hero sting each fire off the same stage machine that
-   * drives the visuals, so they can never drift apart. Synthesized on the
-   * fly (src/lib/sfx.ts), muted by the toggle next to Skip (remembered),
-   * and silent entirely on the reduced-motion path.
+   * SOUND — scaled to the pull. The cues fire off the same stage machine
+   * that drives the visuals, so they can never drift apart. Rarity sets the
+   * WEIGHT, not the shape: a rare's fall and crash land at half strength,
+   * an epic's at three-quarters plus a flip chime, and a legendary gets the
+   * full sequence — collapse, crash and the hero sting. Commons stay
+   * silent; a pull with nothing in it should sound like nothing. Muted by
+   * the toggle next to Skip (remembered); reduced-motion stays silent.
    */
   const [sound, setSound] = useState(() => {
     if (typeof window === "undefined") return true;
     try { return localStorage.getItem("davinci_sfx") !== "off"; } catch { return true; }
   });
-  const audible = sound && !reduce && bestOrder >= 3;
+  const audible = sound && !reduce && bestOrder >= 1;
+  const tierGain = bestOrder >= 3 ? 1 : bestOrder === 2 ? 0.75 : 0.5;
   useEffect(() => {
     if (!audible) return;
-    if (stage === "warp") sfxFall(fallMs);
+    if (stage === "warp") sfxFall(fallMs, tierGain);
     else if (stage === "hole") sfxCollapse();
-    else if (stage === "burst") sfxBurst();
-  }, [stage, audible, fallMs]);
+    else if (stage === "burst") sfxBurst(tierGain);
+  }, [stage, audible, fallMs, tierGain]);
   useEffect(() => { if (audible && hero) sfxHero(); }, [hero, audible]);
+  // An EPIC flipping in the row gets its chime. Legendaries don't double up
+  // here — their moment is the hero sting.
+  useEffect(() => {
+    if (!audible || stage !== "reveal" || revealed === 0) return;
+    const just = ordered[revealed - 1];
+    if (just && RARITY_META[just.rarity].order === 2) sfxChime();
+  }, [revealed, audible, stage, ordered]);
   // Leaving the reveal silences anything still ringing.
   useEffect(() => () => sfxStop(), []);
   const toggleSound = () => setSound((s) => {
@@ -459,11 +469,10 @@ export default function PackReveal({
         )}
       </AnimatePresence>
 
-      {/* ── SKIP + SOUND ── always reachable. The speaker only appears on a
-          legendary-or-better pull, because that is the only time there is
-          anything to hear. */}
+      {/* ── SKIP + SOUND ── always reachable. The speaker appears whenever
+          the pull is rare-or-better — whenever there is anything to hear. */}
       <div className="absolute right-5 top-5 z-20 flex items-center gap-2">
-        {bestOrder >= 3 && !reduce && (
+        {bestOrder >= 1 && !reduce && (
           <button onClick={(e) => { e.stopPropagation(); toggleSound(); }}
             aria-label={sound ? "Mute sound effects" : "Unmute sound effects"}
             title={sound ? "Sound on" : "Sound off"}

@@ -61,7 +61,7 @@ function noise(c: AudioContext, seconds: number): AudioBufferSourceNode {
  * underneath. Duration matches the animation's fallMs so the sound lands
  * exactly when the star does.
  */
-export function sfxFall(ms: number) {
+export function sfxFall(ms: number, intensity = 1) {
   const a = ac();
   if (!a) return;
   const { c, out } = a;
@@ -75,7 +75,7 @@ export function sfxFall(ms: number) {
   bp.frequency.exponentialRampToValueAtTime(240, t + dur);
   const g = c.createGain();
   g.gain.setValueAtTime(0.001, t);
-  g.gain.exponentialRampToValueAtTime(0.5, t + dur * 0.85);
+  g.gain.exponentialRampToValueAtTime(0.5 * intensity, t + dur * 0.85);
   g.gain.exponentialRampToValueAtTime(0.001, t + dur);
   n.connect(bp).connect(g).connect(out);
   n.start(t); n.stop(t + dur + 0.1); keep(n);
@@ -86,7 +86,7 @@ export function sfxFall(ms: number) {
   w.frequency.exponentialRampToValueAtTime(170, t + dur);
   const wg = c.createGain();
   wg.gain.setValueAtTime(0.0001, t);
-  wg.gain.exponentialRampToValueAtTime(0.07, t + dur * 0.6);
+  wg.gain.exponentialRampToValueAtTime(0.07 * intensity, t + dur * 0.6);
   wg.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   w.connect(wg).connect(out);
   w.start(t); w.stop(t + dur); keep(w);
@@ -127,7 +127,7 @@ export function sfxCollapse() {
 }
 
 /** THE CRASH — a kick-drum thump, a splash of bright debris, a long rumble. */
-export function sfxBurst() {
+export function sfxBurst(intensity = 1) {
   const a = ac();
   if (!a) return;
   const { c, out } = a;
@@ -138,7 +138,7 @@ export function sfxBurst() {
   k.frequency.setValueAtTime(150, t);
   k.frequency.exponentialRampToValueAtTime(42, t + 0.4);
   const kg = c.createGain();
-  kg.gain.setValueAtTime(0.85, t);
+  kg.gain.setValueAtTime(0.85 * intensity, t);
   kg.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
   k.connect(kg).connect(out);
   k.start(t); k.stop(t + 0.5); keep(k);
@@ -148,7 +148,7 @@ export function sfxBurst() {
   hp.type = "highpass";
   hp.frequency.value = 900;
   const ng = c.createGain();
-  ng.gain.setValueAtTime(0.5, t);
+  ng.gain.setValueAtTime(0.5 * intensity, t);
   ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
   n.connect(hp).connect(ng).connect(out);
   n.start(t); n.stop(t + 0.5); keep(n);
@@ -157,10 +157,34 @@ export function sfxBurst() {
   sub.type = "sine";
   sub.frequency.value = 55;
   const sg = c.createGain();
-  sg.gain.setValueAtTime(0.3, t);
+  sg.gain.setValueAtTime(0.3 * intensity, t);
   sg.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
   sub.connect(sg).connect(out);
   sub.start(t); sub.stop(t + 0.95); keep(sub);
+}
+
+/**
+ * THE CHIME — an epic flips in the row. Two quick plucked notes: brighter
+ * than a strike, far short of the hero sting. An epic should turn heads,
+ * not stop the room.
+ */
+export function sfxChime() {
+  const a = ac();
+  if (!a) return;
+  const { c, out } = a;
+  const t = c.currentTime;
+  [659.25, 987.77].forEach((f, i) => { // E5, B5
+    const at = t + i * 0.07;
+    const o = c.createOscillator();
+    o.type = "triangle";
+    o.frequency.value = f;
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.exponentialRampToValueAtTime(0.11, at + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + 0.5);
+    o.connect(g).connect(out);
+    o.start(at); o.stop(at + 0.55); keep(o);
+  });
 }
 
 /**
