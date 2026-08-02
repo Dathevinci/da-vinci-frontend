@@ -402,6 +402,10 @@ export default function Arena({
    * side expand a domain should be as loud as doing it yourself.
    */
   const [domain, setDomain] = useState<{ text: string; mine: boolean; key: number } | null>(null);
+  // The domain doesn't just FLASH — it lingers. After the overlay clears, the
+  // whole arena stays tinted in the caster's colour for a while: you are
+  // fighting INSIDE their domain, and the room should say so.
+  const [aura, setAura] = useState<{ mine: boolean; key: number } | null>(null);
   const lastLogRef = useRef<string | null>(null);
   useEffect(() => {
     const line = log.length ? log[log.length - 1] : null;
@@ -411,15 +415,22 @@ export default function Arena({
     // comparing against the text "25B2", which no log line ever starts with,
     // so the overlay never fired even while the log showed domains landing.
     if (!line.startsWith("▲")) return;
-    setDomain({ text: line.replace(/^▲\s*/, ""), mine: line.includes(myName), key: Date.now() });
+    const mine = line.includes(myName);
+    setDomain({ text: line.replace(/^▲\s*/, ""), mine, key: Date.now() });
+    setAura({ mine, key: Date.now() });
   }, [log, myName]);
   // Cleared on a timer, never onAnimationComplete — that fires on the wrapper's
   // own animation, not the keyframes inside it.
   useEffect(() => {
     if (!domain) return;
-    const t = setTimeout(() => setDomain(null), 2600);
+    const t = setTimeout(() => setDomain(null), 3000);
     return () => clearTimeout(t);
   }, [domain?.key]);
+  useEffect(() => {
+    if (!aura) return;
+    const t = setTimeout(() => setAura(null), 9000);
+    return () => clearTimeout(t);
+  }, [aura?.key]);
   const aliveFoe = foe.fighters.filter((f) => f.hp > 0).length;
   const aliveMine = mine.fighters.filter((f) => f.hp > 0).length;
   useEffect(() => {
@@ -507,13 +518,26 @@ export default function Arena({
   };
 
   useEffect(() => {
-    // One frame's work: steer the ghost, then ask what's under the finger.
-    // The ghost is pointer-events:none, so elementFromPoint reads THROUGH it.
+    // THE GHOST HAS WEIGHT NOW. It doesn't hard-lock to the cursor — it eases
+    // toward it every frame and tilts into the direction of travel, which is
+    // the whole difference between dragging a screenshot and dragging a card.
+    // The loop runs continuously while a drag is live (compositor-only work),
+    // and the hit-test always reads the POINTER, never the trailing ghost.
+    const eased = { x: 0, y: 0 };
+    let easedLive = false;
     const frame = () => {
       rafRef.current = 0;
+      if (!dragRef.current) return;
       const { x, y } = posRef.current;
       const g = ghostRef.current;
-      if (g) g.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+      if (g) {
+        if (g.style.transition) { g.style.transition = ""; g.style.opacity = ""; } // a snap-back was interrupted
+        if (!easedLive) { eased.x = x; eased.y = y; easedLive = true; }
+        eased.x += (x - eased.x) * 0.34;
+        eased.y += (y - eased.y) * 0.34;
+        const tilt = Math.max(-10, Math.min(10, (x - eased.x) * 0.22));
+        g.style.transform = `translate3d(${eased.x}px, ${eased.y}px, 0) rotate(${tilt}deg)`;
+      }
       const el = document.elementFromPoint(x, y) as HTMLElement | null;
       const zone = el?.closest("[data-drop]") as HTMLElement | null;
       const next = zone?.getAttribute("data-drop") || null;
@@ -521,6 +545,7 @@ export default function Arena({
         overRef.current = next;
         setDrag((s) => (s ? { ...s, over: next } : s));
       }
+      rafRef.current = requestAnimationFrame(frame);
     };
     const move = (e: PointerEvent) => {
       const p = pendRef.current;
@@ -529,6 +554,7 @@ export default function Arena({
       if (!dragRef.current) {
         if (Math.hypot(e.clientX - p.x, e.clientY - p.y) < 8) return; // a tap stays a tap
         dragRef.current = p.d;
+        easedLive = false;
         setDrag({ d: p.d, over: null });
       }
       if (!rafRef.current) rafRef.current = requestAnimationFrame(frame);
@@ -545,12 +571,31 @@ export default function Arena({
         // not where the last frame saw it.
         const el = document.elementFromPoint(posRef.current.x, posRef.current.y) as HTMLElement | null;
         const zone = el?.closest("[data-drop]") as HTMLElement | null;
-        resolveRef.current(dragRef.current, zone?.getAttribute("data-drop") || overRef.current);
+        const target = zone?.getAttribute("data-drop") || overRef.current;
+        const grabbed = pendRef.current;
+        if (target) {
+          resolveRef.current(dragRef.current, target);
+          pendRef.current = null; dragRef.current = null; overRef.current = null;
+          setDrag(null);
+        } else {
+          // RELEASED OVER NOTHING — the card flies home before it vanishes,
+          // instead of blinking out wherever it was dropped. It returns to
+          // the point it was GRABBED at, which is where the hand card sits.
+          const g = ghostRef.current;
+          pendRef.current = null; dragRef.current = null; overRef.current = null;
+          if (g && grabbed) {
+            g.style.transition = "transform .3s cubic-bezier(.3,1.35,.45,1), opacity .3s ease";
+            g.style.transform = `translate3d(${grabbed.x}px, ${grabbed.y}px, 0) rotate(0deg)`;
+            g.style.opacity = "0.35";
+            window.setTimeout(() => setDrag((s) => (dragRef.current ? s : null)), 300);
+          } else {
+            setDrag(null);
+          }
+        }
+      } else {
+        pendRef.current = null;
+        setDrag(null);
       }
-      pendRef.current = null;
-      dragRef.current = null;
-      overRef.current = null;
-      setDrag(null);
     };
     window.addEventListener("pointermove", move, { passive: true });
     window.addEventListener("pointerup", end);
@@ -706,10 +751,14 @@ export default function Arena({
       // animating anything inside it and reads as impact across the whole
       // window at once. Keyframes end at 0, so nothing needs putting back.
       animate={domain
-        ? { opacity: 1, x: [0, -9, 7, -5, 3, -1, 0], y: [0, 5, -4, 3, -2, 0] }
-        : { opacity: 1, x: 0, y: 0 }}
+        ? { opacity: 1, x: [0, -9, 7, -5, 3, -1, 0], y: [0, 5, -4, 3, -2, 0], scale: [1, 1.015, 1] }
+        : { opacity: 1, x: 0, y: 0, scale: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ x: { duration: 0.6, ease: "easeOut" }, y: { duration: 0.6, ease: "easeOut" } }}
+      transition={{
+        x: { duration: 0.6, ease: "easeOut" },
+        y: { duration: 0.6, ease: "easeOut" },
+        scale: { duration: 0.7, ease: "easeOut" },
+      }}
       className="fixed inset-0 z-[140] flex select-none flex-col overflow-hidden"
       style={{
         height: "100dvh",
@@ -1327,6 +1376,35 @@ export default function Arena({
                 Leave the arena
               </button>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── THE DOMAIN HOLDS ── after the expansion clears, the arena stays
+          claimed: an edge vignette in the caster's colour over the ENTIRE
+          window — board, rails, log, everything — with a slow ring turning
+          behind the fight. It fades out on its own; nothing here takes
+          pointer events or touches layout. */}
+      <AnimatePresence>
+        {aura && (
+          <motion.div key={aura.key} aria-hidden
+            className="pointer-events-none absolute inset-0 z-[60] overflow-hidden"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 1.2 } }}
+            transition={{ duration: 0.6 }}>
+            <div className="absolute inset-0"
+              style={{
+                background: aura.mine
+                  ? "radial-gradient(80% 70% at 50% 50%, transparent 55%, rgba(217,70,239,.16) 82%, rgba(217,70,239,.34))"
+                  : "radial-gradient(80% 70% at 50% 50%, transparent 55%, rgba(244,63,94,.15) 82%, rgba(244,63,94,.32))",
+              }} />
+            <motion.div className="absolute left-1/2 top-1/2 rounded-full"
+              style={{
+                width: "130vmax", height: "130vmax", marginLeft: "-65vmax", marginTop: "-65vmax",
+                background: `conic-gradient(from 0deg, transparent 0 12%, ${aura.mine ? "rgba(217,70,239,.05)" : "rgba(244,63,94,.05)"} 16% 22%, transparent 26% 62%, ${aura.mine ? "rgba(217,70,239,.05)" : "rgba(244,63,94,.05)"} 66% 72%, transparent 76%)`,
+                willChange: "transform",
+              }}
+              initial={{ rotate: 0 }} animate={{ rotate: 360 }}
+              transition={{ duration: 26, ease: "linear", repeat: Infinity }} />
           </motion.div>
         )}
       </AnimatePresence>
