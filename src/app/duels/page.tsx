@@ -76,8 +76,12 @@ export default function DuelsPage() {
   const [deck, setDeck] = useState<string[]>([]);
   const [editDeck, setEditDeck] = useState(false);
   useEffect(() => { setDeck(loadSavedDeck()); }, []);
+  const [showChallenge, setShowChallenge] = useState(false);
   // Any open modal locks the page behind it. The Arena locks on its own and
-  // restores what it found, so the two nest cleanly.
+  // restores what it found, so the two nest cleanly. DECLARED AFTER
+  // showChallenge: a const initializer that reads a state declared below it
+  // is a TDZ ReferenceError at first render — and with ignoreBuildErrors,
+  // that crash BUILDS AND DEPLOYS. It took this page down once.
   const modalOpen = !!active || showChallenge || editDeck;
   useEffect(() => {
     if (!modalOpen) return;
@@ -85,7 +89,6 @@ export default function DuelsPage() {
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = prev; };
   }, [modalOpen]);
-  const [showChallenge, setShowChallenge] = useState(false);
   const [tab, setTab] = useState<"duels" | "ladder">("duels");
   // Which duel is on screen RIGHT NOW, readable from inside an in-flight
   // request whose closure captured an older value.
