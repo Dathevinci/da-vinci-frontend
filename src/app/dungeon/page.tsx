@@ -52,6 +52,9 @@ type Ev =
   | { k: "ekill"; e: number }
   | { k: "ehit"; e: number; i: number; dmg: number }
   | { k: "fall"; i: number }
+  | { k: "domain"; i: number; name: string; text: string }
+  | { k: "pheal"; i: number; amt: number }
+  | { k: "note"; text: string }
   | { k: "clear"; ap: number; shards: number }
   | { k: "wipe" };
 type RunResult = {
@@ -140,6 +143,9 @@ export default function DungeonPage() {
   const [bossFloor, setBossFloor] = useState(false);
   const [result, setResult] = useState<RunResult | null>(null);
   const [crt, setCrt] = useState(true);
+  // A domain expansion takes the stage over for a beat — pixel style, but
+  // unmistakably the same moment the arena makes of it.
+  const [domainShow, setDomainShow] = useState<{ name: string; text: string; who: string } | null>(null);
 
   const speedRef = useRef(1);
   const skipRef = useRef(false);
@@ -186,9 +192,11 @@ export default function DungeonPage() {
     } catch { /* offline */ }
   }, [user?.id]);
 
+  const [domains, setDomains] = useState<Record<string, { name: string }>>({});
   useEffect(() => { loadCatalog(API_URL, (cat: any) => {
     const cardsArr: CardDef[] = cat?.cards || [];
     setById(Object.fromEntries(cardsArr.map((c) => [c.id, c])));
+    setDomains(cat?.domains || {});
   }, () => {}); }, []);
   useEffect(() => { loadStatus(); }, [loadStatus]);
   useEffect(() => () => { stopRef.current = true; if (timerRef.current) clearTimeout(timerRef.current); }, []);
@@ -242,6 +250,22 @@ export default function DungeonPage() {
       } else if (ev.k === "fall") {
         pushLog(`> ${liveUnits[ev.i]?.name ?? "?"} HAS FALLEN.`);
         await nap(520);
+      } else if (ev.k === "domain") {
+        // The mode's loudest beat. The stage floods, the name lands, the
+        // fight waits for it — even at 2x. Skip still skips.
+        setDomainShow({ name: ev.name, text: ev.text, who: liveUnits[ev.i]?.name ?? "?" });
+        pushLog(`> ▲ ${liveUnits[ev.i]?.name ?? "?"} EXPANDS A DOMAIN — ${ev.name}`);
+        await nap(1600);
+        setDomainShow(null);
+        await nap(150);
+      } else if (ev.k === "pheal") {
+        pop("p", ev.i, `+${ev.amt}`);
+        liveUnits[ev.i] = { ...liveUnits[ev.i], hp: Math.min(liveUnits[ev.i].maxHp, Math.max(0, liveUnits[ev.i].hp) + ev.amt) };
+        setUnits([...liveUnits]);
+        await nap(300);
+      } else if (ev.k === "note") {
+        pushLog(ev.text);
+        await nap(340);
       } else if (ev.k === "clear") {
         setBanked((b) => ({ ap: b.ap + ev.ap, shards: b.shards + ev.shards }));
         pushLog(`> floor cleared. +${ev.ap} AP${ev.shards ? ` +${ev.shards} shards` : ""} (unbanked).`);
@@ -482,6 +506,11 @@ export default function DungeonPage() {
                           <span className="min-w-0 flex-1">
                             <span className="block truncate font-pixel text-[8px] leading-relaxed">{def.name}</span>
                             <span className="block font-mono text-[10px] text-[#8f86b8]">LV.{c.level}{c.foil ? " ★FOIL" : ""} · ATK {s.atk}</span>
+                            {domains[c.cardId] && (
+                              <span className="block truncate font-mono text-[10px] text-[#f0abfc]" title="Expands automatically: on a boss floor, or when badly hurt. Once per run.">
+                                ▲ {domains[c.cardId].name}
+                              </span>
+                            )}
                             <span className="mt-1 block h-[7px] w-full border border-[#3a3357] bg-[#141024]">
                               <span className="block h-full" style={{
                                 width: `${Math.round((s.hp / Math.max(1, s.maxHp)) * 100)}%`,
@@ -603,6 +632,20 @@ export default function DungeonPage() {
 
                 {skipping && (
                   <p className="font-pixel absolute left-1/2 top-3 -translate-x-1/2 text-[9px] text-[#ffd23e]">FAST-FORWARDING...</p>
+                )}
+
+                {/* ── DOMAIN EXPANSION ── the stage belongs to it for a beat */}
+                {domainShow && (
+                  <div className="dg-domain absolute inset-0 z-20 grid place-items-center">
+                    <div className="px-4 text-center">
+                      <p className="font-pixel text-[9px] tracking-widest text-[#f0abfc]">▲ DOMAIN EXPANSION ▲</p>
+                      <p className="font-pixel mt-3 text-[13px] leading-relaxed text-[#ffd23e]" style={{ textShadow: "3px 3px 0 #000" }}>
+                        {domainShow.name}
+                      </p>
+                      <p className="mt-2 font-mono text-[11px] text-[#e8e3d0]">{domainShow.who}</p>
+                      <p className="mt-1 font-mono text-[10px] text-[#b9aee0]">{domainShow.text}</p>
+                    </div>
+                  </div>
                 )}
               </div>
 
@@ -728,6 +771,9 @@ const DG_CSS = `
 .dg-pop { position: absolute; top: -16px; left: 50%; transform: translateX(-50%);
   animation: dg-pop .7s steps(6) forwards; pointer-events: none; white-space: nowrap; text-shadow: 2px 2px 0 #000; z-index: 30; }
 @keyframes dg-pop { from { transform: translate(-50%, 0); opacity: 1; } to { transform: translate(-50%, -26px); opacity: 0; } }
+.dg-domain { background: rgba(30, 8, 40, .92); border: 3px solid #f0abfc;
+  animation: dg-domain-in .25s steps(4); }
+@keyframes dg-domain-in { from { opacity: 0; } to { opacity: 1; } }
 .dg-crt { position: fixed; inset: 0; z-index: 40; pointer-events: none;
   background: repeating-linear-gradient(0deg, rgba(0,0,0,.22) 0 1px, transparent 1px 3px);
   mix-blend-mode: multiply; }
