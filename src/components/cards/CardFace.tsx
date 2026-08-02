@@ -947,7 +947,11 @@ function CardFaceImpl({
         {size >= 76 && (
           <g>
             <rect x="6" y="6" rx="3" height="11"
-              width={(card.support ? 8 : String(R.label).length) * 3.1 + 8}
+              {/* Width follows the text ACTUALLY drawn below, not the rarity
+                  word — an arena card prints "SSS" where a normal card prints
+                  "LEGENDARY", and sizing off the latter leaves three letters
+                  floating in a box built for nine. */}
+              width={(card.support ? 8 : (card.gradeLabel ?? String(R.label)).length) * 3.1 + 8}
               fill="rgba(4,3,10,.72)" stroke={dim ? "#2a2a32" : R.frame} strokeOpacity="0.55" strokeWidth="0.7" />
             <text x={10} y="13.7" fontSize="5" fontWeight="900" letterSpacing="0.9"
               fill={dim ? "#4a4a54" : R.gem} style={{ fontFamily: "ui-sans-serif, system-ui" }}>

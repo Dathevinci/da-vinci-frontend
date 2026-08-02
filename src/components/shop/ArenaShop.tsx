@@ -10,6 +10,8 @@ import { authHeaders } from "@/lib/authToken";
 import { ARENA_LIST, GRADE_STYLE, type ArenaEffectDef } from "@/data/arenaEffects";
 import { ArenaPreview } from "@/components/cards/ArenaBackdrop";
 import ArenaChest from "@/components/shop/ArenaChest";
+import CardFace from "@/components/cards/CardFace";
+import { arenaAsCard } from "@/data/arenaChest";
 
 /**
  * ARENA EFFECTS — the shop's second counter.
@@ -141,19 +143,26 @@ export default function ArenaShop() {
                   : g.ring
               }`}
             >
-              {/* The effect, running. A still frame would sell none of these. */}
-              <ArenaPreview effectId={fx.id} className="h-40 border-b border-white/10" />
+              {/* The real card, standing on the board it creates. The card
+                  carries the name, the grade plate and the stars; the live
+                  backdrop behind it is the effect actually running. Noir
+                  visibly drains the card itself, which no mock shape could
+                  show — that IS the product demo. */}
+              <ArenaPreview
+                effectId={fx.id}
+                className="border-b border-white/10 py-5"
+              >
+                <motion.div
+                  whileHover={{ y: -6, rotate: -1 }}
+                  transition={{ type: "tween", duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                  style={{ willChange: "transform" }}
+                >
+                  <CardFace card={arenaAsCard(fx)} owned size={150} showStats={false} />
+                </motion.div>
+              </ArenaPreview>
 
               <div className="flex flex-1 flex-col p-4">
-                <div className="mb-2 flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className={`truncate text-lg font-black ${g.text}`}>{fx.name}</h3>
-                    <p className="mt-0.5 text-xs text-slate-500">{fx.tagline}</p>
-                  </div>
-                  <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black tracking-widest ${g.chip}`}>
-                    {g.label}
-                  </span>
-                </div>
+                <p className="mb-3 text-center text-xs italic text-slate-500">{fx.tagline}</p>
 
                 {/* Grade → how much of the board it takes, shown as a bar so the
                     "rarer applies more" rule is visible rather than claimed. */}

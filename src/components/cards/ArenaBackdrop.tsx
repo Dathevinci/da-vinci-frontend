@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { arenaEffect } from "@/data/arenaEffects";
 import { usePreferences } from "@/hooks/usePreferences";
 
@@ -362,7 +362,11 @@ export function ArenaOverlay({ effectId, flashKey, className = "" }: LayerProps 
  * A small self-contained board used by the shop to show an effect running,
  * so nobody spends 14,000 AP on a paragraph.
  */
-export function ArenaPreview({ effectId, className = "" }: LayerProps) {
+export function ArenaPreview({
+  effectId,
+  className = "",
+  children,
+}: LayerProps & { children?: ReactNode }) {
   return (
     <div
       // No rounding or border here on purpose: callers set their own, and a
@@ -373,20 +377,25 @@ export function ArenaPreview({ effectId, className = "" }: LayerProps) {
       style={{ isolation: "isolate" }}
     >
       <ArenaBackdrop effectId={effectId} />
-      {/* Two mock fighters, coloured so a drain to grey is obvious. Sized in
-          percentages so the same component works as a 40px thumbnail beside a
-          checkbox and as a full-width card on the shop grid. */}
+
+      {/* Whatever stands ON the board. Pass the real card here and Noir visibly
+          drains IT, which is the actual promise — a preview with nothing on it
+          can only ever show the floor. The two coloured blocks are the fallback
+          for thumbnails too small to read a card on. */}
       <div className="relative z-10 flex h-full w-full items-center justify-center gap-[7%]">
-        {[
-          "linear-gradient(160deg,#38bdf8,#1d4ed8)",
-          "linear-gradient(160deg,#fb7185,#be123c)",
-        ].map((g, i) => (
-          <div key={i} className="flex w-[19%] flex-col items-center gap-[8%]">
-            <div className="w-full rounded-[12%] border border-white/20 shadow-lg" style={{ background: g, aspectRatio: "3 / 4" }} />
-            <div className="h-[3px] w-full rounded-full" style={{ background: i === 0 ? "#22d3ee" : "#fb7185" }} />
-          </div>
-        ))}
+        {children ?? (
+          [
+            "linear-gradient(160deg,#38bdf8,#1d4ed8)",
+            "linear-gradient(160deg,#fb7185,#be123c)",
+          ].map((g, i) => (
+            <div key={i} className="flex w-[19%] flex-col items-center gap-[8%]">
+              <div className="w-full rounded-[12%] border border-white/20 shadow-lg" style={{ background: g, aspectRatio: "3 / 4" }} />
+              <div className="h-[3px] w-full rounded-full" style={{ background: i === 0 ? "#22d3ee" : "#fb7185" }} />
+            </div>
+          ))
+        )}
       </div>
+
       <ArenaOverlay effectId={effectId} />
     </div>
   );
