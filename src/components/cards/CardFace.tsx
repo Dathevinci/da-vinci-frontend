@@ -901,6 +901,27 @@ function CardFaceImpl({
       }}
       title={owned ? `${card.name} — ${R.label}${foil ? " (Foil)" : ""}` : `${R.label} · not yet collected`}
     >
+      {/* ── LEGENDARY AURA ── at the CARD ROOT, not inside the art band.
+          The first attempt was an inset glow on the art container, which the
+          container clipped and the panel covered — technically present and
+          effectively invisible. This sits over the whole card, above the
+          panel, and pulses a real ring of the rarity's colour. */}
+      {owned && size >= 110 && card.rarity === "legendary" && (
+        <span
+          aria-hidden
+          className="cf-anim"
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 5,
+            pointerEvents: "none",
+            borderRadius: "inherit",
+            boxShadow: `inset 0 0 0 1px #F59E0B, inset 0 0 ${Math.round(size * 0.10)}px #F59E0B66, 0 0 ${Math.round(size * 0.09)}px #F59E0B55`,
+            animation: "cf-breathe 3.2s ease-in-out infinite",
+            willChange: "opacity",
+          }}
+        />
+      )}
       {/* ── ART ───────────────────────────────────────────────────────────
           flex:1 with min-height:0 so every row the panel drops hands its
           height back to the picture instead of leaving a gap. */}
