@@ -20,16 +20,14 @@
  * exact bug once with the landing artwork.
  */
 export const CARD_ART: Record<string, string> = {
-  // The eight legendaries. Uncomment a line once its file is committed;
-  // a path pointing at nothing is harmless but pointless.
-  // card_outergod:   "/cards/card_outergod.png",
-  // card_gatekey:    "/cards/card_gatekey.png",
-  // card_leviathan:  "/cards/card_leviathan.png",
-  // card_hollowtide: "/cards/card_hollowtide.png",
-  // card_lastronin:  "/cards/card_lastronin.png",
-  // card_swordsaint: "/cards/card_swordsaint.png",
-  // card_secondwind: "/cards/card_secondwind.png",
-  // card_longmorrow: "/cards/card_longmorrow.png",
+  card_outergod:   "/cards/card_outergod.png",
+  card_gatekey:    "/cards/card_gatekey.png",
+  card_lastronin:  "/cards/card_lastronin.png",
+  card_swordsaint: "/cards/card_swordsaint.png",
+  card_secondwind: "/cards/card_secondwind.png",
+  card_longmorrow: "/cards/card_longmorrow.png",
+  // card_leviathan and card_hollowtide have no painting yet and keep their
+  // drawn motifs. Add a line here the day a file lands beside the others.
 };
 
 /** The image for a card, or null to keep its drawn motif. */
