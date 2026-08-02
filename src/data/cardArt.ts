@@ -37,10 +37,13 @@ export const CARD_ART: Record<string, string> = {
   card_communion:    "/cards/card_communion.png",
   card_blackreach:   "/cards/card_blackreach.png",
   card_unblinking:   "/cards/card_unblinking.png",
+  card_onimask:      "/cards/card_onimask.png",
+  card_voidgaze:     "/cards/card_voidgaze.png",
+  card_crimsonsea:   "/cards/card_crimsonsea.png",
 
   // Still on drawn motifs, and fine that way: card_leviathan, card_hollowtide,
-  // card_voidgaze, card_ninehands, card_crimsonsea, card_trenchmaw,
-  // card_onimask. Add a line here the day a file lands beside the others.
+  // card_ninehands, card_trenchmaw. Add a line here the day a file lands
+  // beside the others.
 };
 
 /** The image for a card, or null to keep its drawn motif. */
