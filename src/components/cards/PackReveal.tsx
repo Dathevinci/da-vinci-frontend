@@ -30,7 +30,7 @@ import { ACCENT, ACCENT_LIT, notch } from "./gacha";
  * being a reward the second time you see it.
  */
 
-type Stage = "warp" | "burst" | "reveal";
+type Stage = "warp" | "hole" | "burst" | "reveal";
 
 export default function PackReveal({
   cards,
@@ -83,18 +83,24 @@ export default function PackReveal({
   // and one that arrives late crashes off-screen.
   const fallMs = bestOrder >= 3 ? 1500 : 950;
 
-  // Beat timing.
+  // Beat timing. A legendary-or-better pull gets an extra beat: the fallen
+  // star doesn't just crash, it COLLAPSES — warp → hole → burst — so the
+  // detonation that follows reads as the black hole letting go.
   useEffect(() => {
     if (reduce) return;
     if (stage === "warp") {
-      const t = setTimeout(() => setStage("burst"), fallMs);
+      const t = setTimeout(() => setStage(bestOrder >= 3 ? "hole" : "burst"), fallMs);
+      return () => clearTimeout(t);
+    }
+    if (stage === "hole") {
+      const t = setTimeout(() => setStage("burst"), 1250);
       return () => clearTimeout(t);
     }
     if (stage === "burst") {
       const t = setTimeout(() => setStage("reveal"), 620);
       return () => clearTimeout(t);
     }
-  }, [stage, reduce, fallMs]);
+  }, [stage, reduce, fallMs, bestOrder]);
 
   /**
    * A legendary or better gets taken OUT of the row and shown on its own.
@@ -158,9 +164,11 @@ export default function PackReveal({
         ))}
       </div>
 
-      {/* ── ambient field ── present through every beat */}
+      {/* ── ambient field ── present through every beat. An epic-or-better
+          pull tints the whole sky in its colour from the first frame of the
+          fall — a purple star under a purple sky is unmistakable. */}
       <div aria-hidden className="pointer-events-none absolute inset-0"
-        style={{ background: `radial-gradient(60% 55% at 50% 50%, ${tellGlow}, transparent 70%)`, opacity: stage === "warp" ? 0.25 : 0.5 }} />
+        style={{ background: `radial-gradient(60% 55% at 50% 50%, ${tellGlow}, transparent 70%)`, opacity: stage === "warp" ? (bestOrder >= 2 ? 0.45 : 0.25) : 0.5 }} />
 
       {/* ── BEAT 1: THE FALL ── a star drops out of the sky, burning in the
           colour of the best card in the pack — the tell is the fireball. It
@@ -196,6 +204,72 @@ export default function PackReveal({
             >
               A star is falling
             </motion.p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── LEGENDARY BEAT: THE COLLAPSE ── the star that fell doesn't crash;
+          it caves in. The sky goes dark, light bends INWARD — a photon ring
+          contracting, sparks spiralling into the centre — around a black core
+          wearing a tilted accretion disk in the tell colour. Then the cut to
+          the burst reads as the hole letting everything back out at once.
+          Transform and opacity only; the disk's tilt is a static transform on
+          a wrapper while only the child rotates. */}
+      <AnimatePresence>
+        {stage === "hole" && (
+          <motion.div key="hole" className="pointer-events-none absolute inset-0 grid place-items-center"
+            exit={{ opacity: 0, transition: { duration: 0.1 } }}>
+            {/* the sky is being eaten */}
+            <motion.div className="absolute inset-0 bg-black"
+              initial={{ opacity: 0 }} animate={{ opacity: 0.78 }} transition={{ duration: 0.8, ease: "easeOut" }} />
+
+            {/* photon ring — light bending in, not blasting out */}
+            <motion.span className="absolute rounded-full"
+              style={{ width: 240, height: 240, border: "1.5px solid rgba(255,255,255,.85)", boxShadow: `0 0 30px ${tell}` }}
+              initial={{ scale: 2.6, opacity: 0 }} animate={{ scale: 1.06, opacity: [0, 1, 0.85] }}
+              transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }} />
+
+            {/* sparks falling IN — the debris animation, reversed, on a slowly
+                turning carrier so the infall reads as a spiral */}
+            <motion.div className="absolute" initial={{ rotate: 0 }} animate={{ rotate: 80 }}
+              transition={{ duration: 1.25, ease: "linear" }}>
+              {Array.from({ length: 12 }, (_, i) => {
+                const a = (i / 12) * Math.PI * 2;
+                const dist = 230 + (i % 3) * 60;
+                return (
+                  <motion.span key={i} className="absolute rounded-full"
+                    style={{
+                      width: 3 + (i % 3) * 2, height: 3 + (i % 3) * 2,
+                      background: i % 2 ? "#fff" : tell, boxShadow: `0 0 8px ${tell}`,
+                      willChange: "transform, opacity",
+                    }}
+                    initial={{ x: Math.cos(a) * dist, y: Math.sin(a) * dist, opacity: 0, scale: 1 }}
+                    animate={{ x: 0, y: 0, opacity: [0, 1, 0], scale: 0.2 }}
+                    transition={{ duration: 0.85, delay: (i % 4) * 0.12, ease: "easeIn" }} />
+                );
+              })}
+            </motion.div>
+
+            {/* the accretion disk — tilted by the wrapper, spun by the child */}
+            <div className="absolute" style={{ transform: "rotate(-18deg) scaleY(0.38)" }}>
+              <motion.div className="rounded-full"
+                style={{
+                  width: 300, height: 300,
+                  background: `conic-gradient(from 0deg, transparent 8%, ${tell} 30%, #fff 42%, transparent 55%, ${tell} 78%, transparent 92%)`,
+                  WebkitMaskImage: "radial-gradient(circle, transparent 58%, black 63%)",
+                  maskImage: "radial-gradient(circle, transparent 58%, black 63%)",
+                  willChange: "transform",
+                }}
+                initial={{ rotate: 0, scale: 0.2, opacity: 0 }}
+                animate={{ rotate: 360, scale: 1, opacity: 1 }}
+                transition={{ rotate: { duration: 1.3, ease: "linear" }, scale: { duration: 0.5, ease: "easeOut" }, opacity: { duration: 0.35 } }} />
+            </div>
+
+            {/* the void itself — black on black works because of the rim */}
+            <motion.span className="absolute rounded-full bg-black"
+              style={{ width: 150, height: 150, boxShadow: `0 0 60px 14px ${tell}, 0 0 12px 2px rgba(255,255,255,.6)` }}
+              initial={{ scale: 0.1 }} animate={{ scale: [0.1, 1.14, 1] }}
+              transition={{ duration: 0.7, times: [0, 0.7, 1], ease: "easeOut" }} />
           </motion.div>
         )}
       </AnimatePresence>
