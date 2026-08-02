@@ -48,6 +48,22 @@ const ITEMS = [
 /** Support kinds that need to be pointed AT a card; the rest are side-wide. */
 const TARGETED = new Set(["heal", "revive"]);
 
+/** Mirrors SUPPORTS_PER_DUEL on the server, which is where it's enforced. */
+export const SUPPORTS_PER_DUEL = 3;
+
+/** Plain English for what a support does, and how you aim it. */
+function supportBrief(s: any): { what: string; how: string } {
+  switch (s?.kind) {
+    case "heal":   return { what: `Restores ${s.power} HP to one of your cards.`, how: "Drag it onto the card you want mended." };
+    case "revive": return { what: `Brings a fallen card back at ${s.power}% health.`, how: "Drag it onto the card you want back." };
+    case "mend":   return { what: `Heals your whole line by ${s.power} HP.`, how: "Play it — it affects everyone at once." };
+    case "shield": return { what: "Halves the next hit you take.", how: "Play it — it guards whoever is out there." };
+    case "block":  return { what: "The next attack against you doesn't land at all.", how: "Play it — it guards whoever is out there." };
+    case "focus":  return { what: `Your next strike hits ${s.power}× as hard.`, how: "Play it, then attack." };
+    default:       return { what: "Does something helpful.", how: "Play it." };
+  }
+}
+
 /**
  * What the winner actually receives. This MUST mirror the server's payout():
  * the rake is a floored integer, not a flat 10% of the pot. Showing
@@ -188,6 +204,8 @@ export default function Arena({
   // it in; an empty field always means deploy.
   const wantsDeploy = mine.active < 0 || (sel !== null && sel !== mine.active);
   const [confirmQuit, setConfirmQuit] = useState(false);
+  // The support card currently being inspected, before you commit to it.
+  const [peek, setPeek] = useState<CardDef | null>(null);
 
   const playableSupports = useMemo(() => supports.filter((c) => !!c.support), [supports]);
   const hasSupport = playableSupports.length > 0 && !!onSupport && !finished;
@@ -324,6 +342,9 @@ export default function Arena({
       return;
     }
     if (!onSupport) return;
+    // Drag has to respect the slot limit too — the rail greys spent cards out,
+    // but a drag started before the third play resolved would slip past it.
+    if (usedSupports.includes(d.cardId) || usedSupports.length >= SUPPORTS_PER_DUEL) return;
     if (target.startsWith("ally-")) {
       const idx = Number(target.slice(5));
       onSupport(d.cardId, Number.isInteger(idx) ? idx : undefined);
@@ -686,20 +707,30 @@ export default function Arena({
           <div className="mt-2">
             <div className="mb-1 flex items-center gap-1.5">
               <Sparkles className="h-3 w-3 text-cyan-300" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-cyan-300/80">Support — drag onto a card</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-cyan-300/80">
+                Support · {usedSupports.length}/{SUPPORTS_PER_DUEL} played
+              </span>
+              <span className="text-[10px] font-bold text-slate-600">— tap one to see what it does</span>
             </div>
             <div className="flex gap-2 overflow-x-auto pb-1">
               {playableSupports.map((c) => {
                 const spent = usedSupports.includes(c.id);
-                const usable = live && !spent;
+                // Three per duel, matching the server. Once you've spent them
+                // the rest grey out rather than failing on click.
+                const outOfSlots = usedSupports.length >= SUPPORTS_PER_DUEL;
+                const usable = live && !spent && !outOfSlots;
                 const targeted = TARGETED.has((c.support as any)?.kind);
                 return (
                   <div key={c.id}
                     onPointerDown={usable ? startDrag({ kind: "support", cardId: c.id, targeted }) : undefined}
-                    onClick={() => { if (swallowClick()) return; if (usable && !targeted) onSupport!(c.id); }}
+                    // Tapping INSPECTS. It used to play the card instantly,
+                    // which meant the only way to find out what a support did
+                    // was to spend it — mid-duel, on your turn.
+                    onClick={() => { if (swallowClick()) return; setPeek(c); }}
                     role="button" aria-disabled={!usable}
-                    title={spent ? `${c.name} — already played this duel`
-                      : targeted ? `Drag ${c.name} onto a card` : `Play ${c.name} (costs your turn)`}
+                    title={spent ? `${c.name} — already played`
+                      : outOfSlots ? `No support slots left this duel`
+                      : `${c.name} — tap for details`}
                     style={{ touchAction: "none" }}
                     className={`shrink-0 rounded-lg p-0.5 transition ${
                       usable ? "cursor-grab ring-1 ring-cyan-400/50 hover:-translate-y-1 hover:ring-cyan-300 active:cursor-grabbing"
@@ -768,6 +799,79 @@ export default function Arena({
           </button>
         )}
       </div>
+
+      {/* ── SUPPORT INSPECT ─────────────────────────────────────────────────
+          What the card does, in words, BEFORE you spend it. Previously a tap
+          played the card outright, so the only way to learn a support was to
+          burn it mid-duel on your own turn — and you only get three. */}
+      <AnimatePresence>
+        {peek && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="absolute inset-0 z-[155] grid place-items-center bg-black/75 px-6 backdrop-blur-[2px]"
+            onClick={() => setPeek(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 18, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm p-5 text-center"
+              style={{
+                clipPath: "polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px))",
+                background: "linear-gradient(165deg, #0d2230, #071019)",
+                boxShadow: "inset 0 0 0 1px rgba(34,211,238,.45)",
+              }}
+            >
+              {(() => {
+                const spent = usedSupports.includes(peek.id);
+                const outOfSlots = usedSupports.length >= SUPPORTS_PER_DUEL;
+                const targeted = TARGETED.has((peek.support as any)?.kind);
+                const brief = supportBrief(peek.support);
+                const canPlay = live && !spent && !outOfSlots;
+                return (
+                  <>
+                    <div className="mx-auto w-fit"><CardFace card={peek} owned size={132} /></div>
+                    <h3 className="mt-3 text-xl font-black">{peek.name}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-cyan-100">{brief.what}</p>
+                    <p className="mt-1.5 text-[11px] leading-relaxed text-slate-400">{brief.how}</p>
+                    <p className="mt-3 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+                      Playing it costs your turn · {usedSupports.length}/{SUPPORTS_PER_DUEL} used
+                    </p>
+
+                    <div className="mt-4 flex gap-2">
+                      <button onClick={() => setPeek(null)}
+                        className="flex-1 py-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-slate-300 transition hover:brightness-125"
+                        style={{ clipPath: notch(9), background: "rgba(255,255,255,.06)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.14)" }}>
+                        Close
+                      </button>
+                      {/* A targeted card has no button on purpose — it has to
+                          be aimed, and offering "Play" would either pick a
+                          card for you or fail. */}
+                      {!targeted && (
+                        <button
+                          disabled={!canPlay}
+                          onClick={() => { onSupport?.(peek.id); setPeek(null); }}
+                          className="flex-1 py-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-[#04232e] transition hover:brightness-110 disabled:opacity-35"
+                          style={{ clipPath: notch(9), background: "linear-gradient(100deg, #a5f3fc, #22d3ee)" }}>
+                          {spent ? "Already played" : outOfSlots ? "No slots left" : !live ? "Not your turn" : "Play it"}
+                        </button>
+                      )}
+                    </div>
+                    {targeted && (
+                      <p className="mt-3 text-[11px] font-bold text-cyan-300/80">
+                        Close this and drag it onto the card you want.
+                      </p>
+                    )}
+                  </>
+                );
+              })()}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── FORFEIT CONFIRM ── money leaves your account, so it is never one tap */}
       <AnimatePresence>
