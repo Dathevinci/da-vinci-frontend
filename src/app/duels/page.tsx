@@ -31,7 +31,7 @@ type Side = {
   // Server-side fields the board reads. They were missing from this type, so
   // `mine.usedSupports` type-checked as an error the build was configured to
   // ignore — it worked by accident rather than by declaration.
-  usedSupports?: string[]; shield?: boolean; block?: boolean; focus?: boolean; focusMult?: number;
+  usedSupports?: string[]; usedAbilities?: string[]; shield?: boolean; block?: boolean; focus?: boolean; focusMult?: number;
 };
 type DuelState = { a: Side; b: Side; turn: string; log: string[]; round: number };
 type Duel = {
@@ -48,6 +48,9 @@ export default function DuelsPage() {
   const [board, setBoard] = useState<any[]>([]);
   const [catalog, setCatalog] = useState<CardDef[]>([]);
   const [cardStats, setCardStats] = useState<Record<string, { hp: number; atk: number }> | undefined>(undefined);
+  // Which cards have a skill or a domain, so the arena only offers the button
+  // on cards that actually have one.
+  const [abilityIds, setAbilityIds] = useState<Set<string>>(new Set());
   const [catalogFailed, setCatalogFailed] = useState(false);
   const [foils, setFoils] = useState<Record<string, boolean>>({});
   const [owned, setOwned] = useState<Record<string, number>>({});
@@ -146,6 +149,7 @@ export default function DuelsPage() {
           if (cancelled) return;
           if (!d?.success || !Array.isArray(d?.data?.cards)) throw new Error("bad catalog");
           setCatalog(d.data.cards);
+          setAbilityIds(new Set([...Object.keys(d.data.skills || {}), ...Object.keys(d.data.domains || {})]));
           setCardStats(d.data.cardStats);
           setCatalogFailed(false);
         })
@@ -387,7 +391,7 @@ export default function DuelsPage() {
             busy={busy} />
         )}
         {active && (
-          <DuelBoard duel={active} me={user?.id} byId={byId} myCards={myCards} bag={bag} busy={busy} foils={foils} cardStats={cardStats}
+          <DuelBoard duel={active} me={user?.id} byId={byId} myCards={myCards} bag={bag} busy={busy} foils={foils} cardStats={cardStats} abilityIds={abilityIds}
            
             onClose={() => setActive(null)}
             onAccept={(deck) => post(`${active.id}/accept`, { deck }, () => toast("Duel started!", "success"))}
@@ -552,7 +556,7 @@ function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats
   );
 }
 
-function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMove, onForfeit, foils, cardStats }: any) {
+function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMove, onForfeit, foils, cardStats, abilityIds }: any) {
   const [deck, setDeck] = useState<string[]>(() => loadSavedDeck());
   // Parsed once per state STRING, not once per render. DuelBoard re-renders
   // whenever anything on the page moves (busy, bag, a toast), and re-parsing
@@ -600,6 +604,8 @@ function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMo
         onDeploy={(i: number) => onMove("deploy", i)}
         onItem={(item: string) => onMove(item)}
         onSupport={(cardId: string, target?: number) => onMove("support", undefined, cardId, target)}
+        onAbility={() => onMove("ability")}
+        abilityIds={abilityIds}
         onForfeit={onForfeit}
         onClose={onClose}
       />

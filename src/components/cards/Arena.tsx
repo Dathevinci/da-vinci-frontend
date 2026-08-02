@@ -179,7 +179,7 @@ export default function Arena({
   mine, foe, byId, myName, foeName, myTurn, finished, resultText, won = false,
   bag = [], busy, log = [], stake,
   supports = [], usedSupports = [],
-  onAttack, onDeploy, onItem, onSupport, onForfeit, onClose,
+  onAttack, onDeploy, onItem, onSupport, onAbility, abilityIds, onForfeit, onClose,
 }: {
   mine: ArenaSide; foe: ArenaSide;
   byId: Record<string, CardDef>;
@@ -197,6 +197,10 @@ export default function Arena({
   onDeploy: (index: number) => void;
   onItem: (item: string) => void;
   onSupport?: (cardId: string, target?: number) => void;
+  /** Fire the standing card's skill or domain. Once per duel, costs the turn. */
+  onAbility?: () => void;
+  /** Card ids that HAVE an ability, so the button only offers a real move. */
+  abilityIds?: Set<string>;
   onForfeit?: () => void;
   onClose: () => void;
 }) {
@@ -756,6 +760,29 @@ export default function Arena({
             {/* Two different moves behind one button, decided by what you have
                 selected. Picking a card that isn't already out SENDS IT IN;
                 otherwise you swing with whoever is standing. */}
+            {/* Ability — only shown when the card standing actually has one and
+                has not spent it. A button that exists but never works reads as
+                broken; one that is absent reads as "this card doesn't do that". */}
+            {(() => {
+              const self = mine.active >= 0 ? mine.fighters[mine.active] : undefined;
+              const has = !!self && !!abilityIds?.has(self.cardId) && !!onAbility;
+              const spent = !!self && (mine.usedAbilities || []).includes(self.cardId);
+              if (!has) return null;
+              return (
+                <button
+                  disabled={!live || spent}
+                  onClick={() => { if (live && !spent) onAbility!(); }}
+                  title={spent ? "Already used this duel" : "Use this card's ability"}
+                  className="relative flex shrink-0 items-center justify-center gap-1.5 px-4 py-3.5 text-[12px] font-black uppercase tracking-[0.16em] text-white transition disabled:opacity-30"
+                  style={{
+                    clipPath: "polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%)",
+                    background: "linear-gradient(100deg, #a21caf, #d946ef)",
+                  }}>
+                  <Sparkles className="h-4 w-4" />
+                  {spent ? "Spent" : "Ability"}
+                </button>
+              );
+            })()}
             <button
               disabled={!live || (wantsDeploy ? sel === null : mine.active < 0 || foe.active < 0)}
               onClick={() => {
