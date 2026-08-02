@@ -37,10 +37,17 @@ const LANDING_BG = "/landing-bg.jpg";
  * differently-cropped copy and the illusion collapses.
  */
 const WORDMARK_WINDOW: React.CSSProperties = {
-  backgroundImage: `url(${LANDING_BG})`,
-  backgroundSize: "cover",
-  backgroundPosition: "center",
-  backgroundAttachment: "fixed",
+  // TWO layers, and the order matters. The artwork sits on top; the amethyst
+  // gradient sits under it as a floor. background-clip:text makes the letters
+  // transparent, so if the image ever fails to load a single-layer version
+  // renders NOTHING — the title simply disappears, which is exactly what
+  // happened when the file wasn't deployed. The gradient guarantees letters.
+  backgroundImage: `url(${LANDING_BG}), linear-gradient(100deg, #6d28d9 0%, #a78bfa 18%, #f5f3ff 32%, #c4b5fd 46%, #8b5cf6 62%, #a78bfa 82%, #6d28d9 100%)`,
+  backgroundSize: "cover, 200% 100%",
+  backgroundPosition: "center, center",
+  // The page background is blurred; this one is NOT. Sharp art inside the
+  // letters against a soft field is what makes the wordmark read as a window.
+  backgroundAttachment: "fixed, scroll",
   WebkitBackgroundClip: "text",
   backgroundClip: "text",
   color: "transparent",
@@ -75,6 +82,11 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
             backgroundSize: "cover",
             backgroundPosition: "center",
             backgroundAttachment: "fixed",
+            // Blur pushes the art back so the copy sits in front of it rather
+            // than fighting it. Scaled up because a blur samples past its own
+            // edges and would otherwise leave a soft border around the screen.
+            filter: "blur(14px) saturate(1.1)",
+            transform: "scale(1.08)",
           }}
         />
         {/* Scrims. Two of them: a flat darkener so text is legible over any
@@ -109,12 +121,6 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
             <span className="hidden items-center gap-1.5 text-[11px] font-bold text-slate-300 sm:flex">
               <span className="h-1.5 w-1.5 rounded-full bg-pink-400" /> Novels
             </span>
-            <button
-              onClick={() => setShowLogin(true)}
-              className="rounded-full bg-white px-4 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-black transition hover:brightness-90"
-            >
-              Sign in
-            </button>
           </div>
         </motion.div>
 
@@ -167,29 +173,28 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
             Present your seal to unlock the vault — anime to watch, manhwa &amp; novels to read — and begin your study.
           </motion.p>
 
-          {/* ── CTAs ── one filled, one outlined. The filled one is the thing
-              you actually came here to do; a pair of equally-weighted outlined
-              buttons makes neither read as the answer. */}
+          {/* ── ONE WAY IN ──────────────────────────────────────────────────
+              There were three buttons — Sign in, Request Access, I have a seal
+              — and every one of them opened the SAME modal. Three doors into
+              one room is a choice the visitor has to make for no reason and
+              can't make wrongly. The modal already handles both new and
+              returning people, so the page offers one door and says so. */}
           <motion.div
             initial={{ y: 16, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.9, delay: 0.4, ease: easeCine }}
-            className="flex flex-wrap items-center justify-center gap-3"
+            className="flex flex-col items-center gap-3"
           >
             <button
               onClick={() => setShowLogin(true)}
-              className="group inline-flex items-center gap-3 rounded-full bg-white px-8 py-4 text-sm font-black uppercase tracking-[0.16em] text-black transition hover:brightness-90 focus:outline-none focus:ring-2 focus:ring-white/40"
+              className="group inline-flex items-center gap-3 rounded-full bg-white px-10 py-4 text-sm font-black uppercase tracking-[0.16em] text-black shadow-[0_10px_40px_rgba(0,0,0,.6)] transition hover:brightness-90 focus:outline-none focus:ring-2 focus:ring-white/40"
             >
               <KeyRound className="h-4 w-4 transition-transform duration-500 group-hover:-rotate-12" strokeWidth={2} />
-              Request Access
+              Enter the Vault
             </button>
-            <button
-              onClick={() => setShowLogin(true)}
-              className="group relative inline-flex items-center gap-3 overflow-hidden rounded-full border border-violet-300/40 px-8 py-4 font-cinzel text-sm uppercase tracking-[0.18em] text-violet-100 transition-all duration-500 hover:border-violet-300/80 hover:text-white focus:outline-none focus:ring-1 focus:ring-violet-300/60"
-            >
-              <span className="absolute inset-0 bg-gradient-to-r from-violet-500/10 via-violet-400/25 to-violet-500/10 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-              <span className="relative">I have a seal</span>
-            </button>
+            <p className="text-[11px] font-bold tracking-wide text-slate-400">
+              Already have a seal? Same door.
+            </p>
           </motion.div>
 
           {/* ── THE THREE ARTS ── */}
