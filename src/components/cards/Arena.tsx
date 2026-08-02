@@ -289,6 +289,31 @@ export default function Arena({
    * alive COUNT dropping instead, which survives the field emptying.
    */
   const [ko, setKo] = useState<{ side: "mine" | "foe"; key: number } | null>(null);
+
+  /**
+   * DOMAIN EXPANSION — the one animation the whole legendary tier is selling.
+   *
+   * Detected off the log rather than a prop: the engine marks a domain line
+   * with a leading triangle, and that line is already in the state the board
+   * polls. No new field, and it fires for BOTH players — watching the other
+   * side expand a domain should be as loud as doing it yourself.
+   */
+  const [domain, setDomain] = useState<{ text: string; mine: boolean; key: number } | null>(null);
+  const lastLogRef = useRef<string | null>(null);
+  useEffect(() => {
+    const line = log.length ? log[log.length - 1] : null;
+    if (!line || line === lastLogRef.current) return;
+    lastLogRef.current = line;
+    if (!line.startsWith("25B2")) return;
+    setDomain({ text: line.replace(/^25B2s*/, ""), mine: line.includes(myName), key: Date.now() });
+  }, [log, myName]);
+  // Cleared on a timer, never onAnimationComplete — that fires on the wrapper's
+  // own animation, not the keyframes inside it.
+  useEffect(() => {
+    if (!domain) return;
+    const t = setTimeout(() => setDomain(null), 2600);
+    return () => clearTimeout(t);
+  }, [domain?.key]);
   const aliveFoe = foe.fighters.filter((f) => f.hp > 0).length;
   const aliveMine = mine.fighters.filter((f) => f.hp > 0).length;
   useEffect(() => {
@@ -998,6 +1023,43 @@ export default function Arena({
                 Leave the arena
               </button>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── DOMAIN EXPANSION ── the tier's signature moment. Sits above the
+          board but under the modals, and is deliberately louder than a KO:
+          rings, a colour flood and the name of the thing that just rewrote
+          the fight. Transform and opacity only, unmounted by a timer. */}
+      <AnimatePresence>
+        {domain && (
+          <motion.div key={domain.key} aria-hidden
+            className="pointer-events-none absolute inset-0 z-[110] grid place-items-center overflow-hidden"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}>
+            <motion.div className="absolute inset-0"
+              style={{ background: domain.mine
+                ? "radial-gradient(60% 50% at 50% 50%, rgba(217,70,239,.42), rgba(6,2,12,.94) 70%)"
+                : "radial-gradient(60% 50% at 50% 50%, rgba(244,63,94,.38), rgba(10,2,6,.94) 70%)" }}
+              initial={{ scale: 1.25 }} animate={{ scale: 1 }} transition={{ duration: 0.5, ease: [0.22,1,0.36,1] }} />
+            {[0,1,2].map((i) => (
+              <motion.span key={i} className="absolute rounded-full"
+                style={{ width: 200, height: 200, border: `2px solid `, willChange: "transform, opacity" }}
+                initial={{ scale: 0.15, opacity: .95 }} animate={{ scale: 6, opacity: 0 }}
+                transition={{ duration: 1.5, delay: i * 0.16, ease: "easeOut" }} />
+            ))}
+            <div className="relative z-10 px-8 text-center">
+              <motion.p className="text-[11px] font-black uppercase tracking-[0.5em]"
+                style={{ color: domain.mine ? "#f0abfc" : "#fda4af" }}
+                initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.15 }}>
+                Domain Expansion
+              </motion.p>
+              <motion.p className="mt-3 text-2xl font-black leading-tight text-white drop-shadow-[0_4px_18px_rgba(0,0,0,.9)] sm:text-4xl"
+                initial={{ opacity: 0, scale: 0.86 }} animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, delay: 0.25, ease: [0.22,1,0.36,1] }}>
+                {domain.text}
+              </motion.p>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

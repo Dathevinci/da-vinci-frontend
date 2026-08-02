@@ -12,6 +12,7 @@ import { CardDef } from "@/components/cards/CardFace";
 import DeckBuilder, { loadSavedDeck, saveDeck } from "@/components/cards/DeckBuilder";
 import Arena, { duelPayout } from "@/components/cards/Arena";
 import { notch, ACCENT } from "@/components/cards/gacha";
+import { loadCatalog } from "@/lib/catalogCache";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 const DECK_SIZE = 5;
@@ -141,21 +142,21 @@ export default function DuelsPage() {
     // arena renders a board of blanks, so a failed fetch has to be visible and
     // retryable rather than a silent empty grid. (Render's free tier sleeps —
     // the first request after an idle period genuinely does fail sometimes.)
+    // Served from the session cache FIRST, then refreshed from the network.
+    // The board used to sit as a grid of blanks until Render woke up; now the
+    // only visit that waits is the first one in a session.
     let cancelled = false;
-    const getCatalog = () => {
-      fetch(`${API_URL}/api/cards/catalog`)
-        .then((r) => r.json())
-        .then((d) => {
-          if (cancelled) return;
-          if (!d?.success || !Array.isArray(d?.data?.cards)) throw new Error("bad catalog");
-          setCatalog(d.data.cards);
-          setAbilityIds(new Set([...Object.keys(d.data.skills || {}), ...Object.keys(d.data.domains || {})]));
-          setCardStats(d.data.cardStats);
-          setCatalogFailed(false);
-        })
-        .catch(() => { if (!cancelled) setCatalogFailed(true); });
-    };
-    getCatalog();
+    loadCatalog(
+      API_URL,
+      (data) => {
+        if (cancelled) return;
+        setCatalog(data.cards);
+        setAbilityIds(new Set([...Object.keys(data.skills || {}), ...Object.keys(data.domains || {})]));
+        setCardStats(data.cardStats);
+        setCatalogFailed(false);
+      },
+      () => { if (!cancelled) setCatalogFailed(true); }
+    );
     return () => { cancelled = true; };
   }, [user?.id]);
   // Poll while a duel is open — turns arrive without websockets (Render sleeps).
