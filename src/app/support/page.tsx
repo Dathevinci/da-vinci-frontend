@@ -11,6 +11,7 @@ import PageTransition from "@/components/layout/PageTransition";
 import { useUser } from "@/hooks/useUser";
 import BuyPointsModal from "@/components/shop/BuyPointsModal";
 import { KOFI_BUNDLES, KOFI_PAGE, currencySymbol } from "@/lib/kofiBundles";
+import { notch, ACCENT } from "@/components/cards/gacha";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 const MONTHLY_GOAL = 100;
@@ -95,14 +96,16 @@ export default function SupportPage() {
                   href={KOFI_PAGE}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group inline-flex items-center gap-3 rounded-2xl bg-gradient-to-r from-[#ff5e5b] to-[#ff4542] px-7 py-4 text-lg font-black text-white shadow-[0_10px_30px_rgba(255,94,91,0.3)] transition hover:scale-[1.03]"
+                  className="group inline-flex items-center gap-3 px-8 py-4 text-[13px] font-black uppercase tracking-[0.16em] text-white shadow-[0_10px_30px_rgba(255,94,91,0.35)] transition hover:brightness-110"
+                  style={{ clipPath: "polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%)", background: "linear-gradient(100deg, #ff5e5b, #ff4542)" }}
                 >
                   <Coffee className="h-6 w-6" /> Support on Ko-fi
                   <ExternalLink className="h-4 w-4 opacity-70 transition group-hover:translate-x-0.5" />
                 </a>
                 <button
                   onClick={() => setShowBuyPoints(true)}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-purple-500/40 bg-purple-500/10 px-6 py-4 font-black text-purple-100 transition hover:bg-purple-500/20 hover:scale-[1.02]"
+                  className="inline-flex items-center gap-2 px-7 py-4 text-[13px] font-black uppercase tracking-[0.16em] text-purple-100 transition hover:brightness-125"
+                  style={{ clipPath: "polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%)", background: `${ACCENT}22`, boxShadow: `inset 0 0 0 1px ${ACCENT}88` }}
                 >
                   <Diamond className="h-5 w-5 text-fuchsia-400" /> Buy Arise Points
                 </button>
@@ -114,7 +117,7 @@ export default function SupportPage() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.9, delay: 0.15, ease: easeOut }}
-              className="relative mx-auto flex w-full max-w-sm flex-col items-center rounded-3xl border border-white/10 bg-white/[0.03] p-8 backdrop-blur-xl"
+              className="relative mx-auto flex w-full max-w-sm flex-col items-center p-8 backdrop-blur-xl" style={{ clipPath: notch(22), background: "rgba(255,255,255,.035)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.10)" }}
             >
               <p className="mb-6 text-[11px] font-black uppercase tracking-[0.25em] text-slate-400 font-cinzel">This month&apos;s servers</p>
               <div className="relative h-56 w-56">
@@ -161,7 +164,7 @@ export default function SupportPage() {
                 { n: "2", t: "Add your username", b: <>In the Ko-fi <span className="font-bold text-amber-200">message/note</span>, write your Da Vinci username{user?.username ? <> — <span className="font-black text-amber-200">{user.username}</span></> : ""}.</> },
                 { n: "3", t: "It's instant", b: "Your Supporter badge + Arise Points land within a minute. No waiting on us." },
               ].map((s) => (
-                <div key={s.n} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                <div key={s.n} className="p-5" style={{ clipPath: notch(14), background: "rgba(255,255,255,.035)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.09)" }}>
                   <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-rose-500 text-sm font-black text-black">{s.n}</div>
                   <div className="font-black text-white">{s.t}</div>
                   <p className="mt-1 text-sm leading-relaxed text-slate-400">{s.b}</p>
@@ -194,7 +197,8 @@ export default function SupportPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: i * 0.06, ease: easeOut }}
-                  className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:-translate-y-1 hover:border-purple-500/50 hover:bg-white/[0.06]"
+                  className="group relative overflow-hidden p-5 transition hover:-translate-y-1"
+                  style={{ clipPath: notch(14), background: "rgba(255,255,255,.035)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.09)" }}
                 >
                   {b.badge && (
                     <span className="absolute right-3 top-3 rounded-full bg-gradient-to-r from-purple-600 to-fuchsia-600 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-white">
@@ -234,7 +238,7 @@ export default function SupportPage() {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.55, delay: i * 0.08, ease: easeOut }}
-                    className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 transition hover:-translate-y-1 hover:bg-white/[0.05]"
+                    className="p-6 transition hover:-translate-y-1" style={{ clipPath: notch(14), background: "rgba(255,255,255,.035)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.09)" }}
                   >
                     <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-xl border ${p.ring}`}>
                       <Icon className={`h-6 w-6 ${p.color}`} />
@@ -250,7 +254,7 @@ export default function SupportPage() {
           {/* ── RECENT SUPPORTERS + TOP SUPPORTER ── */}
           <motion.div {...rise(0)} className="mt-20 grid grid-cols-1 gap-6 lg:grid-cols-3">
             {/* Hall of thanks */}
-            <div className="lg:col-span-2 rounded-3xl border border-white/10 bg-white/[0.03] p-6 md:p-8">
+            <div className="lg:col-span-2 p-6 md:p-8" style={{ clipPath: notch(20), background: "rgba(255,255,255,.03)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.08)" }}>
               <h2 className="mb-6 flex items-center gap-3 text-xl font-black">
                 <Heart className="h-6 w-6 fill-rose-500 text-rose-500" /> Hall of Patrons
               </h2>
