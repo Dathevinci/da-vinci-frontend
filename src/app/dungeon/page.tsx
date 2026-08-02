@@ -80,44 +80,90 @@ const RARITY_TINT: Record<string, string> = {
   common: "#9aa4b2", rare: "#5fa8ff", epic: "#c07dff", legendary: "#ffcf5c", event: "#ff8ad0",
 };
 
-/** The three throwable supports — same ids as the duel bag, on purpose. */
-const PACK_META: Record<string, { label: string; desc: string; tone: string }> = {
-  heal:   { label: "SALVE", desc: "+10 HP to whoever is worst off, instantly", tone: "#7fe07f" },
-  shield: { label: "WARD",  desc: "next floor: the first 2 enemy volleys land HALVED", tone: "#9be8ff" },
-  focus:  { label: "FOCUS", desc: "next floor: the party's opening volley hits 75% HARDER", tone: "#ffd23e" },
+/** What a support card DOES down there — the duel effect, dungeon-phrased. */
+function supText(s: any): string {
+  if (!s) return "";
+  return s.kind === "heal" ? `heals the worst-off +${s.power} HP, instantly`
+    : s.kind === "mend" ? `heals EVERY living unit +${s.power} HP, instantly`
+    : s.kind === "revive" ? `a FALLEN unit stands back up at ${s.power}% — mid-run`
+    : s.kind === "shield" ? "next floor: first 2 enemy volleys land HALVED"
+    : s.kind === "block" ? "next floor: the first enemy volley does NOT land"
+    : s.kind === "focus" ? `next floor: opening volley ×${s.power}`
+    : "it does something, somewhere";
+}
+const SUP_TONE: Record<string, string> = {
+  heal: "#7fe07f", mend: "#7fe07f", revive: "#ffd23e",
+  shield: "#9be8ff", block: "#9be8ff", focus: "#ffb45f",
 };
+const dgnTier = (id: string) => id === "dgn_keep" ? 2 : id === "dgn_orchard" ? 1 : 0;
 
-/* ── PIXEL MONSTERS ── 8×8 grids drawn with one box-shadow per lit cell on a
-   single scaled div. Authentically cheap: rasterised once, never repainted. */
-const MOB_GRIDS: string[][] = [
-  ["..xxxx..", ".xxxxxx.", "xx.xx.xx", "xxxxxxxx", "xx.xx.xx", ".xxxxxx.", "..x..x..", ".xx..xx."],
-  ["...xx...", "..xxxx..", ".xxxxxx.", "xx.xx.xx", "xxxxxxxx", ".x.xx.x.", "..xxxx..", ".x....x."],
-  ["x......x", "xx....xx", "xxxxxxxx", "xx.xx.xx", "xxxxxxxx", "..xxxx..", ".xx..xx.", "xx....xx"],
-  ["..xxxx..", ".x.xx.x.", "xxxxxxxx", "x.xxxx.x", "xxxxxxxx", "..x..x..", ".x.xx.x.", "x......x"],
-  [".xx..xx.", "..xxxx..", ".xxxxxx.", "xxx.x.xx", "xxxxxxxx", ".xxxxxx.", "..x..x..", "..x..x.."],
+/* ── PIXEL BESTIARY ── Hollow-Knight-style silhouettes: near-black bodies
+   with pale glowing eyes, one grid per creature, one set per BIOME.
+   `x` = body cell, `o` = eye cell. Drawn as two box-shadow layers on one
+   scaled div — rasterised once, never repainted. */
+const BIOME_MOBS: string[][][] = [
+  [ // 0 · THE MILDEW CELLARS — soft things that grew in the dark
+    ["..xxxx..", ".xxxxxx.", "xxxxxxxx", "xo.xx.ox", "xxxxxxxx", "..x..x..", ".x....x.", "x......x"],   // shroomling
+    ["........", "..xxx...", ".xxxxxx.", "xxo..ox.", "xxxxxxxx", "xxxxxxxx", "x.x.x.x.", "x.x.x.x."],   // damp crawler
+    ["..xxxx..", ".x....x.", "x..oo..x", "x......x", ".x....x.", "..xxxx..", "...xx...", "..x..x.."],   // wall jelly
+    [".x.xx.x.", "xxxxxxxx", "x.o..o.x", "xxxxxxxx", ".xxxxxx.", "..xxxx..", ".x.xx.x.", "x..xx..x"],   // mildew knot
+  ],
+  [ // 1 · THE BONE ORCHARD — thin dead things among the trees
+    ["...xx...", "..xxxx..", ".xo..ox.", ".xxxxxx.", "..xxxx..", "...xx...", "...xx...", "..x..x.."],   // orchard wight
+    ["x......x", ".x....x.", "..xxxx..", ".xxooxx.", "xxxxxxxx", "..x..x..", ".x....x.", "x......x"],   // bone picker
+    [".x....x.", "x.x..x.x", "x.xxxx.x", "..xoox..", ".xxxxxx.", "..xxxx..", "...xx...", "..x..x.."],   // marrow wasp
+    ["..xxxx..", ".xxxxxx.", "xx.oo.xx", "xxxxxxxx", ".x.xx.x.", "..xxxx..", "..x..x..", ".xx..xx."],   // grave tender
+  ],
+  [ // 2 · THE SUNLESS KEEP — armour that never stood down
+    [".xxxxxx.", "xxxxxxxx", "xo....ox", "xxxxxxxx", "xxxxxxxx", "x.xxxx.x", "..x..x..", ".xx..xx."],   // sentinel
+    ["......x.", ".....xx.", "..xxxx..", ".xxoox..", "xxxxxx..", "..xx....", ".x..x...", "x....x.."],   // dark lancer
+    ["xx....xx", "xxx..xxx", "xxxxxxxx", "xo.xx.ox", "xxxxxxxx", "x.x..x.x", ".x....x.", "x......x"],   // vault horror
+    ["..xxxx..", ".xxxxxx.", ".x.oo.x.", ".xxxxxx.", "..xxxx..", "..xxxx..", "..x..x..", "..x..x.."],   // sunless monk
+  ],
 ];
-const BOSS_GRID: string[] = [
-  "..xx....xx..", ".xxx.xx.xxx.", "xxxxxxxxxxxx", "xx.xxxxxx.xx", "xxxxxxxxxxxx",
-  "xxx.xxxx.xxx", "xxxxxxxxxxxx", ".xxxxxxxxxx.", "..xx.xx.xx..", ".xx..xx..xx.",
+const BIOME_BOSS: string[][] = [
+  [ // The Cellar King — a crowned mass of growth
+    "..x..xx..x..", ".xx.xxxx.xx.", "xxxxxxxxxxxx", "xxo.xxxx.oxx", "xxxxxxxxxxxx",
+    "xxxxxxxxxxxx", ".xxxxxxxxxx.", "..xx.xx.xx..", ".x..x..x..x.", "x...x..x...x",
+  ],
+  [ // What Tends the Orchard — tall, thin, wrong
+    ".....xx.....", "....xxxx....", "...xxooxx...", "....xxxx....", "..xxxxxxxx..",
+    ".x.xxxxxx.x.", "x..xxxxxx..x", "...xx..xx...", "...xx..xx...", "..xx....xx..",
+  ],
+  [ // Warden of the Sunless — a door that fights back
+    "xxxxxxxxxxxx", "xxxxxxxxxxxx", "xxo......oxx", "xxxxxxxxxxxx", "xx.xxxxxx.xx",
+    "xxxxxxxxxxxx", "xxxxxxxxxxxx", ".xx.x..x.xx.", ".xx.x..x.xx.", "xxx.x..x.xxx",
+  ],
 ];
-const MOB_TINTS = ["#6ecb63", "#5fa8ff", "#c07dff", "#ff8a5f", "#e2d06a"];
+const BIOME_BODY = ["#1c3325", "#332b1e", "#1c2c40"];
+const BIOME_BOSS_BODY = ["#2a4a33", "#4a3e28", "#2b4058"];
+const EYE = "#e8f6ff";
 
-function PixelMob({ kind, boss, dead, scale = 5 }: { kind: number; boss?: boolean; dead?: boolean; scale?: number }) {
-  const grid = boss ? BOSS_GRID : MOB_GRIDS[kind % MOB_GRIDS.length];
-  const tint = boss ? "#ff5f5f" : MOB_TINTS[kind % MOB_TINTS.length];
-  const shadow = useMemo(() => {
-    const parts: string[] = [];
+function PixelMob({ kind, boss, dead, scale = 5, tier = 0 }: {
+  kind: number; boss?: boolean; dead?: boolean; scale?: number; tier?: number;
+}) {
+  const t = Math.max(0, Math.min(2, tier));
+  const grid = boss ? BIOME_BOSS[t] : BIOME_MOBS[t][kind % BIOME_MOBS[t].length];
+  const body = boss ? BIOME_BOSS_BODY[t] : BIOME_BODY[t];
+  const { bodyShadow, eyeShadow } = useMemo(() => {
+    const bodyParts: string[] = [];
+    const eyeParts: string[] = [];
     grid.forEach((row, y) => {
       for (let x = 0; x < row.length; x++) {
-        if (row[x] === "x") parts.push(`${x * scale}px ${y * scale}px 0 0 ${tint}`);
+        if (row[x] === "x") bodyParts.push(`${x * scale}px ${y * scale}px 0 0 ${body}`);
+        else if (row[x] === "o") eyeParts.push(`${x * scale}px ${y * scale}px 0 0 ${EYE}`);
       }
     });
-    return parts.join(",");
-  }, [grid, tint, scale]);
+    return { bodyShadow: bodyParts.join(","), eyeShadow: eyeParts.join(",") };
+  }, [grid, body, scale]);
   const w = grid[0].length * scale, h = grid.length * scale;
   return (
     <span aria-hidden className="relative block" style={{ width: w, height: h, opacity: dead ? 0.15 : 1, transition: "opacity .4s" }}>
-      <span className="absolute left-0 top-0" style={{ width: scale, height: scale, boxShadow: shadow }} />
+      <span className="absolute left-0 top-0" style={{ width: scale, height: scale, boxShadow: bodyShadow }} />
+      {/* the eyes carry the glow — dead things go dark first */}
+      {!dead && eyeShadow && (
+        <span className="absolute left-0 top-0 dg-eyes" style={{ width: scale, height: scale, boxShadow: eyeShadow }} />
+      )}
     </span>
   );
 }
@@ -138,14 +184,17 @@ export default function DungeonPage() {
   const [dungeonSel, setDungeonSel] = useState<string>("dgn_cellars");
   const [party, setParty] = useState<string[]>([]);
 
-  // ── the pack ── support items from the DUEL bag, escrowed at dispatch and
-  // thrown in BY THE PLAYER mid-run. One bag, two battlefields.
-  const [bag, setBag] = useState<string[]>([]);
+  // ── the pack ── up to three of the player's OWN SUPPORT CARDS, chosen at
+  // dispatch and PLAYED by the player mid-run. Same cards as the duels, one
+  // use each per run — nothing consumed.
+  const [supportIds, setSupportIds] = useState<string[]>([]);
   const [packMax, setPackMax] = useState(3);
   const [packed, setPacked] = useState<string[]>([]);
-  const [itemsLeft, setItemsLeft] = useState<Record<string, number>>({});
-  const [armed, setArmed] = useState<{ ward?: boolean; focus?: boolean }>({});
+  const [runSupports, setRunSupports] = useState<{ id: string; used: boolean }[]>([]);
+  const [armed, setArmed] = useState<{ ward?: boolean; focus?: boolean; block?: boolean }>({});
   const [itemBusy, setItemBusy] = useState(false);
+  // which biome the LIVE run is in — drives the stage's environment + bestiary
+  const [runBio, setRunBio] = useState(0);
 
   // ── raid state ──
   const [runId, setRunId] = useState<string | null>(null);
@@ -195,7 +244,7 @@ export default function DungeonPage() {
       setPartyMax(d.data.partyMax || 4);
       setHealCost(d.data.healCost ?? 80);
       setReviveCost(d.data.reviveCost ?? 500);
-      setBag(d.data.bag || []);
+      setSupportIds(d.data.supportCards || []);
       setPackMax(d.data.packMax ?? 3);
       // A run still in flight: reopen the raid screen paused between floors.
       const run = d.data.activeRun;
@@ -205,8 +254,9 @@ export default function DungeonPage() {
         setUnits(st.party);
         setFloorNum(st.floor);
         setBanked({ ap: st.apEarned, shards: st.shardsEarned });
-        setItemsLeft(st.items || {});
-        setArmed({ ward: !!st.pendingWard, focus: !!st.pendingFocus });
+        setRunSupports(st.supports || []);
+        setRunBio(dgnTier(run.dungeon));
+        setArmed({ ward: !!st.pendingWard, focus: !!st.pendingFocus, block: !!st.pendingBlock });
         setEnemies([]);
         setLog((l) => l.length ? l : [`> party is ${st.floor === 0 ? "at the entrance" : `resting past floor ${st.floor}`}.`]);
         setScreen("raid");
@@ -352,7 +402,8 @@ export default function DungeonPage() {
       setUnits(d.party);
       setFloorNum(0);
       setBanked({ ap: 0, shards: 0 });
-      setItemsLeft(d.items || {});
+      setRunSupports(d.supports || []);
+      setRunBio(dgnTier(dungeonSel));
       setArmed({});
       setEnemies([]);
       setLog([`> party of ${d.party.length} enters ${dungeons.find((x) => x.id === dungeonSel)?.name ?? "the dark"}.`]);
@@ -390,23 +441,26 @@ export default function DungeonPage() {
   };
 
   /**
-   * THE PLAYER'S HELPING HAND — throw a packed item down to the party, any
-   * time the run is live. The server applies it to the TRUE state (between
-   * floors); a salve shows immediately when the stage is calm, and an armed
-   * ward/focus announces itself at the next floor's opening.
+   * THE PLAYER'S HELPING HAND — play a packed support card into the run,
+   * any time it's live. The server applies it to the TRUE state (between
+   * floors); heals, mends and revives show immediately when the stage is
+   * calm, and an armed ward/bulwark/cry announces itself at the next
+   * floor's opening.
    */
-  const useSupportItem = async (item: string) => {
+  const playSupport = async (cardId: string) => {
     if (!runId || itemBusy) return;
     setItemBusy(true);
     try {
-      const d = await post(`/${runId}/use-item`, { item });
-      setItemsLeft(d.items || {});
+      const d = await post(`/${runId}/use-support`, { cardId });
+      setRunSupports(d.supports || []);
       if (d.note) pushLog(d.note);
-      if (item === "shield") setArmed((a) => ({ ...a, ward: true }));
-      if (item === "focus") setArmed((a) => ({ ...a, focus: true }));
+      const kind = (byId[cardId] as any)?.support?.kind;
+      if (kind === "shield") setArmed((a) => ({ ...a, ward: true }));
+      if (kind === "block") setArmed((a) => ({ ...a, block: true }));
+      if (kind === "focus") setArmed((a) => ({ ...a, focus: true }));
       // Mid-reel the stage is replaying the PAST — don't jump HP around under
       // the animation; the next floor's payload carries the healed truth.
-      if (item === "heal" && phase !== "fighting") setUnits(d.party);
+      if ((kind === "heal" || kind === "mend" || kind === "revive") && phase !== "fighting") setUnits(d.party);
     } catch (e: any) {
       toast(e.message || "It didn't reach them.", "error");
     } finally { setItemBusy(false); }
@@ -532,33 +586,32 @@ export default function DungeonPage() {
                   </button>
                 </div>
 
-                {/* ── THE PACK ── the player's mid-run hand. Items come out of
-                    the same bag the duels use; unused ones come home. */}
+                {/* ── THE PACK ── the player's mid-run hand: YOUR support
+                    cards. Same cards as the duels, one play each per run,
+                    nothing consumed. */}
                 <div className="mt-3 border-t-[3px] border-[#2b4a5e] pt-3">
                   <p className="font-pixel mb-2 text-[9px] text-[#8f86b8]">
-                    PACK SUPPORT ITEMS · {packed.length}/{packMax} — YOU throw these in while they fight
+                    PACK SUPPORT CARDS · {packed.length}/{packMax} — YOU play these while they fight
                   </p>
                   <div className="flex flex-wrap items-center gap-2">
-                    {Object.entries(PACK_META).map(([id, m]) => {
-                      const own = bag.filter((b) => b === id).length;
-                      const inPack = packed.filter((p) => p === id).length;
+                    {supportIds.map((cid) => {
+                      const def = byId[cid] as any;
+                      if (!def?.support) return null;
+                      const on = packed.includes(cid);
+                      const tone = SUP_TONE[def.support.kind] || "#9be8ff";
                       return (
-                        <button key={id} title={m.desc}
-                          disabled={own === 0 && inPack === 0}
-                          onClick={() => setPacked((p) => {
-                            const held = p.filter((x) => x === id).length;
-                            if (p.length < packMax && held < own) return [...p, id];
-                            return p.filter((x) => x !== id);
-                          })}
-                          className={`dg-btn dg-press px-3 py-2 font-pixel text-[8px] disabled:opacity-35 ${inPack > 0 ? "dg-sel" : ""}`}
-                          style={inPack > 0 ? { color: m.tone } : undefined}>
-                          {m.label} ×{inPack}<span className="text-[#6b6390]">/{own}</span>
+                        <button key={cid} title={supText(def.support)}
+                          onClick={() => setPacked((p) =>
+                            p.includes(cid) ? p.filter((x) => x !== cid) : p.length < packMax ? [...p, cid] : p)}
+                          className={`dg-btn dg-press px-3 py-2 font-pixel text-[8px] disabled:opacity-35 ${on ? "dg-sel" : ""}`}
+                          style={on ? { color: tone } : undefined}>
+                          {def.name.toUpperCase()}
                         </button>
                       );
                     })}
-                    {bag.length === 0 && (
+                    {supportIds.length === 0 && (
                       <span className="font-mono text-[10px] text-[#6b6390]">
-                        bag&rsquo;s empty — buy Salves, Wards and Focus in the Duels shop. one bag, two battlefields.
+                        no support cards yet — pull the Succour set from the Archive. Second Wind raises the fallen mid-run.
                       </span>
                     )}
                   </div>
@@ -658,8 +711,8 @@ export default function DungeonPage() {
                 </div>
               </div>
 
-              {/* the stage */}
-              <div className={`dg-panel dg-stage relative overflow-hidden ${phase === "marching" ? "dg-marching" : ""}`}>
+              {/* the stage — costumed by the biome the party is actually in */}
+              <div className={`dg-panel dg-stage dg-bio-${runBio} relative overflow-hidden ${phase === "marching" ? "dg-marching" : ""}`}>
                 <div aria-hidden className="dg-bg dg-bg-far" />
                 <div aria-hidden className="dg-bg dg-bg-mid" />
                 <div aria-hidden className="dg-bg dg-bg-near" />
@@ -707,7 +760,7 @@ export default function DungeonPage() {
                           </span>
                         ))}
                         <div className={`${dead ? "" : "dg-bob-e"} ${hitE ? "dg-hit" : ""} ${e.boss && !dead ? "dg-bossglow" : ""}`} style={{ animationDelay: `${i * 0.3}s` }}>
-                          <PixelMob kind={e.kind} boss={e.boss} dead={dead} scale={e.boss ? 6 : 5} />
+                          <PixelMob kind={e.kind} boss={e.boss} dead={dead} scale={e.boss ? 6 : 5} tier={runBio} />
                         </div>
                         {!dead && (
                           <span className="mt-1 block h-[6px] w-12 border border-[#2b4a5e] bg-[#0a141f]">
@@ -744,26 +797,31 @@ export default function DungeonPage() {
                   {log.map((l, i) => <div key={i}>{l}</div>)}
                 </div>
                 <div className="flex flex-col gap-2">
-                  {/* ── SUPPORT FROM TOPSIDE ── the player's helping hand.
-                      Works any time the run is live, even mid-fight. */}
-                  <div className="flex gap-1.5">
-                    {Object.entries(PACK_META).map(([id, m]) => {
-                      const n = itemsLeft[id] || 0;
-                      const blocked = (id === "shield" && armed.ward) || (id === "focus" && armed.focus);
-                      return (
-                        <button key={id} onClick={() => useSupportItem(id)}
-                          disabled={itemBusy || n === 0 || !!result || !!blocked}
-                          title={blocked ? "Already armed — it lands next floor" : m.desc}
-                          className="dg-btn flex-1 px-1.5 py-2 text-center font-pixel text-[8px] leading-relaxed disabled:opacity-35"
-                          style={n > 0 && !blocked ? { color: m.tone } : undefined}>
-                          {m.label}<br />×{n}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {(armed.ward || armed.focus) && (
+                  {/* ── SUPPORT FROM TOPSIDE ── the player's hand of support
+                      cards. Playable any time the run is live, once each. */}
+                  {runSupports.length > 0 && (
+                    <div className="flex flex-col gap-1.5">
+                      {runSupports.map((s) => {
+                        const def = byId[s.id] as any;
+                        if (!def?.support) return null;
+                        const kind = def.support.kind;
+                        const blocked = (kind === "shield" && armed.ward) || (kind === "focus" && armed.focus) || (kind === "block" && armed.block);
+                        const tone = SUP_TONE[kind] || "#9be8ff";
+                        return (
+                          <button key={s.id} onClick={() => playSupport(s.id)}
+                            disabled={itemBusy || s.used || !!result || !!blocked}
+                            title={s.used ? "Already played this run" : blocked ? "Already armed — it lands next floor" : supText(def.support)}
+                            className="dg-btn w-full px-2 py-2 text-left font-pixel text-[8px] leading-relaxed disabled:opacity-35"
+                            style={!s.used && !blocked ? { color: tone } : undefined}>
+                            {s.used ? "✕ " : "▶ "}{def.name.toUpperCase()}{s.used ? " — PLAYED" : ""}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {(armed.ward || armed.focus || armed.block) && (
                     <p className="font-pixel text-[8px] leading-relaxed text-[#9be8ff]">
-                      ARMED:{armed.ward ? " WARD" : ""}{armed.ward && armed.focus ? " +" : ""}{armed.focus ? " FOCUS" : ""} — lands at the next floor
+                      ARMED:{armed.ward ? " WARD" : ""}{armed.block ? " BULWARK" : ""}{armed.focus ? " CRY" : ""} — lands at the next floor
                     </p>
                   )}
                   <button onClick={recall} disabled={busy || phase !== "idle" || skipping || !!result}
@@ -859,26 +917,40 @@ const DG_CSS = `
 .dg-frame { display: grid; place-items: center; width: 44px; height: 44px; background: #0a141f; border: 3px solid; }
 .dg-frame-lg { display: grid; place-items: center; width: 56px; height: 56px; background: #0a141f; border: 3px solid; }
 .dg-pix { image-rendering: pixelated; }
-.dg-stage { height: 300px; background: #081019; }
+/* ── BIOMES ── one set of layer graphics, three costumes. The Sunless Keep
+   blue is the default; the Cellars go fungal green, the Orchard goes dead
+   bone-amber. Everything reads the variables, so a biome is nine colours. */
+.dg-stage { height: 300px; background: var(--bioBase, #081019);
+  --bioCeilA:#0a1620; --bioCeilB:#0e1e2c; --bioHang:#0a1826; --bioPillar:#0c1b2a;
+  --bioGroundA:#11232f; --bioGroundB:#0a141f; --bioThorn:#16303f;
+  --bioLight:#cfeaf780; --bioBase:#081019; }
+.dg-bio-0 { --bioCeilA:#08160f; --bioCeilB:#0c2416; --bioHang:#0a1f12; --bioPillar:#0d2617;
+  --bioGroundA:#10291b; --bioGroundB:#081410; --bioThorn:#164a2c;
+  --bioLight:#9fe8c880; --bioBase:#071310; }
+.dg-bio-1 { --bioCeilA:#171208; --bioCeilB:#241c0e; --bioHang:#1c150a; --bioPillar:#261e10;
+  --bioGroundA:#2a2112; --bioGroundB:#140f08; --bioThorn:#453317;
+  --bioLight:#e8d8a080; --bioBase:#120d06; }
 @media (min-width: 640px) { .dg-stage { height: 340px; } }
 .dg-bg { position: absolute; inset: 0; background-repeat: repeat-x; }
 /* far: the cavern ceiling, hanging silhouettes, and distant pale lights */
 .dg-bg-far { background-image:
-  radial-gradient(2px 2px at 18% 34%, #cfeaf780, transparent 60%),
-  radial-gradient(2px 2px at 67% 24%, #cfeaf75c, transparent 60%),
-  radial-gradient(3px 3px at 44% 50%, #cfeaf74a, transparent 60%),
-  repeating-linear-gradient(90deg, transparent 0 52px, #0a1826 52px 66px, transparent 66px 120px),
-  linear-gradient(#0a1620 0 26%, #0e1e2c 26% 30%, transparent 30%);
+  radial-gradient(2px 2px at 18% 34%, var(--bioLight), transparent 60%),
+  radial-gradient(2px 2px at 67% 24%, var(--bioLight), transparent 60%),
+  radial-gradient(3px 3px at 44% 50%, var(--bioLight), transparent 60%),
+  repeating-linear-gradient(90deg, transparent 0 52px, var(--bioHang) 52px 66px, transparent 66px 120px),
+  linear-gradient(var(--bioCeilA) 0 26%, var(--bioCeilB) 26% 30%, transparent 30%);
   background-size: 240px 100%, 240px 100%, 240px 100%, 120px 34%, 240px 100%; }
 /* mid: broken pillars of an older kingdom */
 .dg-bg-mid { background-image:
-  repeating-linear-gradient(90deg, transparent 0 70px, #0c1b2a 70px 96px, transparent 96px 240px);
+  repeating-linear-gradient(90deg, transparent 0 70px, var(--bioPillar) 70px 96px, transparent 96px 240px);
   background-size: 240px 100%; opacity: .92; }
 /* near: the path, and thorn-fringe along it */
 .dg-bg-near { background-image:
-  linear-gradient(transparent 0 80%, #11232f 80% 85%, #0a141f 85%),
-  repeating-linear-gradient(90deg, transparent 0 24px, #16303f 24px 28px, transparent 28px 60px);
+  linear-gradient(transparent 0 80%, var(--bioGroundA) 80% 85%, var(--bioGroundB) 85%),
+  repeating-linear-gradient(90deg, transparent 0 24px, var(--bioThorn) 24px 28px, transparent 28px 60px);
   background-size: 240px 100%, 60px 100%; }
+/* the bestiary's eyes glow — dead things go dark first */
+.dg-eyes { filter: drop-shadow(0 0 4px #e8f6ffb3); }
 /* always-on cavern dust, rising slow — the room is alive even at rest */
 .dg-motes { position: absolute; inset: 0; pointer-events: none; background-repeat: repeat; background-image:
   radial-gradient(2px 2px at 20% 82%, #bfe9ff59, transparent 60%),
