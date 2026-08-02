@@ -8,10 +8,13 @@ import CardFace, { CardDef } from "@/components/cards/CardFace";
 import { Panel, Heading, GachaButton, notch, ACCENT, ACCENT_LIT } from "@/components/cards/gacha";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-const SLOTS = 3;
+const SLOTS = 5;
 
 /**
- * SHOWCASE — three cards pinned to a profile.
+ * SHOWCASE — up to five cards pinned to a profile, shown at the same
+ * full-art size and shape the rest of the app uses. 5:7 at 186px was the
+ * one place cards still rendered in the old proportions — foil sweeps and
+ * legendary auras were there but shrunk into a stamp.
  *
  * Self-contained on purpose: it fetches its own catalog and collection and
  * renders nothing at all when there is nothing to show. That keeps the profile
@@ -112,7 +115,11 @@ export default function ShowcaseCards({
               return (
                 <motion.div key={i} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.06 }}>
-                  <CardFace card={card} owned foil={!!foils[card.id]} size={186} />
+                  {/* 216 crosses the full-art threshold (>=200), so the
+                      painting, the foil sweep and a legendary's aura render
+                      at the size they were made for — the same presentation
+                      as the collection grid, not a shrunken 5:7 stamp. */}
+                  <CardFace card={card} owned foil={!!foils[card.id]} size={216} ratio="5 / 9" />
                 </motion.div>
               );
             }
@@ -121,7 +128,7 @@ export default function ShowcaseCards({
             return (
               <button key={i} onClick={() => setEditing(true)}
                 className="grid place-items-center text-slate-700 transition hover:text-slate-500"
-                style={{ width: 186, aspectRatio: "5 / 7", clipPath: notch(14), background: "rgba(255,255,255,.02)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.07)" }}>
+                style={{ width: 216, aspectRatio: "5 / 9", clipPath: notch(14), background: "rgba(255,255,255,.02)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.07)" }}>
                 <Plus className="h-7 w-7" />
               </button>
             );
