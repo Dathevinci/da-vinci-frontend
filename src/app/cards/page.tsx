@@ -38,6 +38,13 @@ type Catalog = {
   cardStats?: Record<string, { hp: number; atk: number }>;
   foilMult?: number;
   maxSkillLevel?: number;
+  maxDomainLevel?: number;
+  /** Legendary domain expansions — same shape as skills, different mechanic. */
+  domains?: Record<string, {
+    name: string;
+    kind: string;
+    levels: { level: number; power: number; text: string; cost: number | null }[];
+  }>;
   /**
    * Legendary skills, keyed by card id, with every rank's wording already
    * resolved server-side — so the number shown is the number charged and this
@@ -817,9 +824,14 @@ export default function CardsPage() {
           const lvlBase = catalog.upgradeBase?.[selected.rarity] ?? 30;
           const lvlCost = Math.round(lvlBase * Math.pow(catalog.upgradeGrowth ?? 1.35, lvl - 1));
           const lvlCapped = lvl >= maxLvl;
-          const sk = catalog.skills?.[selected.id];
+          // A card carries a DOMAIN or a SKILL, never both. Domains are the
+          // legendary mechanic and rewrite a rule of the fight; skills are the
+          // epic one and do a thing. They render differently on purpose.
+          const dom = catalog.domains?.[selected.id];
+          const sk = dom ?? catalog.skills?.[selected.id];
+          const isDomain = !!dom;
           const skLvl = skillLevels[selected.id] || 1;
-          const skMax = catalog.maxSkillLevel ?? 5;
+          const skMax = isDomain ? (catalog.maxDomainLevel ?? 3) : (catalog.maxSkillLevel ?? 5);
           const skNow = sk?.levels?.[skLvl - 1];
           const skCost = skNow?.cost ?? null;
           const asl = !!asleep[selected.id];
@@ -912,18 +924,32 @@ export default function CardsPage() {
                       </div>
                     )}
 
-                    {/* ── SKILL ── legendaries only */}
+                    {/* ── ABILITY ── a DOMAIN on legendaries, a SKILL on epics.
+                        They get visibly different treatment because they are
+                        different mechanics, not two sizes of one. */}
                     {count > 0 && sk && (
-                      <div className="rounded-xl border border-purple-400/25 bg-purple-500/[0.07] px-4 py-3">
+                      <div
+                        className={`rounded-xl px-4 py-3 ${
+                          isDomain
+                            ? "border border-fuchsia-400/40 bg-gradient-to-b from-fuchsia-500/[0.14] to-purple-500/[0.06]"
+                            : "border border-purple-400/25 bg-purple-500/[0.07]"
+                        }`}
+                        style={isDomain ? { boxShadow: "inset 0 0 30px rgba(217,70,239,.14)" } : undefined}
+                      >
                         <div className="mb-2 flex items-center justify-between gap-2">
-                          <span className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.2em] text-purple-200">
-                            <Zap className="h-3.5 w-3.5" /> Skill
+                          <span className={`flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.2em] ${isDomain ? "text-fuchsia-200" : "text-purple-200"}`}>
+                            <Zap className="h-3.5 w-3.5" /> {isDomain ? "Domain Expansion" : "Skill"}
                           </span>
-                          <span className="rounded-md bg-purple-500/25 px-2 py-0.5 font-mono text-[11px] font-bold text-purple-200">
+                          <span className={`rounded-md px-2 py-0.5 font-mono text-[11px] font-bold ${isDomain ? "bg-fuchsia-500/30 text-fuchsia-100" : "bg-purple-500/25 text-purple-200"}`}>
                             LV.{skLvl}
                           </span>
                         </div>
                         <p className="text-lg font-black leading-tight text-white">{sk.name}</p>
+                        {isDomain && (
+                          <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-fuchsia-300/70">
+                            Once per duel · rewrites the fight
+                          </p>
+                        )}
                         <p className="mt-1.5 text-sm leading-relaxed text-slate-400">{skNow?.text}</p>
                         {skLvl < skMax && sk.levels?.[skLvl] && (
                           <p className="mt-2 border-t border-white/10 pt-2 text-[11px] leading-relaxed text-slate-600">
@@ -967,7 +993,9 @@ export default function CardsPage() {
                             disabled={skLvl >= skMax || skCost === null || shards < skCost}
                             Icon={Zap}
                           >
-                            {skLvl >= skMax ? "Skill mastered" : `Upgrade Skill (${(skCost ?? 0).toLocaleString()} shards)`}
+                            {skLvl >= skMax
+                              ? (isDomain ? "Domain at its ceiling" : "Skill mastered")
+                              : `${isDomain ? "Deepen Domain" : "Upgrade Skill"} (${(skCost ?? 0).toLocaleString()} shards)`}
                           </ActionButton>
                         )}
 
