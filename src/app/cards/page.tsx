@@ -36,6 +36,17 @@ type Catalog = {
   upgradeGrowth?: number;
   cardStats?: Record<string, { hp: number; atk: number }>;
   foilMult?: number;
+  maxSkillLevel?: number;
+  /**
+   * Legendary skills, keyed by card id, with every rank's wording already
+   * resolved server-side — so the number shown is the number charged and this
+   * file never grows a second copy of the copy.
+   */
+  skills?: Record<string, {
+    name: string;
+    kind: string;
+    levels: { level: number; power: number; text: string; cost: number | null }[];
+  }>;
 };
 
 export default function CardsPage() {
@@ -46,6 +57,8 @@ export default function CardsPage() {
   const [foils, setFoils] = useState<Record<string, boolean>>({});
   const [asleep, setAsleep] = useState<Record<string, boolean>>({});
   const [levels, setLevels] = useState<Record<string, number>>({});
+  // Legendary skill ranks, on their own shard track separate from level.
+  const [skillLevels, setSkillLevels] = useState<Record<string, number>>({});
   const [claimedSets, setClaimedSets] = useState<string[]>([]);
   const [shards, setShards] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -104,16 +117,19 @@ export default function CardsPage() {
         const fo: Record<string, boolean> = {};
         const hb: Record<string, boolean> = {};
         const lv: Record<string, number> = {};
+        const sk: Record<string, number> = {};
         for (const c of d.data?.cards || []) {
           map[c.cardId] = c.count;
           if (c.foil) fo[c.cardId] = true;
           if (c.hibernating) hb[c.cardId] = true;
           lv[c.cardId] = c.level || 1;
+          sk[c.cardId] = c.skillLevel || 1;
         }
         setOwned(map);
         setFoils(fo);
         setAsleep(hb);
         setLevels(lv);
+        setSkillLevels(sk);
         setClaimedSets(d.data.claimedSets || []);
         setShards(d.data.shards || 0);
       }
@@ -247,6 +263,13 @@ export default function CardsPage() {
       setShards(d.shards);
       setLevels((l) => ({ ...l, [card.id]: d.level }));
       fire("level", `Level ${d.level}`);
+    });
+
+  const upgradeSkill = (card: CardDef) =>
+    shardAction("upgrade-skill", { cardId: card.id }, (d) => {
+      setShards(d.shards);
+      setSkillLevels((l) => ({ ...l, [card.id]: d.skillLevel }));
+      fire("level", `${d.skillName} · Rank ${d.skillLevel}`);
     });
 
   const wake = (card: CardDef) =>
@@ -896,6 +919,54 @@ export default function CardsPage() {
                                     <GachaButton onClick={() => upgrade(selected)} disabled={capped || shards < cost}>
                                       <Sparkles className="h-3.5 w-3.5" />
                                       {capped ? "Max level" : `Upgrade · ${cost.toLocaleString()} shards`}
+                                    </GachaButton>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
+
+                          {/* ── SKILL ── legendaries only, and a separate
+                              shard track from level. Level buys ATK and HP;
+                              this buys the one thing the card uniquely does,
+                              so shards stay a choice rather than a queue. */}
+                          {count > 0 && !asleep[selected.id] && catalog.skills?.[selected.id] && (() => {
+                            const sk = catalog.skills[selected.id];
+                            const lv = skillLevels[selected.id] || 1;
+                            const max = catalog.maxSkillLevel ?? 5;
+                            // Every level's wording comes from the server, so
+                            // the number shown is the number charged and the
+                            // copy can never drift from the source.
+                            const now = sk.levels?.[lv - 1];
+                            const next = sk.levels?.[lv];
+                            const capped = lv >= max;
+                            const cost = now?.cost ?? null;
+                            return (
+                              <div className="px-3.5 py-3 text-left"
+                                style={{ clipPath: notch(11), background: "rgba(251,191,36,.08)", boxShadow: "inset 0 0 0 1px rgba(251,191,36,.35)" }}>
+                                <div className="mb-1.5 flex items-baseline justify-between gap-2">
+                                  <span className="truncate text-[10px] font-black uppercase tracking-[0.24em] text-amber-200">
+                                    {sk.name}
+                                  </span>
+                                  <span className="shrink-0 text-[10px] font-bold text-slate-500">
+                                    Rank {lv} / {max}
+                                  </span>
+                                </div>
+                                <SegBar value={lv} max={max} tone="#FBBF24" />
+                                <p className="mt-2 text-xs leading-relaxed text-amber-100/80">{now?.text}</p>
+                                {next && (
+                                  <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
+                                    Next rank: {next.text}
+                                  </p>
+                                )}
+                                {isMine && (
+                                  <div className="mt-2.5">
+                                    <GachaButton
+                                      onClick={() => upgradeSkill(selected)}
+                                      disabled={capped || cost === null || shards < cost}
+                                    >
+                                      <Sparkles className="h-3.5 w-3.5" />
+                                      {capped ? "Mastered" : `Train · ${(cost ?? 0).toLocaleString()} shards`}
                                     </GachaButton>
                                   </div>
                                 )}
