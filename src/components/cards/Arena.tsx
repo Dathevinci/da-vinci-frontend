@@ -407,8 +407,11 @@ export default function Arena({
     const line = log.length ? log[log.length - 1] : null;
     if (!line || line === lastLogRef.current) return;
     lastLogRef.current = line;
-    if (!line.startsWith("25B2")) return;
-    setDomain({ text: line.replace(/^25B2s*/, ""), mine: line.includes(myName), key: Date.now() });
+    // "▲" literally — an earlier regex pass ate the \u escape and left this
+    // comparing against the text "25B2", which no log line ever starts with,
+    // so the overlay never fired even while the log showed domains landing.
+    if (!line.startsWith("▲")) return;
+    setDomain({ text: line.replace(/^▲\s*/, ""), mine: line.includes(myName), key: Date.now() });
   }, [log, myName]);
   // Cleared on a timer, never onAnimationComplete — that fires on the wrapper's
   // own animation, not the keyframes inside it.
@@ -467,7 +470,17 @@ export default function Arena({
   const dragRef = useRef<Drag | null>(null);
   const overRef = useRef<string | null>(null);
   const didDragRef = useRef(false);
-  const [dragUI, setDragUI] = useState<{ d: Drag; x: number; y: number; over: string | null } | null>(null);
+  // REACT IS NOT IN THE LOOP WHILE THE POINTER MOVES. The old shape kept the
+  // pointer's x/y in state, which re-rendered the entire board — champions,
+  // bench, hand, log — once per moved pixel. That is why dragging felt like
+  // pulling a card through syrup. State now changes exactly three times per
+  // gesture (start, target change, end); between those the ghost is steered
+  // straight through a ref, and the hit-test runs once per FRAME rather than
+  // once per pointer event.
+  const [drag, setDrag] = useState<{ d: Drag; over: string | null } | null>(null);
+  const ghostRef = useRef<HTMLDivElement | null>(null);
+  const posRef = useRef({ x: 0, y: 0 });
+  const rafRef = useRef(0);
 
   // Kept in a ref so the window listeners (mounted once) always call the
   // CURRENT handlers rather than a closure captured on the first render.
@@ -494,29 +507,50 @@ export default function Arena({
   };
 
   useEffect(() => {
+    // One frame's work: steer the ghost, then ask what's under the finger.
+    // The ghost is pointer-events:none, so elementFromPoint reads THROUGH it.
+    const frame = () => {
+      rafRef.current = 0;
+      const { x, y } = posRef.current;
+      const g = ghostRef.current;
+      if (g) g.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+      const el = document.elementFromPoint(x, y) as HTMLElement | null;
+      const zone = el?.closest("[data-drop]") as HTMLElement | null;
+      const next = zone?.getAttribute("data-drop") || null;
+      if (next !== overRef.current) {
+        overRef.current = next;
+        setDrag((s) => (s ? { ...s, over: next } : s));
+      }
+    };
     const move = (e: PointerEvent) => {
       const p = pendRef.current;
       if (!p) return;
+      posRef.current = { x: e.clientX, y: e.clientY };
       if (!dragRef.current) {
         if (Math.hypot(e.clientX - p.x, e.clientY - p.y) < 8) return; // a tap stays a tap
         dragRef.current = p.d;
+        setDrag({ d: p.d, over: null });
       }
-      // The ghost is pointer-events:none, so this reads what's UNDER the finger.
-      const el = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
-      const zone = el?.closest("[data-drop]") as HTMLElement | null;
-      overRef.current = zone?.getAttribute("data-drop") || null;
-      setDragUI({ d: dragRef.current, x: e.clientX, y: e.clientY, over: overRef.current });
+      if (!rafRef.current) rafRef.current = requestAnimationFrame(frame);
     };
     const end = () => {
       // A click still fires after pointerup when the pointer moved, so without
       // this a completed drag would ALSO run the card's onClick — attacking and
       // then silently changing the selection underneath you.
       didDragRef.current = !!dragRef.current;
-      if (dragRef.current) resolveRef.current(dragRef.current, overRef.current);
+      if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = 0; }
+      if (dragRef.current) {
+        // A fast flick can release before the frame that would have hit-tested
+        // its last position — resolve against where the pointer actually IS,
+        // not where the last frame saw it.
+        const el = document.elementFromPoint(posRef.current.x, posRef.current.y) as HTMLElement | null;
+        const zone = el?.closest("[data-drop]") as HTMLElement | null;
+        resolveRef.current(dragRef.current, zone?.getAttribute("data-drop") || overRef.current);
+      }
       pendRef.current = null;
       dragRef.current = null;
       overRef.current = null;
-      setDragUI(null);
+      setDrag(null);
     };
     window.addEventListener("pointermove", move, { passive: true });
     window.addEventListener("pointerup", end);
@@ -532,6 +566,9 @@ export default function Arena({
     if (e.button != null && e.button !== 0) return;
     didDragRef.current = false;
     pendRef.current = { d, x: e.clientX, y: e.clientY };
+    // The ghost's very first paint reads this — without it the card would
+    // flash at the top-left corner for one frame before the pointer caught it.
+    posRef.current = { x: e.clientX, y: e.clientY };
   }, []);
   const swallowClick = () => {
     if (!didDragRef.current) return false;
@@ -539,8 +576,8 @@ export default function Arena({
     return true;
   };
 
-  const dragging = dragUI?.d ?? null;
-  const over = dragUI?.over ?? null;
+  const dragging = drag?.d ?? null;
+  const over = drag?.over ?? null;
   const aiming = dragging?.kind === "support" && dragging.targeted;
 
   const ghostCard = dragging
@@ -732,13 +769,18 @@ export default function Arena({
         // board gives up for it didn't look like it was paying for anything.
         // The heading is gone because the panel already has one — it said
         // "Battle log" twice, stacked.
-        <div className="absolute bottom-3 right-3 top-16 z-10 w-[300px]">{logPanel}</div>
+        <div className="absolute bottom-3 right-3 top-16 z-30 w-[300px]">{logPanel}</div>
       )}
 
       {/* On a monitor YOUR HAND is the left column — the mirror of the log.
-          Same nodes, same drop targets; see the note on handCards. */}
+          Same nodes, same drop targets; see the note on handCards.
+          z-30, NOT z-10: the bench, clash and bottom panel come later in the
+          DOM and span the full viewport width, so at equal z they paint over
+          the rails and swallow every pointer event — which made the hand
+          untouchable: taps dead, drags never starting. The rails must sit
+          above the rows they overlap (and below the modals at 110+). */}
       {sideHand && (
-        <div className="absolute bottom-3 left-3 top-16 z-10 flex w-[300px] flex-col overflow-hidden rounded-xl border border-white/10 bg-black/70">
+        <div className="absolute bottom-3 left-3 top-16 z-30 flex w-[300px] flex-col overflow-hidden rounded-xl border border-white/10 bg-black/70">
           <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 px-3 py-1.5">
             <span className="flex min-w-0 items-center gap-2 text-sm font-black text-rose-100">
               <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-rose-500/25 text-[10px] ring-1 ring-rose-400/40">{myName[0]?.toUpperCase()}</span>
@@ -1319,10 +1361,16 @@ export default function Arena({
 
       {/* ── DRAG GHOST ── pointer-events:none is REQUIRED, or elementFromPoint
           would only ever hit the ghost itself. */}
-      {dragUI && ghostCard && (
-        <div className="pointer-events-none fixed z-[200] opacity-90 drop-shadow-[0_10px_30px_rgba(0,0,0,.8)]"
-          style={{ left: dragUI.x, top: dragUI.y, transform: "translate(-50%, -50%) rotate(-4deg) scale(1.06)" }}>
-          <CardFace card={ghostCard} owned size={hand} />
+      {drag && ghostCard && (
+        // Two layers: the OUTER one is steered by the frame loop with a bare
+        // translate3d — compositor work only — and the inner one carries the
+        // static centring, tilt and shadow so they never have to be recomputed.
+        <div ref={ghostRef} className="pointer-events-none fixed left-0 top-0 z-[200] will-change-transform"
+          style={{ transform: `translate3d(${posRef.current.x}px, ${posRef.current.y}px, 0)` }}>
+          <div className="-translate-x-1/2 -translate-y-1/2 opacity-90 drop-shadow-[0_10px_30px_rgba(0,0,0,.8)]"
+            style={{ rotate: "-4deg", scale: "1.06" }}>
+            <CardFace card={ghostCard} owned size={hand} />
+          </div>
         </div>
       )}
     </motion.div>
