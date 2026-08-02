@@ -194,23 +194,40 @@ export default function PackReveal({
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
           >
-            <div aria-hidden className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
-            {/* rays behind the card */}
+            {/* No backdrop-blur here. Blurring a full-screen layer forces a
+                re-blur on every frame that anything above it moves, which is
+                most of what made this beat stutter. A flat scrim is free. */}
+            <div aria-hidden className="absolute inset-0 bg-black/80" />
+
+            {/* Rays. Rotation only — no scale, no opacity keyframes — and the
+                element is promoted to its own layer, so the conic gradient is
+                rasterised once and the spin is a compositor transform. */}
             <motion.div
               aria-hidden
-              className="absolute h-[560px] w-[560px] rounded-full"
-              style={{ background: `conic-gradient(from 0deg, transparent, ${RARITY_META[hero.rarity].glow}, transparent 30%, ${RARITY_META[hero.rarity].glow}, transparent 60%)` }}
-              initial={{ rotate: 0, opacity: 0, scale: 0.6 }}
-              animate={{ rotate: 180, opacity: 0.75, scale: 1 }}
+              className="absolute h-[520px] w-[520px] rounded-full"
+              style={{
+                background: `conic-gradient(from 0deg, transparent, ${RARITY_META[hero.rarity].glow}, transparent 28%, ${RARITY_META[hero.rarity].glow}, transparent 56%)`,
+                opacity: 0.6,
+                willChange: "transform",
+                transform: "translateZ(0)",
+              }}
+              initial={{ rotate: 0 }}
+              animate={{ rotate: 180 }}
               transition={{ duration: 1.9, ease: "linear" }}
             />
+
+            {/* The card. A spring on a 260px procedural SVG was the actual
+                cause of the chop: springs settle in many tiny sub-pixel steps,
+                and each one re-rasterises the whole card. A fixed-duration
+                tween on a promoted layer scales the already-rasterised bitmap
+                instead — same motion, a fraction of the work. */}
             <motion.div
               className="relative"
-              initial={{ scale: 0.3, rotateY: 180, opacity: 0 }}
-              animate={{ scale: 1, rotateY: 0, opacity: 1 }}
-              exit={{ scale: 0.55, opacity: 0, y: 60 }}
-              transition={{ type: "spring", stiffness: 150, damping: 15 }}
-              style={{ transformStyle: "preserve-3d", perspective: 1000 }}
+              initial={{ scale: 0.55, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.75, opacity: 0, y: 40 }}
+              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+              style={{ willChange: "transform, opacity", transform: "translateZ(0)", backfaceVisibility: "hidden" }}
             >
               <CardFace card={hero} owned size={260} showStats />
             </motion.div>

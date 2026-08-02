@@ -223,6 +223,19 @@ export default function CardsPage() {
    */
   const [burst, setBurst] = useState<{ kind: "dust" | "level"; label: string; key: number } | null>(null);
   const fire = (kind: "dust" | "level", label: string) => setBurst({ kind, label, key: Date.now() });
+  /**
+   * The burst is cleared on a timer, NOT on onAnimationComplete.
+   *
+   * That callback fires when the element's OWN animation finishes — here the
+   * 0.3s wrapper fade — not when the child keyframes do. So the whole thing
+   * unmounted about a quarter of the way through, which is most of why dusting
+   * looked like nothing happened.
+   */
+  useEffect(() => {
+    if (!burst) return;
+    const t = setTimeout(() => setBurst(null), 1300);
+    return () => clearTimeout(t);
+  }, [burst?.key]);
 
   const upgrade = (card: CardDef) =>
     shardAction("upgrade", { cardId: card.id }, (d) => {
@@ -591,7 +604,22 @@ export default function CardsPage() {
                             clipPath: notch(12),
                             background: has ? "rgba(255,255,255,.035)" : "rgba(255,255,255,.012)",
                             boxShadow: `inset 0 0 0 1px ${has ? "rgba(162,116,255,.24)" : "rgba(255,255,255,.05)"}`,
-                          }}>
+                            /**
+                             * Off-screen cards are not rendered at all.
+                             *
+                             * Every card is a full SVG with gradients, rays,
+                             * particles and a vignette. A collection of forty
+                             * meant the browser laid out and painted forty of
+                             * them whether or not two were on screen — that is
+                             * what made scrolling this grid heavy.
+                             *
+                             * contain-intrinsic-size supplies a placeholder box
+                             * so the scrollbar stays honest and nothing jumps
+                             * as cards enter and leave the viewport.
+                             */
+                            contentVisibility: "auto",
+                            containIntrinsicSize: "auto 320px",
+                          } as any}>
                           {/* The card carries its own name, stars and rarity
                               badge now that the art is full-bleed, so nothing
                               is repeated underneath it. */}
@@ -620,7 +648,6 @@ export default function CardsPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onAnimationComplete={() => setBurst(null)}
           >
             <div aria-hidden className="absolute inset-0 bg-black/45" />
             {/* glow */}
