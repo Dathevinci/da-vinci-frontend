@@ -860,9 +860,14 @@ export default function ShopPage() {
             </motion.div>
           )}
 
-          {/* ── Toolbar: search, ownership, category tabs (not sticky — it scrolls
-              away with the page so it never overlaps the item grid) ── */}
-          <div className="z-30 mb-6 md:sticky md:top-[72px]">
+          {/* ── Toolbar: search, ownership, category tabs.
+              The 72px offset was clearance for the old top navbar. That nav is
+              a bottom island now, so nothing occupies those 72px and the bar
+              pinned itself a third of the way down the screen — reading as a
+              panel floating over the grid, with the row above sliced in half
+              behind it. It pins to the top edge instead, and carries a solid
+              backdrop so cards pass cleanly underneath. ── */}
+          <div className="z-30 mb-6 md:sticky md:top-3">
             <div className="flex flex-col gap-2.5 rounded-2xl border border-white/10 bg-[#0b0b10]/95 backdrop-blur-xl p-3 shadow-[0_8px_30px_rgba(0,0,0,0.45)]">
               <div className="flex flex-col gap-3 md:flex-row md:items-center">
                 {/* search */}
