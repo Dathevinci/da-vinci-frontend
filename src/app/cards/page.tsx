@@ -508,8 +508,15 @@ export default function CardsPage() {
                     );
                   })()}
 
+                  {/* Only cards you actually own are drawn. Two reasons: a card
+                      you have never seen should be a surprise when it drops,
+                      not a greyed-out silhouette you have already studied — and
+                      rendering the whole catalog meant ~47 procedural SVG
+                      portraits per page, most of them dimmed placeholders
+                      nobody was looking at. What is still missing is shown as a
+                      count instead. */}
                   <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                    {cards.map((c) => {
+                    {cards.filter((c) => (owned[c.id] || 0) > 0).map((c) => {
                       const count = owned[c.id] || 0;
                       const has = count > 0;
                       return (
