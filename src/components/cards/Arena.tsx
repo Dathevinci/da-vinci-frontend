@@ -177,7 +177,7 @@ function KoBurst({ show, koKey }: { show?: boolean; koKey?: number }) {
 
 export default function Arena({
   mine, foe, byId, myName, foeName, myTurn, finished, resultText, won = false,
-  bag = [], busy, log = [], stake,
+  bag = [], busy, log = [], stake, round = 1,
   supports = [], usedSupports = [],
   onAttack, onDeploy, onItem, onSupport, onAbility, abilityIds, onForfeit, onClose,
 }: {
@@ -189,6 +189,8 @@ export default function Arena({
    *  so counting survivors would call a walkover a loss. */
   won?: boolean;
   bag?: string[]; busy?: boolean; log?: string[]; stake?: number;
+  /** Current round, shown live in the battle log header. */
+  round?: number;
   /** Support cards you OWN — never spent, but each is playable once per duel. */
   supports?: CardDef[];
   usedSupports?: string[];
@@ -419,14 +421,52 @@ export default function Arena({
       : playableSupports.find((c) => c.id === dragging.cardId)
     : undefined;
 
-  const logPanel = log.length > 0 && (
-    <div className={`overflow-y-auto rounded-xl border border-white/10 bg-black/60 px-3 py-2 text-[11px] leading-relaxed text-slate-400 backdrop-blur ${
-      wide ? "max-h-[38vh] w-full" : "max-h-14 w-full max-w-lg"}`}>
-      {[...log].reverse().slice(0, wide ? 18 : 6).map((l, i) => (
-        <div key={`${i}-${l}`} className={i === 0 ? "font-black text-white" : ""}>{l}</div>
-      ))}
-    </div>
-  );
+  /**
+   * The battle log, read as a live feed rather than a footnote.
+   *
+   * The newest line gets its own row at the top — it is what just happened,
+   * and burying it in a scroll of identically-styled text was why nobody could
+   * tell what a card had actually done. Everything older is history underneath.
+   *
+   * Lines are NOT tagged with a round each: the server pushes plain strings, so
+   * assigning a round to a line here would be a guess. The current round is
+   * shown once, in the header, where it is true.
+   */
+  const logPanel = log.length > 0 && (() => {
+    const newest = log[log.length - 1];
+    const older = [...log].slice(0, -1).reverse();
+    // Domain lines are marked with a leading triangle by the engine.
+    const isBig = newest.startsWith("▲");
+    return (
+      <div className={`w-full overflow-hidden rounded-xl border border-white/10 bg-black/70 ${wide ? "" : "max-w-lg"}`}>
+        <div className="flex items-center justify-between gap-2 border-b border-white/10 px-3 py-1.5">
+          <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.24em] text-slate-500">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            Battle log
+          </span>
+          <span className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-500">
+            Round <span className="tabular-nums text-slate-300">{round}</span>
+          </span>
+        </div>
+
+        <div
+          key={newest}
+          className={`px-3 py-2 text-[12px] font-black leading-snug ${isBig ? "text-fuchsia-200" : "text-white"}`}
+          style={{ background: isBig ? "rgba(217,70,239,.12)" : "rgba(255,255,255,.04)" }}
+        >
+          {newest}
+        </div>
+
+        {older.length > 0 && (
+          <div className={`overflow-y-auto px-3 py-1.5 text-[11px] leading-relaxed text-slate-500 ${wide ? "max-h-[30vh]" : "max-h-12"}`}>
+            {older.slice(0, wide ? 18 : 6).map((l, i) => (
+              <div key={`${i}-${l}`}>{l}</div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  })();
 
   return (
     <motion.div

@@ -603,7 +603,7 @@ function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMo
         myName={myName} foeName={foeName}
         myTurn={myTurn} finished={duel.status === "FINISHED"} resultText={resultText}
         won={!!me && duel.winnerId === me}
-        bag={bag} busy={busy} log={state.log} stake={duel.stake}
+        bag={bag} busy={busy} log={state.log} stake={duel.stake} round={state.round}
         supports={myCards.filter((c: any) => !!c.support)}
         usedSupports={mine.usedSupports || []}
         onAttack={() => onMove("attack")}

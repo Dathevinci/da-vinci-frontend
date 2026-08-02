@@ -966,7 +966,34 @@ function CardFaceImpl({
         {/* Asleep: one flat wash, no blur, no rotated sash. The state moves
             into the data row below instead of decorating the picture. */}
         {hibernating && owned && (
-          <span aria-hidden style={{ position: "absolute", inset: 0, background: "rgba(56,120,200,0.20)" }} />
+          <>
+            <span aria-hidden style={{ position: "absolute", inset: 0, background: "rgba(56,120,200,0.22)" }} />
+            {/* A BADGE, not just a wash. The state used to live only in the
+                ability row, which doesn't render below 150px — so on the
+                collection grid a fallen card looked merely blue-ish and there
+                was nothing anywhere that said why it couldn't be fielded. */}
+            <span
+              style={{
+                position: "absolute",
+                left: 0,
+                right: 0,
+                top: "50%",
+                transform: "translateY(-50%)",
+                textAlign: "center",
+                padding: `${Math.max(2, Math.round(size * 0.018))}px 0`,
+                background: "rgba(6,18,40,0.88)",
+                borderTop: "1px solid rgba(125,211,252,.55)",
+                borderBottom: "1px solid rgba(125,211,252,.55)",
+                color: "#BAE6FD",
+                fontSize: Math.max(7, Math.round(size * 0.052)),
+                fontWeight: 900,
+                letterSpacing: "0.22em",
+                lineHeight: 1.3,
+              }}
+            >
+              ASLEEP
+            </span>
+          </>
         )}
 
         {/* The scrim's last stop is the panel's exact colour, so at the meeting
