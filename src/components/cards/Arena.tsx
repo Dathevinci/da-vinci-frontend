@@ -272,6 +272,8 @@ export default function Arena({
   const [confirmQuit, setConfirmQuit] = useState(false);
   // The support card currently being inspected, before you commit to it.
   const [peek, setPeek] = useState<CardDef | null>(null);
+  // The support rail starts shut — see the note beside it.
+  const [showSupports, setShowSupports] = useState(false);
 
   const playableSupports = useMemo(() => supports.filter((c) => !!c.support), [supports]);
   const hasSupport = playableSupports.length > 0 && !!onSupport && !finished;
@@ -858,14 +860,25 @@ export default function Arena({
         {/* ── SUPPORT RAIL ── */}
         {hasSupport && (
           <div className="mt-2">
-            <div className="mb-1 flex items-center gap-1.5">
+            {/* COLLAPSED BY DEFAULT. This rail rendered every support you own —
+                thirteen cards on a full collection — when only three can ever
+                be played in a duel. It was the single biggest block of noise on
+                the board, and most of it was cards you could not use. It opens
+                on demand and shuts again after a play. */}
+            <button
+              onClick={() => setShowSupports((v) => !v)}
+              className="mb-1 flex w-full items-center gap-1.5 text-left"
+            >
               <Sparkles className="h-3 w-3 text-cyan-300" />
               <span className="text-[10px] font-black uppercase tracking-widest text-cyan-300/80">
                 Support · {usedSupports.length}/{SUPPORTS_PER_DUEL} played
               </span>
-              <span className="text-[10px] font-bold text-slate-600">— tap one to see what it does</span>
-            </div>
-            <div className="flex gap-2 overflow-x-auto pb-1">
+              <span className="text-[10px] font-bold text-slate-600">
+                {showSupports ? "— tap a card to see what it does" : `— ${playableSupports.length} available, tap to open`}
+              </span>
+              <span className="ml-auto text-[10px] font-black text-cyan-300/70">{showSupports ? "HIDE" : "SHOW"}</span>
+            </button>
+            <div className={`gap-2 overflow-x-auto pb-1 ${showSupports ? "flex" : "hidden"}`}>
               {playableSupports.map((c) => {
                 const spent = usedSupports.includes(c.id);
                 // Three per duel, matching the server. Once you've spent them
@@ -1074,7 +1087,7 @@ export default function Arena({
                       {!targeted && (
                         <button
                           disabled={!canPlay}
-                          onClick={() => { onSupport?.(peek.id); setPeek(null); }}
+                          onClick={() => { onSupport?.(peek.id); setPeek(null); setShowSupports(false); }}
                           className="flex-1 py-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-[#04232e] transition hover:brightness-110 disabled:opacity-35"
                           style={{ clipPath: notch(9), background: "linear-gradient(100deg, #a5f3fc, #22d3ee)" }}>
                           {spent ? "Already played" : outOfSlots ? "No slots left" : !live ? "Not your turn" : "Play it"}
