@@ -310,15 +310,26 @@ export default function Arena({
   // bench and hand card carries its own bar — 62px of non-card furniture that
   // the first pass forgot, which is why the hand's health bars were sheared off
   // at the bottom edge. bench = 0.34 champ and hand = 0.58 champ, so the card
-  // height works out to champ * 1.4 * (1 + 0.34 + 0.58). Solve for champ.
+  // height works out to champ * 1.4 * (1 + 0.46 + 0.58). Solve for champ.
+  //
+  // The bench used to be 0.34 against the hand's 0.58 — barely half the
+  // weight for the same information. The opponent's line is how you read the
+  // game, and at that ratio the top of the board read as decoration while the
+  // bottom read as content. 0.46 closes most of the gap without letting the
+  // bench rival your own hand.
+  //
+  // THE DIVISOR BELOW MOVES WITH IT. 1 + 0.46 + 0.58 = 2.04, so the ratio is
+  // 1.4 * 2.04 = 2.856. Leaving it at 2.688 would size the champion for a
+  // shorter stack than actually renders, and this board has roughly no slack
+  // — it would overflow into the opponent's bench on a laptop.
   const forCards = box.h - chrome - 62;
   const lineup = Math.max(mine.fighters.length, foe.fighters.length, 1);
   const perCard = (box.w - (wide ? 340 : 24)) / lineup;
-  const champ = clamp(92, Math.min(forCards / 2.688, box.w * 0.30), 300);
+  const champ = clamp(92, Math.min(forCards / 2.856, box.w * 0.30), 300);
   const hand = clamp(56, Math.min(champ * 0.58, perCard - 10), 150);
   // Floors matter: below ~48px a card is unreadable mush rather than a small
   // card, and the opponent's line is how you read the game.
-  const bench = clamp(48, Math.min(champ * 0.34, perCard - 14), 92);
+  const bench = clamp(56, Math.min(champ * 0.46, perCard - 14), 118);
   // 78 floor, not 52. Below the card face's ~68-76px thresholds a support
   // renders as art with no panel, no name and no grade plate — and supports
   // have no painted art, so what was left was a dim grey smudge. 78 clears
