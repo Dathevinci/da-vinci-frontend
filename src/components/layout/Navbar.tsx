@@ -311,9 +311,13 @@ export default function Navbar() {
                 </button>
               )
             )}
-            {/* Mobile Menu Toggle */}
-            <button 
-              className="lg:hidden text-slate-300 hover:text-white p-1 sm:ml-2"
+            {/* Mobile Menu Toggle — TABLETS ONLY.
+                Below md the bottom bar's More sheet carries these same links,
+                so on a phone this was a second menu with identical contents
+                sitting in the top corner. Between md and lg there is no bottom
+                bar, so it still has to exist there. */}
+            <button
+              className="hidden md:block lg:hidden text-slate-300 hover:text-white p-1 sm:ml-2"
               onClick={() => setIsMobileMenuOpen(true)}
             >
               <Menu className="w-6 h-6 sm:w-7 sm:h-7" />
