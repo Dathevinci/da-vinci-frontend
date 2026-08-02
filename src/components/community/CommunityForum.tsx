@@ -391,12 +391,22 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
       )
     );
     try {
-      await fetch(`${API_URL}/api/comments/${post.id}/vote`, {
+      const r = await fetch(`${API_URL}/api/comments/${post.id}/vote`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({ userId: user.id, value: next }),
       });
+      // The response was never read, so a REJECTED vote looked exactly like a
+      // successful one: the optimistic state stayed on screen until something
+      // reloaded, and then silently undid itself. A vote that un-votes itself
+      // a minute later is the worst version of this to debug from the outside.
+      const d = await r.json().catch(() => null);
+      if (!r.ok || !d?.success) {
+        toast(d?.message || "That vote didn't save.", "error");
+        load();
+      }
     } catch {
+      toast("That vote didn't save.", "error");
       load(); // put the truth back
     }
   };
