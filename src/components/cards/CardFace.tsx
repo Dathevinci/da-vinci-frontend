@@ -1,5 +1,6 @@
 "use client";
 import { memo } from "react";
+import { cardArt } from "@/data/cardArt";
 
 /**
  * ARISE CARD ART — every card drawn procedurally, no image assets.
@@ -37,6 +38,12 @@ export interface CardDef {
   flavor: string;
   /** Present on support cards — they're played for an effect, never fielded. */
   support?: SupportEffect;
+  /**
+   * A painted image to use instead of the drawn motif. Optional escape hatch
+   * over the local manifest in data/cardArt.ts, so the server can start
+   * sending art without a client release.
+   */
+  art?: string;
   /**
    * Overrides the corner plate's rarity word. Arena effects are graded
    * A/S/SS/SSS rather than common/legendary, and the plate is the one place
@@ -761,6 +768,10 @@ function CardFaceImpl({
   // Atmosphere is only drawn where it can actually be seen. See the detail
   // budget note in the art stack below.
   const rich = size >= 96;
+  // Read from the manifest INSIDE the component, never taken as a prop — a new
+  // prop would defeat the memo() at the bottom of this file, which Arena's
+  // two-second poll loop depends on to avoid re-rendering every card on screen.
+  const painted = cardArt(card.id, card.art);
 
   return (
     <div className="relative select-none" style={{ width: size, aspectRatio: "5 / 7" }}
@@ -906,6 +917,24 @@ function CardFaceImpl({
           <rect x="2.5" y="2.5" width="95" height="135" fill={`url(#plate-${uid})`} opacity="0.14" />
           {foil && <rect x="2.5" y="2.5" width="95" height="135" fill={`url(#foil-${uid})`} />}
         </g>
+
+        {/* ── PAINTED ART ── a real image for the cards that have one.
+            Drawn OVER the whole motif stack rather than instead of it, on
+            purpose: if the file 404s — wrong case, or never committed, which
+            this repo has shipped before — the image element simply paints
+            nothing and the drawn art underneath is what you see. There is no
+            state to get wrong and no broken-image icon to hide.
+            Suppressed while unowned; an uncollected card shouldn't reveal its
+            art, and it stops the collection page fetching every one of them. */}
+        {owned && painted && (
+          <g clipPath={`url(#art-${uid})`}>
+            <image
+              href={painted}
+              x="2.5" y="2.5" width="95" height="135"
+              preserveAspectRatio="xMidYMid slice"
+            />
+          </g>
+        )}
         {/* ── SCRIM ── the name reads against this, not against a plate */}
         <g clipPath={`url(#art-${uid})`}>
           <rect x="2.5" y="86" width="95" height="51.5" fill={`url(#scrim-${uid})`} />
