@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   Home, Compass, Activity, Calendar, Users, Layers, Swords, Trophy, Gavel,
   ShoppingBag, Search, Bell, Settings, LogOut, Terminal, BookMarked, BookOpen, Tv,
-  ChevronDown, Store,
+  ChevronDown, Store, Newspaper, ScrollText, Clock, HelpCircle, LifeBuoy, MoreHorizontal,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { useAppMode } from "@/components/providers/AppModeProvider";
@@ -37,16 +37,34 @@ const READ: Record<string, Dest[]> = {
     { href: "/explore", label: "Explore", Icon: Compass },
     { href: "/airing", label: "Airing Now", Icon: Activity },
     { href: "/calendar", label: "Schedule", Icon: Calendar },
+    { href: "/updates", label: "Updates", Icon: Newspaper },
   ],
   manhwa: [
     { href: "/manhwa", label: "Dashboard", Icon: Home },
     { href: "/explore", label: "Explore", Icon: Compass },
+    { href: "/updates", label: "Updates", Icon: Newspaper },
   ],
   novel: [
     { href: "/novel", label: "Library", Icon: Home },
     { href: "/explore", label: "Explore", Icon: Compass },
+    { href: "/updates", label: "Updates", Icon: Newspaper },
   ],
 };
+
+/**
+ * Everything the island doesn't have room for on the front row.
+ *
+ * Rebuilding the bar as icons quietly lost five destinations that the old top
+ * bar carried — Updates, Upcoming, Quests, Support and FAQ. Updates earned its
+ * place back on the row (it was in every mode's links); the rest live behind
+ * More, which is better than a row so long it stops being scannable.
+ */
+const MORE: Dest[] = [
+  { href: "/quests", label: "Quests", Icon: ScrollText },
+  { href: "/upcoming", label: "Upcoming", Icon: Clock },
+  { href: "/faq", label: "FAQ", Icon: HelpCircle },
+  { href: "/support", label: "Support", Icon: LifeBuoy },
+];
 
 const PLAY: Dest[] = [
   { href: "/cards", label: "Arise Cards", Icon: Layers },
@@ -115,6 +133,7 @@ export default function NavIsland({ onSearch, onSettings }: { onSearch: () => vo
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [modeOpen, setModeOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [hoverSearch, setHoverSearch] = useState(false);
   const [hoverSettings, setHoverSettings] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -138,13 +157,14 @@ export default function NavIsland({ onSearch, onSettings }: { onSearch: () => vo
     closeTimer.current = setTimeout(() => {
       setOpen(false);
       setModeOpen(false);
+      setMoreOpen(false);
     }, 380);
   };
   useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
 
   // The bar is out of the way whenever it isn't wanted — but never while a menu
   // inside it is open, or choosing a mode would dismiss the thing you're using.
-  const visible = open || modeOpen || notifOpen;
+  const visible = open || modeOpen || moreOpen || notifOpen;
 
   return (
     <>
@@ -235,6 +255,35 @@ export default function NavIsland({ onSearch, onSettings }: { onSearch: () => vo
           {user && isAdmin(user.username) && (
             <IslandLink href="/console" label="Console" Icon={Terminal} accent={accent} active={is("/console")} />
           )}
+
+          {/* ── MORE ── opens upward, with a padding bridge rather than a
+              margin: a gap between the button and the menu fires mouseleave
+              as you reach for it. */}
+          <div className="relative" onMouseEnter={() => setMoreOpen(true)} onMouseLeave={() => setMoreOpen(false)}>
+            <button aria-label="More"
+              className={`relative grid h-10 w-10 place-items-center rounded-full transition-colors ${
+                moreOpen ? "text-white" : "text-slate-400 hover:text-white"}`}>
+              <MoreHorizontal className="h-[18px] w-[18px]" />
+            </button>
+            <div className="absolute bottom-full right-0 z-20 w-44 pb-2.5"
+              style={{
+                transform: `translateY(${moreOpen ? "0" : "6px"})`,
+                opacity: moreOpen ? 1 : 0,
+                pointerEvents: moreOpen ? "auto" : "none",
+                transition: "opacity 140ms ease, transform 180ms cubic-bezier(.34,1.4,.64,1)",
+              }}>
+              <div className="overflow-hidden rounded-xl border border-white/10 bg-[#0f0f16] py-1 shadow-2xl">
+                {MORE.map(({ href, label, Icon }) => (
+                  <Link key={href} href={href} onClick={() => setMoreOpen(false)}
+                    className={`flex w-full items-center gap-2 px-3 py-2 text-sm font-bold transition hover:bg-white/5 ${
+                      is(href) ? "text-white" : "text-slate-400"}`}>
+                    <Icon className="h-4 w-4" /> {label}
+                    {is(href) && <span className="ml-auto h-1.5 w-1.5 rounded-full" style={{ background: accent }} />}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
 
           <Divider />
 
