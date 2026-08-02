@@ -67,15 +67,22 @@ type Drag =
   | { kind: "unit"; index: number }
   | { kind: "support"; cardId: string; targeted: boolean };
 
+/**
+ * Health as a SHEARED bar rather than a rounded pill. Same shape language as
+ * the rest of the card UI — a rounded bar was the last piece of default
+ * styling left on this screen.
+ */
 function Bar({ f, h = 6, showNumbers = false }: { f: Fighter; h?: number; showNumbers?: boolean }) {
   const pct = Math.max(0, Math.min(100, (f.hp / f.maxHp) * 100));
-  const tone = pct > 50 ? "bg-emerald-500" : pct > 20 ? "bg-amber-500" : "bg-rose-600";
+  const tone = pct > 50 ? "#34d399" : pct > 20 ? "#fbbf24" : "#f43f5e";
   return (
-    <div className="relative w-full overflow-hidden rounded-full bg-black/70 ring-1 ring-white/10" style={{ height: h }}>
-      <motion.div className={`h-full rounded-full ${tone}`} animate={{ width: `${pct}%` }}
-        transition={{ duration: 0.45, ease: "easeOut" }} />
+    <div className="relative w-full overflow-hidden bg-black/75"
+      style={{ height: h, clipPath: "polygon(3px 0, 100% 0, calc(100% - 3px) 100%, 0 100%)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }}>
+      <motion.div className="h-full" animate={{ width: `${pct}%` }}
+        transition={{ duration: 0.45, ease: "easeOut" }}
+        style={{ background: `linear-gradient(90deg, ${tone}, ${tone}cc)`, boxShadow: `0 0 8px ${tone}80` }} />
       {showNumbers && (
-        <span className="absolute inset-0 grid place-items-center text-[9px] font-black tabular-nums text-white drop-shadow-[0_1px_2px_rgba(0,0,0,.9)]">
+        <span className="absolute inset-0 grid place-items-center text-[9px] font-black tabular-nums text-white drop-shadow-[0_1px_2px_rgba(0,0,0,.95)]">
           {f.hp}/{f.maxHp}
         </span>
       )}
@@ -477,11 +484,19 @@ export default function Arena({
         </div>
 
         {/* ── TURN BANNER ── */}
-        <div className={`relative z-10 rounded-full border px-5 py-1.5 text-[11px] font-black uppercase tracking-[0.18em] transition ${
-          finished ? "border-white/20 bg-black/60 text-slate-200"
-            : busy ? "border-white/20 bg-black/50 text-slate-400"
-            : myTurn ? "border-rose-400/60 bg-rose-500/20 text-rose-100 shadow-[0_0_26px_rgba(244,63,94,.35)]"
-            : "border-sky-400/40 bg-sky-500/10 text-sky-200"}`}>
+        <div className={`relative z-10 px-6 py-2 text-[11px] font-black uppercase tracking-[0.2em] transition ${
+          finished ? "text-slate-200"
+            : busy ? "text-slate-400"
+            : myTurn ? "text-rose-50 shadow-[0_0_30px_rgba(244,63,94,.4)]"
+            : "text-sky-100"}`}
+          style={{
+            clipPath: "polygon(12px 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 12px 100%, 0 50%)",
+            background: finished ? "rgba(10,8,20,.85)"
+              : busy ? "rgba(10,8,20,.75)"
+              : myTurn ? "linear-gradient(100deg, rgba(244,63,94,.35), rgba(120,40,90,.5))"
+              : "linear-gradient(100deg, rgba(56,132,255,.28), rgba(30,60,120,.45))",
+            boxShadow: `inset 0 0 0 1px ${myTurn && !finished && !busy ? "rgba(255,150,170,.55)" : "rgba(255,255,255,.18)"}`,
+          }}>
           {finished ? (resultText || "Duel over")
             : busy ? "Resolving…"
             : dragging
@@ -496,7 +511,11 @@ export default function Arena({
       </div>
 
       {/* ── YOUR SIDE ── */}
-      <div className="relative z-10 shrink-0 border-t border-white/10 bg-black/60 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur">
+      <div className="relative z-10 shrink-0 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur"
+        style={{
+          background: "linear-gradient(180deg, rgba(20,10,30,.82), rgba(8,5,14,.94))",
+          boxShadow: "inset 0 1px 0 rgba(162,116,255,.35), 0 -18px 40px rgba(0,0,0,.55)",
+        }}>
         <div className="mb-1.5 flex items-center justify-between px-1">
           <span className="flex items-center gap-2 text-sm font-black text-rose-100">
             <span className="grid h-6 w-6 place-items-center rounded-full bg-rose-500/25 text-[10px] ring-1 ring-rose-400/40">{myName[0]?.toUpperCase()}</span>
@@ -589,7 +608,13 @@ export default function Arena({
                 if (wantsDeploy && sel !== null) onDeploy(sel);
                 else onAttack();
               }}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-600 to-orange-600 py-3 text-sm font-black text-white transition hover:brightness-110 disabled:opacity-30">
+              className="group relative flex flex-1 items-center justify-center gap-2 overflow-hidden py-3.5 text-[12px] font-black uppercase tracking-[0.16em] text-white transition disabled:opacity-30"
+              style={{
+                clipPath: "polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%)",
+                background: wantsDeploy
+                  ? "linear-gradient(100deg, #7c3aed, #a855f7)"
+                  : "linear-gradient(100deg, #b91c3c, #f97316)",
+              }}>
               <Swords className="h-4 w-4" />
               {!myTurn ? "Not your turn"
                 : busy ? "Resolving…"
@@ -606,7 +631,12 @@ export default function Arena({
               return (
                 <button key={it.id} disabled={!usable} onClick={() => onItem(it.id)}
                   title={held === 0 ? `${it.name} — none left` : mine.active < 0 ? `${it.name} — send in a card first` : `${it.name} ×${held}`}
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-black transition hover:bg-white/10 disabled:opacity-25">
+                  className="inline-flex shrink-0 items-center gap-1.5 px-3.5 py-2 text-xs font-black transition hover:brightness-125 disabled:opacity-25"
+                  style={{
+                    clipPath: "polygon(7px 0, 100% 0, calc(100% - 7px) 100%, 0 100%)",
+                    background: "rgba(255,255,255,.06)",
+                    boxShadow: "inset 0 0 0 1px rgba(255,255,255,.14)",
+                  }}>
                   <it.Icon className={`h-4 w-4 ${it.tint}`} />
                   {held > 0 && <span className="text-slate-300">{held}</span>}
                 </button>

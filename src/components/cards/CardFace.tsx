@@ -751,6 +751,9 @@ function CardFaceImpl({
   const h = card.hue;
   const dim = !owned;
   const uid = card.id;
+  // Atmosphere is only drawn where it can actually be seen. See the detail
+  // budget note in the art stack below.
+  const rich = size >= 96;
 
   return (
     <div className="relative select-none" style={{ width: size, aspectRatio: "5 / 7" }}
@@ -839,8 +842,18 @@ function CardFaceImpl({
           <rect x="2.5" y="2.5" width="95" height="135" fill={`url(#sky-${uid})`} />
           {/* 2 — lit horizon the subject sits against */}
           <rect x="2.5" y="2.5" width="95" height="135" fill={`url(#bloom-${uid})`} />
+          {/* ── DETAIL BUDGET ──────────────────────────────────────────────
+              Below ~96px the atmosphere is invisible but costs exactly the
+              same to paint: 2 silhouettes, 5 gradient-filled ray paths and 14
+              particles per card. The arena draws twelve cards at once and the
+              collection page draws dozens, so at bench and hand sizes those
+              layers are pure work for no picture. The lit horizon, rim and
+              vignette stay at every size — they are single rects and they are
+              what actually shapes the card. */}
           {/* 3 — receding silhouettes. Two bands at different values is all it
                  takes to read as distance rather than as a backdrop. */}
+          {rich && (<>
+
           <path d="M2.5 88 L26 72 L44 86 L64 66 L84 84 L97.5 78 L97.5 137.5 L2.5 137.5 Z"
             fill="#000" opacity={dim ? 0.34 : 0.26} />
           <path d="M2.5 100 L32 86 L56 100 L76 90 L97.5 102 L97.5 137.5 L2.5 137.5 Z"
@@ -854,6 +867,7 @@ function CardFaceImpl({
               ))}
             </g>
           )}
+          </>)}
           {/* 5 — the subject. Sits in the upper two thirds; the lower third is
                  where the scrim and the name go, exactly as a full-bleed card
                  portrait is composed. */}
@@ -861,10 +875,10 @@ function CardFaceImpl({
             <Motif card={card} dim={dim} />
           </g>
           {/* 6 — atmosphere in front of it, which is what pushes it back */}
-          <rect x="2.5" y="46" width="95" height="48" fill={`url(#haze-${uid})`} />
+          {rich && <rect x="2.5" y="46" width="95" height="48" fill={`url(#haze-${uid})`} />}
           {/* 7 — drifting particulate. Seeded off the card id so a given card
                  always looks identical rather than reshuffling every render. */}
-          {!dim && (
+          {!dim && rich && (
             <g>
               {(() => {
                 const rand = rng(seedFrom(uid));

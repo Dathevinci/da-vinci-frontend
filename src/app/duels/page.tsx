@@ -92,7 +92,27 @@ export default function DuelsPage() {
         // mid-flight — exactly what happens when you forfeit and immediately
         // hit "Leave the arena", since forfeiting awaits this same load() —
         // would otherwise re-open the board you just walked out of.
-        if (fresh.success && openIdRef.current === active.id) setActive(fresh.data);
+        // Only swap state in when something ACTUALLY changed. The poll fires
+        // every couple of seconds; handing React a new object each time
+        // re-rendered the whole arena — twelve procedural SVG cards and every
+        // framer transform — to draw an identical board. Comparing the fields
+        // that can move makes an idle turn cost nothing.
+        if (fresh.success && openIdRef.current === active.id) {
+          setActive((prev) => {
+            const n = fresh.data;
+            if (
+              prev &&
+              prev.id === n.id &&
+              prev.status === n.status &&
+              prev.turnUserId === n.turnUserId &&
+              prev.winnerId === n.winnerId &&
+              prev.state === n.state
+            ) {
+              return prev; // identical board — keep the same reference
+            }
+            return n;
+          });
+        }
       }
     } catch { /* offline */ }
   }, [user?.id, active?.id]);
@@ -125,7 +145,11 @@ export default function DuelsPage() {
   // waiting screen sat there forever until you backed out and reopened it.
   useEffect(() => {
     if (!active || (active.status !== "ACTIVE" && active.status !== "PENDING")) return;
-    const t = setInterval(load, 4000);
+    // 2s, not 4s. The backend is off the sleeping free tier now, so a poll is
+    // a warm request rather than a possible cold start — and with the
+    // unchanged-state bail above, a quiet turn costs one small fetch and no
+    // render at all. Turns land visibly faster.
+    const t = setInterval(load, 2000);
     return () => clearInterval(t);
   }, [active?.id, active?.status, load]);
 
