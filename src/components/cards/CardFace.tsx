@@ -959,6 +959,64 @@ function CardFaceImpl({
           />
         )}
 
+        {/* ── LIVE TREATMENTS ── only on cards big enough to read them, and
+            only when owned. Both are transform/opacity keyframes on a single
+            promoted layer, so a grid of them costs the compositor and nothing
+            else. Reduced Motion stops them dead via the media query below. */}
+        {owned && size >= 110 && (card.rarity === "legendary" || foil) && (
+          <style
+            dangerouslySetInnerHTML={{
+              __html: `
+@keyframes cf-sweep { 0% { transform: translate3d(-130%,0,0); } 100% { transform: translate3d(130%,0,0); } }
+@keyframes cf-breathe { 0%,100% { opacity:.30 } 50% { opacity:.75 } }
+@media (prefers-reduced-motion: reduce) { .cf-anim { animation: none !important; } }
+`,
+            }}
+          />
+        )}
+
+        {/* A legendary breathes. One slow inner glow in the rarity's own
+            colour — enough that a legendary in a grid of commons catches the
+            eye without adding a frame back. */}
+        {owned && size >= 110 && card.rarity === "legendary" && (
+          <span
+            aria-hidden
+            className="cf-anim"
+            style={{
+              position: "absolute",
+              inset: 0,
+              pointerEvents: "none",
+              boxShadow: `inset 0 0 ${Math.round(size * 0.16)}px ${FLAT.legendary.accent}55`,
+              animation: "cf-breathe 3.6s ease-in-out infinite",
+              willChange: "opacity",
+            }}
+          />
+        )}
+
+        {/* Foil catches the light as you look at it: one spectral band
+            crossing the card, slowly. The static holographic texture below
+            stays — this is the movement on top of it, not a replacement. */}
+        {owned && size >= 110 && foil && (
+          <span
+            aria-hidden
+            style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}
+          >
+            <span
+              className="cf-anim"
+              style={{
+                position: "absolute",
+                top: 0,
+                bottom: 0,
+                width: "45%",
+                background:
+                  "linear-gradient(105deg, transparent, rgba(125,211,252,.22) 35%, rgba(240,171,252,.30) 50%, rgba(253,230,138,.22) 65%, transparent)",
+                animation: "cf-sweep 4.2s ease-in-out infinite",
+                willChange: "transform",
+              }}
+            />
+          </span>
+        )}
+
         {/* Foil as PRINTED STOCK, not as a specular highlight. The stripe
             period is constant device pixels, so it stays a texture at 84px
             instead of becoming a band at 300px — a sweep with a bright core

@@ -611,6 +611,42 @@ export default function CardsPage() {
             <div className="py-20 text-center text-slate-500">Loading your collection…</div>
           ) : (
             <div className="space-y-10">
+              {/* ── ASLEEP ── surfaced at the TOP rather than left to be hunted.
+                  A fallen card sits wherever its set happens to be, so with 69
+                  cards across six sets the only way to find one was to scroll
+                  the whole collection looking for a blue tint. Click one to
+                  open its sheet, where the Wake button lives. */}
+              {(() => {
+                const fallen = catalog?.cards?.filter((c: CardDef) => asleep[c.id]) || [];
+                if (!fallen.length) return null;
+                return (
+                  <div
+                    className="px-4 py-3"
+                    style={{ clipPath: notch(12), background: "rgba(56,120,200,.10)", boxShadow: "inset 0 0 0 1px rgba(125,211,252,.35)" }}
+                  >
+                    <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+                      <span className="text-[11px] font-black uppercase tracking-[0.22em] text-sky-200">
+                        {fallen.length} card{fallen.length === 1 ? "" : "s"} asleep
+                      </span>
+                      <span className="text-[11px] text-slate-400">
+                        Fell in a duel you lost — wake with shards, or pull another copy free.
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {fallen.map((c: CardDef) => (
+                        <button
+                          key={c.id}
+                          onClick={() => setSelected(c)}
+                          className="rounded-lg border border-sky-400/35 bg-sky-500/10 px-3 py-1.5 text-xs font-bold text-sky-100 transition hover:bg-sky-500/20"
+                        >
+                          {c.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {sets.map(({ set, cards, have, total }) => (
                 <div key={set}>
                   <Heading
