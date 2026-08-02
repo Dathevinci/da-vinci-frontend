@@ -26,6 +26,8 @@ type Catalog = {
   relicPackShards: number;
   setRewards: Record<string, SetReward>;
   wakeCost?: Record<CardRarity, number>;
+  pullSizes?: number[];
+  pullPrices?: Record<number, number>;
   maxCardLevel?: number;
   upgradeBase?: Record<CardRarity, number>;
   upgradeGrowth?: number;
@@ -133,16 +135,17 @@ export default function CardsPage() {
 
   const apDisplay = ap !== null ? ap : user?.arisePoints ?? 0;
 
-  const openPack = async () => {
+  const openPack = async (count?: number) => {
     if (!user) return toast("Sign in to open packs.", "error");
     if (!catalog) return;
-    if (!isLeadDev(user) && apDisplay < catalog.packPrice) return toast("Not enough Arise Points for a pack.", "error");
+    const price = (count && catalog.pullPrices?.[count]) ?? catalog.packPrice;
+    if (!isLeadDev(user) && apDisplay < price) return toast(`That pull costs ${price.toLocaleString()} AP.`, "error");
     setOpening(true);
     try {
       const r = await fetch(`${API_URL}/api/cards/open-pack`, {
         method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify({ userId: user.id }),
+        body: JSON.stringify({ userId: user.id, count }),
       });
       const d = await r.json();
       if (!r.ok || !d.success) {
@@ -172,10 +175,12 @@ export default function CardsPage() {
       const d = await r.json();
       if (!r.ok || !d.success) return toast(d.message || "Couldn't dust.", "error");
       setShards(d.data.shards);
-      fire("dust");
-      toast(`+${d.data.gained} shards`, "success");
+      fire("dust", `+${d.data.gained} shards`);
       await loadCollection();
-      setSelected(null);
+      // The sheet closes AFTER the burst has had the screen for a moment —
+      // closing instantly pulled the modal out from under the animation, which
+      // is why dusting looked like nothing happened.
+      setTimeout(() => setSelected(null), 700);
     } catch {
       toast("Couldn't dust.", "error");
     }
@@ -216,15 +221,14 @@ export default function CardsPage() {
    * element that animates transform and opacity — no layout, and it unmounts
    * itself, so nothing lingers costing frames after the moment has passed.
    */
-  const [burst, setBurst] = useState<{ kind: "dust" | "level"; key: number } | null>(null);
-  const fire = (kind: "dust" | "level") => setBurst({ kind, key: Date.now() });
+  const [burst, setBurst] = useState<{ kind: "dust" | "level"; label: string; key: number } | null>(null);
+  const fire = (kind: "dust" | "level", label: string) => setBurst({ kind, label, key: Date.now() });
 
   const upgrade = (card: CardDef) =>
     shardAction("upgrade", { cardId: card.id }, (d) => {
       setShards(d.shards);
       setLevels((l) => ({ ...l, [card.id]: d.level }));
-      fire("level");
-      toast(`${card.name} is now level ${d.level}.`, "success");
+      fire("level", `Level ${d.level}`);
     });
 
   const wake = (card: CardDef) =>
@@ -447,11 +451,37 @@ export default function CardsPage() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col items-stretch gap-2.5 lg:w-[280px]">
-                    <GachaButton onClick={openPack} disabled={opening} className="!py-3.5 !text-[13px]">
-                      <PackageOpen className="h-4 w-4" />
-                      {opening ? "Opening…" : `Open · ${catalog.packPrice.toLocaleString()} AP`}
-                    </GachaButton>
+                  <div className="flex flex-col items-stretch gap-2.5 lg:w-[300px]">
+                    {/* Pull sizes come from the server so the price shown is
+                        the price charged — and so a client can't invent one. */}
+                    <div className="grid grid-cols-3 gap-2">
+                      {(catalog.pullSizes ?? [catalog.packSize]).map((n) => {
+                        const price = catalog.pullPrices?.[n] ?? catalog.packPrice;
+                        const headline = n === catalog.packSize;
+                        return (
+                          <button key={n} onClick={() => openPack(n)} disabled={opening}
+                            className={`group relative flex flex-col items-center gap-0.5 px-2 py-3 transition hover:brightness-115 disabled:opacity-40 ${
+                              headline ? "text-[#160b2b]" : "text-slate-200"}`}
+                            style={{
+                              clipPath: notch(10),
+                              background: headline
+                                ? `linear-gradient(140deg, ${ACCENT_LIT}, ${ACCENT})`
+                                : "rgba(255,255,255,.05)",
+                              boxShadow: headline ? "none" : "inset 0 0 0 1px rgba(255,255,255,.12)",
+                            }}>
+                            <span className="text-lg font-black leading-none">×{n}</span>
+                            <span className={`text-[10px] font-black uppercase tracking-[0.12em] ${headline ? "text-[#160b2b]/70" : "text-slate-500"}`}>
+                              {price.toLocaleString()} AP
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {opening && (
+                      <p className="text-center text-[10px] font-black uppercase tracking-[0.3em]" style={{ color: ACCENT }}>
+                        Opening…
+                      </p>
+                    )}
                     <GachaButton tone="jade" onClick={openRelic}
                       disabled={shards < catalog.relicPackShards}
                       title={shards < catalog.relicPackShards ? "Not enough shards yet" : "Guaranteed Epic or better"}
@@ -592,23 +622,47 @@ export default function CardsPage() {
             exit={{ opacity: 0 }}
             onAnimationComplete={() => setBurst(null)}
           >
+            <div aria-hidden className="absolute inset-0 bg-black/45" />
+            {/* glow */}
+            <motion.span
+              className="absolute rounded-full"
+              style={{
+                width: 340, height: 340,
+                background: burst.kind === "dust"
+                  ? "radial-gradient(closest-side, rgba(103,232,249,.9), transparent 70%)"
+                  : `radial-gradient(closest-side, ${ACCENT_LIT}, transparent 70%)`,
+              }}
+              initial={{ scale: 0.3, opacity: 0 }}
+              animate={{ scale: [0.3, 1.1, 1.4], opacity: [0, 1, 0] }}
+              transition={{ duration: 1.25, ease: "easeOut" }}
+            />
+            {/* shards thrown outward — 10 elements, transform only */}
+            {Array.from({ length: 10 }, (_, i) => {
+              const a = (i / 10) * Math.PI * 2;
+              return (
+                <motion.span key={i} className="absolute h-2 w-2 rounded-sm"
+                  style={{ background: burst.kind === "dust" ? "#67e8f9" : ACCENT_LIT }}
+                  initial={{ x: 0, y: 0, opacity: 0, rotate: 0 }}
+                  animate={{
+                    x: Math.cos(a) * 190, y: Math.sin(a) * 190,
+                    opacity: [0, 1, 0], rotate: 220,
+                  }}
+                  transition={{ duration: 1.1, ease: "easeOut", delay: 0.05 }}
+                />
+              );
+            })}
             <motion.div
-              initial={{ scale: 0.4, opacity: 0 }}
-              animate={{ scale: [0.4, 1.15, 1.35], opacity: [0, 1, 0] }}
-              transition={{ duration: 0.85, ease: "easeOut" }}
-              className="grid place-items-center"
+              className="relative flex flex-col items-center gap-1"
+              initial={{ scale: 0.6, opacity: 0 }}
+              animate={{ scale: [0.6, 1.12, 1], opacity: [0, 1, 1, 0] }}
+              transition={{ duration: 1.25, times: [0, 0.25, 0.5, 1], ease: "easeOut" }}
             >
-              <span
-                className="rounded-full"
-                style={{
-                  width: 220, height: 220,
-                  background: burst.kind === "dust"
-                    ? "radial-gradient(closest-side, rgba(103,232,249,.85), transparent 70%)"
-                    : `radial-gradient(closest-side, ${ACCENT_LIT}, transparent 70%)`,
-                }}
-              />
-              <span className="absolute text-2xl font-black uppercase tracking-[0.3em] text-white drop-shadow-[0_2px_14px_rgba(0,0,0,.9)]">
+              <span className="text-3xl font-black uppercase tracking-[0.28em] text-white drop-shadow-[0_2px_18px_rgba(0,0,0,.95)]">
                 {burst.kind === "dust" ? "Dusted" : "Level Up"}
+              </span>
+              <span className="text-lg font-black tabular-nums"
+                style={{ color: burst.kind === "dust" ? "#a5f3fc" : ACCENT_LIT }}>
+                {burst.label}
               </span>
             </motion.div>
           </motion.div>

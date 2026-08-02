@@ -73,15 +73,35 @@ export default function PackReveal({
     }
   }, [stage, reduce, bestOrder]);
 
-  // Cards flip one at a time once the reveal starts.
+  /**
+   * A legendary or better gets taken OUT of the row and shown on its own.
+   * Flipping a 4-star in place, in a line of commons, at the same size as the
+   * commons, is the single biggest reason a pull can land and feel like
+   * nothing happened.
+   */
+  const [hero, setHero] = useState<CardDef | null>(null);
+
+  // Cards flip one at a time once the reveal starts — paused while a hero card
+  // has the screen, so the rest of the pack doesn't resolve behind it.
   useEffect(() => {
-    if (reduce || stage !== "reveal" || revealed >= ordered.length) return;
-    const t = setTimeout(() => setRevealed((n) => n + 1), revealed === 0 ? 260 : 560);
+    if (reduce || stage !== "reveal" || hero || revealed >= ordered.length) return;
+    const t = setTimeout(() => {
+      const next = ordered[revealed];
+      setRevealed((n) => n + 1);
+      if (next && RARITY_META[next.rarity].order >= 3) setHero(next);
+    }, revealed === 0 ? 260 : 560);
     return () => clearTimeout(t);
-  }, [revealed, ordered.length, reduce, stage]);
+  }, [revealed, ordered, reduce, stage, hero]);
+
+  // The hero card holds the screen, then hands it back.
+  useEffect(() => {
+    if (!hero) return;
+    const t = setTimeout(() => setHero(null), 1900);
+    return () => clearTimeout(t);
+  }, [hero]);
 
   const allOut = revealed >= ordered.length;
-  const skip = () => { setStage("reveal"); setRevealed(ordered.length); };
+  const skip = () => { setStage("reveal"); setRevealed(ordered.length); setHero(null); };
 
   // Flash colour follows the card just flipped, not the final best.
   const peak = revealed > 0 ? ordered[revealed - 1] : null;
@@ -159,6 +179,49 @@ export default function PackReveal({
             style={{ background: `radial-gradient(closest-side, ${RARITY_META[peak!.rarity].glow}, transparent 68%)` }}
             initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: [0, 0.85, 0], scale: [0.7, 1.35, 1.6] }}
             transition={{ duration: 0.95, ease: "easeOut" }} />
+        )}
+      </AnimatePresence>
+
+      {/* ── HERO PULL ── a legendary gets the whole screen for a moment.
+          It spins in, holds, and drops back into the row. Everything here is
+          transform + opacity on ONE element, so the spin composites on the GPU
+          and never touches layout. */}
+      <AnimatePresence>
+        {hero && (
+          <motion.div
+            key={`hero-${hero.id}`}
+            className="absolute inset-0 z-[60] grid place-items-center"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            <div aria-hidden className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+            {/* rays behind the card */}
+            <motion.div
+              aria-hidden
+              className="absolute h-[560px] w-[560px] rounded-full"
+              style={{ background: `conic-gradient(from 0deg, transparent, ${RARITY_META[hero.rarity].glow}, transparent 30%, ${RARITY_META[hero.rarity].glow}, transparent 60%)` }}
+              initial={{ rotate: 0, opacity: 0, scale: 0.6 }}
+              animate={{ rotate: 180, opacity: 0.75, scale: 1 }}
+              transition={{ duration: 1.9, ease: "linear" }}
+            />
+            <motion.div
+              className="relative"
+              initial={{ scale: 0.3, rotateY: 180, opacity: 0 }}
+              animate={{ scale: 1, rotateY: 0, opacity: 1 }}
+              exit={{ scale: 0.55, opacity: 0, y: 60 }}
+              transition={{ type: "spring", stiffness: 150, damping: 15 }}
+              style={{ transformStyle: "preserve-3d", perspective: 1000 }}
+            >
+              <CardFace card={hero} owned size={260} showStats />
+            </motion.div>
+            <motion.p
+              className="absolute bottom-[18%] text-center text-sm font-black uppercase tracking-[0.4em]"
+              style={{ color: RARITY_META[hero.rarity].gem }}
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
+            >
+              {RARITY_META[hero.rarity].label}
+            </motion.p>
+          </motion.div>
         )}
       </AnimatePresence>
 
