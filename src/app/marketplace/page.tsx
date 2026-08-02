@@ -260,10 +260,14 @@ function ListingCard({ listing, meId, busy, onOpen, onCancel }: {
     <Panel size={16} className="transition hover:-translate-y-1">
       <div className="relative">
         <button onClick={onOpen} className="relative block w-full text-left">
-          <div className="grid w-full place-items-center p-2">
+          {/* Art-dominant, edge to edge. The card used to be centred inside
+              padding, so the tile read as a frame around a smaller thing
+              rather than as the card itself. Bigger, flush, and the info sits
+              tight underneath it. */}
+          <div className="grid w-full place-items-center p-1">
             {card
-              ? <CardFace card={card} owned foil={foil} size={232} />
-              : <div className="grid h-[320px] w-[232px] place-items-center text-xs text-slate-600">Unknown card</div>}
+              ? <CardFace card={card} owned foil={foil} size={272} />
+              : <div className="grid h-[380px] w-[272px] place-items-center text-xs text-slate-600">Unknown card</div>}
           </div>
           {qty > 1 && (
             <span className="absolute right-3 top-3 px-2 py-1 text-[10px] font-black text-white"
