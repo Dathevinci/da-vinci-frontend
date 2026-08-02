@@ -13,6 +13,7 @@ import UnlimitedVoid from "@/components/ui/UnlimitedVoid";
 import SettingsModal from "@/components/profile/SettingsModal";
 import LevelBadge from "@/components/profile/LevelBadge";
 import { AvatarDecoration, hasFrameRing } from "@/components/profile/AvatarDecoration";
+import ProfileSong from "@/components/profile/ProfileSong";
 import { ProfileEffect } from "@/components/profile/ProfileEffect";
 import ProfileShowcase from "@/components/profile/ProfileShowcase";
 import { calculateLevel, calculateProgressPercent, xpForNextLevel } from "@/lib/levels";
@@ -419,6 +420,13 @@ export default function PublicProfilePage() {
               {profileUser.arisePoints !== undefined && (
                 <div className="absolute -bottom-1 -right-1 z-20">
                   <LevelBadge xp={isProfileLeadDev ? Infinity : (isProfileAdmin ? 511000 : (profileUser.xp || 0))} size="lg" className="border-[#0b0b12] shadow-[0_4px_20px_rgba(0,0,0,0.8)]" />
+                </div>
+              )}
+              {/* The lead dev's profile has a soundtrack. Keyed off the ROLE
+                  via isLeadDev, never the username — names change hands. */}
+              {isProfileLeadDev && (
+                <div className="absolute -bottom-1 -left-1 z-20">
+                  <ProfileSong src="/audio/heartbreaker.mp3" />
                 </div>
               )}
             </div>
