@@ -191,6 +191,10 @@ export default function DuelsPage() {
   const pending = duels.filter((d) => d.status === "PENDING");
   const running = duels.filter((d) => d.status === "ACTIVE");
   const done = duels.filter((d) => ["FINISHED", "DECLINED", "EXPIRED"].includes(d.status));
+  // The most recent duel that was actually FOUGHT. A declined or expired
+  // challenge has no state to report on, and calling one of those "your last
+  // game" would be worse than showing nothing.
+  const lastFought = done.find((d) => d.status === "FINISHED" && !!d.state);
 
   return (
     <PageTransition>
@@ -360,6 +364,8 @@ export default function DuelsPage() {
                   ))}
                 </Section>
               )}
+
+              {lastFought && <LastDuelStats duel={lastFought} me={user?.id} byId={byId} />}
 
               {done.length > 0 && (
                 <Section title="History">
@@ -650,5 +656,108 @@ function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMo
         )}
       </motion.div>
     </motion.div>
+  );
+}
+
+/**
+ * LAST DUEL — what actually happened, read off the final state.
+ *
+ * Everything here is DERIVED from the state the duel already carries: who was
+ * left standing, what health they finished on, how many rounds it ran. Nothing
+ * new is stored, and nothing is estimated — a "damage dealt" figure would have
+ * to be reconstructed from the log, which is a display artefact, so it isn't
+ * shown rather than shown wrong.
+ */
+function LastDuelStats({ duel, me, byId }: { duel: Duel; me?: string; byId: Record<string, CardDef> }) {
+  const state: DuelState | null = useMemo(() => {
+    try { return duel.state ? JSON.parse(duel.state) : null; } catch { return null; }
+  }, [duel.state]);
+  if (!state) return null;
+
+  const iAmChallenger = duel.challengerId === me;
+  const mine = iAmChallenger ? state.a : state.b;
+  const theirs = iAmChallenger ? state.b : state.a;
+  const won = duel.winnerId === me;
+  const foeName = iAmChallenger ? duel.opponentName : duel.challengerName;
+
+  const standing = (s: Side) => s.fighters.filter((f) => f.hp > 0).length;
+  const hpLeft = (s: Side) => s.fighters.reduce((n, f) => n + Math.max(0, f.hp), 0);
+  const hpMax = (s: Side) => s.fighters.reduce((n, f) => n + f.maxHp, 0);
+
+  // Whoever ended with the largest share of their own health still intact.
+  // Share, not raw HP, so a common that survived untouched can out-rank a
+  // legendary that limped home — which is the honest reading of "best".
+  const best = [...mine.fighters]
+    .filter((f) => f.hp > 0)
+    .sort((a, b) => b.hp / b.maxHp - a.hp / a.maxHp)[0];
+
+  const pct = (s: Side) => Math.round((hpLeft(s) / Math.max(1, hpMax(s))) * 100);
+
+  return (
+    <div className="mb-5">
+      <p className="mb-2 text-[10px] font-black uppercase tracking-[0.32em] text-slate-500">Last duel</p>
+      <div
+        className="relative overflow-hidden p-4"
+        style={{
+          clipPath: notch(14),
+          background: won ? "rgba(16,185,129,.07)" : "rgba(244,63,94,.06)",
+          boxShadow: `inset 0 0 0 1px ${won ? "rgba(52,211,153,.32)" : "rgba(244,63,94,.28)"}`,
+        }}
+      >
+        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+          <span className={`text-xl font-black ${won ? "text-emerald-300" : "text-rose-300"}`}>
+            {won ? "Victory" : "Defeat"}
+          </span>
+          <span className="text-xs font-bold text-slate-400">
+            vs {foeName} · <span className="tabular-nums">{state.round}</span> rounds
+          </span>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2">
+          <Stat label={won ? "Won" : "Lost"} value={`${won ? "+" : "−"}${(won ? duelPayout(duel.stake) : duel.stake).toLocaleString()}`}
+            tint={won ? "#6ee7b7" : "#fda4af"} />
+          <Stat label="Your line" value={`${standing(mine)}/${mine.fighters.length}`} tint="#7dd3fc" />
+          <Stat label="Theirs" value={`${standing(theirs)}/${theirs.fighters.length}`} tint="#fbbf24" />
+        </div>
+
+        <div className="mt-3 space-y-2">
+          <HpRow label="You" pct={pct(mine)} tint="#34d399" />
+          <HpRow label={foeName} pct={pct(theirs)} tint="#f43f5e" />
+        </div>
+
+        {best && (
+          <p className="mt-3 border-t border-white/10 pt-2 text-[11px] text-slate-400">
+            Last one standing strongest:{" "}
+            <b className="text-white">{byId[best.cardId]?.name || best.name}</b>{" "}
+            <span className="tabular-nums text-slate-500">
+              {best.hp}/{best.maxHp} HP
+            </span>
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Stat({ label, value, tint }: { label: string; value: string; tint: string }) {
+  return (
+    <div className="bg-black/30 px-2 py-2 text-center" style={{ clipPath: notch(8) }}>
+      <div className="text-base font-black tabular-nums" style={{ color: tint }}>{value}</div>
+      <div className="mt-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-slate-500">{label}</div>
+    </div>
+  );
+}
+
+function HpRow({ label, pct, tint }: { label: string; pct: number; tint: string }) {
+  return (
+    <div>
+      <div className="mb-1 flex items-baseline justify-between text-[10px] font-bold">
+        <span className="truncate text-slate-400">{label}</span>
+        <span className="tabular-nums text-slate-500">{pct}% health left</span>
+      </div>
+      <div className="h-1.5 overflow-hidden bg-black/60" style={{ clipPath: "polygon(2px 0,100% 0,calc(100% - 2px) 100%,0 100%)" }}>
+        <div className="h-full" style={{ width: `${pct}%`, background: tint }} />
+      </div>
+    </div>
   );
 }
