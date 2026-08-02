@@ -230,6 +230,41 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
 
   const pinned = useMemo(() => posts.filter((p) => p.isPinned).slice(0, 2), [posts]);
 
+  /**
+   * Rank by NET score — upvotes minus downvotes — with pinned posts held on top
+   * and recency breaking ties.
+   *
+   * Ordering is recomputed only when the SET of posts changes, never when a
+   * score changes. That distinction is the whole point: votes here are
+   * optimistic, so sorting on score directly would rip the post out from under
+   * your cursor the instant you clicked it, and a second click would land on
+   * whatever slid into its place. This way your vote shows immediately, the
+   * number moves, and the list re-ranks on the next load.
+   */
+  const idKey = posts.map((p) => p.id).join(",");
+  const order = useMemo(() => {
+    // Recent means recent. Only Top re-ranks — otherwise choosing "Recent" and
+    // getting a score-ordered list would make the control look broken, which is
+    // the same bug the backend already had on `isPinned`.
+    if (sort !== "top") return posts.map((p) => p.id);
+    return [...posts]
+      .sort((a, b) => {
+        if (!!a.isPinned !== !!b.isPinned) return a.isPinned ? -1 : 1;
+        const d = (b.score || 0) - (a.score || 0);
+        if (d !== 0) return d;
+        return +new Date(b.createdAt) - +new Date(a.createdAt);
+      })
+      .map((p) => p.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idKey, sort]);
+
+  // Render in ranked order but read LIVE post objects, so an optimistic score
+  // updates in place without moving anything.
+  const ranked = useMemo(() => {
+    const byId = new Map(posts.map((p) => [p.id, p]));
+    return order.map((id) => byId.get(id)).filter(Boolean) as Post[];
+  }, [order, posts]);
+
   const vote = async (post: Post, value: number) => {
     if (!user) return toast("Sign in to vote.", "error");
     // Optimistic: a vote that waits for a round trip feels broken.
@@ -393,7 +428,7 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
               </div>
             ) : (
               <div className="space-y-3">
-                {posts.map((p) => (
+                {ranked.map((p) => (
                   <motion.article key={p.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                     className="flex gap-4 p-5"
                     style={{ clipPath: notch(16), background: "rgba(255,255,255,.028)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.075)" }}>

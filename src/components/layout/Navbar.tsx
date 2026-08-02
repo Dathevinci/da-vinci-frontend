@@ -21,6 +21,23 @@ export default function Navbar() {
   // `peek` is hover-reveal: the bar is out of the way, but reaching for the top
   // of the screen brings it straight back without needing to scroll up first.
   const [peek, setPeek] = useState(false);
+  /**
+   * The island is DESKTOP ONLY. It is built on hover, and a touch screen has
+   * no hover — auto-hiding there would take the nav away with no gesture to
+   * bring it back except scrolling up, which is strictly worse than the bar
+   * simply staying put. Mobile keeps the behaviour it always had.
+   *
+   * Starts false so the server render and the first client render agree; the
+   * effect below is what turns it on, after mount.
+   */
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(hover: hover) and (pointer: fine) and (min-width: 1024px)");
+    const apply = () => setIsDesktop(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
   const [showLogin, setShowLogin] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [modeMenuOpen, setModeMenuOpen] = useState(false);
@@ -160,7 +177,7 @@ export default function Navbar() {
           that gesture brings it down instead of requiring a scroll up. Only
           mounted while the bar is actually hidden, so it never eats clicks
           meant for the bar itself. */}
-      {hidden && !isMobileMenuOpen && (
+      {isDesktop && hidden && !isMobileMenuOpen && (
         <div
           aria-hidden
           onMouseEnter={() => setPeek(true)}
@@ -177,9 +194,9 @@ export default function Navbar() {
         onMouseEnter={() => setPeek(true)}
         className="fixed left-1/2 top-2 z-[52] flex items-center gap-2 rounded-full border border-white/10 bg-[#0b0b12]/90 px-3 py-1.5 shadow-[0_8px_30px_rgba(0,0,0,.6)] backdrop-blur-xl"
         style={{
-          transform: `translateX(-50%) ${hidden && !peek && !isMobileMenuOpen ? "scale(1)" : "scale(.75)"}`,
-          opacity: hidden && !peek && !isMobileMenuOpen ? 1 : 0,
-          pointerEvents: hidden && !peek && !isMobileMenuOpen ? "auto" : "none",
+          transform: `translateX(-50%) ${isDesktop && hidden && !peek && !isMobileMenuOpen ? "scale(1)" : "scale(.75)"}`,
+          opacity: isDesktop && hidden && !peek && !isMobileMenuOpen ? 1 : 0,
+          pointerEvents: isDesktop && hidden && !peek && !isMobileMenuOpen ? "auto" : "none",
           transition: "transform 240ms cubic-bezier(.34,1.4,.64,1), opacity 180ms ease",
           willChange: "transform, opacity",
         }}
@@ -193,7 +210,7 @@ export default function Navbar() {
         onMouseEnter={() => setPeek(true)}
         onMouseLeave={() => setPeek(false)}
         style={{
-          transform: hidden && !peek && !isMobileMenuOpen ? "translateY(-100%)" : "translateY(0)",
+          transform: isDesktop && hidden && !peek && !isMobileMenuOpen ? "translateY(-100%)" : "translateY(0)",
           transition: "transform 280ms cubic-bezier(.4,0,.2,1), background-color 300ms, border-color 300ms",
           willChange: "transform",
         }}
