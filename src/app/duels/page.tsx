@@ -76,6 +76,15 @@ export default function DuelsPage() {
   const [deck, setDeck] = useState<string[]>([]);
   const [editDeck, setEditDeck] = useState(false);
   useEffect(() => { setDeck(loadSavedDeck()); }, []);
+  // Any open modal locks the page behind it. The Arena locks on its own and
+  // restores what it found, so the two nest cleanly.
+  const modalOpen = !!active || showChallenge || editDeck;
+  useEffect(() => {
+    if (!modalOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [modalOpen]);
   const [showChallenge, setShowChallenge] = useState(false);
   const [tab, setTab] = useState<"duels" | "ladder">("duels");
   // Which duel is on screen RIGHT NOW, readable from inside an in-flight
@@ -1279,6 +1288,12 @@ function ReplayModal({
   const [playing, setPlaying] = useState(true);
   const [speed, setSpeed] = useState(1);
   const endRef = useRef<HTMLDivElement | null>(null);
+  // The replay scrolls its own log; the page behind it stays put.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, []);
 
   // What KIND of line this is, so the log reads as beats rather than one
   // grey column: domains loudest, falls in rose, supports/items in cyan.

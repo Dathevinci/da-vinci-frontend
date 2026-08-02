@@ -364,6 +364,16 @@ export default function CardsPage() {
   const totalHave = Object.keys(owned).length;
   const totalCards = catalog?.cards?.length ?? 0;
 
+  // The sheet's own wrapper scrolls; the page behind it must NOT. Without
+  // this, a phone swipe could grab the body instead of the sheet — modal
+  // frozen, page moving underneath, which reads as "the preview broke".
+  useEffect(() => {
+    if (!selected) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [selected]);
+
   return (
     <PageTransition>
       <div className="relative min-h-screen px-4 pb-24 pt-24 text-white"

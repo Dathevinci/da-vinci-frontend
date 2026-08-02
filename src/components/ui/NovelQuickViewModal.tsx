@@ -92,7 +92,7 @@ export default function NovelQuickViewModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 16, transition: { duration: 0.2 } }}
             transition={{ type: "spring", damping: 26, stiffness: 280 }}
-            className="relative w-full max-w-3xl bg-[#0b0b0c] sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-full sm:max-h-[90vh]"
+            className="relative w-full max-w-3xl bg-[#0b0b0c] sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-full sm:max-h-[90dvh]"
           >
             <button
               onClick={handleClose}

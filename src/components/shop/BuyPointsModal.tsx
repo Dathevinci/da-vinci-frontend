@@ -38,7 +38,7 @@ export default function BuyPointsModal({ username, onClose }: { username: string
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: 12 }}
           transition={{ type: "spring", damping: 26, stiffness: 280 }}
-          className="relative w-full max-w-2xl bg-[#0b0b12] border border-white/10 rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
+          className="relative w-full max-w-2xl bg-[#0b0b12] border border-white/10 rounded-3xl shadow-2xl overflow-hidden max-h-[90dvh] overflow-y-auto"
         >
           <button
             onClick={onClose}

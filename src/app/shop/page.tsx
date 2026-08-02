@@ -1088,7 +1088,7 @@ export default function ShopPage() {
                     initial={{ opacity: 0, scale: 0.96, y: 12 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     transition={{ type: "spring", damping: 26, stiffness: 300 }}
-                    className="relative flex w-full max-w-4xl max-h-[92vh] flex-col overflow-hidden rounded-3xl border border-white/15 bg-[#0b0b12] shadow-[0_40px_100px_rgba(0,0,0,0.7)] md:h-[560px] md:max-h-[88vh] md:flex-row"
+                    className="relative flex w-full max-w-4xl max-h-[92dvh] flex-col overflow-hidden rounded-3xl border border-white/15 bg-[#0b0b12] shadow-[0_40px_100px_rgba(0,0,0,0.7)] md:h-[560px] md:max-h-[88dvh] md:flex-row"
                   >
                     {/* ── LEFT · the mock profile, effect playing over the card ── */}
                     <div className="relative h-[300px] shrink-0 overflow-hidden bg-gradient-to-b from-[#15151d] to-[#0b0b12] sm:h-[340px] md:h-full md:w-[56%]">

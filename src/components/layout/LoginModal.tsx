@@ -57,7 +57,7 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-[#141414] border border-white/10 rounded-2xl p-6 sm:p-8 max-w-md w-full relative shadow-2xl max-h-[95vh] overflow-y-auto">
+      <div className="bg-[#141414] border border-white/10 rounded-2xl p-6 sm:p-8 max-w-md w-full relative shadow-2xl max-h-[95dvh] overflow-y-auto">
         <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-white">
           <X className="w-6 h-6" />
         </button>

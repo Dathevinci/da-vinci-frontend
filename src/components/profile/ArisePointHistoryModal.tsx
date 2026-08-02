@@ -52,7 +52,7 @@ export default function ArisePointHistoryModal({ userId, onClose }: { userId: st
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="bg-[#141414] border border-white/10 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[80vh]"
+        className="bg-[#141414] border border-white/10 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[80dvh]"
       >
         <div className="flex justify-between items-center p-6 border-b border-white/10 bg-gradient-to-r from-purple-900/40 to-purple-900/40">
           <h2 className="text-2xl font-black text-white flex items-center gap-3">

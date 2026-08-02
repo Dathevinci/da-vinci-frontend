@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import CardFace, { CardDef, RARITY_META } from "./CardFace";
 import { ACCENT, ACCENT_LIT, notch } from "./gacha";
 
@@ -73,6 +74,9 @@ export default function PackReveal({
   calm?: boolean;
 }) {
   const reduce = calm || (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
+  // A fullscreen reveal over a scrollable page: without the lock, a phone
+  // swipe during the sequence scrolls the ARCHIVE underneath it.
+  useLockBodyScroll();
 
   // Best card last — a pack should crescendo, not peak on the first card.
   const ordered = useMemo(

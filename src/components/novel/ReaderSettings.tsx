@@ -40,7 +40,7 @@ export default function ReaderSettings({
       <div
         role="dialog"
         aria-label="Reading settings"
-        className="fixed inset-x-0 bottom-0 z-[70] mx-auto w-full sm:max-w-lg rounded-t-2xl border shadow-[0_-20px_50px_rgba(0,0,0,0.5)] p-5 pb-7 space-y-5 max-h-[85vh] overflow-y-auto"
+        className="fixed inset-x-0 bottom-0 z-[70] mx-auto w-full sm:max-w-lg rounded-t-2xl border shadow-[0_-20px_50px_rgba(0,0,0,0.5)] p-5 pb-7 space-y-5 max-h-[85dvh] overflow-y-auto"
         style={{ backgroundColor: t.panel, borderColor: t.border, color: t.text }}
       >
         {/* grabber + header */}

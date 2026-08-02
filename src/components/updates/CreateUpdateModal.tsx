@@ -107,7 +107,7 @@ export default function CreateUpdateModal({ onClose, onCreated }: CreateUpdateMo
         initial={{ scale: 0.9, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.9, opacity: 0, y: 20 }}
-        className="relative bg-[#18181b] border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl max-h-[95vh] overflow-y-auto"
+        className="relative bg-[#18181b] border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl max-h-[95dvh] overflow-y-auto"
       >
         <div className="flex items-center justify-between p-4 border-b border-white/10 bg-black/20 sticky top-0 z-10">
           <h2 className="text-xl font-bold text-white">Create Update</h2>

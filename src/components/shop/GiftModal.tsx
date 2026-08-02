@@ -99,7 +99,7 @@ export default function GiftModal({
         onClick={onClose}
       >
         <motion.div
-          className="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0b0b10] shadow-2xl"
+          className="flex max-h-[85dvh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0b0b10] shadow-2xl"
           initial={{ scale: 0.95, y: 12 }}
           animate={{ scale: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0 }}

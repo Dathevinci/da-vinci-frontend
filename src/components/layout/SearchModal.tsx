@@ -137,7 +137,7 @@ export default function SearchModal({ onClose }: SearchModalProps) {
           </form>
 
           {/* Results Area */}
-          <div className="max-h-[60vh] overflow-y-auto">
+          <div className="max-h-[60dvh] overflow-y-auto">
             {isLoading ? (
               <div className="p-8 flex justify-center items-center text-slate-400">
                 <Loader2 className="w-6 h-6 animate-spin" />

@@ -409,7 +409,7 @@ export default function Navbar() {
             </div>
           )}
           {isLoaded && user && (
-            <div className="mt-auto p-6 border-t border-white/10 flex flex-col gap-4 overflow-y-auto max-h-[50vh]">
+            <div className="mt-auto p-6 border-t border-white/10 flex flex-col gap-4 overflow-y-auto max-h-[50dvh]">
               <Link href={`/user/${user.username}`} onClick={() => setIsMobileMenuOpen(false)} className="w-full bg-white/10 hover:bg-white/20 text-white font-bold py-4 rounded-xl text-lg transition flex justify-center items-center gap-2 border border-white/10 shadow-lg">
                 <Compass className="w-5 h-5 text-purple-400" /> My Tracker
               </Link>

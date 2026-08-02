@@ -23,7 +23,7 @@ export default function FollowListModal({ title, users, onClose }: FollowListMod
   useLockBodyScroll();
   return (
     <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-[#141414] border border-white/10 rounded-2xl w-full max-w-sm flex flex-col max-h-[80vh] shadow-2xl relative">
+      <div className="bg-[#141414] border border-white/10 rounded-2xl w-full max-w-sm flex flex-col max-h-[80dvh] shadow-2xl relative">
         
         {/* Header */}
         <div className="flex justify-between items-center p-4 border-b border-white/10">

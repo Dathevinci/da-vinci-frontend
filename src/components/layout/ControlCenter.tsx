@@ -88,7 +88,7 @@ export default function ControlCenter({ isOpen, onClose }: ControlCenterProps) {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: -10, transition: { duration: 0.15 } }}
           transition={{ type: "spring", stiffness: 400, damping: 30 }}
-          className="fixed top-20 right-4 md:right-8 w-[calc(100vw-32px)] sm:w-[400px] bg-[#0b0b0d]/80 backdrop-blur-2xl border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.8)] rounded-3xl p-4 z-[100] flex flex-col gap-4 text-white overflow-hidden max-h-[85vh] overflow-y-auto"
+          className="fixed top-20 right-4 md:right-8 w-[calc(100vw-32px)] sm:w-[400px] bg-[#0b0b0d]/80 backdrop-blur-2xl border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.8)] rounded-3xl p-4 z-[100] flex flex-col gap-4 text-white overflow-hidden max-h-[85dvh] overflow-y-auto"
         >
           {/* ── Header: title + live mode chip ── */}
           <div className="flex items-center justify-between px-1">
