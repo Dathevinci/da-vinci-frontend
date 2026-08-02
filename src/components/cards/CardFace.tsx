@@ -1,5 +1,5 @@
 "use client";
-import { memo } from "react";
+import { memo, type CSSProperties } from "react";
 import { cardArt } from "@/data/cardArt";
 
 /**
@@ -62,6 +62,10 @@ export function supportText(s: SupportEffect): string {
     case "focus":  return `Next strike ×${s.power}`;
     case "mend":   return `Heal your whole line ${s.power}`;
     case "revive": return `Revive a fallen card at ${s.power}%`;
+    // The ability row is now the ONLY place this text appears, so an
+    // unhandled kind would leave a support card's primary line blank rather
+    // than merely missing a tooltip.
+    default: return `Effect: ${(s as { kind: string }).kind}`;
   }
 }
 
@@ -732,7 +736,12 @@ function CardFaceImpl({
   count = 0,
   foil = false,
   size = 190,
-  showStats = false,
+  // Defaults ON now. The collection grid — the densest and most-looked-at
+  // surface in the app — never passed this, so with the old default the whole
+  // stat row would be invisible exactly where it matters most. The two callers
+  // that pass showStats={false} explicitly (arena shop cards, which have no
+  // combat stats) still get what they asked for.
+  showStats = true,
   stats,
   liveHp,
   hibernating = false,
@@ -773,298 +782,386 @@ function CardFaceImpl({
   // two-second poll loop depends on to avoid re-rendering every card on screen.
   const painted = cardArt(card.id, card.art);
 
+  /**
+   * ── GEOMETRY ──────────────────────────────────────────────────────────
+   * One table instead of eight magic multipliers scattered through the file.
+   * The floors bind below ~140px and release above it, so small cards get
+   * proportionally larger type — which is not a new idea, it is what the old
+   * `size >= 96 ? 10.4 : 8.6` title tuning already encoded, made explicit.
+   *
+   * radius is PX and never a percentage: a percentage radius on a 5:7 box
+   * resolves per axis and gives elliptical corners.
+   */
+  const px = (f: number, floor: number) => Math.max(floor, Math.round(size * f));
+  const T = {
+    radius: Math.min(18, Math.max(4, Math.round(size * 0.06))),
+    pad: px(0.0426, 5),
+    gap: px(0.026, 3),
+    name: px(0.0638, 9),
+    slot: px(0.0511, 8),
+    stat: px(0.0468, 8),
+    ability: px(0.0426, 8),
+    micro: px(0.0383, 7),
+    segW: px(0.028, 3),
+    segH: px(0.0116, 2),
+    pillH: px(0.088, 14),
+    track: px(0.0139, 2),
+  };
+
+  /**
+   * ── TIERS ──────────────────────────────────────────────────────────────
+   * Adaptation happens by DELETING ROWS, never by growing the box. The card
+   * is 5:7 at every size; anything that could add height instead disappears.
+   * Boundaries sit between the real call-site sizes (48/52/56 bench and rail,
+   * 84/92 pickers, 100–132 deck builder, 150+ everything else).
+   */
+  const panel = size >= 68;      // below this the art is the whole card
+  const chrome = size >= 96;     // pill backgrounds, set code, foil mark
+  const roomy = size >= 150;     // the ability line
+
+  const MONO = "var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
+
+  /**
+   * ── RARITY, FLAT ───────────────────────────────────────────────────────
+   * No gem, no metal frame, no glow — those were the 3D. Rarity is carried by
+   * four quiet signals instead, and the first one is ungated so it survives
+   * down to a 48px bench card where nothing else fits:
+   *   1. the hairline's ALPHA (never its width — width is a frame)
+   *   2. a barely-there tint in the panel surface
+   *   3. the segment meter's fill
+   *   4. the rarity word, as bare type on the art
+   */
+  const FLAT: Record<string, { accent: string; line: string; panel: string; meter: string; segs: number }> = {
+    common:    { accent: "#8B95A7", line: "rgba(139,149,167,0.16)", panel: "#0E0E13", meter: "#8B95A7", segs: 1 },
+    rare:      { accent: "#60A5FA", line: "rgba(59,130,246,0.34)",  panel: "#0C0E17", meter: "#60A5FA", segs: 2 },
+    epic:      { accent: "#C084FC", line: "rgba(168,85,247,0.40)",  panel: "#110C18", meter: "#C084FC", segs: 3 },
+    legendary: { accent: "#FBBF24", line: "rgba(245,158,11,0.48)",  panel: "#14100A", meter: "#FBBF24", segs: 4 },
+    event:     { accent: "#F472B6", line: "rgba(236,72,153,0.44)",  panel: "#150C12", meter: "#F472B6", segs: 5 },
+  };
+  const F = FLAT[card.rarity] || FLAT.common;
+
+  // One mechanism for the unowned state instead of twenty scattered ternaries:
+  // the art dims, the image is suppressed, and every value in the panel is
+  // redacted. A card-shaped slot with blanked readouts reads far more like a
+  // collection than a grey blob does.
+  const surface = dim ? "#08080B" : F.panel;
+  const hairline = dim ? "rgba(255,255,255,0.06)" : panel ? F.line : "rgba(255,255,255,0.55)";
+  const ink = dim ? "#3F3F46" : "#F4F4F5";
+  const muted = dim ? "#3F3F46" : "#71717A";
+
+  const hpTone = hp <= 0 ? "#71717A" : wounded ? "#FBBF24" : "#34D399";
+  const pillBg = chrome ? "rgba(255,255,255,0.055)" : "transparent";
+
+  const abilityText = card.support
+    ? supportText(card.support)
+    : hibernating && owned
+    ? "ASLEEP · NOT FIELDABLE"
+    : card.flavor;
+
+  /** Every string is bounded. SVG could not do this, which is half of why the
+   *  frame and the type moved to HTML. */
+  const clip: CSSProperties = {
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    minWidth: 0,
+  };
+
   return (
-    <div className="relative select-none" style={{ width: size, aspectRatio: "5 / 7" }}
-      title={owned ? `${card.name} — ${R.label}${foil ? " (Foil)" : ""}` : `${R.label} · not yet collected`}>
-      <svg viewBox="0 0 100 140" className="h-full w-full"
-        style={{ filter: owned ? `drop-shadow(0 8px 22px ${R.glow})` : "none" }}>
-        <defs>
-          <linearGradient id={`sky-${uid}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={dim ? "#101014" : `hsl(${h} 58% 24%)`} />
-            <stop offset="60%" stopColor={dim ? "#0b0b0f" : `hsl(${(h + 18) % 360} 52% 12%)`} />
-            <stop offset="100%" stopColor={dim ? "#08080b" : `hsl(${(h + 40) % 360} 46% 7%)`} />
-          </linearGradient>
-          <radialGradient id={`irisGrad-${uid}`} cx="50%" cy="45%" r="55%">
-            <stop offset="0%" stopColor={dim ? "#2a2a32" : `hsl(${h} 95% 72%)`} />
-            <stop offset="70%" stopColor={dim ? "#1c1c22" : `hsl(${h} 80% 40%)`} />
-            <stop offset="100%" stopColor="#05040a" />
-          </radialGradient>
-          <linearGradient id={`plate-${uid}`} x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="rgba(0,0,0,0.75)" />
-            <stop offset="50%" stopColor="rgba(0,0,0,0.5)" />
-            <stop offset="100%" stopColor="rgba(0,0,0,0.75)" />
-          </linearGradient>
-          <linearGradient id={`foil-${uid}`} x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="rgba(255,255,255,0)" />
-            <stop offset="42%" stopColor="rgba(255,255,255,0.42)" />
-            <stop offset="52%" stopColor="rgba(255,240,180,0.55)" />
-            <stop offset="62%" stopColor="rgba(160,220,255,0.4)" />
-            <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-            {foil && <animate attributeName="x1" values="-1;1" dur="3.5s" repeatCount="indefinite" />}
-            {foil && <animate attributeName="x2" values="0;2" dur="3.5s" repeatCount="indefinite" />}
-          </linearGradient>
-          {/* ── CINEMATIC ART STACK ────────────────────────────────────────
-              The motifs were flat symbols on a flat gradient. Modern gacha art
-              reads the way it does because of DEPTH: a lit horizon behind the
-              subject, silhouettes receding into haze, shafts of light crossing
-              the frame, drifting particulate, and a specular rim along one
-              edge. All of that is added here, once, so all 24 motifs inherit it
-              without any of them being rewritten.
+    <div
+      className="relative select-none"
+      style={{
+        width: size,
+        aspectRatio: "5 / 7",
+        // No height anywhere, overflow hidden, and not one min-height inside:
+        // this is what keeps the card exactly 5:7 at every size. The duel
+        // board budgets its layout against that ratio with about a fifth of a
+        // pixel of slack, so a card that grew even slightly would push the
+        // champion through the opponent's bench.
+        overflow: "hidden",
+        borderRadius: T.radius,
+        border: `1px solid ${hairline}`,
+        background: surface,
+        display: "flex",
+        flexDirection: "column",
+      }}
+      title={owned ? `${card.name} — ${R.label}${foil ? " (Foil)" : ""}` : `${R.label} · not yet collected`}
+    >
+      {/* ── ART ───────────────────────────────────────────────────────────
+          flex:1 with min-height:0 so every row the panel drops hands its
+          height back to the picture instead of leaving a gap. */}
+      <div style={{ position: "relative", flex: 1, minHeight: 0, overflow: "hidden" }}>
+        <svg
+          viewBox="0 0 100 87"
+          preserveAspectRatio="xMidYMid slice"
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: dim ? 0.38 : 1 }}
+        >
+          <defs>
+            <linearGradient id={`sky-${uid}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={dim ? "#101014" : `hsl(${h} 58% 24%)`} />
+              <stop offset="60%" stopColor={dim ? "#0b0b0f" : `hsl(${(h + 18) % 360} 52% 12%)`} />
+              <stop offset="100%" stopColor={dim ? "#08080b" : `hsl(${(h + 40) % 360} 46% 7%)`} />
+            </linearGradient>
+            <radialGradient id={`bloom-${uid}`} cx="50%" cy="72%" r="62%">
+              <stop offset="0%" stopColor={dim ? "#1a1a22" : `hsl(${h} 72% 46%)`} stopOpacity={dim ? 0.5 : 0.72} />
+              <stop offset="100%" stopColor="#000" stopOpacity="0" />
+            </radialGradient>
+            {/* Consumed by the eye, scroll and trench motifs. An SVG paint
+                reference that resolves to nothing fails silently — the shape
+                just renders unfilled — so this has to travel with them. */}
+            <radialGradient id={`irisGrad-${uid}`} cx="50%" cy="45%" r="55%">
+              <stop offset="0%" stopColor={dim ? "#2a2a32" : `hsl(${h} 95% 72%)`} />
+              <stop offset="70%" stopColor={dim ? "#1c1c22" : `hsl(${h} 80% 40%)`} />
+              <stop offset="100%" stopColor="#05040a" />
+            </radialGradient>
+          </defs>
+          <rect x="0" y="0" width="100" height="87" fill={`url(#sky-${uid})`} />
+          <rect x="0" y="0" width="100" height="87" fill={`url(#bloom-${uid})`} />
+          {/* The motif's own coordinate space is 100x87, so it finally draws
+              at its true proportions — the old wrapper stretched it by
+              scale(0.95, 1.16), turning every circle into an ellipse. */}
+          <Motif card={card} dim={dim} />
+        </svg>
 
-              Deliberately NO SVG filters. feGaussianBlur is the obvious way to
-              get bloom, but this component renders forty-plus times on the
-              collection page and filters are rasterised per element — gradients
-              and plain shapes cost effectively nothing by comparison. */}
-          <radialGradient id={`bloom-${uid}`} cx="50%" cy="78%" r="62%">
-            <stop offset="0%" stopColor={dim ? "#1b1b22" : `hsl(${h} 92% 62%)`} stopOpacity={dim ? "0.5" : "0.75"} />
-            <stop offset="45%" stopColor={dim ? "#131318" : `hsl(${(h + 24) % 360} 78% 38%)`} stopOpacity="0.35" />
-            <stop offset="100%" stopColor="#000" stopOpacity="0" />
-          </radialGradient>
-          <linearGradient id={`shaft-${uid}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={dim ? "#ffffff" : `hsl(${h} 100% 82%)`} stopOpacity="0" />
-            <stop offset="35%" stopColor={dim ? "#ffffff" : `hsl(${h} 100% 86%)`} stopOpacity={dim ? "0.05" : "0.16"} />
-            <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
-          </linearGradient>
-          <linearGradient id={`haze-${uid}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={`hsl(${(h + 30) % 360} 60% 60%)`} stopOpacity="0" />
-            <stop offset="55%" stopColor={`hsl(${(h + 30) % 360} 60% 62%)`} stopOpacity={dim ? "0.05" : "0.17"} />
-            <stop offset="100%" stopColor={`hsl(${(h + 30) % 360} 60% 60%)`} stopOpacity="0" />
-          </linearGradient>
-          <linearGradient id={`rim-${uid}`} x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#ffffff" stopOpacity={dim ? "0.05" : "0.18"} />
-            <stop offset="28%" stopColor="#ffffff" stopOpacity="0" />
-            <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
-          </linearGradient>
-          <radialGradient id={`vig-${uid}`} cx="50%" cy="46%" r="72%">
-            <stop offset="55%" stopColor="#000" stopOpacity="0" />
-            <stop offset="100%" stopColor="#000" stopOpacity="0.62" />
-          </radialGradient>
-          {/* The scrim the name sits on. Full-bleed art means the title has no
-              plate of its own — it reads against a dark gradient rising off the
-              bottom edge, which is how a card portrait is composed. */}
-          <linearGradient id={`scrim-${uid}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#000" stopOpacity="0" />
-            <stop offset="42%" stopColor="#04030a" stopOpacity="0.72" />
-            <stop offset="100%" stopColor="#04030a" stopOpacity="0.96" />
-          </linearGradient>
-          <clipPath id={`art-${uid}`}><rect x="2.5" y="2.5" width="95" height="135" rx="8" /></clipPath>
-        </defs>
-
-        {/* card body */}
-        <rect x="1.5" y="1.5" width="97" height="137" rx="9" fill={dim ? "#0a0a0e" : `hsl(${h} 30% 6%)`}
-          stroke={dim ? "#26262e" : R.frame} strokeWidth="2.5" />
-
-        {/* art panel */}
-        <g clipPath={`url(#art-${uid})`}>
-          {/* 1 — sky */}
-          <rect x="2.5" y="2.5" width="95" height="135" fill={`url(#sky-${uid})`} />
-          {/* 2 — lit horizon the subject sits against */}
-          <rect x="2.5" y="2.5" width="95" height="135" fill={`url(#bloom-${uid})`} />
-          {/* ── DETAIL BUDGET ──────────────────────────────────────────────
-              Below ~96px the atmosphere is invisible but costs exactly the
-              same to paint: 2 silhouettes, 5 gradient-filled ray paths and 14
-              particles per card. The arena draws twelve cards at once and the
-              collection page draws dozens, so at bench and hand sizes those
-              layers are pure work for no picture. The lit horizon, rim and
-              vignette stay at every size — they are single rects and they are
-              what actually shapes the card. */}
-          {/* 3 — receding silhouettes. Two bands at different values is all it
-                 takes to read as distance rather than as a backdrop. */}
-          {rich && (<>
-
-          <path d="M2.5 88 L26 72 L44 86 L64 66 L84 84 L97.5 78 L97.5 137.5 L2.5 137.5 Z"
-            fill="#000" opacity={dim ? 0.34 : 0.26} />
-          <path d="M2.5 100 L32 86 L56 100 L76 90 L97.5 102 L97.5 137.5 L2.5 137.5 Z"
-            fill="#000" opacity={dim ? 0.5 : 0.44} />
-          {/* 4 — god rays across the frame */}
-          {!dim && (
-            <g opacity="0.85">
-              {[0, 1, 2, 3, 4].map((i) => (
-                <path key={i} d={`M${14 + i * 23} 2 L${26 + i * 23} 2 L${2 + i * 23} 138 L${-10 + i * 23} 138 Z`}
-                  fill={`url(#shaft-${uid})`} />
-              ))}
-            </g>
-          )}
-          </>)}
-          {/* 5 — the subject. Sits in the upper two thirds; the lower third is
-                 where the scrim and the name go, exactly as a full-bleed card
-                 portrait is composed. */}
-          <g transform="translate(2.5, 4) scale(0.95, 1.16)">
-            <Motif card={card} dim={dim} />
-          </g>
-          {/* 6 — atmosphere in front of it, which is what pushes it back */}
-          {rich && <rect x="2.5" y="46" width="95" height="48" fill={`url(#haze-${uid})`} />}
-          {/* 7 — drifting particulate. Seeded off the card id so a given card
-                 always looks identical rather than reshuffling every render. */}
-          {!dim && rich && (
-            <g>
-              {(() => {
-                const rand = rng(seedFrom(uid));
-                return Array.from({ length: 14 }, (_, i) => {
-                  const x = 3 + rand() * 94;
-                  const y = 3 + rand() * 92;
-                  const r = 0.35 + rand() * 0.85;
-                  const o = 0.18 + rand() * 0.5;
-                  return <circle key={i} cx={x} cy={y} r={r} fill="#fff" opacity={o} />;
-                });
-              })()}
-            </g>
-          )}
-          {/* 8 — specular rim down the lit edge */}
-          <rect x="2.5" y="2.5" width="95" height="135" fill={`url(#rim-${uid})`} />
-          {/* 9 — vignette, so the eye lands on the subject */}
-          <rect x="2.5" y="2.5" width="95" height="135" fill={`url(#vig-${uid})`} />
-          <rect x="2.5" y="2.5" width="95" height="135" fill={`url(#plate-${uid})`} opacity="0.14" />
-          {foil && <rect x="2.5" y="2.5" width="95" height="135" fill={`url(#foil-${uid})`} />}
-        </g>
-
-        {/* ── PAINTED ART ── a real image for the cards that have one.
-            Drawn OVER the whole motif stack rather than instead of it, on
-            purpose: if the file 404s — wrong case, or never committed, which
-            this repo has shipped before — the image element simply paints
-            nothing and the drawn art underneath is what you see. There is no
-            state to get wrong and no broken-image icon to hide.
-            Suppressed while unowned; an uncollected card shouldn't reveal its
-            art, and it stops the collection page fetching every one of them. */}
+        {/* Painted art, over the drawn art. If the file 404s this paints
+            nothing and the motif underneath is what you see — the failure is
+            unreachable rather than handled. */}
         {owned && painted && (
-          <g clipPath={`url(#art-${uid})`}>
-            <image
-              href={painted}
-              x="2.5" y="2.5" width="95" height="135"
-              preserveAspectRatio="xMidYMid slice"
-            />
-          </g>
-        )}
-        {/* ── SCRIM ── the name reads against this, not against a plate */}
-        <g clipPath={`url(#art-${uid})`}>
-          <rect x="2.5" y="86" width="95" height="51.5" fill={`url(#scrim-${uid})`} />
-        </g>
-
-        {/* ── TITLE ── overlaid on the art, bottom-left, as on a portrait card */}
-        <text x="8" y={size >= 96 ? 118 : 120} textAnchor="start"
-          fontSize={
-            size >= 96
-              ? ((card.name || "").length > 18 ? 7.2 : 8.6)
-              : ((card.name || "").length > 14 ? 9 : 10.4)
-          }
-          fontWeight="900"
-          fill={dim ? "#5a5a66" : "#ffffff"}
-          style={{ fontFamily: "ui-sans-serif, system-ui", paintOrder: "stroke" }}
-          stroke="#04030a" strokeWidth="1.6" strokeOpacity="0.55">
-          {owned ? card.name : "???"}
-        </text>
-
-        {/* ── STARS ── rarity you read without parsing a word */}
-        {size >= 68 && (
-          <g transform="translate(8, 124)">
-            {Array.from({ length: STAR_COUNT[card.rarity] ?? 1 }, (_, i) => (
-              <path key={i} transform={`translate(${i * 7.4}, 0) scale(0.30)`}
-                d="M12 2.6l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 17.7 6.1 20.8l1.2-6.6L2.5 9.6l6.6-.9z"
-                fill={dim ? "#33333d" : R.gem} stroke="#04030a" strokeWidth="1.4" strokeOpacity="0.5" />
-            ))}
-            {size >= 110 && (
-              <text x={(STAR_COUNT[card.rarity] ?? 1) * 7.4 + 2} y="6" fontSize="4.4" fontWeight="700"
-                letterSpacing="0.7" fill={dim ? "#2e2e36" : "#9aa0b4"}
-                style={{ fontFamily: "ui-sans-serif, system-ui" }}>
-                {card.set.toUpperCase()}
-              </text>
-            )}
-          </g>
+          <img
+            src={painted}
+            alt=""
+            aria-hidden
+            loading="lazy"
+            decoding="async"
+            draggable={false}
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              objectPosition: "50% 50%",
+            }}
+          />
         )}
 
-        {/* ── CORNER BADGES ── type left, rarity gem right */}
+        {/* Foil as PRINTED STOCK, not as a specular highlight. The stripe
+            period is constant device pixels, so it stays a texture at 84px
+            instead of becoming a band at 300px — a sweep with a bright core
+            is exactly the curved-surface read being removed. */}
+        {foil && owned && (
+          <span
+            aria-hidden
+            style={{
+              position: "absolute",
+              inset: 0,
+              mixBlendMode: "overlay",
+              opacity: 0.35,
+              backgroundImage:
+                "repeating-linear-gradient(115deg, rgba(125,211,252,.10) 0 3px, rgba(240,171,252,.10) 3px 6px, rgba(253,230,138,.10) 6px 9px, transparent 9px 14px)",
+            }}
+          />
+        )}
+
+        {/* Asleep: one flat wash, no blur, no rotated sash. The state moves
+            into the data row below instead of decorating the picture. */}
+        {hibernating && owned && (
+          <span aria-hidden style={{ position: "absolute", inset: 0, background: "rgba(56,120,200,0.20)" }} />
+        )}
+
+        {/* The scrim's last stop is the panel's exact colour, so at the meeting
+            line the two surfaces are identical and no edge can exist. A rule
+            there would turn one object into two rectangles — the same claim a
+            bevel makes, restated in a single pixel. */}
+        {panel && (
+          <span
+            aria-hidden
+            style={{
+              position: "absolute",
+              insetInline: 0,
+              bottom: 0,
+              height: "34%",
+              background: `linear-gradient(to bottom, rgba(14,14,19,0) 0%, rgba(14,14,19,.55) 55%, ${surface} 100%)`,
+            }}
+          />
+        )}
+
+        {/* rarity / grade / support, as bare type on a soft plate */}
         {size >= 76 && (
-          <g>
-            <rect x="6" y="6" rx="3" height="11"
-              width={
-                // Follows the text ACTUALLY drawn below, not the rarity word:
-                // an arena card prints "SSS" where a normal card prints
-                // "LEGENDARY", and sizing off the latter leaves three letters
-                // floating in a box built for nine.
-                (card.support ? 8 : (card.gradeLabel ?? String(R.label)).length) * 3.1 + 8
-              }
-              fill="rgba(4,3,10,.72)" stroke={dim ? "#2a2a32" : R.frame} strokeOpacity="0.55" strokeWidth="0.7" />
-            <text x={10} y="13.7" fontSize="5" fontWeight="900" letterSpacing="0.9"
-              fill={dim ? "#4a4a54" : R.gem} style={{ fontFamily: "ui-sans-serif, system-ui" }}>
-              {card.support ? "SUPPORT" : (card.gradeLabel ?? R.label).toUpperCase()}
-            </text>
-          </g>
+          <span
+            style={{
+              position: "absolute",
+              left: T.pad,
+              top: T.pad,
+              padding: `${Math.round(T.micro * 0.34)}px ${Math.round(T.micro * 0.72)}px`,
+              borderRadius: 999,
+              background: "rgba(8,8,11,0.62)",
+              color: dim ? "#52525B" : F.accent,
+              fontSize: T.micro,
+              fontWeight: 600,
+              letterSpacing: "0.10em",
+              lineHeight: 1.4,
+              ...clip,
+              maxWidth: "70%",
+            }}
+          >
+            {card.support ? "SUPPORT" : (card.gradeLabel ?? R.label).toUpperCase()}
+          </span>
         )}
-        <circle cx="90" cy="11.5" r="4.2" fill={dim ? "#2a2a32" : R.gem} stroke="#04030a" strokeWidth="1.2" />
-        {foil && <circle cx="90" cy="11.5" r="6.4" fill="none" stroke={R.gem} strokeWidth="0.7" opacity="0.75" />}
-      </svg>
 
-      {/* ── HIBERNATING ── still yours, just asleep. Deliberately reads as
-          dormant rather than as damaged or missing: a frost wash and a band,
-          not the grey-out used for cards you don't own. */}
-      {hibernating && owned && (
-        <>
-          <span aria-hidden className="pointer-events-none absolute inset-0 rounded-[7%]"
-            style={{ background: "linear-gradient(165deg, rgba(120,180,255,.30), rgba(10,20,45,.62))", backdropFilter: "saturate(0.35)" }} />
-          <span className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 -rotate-6 border-y py-1 text-center font-black uppercase tracking-[0.28em] text-sky-100"
-            style={{ fontSize: Math.max(7, size * 0.062), background: "rgba(8,20,44,.85)", borderColor: "rgba(125,200,255,.6)" }}>
-            Asleep
+        {chrome && foil && owned && (
+          <span
+            style={{
+              position: "absolute",
+              right: T.pad,
+              top: T.pad,
+              fontSize: T.micro,
+              fontWeight: 700,
+              letterSpacing: "0.14em",
+              backgroundImage: "linear-gradient(115deg,#7DD3FC,#F0ABFC,#FDE68A)",
+              WebkitBackgroundClip: "text",
+              backgroundClip: "text",
+              color: "transparent",
+            }}
+          >
+            FOIL
           </span>
-        </>
-      )}
+        )}
+      </div>
 
-      {count > 1 && owned && (
-        <span className="absolute -right-1.5 -top-1.5 grid h-6 min-w-6 place-items-center rounded-full border-2 border-[#0b0b12] bg-white px-1.5 text-[11px] font-black text-black">
-          ×{count}
-        </span>
-      )}
+      {/* ── PANEL ─────────────────────────────────────────────────────────
+          flex:0 0 auto and a max-height, with NO min-height on any row. Rows
+          size from line-height alone; when there isn't room, a row is dropped
+          rather than squeezed. */}
+      {panel && (
+        <div
+          style={{
+            flex: "0 0 auto",
+            maxHeight: "42%",
+            overflow: "hidden",
+            padding: `${Math.round(T.pad * 0.75)}px ${T.pad}px ${Math.round(T.pad * 0.75)}px`,
+            display: "flex",
+            flexDirection: "column",
+            gap: T.gap,
+            background: surface,
+          }}
+        >
+          {/* R1 — name, and the duplicate count where a card id would go */}
+          <div style={{ display: "flex", alignItems: "baseline", gap: T.gap }}>
+            <span style={{ ...clip, flex: 1, fontSize: T.name, fontWeight: 700, letterSpacing: "-0.01em", color: ink }}>
+              {owned ? card.name : "???"}
+            </span>
+            {chrome && (
+              <span style={{ fontSize: T.slot, fontWeight: 500, fontFamily: MONO, color: muted, flexShrink: 0 }}>
+                {!owned ? "—" : count > 1 ? `×${Math.min(count, 99)}` : ""}
+              </span>
+            )}
+          </div>
 
-      {/* SUPPORT cards have no attack or health — showing 0/0 would be a lie.
-          They get their effect spelled out across the bottom instead. */}
-      {/* Below ~90px the banner ate a third of the card and buried the name, so
-          the small rail cards get a cyan corner dot and the tooltip instead. */}
-      {owned && card.support && (
-        size >= 90 ? (
-          <span
-            className="absolute inset-x-1 rounded-md border border-cyan-400/40 bg-cyan-500/25 px-1 py-0.5 text-center font-black leading-tight text-cyan-100 backdrop-blur-sm"
-            style={{ fontSize: Math.max(7, size * 0.055), bottom: size * 0.29 }}
-            title={supportText(card.support)}
-          >
-            {supportText(card.support)}
-          </span>
-        ) : (
-          <span
-            className="absolute -bottom-1 -right-1 grid place-items-center rounded-full border-2 border-[#0b0b12] bg-gradient-to-br from-cyan-400 to-sky-600 font-black text-white"
-            style={{ width: size * 0.24, height: size * 0.24, fontSize: size * 0.13 }}
-            title={supportText(card.support)}
-          >
-            +
-          </span>
-        )
-      )}
+          {/* R2 — the meter that replaces the stars, and the set code.
+              Filled segments read pre-attentively: one bar versus four lands
+              without counting, which one star versus four never did. */}
+          <div style={{ display: "flex", alignItems: "center", gap: T.gap }}>
+            <span style={{ display: "flex", gap: T.segH, flex: 1 }}>
+              {[0, 1, 2, 3, 4].map((i) => (
+                <span
+                  key={i}
+                  style={{
+                    width: T.segW,
+                    height: T.segH,
+                    borderRadius: 1,
+                    background: dim
+                      ? "#3F3F46"
+                      : i < F.segs
+                      ? F.meter
+                      : "rgba(255,255,255,0.10)",
+                  }}
+                />
+              ))}
+            </span>
+            {chrome && (
+              <span style={{ ...clip, fontSize: T.micro, fontWeight: 600, letterSpacing: "0.10em", fontFamily: MONO, color: muted, flexShrink: 0 }}>
+                {card.set.toUpperCase()}
+              </span>
+            )}
+          </div>
 
-      {/* What a UNIT card does. Attack bottom-left, health bottom-right, the
-          way every card game puts them — readable at a glance. */}
-      {/* Stats sit bottom-RIGHT now: the name occupies the bottom-left of a
-          full-bleed card, and the old -left-1 badge landed straight on top of it. */}
-      {showStats && owned && !card.support && (
-        <>
-          <span
-            className="absolute -bottom-1 grid place-items-center rounded-full border-2 border-[#0b0b12] bg-gradient-to-br from-orange-500 to-red-600 font-black text-white"
-            style={{ width: size * 0.2, height: size * 0.2, fontSize: size * 0.095, right: size * 0.19 }}
-            title={`${atk} attack`}
-          >
-            {atk}
-          </span>
-          <span
-            className={`absolute -bottom-1 -right-1 grid place-items-center rounded-full border-2 border-[#0b0b12] bg-gradient-to-br font-black text-white ${
-              hp <= 0 ? "from-slate-600 to-slate-800"
-                : wounded ? "from-amber-500 to-orange-700"
-                : "from-emerald-500 to-green-700"
-            }`}
-            style={{ width: size * 0.2, height: size * 0.2, fontSize: size * 0.095 }}
-            title={wounded ? `${hp} of ${maxHp} health` : `${hp} health`}
-          >
-            {hp}
-          </span>
-        </>
+          {/* R3 — what it does in a fight. Support cards have no attack or
+              health and printing 0/0 would be a lie, so they skip this. */}
+          {showStats && !card.support && (
+            <div style={{ display: "flex", gap: T.gap, alignItems: "center" }}>
+              <Stat glyph="⚔" value={owned ? atk : "—"} tone={dim ? "#3F3F46" : "#F87171"}
+                bg={pillBg} h={T.pillH} fs={T.stat} chrome={chrome} />
+              <Stat glyph="♥" value={owned ? hp : "—"} tone={dim ? "#3F3F46" : hpTone}
+                bg={pillBg} h={T.pillH} fs={T.stat} chrome={chrome} />
+            </div>
+          )}
+
+          {/* R4 — the line the reference is built around. flavor was declared
+              on every card and rendered nowhere until now. */}
+          {roomy && (
+            <span
+              style={{
+                ...clip,
+                fontSize: T.ability,
+                fontFamily: MONO,
+                color: hibernating && owned ? "#7DD3FC" : muted,
+              }}
+              title={owned ? abilityText : undefined}
+            >
+              {owned ? abilityText : "—"}
+            </span>
+          )}
+
+          {/* R5 — live health, mid-duel. A labelled track with the real
+              numbers is strictly more than a coloured circle was. */}
+          {typeof liveHp === "number" && owned && (
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: Math.round(T.segH * 0.8) }}>
+                <span style={{ fontSize: T.micro, fontWeight: 600, letterSpacing: "0.18em", color: "#52525B" }}>HP</span>
+                <span style={{ fontSize: T.micro, fontWeight: 500, fontFamily: MONO, fontVariantNumeric: "tabular-nums", color: "#A1A1AA" }}>
+                  {Math.max(0, hp)}/{maxHp}
+                </span>
+              </div>
+              <div style={{ height: T.track, borderRadius: 999, background: "rgba(255,255,255,0.10)", overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${Math.max(0, Math.min(100, (hp / Math.max(1, maxHp)) * 100))}%`, background: hpTone }} />
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
+  );
+}
+
+/** One stat readout. Loses its plate below 96px and becomes a bare glyph and
+ *  number, which is all that fits and all that is needed. */
+function Stat({
+  glyph, value, tone, bg, h, fs, chrome,
+}: {
+  glyph: string; value: number | string; tone: string; bg: string;
+  h: number; fs: number; chrome: boolean;
+}) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: Math.round(fs * 0.34),
+        height: chrome ? h : "auto",
+        padding: chrome ? `0 ${Math.round(fs * 0.55)}px` : 0,
+        borderRadius: 999,
+        background: bg,
+        fontSize: fs,
+        fontWeight: 600,
+        fontVariantNumeric: "tabular-nums",
+        color: tone,
+        lineHeight: 1,
+      }}
+    >
+      <span style={{ fontSize: Math.round(fs * 1.1) }}>{glyph}</span>
+      {value}
+    </span>
   );
 }
 
