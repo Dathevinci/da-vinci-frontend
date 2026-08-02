@@ -911,6 +911,11 @@ function CardFaceImpl({
           effectively invisible. This sits over the whole card, above the
           panel, and pulses a real ring of the rarity's colour. */}
       {owned && size >= 110 && card.rarity === "legendary" && (
+        /* NEON, not a hint. A solid 2px gold edge with THREE stacked outer
+           blooms — tight, mid, wide — which is what makes light read as a
+           tube rather than a blur. It never dims below 80%: the old ring
+           breathed down to 30% and spent half its life invisible. Still one
+           promoted layer animating opacity only; the shadows rasterise once. */
         <span
           aria-hidden
           className="cf-anim"
@@ -920,8 +925,10 @@ function CardFaceImpl({
             zIndex: 5,
             pointerEvents: "none",
             borderRadius: "inherit",
-            boxShadow: `inset 0 0 0 1px #F59E0B, inset 0 0 ${Math.round(size * 0.10)}px #F59E0B66, 0 0 ${Math.round(size * 0.09)}px #F59E0B55`,
-            animation: "cf-breathe 3.2s ease-in-out infinite",
+            boxShadow:
+              `inset 0 0 0 2px #FBBF24, inset 0 0 ${Math.round(size * 0.10)}px #F59E0B66, ` +
+              `0 0 6px #F59E0BCC, 0 0 ${Math.round(size * 0.10)}px #F59E0B99, 0 0 ${Math.round(size * 0.22)}px #F59E0B4D`,
+            animation: "cf-neon 2.8s ease-in-out infinite",
             willChange: "opacity",
           }}
         />
@@ -1016,6 +1023,7 @@ function CardFaceImpl({
               __html: `
 @keyframes cf-sweep { 0% { transform: translate3d(-130%,0,0); } 100% { transform: translate3d(130%,0,0); } }
 @keyframes cf-breathe { 0%,100% { opacity:.30 } 50% { opacity:.75 } }
+@keyframes cf-neon { 0%,100% { opacity:.8 } 50% { opacity:1 } }
 @media (prefers-reduced-motion: reduce) { .cf-anim { animation: none !important; } }
 `,
             }}
