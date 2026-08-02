@@ -745,6 +745,7 @@ function CardFaceImpl({
   showStats = true,
   stats,
   liveHp,
+  liveMaxHp,
   hibernating = false,
 }: {
   card: CardDef;
@@ -762,13 +763,22 @@ function CardFaceImpl({
    * tracks the fight.
    */
   liveHp?: number;
+  /** The fighter's true max HP, which includes level. See maxHp below. */
+  liveMaxHp?: number;
   /** Fell in a lost duel and is asleep — owned, but not fieldable until woken. */
   hibernating?: boolean;
 }) {
   const S = (stats || FALLBACK_STATS)[card.rarity] || FALLBACK_STATS.common;
   const mult = foil ? 1.2 : 1;
   const atk = Math.round(S.atk * mult);
-  const maxHp = Math.round(S.hp * mult);
+  /**
+   * The fighter's REAL max when the board supplies it, not a guess from the
+   * rarity table. This computed maxHp knows about rarity and foil but not
+   * about LEVELS, so a levelled card showed "16/28" on its face while the bar
+   * beneath it — reading the actual fighter — showed "16/26". Two numbers for
+   * one thing, disagreeing, on the same card.
+   */
+  const maxHp = typeof liveMaxHp === "number" && liveMaxHp > 0 ? liveMaxHp : Math.round(S.hp * mult);
   const hp = typeof liveHp === "number" ? liveHp : maxHp;
   const wounded = typeof liveHp === "number" && liveHp < maxHp;
   const R = RARITY_META[card.rarity];

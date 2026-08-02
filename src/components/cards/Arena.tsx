@@ -661,7 +661,7 @@ export default function Arena({
                 animate={{ y: 0, scale: 1, opacity: 1 }}
                 transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
                 className={`rounded-xl transition ${over === "foe" && dragging?.kind === "unit" ? "ring-4 ring-rose-400 shadow-[0_0_30px_rgba(244,63,94,.6)]" : ""}`}>
-                <CardFace card={byId[foeActive.cardId]} owned foil={foeActive.foil} size={champ} showStats liveHp={foeActive.hp} />
+                <CardFace card={byId[foeActive.cardId]} owned foil={foeActive.foil} size={champ} showStats liveHp={foeActive.hp} liveMaxHp={foeActive.maxHp} />
                 <div className="mx-auto mt-1.5" style={{ width: champ }}>
                   <Bar f={foeActive} h={9} showNumbers />
                   <Buffs side={foe} />
@@ -742,7 +742,7 @@ export default function Arena({
                 className={`rounded-xl transition ${
                 over === "field" ? "ring-4 ring-emerald-400 shadow-[0_0_30px_rgba(52,211,153,.6)]"
                   : aiming ? "ring-2 ring-cyan-400/60" : ""}`}>
-                <CardFace card={byId[myActive.cardId]} owned foil={myActive.foil} size={champ} showStats liveHp={myActive.hp} />
+                <CardFace card={byId[myActive.cardId]} owned foil={myActive.foil} size={champ} showStats liveHp={myActive.hp} liveMaxHp={myActive.maxHp} />
                 <div className="mx-auto mt-1.5" style={{ width: champ }}>
                   <Bar f={myActive} h={9} showNumbers />
                   <Buffs side={mine} />
@@ -763,8 +763,11 @@ export default function Arena({
           </motion.div>
         </div>
 
-        {/* ── TURN BANNER ── */}
-        <div className={`relative z-10 px-6 py-2 text-[11px] font-black uppercase tracking-[0.2em] transition ${
+        {/* ── TURN BANNER ── shrink-0 so the flex parent cannot compress it.
+            Without it the clash section reclaimed the banner's height when
+            space ran short and sliced the text in half against the edge of
+            YOUR SIDE below. */}
+        <div className={`relative z-10 shrink-0 px-6 py-2 text-[11px] font-black uppercase tracking-[0.2em] transition ${
           finished ? "text-slate-200"
             : busy ? "text-slate-400"
             : myTurn ? "text-rose-50 shadow-[0_0_30px_rgba(244,63,94,.4)]"
@@ -844,7 +847,7 @@ export default function Arena({
                     : "opacity-70"
                 } ${dragging?.kind === "unit" && dragging.index === i ? "opacity-30" : ""}`}>
                 <div className="relative">
-                  {byId[f.cardId] && <CardFace card={byId[f.cardId]} owned foil={f.foil} size={hand} showStats liveHp={f.hp} />}
+                  {byId[f.cardId] && <CardFace card={byId[f.cardId]} owned foil={f.foil} size={hand} showStats liveHp={f.hp} liveMaxHp={f.maxHp} />}
                   {dead && (
                     <span className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 -rotate-12 border-y border-rose-500/70 bg-rose-950/80 py-0.5 text-center text-[8px] font-black uppercase tracking-[0.2em] text-rose-200">
                       Fallen
