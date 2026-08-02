@@ -18,6 +18,9 @@
  * Files live in public/cards/ and MUST be committed. An image present on disk
  * but never `git add`ed 404s on Vercel — this repo has already shipped that
  * exact bug once with the landing artwork.
+ *
+ * Each painting also has a 300px thumbnail in public/cards/sm/ as .jpg,
+ * generated from the same source. See cardArt() for why that exists.
  */
 export const CARD_ART: Record<string, string> = {
   // ── LEGENDARY ──
@@ -27,6 +30,8 @@ export const CARD_ART: Record<string, string> = {
   card_swordsaint:   "/cards/card_swordsaint.png",
   card_secondwind:   "/cards/card_secondwind.png",
   card_longmorrow:   "/cards/card_longmorrow.png",
+  card_leviathan:    "/cards/card_leviathan.png",
+  card_hollowtide:   "/cards/card_hollowtide.png",
 
   // ── EPIC ──
   card_ironvow:      "/cards/card_ironvow.png",
@@ -40,16 +45,33 @@ export const CARD_ART: Record<string, string> = {
   card_onimask:      "/cards/card_onimask.png",
   card_voidgaze:     "/cards/card_voidgaze.png",
   card_crimsonsea:   "/cards/card_crimsonsea.png",
-  card_leviathan:    "/cards/card_leviathan.png",
-  card_hollowtide:   "/cards/card_hollowtide.png",
   card_ninehands:    "/cards/card_ninehands.png",
 
   // Still on a drawn motif: card_trenchmaw. Add a line the day a file lands.
 };
 
-/** The image for a card, or null to keep its drawn motif. */
-export function cardArt(id: string, override?: string): string | null {
-  return override || CARD_ART[id] || null;
+/**
+ * The image for a card, or null to keep its drawn motif.
+ *
+ * `size` picks WHICH FILE, never whether art shows at all. Every card with a
+ * painting gets one at every size — small slots just receive a 300px JPEG
+ * (~29 KB) rather than the full PNG (~119 KB).
+ *
+ * That second file is doing real work. next.config sets images.unoptimized, so
+ * there is no resizing layer to lean on: without it a 48px bench slot
+ * downloads the entire painting. A duel board draws about twelve cards and the
+ * deck builder draws a whole collection, so it was most of 2.3 MB fetched to
+ * paint thumbnails a few pixels across.
+ *
+ * 300px covers the largest "small" use (~150px) at 2x DPI. From 200 up the
+ * full art loads, because that is where the detail is actually visible.
+ */
+export function cardArt(id: string, override?: string, size = 999): string | null {
+  if (override) return override;
+  const full = CARD_ART[id];
+  if (!full) return null;
+  if (size >= 200) return full;
+  return full.replace("/cards/", "/cards/sm/").replace(/\.png$/, ".jpg");
 }
 
 let warned = false;

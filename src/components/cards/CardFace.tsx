@@ -780,21 +780,7 @@ function CardFaceImpl({
   // Read from the manifest INSIDE the component, never taken as a prop — a new
   // prop would defeat the memo() at the bottom of this file, which Arena's
   // two-second poll loop depends on to avoid re-rendering every card on screen.
-  /**
-   * Painted art is only fetched for cards big enough to show it.
-   *
-   * next.config sets images.unoptimized, so there is no resizing layer: a
-   * 119 KB painting downloads in full even into a 48 px bench slot. The duel
-   * board alone renders ~12 cards at 48-165 px and the deck builder renders
-   * the whole collection at 84-118 px, so a page could pull most of 2.3 MB to
-   * paint thumbnails a few pixels wide.
-   *
-   * Below the threshold the drawn motif renders instead — it is already there
-   * underneath, it costs nothing to fetch, and at that size the two are barely
-   * distinguishable anyway. 110 matches the tier where the set name and the
-   * rest of the detail start rendering.
-   */
-  const painted = size >= 110 ? cardArt(card.id, card.art) : null;
+  const painted = cardArt(card.id, card.art, size);
 
   /**
    * ── GEOMETRY ──────────────────────────────────────────────────────────
