@@ -855,7 +855,11 @@ export default function Arena({
                   <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Spent</span>
                 )}
               </div>
-              {now?.text && <p className="mt-0.5 text-[11px] leading-snug text-slate-400">{now.text}</p>}
+              {now?.text && (
+                <p className="mt-0.5 line-clamp-2 text-[10px] leading-snug text-slate-400 sm:line-clamp-none sm:text-[11px]">
+                  {now.text}
+                </p>
+              )}
             </div>
           );
         })()}

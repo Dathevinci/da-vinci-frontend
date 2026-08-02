@@ -726,7 +726,10 @@ function LastDuelStats({ duel, me, byId }: { duel: Duel; me?: string; byId: Reco
           </span>
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
+        {/* Three tiles still fit 375px — they just need to stop shouting.
+            The label sizes drop below sm so "Your line" doesn't wrap to two
+            lines inside a 105px tile. */}
+        <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
           <Stat label={won ? "Won" : "Lost"} value={`${won ? "+" : "−"}${(won ? duelPayout(duel.stake) : duel.stake).toLocaleString()}`}
             tint={won ? "#6ee7b7" : "#fda4af"} />
           <Stat label="Your line" value={`${standing(mine)}/${mine.fighters.length}`} tint="#7dd3fc" />
@@ -802,12 +805,12 @@ function ReplayModal({
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[140] flex items-center justify-center bg-black/90 p-4"
+      className="fixed inset-0 z-[140] flex items-center justify-center bg-black/90 p-2 sm:p-4"
       onClick={onClose}
     >
       <motion.div
         initial={{ scale: 0.96, y: 10 }} animate={{ scale: 1, y: 0 }}
-        className="flex max-h-[86dvh] w-full max-w-lg flex-col rounded-2xl border border-white/12 bg-[#0a0a11]"
+        className="flex max-h-[92dvh] w-full max-w-lg flex-col rounded-2xl border border-white/12 bg-[#0a0a11] sm:max-h-[86dvh]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
@@ -848,10 +851,13 @@ function ReplayModal({
           <div ref={endRef} />
         </div>
 
-        <div className="flex items-center gap-2 border-t border-white/10 px-4 py-3">
+        {/* wrap, not overflow: a play button plus three speed chips plus the
+            counter does not fit 375px on one line, and the counter was the
+            piece that got pushed off the edge. */}
+        <div className="flex flex-wrap items-center gap-2 border-t border-white/10 px-3 py-3 sm:px-4">
           <button
             onClick={() => (done ? (setAt(0), setPlaying(true)) : setPlaying((p) => !p))}
-            className="flex-1 py-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-white transition hover:brightness-110"
+            className="min-w-[7rem] flex-1 py-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-white transition hover:brightness-110"
             style={{ clipPath: notch(9), background: "linear-gradient(100deg, #7c3aed, #a855f7)" }}
           >
             {done ? "Watch again" : playing ? "Pause" : "Play"}
@@ -879,9 +885,13 @@ function ReplayModal({
 
 function Stat({ label, value, tint }: { label: string; value: string; tint: string }) {
   return (
-    <div className="bg-black/30 px-2 py-2 text-center" style={{ clipPath: notch(8) }}>
-      <div className="text-base font-black tabular-nums" style={{ color: tint }}>{value}</div>
-      <div className="mt-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-slate-500">{label}</div>
+    <div className="bg-black/30 px-1.5 py-2 text-center sm:px-2" style={{ clipPath: notch(8) }}>
+      <div className="text-sm font-black tabular-nums sm:text-base" style={{ color: tint }}>{value}</div>
+      {/* Tracking is dropped on phones: 0.16em on a 9px label inside a ~105px
+          tile is what pushed "Your line" onto a second row. */}
+      <div className="mt-0.5 truncate text-[9px] font-black uppercase tracking-normal text-slate-500 sm:tracking-[0.16em]">
+        {label}
+      </div>
     </div>
   );
 }
