@@ -112,6 +112,57 @@ function Bar({ f, h = 6, showNumbers = false }: { f: Fighter; h?: number; showNu
   );
 }
 
+/**
+ * The impact when a card lands on the field — something heavy hitting the
+ * floor. Two ground rings thrown outward plus a short dust puff.
+ *
+ * Keyed on the cardId, so it fires once when the card in the slot CHANGES and
+ * never again on the poll ticks in between. Transform and opacity only, and it
+ * unmounts itself on a timer rather than onAnimationComplete, which fires on
+ * the wrapper's own animation and not the keyframes inside it.
+ */
+function LandShock({ cardId }: { cardId?: string }) {
+  const [key, setKey] = useState(0);
+  const prev = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!cardId || cardId === prev.current) { prev.current = cardId; return; }
+    prev.current = cardId;
+    setKey((k) => k + 1);
+  }, [cardId]);
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    if (key === 0) return;
+    setOn(true);
+    const t = setTimeout(() => setOn(false), 620);
+    return () => clearTimeout(t);
+  }, [key]);
+
+  return (
+    <AnimatePresence>
+      {on && (
+        <motion.div key={key} aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-10 grid place-items-center overflow-visible"
+          initial={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          {[0, 1].map((i) => (
+            <motion.span key={i} className="absolute rounded-[50%]"
+              style={{ width: 130, height: 26, border: "2px solid rgba(255,255,255,.55)", willChange: "transform, opacity" }}
+              initial={{ scale: 0.25, opacity: 0.9 }}
+              animate={{ scale: 2.4, opacity: 0 }}
+              transition={{ duration: 0.55, delay: i * 0.09, ease: "easeOut" }}
+            />
+          ))}
+          <motion.span className="absolute rounded-[50%]"
+            style={{ width: 150, height: 34, background: "radial-gradient(closest-side, rgba(255,255,255,.35), transparent 70%)", willChange: "transform, opacity" }}
+            initial={{ scale: 0.4, opacity: 0.85 }}
+            animate={{ scale: 1.9, opacity: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+          />
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 /** The active buffs on a side, spelled out under its champion. */
 function Buffs({ side }: { side: ArenaSide }) {
   const list: { label: string; cls: string }[] = [];
@@ -671,11 +722,16 @@ export default function Arena({
             transition={hit?.side === "foe" ? { duration: 0.38, times: [0, 0.3, 1], ease: "easeOut" } : { duration: 0.32 }}
             className="relative text-center">
             <KoBurst show={ko?.side === "mine"} koKey={ko?.key} />
+            <LandShock cardId={myActive?.cardId} />
             {myActive && byId[myActive.cardId] ? (
+              /* It DROPS in rather than fading. Starting higher, bigger and
+                 overshooting on the way down reads as weight landing, which is
+                 what the shockwave underneath is answering. */
               <motion.div key={myActive.cardId}
-                initial={{ y: 26, scale: 0.9, opacity: 0 }}
-                animate={{ y: 0, scale: 1, opacity: 1 }}
-                transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+                initial={{ y: -70, scale: 1.18, opacity: 0 }}
+                animate={{ y: [-70, 6, 0], scale: [1.18, 0.94, 1], opacity: [0, 1, 1] }}
+                transition={{ duration: 0.42, times: [0, 0.72, 1], ease: [0.4, 0, 0.2, 1] }}
+                style={{ willChange: "transform, opacity" }}
                 className={`rounded-xl transition ${
                 over === "field" ? "ring-4 ring-emerald-400 shadow-[0_0_30px_rgba(52,211,153,.6)]"
                   : aiming ? "ring-2 ring-cyan-400/60" : ""}`}>
@@ -746,6 +802,10 @@ export default function Arena({
         {/* the hand — each card is ALSO an ally drop target for support */}
         <div className="flex items-end justify-center gap-1.5">
           {mine.fighters.map((f, i) => {
+            // The card that is OUT belongs to the field, not the hand. It used
+            // to render in both at once, so deploying looked like it had
+            // duplicated the card rather than moved it.
+            if (i === mine.active) return null;
             const dead = f.hp <= 0;
             const canTake = aiming && (dead || f.hp < f.maxHp);
             const playable = live && !dead;
