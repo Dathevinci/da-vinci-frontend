@@ -97,11 +97,19 @@ function supText(s: any, lvl = 1): string {
     : s.kind === "shield" ? "next floor: first 2 enemy volleys land HALVED"
     : s.kind === "block" ? "next floor: the first enemy volley does NOT land"
     : s.kind === "focus" ? `next floor: opening volley ×${Number((1 + (s.power - 1) * m).toFixed(2))}`
+    : s.kind === "bless" ? `heals EVERY living unit ${Math.min(80, Math.round(s.power * 100 * m))}% of max HP, instantly`
+    : s.kind === "arise" ? `ARISE — every fallen unit stands at ${Math.min(25, Math.round(s.power * 100 * m))}%, party emboldened`
+    : s.kind === "pact" ? `the strongest pays half their HP — next floor hits ${Math.min(90, Math.round(50 * m))}% harder`
+    : s.kind === "reflect" ? `next floor: enemies eat back ${Math.min(80, Math.round(s.power * 100 * m))}% of every blow they land`
+    : s.kind === "stone" ? `next floor: 2 whole volleys MISS · party hits ${Math.min(60, Math.round(s.power * m))}% harder`
+    : s.kind === "mirror" ? `next floor: ${Math.min(30, Math.round(s.power * 100 * m))}% of enemy damage returns — and heals`
     : "it does something, somewhere";
 }
 const SUP_TONE: Record<string, string> = {
   heal: "#7fe07f", mend: "#7fe07f", revive: "#ffd23e",
   shield: "#9be8ff", block: "#9be8ff", focus: "#ffb45f",
+  bless: "#7fe07f", arise: "#ffd23e", pact: "#ff6b81",
+  reflect: "#ffd23e", stone: "#c9b8ff", mirror: "#9be8ff",
 };
 const dgnTier = (id: string) => id === "dgn_keep" ? 2 : id === "dgn_orchard" ? 1 : 0;
 

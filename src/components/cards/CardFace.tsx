@@ -27,7 +27,14 @@ export type SupportEffect =
   | { kind: "block" }
   | { kind: "focus"; power: number }
   | { kind: "mend"; power: number }
-  | { kind: "revive"; power: number };
+  | { kind: "revive"; power: number }
+  // ── the Covenant — legendary supports, percent-scaled ──
+  | { kind: "reflect"; power: number }
+  | { kind: "bless"; power: number }
+  | { kind: "pact"; power: number }
+  | { kind: "stone"; power: number }
+  | { kind: "mirror"; power: number }
+  | { kind: "arise"; power: number };
 
 export interface CardDef {
   id: string;
@@ -67,6 +74,13 @@ export function supportText(s: SupportEffect, level = 1): string {
     case "focus":  return `Next strike ×${Number((1 + (s.power - 1) * m).toFixed(2))}`;
     case "mend":   return `Heal your whole line ${Math.round(s.power * m)}`;
     case "revive": return `Revive a fallen card at ${Math.min(95, Math.round(s.power * m))}%`;
+    // Covenant numbers mirror the server engines' caps exactly.
+    case "reflect": return `Return ${Math.min(80, Math.round(s.power * 100 * m))}% of each blow, 3 hits`;
+    case "bless":   return `Heal ALL allies ${Math.min(80, Math.round(s.power * 100 * m))}% of max HP`;
+    case "pact":    return `Pay half your HP — strike ${Math.min(90, Math.round(50 * m))}% harder, guarded`;
+    case "stone":   return `+${Math.min(60, Math.round(s.power * m))}% ATK · untouchable for 2 attacks`;
+    case "mirror":  return `Reflect ${Math.min(30, Math.round(s.power * 100 * m))}% of damage — and drink it`;
+    case "arise":   return `ARISE — every fallen ally returns at ${Math.min(25, Math.round(s.power * 100 * m))}%`;
     // The ability row is now the ONLY place this text appears, so an
     // unhandled kind would leave a support card's primary line blank rather
     // than merely missing a tooltip.

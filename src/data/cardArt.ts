@@ -48,6 +48,13 @@ export const CARD_ART: Record<string, string> = {
   card_wheel:        "/cards/card_wheel.png",
   card_ashgarden:    "/cards/card_ashgarden.png",
   card_floodwalker:  "/cards/card_floodwalker.png",
+  // ── COVENANT (legendary supports) ── card_seraphim has NO art yet — the
+  // owner hasn't dropped its file; it keeps its drawn motif until they do.
+  card_ophanim:      "/cards/card_ophanim.png",
+  card_deviltrade:   "/cards/card_deviltrade.png",
+  card_rockscissors: "/cards/card_rockscissors.png",
+  card_mirror:       "/cards/card_mirror.png",
+  card_arise:        "/cards/card_arise.png",
 
   // ── EPIC ──
   card_ironvow:      "/cards/card_ironvow.png",
