@@ -237,9 +237,11 @@ export default function ForgePage() {
               <Zap className="h-4 w-4" /> Mythic Synthesis
             </h2>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300">
-              Two of the five eligible legendaries go in. <b className="text-white">Both are consumed.</b>{" "}
-              The pair decides which Mythic comes out — the machine only rolls its affix and its
-              eruption. A failed reaction returns <b className="text-amber-300">one</b> parent, never neither.
+              Two eligible cards go in. <b className="text-white">Both are consumed.</b>{" "}
+              The pair decides what comes out — the machine only rolls its affix and its eruption.
+              A failed reaction returns <b className="text-amber-300">one</b> parent, never neither.
+              Any two of the five legendaries make a Mythic; three <b className="text-rose-300">written
+              pairs of Mythics</b> make the Pantheon — Gojo, Sukuna, Unohana.
             </p>
 
             {/* eligible roster */}

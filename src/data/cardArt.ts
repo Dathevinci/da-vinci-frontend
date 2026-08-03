@@ -68,6 +68,11 @@ export const CARD_ART: Record<string, string> = {
   myth_drownedgod:     "/cards/myth_drownedgod.png",
   myth_lasttomorrow:   "/cards/myth_lasttomorrow.png",
 
+  // ── PANTHEON — the second-order gods ──
+  myth_gojo:           "/cards/myth_gojo.png",
+  myth_sukuna:         "/cards/myth_sukuna.png",
+  myth_unohana:        "/cards/myth_unohana.png",
+
   // ── EPIC ──
   card_ironvow:      "/cards/card_ironvow.png",
   card_gravebloom:   "/cards/card_gravebloom.png",

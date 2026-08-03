@@ -106,7 +106,11 @@ export const STAR_COUNT: Record<CardRarity, number> = {
 
 /** The five legendaries the Synthesis Lab accepts — display-only mirror of
  *  FUSION_ELIGIBLE on the server; the machine itself is the gate. */
-const FUSABLE = new Set(["card_gatekey", "card_lastronin", "card_leviathan", "card_longmorrow", "card_outergod"]);
+const FUSABLE = new Set([
+  "card_gatekey", "card_lastronin", "card_leviathan", "card_longmorrow", "card_outergod",
+  // the six Mythics that feed the Pantheon recipes
+  "myth_doordream", "myth_hourdoor", "myth_bladebeyond", "myth_lasttomorrow", "myth_leviathansaint", "myth_tideofages",
+]);
 
 // Deterministic per-card pseudo-random so a card always looks identical.
 function rnd(id: string, salt: number): number {
