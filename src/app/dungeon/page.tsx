@@ -99,11 +99,11 @@ function supText(s: any, lvl = 1): string {
     : s.kind === "block" ? "next floor: the first enemy volley does NOT land"
     : s.kind === "focus" ? `next floor: opening volley ×${Number((1 + (s.power - 1) * m).toFixed(2))}`
     : s.kind === "bless" ? `heals EVERY living unit ${Math.min(80, Math.round(s.power * 100 * m))}% of max HP, instantly`
-    : s.kind === "arise" ? `ARISE — every fallen unit stands at ${Math.min(25, Math.round(s.power * 100 * m))}%, party emboldened`
-    : s.kind === "pact" ? `the strongest pays half their HP — next floor hits ${Math.min(90, Math.round(50 * m))}% harder`
-    : s.kind === "reflect" ? `next floor: enemies eat back ${Math.min(80, Math.round(s.power * 100 * m))}% of every blow they land`
-    : s.kind === "stone" ? `next floor: 2 whole volleys MISS · party hits ${Math.min(60, Math.round(s.power * m))}% harder`
-    : s.kind === "mirror" ? `next floor: ${Math.min(30, Math.round(s.power * 100 * m))}% of enemy damage returns — and heals`
+    : s.kind === "arise" ? `ARISE — every fallen unit stands at ${Math.min(25, Math.round(s.power * 100 * m))}%, +${Math.min(40, Math.round(20 * m))}% ATK lasting`
+    : s.kind === "pact" ? `the strongest pays half their HP — party hits ${Math.min(90, Math.round(50 * m))}% harder and 25% tougher, lasting`
+    : s.kind === "reflect" ? `the next 3 blows that land come back ${Math.min(80, Math.round(s.power * 100 * m))}% on the enemy`
+    : s.kind === "stone" ? `next floor: 2 whole volleys MISS · +${Math.min(60, Math.round(s.power * m))}% ATK lasting`
+    : s.kind === "mirror" ? `${Math.min(30, Math.round(s.power * 100 * m))}% of enemy damage returns — and heals, lasting`
     : "it does something, somewhere";
 }
 const SUP_TONE: Record<string, string> = {

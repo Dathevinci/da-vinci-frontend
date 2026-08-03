@@ -77,10 +77,10 @@ export function supportText(s: SupportEffect, level = 1): string {
     // Covenant numbers mirror the server engines' caps exactly.
     case "reflect": return `Return ${Math.min(80, Math.round(s.power * 100 * m))}% of each blow, 3 hits`;
     case "bless":   return `Heal ALL allies ${Math.min(80, Math.round(s.power * 100 * m))}% of max HP`;
-    case "pact":    return `Pay half your HP — strike ${Math.min(90, Math.round(50 * m))}% harder, guarded`;
+    case "pact":    return `Pay half your HP — strike ${Math.min(90, Math.round(50 * m))}% harder, 25% tougher`;
     case "stone":   return `+${Math.min(60, Math.round(s.power * m))}% ATK · untouchable for 2 attacks`;
     case "mirror":  return `Reflect ${Math.min(30, Math.round(s.power * 100 * m))}% of damage — and drink it`;
-    case "arise":   return `ARISE — every fallen ally returns at ${Math.min(25, Math.round(s.power * 100 * m))}%`;
+    case "arise":   return `ARISE — all fallen return at ${Math.min(25, Math.round(s.power * 100 * m))}%, +${Math.min(40, Math.round(20 * m))}% ATK`;
     // The ability row is now the ONLY place this text appears, so an
     // unhandled kind would leave a support card's primary line blank rather
     // than merely missing a tooltip.
