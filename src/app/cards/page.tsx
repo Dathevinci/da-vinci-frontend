@@ -11,7 +11,7 @@ import { authHeaders } from "@/lib/authToken";
 import { useToast } from "@/components/ui/Toast";
 import PageTransition from "@/components/layout/PageTransition";
 import CardFace, { CardDef, CardRarity, RARITY_META, supportText } from "@/components/cards/CardFace";
-import PackReveal from "@/components/cards/PackReveal";
+import PixelPull from "@/components/cards/PixelPull";
 import { Panel, CornerTicks, Stars, SegBar, GachaButton, Heading, StatRow, notch, ACCENT, ACCENT_LIT, GachaAmbience, Rise, Twinkles } from "@/components/cards/gacha";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -869,6 +869,26 @@ export default function CardsPage() {
                   style={{ clipPath: notch(7), background: "rgba(251,191,36,.08)", boxShadow: "inset 0 0 0 1px rgba(251,191,36,.30)" }}>
                   <BarChart3 className="h-3.5 w-3.5" /> Pull Stats
                 </button>
+                {isMine && isLeadDev(user) && (
+                  <button
+                    onClick={async () => {
+                      if (!user) return;
+                      try {
+                        const r = await fetch(`${API_URL}/api/cards/grant-all`, {
+                          method: "POST", headers: authHeaders(), body: JSON.stringify({ userId: user.id }),
+                        });
+                        const d = await r.json();
+                        if (!r.ok || !d.success) return toast(d.message || "Couldn't grant.", "error");
+                        toast(d.data.granted > 0 ? `The whole catalog: ${d.data.granted} new cards granted.` : "You already hold every card.", "success");
+                        await loadCollection();
+                      } catch { toast("Couldn't grant.", "error"); }
+                    }}
+                    title="Lead dev only — grant one copy of every card you don't hold"
+                    className="flex items-center gap-1.5 px-3.5 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-fuchsia-300/90 transition hover:text-fuchsia-200"
+                    style={{ clipPath: notch(7), background: "rgba(217,70,239,.08)", boxShadow: "inset 0 0 0 1px rgba(217,70,239,.30)" }}>
+                    <Sparkles className="h-3.5 w-3.5" /> Claim Catalog
+                  </button>
+                )}
                 {isMine && (
                   <button onClick={() => setDustAllOpen(true)} disabled={dustPreview.copies === 0}
                     title={dustPreview.copies === 0 ? "No duplicates to dust" : `${dustPreview.copies} duplicate cop${dustPreview.copies === 1 ? "y" : "ies"} → ${dustPreview.gain.toLocaleString()} shards`}
@@ -1318,7 +1338,7 @@ export default function CardsPage() {
       {/* pack reveal — staggered flip, rarity burst, best card last */}
       <AnimatePresence>
         {reveal && (
-          <PackReveal cards={reveal} prints={revealPrints}
+          <PixelPull cards={reveal} prints={revealPrints}
             onClose={() => { setReveal(null); setRevealPrints([]); }} />
         )}
       </AnimatePresence>
