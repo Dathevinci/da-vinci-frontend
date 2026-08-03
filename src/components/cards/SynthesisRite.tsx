@@ -74,6 +74,17 @@ export default function SynthesisRite({
       {/* the fluid, lit from below */}
       <div className="absolute inset-x-2 bottom-2 rounded-b-[36px]"
         style={{ height: "58%", background: `linear-gradient(180deg, transparent, ${col}30 30%, ${col}55)` }} />
+      {/* the fluid BOILS — pooled bubbles, faster as the reaction runs */}
+      {!reduce && [0, 1, 2, 3, 4].map((bi) => (
+        <span key={bi} aria-hidden className="sy-bubble absolute rounded-full"
+          style={{
+            left: `${14 + bi * 17}%`, bottom: 6,
+            width: 3 + (bi % 3), height: 3 + (bi % 3),
+            background: "rgba(225,240,255,.55)",
+            animationDelay: `${bi * 0.5}s`,
+            animationDuration: stage === "dissolve" || stage === "collide" ? "1.1s" : "2.6s",
+          }} />
+      ))}
       {/* the card, suspended and slowly turning — dissolving on cue */}
       <motion.div className="absolute left-1/2 top-1/2"
         style={{ x: "-50%", y: "-50%" }}
@@ -127,9 +138,29 @@ export default function SynthesisRite({
         ))}
       </div>
 
+      {/* klaxon — the lab SAYS what it's doing */}
+      {(stage === "alarm" || stage === "dissolve" || stage === "collide") && (
+        <div className="sy-klaxon pointer-events-none absolute top-16 rounded border border-red-500/60 bg-red-950/70 px-5 py-1.5 text-[11px] font-black uppercase tracking-[0.4em] text-red-300">
+          ⚠ Reaction in progress ⚠
+        </div>
+      )}
+      {stage === "vent" && (
+        <div className="pointer-events-none absolute top-16 rounded border border-amber-500/60 bg-amber-950/70 px-5 py-1.5 text-[11px] font-black uppercase tracking-[0.4em] text-amber-300">
+          Pressure venting — reaction stalled
+        </div>
+      )}
+
       {/* ── THE MACHINE ── */}
       {(stage === "alarm" || stage === "dissolve" || stage === "collide" || stage === "overload" || stage === "vent") && (
         <div className={`relative flex items-end gap-6 sm:gap-12 ${!reduce && stage === "collide" ? "sy-shake" : ""}`}>
+          {/* electric arcs leaping between the chambers as the colours fight */}
+          {!reduce && stage === "collide" && (
+            <svg aria-hidden className="sy-arc pointer-events-none absolute inset-x-0 top-8 z-10 h-24 w-full" viewBox="0 0 400 100" preserveAspectRatio="none">
+              <polyline points="30,20 90,55 130,30 200,60 260,25 330,50 370,22" fill="none" stroke="#e8f4ff" strokeWidth="2" opacity=".9" />
+              <polyline points="40,70 110,40 180,75 250,45 320,70 365,45" fill="none" stroke={colA} strokeWidth="1.5" opacity=".8" />
+              <polyline points="35,45 100,65 170,35 240,68 310,38 368,60" fill="none" stroke={colB} strokeWidth="1.5" opacity=".8" />
+            </svg>
+          )}
           <Chamber card={a} col={colA} side="l" />
           {/* centre chamber — dark until the streams arrive */}
           <div className="relative" style={{ width: 150, height: 300 }}>
@@ -172,10 +203,21 @@ export default function SynthesisRite({
         </div>
       )}
 
-      {/* overload white-out */}
+      {/* overload — sparks fly, THEN the white takes everything */}
       {!reduce && stage === "overload" && (
-        <motion.div aria-hidden className="absolute inset-0 bg-white"
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.35 }} />
+        <>
+          <div aria-hidden className="pointer-events-none absolute inset-0 grid place-items-center">
+            {Array.from({ length: 12 }, (_, i) => (
+              <motion.span key={i} className="absolute h-1 w-4 rounded-full"
+                style={{ background: i % 2 ? "#fff" : "#fbbf24", boxShadow: "0 0 8px #fbbf24", rotate: `${i * 30}deg` }}
+                initial={{ x: 0, y: 0, opacity: 1 }}
+                animate={{ x: Math.cos((i / 12) * Math.PI * 2) * 220, y: Math.sin((i / 12) * Math.PI * 2) * 220, opacity: 0 }}
+                transition={{ duration: 0.4, ease: "easeOut" }} />
+            ))}
+          </div>
+          <motion.div aria-hidden className="absolute inset-0 bg-white"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.35 }} />
+        </>
       )}
 
       {/* ── SHATTER → DESCEND → IDLE — the new card in the gap ── */}
@@ -183,13 +225,35 @@ export default function SynthesisRite({
         <div className="relative flex flex-col items-center px-4">
           {stage === "shatter" && !reduce && (
             <div aria-hidden className="pointer-events-none absolute inset-0 grid place-items-center">
-              {Array.from({ length: 10 }, (_, i) => (
+              {/* shard needles */}
+              {Array.from({ length: 16 }, (_, i) => (
                 <motion.span key={i} className="absolute h-6 w-[2px] bg-white/80"
-                  style={{ rotate: `${i * 36}deg` }}
+                  style={{ rotate: `${i * 22.5}deg` }}
                   initial={{ x: 0, y: 0, opacity: 1 }}
-                  animate={{ x: Math.cos((i / 10) * Math.PI * 2) * 160, y: Math.sin((i / 10) * Math.PI * 2) * 160, opacity: 0 }}
+                  animate={{ x: Math.cos((i / 16) * Math.PI * 2) * 200, y: Math.sin((i / 16) * Math.PI * 2) * 200, opacity: 0 }}
                   transition={{ duration: 1.4, ease: "easeOut" }} />
               ))}
+              {/* glass panes, tumbling out in slow motion */}
+              {Array.from({ length: 6 }, (_, i) => (
+                <motion.span key={`g${i}`} className="absolute"
+                  style={{
+                    width: 14 + (i % 3) * 8, height: 20 + (i % 2) * 10,
+                    background: "linear-gradient(160deg, rgba(220,240,255,.5), rgba(160,200,255,.15))",
+                    clipPath: "polygon(50% 0, 100% 40%, 70% 100%, 0 70%)",
+                  }}
+                  initial={{ x: 0, y: 0, rotate: 0, opacity: 0.95 }}
+                  animate={{
+                    x: Math.cos((i / 6) * Math.PI * 2 + 0.5) * 240,
+                    y: Math.sin((i / 6) * Math.PI * 2 + 0.5) * 240 + 60,
+                    rotate: 180 + i * 60, opacity: 0,
+                  }}
+                  transition={{ duration: 1.6, ease: "easeOut" }} />
+              ))}
+              {/* one hard ring off the break */}
+              <motion.span className="absolute rounded-full border-2 border-white/70"
+                style={{ width: 80, height: 80 }}
+                initial={{ scale: 0.2, opacity: 1 }} animate={{ scale: 7, opacity: 0 }}
+                transition={{ duration: 0.9, ease: "easeOut" }} />
             </div>
           )}
           <motion.div
@@ -258,8 +322,14 @@ export default function SynthesisRite({
         @keyframes syStrobe { 0%, 100% { opacity: 1; } 50% { opacity: .15; } }
         .sy-needle { animation: syNeedle .3s ease-in-out infinite alternate; }
         @keyframes syNeedle { from { transform: rotate(55deg); } to { transform: rotate(80deg); } }
-        .sy-shake { animation: syShake .35s linear infinite; }
-        @keyframes syShake { 0%,100% { transform: translate(0,0); } 25% { transform: translate(-3px,2px); } 50% { transform: translate(3px,-2px); } 75% { transform: translate(-2px,-2px); } }
+        .sy-shake { animation: syShake .3s linear infinite; }
+        @keyframes syShake { 0%,100% { transform: translate(0,0); } 25% { transform: translate(-6px,4px); } 50% { transform: translate(5px,-4px); } 75% { transform: translate(-4px,-3px); } }
+        .sy-bubble { animation: syBubble 2.6s ease-in infinite; }
+        @keyframes syBubble { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: .9; } 100% { transform: translateY(-140px); opacity: 0; } }
+        .sy-arc { animation: syArc .14s steps(2) infinite; }
+        @keyframes syArc { 0%, 100% { opacity: 1; } 50% { opacity: .15; } }
+        .sy-klaxon { animation: syKlaxon .9s steps(2) infinite; }
+        @keyframes syKlaxon { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
         .sy-strain { animation: syStrain .5s ease-in-out infinite; }
         @keyframes syStrain { 0%,100% { transform: scale(1); } 50% { transform: scale(1.015); } }
       `}</style>

@@ -251,31 +251,75 @@ export default function ForgePage() {
               })}
             </div>
 
-            {/* the pairing readout */}
-            <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_auto]">
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="flex items-center gap-3">
-                  {[slotA, slotB].map((s, i) => (
-                    <div key={i} className="grid place-items-center rounded-xl border-2 border-dashed border-red-400/40"
-                      style={{ width: 96, height: 148, background: "rgba(0,0,0,.35)" }}>
-                      {s ? <CardFace card={byId[s]} owned size={84} showStats={false} /> :
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-red-300/60">Chamber {i === 0 ? "A" : "B"}</span>}
-                    </div>
-                  ))}
-                  {/* the conduit — energy visibly flowing toward the result */}
-                  <div className="relative h-1.5 w-10 overflow-hidden rounded-full sm:w-16" style={{ background: "rgba(255,255,255,.08)" }}>
-                    <span className="fg-flow absolute inset-y-0 left-0 w-1/2" style={{ background: "linear-gradient(90deg, transparent, #fb7185, transparent)" }} />
-                  </div>
-                  <div className="grid place-items-center rounded-xl border-2 border-red-400/60"
-                    style={{ width: 104, height: 158, background: "rgba(20,0,8,.6)", boxShadow: resultDef ? "0 0 26px rgba(225,29,72,.45)" : "none" }}>
-                    {resultDef
-                      ? <div className="flex flex-col items-center"><CardFace card={resultDef} owned={(owned[resultDef.id] || 0) > 0} size={88} showStats={false} /><span className="mt-1 max-w-[100px] truncate text-[9px] font-black uppercase tracking-[0.1em] text-rose-200">{resultDef.name}</span></div>
-                      : <span className="px-2 text-center text-[10px] font-black uppercase tracking-[0.2em] text-red-300/50">The Mythic</span>}
-                  </div>
+            {/* ── THE APPARATUS ── three real glass chambers on a piped
+                console base. Tap a filled chamber to empty it. */}
+            <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_300px] lg:items-end">
+              <div className="relative flex items-end justify-center gap-6 pb-2 sm:gap-12">
+                {/* the feed pipe running behind all three chambers */}
+                <div aria-hidden className="absolute bottom-9 left-[6%] right-[6%] h-2 overflow-hidden rounded-full"
+                  style={{ background: "rgba(255,255,255,.06)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.10)" }}>
+                  <span className="fg-flow absolute inset-y-0 left-0 w-1/3"
+                    style={{ background: `linear-gradient(90deg, transparent, ${slotA && slotB ? "#fb7185" : "rgba(148,163,184,.5)"}, transparent)` }} />
                 </div>
+                {([[slotA, "Chamber A", () => setSlotA(null)], [null, "", null], [slotB, "Chamber B", () => setSlotB(null)]] as const).map(([s, label, clear], i) => {
+                  const centre = i === 1;
+                  const card = centre ? resultDef : s ? byId[s] : null;
+                  const lit = centre ? (resultDef ? "#e11d48" : "#3f2430") : card ? (RARITY_META[card.rarity]?.frame || "#f59e0b") : "#334155";
+                  const w = centre ? 128 : 106;
+                  const h = centre ? 236 : 192;
+                  return (
+                    <button key={i} type="button" onClick={() => { if (!centre && clear && s) clear(); }}
+                      className="relative z-10 flex flex-col items-center" title={!centre && s ? "Tap to empty this chamber" : undefined}
+                      style={{ cursor: !centre && s ? "pointer" : "default" }}>
+                      {/* cap */}
+                      <div style={{ width: w * 0.55, height: 10, borderRadius: 6, background: "#3a2c50", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.16)" }} />
+                      {/* tube */}
+                      <div className="relative overflow-hidden" style={{
+                        width: w, height: h, borderRadius: 999,
+                        background: "linear-gradient(180deg, rgba(170,200,255,.10), rgba(120,150,220,.03) 45%, rgba(170,200,255,.10))",
+                        boxShadow: `inset 0 0 0 2px rgba(190,215,255,.28), inset 0 -40px 60px ${lit}44, 0 0 ${card ? 30 : 14}px ${lit}33`,
+                      }}>
+                        {/* the fluid, lit from below */}
+                        <div className="absolute inset-x-2 bottom-2 rounded-full"
+                          style={{ height: "56%", background: `linear-gradient(180deg, transparent, ${lit}28 30%, ${lit}55)` }} />
+                        {/* bubbles rising through it */}
+                        {[0, 1, 2, 3].map((bi) => (
+                          <span key={bi} aria-hidden className="fg-bubble absolute rounded-full"
+                            style={{ left: `${16 + bi * 20}%`, bottom: 8, width: 4 + (bi % 2) * 2, height: 4 + (bi % 2) * 2, background: "rgba(220,240,255,.45)", animationDelay: `${bi * 0.9 + i * 0.4}s` }} />
+                        ))}
+                        {/* the suspended card, bobbing in the fluid */}
+                        {card ? (
+                          <div className="absolute left-1/2 top-1/2" style={{ transform: "translate(-50%,-50%)" }}>
+                            <div className="fg-float">
+                              <CardFace card={card} owned={centre ? (owned[card.id] || 0) > 0 : true} size={centre ? 92 : 80} showStats={false} />
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="absolute inset-0 grid place-items-center px-2 text-center text-[9px] font-black uppercase tracking-[0.24em]"
+                            style={{ color: centre ? "rgba(251,113,133,.5)" : "rgba(148,163,184,.55)" }}>
+                            {centre ? "The Mythic" : label}
+                          </span>
+                        )}
+                      </div>
+                      {/* base plate */}
+                      <div style={{ width: w + 22, height: 14, borderRadius: 8, background: "linear-gradient(180deg,#241a3e,#120c22)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }} />
+                      <span className="mt-1.5 text-[9px] font-black uppercase tracking-[0.26em] text-slate-500">
+                        {centre ? (resultDef ? resultDef.name : "Reaction chamber") : label}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
 
-              <div className="flex min-w-[240px] flex-col gap-2.5">
+              {/* ── REACTOR CONSOLE ── the metal box that runs the machine */}
+              <div className="relative flex min-w-[240px] flex-col gap-2.5 rounded-2xl p-4"
+                style={{ background: "linear-gradient(170deg, #1b1226, #0e0916)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.10), 0 10px 30px rgba(0,0,0,.5)" }}>
+                {/* corner screws */}
+                {[["6px", "6px"], ["6px", "auto"], ["auto", "6px"], ["auto", "auto"]].map(([t, l], i) => (
+                  <span key={i} aria-hidden className="absolute h-1.5 w-1.5 rounded-full"
+                    style={{ top: t === "auto" ? undefined : t, bottom: t === "auto" ? "6px" : undefined, left: l === "auto" ? undefined : l, right: l === "auto" ? "6px" : undefined, background: "#4c4470", boxShadow: "inset 0 -1px 1px rgba(0,0,0,.7)" }} />
+                ))}
+                <p className="text-center text-[9px] font-black uppercase tracking-[0.3em] text-red-300/80">— Reactor console —</p>
                 <div className="rounded-xl px-4 py-3" style={{ background: "rgba(0,0,0,.4)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.08)" }}>
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">The bill</p>
                   <p className="mt-1 text-sm font-bold text-slate-200">
@@ -403,6 +447,10 @@ export default function ForgePage() {
           @keyframes fgLamp { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
           .fg-flow { animation: fgFlow 1.6s ease-in-out infinite; }
           @keyframes fgFlow { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
+          .fg-bubble { animation: fgBubble 3.4s ease-in infinite; }
+          @keyframes fgBubble { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: .9; } 100% { transform: translateY(-150px); opacity: 0; } }
+          .fg-float { animation: fgFloat 4.2s ease-in-out infinite; }
+          @keyframes fgFloat { 0%, 100% { transform: translateY(0) rotate(-1.5deg); } 50% { transform: translateY(-7px) rotate(1.5deg); } }
         `}</style>
       </div>
     </PageTransition>
