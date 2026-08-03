@@ -13,6 +13,7 @@ import PageTransition from "@/components/layout/PageTransition";
 import CardFace, { CardDef, CardRarity, RARITY_META, supportText } from "@/components/cards/CardFace";
 import PackReveal from "@/components/cards/PackReveal";
 import { Panel, CornerTicks, Stars, SegBar, GachaButton, Heading, StatRow, notch, ACCENT, ACCENT_LIT, GachaAmbience, Rise, Twinkles } from "@/components/cards/gacha";
+import { DIMENSIONS, DIMENSION_ORDER, CARD_LORE } from "@/data/cardLore";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -73,7 +74,9 @@ export default function CardsPage() {
   const [forges, setForges] = useState<Record<string, { atk: number; hp: number }>>({});
   // The binder's two readings: BY SET (the chase — what's missing) or
   // INVENTORY (what you HOLD, by rarity, legendaries shelved by build).
-  const [view, setView] = useState<"sets" | "inv">("sets");
+  const [view, setView] = useState<"sets" | "inv" | "dex">("sets");
+  // The Codex's open lore page — only ever a card the viewer has DISCOVERED.
+  const [loreCard, setLoreCard] = useState<CardDef | null>(null);
   // Legendary print identities: cardId -> [{serial, condition}], server-real.
   const [prints, setPrints] = useState<Record<string, { serial: number; condition: string }[]>>({});
   const [claimedSets, setClaimedSets] = useState<string[]>([]);
@@ -494,11 +497,11 @@ export default function CardsPage() {
   // this, a phone swipe could grab the body instead of the sheet — modal
   // frozen, page moving underneath, which reads as "the preview broke".
   useEffect(() => {
-    if (!selected && !statsOpen && !dustAllOpen) return;
+    if (!selected && !statsOpen && !dustAllOpen && !loreCard) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = prev; };
-  }, [selected, statsOpen, dustAllOpen]);
+  }, [selected, statsOpen, dustAllOpen, loreCard]);
 
   // THE ROOT CAUSE of "the preview messes up on mobile": fixed 216px tiles
   // in a two-column grid are ~480px of content on a 412px phone. The page
@@ -852,7 +855,7 @@ export default function CardsPage() {
               {/* ── VIEW TOGGLE + SEARCH ── one toolbar: how to read the
                   binder, and how to cut straight through it. */}
               <div className="flex flex-wrap items-center gap-2">
-                {([["sets", "By Set"], ["inv", "Inventory"]] as const).map(([v, label]) => (
+                {([["sets", "By Set"], ["inv", "Inventory"], ["dex", "Codex"]] as const).map(([v, label]) => (
                   <button key={v} onClick={() => setView(v)}
                     className={`px-5 py-2 text-[11px] font-black uppercase tracking-[0.18em] transition ${view === v ? "text-white" : "text-slate-500 hover:text-slate-300"}`}
                     style={{
@@ -1219,7 +1222,7 @@ export default function CardsPage() {
                   })()}
                 </div>
                 </Rise>
-              )) : (
+              )) : view === "inv" ? (
                 /* ── INVENTORY ── the shelf reading: everything you HOLD, by
                    rarity, nothing you don't. Legendaries get a shelf per
                    BUILD, because each wear is its own card. */
@@ -1300,9 +1303,90 @@ export default function CardsPage() {
                     );
                   })()}
                 </div>
+              ) : (
+                /* ── THE CODEX ── every card the Archive has ever recorded,
+                   grouped by the DIMENSION it echoes from. Discovered cards
+                   open their lore; undiscovered ones stay grey and silent —
+                   a page the Archive hasn't turned for you yet. */
+                <div className="space-y-10">
+                  {DIMENSION_ORDER.map((dim) => {
+                    const dimCards = (catalog?.cards || []).filter((c: CardDef) => c.set === dim && matches(c));
+                    if (!dimCards.length) return null;
+                    const found = dimCards.filter((c: CardDef) => (owned[c.id] || 0) > 0).length;
+                    const D = DIMENSIONS[dim];
+                    return (
+                      <Rise key={dim}>
+                      <div>
+                        <Heading title={D?.title || dim} sub={`${found} of ${dimCards.length} discovered`} />
+                        {D && (
+                          <p className="mb-4 -mt-2 max-w-3xl text-sm leading-relaxed text-slate-400">{D.text}</p>
+                        )}
+                        <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                          {dimCards.map((c: CardDef) => {
+                            const found1 = (owned[c.id] || 0) > 0;
+                            return (
+                              <button key={c.id}
+                                onClick={() => { if (found1) setLoreCard(c); }}
+                                className={`group relative flex flex-col items-center gap-1.5 p-2 transition ${found1 ? "hover:-translate-y-1" : "cursor-default"}`}
+                                style={{
+                                  clipPath: notch(12),
+                                  background: "rgba(255,255,255,.03)",
+                                  boxShadow: `inset 0 0 0 1px ${found1 ? "rgba(162,116,255,.24)" : "rgba(255,255,255,.06)"}`,
+                                  contentVisibility: "auto", containIntrinsicSize: `auto ${smallScreen ? 310 : 400}px`,
+                                } as any}>
+                                <span className={found1 ? "" : "opacity-45 grayscale"}>
+                                  <CardFace card={c} owned={found1} foil={found1 && !!foils[c.id]} size={gridCard} ratio="5 / 9" showStats={false} />
+                                </span>
+                                <span className={`text-[10px] font-bold uppercase tracking-[0.14em] ${found1 ? "text-slate-400" : "italic text-slate-600"}`}>
+                                  {found1 ? "Tap for the lore" : "Better luck next time"}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      </Rise>
+                    );
+                  })}
+                </div>
               )}
             </div>
           )}
+
+          {/* ── THE LORE PAGE ── one discovered record, read aloud. */}
+          <AnimatePresence>
+            {loreCard && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[85] grid place-items-center bg-black/80 p-4"
+                onClick={() => setLoreCard(null)}>
+                <motion.div initial={{ opacity: 0, y: 16, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10 }}
+                  transition={{ duration: 0.22 }} onClick={(e) => e.stopPropagation()}
+                  className="flex w-full max-w-2xl flex-col items-center gap-5 overflow-y-auto p-6 md:flex-row md:items-start"
+                  style={{ maxHeight: "88dvh", clipPath: notch(18), background: "linear-gradient(165deg, #14102b, #0a0716)", boxShadow: `inset 0 0 0 1px ${ACCENT}55` }}>
+                  <div className="shrink-0">
+                    <CardFace card={loreCard} owned foil={!!foils[loreCard.id]} level={levels[loreCard.id]} forge={forges[loreCard.id]} size={170} ratio="5 / 9" showStats={false} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em]" style={{ color: ACCENT_LIT }}>
+                      {DIMENSIONS[loreCard.set]?.title || loreCard.set}
+                    </p>
+                    <h3 className="mt-1 font-fell text-2xl font-bold text-white">{loreCard.name}</h3>
+                    <p className="mt-3 text-sm leading-relaxed text-slate-300">
+                      {CARD_LORE[loreCard.id] || loreCard.flavor}
+                    </p>
+                    {CARD_LORE[loreCard.id] && (
+                      <p className="mt-3 text-xs italic leading-relaxed text-slate-500">&ldquo;{loreCard.flavor}&rdquo;</p>
+                    )}
+                    <button onClick={() => setLoreCard(null)}
+                      className="mt-5 px-5 py-2 text-[10px] font-black uppercase tracking-[0.24em] text-slate-300 transition hover:text-white"
+                      style={{ clipPath: notch(8), background: "rgba(255,255,255,.06)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.14)" }}>
+                      Close the page
+                    </button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
