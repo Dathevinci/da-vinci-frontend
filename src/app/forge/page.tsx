@@ -168,6 +168,24 @@ export default function ForgePage() {
   };
 
   const benchDef = bench ? byId[bench] : null;
+
+  // The one-bill quote for maxing the benched card — priced by the server
+  // (dryRun) so the button says exactly what the press will cost.
+  const [maxQuote, setMaxQuote] = useState<number | "maxed" | "loading">("loading");
+  useEffect(() => {
+    setMaxQuote("loading");
+    if (!bench || !user?.id) return;
+    let gone = false;
+    fetch(`${API_URL}/api/cards/max`, {
+      method: "POST", headers: authHeaders(),
+      body: JSON.stringify({ userId: user.id, cardId: bench, dryRun: true }),
+    })
+      .then((r) => r.json())
+      .then((d) => { if (!gone) setMaxQuote(d?.success ? d.data.cost : "maxed"); })
+      .catch(() => {});
+    return () => { gone = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bench, levels, skills, forges]);
   const lvlCost = benchDef
     ? Math.round((catalog?.upgradeBase?.[benchDef.rarity] ?? 30) * Math.pow(catalog?.upgradeGrowth ?? 1.35, (levels[benchDef.id] || 1) - 1))
     : 0;
@@ -403,6 +421,23 @@ export default function ForgePage() {
                   <p className="mt-1 text-xs text-slate-400">{(forges[benchDef.id]?.hp || 0) >= 5 ? "Fully forged." : `${(forgeCostOf("hp") ?? 0).toLocaleString()} shards · +2 HP`}</p>
                 </button>
               </div>
+            )}
+            {benchDef && (
+              // ── THE WHOLE CLIMB, ONE PRESS ── every remaining level, both
+              // forge tracks, the skill to cap. Priced by the server; earns
+              // the neon MAX sign on the spot.
+              <button
+                onClick={() => act("max", { cardId: benchDef.id }, `${benchDef.name} is MAXED.`)}
+                disabled={!!busy || typeof maxQuote !== "number"}
+                className="mt-4 w-full rounded-xl py-4 text-[12px] font-black uppercase tracking-[0.3em] text-[#1a1206] transition hover:brightness-110 disabled:opacity-40"
+                style={{
+                  background: "linear-gradient(100deg, #fde68a, #f59e0b)",
+                  boxShadow: "0 0 22px rgba(245,158,11,.45), inset 0 0 0 1px rgba(255,255,255,.35)",
+                }}>
+                {maxQuote === "loading" ? "★ Pricing the climb…"
+                  : maxQuote === "maxed" ? "★ Already maxed — the sign is lit"
+                  : `★ Max this card — ${maxQuote.toLocaleString()} shards`}
+              </button>
             )}
           </section>
 
