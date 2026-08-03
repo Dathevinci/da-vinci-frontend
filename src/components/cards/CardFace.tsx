@@ -1103,6 +1103,7 @@ function CardFaceImpl({
 @keyframes cf-maxflick { 0%,100% { opacity:1 } 6% { opacity:.55 } 8% { opacity:1 } 44% { opacity:1 } 46% { opacity:.8 } 47% { opacity:1 } 72% { opacity:1 } 73% { opacity:.6 } 75% { opacity:1 } }
 @keyframes cf-mythsweep { 0% { transform: translateX(-120%) skewX(-12deg); } 55% { transform: translateX(300%) skewX(-12deg); } 100% { transform: translateX(300%) skewX(-12deg); } }
 @keyframes cf-mythember { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(-120px); opacity: 0; } }
+@keyframes cf-rgb { from { filter: hue-rotate(0deg); } to { filter: hue-rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .cf-anim { animation: none !important; } }
 `,
             }}
@@ -1359,6 +1360,7 @@ function CardFaceImpl({
             itself before the stats do. */}
         {size >= 76 && (
           <span
+            className={card.rarity === "mythic" && !dim ? "cf-anim" : undefined}
             style={{
               position: "absolute",
               left: T.pad,
@@ -1367,17 +1369,23 @@ function CardFaceImpl({
               borderRadius: 999,
               background: card.rarity === "mythic" ? "rgba(20,2,8,0.8)" : "rgba(8,8,11,0.62)",
               color: dim ? "#52525B" : card.rarity === "mythic" ? "#ffe4e6" : F.accent,
-              fontSize: T.micro,
+              // BIG for a mythic — the tier is the headline, and the RGB
+              // cycle (a hue-rotate over the crimson neon) runs the whole
+              // plate through the spectrum. cf-anim, so Performance Mode
+              // and reduced-motion pin it back to still crimson.
+              fontSize: card.rarity === "mythic" ? Math.round(T.micro * 1.45) : T.micro,
               fontWeight: card.rarity === "mythic" ? 900 : 600,
-              letterSpacing: card.rarity === "mythic" ? "0.16em" : "0.10em",
+              letterSpacing: card.rarity === "mythic" ? "0.18em" : "0.10em",
               lineHeight: 1.4,
               ...(card.rarity === "mythic" && !dim ? {
                 border: "1px solid #fb7185",
-                textShadow: "0 0 5px #e11d48, 0 0 12px #e11d48, 0 0 22px #9f1239",
-                boxShadow: "0 0 10px rgba(225,29,72,.75), inset 0 0 6px rgba(225,29,72,.35)",
+                textShadow: "0 0 6px #e11d48, 0 0 14px #e11d48, 0 0 26px #9f1239",
+                boxShadow: "0 0 12px rgba(225,29,72,.8), inset 0 0 7px rgba(225,29,72,.4)",
+                animation: "cf-rgb 5s linear infinite",
+                willChange: "filter",
               } : {}),
               ...clip,
-              maxWidth: "70%",
+              maxWidth: "80%",
             }}
           >
             {card.rarity === "mythic" && !dim && (
