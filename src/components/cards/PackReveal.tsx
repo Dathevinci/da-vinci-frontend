@@ -123,7 +123,9 @@ export default function PackReveal({
   // One number drives both the beat cut and the comet's travel, so the star
   // always LANDS on the cut to the crash — a star that arrives early hovers,
   // and one that arrives late crashes off-screen.
-  const fallMs = bestOrder >= 3 ? 1500 : 950;
+  // Longer by the owner's ask: the fall is the show, so it gets time to be
+  // one — and epic+ hangs even longer before the cut.
+  const fallMs = bestOrder >= 3 ? 2300 : 1650;
 
   // Beat timing. A legendary-or-better pull gets an extra beat: the fallen
   // star doesn't just crash, it COLLAPSES — warp → hole → burst — so the
@@ -135,11 +137,11 @@ export default function PackReveal({
       return () => clearTimeout(t);
     }
     if (stage === "hole") {
-      const t = setTimeout(() => setStage("burst"), 1250);
+      const t = setTimeout(() => setStage("burst"), 1500);
       return () => clearTimeout(t);
     }
     if (stage === "burst") {
-      const t = setTimeout(() => setStage("reveal"), 620);
+      const t = setTimeout(() => setStage("reveal"), 950);
       return () => clearTimeout(t);
     }
   }, [stage, reduce, fallMs, bestOrder]);
@@ -223,11 +225,39 @@ export default function PackReveal({
       <AnimatePresence>
         {stage === "warp" && (
           <motion.div key="warp" className="pointer-events-none absolute inset-0" exit={{ opacity: 0, transition: { duration: 0.12 } }}>
+            {/* the sky it falls through — a field of small fixed stars that
+                twinkle on their own clocks, so the comet has company */}
+            {Array.from({ length: 18 }, (_, i) => (
+              <motion.span key={`sky${i}`} className="absolute rounded-full bg-white"
+                style={{
+                  width: i % 4 === 0 ? 3 : 2, height: i % 4 === 0 ? 3 : 2,
+                  left: `${(i * 53) % 100}%`, top: `${(i * 31) % 72}%`,
+                  boxShadow: "0 0 6px rgba(255,255,255,.8)",
+                }}
+                initial={{ opacity: 0.15 }}
+                animate={{ opacity: [0.15, 0.9, 0.2] }}
+                transition={{ duration: 1.6 + (i % 5) * 0.4, repeat: Infinity, delay: (i * 0.23) % 1.4 }} />
+            ))}
+            {/* minor shooting stars — smaller, dimmer, on their own lines,
+                so the big one reads as one of MANY that made it down */}
+            {[0, 1, 2].map((i) => (
+              <motion.div key={`minor${i}`} className="absolute"
+                style={{ left: `${18 + i * 30}%`, top: `${6 + i * 9}%` }}
+                initial={{ x: 0, y: 0, opacity: 0 }}
+                animate={{ x: 220 + i * 40, y: 150 + i * 30, opacity: [0, 0.8, 0] }}
+                transition={{ duration: 1.1, delay: 0.25 + i * (fallMs / 3200), ease: "easeIn" }}>
+                <span className="block h-[2px] w-[90px] rounded-full"
+                  style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,.9))", transform: "rotate(34deg)" }} />
+              </motion.div>
+            ))}
             <div className="absolute left-1/2 top-1/2">
               <motion.div
-                initial={{ x: -480, y: -360, scale: 0.5, opacity: 0 }}
-                animate={{ x: 0, y: 0, scale: 1.3, opacity: [0, 1, 1] }}
-                transition={{ duration: (fallMs - 80) / 1000, ease: [0.5, 0, 0.85, 0.6] }}
+                initial={{ x: -720, y: -540, scale: 0.35, opacity: 0 }}
+                animate={{ x: 0, y: 0, scale: 1.35, opacity: [0, 1, 1] }}
+                // A longer road and a gentler curve: it eases in from a drift
+                // and only piles on speed for the last third, which is what
+                // makes the same straight line read smooth instead of flung.
+                transition={{ duration: (fallMs - 80) / 1000, ease: [0.6, 0.02, 0.74, 0.46] }}
                 style={{ willChange: "transform" }}
               >
                 {/* the assembly is rotated to the travel line (atan2(360, 480)
@@ -326,22 +356,32 @@ export default function PackReveal({
       <AnimatePresence>
         {stage === "burst" && (
           <motion.div key="burst" className="pointer-events-none absolute inset-0 grid place-items-center" exit={{ opacity: 0 }}>
+            {/* frame zero: one hard full-screen white pop — the hit you FEEL
+                before the fireball you see */}
+            <motion.div className="absolute inset-0 bg-white"
+              initial={{ opacity: 0.95 }} animate={{ opacity: 0 }}
+              transition={{ duration: 0.28, ease: "easeOut" }} />
             <motion.div className="absolute inset-0"
               style={{ background: `radial-gradient(closest-side, #fff, ${tell} 40%, transparent 72%)` }}
-              initial={{ scale: 0.05, opacity: 0 }} animate={{ scale: [0.05, 1.5, 2.2], opacity: [0, 1, 0] }}
-              transition={{ duration: 0.65, ease: "easeOut" }} />
-            {[0, 1, 2].map((i) => (
+              initial={{ scale: 0.05, opacity: 0 }} animate={{ scale: [0.05, 1.7, 2.6], opacity: [0, 1, 0] }}
+              transition={{ duration: 0.9, ease: "easeOut" }} />
+            {/* a pillar of light standing up out of the crater */}
+            <motion.span className="absolute bottom-1/2 left-1/2 origin-bottom -translate-x-1/2"
+              style={{ width: 10, height: "52vh", background: `linear-gradient(180deg, transparent, #fff 30%, ${tell})`, boxShadow: `0 0 34px 10px ${tell}` }}
+              initial={{ scaleY: 0, opacity: 0 }} animate={{ scaleY: [0, 1.05, 1], opacity: [0, 1, 0] }}
+              transition={{ duration: 0.85, times: [0, 0.35, 1], ease: "easeOut" }} />
+            {[0, 1, 2, 3].map((i) => (
               <motion.span key={i} className="absolute rounded-full"
-                style={{ border: `2px solid ${tell}`, width: 200, height: 200 }}
-                initial={{ scale: 0.1, opacity: 0.9 }} animate={{ scale: 5.5, opacity: 0 }}
-                transition={{ duration: 0.85, delay: i * 0.12, ease: "easeOut" }} />
+                style={{ border: `${i === 0 ? 3 : 2}px solid ${tell}`, width: 200, height: 200 }}
+                initial={{ scale: 0.1, opacity: 0.95 }} animate={{ scale: 6.2, opacity: 0 }}
+                transition={{ duration: 1.05, delay: i * 0.13, ease: "easeOut" }} />
             ))}
             {/* cracks — light escaping along the ground */}
             {[0, 1, 2, 3, 4, 5].map((i) => (
               <motion.span key={`c${i}`} className="absolute left-1/2 top-1/2 origin-left"
-                style={{ height: 2, width: 230, background: `linear-gradient(90deg, ${tell}, transparent)`, rotate: `${i * 60 + 8}deg` }}
+                style={{ height: 2, width: 260, background: `linear-gradient(90deg, ${tell}, transparent)`, rotate: `${i * 60 + 8}deg` }}
                 initial={{ scaleX: 0, opacity: 1 }} animate={{ scaleX: 1, opacity: 0 }}
-                transition={{ duration: 0.55, ease: "easeOut" }} />
+                transition={{ duration: 0.7, ease: "easeOut" }} />
             ))}
             {/* debris thrown out of the crater, with a little lift */}
             {Array.from({ length: 14 }, (_, i) => {
@@ -449,11 +489,9 @@ export default function PackReveal({
         )}
       </AnimatePresence>
 
-      {/* ── THE CLOUD BED ── the crash settles into weather: soft banks of
-          cloud roll up from the bottom of the screen once the reveal starts,
-          and the cards float on top of them. Every puff is a radial gradient
-          on its own compositor layer — no blur filters, nothing repaints. */}
-      {stage === "reveal" && <CloudBed still={reduce} />}
+      {/* Cloud bed removed by the owner's ask — the crash now settles into
+          open sky, and the cards float on nothing but their own light.
+          (CloudBed's definition stays below, unused, in case it's recalled.) */}
 
       {/* ── SKIP ── always reachable */}
       {!allOut && (
