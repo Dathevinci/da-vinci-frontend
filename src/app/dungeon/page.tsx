@@ -611,14 +611,23 @@ export default function DungeonPage() {
                       transition: "transform .25s, filter .2s",
                       transformStyle: "preserve-3d",
                     };
-                    return def ? (
-                      <button key={i} onClick={() => toggle(id)} title={`${def.name} — tap to remove`}
-                        className="dg-fan-card relative shrink-0" style={style}>
-                        <CardFace card={def} owned foil={!!cards.find((c) => c.cardId === id)?.foil}
-                          level={cards.find((c) => c.cardId === id)?.level} forge={{ atk: cards.find((c) => c.cardId === id)?.atkForge || 0, hp: cards.find((c) => c.cardId === id)?.hpForge || 0 }}
-                          size={fanSize} ratio="5 / 9" showStats stats={DGN_STATS} />
-                      </button>
-                    ) : (
+                    if (def) {
+                      // One lookup, then the card wears its TRUE dungeon
+                      // condition — a wounded unit fans out at its real HP,
+                      // not a fresh copy of itself.
+                      const row = cards.find((c) => c.cardId === id);
+                      const s = row ? effStats(row, def.rarity) : null;
+                      return (
+                        <button key={i} onClick={() => toggle(id)} title={`${def.name} — tap to remove`}
+                          className="dg-fan-card relative shrink-0" style={style}>
+                          <CardFace card={def} owned foil={!!row?.foil}
+                            level={row?.level} forge={{ atk: row?.atkForge || 0, hp: row?.hpForge || 0 }}
+                            liveAtk={s?.atk} liveHp={s?.hp} liveMaxHp={s?.maxHp}
+                            size={fanSize} ratio="5 / 9" showStats stats={DGN_STATS} />
+                        </button>
+                      );
+                    }
+                    return (
                       <span key={i} className="grid shrink-0 place-items-center"
                         style={{ ...style, width: fanSize, height: Math.round((fanSize * 9) / 5), background: "#0a141f", border: "3px dashed #2b4a5e" }}>
                         <span className="font-pixel text-[10px] text-[#4c4470]">+</span>
@@ -834,6 +843,13 @@ export default function DungeonPage() {
                             width: `${Math.round((Math.max(0, u.hp) / Math.max(1, u.maxHp)) * 100)}%`,
                             background: u.hp / u.maxHp > 0.5 ? "#5fd18a" : u.hp / u.maxHp > 0.25 ? "#ffd23e" : "#ff5f5f",
                           }} />
+                        </span>
+                        {/* the number, not just the bar — a sliver of green
+                            at 3/41 and at 3/9 look the same; the digits don't */}
+                        <span className="font-pixel mt-0.5 block text-[7px] leading-none" style={{
+                          color: dead ? "#ff5f5f" : u.hp / u.maxHp > 0.5 ? "#5fd18a" : u.hp / u.maxHp > 0.25 ? "#ffd23e" : "#ff5f5f",
+                        }}>
+                          {Math.max(0, u.hp)}/{u.maxHp}
                         </span>
                       </div>
                     );
