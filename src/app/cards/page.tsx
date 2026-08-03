@@ -11,7 +11,7 @@ import { authHeaders } from "@/lib/authToken";
 import { useToast } from "@/components/ui/Toast";
 import PageTransition from "@/components/layout/PageTransition";
 import CardFace, { CardDef, CardRarity, RARITY_META, supportText } from "@/components/cards/CardFace";
-import ConvenePull from "@/components/cards/ConvenePull";
+import PackReveal from "@/components/cards/PackReveal";
 import { Panel, CornerTicks, Stars, SegBar, GachaButton, Heading, StatRow, notch, ACCENT, ACCENT_LIT, GachaAmbience, Rise, Twinkles } from "@/components/cards/gacha";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -1338,7 +1338,7 @@ export default function CardsPage() {
       {/* pack reveal — staggered flip, rarity burst, best card last */}
       <AnimatePresence>
         {reveal && (
-          <ConvenePull cards={reveal} prints={revealPrints}
+          <PackReveal cards={reveal} prints={revealPrints}
             onClose={() => { setReveal(null); setRevealPrints([]); }} />
         )}
       </AnimatePresence>
