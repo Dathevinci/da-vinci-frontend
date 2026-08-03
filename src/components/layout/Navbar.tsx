@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut, Users, Palette, ShoppingBag, Menu, X, Settings, Heart, ChevronDown, Tv, BookMarked, BookOpen, Swords, Terminal, Layers, Gavel, Trophy, Castle, Gamepad2 } from 'lucide-react';
 import { isAdmin, isLeadDev } from "@/lib/admin";
 import { warmBackend } from "@/lib/warmBackend";
-import ForgeFab from "@/components/layout/ForgeFab";
 import LoginModal from './LoginModal';
 import SearchModal from './SearchModal';
 import ArisePointPopup from '../ui/ArisePointPopup';
@@ -447,9 +446,6 @@ export default function Navbar() {
         isOpen={showControlCenter}
         onClose={() => setShowControlCenter(false)}
       />
-      {/* The Forge, findable from anywhere — the nav mounts on every page,
-          so this rides along. Signed-out visitors get no lab door. */}
-      {user && <ForgeFab />}
     </>
   );
 }
