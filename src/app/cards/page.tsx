@@ -700,7 +700,7 @@ export default function CardsPage() {
                       A duplicate is never a loss: dust it into shards.
                     </p>
                     {sets.length > 0 && (
-                      <p className="mt-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-600">
+                      <p className="mt-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
                         {sets.map((s) => s.set).join(" · ")}
                       </p>
                     )}
@@ -712,8 +712,8 @@ export default function CardsPage() {
                       {([["legendary", "0.6%"], ["epic", "8%"], ["rare", "27.4%"], ["common", "64%"]] as const).map(([r, pct]) => (
                         <span key={r} className="inline-flex items-center gap-1.5">
                           <Stars rarity={r as CardRarity} size={11} />
-                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">{RARITY_META[r as CardRarity]?.label ?? r}</span>
-                          <span className="font-mono text-[10px] font-bold" style={{ color: RARITY_META[r as CardRarity]?.gem || "#94a3b8" }}>{pct}</span>
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{RARITY_META[r as CardRarity]?.label ?? r}</span>
+                          <span className="font-mono text-[11px] font-bold" style={{ color: RARITY_META[r as CardRarity]?.gem || "#cbd5e1" }}>{pct}</span>
                         </span>
                       ))}
                     </div>
@@ -756,7 +756,9 @@ export default function CardsPage() {
                               </span>
                             )}
                             <span className="text-lg font-black leading-none">×{n}</span>
-                            <span className={`text-[10px] font-black uppercase tracking-[0.12em] ${headline ? "text-[#160b2b]/70" : "text-slate-500"}`}>
+                            {/* legibility: prices were slate-500 ghosts — the
+                                one number a buy button exists to say */}
+                            <span className={`text-[11px] font-black uppercase tracking-[0.12em] ${headline ? "text-[#160b2b]/80" : "text-slate-300"}`}>
                               {price.toLocaleString()} AP
                             </span>
                           </button>
@@ -774,7 +776,7 @@ export default function CardsPage() {
                       className="!py-3.5 !text-[13px]">
                       <Gem className="h-4 w-4" /> Relic · {catalog.relicPackShards.toLocaleString()}
                     </GachaButton>
-                    <p className="mt-0.5 text-center text-[10px] font-bold uppercase tracking-[0.14em] text-slate-600">
+                    <p className="mt-0.5 text-center text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
                       Epic or better. Every time.
                     </p>
                   </div>
@@ -869,7 +871,7 @@ export default function CardsPage() {
                   style={{ clipPath: notch(9), boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }}
                 />
                 <div className="flex gap-1">
-                  {(["all", "common", "rare", "epic", "legendary"] as const).map((r) => {
+                  {(["all", "common", "rare", "epic", "legendary", "mythic"] as const).map((r) => {
                     const on = rarFilter === r;
                     const tint = r === "all" ? "#cbd5e1" : RARITY_META[r as CardRarity]?.gem || "#cbd5e1";
                     return (
@@ -1222,7 +1224,7 @@ export default function CardsPage() {
                    rarity, nothing you don't. Legendaries get a shelf per
                    BUILD, because each wear is its own card. */
                 <div className="space-y-8">
-                  {(["common", "rare", "epic"] as CardRarity[]).map((r) => {
+                  {(["mythic", "common", "rare", "epic"] as CardRarity[]).map((r) => {
                     const mine = (catalog?.cards || []).filter((c: CardDef) => c.rarity === r && (owned[c.id] || 0) > 0 && matches(c));
                     if (!mine.length) return null;
                     return (

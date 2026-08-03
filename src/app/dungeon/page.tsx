@@ -35,6 +35,7 @@ const DGN_STATS: Record<string, { hp: number; atk: number }> = {
   epic:      { hp: 23, atk: 9 },
   legendary: { hp: 26, atk: 10 },
   event:     { hp: 24, atk: 9 },
+  mythic:    { hp: 30, atk: 12 },
 };
 const lvlMult = (l: number) => 1 + (Math.max(1, Math.min(10, Math.floor(l || 1))) - 1) * 0.07;
 
@@ -83,7 +84,7 @@ function effStats(c: DgnCard, rarity: string) {
 }
 
 const RARITY_TINT: Record<string, string> = {
-  common: "#9aa4b2", rare: "#5fa8ff", epic: "#c07dff", legendary: "#ffcf5c", event: "#ff8ad0",
+  common: "#9aa4b2", rare: "#5fa8ff", epic: "#c07dff", legendary: "#ffcf5c", event: "#ff8ad0", mythic: "#ff5c7a",
 };
 
 /** What a support card DOES down there — the duel effect, dungeon-phrased,

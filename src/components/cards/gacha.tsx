@@ -205,7 +205,7 @@ export function CornerTicks({ color = ACCENT, inset = 6 }: { color?: string; ins
 
 /** Rarity as a star count. Event sits at the top because it is the only tier
  *  you cannot pull, craft or plan for. */
-export const STARS: Record<string, number> = { common: 1, rare: 2, epic: 3, legendary: 4, event: 5 };
+export const STARS: Record<string, number> = { common: 1, rare: 2, epic: 3, legendary: 4, event: 5, mythic: 5 };
 
 export function Stars({ rarity, size = 12, className = "" }: { rarity: string; size?: number; className?: string }) {
   const n = STARS[rarity] ?? 1;

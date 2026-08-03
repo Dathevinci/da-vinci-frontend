@@ -1,0 +1,268 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { motion } from "framer-motion";
+import CardFace, { CardDef, RARITY_META } from "./CardFace";
+import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
+
+/**
+ * THE SYNTHESIS RITE — the laboratory reaction, played AFTER the server has
+ * already decided the outcome. Presentation only: skipping can never change
+ * what the machine already did.
+ *
+ * Two glass chambers, angled toward a dark third. The lever has already
+ * slammed (the hold-button on the lab page IS the lever) — this overlay
+ * opens on the red-alert frame and runs:
+ *   alarm(600) → dissolve(1000) → collide(1000) → overload(400) →
+ *   shatter+hang(800) → descend(1000) → idle (affixes list in)
+ * FAILURE stalls at collide: vents, amber lights, one parent re-assembles.
+ * Tap anywhere to skip to the outcome. prefers-reduced-motion crossfades.
+ */
+
+type Outcome = {
+  held: boolean;
+  myth: CardDef | null;
+  affixLabel?: string | null;
+  modLabel?: string | null;
+  returned?: CardDef | null;
+};
+
+export default function SynthesisRite({
+  a, b, outcome, onClose,
+}: {
+  a: CardDef; b: CardDef; outcome: Outcome; onClose: () => void;
+}) {
+  useLockBodyScroll();
+  const reduce = typeof window !== "undefined" &&
+    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+  type Stage = "alarm" | "dissolve" | "collide" | "overload" | "shatter" | "descend" | "idle" | "vent";
+  const [stage, setStage] = useState<Stage>(reduce ? (outcome.held ? "idle" : "vent") : "alarm");
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const later = (fn: () => void, ms: number) => { timers.current.push(setTimeout(fn, ms)); };
+  useEffect(() => () => { timers.current.forEach(clearTimeout); }, []);
+
+  useEffect(() => {
+    if (reduce) return;
+    if (stage === "alarm") later(() => setStage("dissolve"), 600);
+    if (stage === "dissolve") later(() => setStage("collide"), 1000);
+    if (stage === "collide") later(() => setStage(outcome.held ? "overload" : "vent"), 1000);
+    if (stage === "overload") later(() => setStage("shatter"), 400);
+    if (stage === "shatter") later(() => setStage("descend"), 800);
+    if (stage === "descend") later(() => setStage("idle"), 1000);
+    if (stage === "vent") later(() => setStage("idle"), 1500);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage]);
+
+  const skip = () => { if (stage === "idle") onClose(); else setStage("idle"); };
+
+  const colA = RARITY_META[a.rarity]?.glow || "#f59e0b";
+  const colB = RARITY_META[b.rarity]?.glow || "#f59e0b";
+  const red = stage === "alarm" || stage === "dissolve" || stage === "collide" || stage === "overload";
+  const amber = stage === "vent" || (!outcome.held && stage === "idle");
+  const failed = !outcome.held;
+
+  const Chamber = ({ card, col, side }: { card: CardDef; col: string; side: "l" | "r" }) => (
+    <div className={`relative ${side === "l" ? "rotate-[7deg]" : "-rotate-[7deg]"}`}
+      style={{ width: 130, height: 260 }}>
+      {/* the glass */}
+      <div className="absolute inset-0 rounded-[40px]"
+        style={{
+          background: "linear-gradient(180deg, rgba(160,200,255,.10), rgba(120,160,220,.04) 40%, rgba(160,200,255,.12))",
+          boxShadow: `inset 0 0 0 2px rgba(190,220,255,.35), inset 0 -30px 50px ${col}44, 0 0 24px ${col}33`,
+        }} />
+      {/* the fluid, lit from below */}
+      <div className="absolute inset-x-2 bottom-2 rounded-b-[36px]"
+        style={{ height: "58%", background: `linear-gradient(180deg, transparent, ${col}30 30%, ${col}55)` }} />
+      {/* the card, suspended and slowly turning — dissolving on cue */}
+      <motion.div className="absolute left-1/2 top-1/2"
+        style={{ x: "-50%", y: "-50%" }}
+        animate={reduce ? {} : stage === "dissolve" || stage === "collide"
+          ? { opacity: 0, scale: 0.6, filter: "blur(6px)" }
+          : { rotateY: [0, 360] }}
+        transition={stage === "dissolve" || stage === "collide"
+          ? { duration: 0.9, ease: "easeIn" }
+          : { duration: 9, repeat: Infinity, ease: "linear" }}>
+        <CardFace card={card} owned size={86} showStats={false} />
+      </motion.div>
+      {/* dissolve streams pouring toward the centre */}
+      {!reduce && (stage === "dissolve" || stage === "collide") && (
+        <motion.div aria-hidden className="absolute top-1/2 h-1.5 rounded-full"
+          style={{
+            [side === "l" ? "left" : "right"]: "60%",
+            width: "22vw", maxWidth: 260,
+            background: side === "l"
+              ? `linear-gradient(90deg, ${col}, transparent)`
+              : `linear-gradient(270deg, ${col}, transparent)`,
+            boxShadow: `0 0 12px ${col}`,
+          }}
+          initial={{ opacity: 0, scaleX: 0.2 }} animate={{ opacity: [0, 1, 1], scaleX: 1 }}
+          transition={{ duration: 0.8 }} />
+      )}
+    </div>
+  );
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[96] flex flex-col items-center justify-center overflow-hidden"
+      style={{ background: "#050208" }}
+      onClick={skip}>
+      {/* lab wash — red alert, amber failure, calm otherwise */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 transition-colors duration-500"
+        style={{ background: red ? "rgba(150,10,20,.16)" : amber ? "rgba(180,120,10,.12)" : "rgba(30,20,60,.10)" }} />
+      {/* warning strobes */}
+      {!reduce && red && (
+        <>
+          <div aria-hidden className="sy-strobe pointer-events-none absolute left-6 top-6 h-3 w-3 rounded-full bg-red-500" />
+          <div aria-hidden className="sy-strobe pointer-events-none absolute right-6 top-6 h-3 w-3 rounded-full bg-red-500" style={{ animationDelay: ".4s" }} />
+        </>
+      )}
+      {/* gauges swinging into the red */}
+      <div aria-hidden className="pointer-events-none absolute top-8 flex gap-6">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="relative h-10 w-10 rounded-full border-2 border-slate-600/60 bg-black/60">
+            <span className={`absolute bottom-1/2 left-1/2 h-4 w-[2px] origin-bottom ${red ? "bg-red-400" : amber ? "bg-amber-300" : "bg-slate-400"} ${!reduce && (red || stage === "overload") ? "sy-needle" : ""}`}
+              style={{ transform: red ? "rotate(70deg)" : "rotate(-30deg)", transition: "transform .5s", animationDelay: `${i * 0.15}s` }} />
+          </div>
+        ))}
+      </div>
+
+      {/* ── THE MACHINE ── */}
+      {(stage === "alarm" || stage === "dissolve" || stage === "collide" || stage === "overload" || stage === "vent") && (
+        <div className={`relative flex items-end gap-6 sm:gap-12 ${!reduce && stage === "collide" ? "sy-shake" : ""}`}>
+          <Chamber card={a} col={colA} side="l" />
+          {/* centre chamber — dark until the streams arrive */}
+          <div className="relative" style={{ width: 150, height: 300 }}>
+            <div className={`absolute inset-0 rounded-[44px] ${!reduce && stage === "collide" ? "sy-strain" : ""}`}
+              style={{
+                background: "linear-gradient(180deg, rgba(120,140,190,.08), rgba(60,70,110,.03))",
+                boxShadow: stage === "collide" || stage === "overload"
+                  ? `inset 0 0 0 2px rgba(255,255,255,.5), 0 0 40px ${colA}66, 0 0 70px ${colB}55`
+                  : "inset 0 0 0 2px rgba(150,180,230,.25)",
+              }} />
+            {/* the two colours meeting and refusing to mix */}
+            {!reduce && (stage === "collide" || stage === "overload") && (
+              <>
+                <motion.span className="absolute left-1/2 top-1/2 h-16 w-16 rounded-full"
+                  style={{ x: "-50%", y: "-50%", background: `radial-gradient(circle, ${colA}, transparent 70%)` }}
+                  animate={{ x: ["-70%", "-30%", "-70%"], rotate: 180 }} transition={{ duration: 0.6, repeat: Infinity }} />
+                <motion.span className="absolute left-1/2 top-1/2 h-16 w-16 rounded-full"
+                  style={{ x: "-50%", y: "-50%", background: `radial-gradient(circle, ${colB}, transparent 70%)` }}
+                  animate={{ x: ["-30%", "-70%", "-30%"], rotate: -180 }} transition={{ duration: 0.6, repeat: Infinity }} />
+              </>
+            )}
+            {/* hairline cracks as the glass strains */}
+            {!reduce && (stage === "collide" || stage === "overload") && (
+              <>
+                <span className="absolute left-[30%] top-[24%] h-10 w-[1.5px] rotate-[24deg] bg-white/70" />
+                <span className="absolute right-[26%] top-[46%] h-14 w-[1.5px] -rotate-[36deg] bg-white/60" />
+              </>
+            )}
+            {/* venting on failure */}
+            {stage === "vent" && (
+              <motion.div aria-hidden className="absolute inset-x-4 top-0 h-24"
+                style={{ background: "linear-gradient(180deg, rgba(220,220,230,.35), transparent)" }}
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: [0, 1, 0], y: -40 }} transition={{ duration: 1.4 }} />
+            )}
+          </div>
+          <Chamber card={b} col={colB} side="r" />
+          {/* conduits */}
+          <div aria-hidden className="pointer-events-none absolute inset-x-8 bottom-10 h-[3px] rounded-full"
+            style={{ background: `linear-gradient(90deg, ${colA}66, rgba(200,220,255,.25), ${colB}66)` }} />
+        </div>
+      )}
+
+      {/* overload white-out */}
+      {!reduce && stage === "overload" && (
+        <motion.div aria-hidden className="absolute inset-0 bg-white"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.35 }} />
+      )}
+
+      {/* ── SHATTER → DESCEND → IDLE — the new card in the gap ── */}
+      {(stage === "shatter" || stage === "descend" || stage === "idle") && !failed && outcome.myth && (
+        <div className="relative flex flex-col items-center px-4">
+          {stage === "shatter" && !reduce && (
+            <div aria-hidden className="pointer-events-none absolute inset-0 grid place-items-center">
+              {Array.from({ length: 10 }, (_, i) => (
+                <motion.span key={i} className="absolute h-6 w-[2px] bg-white/80"
+                  style={{ rotate: `${i * 36}deg` }}
+                  initial={{ x: 0, y: 0, opacity: 1 }}
+                  animate={{ x: Math.cos((i / 10) * Math.PI * 2) * 160, y: Math.sin((i / 10) * Math.PI * 2) * 160, opacity: 0 }}
+                  transition={{ duration: 1.4, ease: "easeOut" }} />
+              ))}
+            </div>
+          )}
+          <motion.div
+            initial={reduce ? { opacity: 0 } : { y: -60, opacity: 0, filter: "blur(10px)" }}
+            animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
+            transition={{ duration: reduce ? 0.4 : 1.0, ease: [0.22, 1, 0.36, 1] }}>
+            <CardFace card={outcome.myth} owned size={230} showStats={false} />
+          </motion.div>
+          {/* the fifth star strikes in */}
+          <div className="mt-2 flex gap-1">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <motion.span key={i} className="text-lg" style={{ color: "#fb7185" }}
+                initial={{ scale: 2.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: (reduce ? 0 : 0.5) + i * 0.14, duration: 0.18 }}>★</motion.span>
+            ))}
+          </div>
+          <motion.p className="mt-1 text-sm font-black uppercase tracking-[0.3em] text-rose-200"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: reduce ? 0 : 1.2 }}>
+            {outcome.myth.name}
+          </motion.p>
+          {stage === "idle" && (
+            <div className="mt-3 flex flex-col items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+              {[outcome.affixLabel, outcome.modLabel].filter(Boolean).map((t, i) => (
+                <motion.span key={i}
+                  className="rounded-full border border-rose-400/40 bg-rose-500/10 px-3 py-1 text-[11px] font-bold text-rose-200"
+                  initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.35 }}>
+                  {t}
+                </motion.span>
+              ))}
+              <button onClick={onClose}
+                className="mt-3 rounded-full px-7 py-2.5 text-[11px] font-black uppercase tracking-[0.24em] text-white"
+                style={{ background: "linear-gradient(100deg, #7f1d1d, #e11d48)", boxShadow: "0 0 18px rgba(225,29,72,.5)" }}>
+                Take it
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* failure idle: the reaction stalled, one parent came back */}
+      {stage === "idle" && failed && (
+        <div className="relative flex flex-col items-center px-4 text-center">
+          <p className="text-sm font-black uppercase tracking-[0.28em] text-amber-300">The reaction stalled</p>
+          {outcome.returned && (
+            <>
+              <div className="mt-4"><CardFace card={outcome.returned} owned size={170} showStats={false} /></div>
+              <p className="mt-3 max-w-sm text-sm leading-relaxed text-slate-300">
+                {outcome.returned.name} re-assembled in its chamber and is returned to you.
+                The other legendary was lost to the machine.
+              </p>
+            </>
+          )}
+          <button onClick={(e) => { e.stopPropagation(); onClose(); }}
+            className="mt-5 rounded-full border border-amber-400/40 bg-amber-500/10 px-7 py-2.5 text-[11px] font-black uppercase tracking-[0.24em] text-amber-200">
+            Understood
+          </button>
+        </div>
+      )}
+
+      <p className="pointer-events-none absolute bottom-6 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">
+        {stage === "idle" ? "" : "Tap to skip"}
+      </p>
+
+      <style jsx global>{`
+        .sy-strobe { animation: syStrobe .8s steps(2) infinite; box-shadow: 0 0 14px 4px rgba(239,68,68,.8); }
+        @keyframes syStrobe { 0%, 100% { opacity: 1; } 50% { opacity: .15; } }
+        .sy-needle { animation: syNeedle .3s ease-in-out infinite alternate; }
+        @keyframes syNeedle { from { transform: rotate(55deg); } to { transform: rotate(80deg); } }
+        .sy-shake { animation: syShake .35s linear infinite; }
+        @keyframes syShake { 0%,100% { transform: translate(0,0); } 25% { transform: translate(-3px,2px); } 50% { transform: translate(3px,-2px); } 75% { transform: translate(-2px,-2px); } }
+        .sy-strain { animation: syStrain .5s ease-in-out infinite; }
+        @keyframes syStrain { 0%,100% { transform: scale(1); } 50% { transform: scale(1.015); } }
+      `}</style>
+    </motion.div>
+  );
+}

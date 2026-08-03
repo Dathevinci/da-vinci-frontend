@@ -14,7 +14,7 @@ import { CARD_BLUR } from "@/data/cardBlur";
  * grain/particles → inner border → foil sheen (if foil) → frame + plate.
  */
 
-export type CardRarity = "common" | "rare" | "epic" | "legendary" | "event";
+export type CardRarity = "common" | "rare" | "epic" | "legendary" | "event" | "mythic";
 export type CardMotif =
   | "eye" | "wheel" | "tendril" | "peak" | "lotus" | "storm" | "gate"
   | "ember" | "moth" | "ripple" | "seed" | "scroll" | "path" | "seal"
@@ -94,11 +94,14 @@ export const RARITY_META: Record<CardRarity, { label: string; frame: string; gem
   epic:      { label: "Epic",      frame: "#a855f7", gem: "#d8b4fe", glow: "rgba(168,85,247,0.55)",  order: 2 },
   legendary: { label: "Legendary", frame: "#f59e0b", gem: "#fde68a", glow: "rgba(245,158,11,0.65)",  order: 3 },
   event:     { label: "Event",     frame: "#ec4899", gem: "#f9a8d4", glow: "rgba(236,72,153,0.60)",  order: 4 },
+  // The ★5 synthesis tier — crimson where legendary is gold, because it was
+  // MADE, not found. order 5 outranks everything (hero moments, best-last).
+  mythic:    { label: "Mythic",    frame: "#e11d48", gem: "#fda4af", glow: "rgba(225,29,72,0.70)",   order: 5 },
 };
 
 /** Rarity as a star count, drawn on the card itself. Mirrors STARS in gacha.tsx. */
 export const STAR_COUNT: Record<CardRarity, number> = {
-  common: 1, rare: 2, epic: 3, legendary: 4, event: 5,
+  common: 1, rare: 2, epic: 3, legendary: 4, event: 5, mythic: 5,
 };
 
 // Deterministic per-card pseudo-random so a card always looks identical.
@@ -747,6 +750,7 @@ export const FALLBACK_STATS: Record<CardRarity, { hp: number; atk: number }> = {
   epic: { hp: 20, atk: 8 },
   legendary: { hp: 28, atk: 12 },
   event: { hp: 24, atk: 10 },
+  mythic: { hp: 30, atk: 12 },
 };
 
 function CardFaceImpl({
@@ -909,6 +913,7 @@ function CardFaceImpl({
     epic:      { accent: "#C084FC", line: "rgba(168,85,247,0.40)",  panel: "#110C18", meter: "#C084FC", segs: 3 },
     legendary: { accent: "#FBBF24", line: "rgba(245,158,11,0.48)",  panel: "#14100A", meter: "#FBBF24", segs: 4 },
     event:     { accent: "#F472B6", line: "rgba(236,72,153,0.44)",  panel: "#150C12", meter: "#F472B6", segs: 5 },
+    mythic:    { accent: "#FB7185", line: "rgba(225,29,72,0.50)",   panel: "#160A0E", meter: "#FB7185", segs: 5 },
   };
   const F = FLAT[card.rarity] || FLAT.common;
 
@@ -968,12 +973,13 @@ function CardFaceImpl({
           container clipped and the panel covered — technically present and
           effectively invisible. This sits over the whole card, above the
           panel, and pulses a real ring of the rarity's colour. */}
-      {owned && size >= 110 && card.rarity === "legendary" && (
-        /* NEON, not a hint. A solid 2px gold edge with THREE stacked outer
+      {owned && size >= 110 && (card.rarity === "legendary" || card.rarity === "mythic") && (
+        /* NEON, not a hint. A solid 2px edge with THREE stacked outer
            blooms — tight, mid, wide — which is what makes light read as a
            tube rather than a blur. It never dims below 80%: the old ring
            breathed down to 30% and spent half its life invisible. Still one
-           promoted layer animating opacity only; the shadows rasterise once. */
+           promoted layer animating opacity only; the shadows rasterise once.
+           Gold for a legendary; CRIMSON for a mythic — made, not found. */
         <span
           aria-hidden
           className="cf-anim"
@@ -983,9 +989,11 @@ function CardFaceImpl({
             zIndex: 5,
             pointerEvents: "none",
             borderRadius: "inherit",
-            boxShadow:
-              `inset 0 0 0 2px #FBBF24, inset 0 0 ${Math.round(size * 0.10)}px #F59E0B66, ` +
-              `0 0 6px #F59E0BCC, 0 0 ${Math.round(size * 0.10)}px #F59E0B99, 0 0 ${Math.round(size * 0.22)}px #F59E0B4D`,
+            boxShadow: card.rarity === "mythic"
+              ? `inset 0 0 0 2px #FB7185, inset 0 0 ${Math.round(size * 0.10)}px #E11D4866, ` +
+                `0 0 6px #E11D48CC, 0 0 ${Math.round(size * 0.10)}px #E11D4899, 0 0 ${Math.round(size * 0.22)}px #E11D484D`
+              : `inset 0 0 0 2px #FBBF24, inset 0 0 ${Math.round(size * 0.10)}px #F59E0B66, ` +
+                `0 0 6px #F59E0BCC, 0 0 ${Math.round(size * 0.10)}px #F59E0B99, 0 0 ${Math.round(size * 0.22)}px #F59E0B4D`,
             animation: "cf-neon 2.8s ease-in-out infinite",
             willChange: "opacity",
           }}
@@ -1098,7 +1106,7 @@ function CardFaceImpl({
         {/* A legendary breathes. One slow inner glow in the rarity's own
             colour — enough that a legendary in a grid of commons catches the
             eye without adding a frame back. */}
-        {owned && size >= 110 && card.rarity === "legendary" && (
+        {owned && size >= 110 && (card.rarity === "legendary" || card.rarity === "mythic") && (
           <span
             aria-hidden
             className="cf-anim"
@@ -1106,7 +1114,7 @@ function CardFaceImpl({
               position: "absolute",
               inset: 0,
               pointerEvents: "none",
-              boxShadow: `inset 0 0 ${Math.round(size * 0.16)}px ${FLAT.legendary.accent}55`,
+              boxShadow: `inset 0 0 ${Math.round(size * 0.16)}px ${F.accent}55`,
               animation: "cf-breathe 3.6s ease-in-out infinite",
               willChange: "opacity",
             }}

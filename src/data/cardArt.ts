@@ -48,13 +48,25 @@ export const CARD_ART: Record<string, string> = {
   card_wheel:        "/cards/card_wheel.png",
   card_ashgarden:    "/cards/card_ashgarden.png",
   card_floodwalker:  "/cards/card_floodwalker.png",
-  // ── COVENANT (legendary supports) ── card_seraphim has NO art yet — the
-  // owner hasn't dropped its file; it keeps its drawn motif until they do.
+  // ── COVENANT (legendary supports) ──
   card_ophanim:      "/cards/card_ophanim.png",
+  card_seraphim:     "/cards/card_seraphim.png",
   card_deviltrade:   "/cards/card_deviltrade.png",
   card_rockscissors: "/cards/card_rockscissors.png",
   card_mirror:       "/cards/card_mirror.png",
   card_arise:        "/cards/card_arise.png",
+
+  // ── MYTHOS (the ★5 synthesis tier) — one painting per fusion ──
+  myth_lockedblade:    "/cards/myth_lockedblade.png",
+  myth_seagate:        "/cards/myth_seagate.png",
+  myth_hourdoor:       "/cards/myth_hourdoor.png",
+  myth_doordream:      "/cards/myth_doordream.png",
+  myth_leviathansaint: "/cards/myth_leviathansaint.png",
+  myth_endronin:       "/cards/myth_endronin.png",
+  myth_bladebeyond:    "/cards/myth_bladebeyond.png",
+  myth_tideofages:     "/cards/myth_tideofages.png",
+  myth_drownedgod:     "/cards/myth_drownedgod.png",
+  myth_lasttomorrow:   "/cards/myth_lasttomorrow.png",
 
   // ── EPIC ──
   card_ironvow:      "/cards/card_ironvow.png",
