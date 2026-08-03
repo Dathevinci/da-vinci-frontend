@@ -288,7 +288,7 @@ function ListingCard({ listing, meId, busy, onOpen, onCancel }: {
               tight underneath it. */}
           <div className="grid w-full place-items-center p-1">
             {card
-              ? <CardFace card={card} owned foil={foil} size={272} ratio="5 / 9" />
+              ? <CardFace card={card} owned foil={foil} level={level} wear={(listing as any).prints?.[0]?.condition} size={272} ratio="5 / 9" />
               : <div className="grid h-[490px] w-[272px] place-items-center text-xs text-slate-600">Unknown card</div>}
           </div>
           {qty > 1 && (

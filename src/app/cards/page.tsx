@@ -921,7 +921,7 @@ export default function CardsPage() {
                             <button key={`${c.id}-${w}`} onClick={() => setSelected(c)}
                               className="group relative flex flex-col items-center gap-1.5 p-2 transition hover:-translate-y-1"
                               style={tileStyle}>
-                              <CardFace card={c} owned count={byWear[w]} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} level={levels[c.id]} forge={forges[c.id]} size={gridCard} ratio="5 / 9" />
+                              <CardFace card={c} owned count={byWear[w]} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} level={levels[c.id]} forge={forges[c.id]} wear={w} size={gridCard} ratio="5 / 9" />
                               <span className={`pointer-events-none inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] ${wearMeta[w].cls}`}>
                                 {wearMeta[w].label}{byWear[w] > 1 ? ` ×${byWear[w]}` : ""}
                               </span>
@@ -1029,7 +1029,7 @@ export default function CardsPage() {
                                         boxShadow: "inset 0 0 0 1px rgba(245,158,11,.28)",
                                         contentVisibility: "auto", containIntrinsicSize: `auto ${smallScreen ? 310 : 400}px`,
                                       } as any}>
-                                      <CardFace card={c} owned count={n} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} level={levels[c.id]} forge={forges[c.id]} size={gridCard} ratio="5 / 9" />
+                                      <CardFace card={c} owned count={n} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} level={levels[c.id]} forge={forges[c.id]} wear={w.key} size={gridCard} ratio="5 / 9" />
                                     </button>
                                   ))}
                                 </div>
@@ -1196,6 +1196,7 @@ export default function CardsPage() {
                     count={count}
                     foil={!!foils[selected.id]}
                     hibernating={asl}
+                    wear={bestPrint?.condition}
                     size={sheetSize}
                     // Matches the grids. The sheet was still on the default
                     // 5/7 while the collection behind it had gone 5/9, so

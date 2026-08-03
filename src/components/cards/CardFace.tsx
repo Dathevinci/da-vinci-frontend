@@ -749,6 +749,7 @@ function CardFaceImpl({
   liveAtk,
   level,
   forge,
+  wear,
   hibernating = false,
   ratio = "5 / 7",
 }: {
@@ -775,6 +776,13 @@ function CardFaceImpl({
   level?: number;
   /** Forge ranks; +1 ATK / +2 HP per rank, matching the server's steps. */
   forge?: { atk: number; hp: number };
+  /**
+   * Print wear, worn VISIBLY — the owner's canon: a Fresh Build is a
+   * handmade original and stays untouched (no treatment IS the treatment);
+   * Factory New is a machine replica, clean and a little sterile; Rusted is
+   * a Fresh Build that time got to, and it shows.
+   */
+  wear?: string;
   /** Fell in a lost duel and is asleep — owned, but not fieldable until woken. */
   hibernating?: boolean;
   /** CSS aspect-ratio for the whole card. Defaults to the arena's 5/7. */
@@ -1095,6 +1103,45 @@ function CardFaceImpl({
               }}
             />
           </span>
+        )}
+
+        {/* ── WEAR, WORN ── the print's condition on its face, per the
+            owner's canon. RUSTED: a handmade original that time got to —
+            corrosion blooming from corners and edges, multiplied into the
+            art, with a dark oxidised vignette. FACTORY NEW: a machine
+            replica — a crisp cool gloss and a sterile clean edge, brand new
+            and a little soulless. FRESH BUILD: deliberately NOTHING — the
+            untouched card IS the mark of the hand that made it. All static
+            gradients; nothing animates, nothing repaints. */}
+        {owned && size >= 96 && wear === "rusted" && (
+          <>
+            <span aria-hidden style={{
+              position: "absolute", inset: 0, pointerEvents: "none",
+              mixBlendMode: "multiply",
+              background:
+                "radial-gradient(40% 28% at 6% 4%, rgba(146,64,14,.6), transparent 70%)," +
+                "radial-gradient(34% 24% at 97% 90%, rgba(120,53,15,.65), transparent 70%)," +
+                "radial-gradient(20% 14% at 90% 10%, rgba(154,52,18,.45), transparent 70%)," +
+                "radial-gradient(24% 18% at 10% 94%, rgba(146,64,14,.5), transparent 70%)," +
+                "radial-gradient(10% 7% at 55% 3%, rgba(120,53,15,.4), transparent 70%)",
+            }} />
+            <span aria-hidden style={{
+              position: "absolute", inset: 0, pointerEvents: "none",
+              boxShadow: `inset 0 0 ${Math.max(8, Math.round(size * 0.14))}px rgba(69,26,3,.55)`,
+              backgroundImage:
+                "radial-gradient(2px 2px at 22% 30%, rgba(154,52,18,.5), transparent 60%)," +
+                "radial-gradient(2px 3px at 70% 55%, rgba(146,64,14,.45), transparent 60%)," +
+                "radial-gradient(3px 2px at 38% 78%, rgba(120,53,15,.5), transparent 60%)," +
+                "radial-gradient(2px 2px at 82% 26%, rgba(154,52,18,.4), transparent 60%)",
+            }} />
+          </>
+        )}
+        {owned && size >= 96 && wear === "factory" && (
+          <span aria-hidden style={{
+            position: "absolute", inset: 0, pointerEvents: "none",
+            boxShadow: "inset 0 0 0 1px rgba(226,240,255,.30)",
+            background: "linear-gradient(168deg, rgba(226,240,255,.10), rgba(226,240,255,.03) 24%, transparent 40%)",
+          }} />
         )}
 
         {/* Foil as PRINTED STOCK, not as a specular highlight. The stripe
