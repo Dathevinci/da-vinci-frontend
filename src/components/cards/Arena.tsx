@@ -730,7 +730,7 @@ export default function Arena({
             : "opacity-70"
         } ${dragging?.kind === "unit" && dragging.index === i ? "opacity-30" : ""}`}>
         <div className="relative">
-          {byId[f.cardId] && <CardFace card={byId[f.cardId]} owned foil={f.foil} size={hand} showStats liveHp={f.hp} liveMaxHp={f.maxHp} />}
+          {byId[f.cardId] && <CardFace card={byId[f.cardId]} owned foil={f.foil} size={hand} showStats liveHp={f.hp} liveMaxHp={f.maxHp} liveAtk={f.atk} />}
           {dead && (
             <span className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 -rotate-12 border-y border-rose-500/70 bg-rose-950/80 py-0.5 text-center text-[8px] font-black uppercase tracking-[0.2em] text-rose-200">
               Fallen
@@ -914,7 +914,7 @@ export default function Arena({
                 animate={{ y: 0, scale: 1, opacity: 1 }}
                 transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
                 className={`rounded-xl transition ${over === "foe" && dragging?.kind === "unit" ? "ring-4 ring-rose-400 shadow-[0_0_30px_rgba(244,63,94,.6)]" : ""}`}>
-                <CardFace card={byId[foeActive.cardId]} owned foil={foeActive.foil} size={champ} showStats liveHp={foeActive.hp} liveMaxHp={foeActive.maxHp} />
+                <CardFace card={byId[foeActive.cardId]} owned foil={foeActive.foil} size={champ} showStats liveHp={foeActive.hp} liveMaxHp={foeActive.maxHp} liveAtk={foeActive.atk} />
                 <div className="mx-auto mt-1.5" style={{ width: champ }}>
                   <Bar f={foeActive} h={9} showNumbers />
                   <Buffs side={foe} />
@@ -995,7 +995,7 @@ export default function Arena({
                 className={`rounded-xl transition ${
                 over === "field" ? "ring-4 ring-emerald-400 shadow-[0_0_30px_rgba(52,211,153,.6)]"
                   : aiming ? "ring-2 ring-cyan-400/60" : ""}`}>
-                <CardFace card={byId[myActive.cardId]} owned foil={myActive.foil} size={champ} showStats liveHp={myActive.hp} liveMaxHp={myActive.maxHp} />
+                <CardFace card={byId[myActive.cardId]} owned foil={myActive.foil} size={champ} showStats liveHp={myActive.hp} liveMaxHp={myActive.maxHp} liveAtk={myActive.atk} />
                 <div className="mx-auto mt-1.5" style={{ width: champ }}>
                   <Bar f={myActive} h={9} showNumbers />
                   <Buffs side={mine} />

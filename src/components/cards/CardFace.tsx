@@ -746,6 +746,9 @@ function CardFaceImpl({
   stats,
   liveHp,
   liveMaxHp,
+  liveAtk,
+  level,
+  forge,
   hibernating = false,
   ratio = "5 / 7",
 }: {
@@ -766,6 +769,12 @@ function CardFaceImpl({
   liveHp?: number;
   /** The fighter's true max HP, which includes level. See maxHp below. */
   liveMaxHp?: number;
+  /** The fighter's true ATK from a live board — beats any client arithmetic. */
+  liveAtk?: number;
+  /** Shard-bought level (1-10); bends the badges by the server's +7% curve. */
+  level?: number;
+  /** Forge ranks; +1 ATK / +2 HP per rank, matching the server's steps. */
+  forge?: { atk: number; hp: number };
   /** Fell in a lost duel and is asleep — owned, but not fieldable until woken. */
   hibernating?: boolean;
   /** CSS aspect-ratio for the whole card. Defaults to the arena's 5/7. */
@@ -773,15 +782,22 @@ function CardFaceImpl({
 }) {
   const S = (stats || FALLBACK_STATS)[card.rarity] || FALLBACK_STATS.common;
   const mult = foil ? 1.2 : 1;
-  const atk = Math.round(S.atk * mult);
   /**
-   * The fighter's REAL max when the board supplies it, not a guess from the
-   * rarity table. This computed maxHp knows about rarity and foil but not
-   * about LEVELS, so a levelled card showed "16/28" on its face while the bar
-   * beneath it — reading the actual fighter — showed "16/26". Two numbers for
-   * one thing, disagreeing, on the same card.
+   * BOUGHT POWER SHOWS ON THE FACE. The badges knew rarity and foil but not
+   * levels or the forge, so a trained card advertised its untrained numbers
+   * everywhere except the arena. `level` bends the same +7% curve the server
+   * uses (clamped at 10); `forge` adds the same flat points. Both optional —
+   * a caller that passes nothing gets exactly the old card. `liveAtk`, like
+   * liveMaxHp, is the fighter's REAL number when a board has one — server
+   * truth beats any client arithmetic.
    */
-  const maxHp = typeof liveMaxHp === "number" && liveMaxHp > 0 ? liveMaxHp : Math.round(S.hp * mult);
+  const lvlM = 1 + (Math.min(10, Math.max(1, level || 1)) - 1) * 0.07;
+  const atk = typeof liveAtk === "number" && liveAtk > 0
+    ? liveAtk
+    : Math.round(S.atk * mult * lvlM) + (forge?.atk || 0);
+  const maxHp = typeof liveMaxHp === "number" && liveMaxHp > 0
+    ? liveMaxHp
+    : Math.round(S.hp * mult * lvlM) + (forge?.hp || 0) * 2;
   const hp = typeof liveHp === "number" ? liveHp : maxHp;
   const wounded = typeof liveHp === "number" && liveHp < maxHp;
   const R = RARITY_META[card.rarity];

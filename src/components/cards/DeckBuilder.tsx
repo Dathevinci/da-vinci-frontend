@@ -41,6 +41,8 @@ export default function DeckBuilder({
   onChange,
   compact = false,
   asleep = {},
+  levels = {},
+  forges = {},
 }: {
   myCards: CardDef[];
   foils?: Record<string, boolean>;
@@ -49,6 +51,10 @@ export default function DeckBuilder({
    *  to be visibly unpickable HERE rather than rejected after you commit. */
   asleep?: Record<string, boolean>;
   stats?: Record<string, { hp: number; atk: number }>;
+  /** Bought power — levels and forge ranks — so every card here shows the
+   *  numbers it will actually fight with, not its untrained base. */
+  levels?: Record<string, number>;
+  forges?: Record<string, { atk: number; hp: number }>;
   deck: string[];
   onChange: (deck: string[]) => void;
   compact?: boolean;
@@ -96,22 +102,31 @@ export default function DeckBuilder({
     onChange(next);
   };
 
-  // Total power tells you at a glance whether this loadout is any good.
-  const power = deck.reduce((sum, id) => {
+  // Total power tells you at a glance whether this loadout is any good —
+  // levels and forge included, so trained cards actually count for more.
+  const trueStats = (id: string) => {
     const c = byId[id];
-    if (!c) return sum;
+    if (!c) return { atk: 0, hp: 0 };
     const base = S[c.rarity] || S.common;
     const m = foils[id] ? 1.2 : 1;
-    return sum + Math.round(base.atk * m) + Math.round(base.hp * m);
+    const lvlM = 1 + (Math.min(10, Math.max(1, levels[id] || 1)) - 1) * 0.07;
+    const fg = forges[id] || { atk: 0, hp: 0 };
+    return {
+      atk: Math.round(base.atk * m * lvlM) + fg.atk,
+      hp: Math.round(base.hp * m * lvlM) + fg.hp * 2,
+    };
+  };
+  const power = deck.reduce((sum, id) => {
+    const t = trueStats(id);
+    return sum + t.atk + t.hp;
   }, 0);
 
   const autoPick = () => {
     // Strongest five you own — a sane default so a new player isn't stuck
     // staring at a grid wondering what's good.
     const ranked = [...units].sort((a, b) => {
-      const pa = (S[a.rarity] || S.common).atk + (S[a.rarity] || S.common).hp + (foils[a.id] ? 5 : 0);
-      const pb = (S[b.rarity] || S.common).atk + (S[b.rarity] || S.common).hp + (foils[b.id] ? 5 : 0);
-      return pb - pa;
+      const ta = trueStats(a.id), tb = trueStats(b.id);
+      return (tb.atk + tb.hp) - (ta.atk + ta.hp);
     });
     onChange(ranked.slice(0, DECK_SIZE).map((c) => c.id));
   };
@@ -146,7 +161,7 @@ export default function DeckBuilder({
               {card ? (
                 <motion.button initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
                   onClick={() => toggle(card.id)} title="Remove from deck">
-                  <CardFace card={card} owned foil={foils[card.id]} size={slot} ratio="5 / 9" showStats stats={S} />
+                  <CardFace card={card} owned foil={foils[card.id]} size={slot} ratio="5 / 9" showStats stats={S} level={levels[card.id]} forge={forges[card.id]} />
                 </motion.button>
               ) : (
                 <div className="grid place-items-center rounded-xl border-2 border-dashed border-white/15"
@@ -189,7 +204,7 @@ export default function DeckBuilder({
                 >
                   {/* CardFace wears the crime-scene tape itself now — one
                       treatment for fallen cards everywhere. */}
-                  <CardFace card={c} owned foil={foils[c.id]} size={tile} ratio="5 / 9" showStats stats={S} hibernating={out} />
+                  <CardFace card={c} owned foil={foils[c.id]} size={tile} ratio="5 / 9" showStats stats={S} hibernating={out} level={levels[c.id]} forge={forges[c.id]} />
                   {picked && !out && (
                     <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-rose-500 text-white">
                       <Check className="h-3 w-3" />

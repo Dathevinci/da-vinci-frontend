@@ -874,7 +874,7 @@ export default function CardsPage() {
                             <button key={`${c.id}-${w}`} onClick={() => setSelected(c)}
                               className="group relative flex flex-col items-center gap-1.5 p-2 transition hover:-translate-y-1"
                               style={tileStyle}>
-                              <CardFace card={c} owned count={byWear[w]} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} size={gridCard} ratio="5 / 9" />
+                              <CardFace card={c} owned count={byWear[w]} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} level={levels[c.id]} forge={forges[c.id]} size={gridCard} ratio="5 / 9" />
                               <span className={`pointer-events-none inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] ${wearMeta[w].cls}`}>
                                 {wearMeta[w].label}{byWear[w] > 1 ? ` ×${byWear[w]}` : ""}
                               </span>
@@ -889,7 +889,7 @@ export default function CardsPage() {
                           {/* The card carries its own name, stars and rarity
                               badge now that the art is full-bleed, so nothing
                               is repeated underneath it. */}
-                          <CardFace card={c} owned={has} count={count} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} size={gridCard} ratio="5 / 9" />
+                          <CardFace card={c} owned={has} count={count} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} level={levels[c.id]} forge={forges[c.id]} size={gridCard} ratio="5 / 9" />
                         </button>,
                       ];
                     })}
@@ -942,7 +942,7 @@ export default function CardsPage() {
                                 boxShadow: "inset 0 0 0 1px rgba(162,116,255,.24)",
                                 contentVisibility: "auto", containIntrinsicSize: `auto ${smallScreen ? 310 : 400}px`,
                               } as any}>
-                              <CardFace card={c} owned count={owned[c.id]} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} size={gridCard} ratio="5 / 9" />
+                              <CardFace card={c} owned count={owned[c.id]} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} level={levels[c.id]} forge={forges[c.id]} size={gridCard} ratio="5 / 9" />
                             </button>
                           ))}
                         </div>
@@ -982,7 +982,7 @@ export default function CardsPage() {
                                         boxShadow: "inset 0 0 0 1px rgba(245,158,11,.28)",
                                         contentVisibility: "auto", containIntrinsicSize: `auto ${smallScreen ? 310 : 400}px`,
                                       } as any}>
-                                      <CardFace card={c} owned count={n} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} size={gridCard} ratio="5 / 9" />
+                                      <CardFace card={c} owned count={n} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} level={levels[c.id]} forge={forges[c.id]} size={gridCard} ratio="5 / 9" />
                                     </button>
                                   ))}
                                 </div>

@@ -45,6 +45,8 @@ type DgnCard = {
   dgnDeaths?: number;
   /** Per-card revival price from the server: rarity base × prior deaths. */
   reviveCost?: number;
+  atkForge?: number;
+  hpForge?: number;
 };
 type Dungeon = {
   id: string; name: string; depth: number; recPower: number; flavor: string; apMul: number;
@@ -68,14 +70,15 @@ type RunResult = {
   party: { cardId: string; name: string; rarity: string; hp: number; maxHp: number; outcome: string }[];
 };
 
-/** Effective (display) stats for a card in the lobby, injury included. */
+/** Effective (display) stats for a card in the lobby — injury AND forge
+ *  included, matching makeUnit on the server point for point. */
 function effStats(c: DgnCard, rarity: string) {
   const base = DGN_STATS[rarity] || DGN_STATS.common;
   const m = (c.foil ? 1.2 : 1) * lvlMult(c.level);
-  const fullMax = Math.round(base.hp * m);
+  const fullMax = Math.round(base.hp * m) + (c.hpForge || 0) * 2;
   const maxHp = c.dgnInjured ? Math.max(1, Math.round(fullMax * 0.7)) : fullMax;
   const hp = c.dgnDead ? 0 : c.dgnHp === null ? maxHp : Math.min(c.dgnHp, maxHp);
-  return { maxHp, hp, atk: Math.round(base.atk * m) };
+  return { maxHp, hp, atk: Math.round(base.atk * m) + (c.atkForge || 0) };
 }
 
 const RARITY_TINT: Record<string, string> = {
@@ -607,6 +610,7 @@ export default function DungeonPage() {
                       <button key={i} onClick={() => toggle(id)} title={`${def.name} — tap to remove`}
                         className="dg-fan-card relative shrink-0" style={style}>
                         <CardFace card={def} owned foil={!!cards.find((c) => c.cardId === id)?.foil}
+                          level={cards.find((c) => c.cardId === id)?.level} forge={{ atk: cards.find((c) => c.cardId === id)?.atkForge || 0, hp: cards.find((c) => c.cardId === id)?.hpForge || 0 }}
                           size={fanSize} ratio="5 / 9" showStats stats={DGN_STATS} />
                       </button>
                     ) : (
@@ -714,7 +718,7 @@ export default function DungeonPage() {
                           {/* THE REAL CARD — full art, the same face as everywhere
                               else in the app. Dungeon condition layers on top. */}
                           <span className={`flex justify-center ${c.dgnDead ? "grayscale" : ""}`}>
-                            <CardFace card={def} owned foil={c.foil} size={rosterSize} ratio="5 / 9" showStats stats={DGN_STATS} />
+                            <CardFace card={def} owned foil={c.foil} size={rosterSize} ratio="5 / 9" showStats stats={DGN_STATS} level={c.level} forge={{ atk: c.atkForge || 0, hp: c.hpForge || 0 }} />
                           </span>
                           {c.dgnDead && (
                             <span className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 border-y-[3px] border-[#ff5f6e] bg-[#1a0a10]/95 py-1 text-center font-pixel text-[9px] tracking-widest text-[#ffb4bc]">
