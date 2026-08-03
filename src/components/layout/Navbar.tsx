@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut, Users, Palette, ShoppingBag, Menu, X, Settings, Heart, ChevronDown, Tv, BookMarked, BookOpen, Swords, Terminal, Layers, Gavel, Trophy, Castle, Gamepad2 } from 'lucide-react';
 import { isAdmin, isLeadDev } from "@/lib/admin";
 import { warmBackend } from "@/lib/warmBackend";
+import BottomDock from "@/components/layout/BottomDock";
 import LoginModal from './LoginModal';
 import SearchModal from './SearchModal';
 import ArisePointPopup from '../ui/ArisePointPopup';
@@ -446,6 +447,9 @@ export default function Navbar() {
         isOpen={showControlCenter}
         onClose={() => setShowControlCenter(false)}
       />
+      {/* The phone-thumb dock + its Navigation sheet. Mobile only — the
+          desktop island already owns the bottom of big screens. */}
+      {user && <BottomDock />}
     </>
   );
 }
