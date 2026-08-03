@@ -8,6 +8,7 @@ import {
   Store, Trash2, ShieldAlert, Heart, Swords,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
+import { isLeadDev } from "@/lib/admin";
 import { authHeaders } from "@/lib/authToken";
 import { useToast } from "@/components/ui/Toast";
 import PageTransition from "@/components/layout/PageTransition";
@@ -63,7 +64,10 @@ export default function MarketplacePage() {
   const [open, setOpen] = useState<Listing | null>(null);
   const [ap, setAp] = useState<number | null>(null);
 
-  const balance = ap ?? user?.arisePoints ?? 0;
+  // Infinity flows through everything downstream honestly: fmt() renders it
+  // as "∞", and every canAfford check is simply true. The server skips the
+  // debit for the lead dev, so the number never has to lie.
+  const balance = isLeadDev(user) ? Number.POSITIVE_INFINITY : ap ?? user?.arisePoints ?? 0;
 
   const load = useCallback(async () => {
     setLoading(true);
