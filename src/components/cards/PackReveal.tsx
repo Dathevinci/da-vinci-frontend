@@ -126,6 +126,11 @@ export default function PackReveal({
   // Longer by the owner's ask: the fall is the show, so it gets time to be
   // one — and epic+ hangs even longer before the cut.
   const fallMs = bestOrder >= 3 ? 2300 : 1650;
+  // A x16/x32 is a different animal: full-size cards at a half-second each
+  // would run past twenty seconds and off the screen. Big packs flip fast
+  // and small, and the row scrolls.
+  const big = ordered.length > 8;
+  const revealSize = big ? 104 : 150;
 
   // Beat timing. A legendary-or-better pull gets an extra beat: the fallen
   // star doesn't just crash, it COLLAPSES — warp → hole → burst — so the
@@ -166,9 +171,9 @@ export default function PackReveal({
       const next = ordered[revealed];
       setRevealed((n) => n + 1);
       if (next && RARITY_META[next.rarity].order >= 3) { setHero(next); setHeroIdx(revealed); }
-    }, revealed === 0 ? 260 : 560);
+    }, revealed === 0 ? 260 : big ? 170 : 560);
     return () => clearTimeout(t);
-  }, [revealed, ordered, reduce, stage, hero]);
+  }, [revealed, ordered, reduce, stage, hero, big]);
 
   // The hero card holds the screen, then hands it back.
   useEffect(() => {
@@ -510,7 +515,7 @@ export default function PackReveal({
             {title}
           </motion.p>
 
-          <div className="flex flex-wrap items-end justify-center gap-3 sm:gap-5">
+          <div className={`flex w-full flex-wrap items-end justify-center overflow-y-auto ${big ? "max-h-[62dvh] gap-2" : "max-h-[70dvh] gap-3 sm:gap-5"}`}>
             {ordered.map((c, i) => {
               const out = i < revealed;
               const meta = RARITY_META[c.rarity];
@@ -561,7 +566,7 @@ export default function PackReveal({
                       style={{ transformStyle: "preserve-3d", transformPerspective: 1000, willChange: "transform" }}
                     >
                       <div className="relative" style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
-                        <CardFace card={c} owned size={150} showStats={showStats} />
+                        <CardFace card={c} owned size={revealSize} showStats={showStats} />
                         {/* the copy's minted identity — condition + serial */}
                         {out && printFor[i] && (
                           <span className={`pointer-events-none absolute inset-x-1 bottom-1 z-10 flex items-center justify-center gap-1 rounded-md border px-1 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] ${(PRINT_META[printFor[i]!.condition] || PRINT_META.factory).cls}`}>
@@ -572,7 +577,7 @@ export default function PackReveal({
                       </div>
                       <div className="absolute inset-0"
                         style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
-                        <CardBack size={150} />
+                        <CardBack size={revealSize} />
                       </div>
                     </motion.div>
                   </motion.div>
