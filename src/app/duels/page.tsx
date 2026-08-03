@@ -68,6 +68,14 @@ export default function DuelsPage() {
   // Bought power, so the cards SHOW what they'll actually fight with.
   const [cardLevels, setCardLevels] = useState<Record<string, number>>({});
   const [cardForges, setCardForges] = useState<Record<string, { atk: number; hp: number }>>({});
+  const [cardSkillLvls, setCardSkillLvls] = useState<Record<string, number>>({});
+  // Caps for the MAX sign: domains top out at 3, skills at 5 — display-only
+  // mirrors of the server caps, same contract as the cardStats mirror.
+  const skillCaps = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const [id, a] of Object.entries<any>(abilities)) m[id] = a.isDomain ? 3 : 5;
+    return m;
+  }, [abilities]);
   const [owned, setOwned] = useState<Record<string, number>>({});
   const [shards, setShards] = useState(0);
   const [bag, setBag] = useState<string[]>([]);
@@ -133,6 +141,7 @@ export default function DuelsPage() {
         const sl: Record<string, boolean> = {};
         const lv: Record<string, number> = {};
         const fg: Record<string, { atk: number; hp: number }> = {};
+        const sk: Record<string, number> = {};
         for (const x of c.data?.cards || []) {
           m[x.cardId] = x.count;
           if (x.foil) fo[x.cardId] = true;
@@ -142,12 +151,14 @@ export default function DuelsPage() {
           if (x.hibernating) sl[x.cardId] = true;
           lv[x.cardId] = x.level || 1;
           fg[x.cardId] = { atk: x.atkForge || 0, hp: x.hpForge || 0 };
+          sk[x.cardId] = x.skillLevel || 1;
         }
         setOwned((p) => keep(p, m));
         setFoils((p) => keep(p, fo));
         setAsleep((p) => keep(p, sl));
         setCardLevels((p) => keep(p, lv));
         setCardForges((p) => keep(p, fg));
+        setCardSkillLvls((p) => keep(p, sk));
         setShards(c.data.shards || 0);
       }
       // Keep the open board fresh so the opponent's move appears.
@@ -507,7 +518,7 @@ export default function DuelsPage() {
                     return c ? (
                       <button key={i} onClick={() => setEditDeck(true)} title={`${c.name} — tap to edit your deck`}
                         className="relative transition hover:-translate-y-0.5">
-                        <CardFace card={c} owned foil={foils[c.id]} size={92} ratio="5 / 9" showStats stats={cardStats} hibernating={!!asleep[c.id]} level={cardLevels[c.id]} forge={cardForges[c.id]} />
+                        <CardFace card={c} owned foil={foils[c.id]} size={92} ratio="5 / 9" showStats stats={cardStats} hibernating={!!asleep[c.id]} level={cardLevels[c.id]} forge={cardForges[c.id]} skillLevel={cardSkillLvls[c.id]} skillCap={abilities[c.id] ? (abilities[c.id].isDomain ? 3 : 5) : undefined} />
                       </button>
                     ) : (
                       <button key={i} onClick={() => setEditDeck(true)} title="Empty slot — tap to build your deck"
@@ -664,7 +675,7 @@ export default function DuelsPage() {
                 <button onClick={() => setEditDeck(false)} aria-label="Close"><X className="h-5 w-5 text-slate-500" /></button>
               </div>
               <div className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1">
-                <DeckBuilder myCards={myCards} foils={foils} asleep={asleep} stats={cardStats} levels={cardLevels} forges={cardForges} deck={deck}
+                <DeckBuilder myCards={myCards} foils={foils} asleep={asleep} stats={cardStats} levels={cardLevels} forges={cardForges} skillLvls={cardSkillLvls} skillCaps={skillCaps} deck={deck}
                   onChange={(d) => { setDeck(d); saveDeck(d); }} />
               </div>
               <button onClick={() => setEditDeck(false)}
@@ -675,7 +686,7 @@ export default function DuelsPage() {
           </motion.div>
         )}
         {showChallenge && (
-          <ChallengeModal myCards={myCards} meId={user?.id} foils={foils} asleep={asleep} cardStats={cardStats} levels={cardLevels} forges={cardForges}
+          <ChallengeModal myCards={myCards} meId={user?.id} foils={foils} asleep={asleep} cardStats={cardStats} levels={cardLevels} forges={cardForges} skillLvls={cardSkillLvls} skillCaps={skillCaps}
             onClose={() => { setShowChallenge(false); setDeck(loadSavedDeck()); }}
             onSend={(opp, stake, deck) => post("", { opponentUsername: opp, stake, deck }, (d) => {
               setShowChallenge(false);
@@ -688,7 +699,7 @@ export default function DuelsPage() {
             busy={busy} />
         )}
         {active && (
-          <DuelBoard duel={active} me={user?.id} byId={byId} myCards={myCards} bag={bag} busy={busy} foils={foils} cardStats={cardStats} abilityIds={abilityIds} abilities={abilities} asleep={asleep} levels={cardLevels} forges={cardForges}
+          <DuelBoard duel={active} me={user?.id} byId={byId} myCards={myCards} bag={bag} busy={busy} foils={foils} cardStats={cardStats} abilityIds={abilityIds} abilities={abilities} asleep={asleep} levels={cardLevels} forges={cardForges} skillLvls={cardSkillLvls} skillCaps={skillCaps}
             onClose={() => { setActive(null); setDeck(loadSavedDeck()); }}
             onAccept={(deck) => post(`${active.id}/accept`, { deck }, (d) => { setActive(d); toast("Duel started!", "success"); }, "background")}
             onMove={(action: string, index?: number, cardId?: string, target?: number) =>
@@ -747,7 +758,7 @@ function DuelRow({ duel, me, right, onOpen }: { duel: Duel; me?: string; right: 
   );
 }
 
-function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats, asleep = {}, levels = {}, forges = {} }: any) {
+function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats, asleep = {}, levels = {}, forges = {}, skillLvls = {}, skillCaps = {} }: any) {
   const [opp, setOpp] = useState("");
   const [stake, setStake] = useState("100");
   const stakeNum = Math.floor(Number(stake)) || 0;
@@ -859,7 +870,7 @@ function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats
         </div>
         {/* the deck grid scrolls; the header and the action button stay put */}
         <div className="mb-4 min-h-0 flex-1 overflow-y-auto">
-          <DeckBuilder myCards={myCards} foils={foils} asleep={asleep} stats={cardStats} levels={levels} forges={forges} deck={deck}
+          <DeckBuilder myCards={myCards} foils={foils} asleep={asleep} stats={cardStats} levels={levels} forges={forges} skillLvls={skillLvls} skillCaps={skillCaps} deck={deck}
             onChange={(d) => { setDeck(d); saveDeck(d); }} />
         </div>
         {/* Requires a PICKED member, not just typed text — so a challenge can
@@ -879,7 +890,7 @@ function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats
   );
 }
 
-function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMove, onForfeit, onCancel, foils, cardStats, abilityIds, abilities, asleep = {}, levels = {}, forges = {} }: any) {
+function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMove, onForfeit, onCancel, foils, cardStats, abilityIds, abilities, asleep = {}, levels = {}, forges = {}, skillLvls = {}, skillCaps = {} }: any) {
   const [deck, setDeck] = useState<string[]>(() => loadSavedDeck());
   // Filtered ONCE per collection, not once per render. Arena memoizes its
   // playable supports off this array, so handing it a fresh one every render
@@ -966,7 +977,7 @@ function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMo
         {needsAccept ? (
           <>
             <div className="-mx-1 mb-4 min-h-0 flex-1 overflow-y-auto px-1">
-              <DeckBuilder myCards={myCards} foils={foils} asleep={asleep} stats={cardStats} levels={levels} forges={forges} deck={deck}
+              <DeckBuilder myCards={myCards} foils={foils} asleep={asleep} stats={cardStats} levels={levels} forges={forges} skillLvls={skillLvls} skillCaps={skillCaps} deck={deck}
                 onChange={(d) => { setDeck(d); saveDeck(d); }} compact />
             </div>
             <button disabled={busy || deck.length !== DECK_SIZE} onClick={() => onAccept(deck)}

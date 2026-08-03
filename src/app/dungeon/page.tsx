@@ -645,6 +645,7 @@ export default function DungeonPage() {
                           className="dg-fan-card relative shrink-0" style={style}>
                           <CardFace card={def} owned foil={!!row?.foil}
                             level={row?.level} forge={{ atk: row?.atkForge || 0, hp: row?.hpForge || 0 }}
+                            skillLevel={row?.skillLevel} skillCap={domains[def.id] ? 3 : skills[def.id] ? 5 : undefined}
                             liveAtk={s?.atk} liveHp={s?.hp} liveMaxHp={s?.maxHp}
                             size={fanSize} ratio="5 / 9" showStats stats={DGN_STATS} />
                         </button>
@@ -756,7 +757,7 @@ export default function DungeonPage() {
                           {/* THE REAL CARD — full art, the same face as everywhere
                               else in the app. Dungeon condition layers on top. */}
                           <span className={`flex justify-center ${c.dgnDead ? "grayscale" : ""}`}>
-                            <CardFace card={def} owned foil={c.foil} size={rosterSize} ratio="5 / 9" showStats stats={DGN_STATS} level={c.level} forge={{ atk: c.atkForge || 0, hp: c.hpForge || 0 }} />
+                            <CardFace card={def} owned foil={c.foil} size={rosterSize} ratio="5 / 9" showStats stats={DGN_STATS} level={c.level} forge={{ atk: c.atkForge || 0, hp: c.hpForge || 0 }} skillLevel={c.skillLevel} skillCap={domains[def.id] ? 3 : skills[def.id] ? 5 : undefined} />
                           </span>
                           {c.dgnDead && (
                             <span className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 border-y-[3px] border-[#ff5f6e] bg-[#1a0a10]/95 py-1 text-center font-pixel text-[9px] tracking-widest text-[#ffb4bc]">

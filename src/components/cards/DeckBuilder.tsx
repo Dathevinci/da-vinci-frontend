@@ -43,6 +43,8 @@ export default function DeckBuilder({
   asleep = {},
   levels = {},
   forges = {},
+  skillLvls = {},
+  skillCaps = {},
 }: {
   myCards: CardDef[];
   foils?: Record<string, boolean>;
@@ -55,6 +57,9 @@ export default function DeckBuilder({
    *  numbers it will actually fight with, not its untrained base. */
   levels?: Record<string, number>;
   forges?: Record<string, { atk: number; hp: number }>;
+  /** Skill ranks + each card's cap, for CardFace's MAX sign. */
+  skillLvls?: Record<string, number>;
+  skillCaps?: Record<string, number>;
   deck: string[];
   onChange: (deck: string[]) => void;
   compact?: boolean;
@@ -161,7 +166,7 @@ export default function DeckBuilder({
               {card ? (
                 <motion.button initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
                   onClick={() => toggle(card.id)} title="Remove from deck">
-                  <CardFace card={card} owned foil={foils[card.id]} size={slot} ratio="5 / 9" showStats stats={S} level={levels[card.id]} forge={forges[card.id]} />
+                  <CardFace card={card} owned foil={foils[card.id]} size={slot} ratio="5 / 9" showStats stats={S} level={levels[card.id]} forge={forges[card.id]} skillLevel={skillLvls[card.id]} skillCap={skillCaps[card.id]} />
                 </motion.button>
               ) : (
                 <div className="grid place-items-center rounded-xl border-2 border-dashed border-white/15"
@@ -204,7 +209,7 @@ export default function DeckBuilder({
                 >
                   {/* CardFace wears the crime-scene tape itself now — one
                       treatment for fallen cards everywhere. */}
-                  <CardFace card={c} owned foil={foils[c.id]} size={tile} ratio="5 / 9" showStats stats={S} hibernating={out} level={levels[c.id]} forge={forges[c.id]} />
+                  <CardFace card={c} owned foil={foils[c.id]} size={tile} ratio="5 / 9" showStats stats={S} hibernating={out} level={levels[c.id]} forge={forges[c.id]} skillLevel={skillLvls[c.id]} skillCap={skillCaps[c.id]} />
                   {picked && !out && (
                     <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-rose-500 text-white">
                       <Check className="h-3 w-3" />

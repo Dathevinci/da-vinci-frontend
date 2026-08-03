@@ -44,6 +44,13 @@ export default function ShowcaseCards({
   const [levels, setLevels] = useState<Record<string, number>>({});
   const [forges, setForges] = useState<Record<string, { atk: number; hp: number }>>({});
   const [wears, setWears] = useState<Record<string, string>>({});
+  const [skillLvls, setSkillLvls] = useState<Record<string, number>>({});
+  // skills/domains + caps from the catalog, for CardFace's MAX sign.
+  const [catMeta, setCatMeta] = useState<any>(null);
+  const capFor = (c: CardDef) =>
+    catMeta?.domains?.[c.id] ? (catMeta.maxDomainLevel ?? 3)
+    : catMeta?.skills?.[c.id] ? (catMeta.maxSkillLevel ?? 5)
+    : undefined;
   const [picked, setPicked] = useState<string[]>(initial.slice(0, SLOTS));
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -66,7 +73,10 @@ export default function ShowcaseCards({
     if (!userId) return;
     // Both served from the session cache first, refreshed in the background —
     // a profile's showcase paints instantly instead of arriving late.
-    loadCatalog(API_URL, (data) => setCatalog(data.cards || []));
+    loadCatalog(API_URL, (data) => {
+      setCatalog(data.cards || []);
+      setCatMeta({ skills: data.skills || {}, domains: data.domains || {}, maxSkillLevel: data.maxSkillLevel, maxDomainLevel: data.maxDomainLevel });
+    });
     swrJson(`davinci_col_${userId}`, `${API_URL}/api/cards/collection/${userId}`, (colData) => {
       const col = { success: true, data: colData };
       if (col?.success) {
@@ -75,6 +85,7 @@ export default function ShowcaseCards({
         const lv: Record<string, number> = {};
         const fg: Record<string, { atk: number; hp: number }> = {};
         const wr: Record<string, string> = {};
+        const sk: Record<string, number> = {};
         // Best build shown when copies span wears: handmade first, per the
         // lore — fresh outranks rusted outranks factory.
         const WEAR_RANK: Record<string, number> = { fresh: 0, rusted: 1, factory: 2 };
@@ -82,6 +93,7 @@ export default function ShowcaseCards({
           m[c.cardId] = c.count;
           if (c.foil) f[c.cardId] = true;
           if ((c.level || 1) > 1) lv[c.cardId] = c.level;
+          sk[c.cardId] = c.skillLevel || 1;
           if (c.atkForge || c.hpForge) fg[c.cardId] = { atk: c.atkForge || 0, hp: c.hpForge || 0 };
           if (Array.isArray(c.prints) && c.prints.length > 0) {
             const best = [...c.prints].sort((a: any, b: any) =>
@@ -94,6 +106,7 @@ export default function ShowcaseCards({
         setLevels(lv);
         setForges(fg);
         setWears(wr);
+        setSkillLvls(sk);
       }
     });
   }, [userId]);
@@ -159,7 +172,8 @@ export default function ShowcaseCards({
                       at the size they were made for; phones take the 150px
                       two-per-row layout instead of a one-card scroll column. */}
                   <CardFace card={card} owned foil={!!foils[card.id]} size={cardSize} ratio="5 / 9"
-                    level={levels[card.id]} forge={forges[card.id]} wear={wears[card.id]} />
+                    level={levels[card.id]} forge={forges[card.id]} wear={wears[card.id]}
+                    skillLevel={skillLvls[card.id]} skillCap={capFor(card)} />
                 </motion.div>
               );
             }
@@ -195,7 +209,8 @@ export default function ShowcaseCards({
                         boxShadow: on ? "inset 0 0 0 1px rgba(162,116,255,.6)" : "none",
                       }}>
                       <CardFace card={c} owned foil={!!foils[c.id]} size={84}
-                        level={levels[c.id]} forge={forges[c.id]} />
+                        level={levels[c.id]} forge={forges[c.id]}
+                        skillLevel={skillLvls[c.id]} skillCap={capFor(c)} />
                       {on && (
                         <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full"
                           style={{ background: ACCENT_LIT, color: "#160b2b" }}>

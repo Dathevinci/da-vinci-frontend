@@ -768,6 +768,8 @@ function CardFaceImpl({
   level,
   forge,
   wear,
+  skillLevel,
+  skillCap,
   hibernating = false,
   ratio = "5 / 7",
 }: {
@@ -801,6 +803,12 @@ function CardFaceImpl({
    * a Fresh Build that time got to, and it shows.
    */
   wear?: string;
+  /** This card's skill/domain rank, for the MAX sign — see skillCap. */
+  skillLevel?: number;
+  /** The rank that skill maxes at (3 domains / 5 skills). Absent = the card
+   *  has no skill, or the surface can't know — the sign only judges what it
+   *  is told about. */
+  skillCap?: number;
   /** Fell in a lost duel and is asleep — owned, but not fieldable until woken. */
   hibernating?: boolean;
   /** CSS aspect-ratio for the whole card. Defaults to the arena's 5/7. */
@@ -826,6 +834,14 @@ function CardFaceImpl({
     : Math.round(S.hp * mult * lvlM) + (forge?.hp || 0) * 2;
   const hp = typeof liveHp === "number" ? liveHp : maxHp;
   const wounded = typeof liveHp === "number" && liveHp < maxHp;
+  // MAX — every dial this card has, turned to the top: level 10, both forge
+  // ranks full (fighters only; a support's level IS its power), and the
+  // skill at cap when the surface knows the skill. Mirrors MAX_CARD_LEVEL
+  // and FORGE_MAX on the server.
+  const maxed = !!owned &&
+    (level || 1) >= 10 &&
+    (card.support ? true : (forge?.atk || 0) >= 5 && (forge?.hp || 0) >= 5) &&
+    (skillCap ? (skillLevel || 1) >= skillCap : true);
   const R = RARITY_META[card.rarity];
   const h = card.hue;
   const dim = !owned;
@@ -1072,6 +1088,7 @@ function CardFaceImpl({
 @keyframes cf-glint { 0% { transform: translate3d(-150%,0,0) skewX(-14deg); } 46% { transform: translate3d(160%,0,0) skewX(-14deg); } 100% { transform: translate3d(160%,0,0) skewX(-14deg); } }
 @keyframes cf-breathe { 0%,100% { opacity:.30 } 50% { opacity:.75 } }
 @keyframes cf-neon { 0%,100% { opacity:.8 } 50% { opacity:1 } }
+@keyframes cf-maxflick { 0%,100% { opacity:1 } 6% { opacity:.55 } 8% { opacity:1 } 44% { opacity:1 } 46% { opacity:.8 } 47% { opacity:1 } 72% { opacity:1 } 73% { opacity:.6 } 75% { opacity:1 } }
 @media (prefers-reduced-motion: reduce) { .cf-anim { animation: none !important; } }
 `,
             }}
@@ -1237,6 +1254,36 @@ function CardFaceImpl({
               background: `linear-gradient(to bottom, rgba(14,14,19,0) 0%, rgba(14,14,19,.55) 55%, ${surface} 100%)`,
             }}
           />
+        )}
+
+        {/* ── THE MAX SIGN ── a neon tube hung slightly crooked off the top
+            edge, flickering the way real neon does. Only on cards with every
+            dial at the top — see `maxed` above. */}
+        {maxed && size >= 76 && (
+          <span
+            aria-label="Fully maxed"
+            style={{
+              position: "absolute",
+              top: Math.round(size * 0.16),
+              left: -3,
+              zIndex: 7,
+              transform: "rotate(-9deg)",
+              padding: "1px 7px",
+              fontSize: Math.max(8, Math.round(size * 0.055)),
+              fontWeight: 900,
+              letterSpacing: "0.18em",
+              fontStyle: "italic",
+              color: "#eafdff",
+              background: "rgba(3,18,22,.78)",
+              border: "1px solid #22d3ee",
+              borderRadius: 5,
+              textShadow: "0 0 5px #22d3ee, 0 0 12px #22d3ee, 0 0 24px #0891b2",
+              boxShadow: "0 0 9px rgba(34,211,238,.85), inset 0 0 7px rgba(34,211,238,.4)",
+              animation: "cf-maxflick 2.8s linear infinite",
+            }}
+          >
+            MAX
+          </span>
         )}
 
         {/* rarity / grade / support, as bare type on a soft plate */}

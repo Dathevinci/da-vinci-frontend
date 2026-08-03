@@ -400,6 +400,12 @@ export default function CardsPage() {
   // WHAT RENDERS; set completion counts stay true to the full set.
   const [q, setQ] = useState("");
   const [rarFilter, setRarFilter] = useState<CardRarity | "all">("all");
+  // The skill cap for the MAX sign: domains max lower than skills, and a
+  // card with neither has no skill requirement to meet.
+  const skillCapFor = (c: CardDef) =>
+    catalog?.domains?.[c.id] ? (catalog.maxDomainLevel ?? 3)
+    : catalog?.skills?.[c.id] ? (catalog.maxSkillLevel ?? 5)
+    : undefined;
   // ── PULL STATS ── the odds printed, the pulls counted. Data comes from
   // /pull-stats on open; until it lands the modal shows ellipses, and the
   // rates fall back to a display-only mirror of the server weights.
@@ -1147,7 +1153,7 @@ export default function CardsPage() {
                             <button key={`${c.id}-${w}`} onClick={() => setSelected(c)}
                               className="group relative flex flex-col items-center gap-1.5 p-2 transition hover:-translate-y-1"
                               style={tileStyle}>
-                              <CardFace card={c} owned count={byWear[w]} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} level={levels[c.id]} forge={forges[c.id]} wear={w} size={gridCard} ratio="5 / 9" />
+                              <CardFace card={c} owned count={byWear[w]} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} level={levels[c.id]} forge={forges[c.id]} skillLevel={skillLevels[c.id]} skillCap={skillCapFor(c)} wear={w} size={gridCard} ratio="5 / 9" />
                               <span className={`pointer-events-none inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] ${wearMeta[w].cls}`}>
                                 {wearMeta[w].label}{byWear[w] > 1 ? ` ×${byWear[w]}` : ""}
                               </span>
@@ -1162,7 +1168,7 @@ export default function CardsPage() {
                           {/* The card carries its own name, stars and rarity
                               badge now that the art is full-bleed, so nothing
                               is repeated underneath it. */}
-                          <CardFace card={c} owned={has} count={count} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} level={levels[c.id]} forge={forges[c.id]} size={gridCard} ratio="5 / 9" />
+                          <CardFace card={c} owned={has} count={count} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} level={levels[c.id]} forge={forges[c.id]} skillLevel={skillLevels[c.id]} skillCap={skillCapFor(c)} size={gridCard} ratio="5 / 9" />
                         </button>,
                       ];
                     })}
@@ -1215,7 +1221,7 @@ export default function CardsPage() {
                                 boxShadow: "inset 0 0 0 1px rgba(162,116,255,.24)",
                                 contentVisibility: "auto", containIntrinsicSize: `auto ${smallScreen ? 310 : 400}px`,
                               } as any}>
-                              <CardFace card={c} owned count={owned[c.id]} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} level={levels[c.id]} forge={forges[c.id]} size={gridCard} ratio="5 / 9" />
+                              <CardFace card={c} owned count={owned[c.id]} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} level={levels[c.id]} forge={forges[c.id]} skillLevel={skillLevels[c.id]} skillCap={skillCapFor(c)} size={gridCard} ratio="5 / 9" />
                             </button>
                           ))}
                         </div>
@@ -1255,7 +1261,7 @@ export default function CardsPage() {
                                         boxShadow: "inset 0 0 0 1px rgba(245,158,11,.28)",
                                         contentVisibility: "auto", containIntrinsicSize: `auto ${smallScreen ? 310 : 400}px`,
                                       } as any}>
-                                      <CardFace card={c} owned count={n} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} level={levels[c.id]} forge={forges[c.id]} wear={w.key} size={gridCard} ratio="5 / 9" />
+                                      <CardFace card={c} owned count={n} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} level={levels[c.id]} forge={forges[c.id]} skillLevel={skillLevels[c.id]} skillCap={skillCapFor(c)} wear={w.key} size={gridCard} ratio="5 / 9" />
                                     </button>
                                   ))}
                                 </div>
@@ -1423,6 +1429,8 @@ export default function CardsPage() {
                     foil={!!foils[selected.id]}
                     hibernating={asl}
                     wear={bestPrint?.condition}
+                    skillLevel={skillLevels[selected.id]}
+                    skillCap={skillCapFor(selected)}
                     size={sheetSize}
                     // Matches the grids. The sheet was still on the default
                     // 5/7 while the collection behind it had gone 5/9, so
