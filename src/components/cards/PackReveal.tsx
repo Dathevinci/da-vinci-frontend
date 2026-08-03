@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import CardFace, { CardDef, RARITY_META } from "./CardFace";
+import { cardArt } from "@/data/cardArt";
 import { ACCENT, ACCENT_LIT, notch } from "./gacha";
 
 /**
@@ -83,6 +84,21 @@ export default function PackReveal({
     () => [...cards].sort((a, b) => RARITY_META[a.rarity].order - RARITY_META[b.rarity].order),
     [cards]
   );
+
+  // Fetch every pulled card's paint DURING the warp — the crash and the
+  // black hole buy three-plus seconds of runway, so by the time a card
+  // flips its art is already in cache instead of streaming in mid-reveal.
+  // 150 covers the grid, 260 covers the hero moment.
+  useEffect(() => {
+    for (const c of ordered) {
+      for (const s of [150, 260]) {
+        const src = cardArt(c.id, c.art, s);
+        if (src) { const im = new window.Image(); im.src = src; }
+      }
+    }
+    // one shot per pack — ordered is stable for the life of the overlay
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Prints aligned to the sorted row. Dupes are real (two of the same
   // legendary in one pack mints two serials), so each card CONSUMES a print

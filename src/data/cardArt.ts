@@ -79,15 +79,19 @@ export const CARD_ART: Record<string, string> = {
  * deck builder draws a whole collection, so it was most of 2.3 MB fetched to
  * paint thumbnails a few pixels across.
  *
- * 300px covers the largest "small" use (~150px) at 2x DPI. From 200 up the
- * full art loads, because that is where the detail is actually visible.
+ * 300px covers the largest "small" use (~150px) at 2x DPI. The middle band
+ * (binder tiles at 216, the reveal hero at 260) gets a 640px JPEG from
+ * /cards/md/ — before that band existed those slots each pulled the full
+ * PNG, and a binder full of legendaries fetched megabytes to paint tiles.
+ * The full file only loads from 340 up, where its detail is actually visible.
  */
 export function cardArt(id: string, override?: string, size = 999): string | null {
   if (override) return override;
   const full = CARD_ART[id];
   if (!full) return null;
-  if (size >= 200) return full;
-  return full.replace("/cards/", "/cards/sm/").replace(/\.png$/, ".jpg");
+  if (size < 200) return full.replace("/cards/", "/cards/sm/").replace(/\.png$/, ".jpg");
+  if (size < 340) return full.replace("/cards/", "/cards/md/").replace(/\.png$/, ".jpg");
+  return full;
 }
 
 let warned = false;

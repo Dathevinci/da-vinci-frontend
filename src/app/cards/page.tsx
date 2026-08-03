@@ -396,7 +396,9 @@ export default function CardsPage() {
   const openStats = async () => {
     setStatsOpen(true);
     try {
-      const r = await fetch(`${API_URL}/api/cards/pull-stats?userId=${user?.id || ""}`);
+      // When browsing someone ELSE's binder, the stats are theirs too.
+      const sid = viewing?.id || user?.id || "";
+      const r = await fetch(`${API_URL}/api/cards/pull-stats?userId=${sid}`);
       const d = await r.json();
       if (d?.success) setPullStats(d.data);
     } catch { /* offline — the modal still shows the mirrored odds */ }
@@ -835,12 +837,13 @@ export default function CardsPage() {
                       </div>
 
                       <div className="mt-4 grid grid-cols-2 gap-2.5">
-                        {([["Your packs", pullStats?.mine], ["Community", pullStats?.community]] as const).map(([label, t]) => (
+                        {([[viewing ? `${viewing.username}'s spins` : "Your spins", pullStats?.mine], ["Community", pullStats?.community]] as const).map(([label, t]) => (
                           <div key={label} className="px-4 py-3"
                             style={{ clipPath: notch(10), background: "rgba(255,255,255,.04)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.09)" }}>
                             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">{label}</p>
                             <p className="mt-1 text-2xl font-black text-white">{t ? t.packs.toLocaleString() : "…"}</p>
                             <p className="text-[10px] font-bold text-slate-500">{t ? `${t.cards.toLocaleString()} cards pulled` : "counting"}</p>
+                            <p className="text-[10px] font-bold text-amber-200/80">{t ? `${(t.apSpent ?? 0).toLocaleString()} AP spent` : ""}</p>
                           </div>
                         ))}
                       </div>
