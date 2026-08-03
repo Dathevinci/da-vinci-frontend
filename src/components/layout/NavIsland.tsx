@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { useAppMode } from "@/components/providers/AppModeProvider";
-import { isAdmin } from "@/lib/admin";
+import { isLeadDev } from "@/lib/admin";
 import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
 import NotificationsMenu from "./NotificationsMenu";
 
@@ -253,7 +253,10 @@ export default function NavIsland({ onSearch, onSettings }: { onSearch: () => vo
           {PLAY.map((d) => <IslandLink key={d.href} {...d} accent={accent} active={is(d.href)} />)}
           <Divider />
           {SOCIAL.map((d) => <IslandLink key={d.href} {...d} accent={accent} active={is(d.href)} />)}
-          {user && isAdmin(user.username) && (
+          {/* isLeadDev with the FULL user (role column first, never the
+              mutable username), matching the Navbar's gate — isAdmin here
+              advertised a console where every button 403s for admins. */}
+          {user && isLeadDev(user) && (
             <IslandLink href="/console" label="Console" Icon={Terminal} accent={accent} active={is("/console")} />
           )}
 
