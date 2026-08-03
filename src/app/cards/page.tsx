@@ -696,8 +696,8 @@ export default function CardsPage() {
                         Pack", but the pool is every non-event card across every
                         set — so the name promised one set and delivered five. */}
                     <p className="mt-2 max-w-md text-sm leading-relaxed text-slate-400">
-                      Pulls from every set in the archive, with a real shot at an Epic or Legendary.
-                      No duplicate is ever wasted — dust it into shards.
+                      Every set in the archive, one pool — the same odds on every card, every size.
+                      A duplicate is never a loss: dust it into shards.
                     </p>
                     {sets.length > 0 && (
                       <p className="mt-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-600">
@@ -705,12 +705,15 @@ export default function CardsPage() {
                       </p>
                     )}
 
-                    {/* rarity ladder — reads as odds furniture, which is the point */}
+                    {/* rarity ladder WITH the printed odds — same display-only
+                        mirror of RARITY_WEIGHTS the Pull Stats modal uses, so
+                        the banner says its chances out loud instead of hinting. */}
                     <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
-                      {(["legendary", "epic", "rare"] as CardRarity[]).map((r) => (
+                      {([["legendary", "0.6%"], ["epic", "8%"], ["rare", "27.4%"], ["common", "64%"]] as const).map(([r, pct]) => (
                         <span key={r} className="inline-flex items-center gap-1.5">
-                          <Stars rarity={r} size={11} />
-                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">{RARITY_META[r]?.label ?? r}</span>
+                          <Stars rarity={r as CardRarity} size={11} />
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">{RARITY_META[r as CardRarity]?.label ?? r}</span>
+                          <span className="font-mono text-[10px] font-bold" style={{ color: RARITY_META[r as CardRarity]?.gem || "#94a3b8" }}>{pct}</span>
                         </span>
                       ))}
                     </div>
@@ -725,9 +728,11 @@ export default function CardsPage() {
                       {(catalog.pullSizes ?? [catalog.packSize]).map((n) => {
                         const price = catalog.pullPrices?.[n] ?? catalog.packPrice;
                         const headline = n === catalog.packSize;
+                        const allIn = n === 32;
                         return (
                           <button key={n} onClick={() => openPack(n)} disabled={opening}
-                            className={`group relative flex flex-col items-center gap-0.5 px-2 py-3 transition hover:brightness-115 disabled:opacity-40 ${
+                            title={`${n} card${n === 1 ? "" : "s"} · ${(price / n) % 1 === 0 ? price / n : (price / n).toFixed(1)} AP per card`}
+                            className={`group relative flex flex-col items-center gap-0.5 px-2 py-3 transition hover:-translate-y-0.5 hover:brightness-115 disabled:opacity-40 ${
                               headline ? "text-[#160b2b]" : "text-slate-200"}`}
                             style={{
                               clipPath: notch(10),
@@ -736,8 +741,20 @@ export default function CardsPage() {
                                 : "rgba(255,255,255,.05)",
                               // The headline size wears a halo — the eye should
                               // land on the pull the banner wants you to make.
-                              boxShadow: headline ? `0 0 16px ${ACCENT}99, 0 0 34px ${ACCENT}44` : "inset 0 0 0 1px rgba(255,255,255,.12)",
+                              boxShadow: headline ? `0 0 16px ${ACCENT}99, 0 0 34px ${ACCENT}44`
+                                : allIn ? `inset 0 0 0 1px ${ACCENT}66` : "inset 0 0 0 1px rgba(255,255,255,.12)",
                             }}>
+                            {/* the two spins with a NAME get a little ribbon */}
+                            {(headline || allIn) && (
+                              <span className="pointer-events-none absolute -top-1.5 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-[1.5px] text-[7px] font-black uppercase tracking-[0.22em]"
+                                style={{
+                                  clipPath: "polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%)",
+                                  background: headline ? "#160b2b" : `linear-gradient(100deg, ${ACCENT_LIT}, ${ACCENT})`,
+                                  color: headline ? ACCENT_LIT : "#160b2b",
+                                }}>
+                                {headline ? "The Pack" : "All In"}
+                              </span>
+                            )}
                             <span className="text-lg font-black leading-none">×{n}</span>
                             <span className={`text-[10px] font-black uppercase tracking-[0.12em] ${headline ? "text-[#160b2b]/70" : "text-slate-500"}`}>
                               {price.toLocaleString()} AP
@@ -758,7 +775,7 @@ export default function CardsPage() {
                       <Gem className="h-4 w-4" /> Relic · {catalog.relicPackShards.toLocaleString()}
                     </GachaButton>
                     <p className="mt-0.5 text-center text-[10px] font-bold uppercase tracking-[0.14em] text-slate-600">
-                      Relic guarantees Epic or better
+                      Epic or better. Every time.
                     </p>
                   </div>
                 </div>
@@ -771,9 +788,9 @@ export default function CardsPage() {
           {catalog && (
             <div className="mb-8 grid gap-2.5 sm:grid-cols-3">
               {[
-                { Icon: Recycle, t: "Dust", d: "Turn duplicates into shards. No pull is ever wasted." },
-                { Icon: Hammer, t: "Craft & Foil", d: "Make the card luck won't give you, or foil one to fight 20% harder." },
-                { Icon: Gem, t: "Relic Packs", d: "Trade patience for a guaranteed Epic or better." },
+                { Icon: Recycle, t: "Dust", d: "Duplicates melt into shards — the rarer the dupe, the richer the dust. One tap on Dust Dupes clears the lot." },
+                { Icon: Hammer, t: "Craft & Foil", d: "Shards build the exact card luck keeps withholding — or foil one you love to fight 20% harder." },
+                { Icon: Gem, t: "Relic Packs", d: "Shards buy certainty: a Relic pack is Epic or better, every single time." },
               ].map(({ Icon, t, d }, i) => (
                 <Rise key={t} delay={0.1 + i * 0.07}>
                 <div className="relative flex items-start gap-3 px-4 py-3.5 transition hover:-translate-y-0.5"
