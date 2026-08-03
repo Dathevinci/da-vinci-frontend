@@ -29,6 +29,11 @@ export default function MobileBottomNav() {
   const { mode } = useAppMode();
   const [more, setMore] = useState(false);
 
+  // Signed-in phones run the DOCK now (BottomDock, mounted by the Navbar).
+  // Two bottom navs stacked was the bug; this bar stays only for guests,
+  // who have no dock and still need somewhere to tap.
+  if (user) return null;
+
   const accentColor = mode === "anime" ? "text-purple-400" : mode === "manhwa" ? "text-red-500" : "text-pink-400";
   const bgBadge =
     mode === "anime"

@@ -57,6 +57,16 @@ export default function ForgePage() {
   const [rite, setRite] = useState<{ a: CardDef; b: CardDef; outcome: any } | null>(null);
   const [bench, setBench] = useState<string | null>(null);
   const [showRecipes, setShowRecipes] = useState(false);
+  // Three full-size chambers are ~360px of glass before gaps — wider than a
+  // phone. Small screens get a scaled-down machine that actually fits.
+  const [smallScr, setSmallScr] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 560px)");
+    const sync = () => setSmallScr(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
 
   const loadCollection = async (useCache = false) => {
     if (!user?.id) return;
@@ -314,7 +324,7 @@ export default function ForgePage() {
             {/* ── THE APPARATUS ── three real glass chambers on a piped
                 console base. Tap a filled chamber to empty it. */}
             <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_300px] lg:items-end">
-              <div className="relative flex items-end justify-center gap-6 pb-2 sm:gap-12">
+              <div className="relative flex items-end justify-center gap-2 pb-2 sm:gap-12">
                 {/* the feed pipe running behind all three chambers */}
                 <div aria-hidden className="absolute bottom-9 left-[6%] right-[6%] h-2 overflow-hidden rounded-full"
                   style={{ background: "rgba(255,255,255,.06)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.10)" }}>
@@ -325,8 +335,8 @@ export default function ForgePage() {
                   const centre = i === 1;
                   const card = centre ? resultDef : s ? byId[s] : null;
                   const lit = centre ? (resultDef ? "#e11d48" : "#3f2430") : card ? (RARITY_META[card.rarity]?.frame || "#f59e0b") : "#334155";
-                  const w = centre ? 128 : 106;
-                  const h = centre ? 236 : 192;
+                  const w = centre ? (smallScr ? 92 : 128) : (smallScr ? 74 : 106);
+                  const h = centre ? (smallScr ? 172 : 236) : (smallScr ? 140 : 192);
                   return (
                     <button key={i} type="button" onClick={() => { if (!centre && clear && s) clear(); }}
                       className="relative z-10 flex flex-col items-center" title={!centre && s ? "Tap to empty this chamber" : undefined}
@@ -351,7 +361,7 @@ export default function ForgePage() {
                         {card ? (
                           <div className="absolute left-1/2 top-1/2" style={{ transform: "translate(-50%,-50%)" }}>
                             <div className="fg-float">
-                              <CardFace card={card} owned={centre ? (owned[card.id] || 0) > 0 : true} size={centre ? 92 : 80} showStats={false} />
+                              <CardFace card={card} owned={centre ? (owned[card.id] || 0) > 0 : true} size={centre ? (smallScr ? 66 : 92) : (smallScr ? 54 : 80)} showStats={false} />
                             </div>
                           </div>
                         ) : (

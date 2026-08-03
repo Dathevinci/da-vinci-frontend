@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, ArrowRight, RotateCw, Home, Bell, X, Search, Settings,
+  ArrowLeft, ArrowRight, RotateCw, Home, Bell, X, Search, Settings, LogOut,
   Tv, BookOpen, Feather, Layers, Swords, Castle, FlaskConical,
   Store, Gavel, Users, Trophy, ShoppingBag, Megaphone,
 } from "lucide-react";
@@ -48,7 +48,7 @@ export default function BottomDock({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user } = useUser();
+  const { user, logout } = useUser();
   const [open, setOpen] = useState(false);
 
   // Reader screens hide all chrome; the dock respects that.
@@ -141,6 +141,13 @@ export default function BottomDock({
                   </Link>
                 ))}
               </div>
+
+              {/* the way out — the old hamburger's logout lives here now */}
+              <button
+                onClick={() => { logout(); setOpen(false); }}
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/25 bg-red-500/10 py-3.5 font-mono text-sm font-bold text-red-400 transition hover:bg-red-500/20">
+                <LogOut className="h-4 w-4" /> Log out
+              </button>
             </motion.div>
           </motion.div>
         )}
