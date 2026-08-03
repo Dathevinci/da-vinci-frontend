@@ -55,6 +55,8 @@ export default function MarketplacePage() {
   const [mine, setMine] = useState<Listing[]>([]);
   const [sort, setSort] = useState<"low" | "high" | "new">("low");
   const [tab, setTab] = useState<"browse" | "mine">("browse");
+  // Browse legendaries BY BUILD — each wear is its own market.
+  const [wearFilter, setWearFilter] = useState<"all" | "fresh" | "rusted" | "factory">("all");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [selling, setSelling] = useState(false);
@@ -133,7 +135,10 @@ export default function MarketplacePage() {
     }
   };
 
-  const shown = tab === "mine" ? mine : listings;
+  // Wear filter only steers the browse tab — its chips live there, and a
+  // filter you can't see shouldn't be able to hide your own listings.
+  const shown = tab === "mine" ? mine : listings.filter((l) =>
+    wearFilter === "all" || (l as any).prints?.[0]?.condition === wearFilter);
   const activeMine = useMemo(() => mine.filter((l) => l.status === "ACTIVE"), [mine]);
 
   return (
@@ -223,6 +228,20 @@ export default function MarketplacePage() {
                     {label}
                   </button>
                 ))}
+                {/* build filter — each wear is its own market with its own prices */}
+                <span aria-hidden className="mx-1 h-5 w-px bg-white/10" />
+                {([["all", "All", "#cbd5e1"], ["fresh", "Fresh Build", "#fbbf24"], ["rusted", "Rusted", "#fb923c"], ["factory", "Factory New", "#cbd5e1"]] as const).map(([k, label, tint]) => (
+                  <button key={k} onClick={() => setWearFilter(wearFilter === k && k !== "all" ? "all" : k)}
+                    className="px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] transition"
+                    style={{
+                      clipPath: notch(7),
+                      color: wearFilter === k ? tint : "#64748b",
+                      background: wearFilter === k ? "rgba(255,255,255,.08)" : "rgba(255,255,255,.03)",
+                      boxShadow: `inset 0 0 0 1px ${wearFilter === k ? `${tint}66` : "rgba(255,255,255,.07)"}`,
+                    }}>
+                    {label}
+                  </button>
+                ))}
               </>
             )}
           </div>
@@ -291,6 +310,17 @@ function ListingCard({ listing, meId, busy, onOpen, onCancel }: {
               ? <CardFace card={card} owned foil={foil} level={level} wear={(listing as any).prints?.[0]?.condition} size={272} ratio="5 / 9" />
               : <div className="grid h-[490px] w-[272px] place-items-center text-xs text-slate-600">Unknown card</div>}
           </div>
+          {/* the BUILD, said out loud — the tile treatment shows it, the
+              badge names it, so a Rusted price is never mistaken for a
+              Fresh Build price. */}
+          {(listing as any).prints?.[0] && (() => {
+            const m = PRINT_META[(listing as any).prints[0].condition] || PRINT_META.factory;
+            return (
+              <span className={`absolute left-3 top-3 rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] ${m.cls}`}>
+                {m.label}
+              </span>
+            );
+          })()}
           {qty > 1 && (
             <span className="absolute right-3 top-3 px-2 py-1 text-[10px] font-black text-white"
               style={{ clipPath: notch(6), background: `linear-gradient(100deg, #7c3aed, ${ACCENT})` }}>
@@ -633,23 +663,31 @@ function SellSheet({ onClose, onListed }: { onClose: () => void; onListed: () =>
                     {/* Each copy is its own graded object — you sell THESE
                         prints, not "some copies". */}
                     <label className="mt-3 block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
-                      Prints to sell — tap to pick
+                      Prints to sell — tap to pick · one build per listing
                     </label>
                     <div className="mt-1.5 flex flex-wrap gap-1.5">
-                      {pickPrints.map((p) => {
-                        const on = sel.includes(p.serial);
-                        const m = PRINT_META[p.condition] || PRINT_META.factory;
-                        return (
-                          <button key={p.serial}
-                            onClick={() => setSel((s) => on ? s.filter((n) => n !== p.serial) : [...s, p.serial])}
-                            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] transition ${m.cls} ${
-                              on ? "ring-2 ring-white/80" : "opacity-70 hover:opacity-100"
-                            }`}>
-                            {m.label}
-                            <span className="font-mono normal-case tracking-normal opacity-80">#{String(p.serial).padStart(3, "0")}</span>
-                          </button>
-                        );
-                      })}
+                      {(() => {
+                        // ONE BUILD PER LISTING — each wear is its own market
+                        // with its own price. The first pick locks the build;
+                        // other builds grey out until the selection clears.
+                        const selWear = sel.length > 0 ? pickPrints.find((p) => p.serial === sel[0])?.condition : null;
+                        return pickPrints.map((p) => {
+                          const on = sel.includes(p.serial);
+                          const locked = !!selWear && p.condition !== selWear;
+                          const m = PRINT_META[p.condition] || PRINT_META.factory;
+                          return (
+                            <button key={p.serial} disabled={locked}
+                              title={locked ? "One build per listing — list this wear separately" : undefined}
+                              onClick={() => setSel((s) => on ? s.filter((n) => n !== p.serial) : [...s, p.serial])}
+                              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] transition ${m.cls} ${
+                                on ? "ring-2 ring-white/80" : locked ? "opacity-25 cursor-not-allowed" : "opacity-70 hover:opacity-100"
+                              }`}>
+                              {m.label}
+                              <span className="font-mono normal-case tracking-normal opacity-80">#{String(p.serial).padStart(3, "0")}</span>
+                            </button>
+                          );
+                        });
+                      })()}
                     </div>
                     {sel.length === pickPrints.length && pickPrints.length > 1 && (
                       <p className="mt-1.5 text-[11px] text-amber-300/80">
