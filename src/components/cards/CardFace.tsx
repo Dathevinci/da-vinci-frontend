@@ -104,6 +104,10 @@ export const STAR_COUNT: Record<CardRarity, number> = {
   common: 1, rare: 2, epic: 3, legendary: 4, event: 5, mythic: 5,
 };
 
+/** The five legendaries the Synthesis Lab accepts — display-only mirror of
+ *  FUSION_ELIGIBLE on the server; the machine itself is the gate. */
+const FUSABLE = new Set(["card_gatekey", "card_lastronin", "card_leviathan", "card_longmorrow", "card_outergod"]);
+
 // Deterministic per-card pseudo-random so a card always looks identical.
 function rnd(id: string, salt: number): number {
   let h = salt * 2654435761;
@@ -1262,6 +1266,35 @@ function CardFaceImpl({
               background: `linear-gradient(to bottom, rgba(14,14,19,0) 0%, rgba(14,14,19,.55) 55%, ${surface} 100%)`,
             }}
           />
+        )}
+
+        {/* ── THE FUSION MARK ── the five legendaries the machine accepts
+            wear a small crimson seal on their right edge, everywhere they
+            render — so "which cards can synthesize" is readable at a
+            glance, owned or not. Display-only mirror of FUSION_ELIGIBLE. */}
+        {FUSABLE.has(card.id) && size >= 96 && (
+          <span
+            aria-label="Fusion-eligible"
+            style={{
+              position: "absolute",
+              top: Math.round(size * 0.16),
+              right: -3,
+              zIndex: 7,
+              transform: "rotate(9deg)",
+              padding: "1px 6px",
+              fontSize: Math.max(7, Math.round(size * 0.048)),
+              fontWeight: 900,
+              letterSpacing: "0.16em",
+              color: "#ffe4e6",
+              background: "rgba(24,3,8,.8)",
+              border: "1px solid #fb7185",
+              borderRadius: 5,
+              textShadow: "0 0 5px #e11d48, 0 0 11px #e11d48",
+              boxShadow: "0 0 8px rgba(225,29,72,.7), inset 0 0 6px rgba(225,29,72,.35)",
+            }}
+          >
+            ⚗ FUSES
+          </span>
         )}
 
         {/* ── THE MAX SIGN ── a neon tube hung slightly crooked off the top
