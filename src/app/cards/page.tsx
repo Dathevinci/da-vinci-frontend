@@ -69,6 +69,9 @@ export default function CardsPage() {
   const [skillLevels, setSkillLevels] = useState<Record<string, number>>({});
   // Forge ranks — flat per-stat training, the third shard track.
   const [forges, setForges] = useState<Record<string, { atk: number; hp: number }>>({});
+  // The binder's two readings: BY SET (the chase — what's missing) or
+  // INVENTORY (what you HOLD, by rarity, legendaries shelved by build).
+  const [view, setView] = useState<"sets" | "inv">("sets");
   // Legendary print identities: cardId -> [{serial, condition}], server-real.
   const [prints, setPrints] = useState<Record<string, { serial: number; condition: string }[]>>({});
   const [claimedSets, setClaimedSets] = useState<string[]>([]);
@@ -732,7 +735,23 @@ export default function CardsPage() {
                 );
               })()}
 
-              {sets.map(({ set, cards, have, total }) => (
+              {/* ── VIEW TOGGLE ── the set view is the chase (what's missing);
+                  the inventory is the shelf (what you hold, uncluttered). */}
+              <div className="flex gap-1.5">
+                {([["sets", "By Set"], ["inv", "Inventory"]] as const).map(([v, label]) => (
+                  <button key={v} onClick={() => setView(v)}
+                    className={`px-5 py-2 text-[11px] font-black uppercase tracking-[0.18em] transition ${view === v ? "text-white" : "text-slate-500 hover:text-slate-300"}`}
+                    style={{
+                      clipPath: "polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%)",
+                      background: view === v ? "linear-gradient(100deg, rgba(162,116,255,.35), rgba(124,58,237,.22))" : "rgba(255,255,255,.04)",
+                      boxShadow: `inset 0 0 0 1px ${view === v ? "rgba(196,164,255,.55)" : "rgba(255,255,255,.08)"}`,
+                    }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {view === "sets" ? sets.map(({ set, cards, have, total }) => (
                 // Each set glides in as you reach it — the page unrolls
                 // instead of arriving as one wall.
                 <Rise key={set}>
@@ -902,7 +921,81 @@ export default function CardsPage() {
                   })()}
                 </div>
                 </Rise>
-              ))}
+              )) : (
+                /* ── INVENTORY ── the shelf reading: everything you HOLD, by
+                   rarity, nothing you don't. Legendaries get a shelf per
+                   BUILD, because each wear is its own card. */
+                <div className="space-y-8">
+                  {(["common", "rare", "epic"] as CardRarity[]).map((r) => {
+                    const mine = (catalog?.cards || []).filter((c: CardDef) => c.rarity === r && (owned[c.id] || 0) > 0);
+                    if (!mine.length) return null;
+                    return (
+                      <Rise key={r}>
+                      <div>
+                        <Heading title={RARITY_META[r].label} sub={`${mine.length} owned`} />
+                        <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                          {mine.map((c: CardDef) => (
+                            <button key={c.id} onClick={() => setSelected(c)}
+                              className="group relative flex flex-col items-center gap-1.5 p-2 transition hover:-translate-y-1"
+                              style={{
+                                clipPath: notch(12), background: "rgba(255,255,255,.035)",
+                                boxShadow: "inset 0 0 0 1px rgba(162,116,255,.24)",
+                                contentVisibility: "auto", containIntrinsicSize: `auto ${smallScreen ? 310 : 400}px`,
+                              } as any}>
+                              <CardFace card={c} owned count={owned[c.id]} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} size={gridCard} ratio="5 / 9" />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      </Rise>
+                    );
+                  })}
+                  {(() => {
+                    const wearMeta = [
+                      { key: "fresh", label: "Fresh Build", cls: "border-amber-400/60 bg-amber-500/15 text-amber-200" },
+                      { key: "rusted", label: "Rusted", cls: "border-orange-700/60 bg-orange-900/40 text-orange-300" },
+                      { key: "factory", label: "Factory New", cls: "border-slate-400/40 bg-slate-600/30 text-slate-200" },
+                    ];
+                    const legendaries = (catalog?.cards || []).filter((c: CardDef) => c.rarity === "legendary" && (owned[c.id] || 0) > 0);
+                    if (!legendaries.length) return null;
+                    return (
+                      <Rise>
+                      <div>
+                        <Heading title="Legendary" sub="Shelved by build — each wear is its own card" />
+                        <div className="space-y-6">
+                          {wearMeta.map((w) => {
+                            const held = legendaries
+                              .map((c: CardDef) => ({ c, n: (prints[c.id] || []).filter((p) => p.condition === w.key).length }))
+                              .filter((x) => x.n > 0);
+                            if (!held.length) return null;
+                            return (
+                              <div key={w.key}>
+                                <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${w.cls}`}>
+                                  {w.label} · {held.reduce((n, x) => n + x.n, 0)}
+                                </span>
+                                <div className="mt-2 grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                                  {held.map(({ c, n }) => (
+                                    <button key={c.id} onClick={() => setSelected(c)}
+                                      className="group relative flex flex-col items-center gap-1.5 p-2 transition hover:-translate-y-1"
+                                      style={{
+                                        clipPath: notch(12), background: "rgba(255,255,255,.035)",
+                                        boxShadow: "inset 0 0 0 1px rgba(245,158,11,.28)",
+                                        contentVisibility: "auto", containIntrinsicSize: `auto ${smallScreen ? 310 : 400}px`,
+                                      } as any}>
+                                      <CardFace card={c} owned count={n} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} size={gridCard} ratio="5 / 9" />
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      </Rise>
+                    );
+                  })()}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1143,7 +1236,7 @@ export default function CardsPage() {
                         <p className="mt-2 text-[11px] text-slate-500">
                           {lvlCapped
                             ? "Fully levelled — nothing left to raise."
-                            : `${lvlCost.toLocaleString()} shards to level ${lvl + 1} · +${Math.round((lvl) * (catalog.levelStep ?? 0.07) * 100)}% ATK & HP at the next step`}
+                            : `${lvlCost.toLocaleString()} shards to level ${lvl + 1} · +${Math.round((lvl) * (catalog.levelStep ?? 0.07) * 100)}% ${selected.support ? "EFFECT POWER" : "ATK & HP"} at the next step`}
                         </p>
                       </div>
                     )}
@@ -1287,11 +1380,20 @@ export default function CardsPage() {
                           </ActionButton>
                         )}
 
-                        {count > 1 && (
-                          <ActionButton onClick={() => dust(selected)} Icon={Recycle}>
-                            Dust {count - 1} dupe{count - 1 === 1 ? "" : "s"} (+{(count - 1) * dustEach} shards)
-                          </ActionButton>
-                        )}
+                        {(() => {
+                          // WEAR-AWARE dupes: a Fresh Build and a Factory New
+                          // are different objects. Only same-build extras are
+                          // duplicates — mirrors the server's rule exactly.
+                          const wearDupes = myPrints.length > 0
+                            ? myPrints.length - new Set(myPrints.map((p) => p.condition)).size
+                            : count - 1;
+                          if (wearDupes <= 0) return null;
+                          return (
+                            <ActionButton onClick={() => dust(selected)} Icon={Recycle}>
+                              Dust {wearDupes} same-build dupe{wearDupes === 1 ? "" : "s"} (+{wearDupes * dustEach} shards)
+                            </ActionButton>
+                          );
+                        })()}
 
                         {count > 0 && !foils[selected.id] && selected.rarity !== "event" && (
                           <ActionButton
