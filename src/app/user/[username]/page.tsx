@@ -45,6 +45,7 @@ import { novelCover } from "@/lib/novelImage";
 import { useManhwaModal } from "@/components/providers/ManhwaModalProvider";
 import { useNovelModal } from "@/components/providers/NovelModalProvider";
 import ShowcaseCards from "@/components/profile/ShowcaseCards";
+import TitleRack from "@/components/profile/TitleRack";
 import RecentComments from "@/components/profile/RecentComments";
 
 export default function PublicProfilePage() {
@@ -566,6 +567,7 @@ export default function PublicProfilePage() {
             profile does not grow empty boxes and a failed fetch degrades to an
             absent section rather than a broken page. */}
         <div className="px-1 pt-6">
+          <TitleRack userId={profileUser.id} isMine={isSelf} />
           <ShowcaseCards
             userId={profileUser.id}
             isMine={isSelf}
