@@ -657,7 +657,9 @@ export default function CardsPage() {
                   <div className="flex flex-col items-stretch gap-2.5 lg:w-[300px]">
                     {/* Pull sizes come from the server so the price shown is
                         the price charged — and so a client can't invent one. */}
-                    <div className="grid grid-cols-3 gap-2">
+                    {/* 2×2 once the ×8 exists — four options in a 300px rail
+                        at three-across squeezed the labels illegible */}
+                    <div className="grid grid-cols-2 gap-2">
                       {(catalog.pullSizes ?? [catalog.packSize]).map((n) => {
                         const price = catalog.pullPrices?.[n] ?? catalog.packPrice;
                         const headline = n === catalog.packSize;

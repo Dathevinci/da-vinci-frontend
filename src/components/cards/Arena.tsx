@@ -433,6 +433,11 @@ export default function Arena({
   }, [aura?.key]);
   const aliveFoe = foe.fighters.filter((f) => f.hp > 0).length;
   const aliveMine = mine.fighters.filter((f) => f.hp > 0).length;
+  // Army totals for the war bar — the fight's whole state in one glance.
+  const foeHp = foe.fighters.reduce((a, f) => a + Math.max(0, f.hp), 0);
+  const foeMax = Math.max(1, foe.fighters.reduce((a, f) => a + f.maxHp, 0));
+  const myHp = mine.fighters.reduce((a, f) => a + Math.max(0, f.hp), 0);
+  const myMax = Math.max(1, mine.fighters.reduce((a, f) => a + f.maxHp, 0));
   useEffect(() => {
     const now = {
       mi: myActive?.cardId, mh: myActive?.hp ?? 0,
@@ -820,6 +825,29 @@ export default function Arena({
         </div>
       </div>
 
+      {/* ── WAR BAR ── both armies' remaining health facing each other,
+          fighting-game style: the foe drains from the centre leftward, you
+          drain from the centre rightward, the round sits at the join. */}
+      <div className="relative z-20 shrink-0 px-3 pb-1.5">
+        <div className="flex items-center gap-2">
+          <div className="h-2.5 flex-1 overflow-hidden rounded-l-full bg-black/50"
+            style={{ boxShadow: "inset 0 0 0 1px rgba(56,132,255,.25)" }}>
+            <div className="ml-auto h-full transition-[width] duration-500 ease-out"
+              style={{ width: `${(foeHp / foeMax) * 100}%`, background: "linear-gradient(270deg, #38bdf8, #0284c7)" }} />
+          </div>
+          <span className="shrink-0 font-mono text-[9px] font-black tracking-widest text-slate-500">R{round}</span>
+          <div className="h-2.5 flex-1 overflow-hidden rounded-r-full bg-black/50"
+            style={{ boxShadow: "inset 0 0 0 1px rgba(244,63,94,.25)" }}>
+            <div className="h-full transition-[width] duration-500 ease-out"
+              style={{ width: `${(myHp / myMax) * 100}%`, background: "linear-gradient(90deg, #f43f5e, #fb7185)" }} />
+          </div>
+        </div>
+        <div className="mt-0.5 flex justify-between font-mono text-[9px] font-bold">
+          <span className="text-sky-300/80">{foeHp.toLocaleString()} / {foeMax.toLocaleString()}</span>
+          <span className="text-rose-300/80">{myHp.toLocaleString()} / {myMax.toLocaleString()}</span>
+        </div>
+      </div>
+
       {/* On a wide screen the log lives in the dead margin beside the board. */}
       {wide && logPanel && (
         // A real column, floor to ceiling. It used to be a short box pinned to
@@ -1020,7 +1048,10 @@ export default function Arena({
             Without it the clash section reclaimed the banner's height when
             space ran short and sliced the text in half against the edge of
             YOUR SIDE below. */}
-        <div className={`relative z-10 shrink-0 px-6 py-2 text-[11px] font-black uppercase tracking-[0.2em] transition ${
+        <motion.div
+          animate={!finished && !busy && myTurn ? { scale: [1, 1.03, 1] } : { scale: 1 }}
+          transition={!finished && !busy && myTurn ? { duration: 1.6, repeat: Infinity, ease: "easeInOut" } : { duration: 0.2 }}
+          className={`relative z-10 shrink-0 px-6 py-2 text-[11px] font-black uppercase tracking-[0.2em] transition ${
           finished ? "text-slate-200"
             : busy ? "text-slate-400"
             : myTurn ? "text-rose-50 shadow-[0_0_30px_rgba(244,63,94,.4)]"
@@ -1041,7 +1072,7 @@ export default function Arena({
                 : "Drop to send this card in")
             : myTurn ? (mine.active < 0 ? "Send in your first card" : "Your move")
             : `${foeName} is thinking…`}
-        </div>
+        </motion.div>
 
         {!wide && logPanel}
       </div>
