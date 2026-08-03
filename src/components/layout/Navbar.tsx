@@ -181,11 +181,11 @@ export default function Navbar() {
       {/* ── DESKTOP ── the island replaces the bar entirely above lg. */}
       <NavIsland onSearch={() => setShowSearchModal(true)} onSettings={() => setShowControlCenter(true)} />
 
-      {/* ── MOBILE ── the original bar, untouched, and no longer auto-hiding:
-          the island is small enough to leave up, so hiding exists for nobody.
-          `lg:hidden` is what keeps the two from ever stacking. */}
+      {/* ── MOBILE ── the original top bar now serves ONLY the signed-out:
+          a signed-in phone gets the Dock instead, and showing both stacked
+          two navbars on one small screen. */}
       <header
-        className={`fixed top-0 w-full z-50 transition-all duration-300 lg:hidden ${
+        className={`fixed top-0 w-full z-50 transition-all duration-300 ${user ? "hidden" : "lg:hidden"} ${
         isScrolled 
           ? `bg-[#030305]/90 backdrop-blur-lg border-b ${isDejavuh ? 'border-purple-500/30 shadow-[0_4px_30px_rgba(168,85,247,0.15)]' : 'border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.5)]'}`
           : 'bg-gradient-to-b from-[#030305]/80 to-transparent'
@@ -448,8 +448,9 @@ export default function Navbar() {
         onClose={() => setShowControlCenter(false)}
       />
       {/* The phone-thumb dock + its Navigation sheet. Mobile only — the
-          desktop island already owns the bottom of big screens. */}
-      {user && <BottomDock />}
+          desktop island already owns the bottom of big screens. It absorbs
+          the old top bar's real jobs: the search modal and Control Center. */}
+      {user && <BottomDock onSearch={() => setShowSearchModal(true)} onSettings={() => setShowControlCenter(true)} />}
     </>
   );
 }

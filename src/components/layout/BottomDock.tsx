@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, ArrowRight, RotateCw, Home, Bell, X, Search,
+  ArrowLeft, ArrowRight, RotateCw, Home, Bell, X, Search, Settings,
   Tv, BookOpen, Feather, Layers, Swords, Castle, FlaskConical,
   Store, Gavel, Users, Trophy, ShoppingBag, Megaphone,
 } from "lucide-react";
@@ -37,7 +37,15 @@ const PAGES: { href: string; label: string; Icon: any; tint: string }[] = [
   { href: "/updates",     label: "Updates",          Icon: Megaphone,    tint: "#94a3b8" },
 ];
 
-export default function BottomDock() {
+export default function BottomDock({
+  onSearch,
+  onSettings,
+}: {
+  /** Opens the real search modal (owned by the nav that mounts us). */
+  onSearch?: () => void;
+  /** Opens the Control Center — quick settings, performance mode. */
+  onSettings?: () => void;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useUser();
@@ -103,8 +111,8 @@ export default function BottomDock() {
               <p className="mt-5 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Quick actions</p>
               <div className="mt-2 grid grid-cols-3 gap-2">
                 {([
-                  ["Search", Search, () => { setOpen(false); router.push("/explore"); }],
-                  ["Forward", ArrowRight, () => { setOpen(false); router.forward(); }],
+                  ["Search", Search, () => { setOpen(false); if (onSearch) onSearch(); else router.push("/explore"); }],
+                  ["Settings", Settings, () => { setOpen(false); if (onSettings) onSettings(); }],
                   ["Reload", RotateCw, () => window.location.reload()],
                 ] as const).map(([label, Icon, fn]) => (
                   <button key={label as string} onClick={fn as () => void}
