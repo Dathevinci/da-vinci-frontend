@@ -9,6 +9,7 @@ import PageTransition from "@/components/layout/PageTransition";
 import CardFace, { CardDef } from "@/components/cards/CardFace";
 import { cardArt } from "@/data/cardArt";
 import { loadCatalog } from "@/lib/catalogCache";
+import { swrJson } from "@/lib/swrCache";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -262,22 +263,23 @@ export default function DungeonPage() {
   });
 
   // ── data ──
-  const loadStatus = useCallback(async () => {
+  const loadStatus = useCallback(async (useCache = false) => {
     if (!user?.id) return;
-    try {
-      const r = await fetch(`${API_URL}/api/dungeon/status/${user.id}`);
-      const d = await r.json();
-      if (!d?.success) return;
-      setDungeons(d.data.dungeons || []);
-      setCards(d.data.cards || []);
-      setPartyMax(d.data.partyMax || 4);
-      setHealCost(d.data.healCost ?? 80);
-      setReviveCost(d.data.reviveCost ?? 500);
-      setSupportIds(d.data.supportCards || []);
-      setSupLevels(d.data.supportLevels || {});
-      setPackMax(d.data.packMax ?? 3);
+    // Applied twice on the cached path (cache, then network). The RUN resume
+    // only ever fires from FRESH data — a stale cached run could reopen a
+    // raid screen for a run that already ended.
+    const apply = (d: any, fromCache: boolean) => {
+      setDungeons(d.dungeons || []);
+      setCards(d.cards || []);
+      setPartyMax(d.partyMax || 4);
+      setHealCost(d.healCost ?? 80);
+      setReviveCost(d.reviveCost ?? 500);
+      setSupportIds(d.supportCards || []);
+      setSupLevels(d.supportLevels || {});
+      setPackMax(d.packMax ?? 3);
+      if (fromCache) return;
       // A run still in flight: reopen the raid screen paused between floors.
-      const run = d.data.activeRun;
+      const run = d.activeRun;
       if (run && run.status === "RUNNING") {
         const st = JSON.parse(run.state);
         setRunId(run.id);
@@ -292,6 +294,19 @@ export default function DungeonPage() {
         setScreen("raid");
         setPhase("idle");
       }
+    };
+    const url = `${API_URL}/api/dungeon/status/${user.id}`;
+    if (useCache) {
+      // Lobby paints instantly from the session copy while Render wakes.
+      await swrJson(`davinci_dgn_${user.id}`, url, apply);
+      return;
+    }
+    try {
+      const r = await fetch(url);
+      const d = await r.json();
+      if (!d?.success) return;
+      apply(d.data, false);
+      try { sessionStorage.setItem(`davinci_dgn_${user.id}`, JSON.stringify({ shape: 1, at: Date.now(), data: d.data })); } catch {}
     } catch { /* offline */ }
   }, [user?.id]);
 
@@ -320,7 +335,7 @@ export default function DungeonPage() {
       text,
     };
   };
-  useEffect(() => { loadStatus(); }, [loadStatus]);
+  useEffect(() => { loadStatus(true); }, [loadStatus]);
   useEffect(() => () => { stopRef.current = true; if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
   const post = async (path: string, body: any) => {

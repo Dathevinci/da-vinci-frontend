@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState, type ComponentType, type Rea
 import { motion, AnimatePresence } from "framer-motion";
 import { Layers, Sparkles, Gem, X, Hammer, Recycle, PackageOpen, Users, Heart, Swords, Zap, ArrowUp, BarChart3 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
+import { loadCatalog } from "@/lib/catalogCache";
+import { swrJson } from "@/lib/swrCache";
 import { isLeadDev, displayArisePoints, displayShards } from "@/lib/admin";
 import { authHeaders } from "@/lib/authToken";
 import { useToast } from "@/components/ui/Toast";
@@ -107,19 +109,43 @@ export default function CardsPage() {
   };
 
   useEffect(() => {
-    fetch(`${API_URL}/api/cards/catalog`)
-      .then((r) => r.json())
-      // Only accept a catalog that actually HAS its card list. Render's free
-      // tier sleeps, so a cold start can answer with a partial or error-shaped
-      // body; storing that produced a catalog object whose `.cards` was
-      // undefined, and every `catalog.cards...` read downstream then threw.
-      .then((d) => {
-        if (d?.success && Array.isArray(d?.data?.cards)) setCatalog(d.data);
-      })
-      .catch(() => {});
+    // Session-cached, refreshed in the background — the binder paints its
+    // sets instantly on every visit after the first instead of waiting out
+    // a Render cold start. loadCatalog already refuses card-less payloads.
+    loadCatalog(API_URL, (data) => setCatalog(data));
   }, []);
 
-  const loadCollection = async () => {
+  // One parser for both the cached and the fresh payload — SWR calls it twice.
+  const applyCollection = (data: any) => {
+    const map: Record<string, number> = {};
+    const fo: Record<string, boolean> = {};
+    const hb: Record<string, boolean> = {};
+    const lv: Record<string, number> = {};
+    const sk: Record<string, number> = {};
+    const fg: Record<string, { atk: number; hp: number }> = {};
+    const pr: Record<string, { serial: number; condition: string }[]> = {};
+    for (const c of data?.cards || []) {
+      map[c.cardId] = c.count;
+      if (c.foil) fo[c.cardId] = true;
+      if (c.hibernating) hb[c.cardId] = true;
+      lv[c.cardId] = c.level || 1;
+      sk[c.cardId] = c.skillLevel || 1;
+      fg[c.cardId] = { atk: c.atkForge || 0, hp: c.hpForge || 0 };
+      if (Array.isArray(c.prints) && c.prints.length) pr[c.cardId] = c.prints;
+    }
+    setOwned(map);
+    setFoils(fo);
+    setAsleep(hb);
+    setLevels(lv);
+    setSkillLevels(sk);
+    setForges(fg);
+    setPrints(pr);
+    setClaimedSets(data?.claimedSets || []);
+    setShards(data?.shards || 0);
+    setLoading(false);
+  };
+
+  const loadCollection = async (useCache = false) => {
     // When viewing someone else's binder we read THEIR collection; the action
     // buttons all key off `isMine` so nothing is spendable on their behalf.
     const targetId = viewing?.id || user?.id;
@@ -127,35 +153,21 @@ export default function CardsPage() {
       setLoading(false);
       return;
     }
+    const url = `${API_URL}/api/cards/collection/${targetId}`;
+    if (useCache) {
+      // Mount path: paint instantly from the session cache, correct from the
+      // network. Post-action refreshes (dust, forge, pull) deliberately skip
+      // the cached paint — flashing pre-action counts would read as the
+      // action having silently undone itself.
+      await swrJson(`davinci_col_${targetId}`, url, applyCollection, () => setLoading(false));
+      return;
+    }
     try {
-      const r = await fetch(`${API_URL}/api/cards/collection/${targetId}`);
+      const r = await fetch(url);
       const d = await r.json();
       if (d.success) {
-        const map: Record<string, number> = {};
-        const fo: Record<string, boolean> = {};
-        const hb: Record<string, boolean> = {};
-        const lv: Record<string, number> = {};
-        const sk: Record<string, number> = {};
-        const fg: Record<string, { atk: number; hp: number }> = {};
-        const pr: Record<string, { serial: number; condition: string }[]> = {};
-        for (const c of d.data?.cards || []) {
-          map[c.cardId] = c.count;
-          if (c.foil) fo[c.cardId] = true;
-          if (c.hibernating) hb[c.cardId] = true;
-          lv[c.cardId] = c.level || 1;
-          sk[c.cardId] = c.skillLevel || 1;
-          fg[c.cardId] = { atk: c.atkForge || 0, hp: c.hpForge || 0 };
-          if (Array.isArray(c.prints) && c.prints.length) pr[c.cardId] = c.prints;
-        }
-        setOwned(map);
-        setFoils(fo);
-        setAsleep(hb);
-        setLevels(lv);
-        setSkillLevels(sk);
-        setForges(fg);
-        setPrints(pr);
-        setClaimedSets(d.data.claimedSets || []);
-        setShards(d.data.shards || 0);
+        applyCollection(d.data);
+        try { sessionStorage.setItem(`davinci_col_${targetId}`, JSON.stringify({ shape: 1, at: Date.now(), data: d.data })); } catch {}
       }
     } catch {
       /* offline */
@@ -171,7 +183,7 @@ export default function CardsPage() {
     // name, which is exactly the kind of lie a collection page can't tell.
     setOwned({}); setFoils({}); setAsleep({}); setLevels({});
     setSkillLevels({}); setForges({}); setPrints({}); setLoading(true);
-    loadCollection();
+    loadCollection(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, viewing?.id]);
 

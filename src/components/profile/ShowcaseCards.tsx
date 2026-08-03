@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Star, Plus, X, Check } from "lucide-react";
 import { authHeaders } from "@/lib/authToken";
+import { loadCatalog } from "@/lib/catalogCache";
+import { swrJson } from "@/lib/swrCache";
 import CardFace, { CardDef } from "@/components/cards/CardFace";
 import { Panel, Heading, GachaButton, notch, ACCENT, ACCENT_LIT } from "@/components/cards/gacha";
 
@@ -62,11 +64,11 @@ export default function ShowcaseCards({
 
   useEffect(() => {
     if (!userId) return;
-    Promise.all([
-      fetch(`${API_URL}/api/cards/catalog`).then((r) => r.json()).catch(() => null),
-      fetch(`${API_URL}/api/cards/collection/${userId}`).then((r) => r.json()).catch(() => null),
-    ]).then(([cat, col]) => {
-      if (cat?.success && Array.isArray(cat.data?.cards)) setCatalog(cat.data.cards);
+    // Both served from the session cache first, refreshed in the background —
+    // a profile's showcase paints instantly instead of arriving late.
+    loadCatalog(API_URL, (data) => setCatalog(data.cards || []));
+    swrJson(`davinci_col_${userId}`, `${API_URL}/api/cards/collection/${userId}`, (colData) => {
+      const col = { success: true, data: colData };
       if (col?.success) {
         const m: Record<string, number> = {};
         const f: Record<string, boolean> = {};

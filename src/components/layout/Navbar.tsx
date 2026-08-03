@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut, Users, Palette, ShoppingBag, Menu, X, Settings, Heart, ChevronDown, Tv, BookMarked, BookOpen, Swords, Terminal, Layers, Gavel, Trophy, Castle, Gamepad2 } from 'lucide-react';
 import { isAdmin, isLeadDev } from "@/lib/admin";
+import { warmBackend } from "@/lib/warmBackend";
 import LoginModal from './LoginModal';
 import SearchModal from './SearchModal';
 import ArisePointPopup from '../ui/ArisePointPopup';
@@ -39,6 +40,10 @@ export default function Navbar() {
     mq.addEventListener("change", apply);
     return () => mq.removeEventListener("change", apply);
   }, []);
+  // The nav is on every page, so this is the earliest moment of any visit:
+  // knock on the Render dyno once per session so it's awake by the time a
+  // game page actually needs an answer.
+  useEffect(() => { warmBackend(); }, []);
   const [showLogin, setShowLogin] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [modeMenuOpen, setModeMenuOpen] = useState(false);

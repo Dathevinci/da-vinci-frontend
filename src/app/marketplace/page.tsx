@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { isLeadDev } from "@/lib/admin";
+import { loadCatalog } from "@/lib/catalogCache";
+import { swrJson } from "@/lib/swrCache";
 import { authHeaders } from "@/lib/authToken";
 import { useToast } from "@/components/ui/Toast";
 import PageTransition from "@/components/layout/PageTransition";
@@ -548,18 +550,15 @@ function SellSheet({ onClose, onListed }: { onClose: () => void; onListed: () =>
 
   useEffect(() => {
     if (!user?.id) return;
-    Promise.all([
-      fetch(`${API_URL}/api/cards/catalog`).then((r) => r.json()).catch(() => null),
-      fetch(`${API_URL}/api/cards/collection/${user.id}`).then((r) => r.json()).catch(() => null),
-    ]).then(([cat, col]) => {
-      if (cat?.success && Array.isArray(cat.data?.cards)) setCatalog(cat.data.cards);
-      if (col?.success) {
-        const m: Record<string, any> = {};
-        for (const c of col.data?.cards || []) {
-          m[c.cardId] = { count: c.count, foil: !!c.foil, level: c.level || 1, hibernating: !!c.hibernating, prints: Array.isArray(c.prints) ? c.prints : [] };
-        }
-        setOwned(m);
+    // Session-cached, refreshed in the background — the sell sheet opens
+    // with your cards already there instead of arriving late.
+    loadCatalog(API_URL, (data) => setCatalog(data.cards || []));
+    swrJson(`davinci_col_${user.id}`, `${API_URL}/api/cards/collection/${user.id}`, (colData) => {
+      const m: Record<string, any> = {};
+      for (const c of colData?.cards || []) {
+        m[c.cardId] = { count: c.count, foil: !!c.foil, level: c.level || 1, hibernating: !!c.hibernating, prints: Array.isArray(c.prints) ? c.prints : [] };
       }
+      setOwned(m);
     });
   }, [user?.id]);
 
