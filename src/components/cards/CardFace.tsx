@@ -1101,6 +1101,8 @@ function CardFaceImpl({
 @keyframes cf-breathe { 0%,100% { opacity:.30 } 50% { opacity:.75 } }
 @keyframes cf-neon { 0%,100% { opacity:.8 } 50% { opacity:1 } }
 @keyframes cf-maxflick { 0%,100% { opacity:1 } 6% { opacity:.55 } 8% { opacity:1 } 44% { opacity:1 } 46% { opacity:.8 } 47% { opacity:1 } 72% { opacity:1 } 73% { opacity:.6 } 75% { opacity:1 } }
+@keyframes cf-mythsweep { 0% { transform: translateX(-120%) skewX(-12deg); } 55% { transform: translateX(300%) skewX(-12deg); } 100% { transform: translateX(300%) skewX(-12deg); } }
+@keyframes cf-mythember { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(-120px); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .cf-anim { animation: none !important; } }
 `,
             }}
@@ -1123,6 +1125,31 @@ function CardFaceImpl({
               willChange: "opacity",
             }}
           />
+        )}
+        {/* ── MYTHIC ALONE moves differently: a slow crimson rift-sweep
+            crossing the painting, and pooled embers rising off it. Both are
+            cf-anim (killed by reduced-motion and Performance Mode), both
+            transform/opacity only. */}
+        {owned && size >= 96 && card.rarity === "mythic" && (
+          <>
+            <span aria-hidden className="cf-anim" style={{
+              position: "absolute", top: 0, bottom: 0, left: 0, width: "55%",
+              background: "linear-gradient(100deg, transparent, rgba(225,29,72,.15) 40%, rgba(255,171,120,.17) 55%, transparent)",
+              animation: "cf-mythsweep 7s ease-in-out infinite",
+              willChange: "transform", pointerEvents: "none",
+            }} />
+            {[0, 1, 2, 3, 4].map((i) => (
+              <span key={i} aria-hidden className="cf-anim" style={{
+                position: "absolute", bottom: 0, left: `${12 + i * 18}%`,
+                width: 3, height: 3, borderRadius: 99,
+                background: i % 2 ? "#fda4af" : "#fbbf24",
+                boxShadow: "0 0 6px #e11d48",
+                animation: `cf-mythember ${2.8 + (i % 3) * 0.9}s linear infinite`,
+                animationDelay: `${i * 0.55}s`,
+                willChange: "transform, opacity", pointerEvents: "none",
+              }} />
+            ))}
+          </>
         )}
 
         {/* Foil catches the light — it doesn't scan. The old band was a
@@ -1327,7 +1354,9 @@ function CardFaceImpl({
           </span>
         )}
 
-        {/* rarity / grade / support, as bare type on a soft plate */}
+        {/* rarity / grade / support, as bare type on a soft plate. A MYTHIC
+            plate is a neon tube with one BIG star sigil — the tier announces
+            itself before the stats do. */}
         {size >= 76 && (
           <span
             style={{
@@ -1336,16 +1365,24 @@ function CardFaceImpl({
               top: T.pad,
               padding: `${Math.round(T.micro * 0.34)}px ${Math.round(T.micro * 0.72)}px`,
               borderRadius: 999,
-              background: "rgba(8,8,11,0.62)",
-              color: dim ? "#52525B" : F.accent,
+              background: card.rarity === "mythic" ? "rgba(20,2,8,0.8)" : "rgba(8,8,11,0.62)",
+              color: dim ? "#52525B" : card.rarity === "mythic" ? "#ffe4e6" : F.accent,
               fontSize: T.micro,
-              fontWeight: 600,
-              letterSpacing: "0.10em",
+              fontWeight: card.rarity === "mythic" ? 900 : 600,
+              letterSpacing: card.rarity === "mythic" ? "0.16em" : "0.10em",
               lineHeight: 1.4,
+              ...(card.rarity === "mythic" && !dim ? {
+                border: "1px solid #fb7185",
+                textShadow: "0 0 5px #e11d48, 0 0 12px #e11d48, 0 0 22px #9f1239",
+                boxShadow: "0 0 10px rgba(225,29,72,.75), inset 0 0 6px rgba(225,29,72,.35)",
+              } : {}),
               ...clip,
               maxWidth: "70%",
             }}
           >
+            {card.rarity === "mythic" && !dim && (
+              <span style={{ fontSize: "1.5em", verticalAlign: "-0.12em", marginRight: 3, color: "#fb7185" }}>★</span>
+            )}
             {card.support ? "SUPPORT" : (card.gradeLabel ?? R.label).toUpperCase()}
           </span>
         )}

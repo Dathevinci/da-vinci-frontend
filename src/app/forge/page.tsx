@@ -262,7 +262,10 @@ export default function ForgePage() {
                         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-red-300/60">Chamber {i === 0 ? "A" : "B"}</span>}
                     </div>
                   ))}
-                  <span className="text-2xl font-black text-red-400">→</span>
+                  {/* the conduit — energy visibly flowing toward the result */}
+                  <div className="relative h-1.5 w-10 overflow-hidden rounded-full sm:w-16" style={{ background: "rgba(255,255,255,.08)" }}>
+                    <span className="fg-flow absolute inset-y-0 left-0 w-1/2" style={{ background: "linear-gradient(90deg, transparent, #fb7185, transparent)" }} />
+                  </div>
                   <div className="grid place-items-center rounded-xl border-2 border-red-400/60"
                     style={{ width: 104, height: 158, background: "rgba(20,0,8,.6)", boxShadow: resultDef ? "0 0 26px rgba(225,29,72,.45)" : "none" }}>
                     {resultDef
@@ -282,6 +285,11 @@ export default function ForgePage() {
                   <div className="mt-2 flex items-center justify-between">
                     <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Success</span>
                     <span className="font-mono text-sm font-black" style={{ color: chance >= 100 ? "#6ee7b7" : "#fbbf24" }}>{chance}%</span>
+                  </div>
+                  {/* the odds, as a meter you can feel filling */}
+                  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
+                    <div className="h-full rounded-full transition-all duration-300"
+                      style={{ width: `${chance}%`, background: chance >= 100 ? "linear-gradient(90deg,#059669,#6ee7b7)" : "linear-gradient(90deg,#b45309,#fbbf24)" }} />
                   </div>
                   <div className="mt-1.5 flex items-center gap-2">
                     <button onClick={() => setBoost((b) => Math.max(0, b - 1))} className="h-7 w-7 rounded-lg bg-white/10 font-black">−</button>
@@ -303,9 +311,9 @@ export default function ForgePage() {
                   <span aria-hidden className="absolute inset-y-0 left-0 bg-red-500/50" style={{ width: `${holdPct}%` }} />
                   <span className="relative">{busy === "fuse" ? "REACTING…" : holdPct > 0 ? "HOLD…" : "HOLD TO FUSE"}</span>
                 </button>
-                <p className="text-center text-[10px] font-bold uppercase tracking-[0.16em] text-red-300/70">
-                  Hold the lever down — both legendaries are consumed
-                </p>
+                <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.18em] text-red-300">
+                  ⚠ Both legendaries are consumed — hold the lever to commit
+                </div>
               </div>
             </div>
           </section>
@@ -393,6 +401,8 @@ export default function ForgePage() {
           @keyframes fgSteam { 0%, 100% { transform: translateY(0) scaleY(1); opacity: .5; } 50% { transform: translateY(-30px) scaleY(1.25); opacity: .9; } }
           .fg-lamp { animation: fgLamp 2.4s ease-in-out infinite; box-shadow: 0 0 10px 2px currentColor; }
           @keyframes fgLamp { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+          .fg-flow { animation: fgFlow 1.6s ease-in-out infinite; }
+          @keyframes fgFlow { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
         `}</style>
       </div>
     </PageTransition>
