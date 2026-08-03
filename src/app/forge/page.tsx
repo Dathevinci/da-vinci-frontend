@@ -56,6 +56,7 @@ export default function ForgePage() {
   const [boost, setBoost] = useState(0); // steps of +5%
   const [rite, setRite] = useState<{ a: CardDef; b: CardDef; outcome: any } | null>(null);
   const [bench, setBench] = useState<string | null>(null);
+  const [showRecipes, setShowRecipes] = useState(false);
 
   const loadCollection = async (useCache = false) => {
     if (!user?.id) return;
@@ -233,9 +234,15 @@ export default function ForgePage() {
           {/* ═══ THE MACHINE ═══ */}
           <section className="relative mb-10 p-6"
             style={{ clipPath: "polygon(18px 0,100% 0,100% calc(100% - 18px),calc(100% - 18px) 100%,0 100%,0 18px)", background: "linear-gradient(165deg, #1c0a10, #0d0510)", boxShadow: "inset 0 0 0 1px rgba(225,29,72,.35)" }}>
-            <h2 className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.28em] text-red-300">
-              <Zap className="h-4 w-4" /> Mythic Synthesis
-            </h2>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.28em] text-red-300">
+                <Zap className="h-4 w-4" /> Mythic Synthesis
+              </h2>
+              <button onClick={() => setShowRecipes(true)}
+                className="rounded-lg border border-red-400/40 bg-red-500/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-red-200 transition hover:bg-red-500/20">
+                📜 Recipes
+              </button>
+            </div>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300">
               Two eligible cards go in. <b className="text-white">Both are consumed.</b>{" "}
               The pair decides what comes out — the machine only rolls its affix and its eruption.
@@ -470,6 +477,53 @@ export default function ForgePage() {
             </div>
           </section>
         </div>
+
+        {/* ── THE RECIPE BOOK ── every pairing the machine will accept,
+            with what you hold marked. Data straight from the server's
+            catalog, so this page can never promise a recipe it won't honor. */}
+        <AnimatePresence>
+          {showRecipes && synth && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[92] grid place-items-center bg-black/80 p-4"
+              onClick={() => setShowRecipes(false)}>
+              <motion.div initial={{ opacity: 0, y: 16, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10 }}
+                transition={{ duration: 0.22 }} onClick={(e) => e.stopPropagation()}
+                className="w-full max-w-lg overflow-y-auto p-6"
+                style={{ maxHeight: "85dvh", clipPath: "polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px)", background: "linear-gradient(165deg, #1c0a10, #0c0510)", boxShadow: "inset 0 0 0 1px rgba(225,29,72,.4)" }}>
+                <h3 className="text-sm font-black uppercase tracking-[0.28em] text-red-300">📜 The Recipe Book</h3>
+                {([["Mythos — two legendaries", (id: string) => byId[id]?.rarity === "legendary"],
+                   ["Pantheon — two Mythics", (id: string) => byId[id]?.rarity === "mythic"]] as const).map(([groupTitle, isGroup]) => (
+                  <div key={groupTitle} className="mt-5">
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">{groupTitle}</p>
+                    <div className="mt-2 flex flex-col gap-1.5">
+                      {Object.entries(synth.fusions)
+                        .filter(([key]) => isGroup(key.split("+")[0]))
+                        .map(([key, resultId]) => {
+                          const [pa, pb] = key.split("+");
+                          const haveA = (owned[pa] || 0) > 0, haveB = (owned[pb] || 0) > 0;
+                          const haveR = (owned[resultId] || 0) > 0;
+                          return (
+                            <div key={key} className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs"
+                              style={{ background: "rgba(0,0,0,.35)", boxShadow: `inset 0 0 0 1px ${haveR ? "rgba(110,231,183,.35)" : "rgba(255,255,255,.08)"}` }}>
+                              <span className={`font-bold ${haveA ? "text-slate-200" : "text-slate-500"}`}>{byId[pa]?.name || pa}</span>
+                              <span className="text-slate-600">+</span>
+                              <span className={`font-bold ${haveB ? "text-slate-200" : "text-slate-500"}`}>{byId[pb]?.name || pb}</span>
+                              <span className="text-red-400">→</span>
+                              <span className="flex-1 truncate font-black text-rose-200">{byId[resultId]?.name || resultId}</span>
+                              {haveR && <span className="shrink-0 text-emerald-300">✓ forged</span>}
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+                ))}
+                <p className="mt-4 text-[10px] leading-relaxed text-slate-500">
+                  Greyed names are parents you don&apos;t currently hold. Every recipe consumes both parents.
+                </p>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <AnimatePresence>
           {rite && (

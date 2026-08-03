@@ -40,6 +40,7 @@ export default function SynthesisRite({
   const [stage, setStage] = useState<Stage>(reduce ? (outcome.held ? "idle" : "vent") : "alarm");
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const later = (fn: () => void, ms: number) => { timers.current.push(setTimeout(fn, ms)); };
+  const clearAll = () => { timers.current.forEach(clearTimeout); timers.current = []; };
   useEffect(() => () => { timers.current.forEach(clearTimeout); }, []);
 
   useEffect(() => {
@@ -54,7 +55,14 @@ export default function SynthesisRite({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage]);
 
-  const skip = () => { if (stage === "idle") onClose(); else setStage("idle"); };
+  const skip = () => {
+    // Kill every pending stage timer FIRST — without this, a timer armed by
+    // the stage we're skipping out of fired late and yanked the rite back
+    // into the sequence, which is exactly the "skip doesn't work" bug.
+    clearAll();
+    if (stage === "idle") onClose();
+    else setStage("idle");
+  };
 
   const colA = RARITY_META[a.rarity]?.glow || "#f59e0b";
   const colB = RARITY_META[b.rarity]?.glow || "#f59e0b";
