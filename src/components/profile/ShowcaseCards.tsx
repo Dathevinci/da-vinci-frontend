@@ -37,6 +37,11 @@ export default function ShowcaseCards({
   const [catalog, setCatalog] = useState<CardDef[]>([]);
   const [owned, setOwned] = useState<Record<string, number>>({});
   const [foils, setFoils] = useState<Record<string, boolean>>({});
+  // Stat truth: a showcased card carries its level, forge ranks and best
+  // build — the same numbers the binder, duels and dungeon show.
+  const [levels, setLevels] = useState<Record<string, number>>({});
+  const [forges, setForges] = useState<Record<string, { atk: number; hp: number }>>({});
+  const [wears, setWears] = useState<Record<string, string>>({});
   const [picked, setPicked] = useState<string[]>(initial.slice(0, SLOTS));
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -65,9 +70,28 @@ export default function ShowcaseCards({
       if (col?.success) {
         const m: Record<string, number> = {};
         const f: Record<string, boolean> = {};
-        for (const c of col.data?.cards || []) { m[c.cardId] = c.count; if (c.foil) f[c.cardId] = true; }
+        const lv: Record<string, number> = {};
+        const fg: Record<string, { atk: number; hp: number }> = {};
+        const wr: Record<string, string> = {};
+        // Best build shown when copies span wears: handmade first, per the
+        // lore — fresh outranks rusted outranks factory.
+        const WEAR_RANK: Record<string, number> = { fresh: 0, rusted: 1, factory: 2 };
+        for (const c of col.data?.cards || []) {
+          m[c.cardId] = c.count;
+          if (c.foil) f[c.cardId] = true;
+          if ((c.level || 1) > 1) lv[c.cardId] = c.level;
+          if (c.atkForge || c.hpForge) fg[c.cardId] = { atk: c.atkForge || 0, hp: c.hpForge || 0 };
+          if (Array.isArray(c.prints) && c.prints.length > 0) {
+            const best = [...c.prints].sort((a: any, b: any) =>
+              (WEAR_RANK[a.condition] ?? 9) - (WEAR_RANK[b.condition] ?? 9))[0];
+            wr[c.cardId] = best.condition;
+          }
+        }
         setOwned(m);
         setFoils(f);
+        setLevels(lv);
+        setForges(fg);
+        setWears(wr);
       }
     });
   }, [userId]);
@@ -132,7 +156,8 @@ export default function ShowcaseCards({
                       the painting, the foil sweep and a legendary's aura render
                       at the size they were made for; phones take the 150px
                       two-per-row layout instead of a one-card scroll column. */}
-                  <CardFace card={card} owned foil={!!foils[card.id]} size={cardSize} ratio="5 / 9" />
+                  <CardFace card={card} owned foil={!!foils[card.id]} size={cardSize} ratio="5 / 9"
+                    level={levels[card.id]} forge={forges[card.id]} wear={wears[card.id]} />
                 </motion.div>
               );
             }
@@ -167,7 +192,8 @@ export default function ShowcaseCards({
                         background: on ? "rgba(162,116,255,.22)" : "transparent",
                         boxShadow: on ? "inset 0 0 0 1px rgba(162,116,255,.6)" : "none",
                       }}>
-                      <CardFace card={c} owned foil={!!foils[c.id]} size={84} />
+                      <CardFace card={c} owned foil={!!foils[c.id]} size={84}
+                        level={levels[c.id]} forge={forges[c.id]} />
                       {on && (
                         <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full"
                           style={{ background: ACCENT_LIT, color: "#160b2b" }}>

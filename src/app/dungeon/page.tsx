@@ -85,15 +85,18 @@ const RARITY_TINT: Record<string, string> = {
   common: "#9aa4b2", rare: "#5fa8ff", epic: "#c07dff", legendary: "#ffcf5c", event: "#ff8ad0",
 };
 
-/** What a support card DOES down there — the duel effect, dungeon-phrased. */
-function supText(s: any): string {
+/** What a support card DOES down there — the duel effect, dungeon-phrased,
+ *  at ITS level. Support levels raise the effect (never ATK/HP); the math
+ *  mirrors supMult in the server's use-support handler point for point. */
+function supText(s: any, lvl = 1): string {
   if (!s) return "";
-  return s.kind === "heal" ? `heals the worst-off +${s.power} HP, instantly`
-    : s.kind === "mend" ? `heals EVERY living unit +${s.power} HP, instantly`
-    : s.kind === "revive" ? `a FALLEN unit stands back up at ${s.power}% — mid-run`
+  const m = lvlMult(lvl);
+  return s.kind === "heal" ? `heals the worst-off +${Math.round(s.power * m)} HP, instantly`
+    : s.kind === "mend" ? `heals EVERY living unit +${Math.round(s.power * m)} HP, instantly`
+    : s.kind === "revive" ? `a FALLEN unit stands back up at ${Math.min(95, Math.round(s.power * m))}% — mid-run`
     : s.kind === "shield" ? "next floor: first 2 enemy volleys land HALVED"
     : s.kind === "block" ? "next floor: the first enemy volley does NOT land"
-    : s.kind === "focus" ? `next floor: opening volley ×${s.power}`
+    : s.kind === "focus" ? `next floor: opening volley ×${Number((1 + (s.power - 1) * m).toFixed(2))}`
     : "it does something, somewhere";
 }
 const SUP_TONE: Record<string, string> = {
@@ -193,6 +196,7 @@ export default function DungeonPage() {
   // dispatch and PLAYED by the player mid-run. Same cards as the duels, one
   // use each per run — nothing consumed.
   const [supportIds, setSupportIds] = useState<string[]>([]);
+  const [supLevels, setSupLevels] = useState<Record<string, number>>({});
   const [packMax, setPackMax] = useState(3);
   const [packed, setPacked] = useState<string[]>([]);
   const [runSupports, setRunSupports] = useState<{ id: string; used: boolean }[]>([]);
@@ -262,6 +266,7 @@ export default function DungeonPage() {
       setHealCost(d.data.healCost ?? 80);
       setReviveCost(d.data.reviveCost ?? 500);
       setSupportIds(d.data.supportCards || []);
+      setSupLevels(d.data.supportLevels || {});
       setPackMax(d.data.packMax ?? 3);
       // A run still in flight: reopen the raid screen paused between floors.
       const run = d.data.activeRun;
@@ -651,15 +656,16 @@ export default function DungeonPage() {
                       const on = packed.includes(cid);
                       const tone = SUP_TONE[def.support.kind] || "#9be8ff";
                       return (
-                        <button key={cid} title={supText(def.support)}
+                        <button key={cid} title={supText(def.support, supLevels[cid])}
                           onClick={() => setPacked((p) =>
                             p.includes(cid) ? p.filter((x) => x !== cid) : p.length < packMax ? [...p, cid] : p)}
                           className={`dg-panel dg-press p-1.5 text-left ${on ? "dg-sel" : ""}`}>
-                          {/* the REAL card, not a name on a button */}
-                          <CardFace card={def} owned size={supSize} ratio="5 / 9" showStats={false} />
+                          {/* the REAL card, not a name on a button — at its level */}
+                          <CardFace card={def} owned size={supSize} ratio="5 / 9" showStats={false}
+                            level={supLevels[cid]} />
                           <span className="mt-1.5 block font-mono text-[9px] leading-snug"
                             style={{ width: supSize, color: on ? tone : "#8f86b8" }}>
-                            {on ? "▶ PACKED — " : ""}{supText(def.support)}
+                            {on ? "▶ PACKED — " : ""}{(supLevels[cid] || 1) > 1 ? `LV${supLevels[cid]} · ` : ""}{supText(def.support, supLevels[cid])}
                           </span>
                         </button>
                       );
@@ -897,7 +903,7 @@ export default function DungeonPage() {
                         return (
                           <button key={s.id} onClick={() => playSupport(s.id)}
                             disabled={itemBusy || s.used || !!result || !!blocked}
-                            title={s.used ? "Already played this run" : blocked ? "Already armed — it lands next floor" : supText(def.support)}
+                            title={s.used ? "Already played this run" : blocked ? "Already armed — it lands next floor" : supText(def.support, supLevels[s.id])}
                             className="dg-btn w-full px-2 py-2 text-left font-pixel text-[8px] leading-relaxed disabled:opacity-35"
                             style={!s.used && !blocked ? { color: tone } : undefined}>
                             {s.used ? "✕ " : "▶ "}{def.name.toUpperCase()}{s.used ? " — PLAYED" : ""}

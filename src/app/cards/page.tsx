@@ -1257,7 +1257,7 @@ export default function CardsPage() {
                     {selected.support ? (
                       <div className="rounded-xl border border-cyan-400/25 bg-cyan-500/10 px-4 py-3">
                         <p className="text-[10px] font-black uppercase tracking-[0.22em] text-cyan-300/80">Effect</p>
-                        <p className="mt-1 text-sm font-bold leading-relaxed text-cyan-100">{supportText(selected.support)}</p>
+                        <p className="mt-1 text-sm font-bold leading-relaxed text-cyan-100">{supportText(selected.support, levels[selected.id] || 1)}</p>
                       </div>
                     ) : (
                       <div className="grid grid-cols-3 gap-2.5">

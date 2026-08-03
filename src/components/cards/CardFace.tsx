@@ -54,15 +54,19 @@ export interface CardDef {
   gradeLabel?: string;
 }
 
-/** One short line saying exactly what a support card does. */
-export function supportText(s: SupportEffect): string {
+/** One short line saying exactly what a support card does — at ITS level.
+ *  Support levels raise the effect, never ATK/HP; the numbers here mirror
+ *  supMult in both server engines (duel support play, dungeon use-support),
+ *  so what the card face promises is what the server delivers. */
+export function supportText(s: SupportEffect, level = 1): string {
+  const m = 1 + (Math.min(10, Math.max(1, Math.floor(level || 1))) - 1) * 0.07;
   switch (s.kind) {
-    case "heal":   return `Restore ${s.power} HP`;
+    case "heal":   return `Restore ${Math.round(s.power * m)} HP`;
     case "shield": return "Halve the next hit";
     case "block":  return "Negate the next hit";
-    case "focus":  return `Next strike ×${s.power}`;
-    case "mend":   return `Heal your whole line ${s.power}`;
-    case "revive": return `Revive a fallen card at ${s.power}%`;
+    case "focus":  return `Next strike ×${Number((1 + (s.power - 1) * m).toFixed(2))}`;
+    case "mend":   return `Heal your whole line ${Math.round(s.power * m)}`;
+    case "revive": return `Revive a fallen card at ${Math.min(95, Math.round(s.power * m))}%`;
     // The ability row is now the ONLY place this text appears, so an
     // unhandled kind would leave a support card's primary line blank rather
     // than merely missing a tooltip.
@@ -891,7 +895,7 @@ function CardFaceImpl({
   const pillBg = chrome ? "rgba(255,255,255,0.055)" : "transparent";
 
   const abilityText = card.support
-    ? supportText(card.support)
+    ? supportText(card.support, level)
     : hibernating && owned
     ? "FALLEN, NOT DEAD — WAKE WITH SHARDS"
     : card.flavor;
