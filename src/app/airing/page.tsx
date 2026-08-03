@@ -18,7 +18,7 @@ export default async function AiringPage() {
     return <div className="min-h-screen pt-32 text-center text-white">Loading data or API is temporarily unavailable...</div>;
   }
 
-  const heroAnimes = animes.slice(0, 5);
+  const heroAnimes = animes.slice(0, 10);
   const gridAnimes = animes.slice(5);
 
   return (

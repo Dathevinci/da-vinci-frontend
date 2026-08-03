@@ -43,7 +43,9 @@ export default async function Home() {
 
   // Shuffle the trending anime for the hero banner so it changes every time
   const shuffledTrending = [...data.trending.media].sort(() => 0.5 - Math.random());
-  const heroAnimes = shuffledTrending.slice(0, 5);
+  // Ten seats in the featured deck — enough that the circular fan reads as a
+  // wheel, and the count the FEATURED / NN counter was designed around.
+  const heroAnimes = shuffledTrending.slice(0, 10);
 
   return (
     <PageTransition>

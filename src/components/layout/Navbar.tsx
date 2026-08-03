@@ -178,8 +178,11 @@ export default function Navbar() {
 
   return (
     <>
-      {/* ── DESKTOP ── the island replaces the bar entirely above lg. */}
-      <NavIsland onSearch={() => setShowSearchModal(true)} onSettings={() => setShowControlCenter(true)} />
+      {/* ── DESKTOP, SIGNED-OUT ONLY ── signed-in users get the Dock on
+          every screen size now (the owner asked for the mobile pill on PC),
+          and two bottom navs stacked is the exact bug the Dock fixed on
+          phones. Guests keep the hover island: they have no Dock. */}
+      {!user && <NavIsland onSearch={() => setShowSearchModal(true)} onSettings={() => setShowControlCenter(true)} />}
 
       {/* ── MOBILE ── the original top bar now serves ONLY the signed-out:
           a signed-in phone gets the Dock instead, and showing both stacked

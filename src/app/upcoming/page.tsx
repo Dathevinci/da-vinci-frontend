@@ -30,7 +30,7 @@ export default async function UpcomingPage() {
     );
   }
 
-  const heroAnimes = animes.slice(0, 5);
+  const heroAnimes = animes.slice(0, 10);
   const gridAnimes = animes.slice(5);
 
   return (

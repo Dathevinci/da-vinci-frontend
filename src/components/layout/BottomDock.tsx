@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -8,23 +8,30 @@ import {
   ArrowLeft, ArrowRight, RotateCw, Home, X, Search, Settings, LogOut,
   Tv, BookOpen, Feather, Layers, Swords, Castle, FlaskConical,
   Store, Gavel, Users, Trophy, ShoppingBag, Megaphone,
+  Compass, Activity, Calendar, Clock, HelpCircle, Heart, Terminal,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
+import { isLeadDev } from "@/lib/admin";
 import NotificationsMenu from "./NotificationsMenu";
 
 /**
  * THE DOCK — a floating pill of the six controls a thumb actually wants,
- * pinned to the bottom on phones. Tapping HOME doesn't navigate — it opens
- * the Navigation sheet: quick actions up top, every corner of Da Vinci
- * below, each behind its own coloured tile.
+ * pinned to the bottom. Tapping HOME doesn't navigate — it opens the
+ * Navigation sheet: quick actions up top, every corner of Da Vinci below,
+ * each behind its own coloured tile.
  *
- * Mobile-first by design (`lg:hidden`): desktop already has the island.
+ * EVERY screen size, by the owner's ask: this replaced the hover island as
+ * the signed-in desktop navigation too, so the sheet must carry every
+ * destination the island had — nothing may exist only behind a hover.
  */
 
 const PAGES: { href: string; label: string; Icon: any; tint: string }[] = [
   { href: "/",            label: "Anime Home",       Icon: Tv,           tint: "#a274ff" },
   { href: "/manhwa",      label: "Manhwa Home",      Icon: BookOpen,     tint: "#38bdf8" },
   { href: "/novel",       label: "Novel Home",       Icon: Feather,      tint: "#fbbf24" },
+  { href: "/explore",     label: "Explore",          Icon: Compass,      tint: "#818cf8" },
+  { href: "/airing",      label: "Airing Now",       Icon: Activity,     tint: "#4ade80" },
+  { href: "/calendar",    label: "Schedule",         Icon: Calendar,     tint: "#f472b6" },
   { href: "/cards",       label: "Arise Cards",      Icon: Layers,       tint: "#c084fc" },
   { href: "/duels",       label: "Card Duels",       Icon: Swords,       tint: "#f43f5e" },
   { href: "/dungeon",     label: "Dungeon Dispatch", Icon: Castle,       tint: "#5fd18a" },
@@ -35,7 +42,10 @@ const PAGES: { href: string; label: string; Icon: any; tint: string }[] = [
   { href: "/quests",      label: "Daily Quests",     Icon: Trophy,       tint: "#fb923c" },
   { href: "/shop",        label: "Shop",             Icon: ShoppingBag,  tint: "#e879f9" },
   { href: "/leaderboard", label: "Leaderboard",      Icon: Trophy,       tint: "#7dd3fc" },
+  { href: "/upcoming",    label: "Upcoming",         Icon: Clock,        tint: "#c4b5fd" },
   { href: "/updates",     label: "Updates",          Icon: Megaphone,    tint: "#94a3b8" },
+  { href: "/faq",         label: "FAQ",              Icon: HelpCircle,   tint: "#93c5fd" },
+  { href: "/support",     label: "Support Us",       Icon: Heart,        tint: "#fda4af" },
 ];
 
 export default function BottomDock({
@@ -52,22 +62,8 @@ export default function BottomDock({
   const { user, logout } = useUser();
   const [open, setOpen] = useState(false);
 
-  // Truly unmount on desktop instead of lg:hidden. The CSS-only hide kept
-  // this whole tree — including the notifications menu and its polling
-  // loop — alive underneath the desktop island, costing a phantom
-  // /api/notifications poller per signed-in desktop client.
-  const [phone, setPhone] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 1023px)");
-    const sync = () => setPhone(mq.matches);
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, []);
-
   // Reader screens hide all chrome; the dock respects that.
   if (pathname?.includes("/chapter/")) return null;
-  if (!phone) return null;
 
   const DockBtn = ({ onClick, label, children }: { onClick: () => void; label: string; children: React.ReactNode }) => (
     <button onClick={onClick} aria-label={label}
@@ -79,7 +75,7 @@ export default function BottomDock({
   return (
     <>
       {/* ── the pill ── */}
-      <div className="fixed inset-x-0 z-[75] flex justify-center lg:hidden"
+      <div className="fixed inset-x-0 z-[75] flex justify-center"
         style={{ bottom: "max(0.9rem, env(safe-area-inset-bottom))" }}>
         {/* NO backdrop-filter here — besides being against this app's perf
             rules, it makes the pill the CONTAINING BLOCK for every fixed
@@ -114,7 +110,7 @@ export default function BottomDock({
       <AnimatePresence>
         {open && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[80] flex items-end justify-center bg-black/70 p-3 sm:items-center lg:hidden"
+            className="fixed inset-0 z-[80] flex items-end justify-center bg-black/70 p-3 sm:items-center"
             onClick={() => setOpen(false)}>
             <motion.div
               initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 30 }}
@@ -154,7 +150,11 @@ export default function BottomDock({
 
               <p className="mt-6 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Navigate</p>
               <div className="mt-2 flex flex-col">
-                {PAGES.map(({ href, label, Icon, tint }) => (
+                {/* Console rides along only for the lead dev — role column,
+                    never the username, same gate as everywhere else. */}
+                {[...PAGES, ...(user && isLeadDev(user)
+                  ? [{ href: "/console", label: "Console", Icon: Terminal, tint: "#a3e635" }]
+                  : [])].map(({ href, label, Icon, tint }) => (
                   <Link key={href + label} href={href} onClick={() => setOpen(false)}
                     className="flex items-center gap-3.5 rounded-xl px-2 py-2.5 transition hover:bg-white/5">
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg"
