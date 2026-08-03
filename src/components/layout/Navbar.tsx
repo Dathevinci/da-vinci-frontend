@@ -279,9 +279,15 @@ export default function Navbar() {
               </span>
             </button>
             
-            <div className="lg:hidden flex items-center">
-              <NotificationsMenu />
-            </div>
+            {/* Guests only — signed-in phones get the bell in the Dock, and
+                this header is display:none for them anyway. CSS-hiding kept
+                the menu MOUNTED, so its useNotifications poller ran a whole
+                extra /api/notifications loop per phone for nobody. */}
+            {!user && (
+              <div className="lg:hidden flex items-center">
+                <NotificationsMenu />
+              </div>
+            )}
             
             {isLoaded && (
               user ? (

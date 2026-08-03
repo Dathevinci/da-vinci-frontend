@@ -68,6 +68,12 @@ export default function NotificationsMenu({ openUp = false, onOpenChange }: { op
   // Close on outside tap (pointerdown covers both mouse and touch), and also
   // when the user scrolls the page — an absolutely-positioned panel would
   // otherwise drift away from the bell as the header moves.
+  //
+  // The scroll-close is ANCHORED PRESENTATIONS ONLY (sm+, where the panel is
+  // absolute to the bell). Below sm the panel is viewport-fixed, so page
+  // scroll can't move it — and on touch, any swipe on a non-scrolling part
+  // of the panel chains to the body, fires window scroll, and was dismissing
+  // the panel mid-gesture.
   useEffect(() => {
     if (!isOpen) return;
     const handlePointerDown = (e: PointerEvent) => {
@@ -76,11 +82,12 @@ export default function NotificationsMenu({ openUp = false, onOpenChange }: { op
       }
     };
     const handleScroll = () => setIsOpen(false);
+    const anchored = window.matchMedia("(min-width: 640px)").matches;
     document.addEventListener("pointerdown", handlePointerDown);
-    window.addEventListener("scroll", handleScroll, { passive: true });
+    if (anchored) window.addEventListener("scroll", handleScroll, { passive: true });
     return () => {
       document.removeEventListener("pointerdown", handlePointerDown);
-      window.removeEventListener("scroll", handleScroll);
+      if (anchored) window.removeEventListener("scroll", handleScroll);
     };
   }, [isOpen]);
 
@@ -130,12 +137,13 @@ export default function NotificationsMenu({ openUp = false, onOpenChange }: { op
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: openUp ? 8 : -8 }}
             transition={{ type: "spring", stiffness: 400, damping: 30, mass: 0.6 }}
-            className={`fixed top-16 right-4 left-4 sm:absolute sm:-right-4 sm:left-auto sm:w-96 max-w-sm bg-[#0f0f13] border border-white/10 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] z-[200] flex flex-col will-change-transform ${openUp ? "sm:top-auto sm:bottom-full sm:mb-3 origin-bottom-right" : "sm:top-full sm:mt-3 origin-top-right"}`}
+            className={`fixed right-4 left-4 ${openUp ? "top-auto bottom-24" : "top-16"} sm:absolute sm:-right-4 sm:left-auto sm:w-96 max-w-sm max-h-[calc(100dvh-7.5rem)] bg-[#0f0f13] border border-white/10 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] z-[200] flex flex-col will-change-transform ${openUp ? "sm:top-auto sm:bottom-full sm:mb-3 origin-bottom-right" : "sm:top-full sm:mt-3 origin-top-right"}`}
           >
-            {/* Arrow/Pointer */}
-            {/* The pointer follows the panel — it sits under the bell when the menu opens upward, and above it when it opens down. */}
-            <div className={`absolute right-14 sm:right-10 w-3 h-3 bg-[#0f0f13] border-white/10 transform rotate-45 z-[-1] ${openUp ? "-bottom-[6px] border-b border-r" : "-top-[6px] border-t border-l"}`} />
-            <div className={`absolute right-14 sm:right-10 w-3 h-3 bg-[#0f0f13] transform rotate-45 z-0 ${openUp ? "-bottom-[5px]" : "-top-[5px]"}`} />
+            {/* Arrow/Pointer — desktop only. On phones the panel is a
+                full-width float nowhere near the bell, so a pointer would
+                aim at empty air. */}
+            <div className={`hidden sm:block absolute right-14 sm:right-10 w-3 h-3 bg-[#0f0f13] border-white/10 transform rotate-45 z-[-1] ${openUp ? "-bottom-[6px] border-b border-r" : "-top-[6px] border-t border-l"}`} />
+            <div className={`hidden sm:block absolute right-14 sm:right-10 w-3 h-3 bg-[#0f0f13] transform rotate-45 z-0 ${openUp ? "-bottom-[5px]" : "-top-[5px]"}`} />
 
             <div className="flex flex-col flex-1 overflow-hidden rounded-2xl relative z-10 bg-[#0f0f13]">
             {/* Header */}
@@ -188,7 +196,7 @@ export default function NotificationsMenu({ openUp = false, onOpenChange }: { op
             </div>
 
             {/* Notifications List */}
-            <div className="flex-1 overflow-y-auto max-h-[400px] custom-scrollbar">
+            <div className="flex-1 overflow-y-auto overscroll-contain max-h-[400px] custom-scrollbar">
               {shown.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
                   <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-3">

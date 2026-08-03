@@ -1,15 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, ArrowRight, RotateCw, Home, Bell, X, Search, Settings, LogOut,
+  ArrowLeft, ArrowRight, RotateCw, Home, X, Search, Settings, LogOut,
   Tv, BookOpen, Feather, Layers, Swords, Castle, FlaskConical,
   Store, Gavel, Users, Trophy, ShoppingBag, Megaphone,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
+import NotificationsMenu from "./NotificationsMenu";
 
 /**
  * THE DOCK — a floating pill of the six controls a thumb actually wants,
@@ -51,8 +52,22 @@ export default function BottomDock({
   const { user, logout } = useUser();
   const [open, setOpen] = useState(false);
 
+  // Truly unmount on desktop instead of lg:hidden. The CSS-only hide kept
+  // this whole tree — including the notifications menu and its polling
+  // loop — alive underneath the desktop island, costing a phantom
+  // /api/notifications poller per signed-in desktop client.
+  const [phone, setPhone] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 1023px)");
+    const sync = () => setPhone(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
   // Reader screens hide all chrome; the dock respects that.
   if (pathname?.includes("/chapter/")) return null;
+  if (!phone) return null;
 
   const DockBtn = ({ onClick, label, children }: { onClick: () => void; label: string; children: React.ReactNode }) => (
     <button onClick={onClick} aria-label={label}
@@ -66,13 +81,23 @@ export default function BottomDock({
       {/* ── the pill ── */}
       <div className="fixed inset-x-0 z-[75] flex justify-center lg:hidden"
         style={{ bottom: "max(0.9rem, env(safe-area-inset-bottom))" }}>
+        {/* NO backdrop-filter here — besides being against this app's perf
+            rules, it makes the pill the CONTAINING BLOCK for every fixed
+            descendant, which shrank the notifications panel to pill width
+            and trapped it inside the pill. The near-opaque bg reads the
+            same without the blur. */}
         <div className="flex items-center gap-1 rounded-full px-3 py-1.5"
-          style={{ background: "rgba(10,9,15,.92)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.10), 0 10px 34px rgba(0,0,0,.65)", backdropFilter: "blur(10px)" }}>
+          style={{ background: "rgba(10,9,15,.95)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.10), 0 10px 34px rgba(0,0,0,.65)" }}>
           <DockBtn onClick={() => router.back()} label="Back"><ArrowLeft className="h-[18px] w-[18px]" /></DockBtn>
           <DockBtn onClick={() => router.forward()} label="Forward"><ArrowRight className="h-[18px] w-[18px]" /></DockBtn>
           <DockBtn onClick={() => window.location.reload()} label="Reload"><RotateCw className="h-[17px] w-[17px]" /></DockBtn>
           <DockBtn onClick={() => setOpen(true)} label="Navigation"><Home className="h-[18px] w-[18px]" /></DockBtn>
-          <DockBtn onClick={() => router.push("/updates")} label="Updates"><Bell className="h-[18px] w-[18px]" /></DockBtn>
+          {/* the REAL notifications panel, unread badge and all — this bell
+              used to just route to /updates, which is a page, not your
+              notifications. Updates still lives in the sheet's page list. */}
+          <div className="grid h-10 w-10 place-items-center">
+            <NotificationsMenu openUp />
+          </div>
           {user && (
             <button onClick={() => router.push(`/user/${user.username}`)} aria-label="Your profile"
               className="ml-0.5 grid h-9 w-9 place-items-center overflow-hidden rounded-full transition active:scale-90"
