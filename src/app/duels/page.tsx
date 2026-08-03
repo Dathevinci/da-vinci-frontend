@@ -321,9 +321,16 @@ export default function DuelsPage() {
       if (!c) return sum;
       const base = S[c.rarity] || S.common;
       const m = foils[id] ? 1.2 : 1;
-      return sum + Math.round(base.atk * m) + Math.round(base.hp * m);
+      // The FULL formula — level curve and forge points included, exactly
+      // like the cards below it show. The old base-only sum read a maxed
+      // deck at half its true weight.
+      const lvlM = 1 + (Math.min(10, Math.max(1, cardLevels[id] || 1)) - 1) * 0.07;
+      const fg = cardForges[id] || { atk: 0, hp: 0 };
+      return sum
+        + Math.round(base.atk * m * lvlM) + fg.atk
+        + Math.round(base.hp * m * lvlM) + fg.hp * 2;
     }, 0);
-  }, [deck, byId, cardStats, foils]);
+  }, [deck, byId, cardStats, foils, cardLevels, cardForges]);
   const pending = duels.filter((d) => d.status === "PENDING");
   const running = duels.filter((d) => d.status === "ACTIVE");
   // What's waiting on YOU — the two lists that should never be below a shop.

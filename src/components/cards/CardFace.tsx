@@ -1383,13 +1383,12 @@ function CardFaceImpl({
               borderRadius: 999,
               background: card.rarity === "mythic" ? "rgba(20,2,8,0.8)" : "rgba(8,8,11,0.62)",
               color: dim ? "#52525B" : card.rarity === "mythic" ? "#ffe4e6" : F.accent,
-              // BIG for a mythic — the tier is the headline, and the RGB
-              // cycle (a hue-rotate over the crimson neon) runs the whole
-              // plate through the spectrum. cf-anim, so Performance Mode
-              // and reduced-motion pin it back to still crimson.
-              fontSize: card.rarity === "mythic" ? Math.round(T.micro * 1.45) : T.micro,
+              // BIG for a mythic — but only where big FITS. Below 120px the
+              // plate collided with the MAX chip and truncated to "MYT…",
+              // so small renders keep the neon and the RGB at normal size.
+              fontSize: card.rarity === "mythic" && size >= 120 ? Math.round(T.micro * 1.45) : T.micro,
               fontWeight: card.rarity === "mythic" ? 900 : 600,
-              letterSpacing: card.rarity === "mythic" ? "0.18em" : "0.10em",
+              letterSpacing: card.rarity === "mythic" && size >= 120 ? "0.18em" : "0.10em",
               lineHeight: 1.4,
               ...(card.rarity === "mythic" && !dim ? {
                 border: "1px solid #fb7185",
@@ -1403,7 +1402,7 @@ function CardFaceImpl({
             }}
           >
             {card.rarity === "mythic" && !dim && (
-              <span style={{ fontSize: "1.5em", verticalAlign: "-0.12em", marginRight: 3, color: "#fb7185" }}>★</span>
+              <span style={{ fontSize: size >= 120 ? "1.5em" : "1.15em", verticalAlign: "-0.12em", marginRight: 3, color: "#fb7185" }}>★</span>
             )}
             {card.support ? "SUPPORT" : (card.gradeLabel ?? R.label).toUpperCase()}
           </span>
