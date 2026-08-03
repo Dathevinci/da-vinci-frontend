@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Layers, Sparkles, Gem, X, Hammer, Recycle, PackageOpen, Users, Heart, Swords, Zap, ArrowUp } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
@@ -383,6 +383,20 @@ export default function CardsPage() {
   };
 
   // Group by set, cards within a set sorted by rarity then name.
+  // ── SEARCH & FILTER ── the binder is 80+ cards and growing; nobody
+  // should scroll it to find one. The name search and rarity chips filter
+  // WHAT RENDERS; set completion counts stay true to the full set.
+  const [q, setQ] = useState("");
+  const [rarFilter, setRarFilter] = useState<CardRarity | "all">("all");
+  const qn = q.trim().toLowerCase();
+  const filtering = qn.length > 0 || rarFilter !== "all";
+  const matches = useCallback(
+    (c: CardDef) =>
+      (rarFilter === "all" || c.rarity === rarFilter) &&
+      (!qn || c.name.toLowerCase().includes(qn)),
+    [qn, rarFilter]
+  );
+
   const sets = useMemo(() => {
     if (!catalog) return [];
     const bySet: Record<string, CardDef[]> = {};
@@ -390,9 +404,11 @@ export default function CardsPage() {
     return Object.entries(bySet).map(([set, cards]) => {
       cards.sort((a, b) => RARITY_META[a.rarity].order - RARITY_META[b.rarity].order || a.name.localeCompare(b.name));
       const haveCount = cards.filter((c) => (owned[c.id] || 0) > 0).length;
-      return { set, cards, have: haveCount, total: cards.length };
-    });
-  }, [catalog, owned]);
+      // What the grid draws — filters apply here, never to the counts.
+      const visible = cards.filter(matches);
+      return { set, cards: visible, allCards: cards, have: haveCount, total: cards.length };
+    }).filter((s) => !filtering || s.cards.length > 0);
+  }, [catalog, owned, matches, filtering]);
 
   const totalHave = Object.keys(owned).length;
   const totalCards = catalog?.cards?.length ?? 0;
@@ -735,9 +751,9 @@ export default function CardsPage() {
                 );
               })()}
 
-              {/* ── VIEW TOGGLE ── the set view is the chase (what's missing);
-                  the inventory is the shelf (what you hold, uncluttered). */}
-              <div className="flex gap-1.5">
+              {/* ── VIEW TOGGLE + SEARCH ── one toolbar: how to read the
+                  binder, and how to cut straight through it. */}
+              <div className="flex flex-wrap items-center gap-2">
                 {([["sets", "By Set"], ["inv", "Inventory"]] as const).map(([v, label]) => (
                   <button key={v} onClick={() => setView(v)}
                     className={`px-5 py-2 text-[11px] font-black uppercase tracking-[0.18em] transition ${view === v ? "text-white" : "text-slate-500 hover:text-slate-300"}`}
@@ -749,6 +765,37 @@ export default function CardsPage() {
                     {label}
                   </button>
                 ))}
+                <input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Search cards…"
+                  className="min-w-[10rem] flex-1 bg-black/40 px-3.5 py-2 text-sm text-white outline-none placeholder:text-slate-600 sm:max-w-xs"
+                  style={{ clipPath: notch(9), boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }}
+                />
+                <div className="flex gap-1">
+                  {(["all", "common", "rare", "epic", "legendary"] as const).map((r) => {
+                    const on = rarFilter === r;
+                    const tint = r === "all" ? "#cbd5e1" : RARITY_META[r as CardRarity]?.gem || "#cbd5e1";
+                    return (
+                      <button key={r} onClick={() => setRarFilter(on && r !== "all" ? "all" : r)}
+                        title={r === "all" ? "Every rarity" : RARITY_META[r as CardRarity]?.label}
+                        className="px-2.5 py-2 text-[10px] font-black uppercase tracking-[0.1em] transition"
+                        style={{
+                          clipPath: notch(7),
+                          color: on ? tint : "#64748b",
+                          background: on ? "rgba(255,255,255,.09)" : "rgba(255,255,255,.03)",
+                          boxShadow: `inset 0 0 0 1px ${on ? `${tint}66` : "rgba(255,255,255,.07)"}`,
+                        }}>
+                        {r === "all" ? "All" : r.slice(0, 1)}
+                      </button>
+                    );
+                  })}
+                </div>
+                {filtering && (
+                  <span className="text-[11px] font-bold text-slate-500">
+                    {sets.reduce((n, s) => n + s.cards.length, 0)} match{sets.reduce((n, s) => n + s.cards.length, 0) === 1 ? "" : "es"}
+                  </span>
+                )}
               </div>
 
               {view === "sets" ? sets.map(({ set, cards, have, total }) => (
@@ -927,7 +974,7 @@ export default function CardsPage() {
                    BUILD, because each wear is its own card. */
                 <div className="space-y-8">
                   {(["common", "rare", "epic"] as CardRarity[]).map((r) => {
-                    const mine = (catalog?.cards || []).filter((c: CardDef) => c.rarity === r && (owned[c.id] || 0) > 0);
+                    const mine = (catalog?.cards || []).filter((c: CardDef) => c.rarity === r && (owned[c.id] || 0) > 0 && matches(c));
                     if (!mine.length) return null;
                     return (
                       <Rise key={r}>
@@ -956,7 +1003,7 @@ export default function CardsPage() {
                       { key: "rusted", label: "Rusted", cls: "border-orange-700/60 bg-orange-900/40 text-orange-300" },
                       { key: "factory", label: "Factory New", cls: "border-slate-400/40 bg-slate-600/30 text-slate-200" },
                     ];
-                    const legendaries = (catalog?.cards || []).filter((c: CardDef) => c.rarity === "legendary" && (owned[c.id] || 0) > 0);
+                    const legendaries = (catalog?.cards || []).filter((c: CardDef) => c.rarity === "legendary" && (owned[c.id] || 0) > 0 && matches(c));
                     if (!legendaries.length) return null;
                     return (
                       <Rise>

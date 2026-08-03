@@ -1043,7 +1043,7 @@ function CardFaceImpl({
           <style
             dangerouslySetInnerHTML={{
               __html: `
-@keyframes cf-sweep { 0% { transform: translate3d(-130%,0,0); } 100% { transform: translate3d(130%,0,0); } }
+@keyframes cf-glint { 0% { transform: translate3d(-150%,0,0) skewX(-14deg); } 46% { transform: translate3d(160%,0,0) skewX(-14deg); } 100% { transform: translate3d(160%,0,0) skewX(-14deg); } }
 @keyframes cf-breathe { 0%,100% { opacity:.30 } 50% { opacity:.75 } }
 @keyframes cf-neon { 0%,100% { opacity:.8 } 50% { opacity:1 } }
 @media (prefers-reduced-motion: reduce) { .cf-anim { animation: none !important; } }
@@ -1070,9 +1070,12 @@ function CardFaceImpl({
           />
         )}
 
-        {/* Foil catches the light as you look at it: one spectral band
-            crossing the card, slowly. The static holographic texture below
-            stays — this is the movement on top of it, not a replacement. */}
+        {/* Foil catches the light — it doesn't scan. The old band was a
+            hard-edged colour bar marching back and forth on a metronome,
+            which reads as a barcode scanner. This is a WIDE, white-cored
+            glint with only hue FRINGES, tilted like a real reflection, that
+            crosses once and then RESTS for half the cycle — light caught,
+            not light performed. Same compositor-only cost: one transform. */}
         {owned && size >= 110 && foil && (
           <span
             aria-hidden
@@ -1082,12 +1085,12 @@ function CardFaceImpl({
               className="cf-anim"
               style={{
                 position: "absolute",
-                top: 0,
-                bottom: 0,
-                width: "45%",
+                top: "-10%",
+                bottom: "-10%",
+                width: "62%",
                 background:
-                  "linear-gradient(105deg, transparent, rgba(125,211,252,.22) 35%, rgba(240,171,252,.30) 50%, rgba(253,230,138,.22) 65%, transparent)",
-                animation: "cf-sweep 4.2s ease-in-out infinite",
+                  "linear-gradient(105deg, transparent 0%, rgba(255,255,255,.04) 30%, rgba(125,211,252,.09) 41%, rgba(255,255,255,.17) 50%, rgba(240,171,252,.09) 59%, rgba(255,255,255,.04) 70%, transparent 100%)",
+                animation: "cf-glint 5.6s cubic-bezier(.35,0,.25,1) infinite",
                 willChange: "transform",
               }}
             />
@@ -1105,7 +1108,7 @@ function CardFaceImpl({
               position: "absolute",
               inset: 0,
               mixBlendMode: "overlay",
-              opacity: 0.35,
+              opacity: 0.26,
               backgroundImage:
                 "repeating-linear-gradient(115deg, rgba(125,211,252,.10) 0 3px, rgba(240,171,252,.10) 3px 6px, rgba(253,230,138,.10) 6px 9px, transparent 9px 14px)",
             }}
