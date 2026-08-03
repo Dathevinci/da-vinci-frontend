@@ -127,9 +127,13 @@ export default function DeckBuilder({
   }, 0);
 
   const autoPick = () => {
-    // Strongest five you own — a sane default so a new player isn't stuck
-    // staring at a grid wondering what's good.
+    // Best five you own: RARITY first — a Mythic you fought the machine for
+    // outranks any legendary in a "best" picker, trained or not — then true
+    // stats break ties within a tier.
     const ranked = [...units].sort((a, b) => {
+      const ra = RARITY_META[a.rarity]?.order ?? 0;
+      const rb = RARITY_META[b.rarity]?.order ?? 0;
+      if (rb !== ra) return rb - ra;
       const ta = trueStats(a.id), tb = trueStats(b.id);
       return (tb.atk + tb.hp) - (ta.atk + ta.hp);
     });

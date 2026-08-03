@@ -35,7 +35,7 @@ const DGN_STATS: Record<string, { hp: number; atk: number }> = {
   epic:      { hp: 23, atk: 9 },
   legendary: { hp: 26, atk: 10 },
   event:     { hp: 24, atk: 9 },
-  mythic:    { hp: 30, atk: 12 },
+  mythic:    { hp: 36, atk: 15 },
 };
 const lvlMult = (l: number) => 1 + (Math.max(1, Math.min(10, Math.floor(l || 1))) - 1) * 0.07;
 

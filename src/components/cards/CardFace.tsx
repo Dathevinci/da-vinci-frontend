@@ -754,7 +754,7 @@ export const FALLBACK_STATS: Record<CardRarity, { hp: number; atk: number }> = {
   epic: { hp: 20, atk: 8 },
   legendary: { hp: 28, atk: 12 },
   event: { hp: 24, atk: 10 },
-  mythic: { hp: 30, atk: 12 },
+  mythic: { hp: 36, atk: 15 },
 };
 
 function CardFaceImpl({
@@ -1101,7 +1101,8 @@ function CardFaceImpl({
 @keyframes cf-breathe { 0%,100% { opacity:.30 } 50% { opacity:.75 } }
 @keyframes cf-neon { 0%,100% { opacity:.8 } 50% { opacity:1 } }
 @keyframes cf-maxflick { 0%,100% { opacity:1 } 6% { opacity:.55 } 8% { opacity:1 } 44% { opacity:1 } 46% { opacity:.8 } 47% { opacity:1 } 72% { opacity:1 } 73% { opacity:.6 } 75% { opacity:1 } }
-@keyframes cf-mythsweep { 0% { transform: translateX(-120%) skewX(-12deg); } 55% { transform: translateX(300%) skewX(-12deg); } 100% { transform: translateX(300%) skewX(-12deg); } }
+@keyframes cf-rift { 0%, 100% { transform: scaleX(1) scaleY(.96); opacity: .55; } 45% { transform: scaleX(3.2) scaleY(1); opacity: 1; } 55% { transform: scaleX(2.6) scaleY(1); opacity: .95; } }
+@keyframes cf-riftring { 0% { transform: scale(.2); opacity: 0; } 42% { opacity: 0; } 48% { opacity: .8; } 100% { transform: scale(2.1); opacity: 0; } }
 @keyframes cf-mythember { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(-120px); opacity: 0; } }
 @keyframes cf-rgb { from { filter: hue-rotate(0deg); } to { filter: hue-rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .cf-anim { animation: none !important; } }
@@ -1127,17 +1128,30 @@ function CardFaceImpl({
             }}
           />
         )}
-        {/* ── MYTHIC ALONE moves differently: a slow crimson rift-sweep
-            crossing the painting, and pooled embers rising off it. Both are
-            cf-anim (killed by reduced-motion and Performance Mode), both
-            transform/opacity only. */}
+        {/* ── MYTHIC ALONE moves differently — and NOT like foil. No sweep:
+            a vertical RIFT breathes open down the middle of the painting
+            (a crack of light pulsing wide and narrow), a heartbeat ring
+            blooms off it, and embers rise. All cf-anim (killed by
+            reduced-motion and Performance Mode), transform/opacity only. */}
         {owned && size >= 96 && card.rarity === "mythic" && (
           <>
+            {/* the rift — a living crack, not a passing shine */}
             <span aria-hidden className="cf-anim" style={{
-              position: "absolute", top: 0, bottom: 0, left: 0, width: "55%",
-              background: "linear-gradient(100deg, transparent, rgba(225,29,72,.15) 40%, rgba(255,171,120,.17) 55%, transparent)",
-              animation: "cf-mythsweep 7s ease-in-out infinite",
-              willChange: "transform", pointerEvents: "none",
+              position: "absolute", top: "8%", bottom: "8%", left: "50%",
+              width: 2, marginLeft: -1,
+              background: "linear-gradient(180deg, transparent, #fff 22%, #fb7185 50%, #fff 78%, transparent)",
+              boxShadow: "0 0 8px #e11d48, 0 0 18px #e11d48",
+              animation: "cf-rift 3.2s ease-in-out infinite",
+              willChange: "transform, opacity", pointerEvents: "none",
+            }} />
+            {/* the heartbeat — a ring blooming off the rift on the beat */}
+            <span aria-hidden className="cf-anim" style={{
+              position: "absolute", left: "50%", top: "50%",
+              width: Math.round(size * 0.5), height: Math.round(size * 0.5),
+              marginLeft: -Math.round(size * 0.25), marginTop: -Math.round(size * 0.25),
+              borderRadius: 999, border: "1.5px solid rgba(251,113,133,.8)",
+              animation: "cf-riftring 3.2s ease-out infinite",
+              willChange: "transform, opacity", pointerEvents: "none",
             }} />
             {[0, 1, 2, 3, 4].map((i) => (
               <span key={i} aria-hidden className="cf-anim" style={{

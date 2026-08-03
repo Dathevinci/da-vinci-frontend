@@ -294,7 +294,7 @@ const MARKET_STATS: Record<string, { hp: number; atk: number }> = {
   epic:      { hp: 23, atk: 9 },
   legendary: { hp: 26, atk: 10 },
   event:     { hp: 24, atk: 9 },
-  mythic:    { hp: 30, atk: 12 },
+  mythic:    { hp: 36, atk: 15 },
 };
 
 function ListingCard({ listing, meId, busy, onOpen, onCancel }: {
