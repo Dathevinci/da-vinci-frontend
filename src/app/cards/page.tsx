@@ -393,6 +393,9 @@ export default function CardsPage() {
   // rates fall back to a display-only mirror of the server weights.
   const [statsOpen, setStatsOpen] = useState(false);
   const [pullStats, setPullStats] = useState<any | null>(null);
+  // ── DUST ALL ── the whole binder's dupes → shards in one sweep.
+  const [dustAllOpen, setDustAllOpen] = useState(false);
+  const [dustingAll, setDustingAll] = useState(false);
   const openStats = async () => {
     setStatsOpen(true);
     try {
@@ -402,6 +405,47 @@ export default function CardsPage() {
       const d = await r.json();
       if (d?.success) setPullStats(d.data);
     } catch { /* offline — the modal still shows the mirrored odds */ }
+  };
+
+  // What a full sweep WOULD dust — mirrors the server's rules (keep one of
+  // each card, keep the best serial of every legendary build, events never
+  // dust) so the confirm sheet promises exactly what the server delivers.
+  const dustPreview = useMemo(() => {
+    let copies = 0, gain = 0;
+    for (const c of catalog?.cards || []) {
+      const n = owned[c.id] || 0;
+      if (n <= 1 || c.rarity === "event") continue;
+      let d = 0;
+      if (c.rarity === "legendary") {
+        const perWear: Record<string, number> = {};
+        for (const p of prints[c.id] || []) perWear[p.condition] = (perWear[p.condition] || 0) + 1;
+        d = Object.values(perWear).reduce((a, k) => a + Math.max(0, k - 1), 0);
+      } else {
+        d = n - 1;
+      }
+      if (d > 0) { copies += d; gain += d * (catalog?.dustValue?.[c.rarity] || 0); }
+    }
+    return { copies, gain };
+  }, [catalog, owned, prints]);
+
+  const dustAll = async () => {
+    if (!user) return;
+    setDustingAll(true);
+    try {
+      const r = await fetch(`${API_URL}/api/cards/dust-all`, {
+        method: "POST", headers: authHeaders(), body: JSON.stringify({ userId: user.id }),
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) return toast(d.message || "Couldn't dust.", "error");
+      setShards(d.data.shards);
+      toast(`Dusted ${d.data.copies.toLocaleString()} cop${d.data.copies === 1 ? "y" : "ies"} into ${d.data.gained.toLocaleString()} shards.`, "success");
+      setDustAllOpen(false);
+      await loadCollection();
+    } catch {
+      toast("Couldn't dust.", "error");
+    } finally {
+      setDustingAll(false);
+    }
   };
   const qn = q.trim().toLowerCase();
   const filtering = qn.length > 0 || rarFilter !== "all";
@@ -432,11 +476,11 @@ export default function CardsPage() {
   // this, a phone swipe could grab the body instead of the sheet — modal
   // frozen, page moving underneath, which reads as "the preview broke".
   useEffect(() => {
-    if (!selected && !statsOpen) return;
+    if (!selected && !statsOpen && !dustAllOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = prev; };
-  }, [selected, statsOpen]);
+  }, [selected, statsOpen, dustAllOpen]);
 
   // THE ROOT CAUSE of "the preview messes up on mobile": fixed 216px tiles
   // in a two-column grid are ~480px of content on a 412px phone. The page
@@ -813,6 +857,14 @@ export default function CardsPage() {
                   style={{ clipPath: notch(7), background: "rgba(251,191,36,.08)", boxShadow: "inset 0 0 0 1px rgba(251,191,36,.30)" }}>
                   <BarChart3 className="h-3.5 w-3.5" /> Pull Stats
                 </button>
+                {isMine && (
+                  <button onClick={() => setDustAllOpen(true)} disabled={dustPreview.copies === 0}
+                    title={dustPreview.copies === 0 ? "No duplicates to dust" : `${dustPreview.copies} duplicate cop${dustPreview.copies === 1 ? "y" : "ies"} → ${dustPreview.gain.toLocaleString()} shards`}
+                    className="flex items-center gap-1.5 px-3.5 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-200/90 transition hover:text-cyan-100 disabled:opacity-35"
+                    style={{ clipPath: notch(7), background: "rgba(34,211,238,.08)", boxShadow: "inset 0 0 0 1px rgba(34,211,238,.30)" }}>
+                    <Recycle className="h-3.5 w-3.5" /> Dust Dupes{dustPreview.copies > 0 ? ` · ${dustPreview.copies}` : ""}
+                  </button>
+                )}
                 {filtering && (
                   <span className="text-[11px] font-bold text-slate-500">
                     {sets.reduce((n, s) => n + s.cards.length, 0)} match{sets.reduce((n, s) => n + s.cards.length, 0) === 1 ? "" : "es"}
@@ -891,6 +943,50 @@ export default function CardsPage() {
                       <p className="mt-2 text-[10px] leading-relaxed text-slate-600">
                         Fresh Builds are the handmade originals — only a few ever existed. Factory News came off a line, which is why the machine made so many.
                       </p>
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* ── DUST ALL CONFIRM ── destructive, so it says exactly what
+                  it will keep and exactly what it will take before it moves. */}
+              <AnimatePresence>
+                {dustAllOpen && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[90] grid place-items-center bg-black/75 p-4"
+                    onClick={() => setDustAllOpen(false)}>
+                    <motion.div initial={{ opacity: 0, y: 16, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10 }}
+                      transition={{ duration: 0.22 }} onClick={(e) => e.stopPropagation()}
+                      className="w-full max-w-sm p-5"
+                      style={{ clipPath: notch(18), background: "linear-gradient(165deg, #0f1a2b, #0a0d18)", boxShadow: "inset 0 0 0 1px rgba(34,211,238,.35)" }}>
+                      <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.24em] text-cyan-200">
+                        <Recycle className="h-4 w-4" /> Dust every dupe
+                      </h3>
+                      <p className="mt-3 text-xs leading-relaxed text-slate-400">
+                        Keeps <b className="text-white">one copy of every card</b> — and the best serial of{" "}
+                        <b className="text-amber-300">every legendary build</b> (a Rusted is never a dupe of a Fresh Build). Event cards are untouched.
+                      </p>
+                      <div className="mt-4 px-4 py-3"
+                        style={{ clipPath: notch(10), background: "rgba(255,255,255,.04)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.09)" }}>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">The sweep</p>
+                        <p className="mt-1 text-lg font-black text-white">
+                          {dustPreview.copies.toLocaleString()} <span className="text-xs font-bold text-slate-500">copies</span>
+                          <span className="mx-2 text-slate-600">→</span>
+                          <span className="text-cyan-300">{dustPreview.gain.toLocaleString()}</span> <span className="text-xs font-bold text-slate-500">shards</span>
+                        </p>
+                      </div>
+                      <div className="mt-4 flex gap-2">
+                        <button onClick={() => setDustAllOpen(false)}
+                          className="flex-1 px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400 transition hover:text-white"
+                          style={{ clipPath: notch(9), background: "rgba(255,255,255,.05)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }}>
+                          Keep them
+                        </button>
+                        <button onClick={dustAll} disabled={dustingAll || dustPreview.copies === 0}
+                          className="flex-1 px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.18em] text-white transition hover:brightness-115 disabled:opacity-40"
+                          style={{ clipPath: notch(9), background: "linear-gradient(100deg, #0e7490, #22d3ee)" }}>
+                          {dustingAll ? "Dusting…" : "Dust them"}
+                        </button>
+                      </div>
                     </motion.div>
                   </motion.div>
                 )}
