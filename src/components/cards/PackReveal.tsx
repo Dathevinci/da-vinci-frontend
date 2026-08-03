@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { memo, useEffect, useMemo, useState, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import CardFace, { CardDef, RARITY_META } from "./CardFace";
@@ -42,6 +42,81 @@ const PRINT_META: Record<string, { label: string; cls: string }> = {
   rusted:  { label: "Rusted",      cls: "border-orange-700/70 bg-orange-950/60 text-orange-300" },
   factory: { label: "Factory New", cls: "border-slate-400/50 bg-slate-800/70 text-slate-200" },
 };
+
+/**
+ * ONE CARD IN THE ROW — memoised HARD, and that memo IS the smoothness fix.
+ * Every reveal tick re-renders the whole row: on a x32 that was 32 card
+ * trees re-rendering every 170ms, and framer re-diffing every settled
+ * card's animate props (`scale: [1, 1.07, 1]` is a fresh array each
+ * render) — so cards visibly stuttered and snapped mid-sequence. With
+ * memo and stable props, a card renders exactly twice: once face-down,
+ * once at its flip. After that, nothing touches it.
+ *
+ * THREE WRAPPERS, ONE JOB EACH — entrance, idle float, flip. The float is
+ * a CSS loop rather than a framer one: it used to be a framer keyframe
+ * loop that SWAPPED to a different loop on flip, and swapping restarts
+ * the loop from zero, which yanked the card's position the same instant
+ * the flip ran. A CSS animation with a per-card delay never restarts.
+ * The flipper is a real two-sided card: the face is rendered from the
+ * start (art decoded before the flip, not popping in after) and stays
+ * hidden behind the back until the turn passes 90°.
+ */
+const RevealCard = memo(function RevealCard({
+  c, i, out, revealSize, showStats, reduce, print,
+}: {
+  c: CardDef;
+  i: number;
+  out: boolean;
+  revealSize: number;
+  showStats: boolean;
+  reduce: boolean;
+  print?: PulledPrint;
+}) {
+  const meta = RARITY_META[c.rarity];
+  return (
+    <motion.div className="relative"
+      initial={{ y: 90, opacity: 0 }}
+      animate={{ y: out ? 0 : 22, opacity: out ? 1 : 0.95 }}
+      transition={{
+        y: { duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: out ? 0 : i * 0.06 },
+        opacity: { duration: 0.35, delay: out ? 0 : i * 0.06 },
+      }}
+    >
+      <div className={reduce ? "" : "pr-float"} style={{ animationDelay: `${(i % 8) * 0.45}s` }}>
+        {/* the pillar lives OUTSIDE the 3D flipper so it doesn't spin */}
+        {out && meta.order >= 3 && (
+          <motion.span aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 -z-10 -translate-x-1/2 -translate-y-1/2"
+            style={{ width: 190, height: 320, background: `radial-gradient(closest-side, ${meta.glow}, transparent 70%)` }}
+            initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 0.85, scale: 1 }} transition={{ duration: 0.5 }} />
+        )}
+        <motion.div className="relative"
+          initial={false}
+          animate={{ rotateY: out ? 0 : 180, scale: out ? [1, 1.07, 1] : 1 }}
+          transition={{
+            rotateY: { duration: 0.55, ease: [0.45, 0, 0.2, 1] },
+            scale: { duration: 0.55, times: [0, 0.55, 1], ease: "easeOut" },
+          }}
+          style={{ transformStyle: "preserve-3d", transformPerspective: 1000, willChange: "transform" }}
+        >
+          <div className="relative" style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
+            <CardFace card={c} owned size={revealSize} showStats={showStats} />
+            {/* the copy's minted identity — condition + serial */}
+            {out && print && (
+              <span className={`pointer-events-none absolute inset-x-1 bottom-1 z-10 flex items-center justify-center gap-1 rounded-md border px-1 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] ${(PRINT_META[print.condition] || PRINT_META.factory).cls}`}>
+                {(PRINT_META[print.condition] || PRINT_META.factory).label}
+                <span className="font-mono normal-case tracking-normal opacity-80">#{String(print.serial).padStart(3, "0")}</span>
+              </span>
+            )}
+          </div>
+          <div className="absolute inset-0"
+            style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
+            <CardBack size={revealSize} />
+          </div>
+        </motion.div>
+      </div>
+    </motion.div>
+  );
+});
 
 export default function PackReveal({
   cards,
@@ -516,74 +591,10 @@ export default function PackReveal({
           </motion.p>
 
           <div className={`flex w-full flex-wrap items-end justify-center overflow-y-auto ${big ? "max-h-[62dvh] gap-2" : "max-h-[70dvh] gap-3 sm:gap-5"}`}>
-            {ordered.map((c, i) => {
-              const out = i < revealed;
-              const meta = RARITY_META[c.rarity];
-              return (
-                /* THREE WRAPPERS, ONE JOB EACH — entrance, idle float, flip.
-                   The old version did all of it with one spring on one element
-                   that SWAPPED its contents mid-turn, which is why every card
-                   showed its face MIRRORED for the first half of the flip —
-                   there was no second side to hide behind, and `perspective`
-                   was set on the rotating element itself, where it applies to
-                   children and did nothing. This is a real two-sided card: the
-                   face is rendered from the start (so its art is decoded
-                   before the flip, not popping in after) and stays hidden
-                   behind the back until the turn passes 90°. */
-                <motion.div key={`${c.id}-${i}`} className="relative"
-                  initial={{ y: 90, opacity: 0 }}
-                  animate={{ y: out ? 0 : 22, opacity: out ? 1 : 0.95 }}
-                  transition={{
-                    y: { duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: out ? 0 : i * 0.06 },
-                    opacity: { duration: 0.35, delay: out ? 0 : i * 0.06 },
-                  }}
-                >
-                  {/* face-down cards breathe while they wait their turn —
-                      and once revealed they keep a slower, calmer float, so
-                      the row reads as resting ON the clouds rather than
-                      pinned above them. */}
-                  <motion.div
-                    animate={out
-                      ? (reduce ? { y: 0 } : { y: [0, -5, 0] })
-                      : { y: [0, -7, 0] }}
-                    transition={out
-                      ? (reduce ? { duration: 0.3 } : { duration: 3.4, repeat: Infinity, ease: "easeInOut", delay: 0.6 + i * 0.35 })
-                      : { duration: 2.4, repeat: Infinity, ease: "easeInOut", delay: i * 0.4 }}
-                  >
-                    {/* the pillar lives OUTSIDE the 3D flipper so it doesn't spin */}
-                    {out && meta.order >= 3 && (
-                      <motion.span aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 -z-10 -translate-x-1/2 -translate-y-1/2"
-                        style={{ width: 190, height: 320, background: `radial-gradient(closest-side, ${meta.glow}, transparent 70%)` }}
-                        initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 0.85, scale: 1 }} transition={{ duration: 0.5 }} />
-                    )}
-                    <motion.div className="relative"
-                      initial={false}
-                      animate={{ rotateY: out ? 0 : 180, scale: out ? [1, 1.07, 1] : 1 }}
-                      transition={{
-                        rotateY: { duration: 0.55, ease: [0.45, 0, 0.2, 1] },
-                        scale: { duration: 0.55, times: [0, 0.55, 1], ease: "easeOut" },
-                      }}
-                      style={{ transformStyle: "preserve-3d", transformPerspective: 1000, willChange: "transform" }}
-                    >
-                      <div className="relative" style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
-                        <CardFace card={c} owned size={revealSize} showStats={showStats} />
-                        {/* the copy's minted identity — condition + serial */}
-                        {out && printFor[i] && (
-                          <span className={`pointer-events-none absolute inset-x-1 bottom-1 z-10 flex items-center justify-center gap-1 rounded-md border px-1 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] ${(PRINT_META[printFor[i]!.condition] || PRINT_META.factory).cls}`}>
-                            {(PRINT_META[printFor[i]!.condition] || PRINT_META.factory).label}
-                            <span className="font-mono normal-case tracking-normal opacity-80">#{String(printFor[i]!.serial).padStart(3, "0")}</span>
-                          </span>
-                        )}
-                      </div>
-                      <div className="absolute inset-0"
-                        style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
-                        <CardBack size={revealSize} />
-                      </div>
-                    </motion.div>
-                  </motion.div>
-                </motion.div>
-              );
-            })}
+            {ordered.map((c, i) => (
+              <RevealCard key={`${c.id}-${i}`} c={c} i={i} out={i < revealed}
+                revealSize={revealSize} showStats={showStats} reduce={reduce} print={printFor[i]} />
+            ))}
           </div>
 
           {/* Caller-supplied verdict — new vs duplicate, refunds, collection
@@ -609,6 +620,20 @@ export default function PackReveal({
           </AnimatePresence>
         </div>
       )}
+
+      {/* the idle bob — CSS so it NEVER restarts, whatever React re-renders */}
+      <style jsx global>{`
+        .pr-float {
+          animation: prFloat 4.2s ease-in-out infinite;
+        }
+        @keyframes prFloat {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-6px); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .pr-float { animation: none; }
+        }
+      `}</style>
     </motion.div>
   );
 }
