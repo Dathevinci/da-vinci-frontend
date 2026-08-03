@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Layers, Sparkles, Gem, X, Hammer, Recycle, PackageOpen, Users, Heart, Swords, Zap, ArrowUp } from "lucide-react";
+import { Layers, Sparkles, Gem, X, Hammer, Recycle, PackageOpen, Users, Heart, Swords, Zap, ArrowUp, BarChart3 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { isLeadDev, displayArisePoints, displayShards } from "@/lib/admin";
 import { authHeaders } from "@/lib/authToken";
@@ -388,6 +388,19 @@ export default function CardsPage() {
   // WHAT RENDERS; set completion counts stay true to the full set.
   const [q, setQ] = useState("");
   const [rarFilter, setRarFilter] = useState<CardRarity | "all">("all");
+  // ── PULL STATS ── the odds printed, the pulls counted. Data comes from
+  // /pull-stats on open; until it lands the modal shows ellipses, and the
+  // rates fall back to a display-only mirror of the server weights.
+  const [statsOpen, setStatsOpen] = useState(false);
+  const [pullStats, setPullStats] = useState<any | null>(null);
+  const openStats = async () => {
+    setStatsOpen(true);
+    try {
+      const r = await fetch(`${API_URL}/api/cards/pull-stats?userId=${user?.id || ""}`);
+      const d = await r.json();
+      if (d?.success) setPullStats(d.data);
+    } catch { /* offline — the modal still shows the mirrored odds */ }
+  };
   const qn = q.trim().toLowerCase();
   const filtering = qn.length > 0 || rarFilter !== "all";
   const matches = useCallback(
@@ -417,11 +430,11 @@ export default function CardsPage() {
   // this, a phone swipe could grab the body instead of the sheet — modal
   // frozen, page moving underneath, which reads as "the preview broke".
   useEffect(() => {
-    if (!selected) return;
+    if (!selected && !statsOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = prev; };
-  }, [selected]);
+  }, [selected, statsOpen]);
 
   // THE ROOT CAUSE of "the preview messes up on mobile": fixed 216px tiles
   // in a two-column grid are ~480px of content on a 412px phone. The page
@@ -791,12 +804,92 @@ export default function CardsPage() {
                     );
                   })}
                 </div>
+                <button onClick={openStats} title="Packs opened and the printed odds"
+                  className="flex items-center gap-1.5 px-3.5 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-amber-200/90 transition hover:text-amber-100"
+                  style={{ clipPath: notch(7), background: "rgba(251,191,36,.08)", boxShadow: "inset 0 0 0 1px rgba(251,191,36,.30)" }}>
+                  <BarChart3 className="h-3.5 w-3.5" /> Pull Stats
+                </button>
                 {filtering && (
                   <span className="text-[11px] font-bold text-slate-500">
                     {sets.reduce((n, s) => n + s.cards.length, 0)} match{sets.reduce((n, s) => n + s.cards.length, 0) === 1 ? "" : "es"}
                   </span>
                 )}
               </div>
+
+              {/* ── PULL STATS MODAL ── how many packs the world has torn
+                  open, how many were yours, and the exact odds inside one. */}
+              <AnimatePresence>
+                {statsOpen && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[90] grid place-items-center bg-black/75 p-4"
+                    onClick={() => setStatsOpen(false)}>
+                    <motion.div initial={{ opacity: 0, y: 16, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10 }}
+                      transition={{ duration: 0.22 }} onClick={(e) => e.stopPropagation()}
+                      className="w-full max-w-md overflow-y-auto p-5"
+                      style={{ maxHeight: "85dvh", clipPath: notch(18), background: "linear-gradient(165deg, #16102b, #0c0818)", boxShadow: `inset 0 0 0 1px ${ACCENT}55` }}>
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-black uppercase tracking-[0.24em] text-white">Pull Stats</h3>
+                        <button onClick={() => setStatsOpen(false)} className="text-slate-500 transition hover:text-white" aria-label="Close">
+                          <X className="h-5 w-5" />
+                        </button>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-2 gap-2.5">
+                        {([["Your packs", pullStats?.mine], ["Community", pullStats?.community]] as const).map(([label, t]) => (
+                          <div key={label} className="px-4 py-3"
+                            style={{ clipPath: notch(10), background: "rgba(255,255,255,.04)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.09)" }}>
+                            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">{label}</p>
+                            <p className="mt-1 text-2xl font-black text-white">{t ? t.packs.toLocaleString() : "…"}</p>
+                            <p className="text-[10px] font-bold text-slate-500">{t ? `${t.cards.toLocaleString()} cards pulled` : "counting"}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      <p className="mt-5 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">Drop rates — every card in a pack</p>
+                      <div className="mt-2 flex flex-col gap-1.5">
+                        {(["common", "rare", "epic", "legendary"] as const).map((r) => {
+                          const pct = pullStats?.rates?.[r] ?? ({ common: 64, rare: 27.4, epic: 8, legendary: 0.6 } as Record<string, number>)[r];
+                          const tint = RARITY_META[r as CardRarity]?.gem || "#cbd5e1";
+                          return (
+                            <div key={r} className="flex items-center gap-2">
+                              <span className="w-24 text-[10px] font-black uppercase tracking-[0.12em]" style={{ color: tint }}>
+                                {RARITY_META[r as CardRarity]?.label || r}
+                              </span>
+                              <span className="h-2 flex-1 overflow-hidden rounded-full bg-white/5">
+                                {/* floor at 1.2% width so legendary's 0.6% is a visible sliver, not nothing */}
+                                <span className="block h-full rounded-full" style={{ width: `${Math.max(1.2, pct)}%`, background: tint }} />
+                              </span>
+                              <span className="w-14 text-right font-mono text-[11px] font-bold text-slate-300">{pct}%</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
+                        A full pack of 4 turns up at least one legendary about {(100 * (1 - Math.pow(1 - (pullStats?.rates?.legendary ?? 0.6) / 100, 4))).toFixed(1)}% of the time.
+                      </p>
+
+                      <p className="mt-5 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">Legendary build odds</p>
+                      <div className="mt-2 flex flex-col gap-1.5">
+                        {([["fresh", "Fresh Build", "#fbbf24"], ["rusted", "Rusted", "#fb923c"], ["factory", "Factory New", "#cbd5e1"]] as const).map(([k, label, tint]) => {
+                          const pct = pullStats?.legendaryWears?.[k]?.pct ?? ({ fresh: 8, rusted: 30, factory: 62 } as Record<string, number>)[k];
+                          return (
+                            <div key={k} className="flex items-center gap-2">
+                              <span className="w-24 text-[10px] font-black uppercase tracking-[0.12em]" style={{ color: tint }}>{label}</span>
+                              <span className="h-2 flex-1 overflow-hidden rounded-full bg-white/5">
+                                <span className="block h-full rounded-full" style={{ width: `${pct}%`, background: tint }} />
+                              </span>
+                              <span className="w-14 text-right font-mono text-[11px] font-bold text-slate-300">{pct}%</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <p className="mt-2 text-[10px] leading-relaxed text-slate-600">
+                        Fresh Builds are the handmade originals — only a few ever existed. Factory News came off a line, which is why the machine made so many.
+                      </p>
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {view === "sets" ? sets.map(({ set, cards, have, total }) => (
                 // Each set glides in as you reach it — the page unrolls
