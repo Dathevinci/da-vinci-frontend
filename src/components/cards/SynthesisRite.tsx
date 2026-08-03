@@ -51,7 +51,7 @@ export default function SynthesisRite({
     if (stage === "overload") later(() => setStage("shatter"), 400);
     if (stage === "shatter") later(() => setStage("descend"), 800);
     if (stage === "descend") later(() => setStage("idle"), 1000);
-    if (stage === "vent") later(() => setStage("idle"), 1500);
+    if (stage === "vent") later(() => setStage("idle"), 1900);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage]);
 
@@ -69,19 +69,59 @@ export default function SynthesisRite({
   const red = stage === "alarm" || stage === "dissolve" || stage === "collide" || stage === "overload";
   const amber = stage === "vent" || (!outcome.held && stage === "idle");
   const failed = !outcome.held;
+  // Which chamber gives way on a failed reaction: the one whose parent is
+  // NOT the returned card.
+  const lostIsA = failed && !!outcome.returned && outcome.returned.id === b.id;
+  const lostIsB = failed && !!outcome.returned && outcome.returned.id === a.id;
 
-  const Chamber = ({ card, col, side }: { card: CardDef; col: string; side: "l" | "r" }) => (
+  const Chamber = ({ card, col, side, broken = false }: { card: CardDef; col: string; side: "l" | "r"; broken?: boolean }) => (
     <div className={`relative ${side === "l" ? "rotate-[7deg]" : "-rotate-[7deg]"}`}
       style={{ width: 130, height: 260 }}>
-      {/* the glass */}
+      {/* the glass — on a broken chamber it gives way outright */}
       <div className="absolute inset-0 rounded-[40px]"
         style={{
           background: "linear-gradient(180deg, rgba(160,200,255,.10), rgba(120,160,220,.04) 40%, rgba(160,200,255,.12))",
-          boxShadow: `inset 0 0 0 2px rgba(190,220,255,.35), inset 0 -30px 50px ${col}44, 0 0 24px ${col}33`,
+          boxShadow: broken
+            ? "inset 0 0 0 2px rgba(251,191,36,.5), 0 0 20px rgba(245,158,11,.35)"
+            : `inset 0 0 0 2px rgba(190,220,255,.35), inset 0 -30px 50px ${col}44, 0 0 24px ${col}33`,
+          opacity: broken ? 0.45 : 1,
+          transition: "opacity .4s, box-shadow .4s",
         }} />
-      {/* the fluid, lit from below */}
+      {/* THE BREAK — the failed chamber shatters like glass: needles and
+          tumbling panes thrown outward, fluid gone. */}
+      {broken && !reduce && (
+        <div aria-hidden className="pointer-events-none absolute inset-0 grid place-items-center">
+          {Array.from({ length: 12 }, (_, i) => (
+            <motion.span key={i} className="absolute h-5 w-[2px] bg-white/85"
+              style={{ rotate: `${i * 30}deg` }}
+              initial={{ x: 0, y: 0, opacity: 1 }}
+              animate={{ x: Math.cos((i / 12) * Math.PI * 2) * 130, y: Math.sin((i / 12) * Math.PI * 2) * 130, opacity: 0 }}
+              transition={{ duration: 1.1, ease: "easeOut" }} />
+          ))}
+          {Array.from({ length: 5 }, (_, i) => (
+            <motion.span key={`p${i}`} className="absolute"
+              style={{
+                width: 12 + (i % 3) * 6, height: 16 + (i % 2) * 9,
+                background: "linear-gradient(160deg, rgba(220,240,255,.55), rgba(160,200,255,.15))",
+                clipPath: "polygon(50% 0, 100% 40%, 70% 100%, 0 70%)",
+              }}
+              initial={{ x: 0, y: 0, rotate: 0, opacity: 0.95 }}
+              animate={{
+                x: Math.cos((i / 5) * Math.PI * 2 + 0.7) * 150,
+                y: Math.sin((i / 5) * Math.PI * 2 + 0.7) * 150 + 50,
+                rotate: 160 + i * 70, opacity: 0,
+              }}
+              transition={{ duration: 1.4, ease: "easeOut" }} />
+          ))}
+          <motion.span className="absolute rounded-full border-2 border-amber-300/70"
+            style={{ width: 60, height: 60 }}
+            initial={{ scale: 0.2, opacity: 1 }} animate={{ scale: 4.5, opacity: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }} />
+        </div>
+      )}
+      {/* the fluid, lit from below — a broken chamber loses it instantly */}
       <div className="absolute inset-x-2 bottom-2 rounded-b-[36px]"
-        style={{ height: "58%", background: `linear-gradient(180deg, transparent, ${col}30 30%, ${col}55)` }} />
+        style={{ height: "58%", background: `linear-gradient(180deg, transparent, ${col}30 30%, ${col}55)`, opacity: broken ? 0 : 1, transition: "opacity .5s" }} />
       {/* the fluid BOILS — pooled bubbles, faster as the reaction runs */}
       {!reduce && [0, 1, 2, 3, 4].map((bi) => (
         <span key={bi} aria-hidden className="sy-bubble absolute rounded-full"
@@ -129,6 +169,16 @@ export default function SynthesisRite({
       {/* lab wash — red alert, amber failure, calm otherwise */}
       <div aria-hidden className="pointer-events-none absolute inset-0 transition-colors duration-500"
         style={{ background: red ? "rgba(150,10,20,.16)" : amber ? "rgba(180,120,10,.12)" : "rgba(30,20,60,.10)" }} />
+      {/* the LAB itself: wall pipes, floor grating, hazard tape — the room
+          the machine lives in, so the reaction has somewhere to happen */}
+      <div aria-hidden className="pointer-events-none absolute inset-y-0 left-3 hidden w-3 sm:block"
+        style={{ background: "linear-gradient(90deg, #241a3a, #3d3158 45%, #1d1530)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.07)" }} />
+      <div aria-hidden className="pointer-events-none absolute inset-y-0 right-3 hidden w-3 sm:block"
+        style={{ background: "linear-gradient(90deg, #241a3a, #3d3158 45%, #1d1530)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.07)" }} />
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-14 opacity-70"
+        style={{ background: "repeating-linear-gradient(90deg, transparent 0 14px, rgba(0,0,0,.6) 14px 16px), linear-gradient(180deg, transparent, #100a1e)" }} />
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-14 h-1.5 opacity-40"
+        style={{ background: "repeating-linear-gradient(45deg, #f59e0b 0 10px, #0a0a0a 10px 20px)" }} />
       {/* warning strobes */}
       {!reduce && red && (
         <>
@@ -136,14 +186,21 @@ export default function SynthesisRite({
           <div aria-hidden className="sy-strobe pointer-events-none absolute right-6 top-6 h-3 w-3 rounded-full bg-red-500" style={{ animationDelay: ".4s" }} />
         </>
       )}
-      {/* gauges swinging into the red */}
-      <div aria-hidden className="pointer-events-none absolute top-8 flex gap-6">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="relative h-10 w-10 rounded-full border-2 border-slate-600/60 bg-black/60">
-            <span className={`absolute bottom-1/2 left-1/2 h-4 w-[2px] origin-bottom ${red ? "bg-red-400" : amber ? "bg-amber-300" : "bg-slate-400"} ${!reduce && (red || stage === "overload") ? "sy-needle" : ""}`}
-              style={{ transform: red ? "rotate(70deg)" : "rotate(-30deg)", transition: "transform .5s", animationDelay: `${i * 0.15}s` }} />
-          </div>
-        ))}
+      {/* gauges swinging into the red, with the console's readout under them */}
+      <div aria-hidden className="pointer-events-none absolute top-6 flex flex-col items-center gap-1.5">
+        <div className="flex gap-6">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="relative h-14 w-14 rounded-full border-2 border-slate-600/60 bg-black/70"
+              style={{ boxShadow: "inset 0 0 10px rgba(0,0,0,.9)" }}>
+              <span className={`absolute bottom-1/2 left-1/2 h-5 w-[2px] origin-bottom ${red ? "bg-red-400" : amber ? "bg-amber-300" : "bg-slate-400"} ${!reduce && (red || stage === "overload") ? "sy-needle" : ""}`}
+                style={{ transform: red ? "rotate(70deg)" : "rotate(-30deg)", transition: "transform .5s", animationDelay: `${i * 0.15}s` }} />
+              <span className="absolute inset-x-0 bottom-1.5 text-center font-mono text-[6px] text-slate-500">{["PSI", "FLUX", "TEMP"][i]}</span>
+            </div>
+          ))}
+        </div>
+        <span className={`font-mono text-[9px] tracking-[0.3em] ${red ? "text-red-400" : amber ? "text-amber-300" : "text-slate-500"}`}>
+          {red ? "▲ PRESSURE CRITICAL" : amber ? "△ VENTING" : stage === "idle" ? "● NOMINAL" : "● CHARGED"}
+        </span>
       </div>
 
       {/* klaxon — the lab SAYS what it's doing */}
@@ -158,9 +215,13 @@ export default function SynthesisRite({
         </div>
       )}
 
-      {/* ── THE MACHINE ── */}
+      {/* ── THE MACHINE ── a camera punch lands with the overload */}
       {(stage === "alarm" || stage === "dissolve" || stage === "collide" || stage === "overload" || stage === "vent") && (
-        <div className={`relative flex items-end gap-6 sm:gap-12 ${!reduce && stage === "collide" ? "sy-shake" : ""}`}>
+        <motion.div
+          animate={!reduce && stage === "overload" ? { scale: [1, 1.07, 1] } : { scale: 1 }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+          className={`relative flex items-end gap-6 sm:gap-12 ${!reduce && stage === "collide" ? "sy-shake" : ""}`}
+          style={{ willChange: "transform" }}>
           {/* electric arcs leaping between the chambers as the colours fight */}
           {!reduce && stage === "collide" && (
             <svg aria-hidden className="sy-arc pointer-events-none absolute inset-x-0 top-8 z-10 h-24 w-full" viewBox="0 0 400 100" preserveAspectRatio="none">
@@ -169,7 +230,7 @@ export default function SynthesisRite({
               <polyline points="35,45 100,65 170,35 240,68 310,38 368,60" fill="none" stroke={colB} strokeWidth="1.5" opacity=".8" />
             </svg>
           )}
-          <Chamber card={a} col={colA} side="l" />
+          <Chamber card={a} col={colA} side="l" broken={stage === "vent" && lostIsA} />
           {/* centre chamber — dark until the streams arrive */}
           <div className="relative" style={{ width: 150, height: 300 }}>
             <div className={`absolute inset-0 rounded-[44px] ${!reduce && stage === "collide" ? "sy-strain" : ""}`}
@@ -204,11 +265,11 @@ export default function SynthesisRite({
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: [0, 1, 0], y: -40 }} transition={{ duration: 1.4 }} />
             )}
           </div>
-          <Chamber card={b} col={colB} side="r" />
+          <Chamber card={b} col={colB} side="r" broken={stage === "vent" && lostIsB} />
           {/* conduits */}
           <div aria-hidden className="pointer-events-none absolute inset-x-8 bottom-10 h-[3px] rounded-full"
             style={{ background: `linear-gradient(90deg, ${colA}66, rgba(200,220,255,.25), ${colB}66)` }} />
-        </div>
+        </motion.div>
       )}
 
       {/* overload — sparks fly, THEN the white takes everything */}

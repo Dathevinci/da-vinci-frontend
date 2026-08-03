@@ -205,13 +205,42 @@ export default function ForgePage() {
   return (
     <PageTransition>
       <div className="relative min-h-screen overflow-x-hidden pb-24 pt-24 text-white" style={{ background: "linear-gradient(180deg, #0c0508 0%, #08040c 60%, #050308 100%)" }}>
-        {/* ── LAB AMBIENCE ── steam, status lights, a hum you can see */}
+        {/* ── LAB AMBIENCE ── the room is part of the machine: pipework down
+            both walls, floor grating, hazard tape, gauges, breathing lamps
+            and steam. All static gradients or transform/opacity loops. */}
         <div aria-hidden className="pointer-events-none fixed inset-0">
+          {/* wall pipes, with joints */}
+          {(["left-2", "right-2"] as const).map((side) => (
+            <div key={side} className={`absolute ${side} top-16 bottom-0 hidden w-3 md:block`}
+              style={{ background: "linear-gradient(90deg, #2a2140, #453764 45%, #221a36)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.08)" }}>
+              {[0, 1, 2, 3].map((j) => (
+                <span key={j} className="absolute -left-1 -right-1 h-2 rounded-sm"
+                  style={{ top: `${14 + j * 24}%`, background: "#4c4470", boxShadow: "inset 0 1px 0 rgba(255,255,255,.2), 0 1px 2px rgba(0,0,0,.6)" }} />
+              ))}
+            </div>
+          ))}
+          {/* floor grating */}
+          <div className="absolute inset-x-0 bottom-0 h-16 opacity-60"
+            style={{ background: "repeating-linear-gradient(90deg, transparent 0 14px, rgba(0,0,0,.55) 14px 16px), linear-gradient(180deg, transparent, #16102855 40%, #1b1230)" }} />
+          {/* hazard tape running under the header */}
+          <div className="absolute inset-x-0 top-14 h-2 opacity-30"
+            style={{ background: "repeating-linear-gradient(45deg, #f59e0b 0 12px, #0a0a0a 12px 24px)" }} />
           <div className="fg-steam absolute bottom-0 left-[8%] h-64 w-40" />
           <div className="fg-steam absolute bottom-0 right-[12%] h-72 w-48" style={{ animationDelay: "2.2s" }} />
-          <span className="fg-lamp absolute left-5 top-24 h-2.5 w-2.5 rounded-full bg-red-500" />
-          <span className="fg-lamp absolute left-5 top-32 h-2.5 w-2.5 rounded-full bg-amber-400" style={{ animationDelay: ".7s" }} />
-          <span className="fg-lamp absolute left-5 top-40 h-2.5 w-2.5 rounded-full bg-emerald-400" style={{ animationDelay: "1.3s" }} />
+          <span className="fg-lamp absolute left-7 top-24 h-2.5 w-2.5 rounded-full bg-red-500 md:left-8" />
+          <span className="fg-lamp absolute left-7 top-32 h-2.5 w-2.5 rounded-full bg-amber-400 md:left-8" style={{ animationDelay: ".7s" }} />
+          <span className="fg-lamp absolute left-7 top-40 h-2.5 w-2.5 rounded-full bg-emerald-400 md:left-8" style={{ animationDelay: "1.3s" }} />
+          {/* the wall gauges, needles never quite still */}
+          <div className="absolute right-8 top-24 hidden gap-3 lg:flex">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="relative h-12 w-12 rounded-full border-2 border-[#3a2c50] bg-black/70"
+                style={{ boxShadow: "inset 0 0 8px rgba(0,0,0,.8), 0 0 6px rgba(167,139,250,.15)" }}>
+                <span className="fg-needle absolute bottom-1/2 left-1/2 h-4 w-[2px] origin-bottom bg-red-400"
+                  style={{ animationDelay: `${i * 0.9}s` }} />
+                <span className="absolute inset-x-0 bottom-1.5 text-center font-mono text-[6px] text-slate-500">{["PSI", "FLUX", "TEMP"][i]}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="relative mx-auto max-w-5xl px-4">
@@ -234,6 +263,9 @@ export default function ForgePage() {
           {/* ═══ THE MACHINE ═══ */}
           <section className="relative mb-10 p-6"
             style={{ clipPath: "polygon(18px 0,100% 0,100% calc(100% - 18px),calc(100% - 18px) 100%,0 100%,0 18px)", background: "linear-gradient(165deg, #1c0a10, #0d0510)", boxShadow: "inset 0 0 0 1px rgba(225,29,72,.35)" }}>
+            {/* hazard tape across the machine's lintel */}
+            <div aria-hidden className="absolute inset-x-0 top-0 h-1.5"
+              style={{ background: "repeating-linear-gradient(45deg, #b91c1c 0 10px, #14060b 10px 20px)" }} />
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.28em] text-red-300">
                 <Zap className="h-4 w-4" /> Mythic Synthesis
@@ -543,6 +575,8 @@ export default function ForgePage() {
           @keyframes fgBubble { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: .9; } 100% { transform: translateY(-150px); opacity: 0; } }
           .fg-float { animation: fgFloat 4.2s ease-in-out infinite; }
           @keyframes fgFloat { 0%, 100% { transform: translateY(0) rotate(-1.5deg); } 50% { transform: translateY(-7px) rotate(1.5deg); } }
+          .fg-needle { animation: fgNeedle 2.8s ease-in-out infinite; }
+          @keyframes fgNeedle { 0%, 100% { transform: rotate(-38deg); } 40% { transform: rotate(-16deg); } 60% { transform: rotate(-30deg); } 80% { transform: rotate(-20deg); } }
         `}</style>
       </div>
     </PageTransition>
