@@ -67,6 +67,8 @@ export default function CardsPage() {
   const [levels, setLevels] = useState<Record<string, number>>({});
   // Legendary skill ranks, on their own shard track separate from level.
   const [skillLevels, setSkillLevels] = useState<Record<string, number>>({});
+  // Forge ranks — flat per-stat training, the third shard track.
+  const [forges, setForges] = useState<Record<string, { atk: number; hp: number }>>({});
   // Legendary print identities: cardId -> [{serial, condition}], server-real.
   const [prints, setPrints] = useState<Record<string, { serial: number; condition: string }[]>>({});
   const [claimedSets, setClaimedSets] = useState<string[]>([]);
@@ -131,6 +133,7 @@ export default function CardsPage() {
         const hb: Record<string, boolean> = {};
         const lv: Record<string, number> = {};
         const sk: Record<string, number> = {};
+        const fg: Record<string, { atk: number; hp: number }> = {};
         const pr: Record<string, { serial: number; condition: string }[]> = {};
         for (const c of d.data?.cards || []) {
           map[c.cardId] = c.count;
@@ -138,6 +141,7 @@ export default function CardsPage() {
           if (c.hibernating) hb[c.cardId] = true;
           lv[c.cardId] = c.level || 1;
           sk[c.cardId] = c.skillLevel || 1;
+          fg[c.cardId] = { atk: c.atkForge || 0, hp: c.hpForge || 0 };
           if (Array.isArray(c.prints) && c.prints.length) pr[c.cardId] = c.prints;
         }
         setOwned(map);
@@ -145,6 +149,7 @@ export default function CardsPage() {
         setAsleep(hb);
         setLevels(lv);
         setSkillLevels(sk);
+        setForges(fg);
         setPrints(pr);
         setClaimedSets(d.data.claimedSets || []);
         setShards(d.data.shards || 0);
@@ -162,7 +167,7 @@ export default function CardsPage() {
     // fetch fails) showed YOUR cards — and your print serials — under their
     // name, which is exactly the kind of lie a collection page can't tell.
     setOwned({}); setFoils({}); setAsleep({}); setLevels({});
-    setSkillLevels({}); setPrints({}); setLoading(true);
+    setSkillLevels({}); setForges({}); setPrints({}); setLoading(true);
     loadCollection();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, viewing?.id]);
@@ -227,6 +232,31 @@ export default function CardsPage() {
       setTimeout(() => setSelected(null), 700);
     } catch {
       toast("Couldn't dust.", "error");
+    }
+  };
+
+  const [forging, setForging] = useState(false);
+  /** The forge: one stat, one rank, a lot of shards. The response carries the
+   *  new rank and balance, so no refetch — and the sheet STAYS open, because
+   *  forging is something you do again. */
+  const forge = async (card: CardDef, stat: "atk" | "hp") => {
+    if (!user || forging) return;
+    setForging(true);
+    try {
+      const r = await fetch(`${API_URL}/api/cards/forge`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ userId: user.id, cardId: card.id, stat }),
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) return toast(d.message || "The forge went cold.", "error");
+      setShards(d.data.shards);
+      setForges((f) => ({ ...f, [card.id]: { ...(f[card.id] || { atk: 0, hp: 0 }), [stat]: d.data.rank } }));
+      fire("dust", `${stat.toUpperCase()} forged · rank ${d.data.rank}`);
+    } catch {
+      toast("The forge went cold.", "error");
+    } finally {
+      setForging(false);
     }
   };
 
@@ -960,11 +990,13 @@ export default function CardsPage() {
           const lvl = levels[selected.id] || 1;
           const maxLvl = catalog.maxCardLevel ?? 10;
           const lvlMult = 1 + (lvl - 1) * (catalog.levelStep ?? 0.07);
-          // What the card ACTUALLY fights with: base × foil × level, matching
-          // buildFighter() on the server so the sheet can't advertise a number
-          // the arena won't honour.
-          const atk = Math.round(cs.atk * m * lvlMult);
-          const hp = Math.round(cs.hp * m * lvlMult);
+          // What the card ACTUALLY fights with: base × foil × level, plus the
+          // forge's flat points — matching buildFighter() on the server so the
+          // sheet can't advertise a number the arena won't honour.
+          const F = (catalog as any).forge;
+          const fg = forges[selected.id] || { atk: 0, hp: 0 };
+          const atk = Math.round(cs.atk * m * lvlMult) + fg.atk * (F?.atkStep ?? 1);
+          const hp = Math.round(cs.hp * m * lvlMult) + fg.hp * (F?.hpStep ?? 2);
           const lvlBase = catalog.upgradeBase?.[selected.rarity] ?? 30;
           const lvlCost = Math.round(lvlBase * Math.pow(catalog.upgradeGrowth ?? 1.35, lvl - 1));
           const lvlCapped = lvl >= maxLvl;
@@ -1115,6 +1147,56 @@ export default function CardsPage() {
                         </p>
                       </div>
                     )}
+
+                    {/* ── THE FORGE ── flat stat training, one stat at a time,
+                        deliberately dear: the price doubles per rank. Sits
+                        under LEVEL because it's the same idea, sharpened —
+                        level raises everything a little, the forge raises ONE
+                        thing a lot. */}
+                    {count > 0 && !selected.support && F && isMine && (() => {
+                      const rows = [
+                        { stat: "atk" as const, label: "ATK", step: F.atkStep, rank: fg.atk, costs: F.atkCost?.[selected.rarity] || [], tint: "#fbbf24" },
+                        { stat: "hp" as const, label: "HP", step: F.hpStep, rank: fg.hp, costs: F.hpCost?.[selected.rarity] || [], tint: "#fb7185" },
+                      ];
+                      return (
+                        <div className="rounded-xl border border-orange-500/20 bg-orange-500/[0.05] px-4 py-3">
+                          <div className="mb-2.5 flex items-baseline justify-between gap-2">
+                            <span className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.2em] text-orange-200">
+                              <Hammer className="h-3.5 w-3.5" /> The Forge
+                            </span>
+                            <span className="text-[10px] text-slate-500">flat power · price doubles per rank</span>
+                          </div>
+                          <div className="space-y-2.5">
+                            {rows.map((r) => {
+                              const maxed = r.rank >= F.max;
+                              const cost = maxed ? null : r.costs[r.rank];
+                              return (
+                                <div key={r.stat} className="flex items-center gap-2.5">
+                                  <span className="w-8 shrink-0 text-xs font-black" style={{ color: r.tint }}>{r.label}</span>
+                                  <span className="flex shrink-0 items-center gap-1">
+                                    {Array.from({ length: F.max }, (_, i) => (
+                                      <span key={i} className="h-2 w-3.5"
+                                        style={{ background: i < r.rank ? r.tint : "rgba(255,255,255,.10)", clipPath: "polygon(15% 0,100% 0,85% 100%,0 100%)" }} />
+                                    ))}
+                                  </span>
+                                  <span className="min-w-0 flex-1 truncate text-[11px] text-slate-500">
+                                    +{r.step * r.rank}{maxed ? " · fully forged" : ""}
+                                  </span>
+                                  {!maxed && (
+                                    <button onClick={() => forge(selected, r.stat)}
+                                      disabled={forging || (!isLeadDev(user) && shards < (cost ?? 0))}
+                                      title={`+${r.step} ${r.label}, permanently, in every mode`}
+                                      className="shrink-0 rounded-lg border border-orange-400/30 bg-orange-500/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-orange-200 transition hover:bg-orange-500/25 disabled:opacity-35">
+                                      {(cost ?? 0).toLocaleString()} shards
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     {/* ── ABILITY ── a DOMAIN on legendaries, a SKILL on epics.
                         They get visibly different treatment because they are
