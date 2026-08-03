@@ -761,6 +761,10 @@ export const FALLBACK_STATS: Record<CardRarity, { hp: number; atk: number }> = {
   mythic: { hp: 36, atk: 15 },
 };
 
+/** The Pantheon's stat line — a display-only mirror of GOD_STATS on the
+ *  server. Applied by SET, above rarity, on every surface that shows stats. */
+export const GOD_STATS_MIRROR = { hp: 44, atk: 19 };
+
 function CardFaceImpl({
   card,
   owned = true,
@@ -826,7 +830,7 @@ function CardFaceImpl({
   /** CSS aspect-ratio for the whole card. Defaults to the arena's 5/7. */
   ratio?: string;
 }) {
-  const S = (stats || FALLBACK_STATS)[card.rarity] || FALLBACK_STATS.common;
+  const S = card.set === "Pantheon" ? GOD_STATS_MIRROR : (stats || FALLBACK_STATS)[card.rarity] || FALLBACK_STATS.common;
   const mult = foil ? 1.2 : 1;
   /**
    * BOUGHT POWER SHOWS ON THE FACE. The badges knew rarity and foil but not
@@ -1323,7 +1327,9 @@ function CardFaceImpl({
             aria-label="Fusion-eligible"
             style={{
               position: "absolute",
-              top: Math.round(size * 0.16),
+              // Below the rarity plate's line — at small sizes the two were
+              // colliding into an unreadable pileup on the card's brow.
+              top: Math.round(size * 0.30),
               right: -3,
               zIndex: 7,
               transform: "rotate(9deg)",
@@ -1405,8 +1411,8 @@ function CardFaceImpl({
               maxWidth: "80%",
             }}
           >
-            {card.rarity === "mythic" && !dim && (
-              <span style={{ fontSize: size >= 120 ? "1.5em" : "1.15em", verticalAlign: "-0.12em", marginRight: 3, color: "#fb7185" }}>★</span>
+            {card.rarity === "mythic" && !dim && size >= 120 && (
+              <span style={{ fontSize: "1.5em", verticalAlign: "-0.12em", marginRight: 3, color: "#fb7185" }}>★</span>
             )}
             {card.support ? "SUPPORT" : (card.gradeLabel ?? R.label).toUpperCase()}
           </span>

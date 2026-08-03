@@ -1224,13 +1224,20 @@ export default function CardsPage() {
                    rarity, nothing you don't. Legendaries get a shelf per
                    BUILD, because each wear is its own card. */
                 <div className="space-y-8">
-                  {(["mythic", "common", "rare", "epic"] as CardRarity[]).map((r) => {
-                    const mine = (catalog?.cards || []).filter((c: CardDef) => c.rarity === r && (owned[c.id] || 0) > 0 && matches(c));
+                  {(["gods", "mythic", "common", "rare", "epic"] as string[]).map((r) => {
+                    // "gods" is the Pantheon shelf — set-keyed, above even
+                    // mythic; the mythic shelf then excludes them so a god
+                    // never files as an ordinary ★5.
+                    const mine = (catalog?.cards || []).filter((c: CardDef) =>
+                      (r === "gods"
+                        ? c.set === "Pantheon"
+                        : r === "mythic" ? c.rarity === "mythic" && c.set !== "Pantheon" : c.rarity === r)
+                      && (owned[c.id] || 0) > 0 && matches(c));
                     if (!mine.length) return null;
                     return (
                       <Rise key={r}>
                       <div>
-                        <Heading title={RARITY_META[r].label} sub={`${mine.length} owned`} />
+                        <Heading title={r === "gods" ? "Gods · The Pantheon" : RARITY_META[r as CardRarity].label} sub={`${mine.length} owned`} />
                         <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                           {mine.map((c: CardDef) => (
                             <button key={c.id} onClick={() => setSelected(c)}

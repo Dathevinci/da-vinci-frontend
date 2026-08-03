@@ -74,8 +74,9 @@ type RunResult = {
 
 /** Effective (display) stats for a card in the lobby — injury AND forge
  *  included, matching makeUnit on the server point for point. */
-function effStats(c: DgnCard, rarity: string) {
-  const base = DGN_STATS[rarity] || DGN_STATS.common;
+function effStats(c: DgnCard, rarity: string, set?: string) {
+  // Gods (set Pantheon) fight above their rarity — mirror of the server.
+  const base = set === "Pantheon" ? { hp: 44, atk: 19 } : DGN_STATS[rarity] || DGN_STATS.common;
   const m = (c.foil ? 1.2 : 1) * lvlMult(c.level);
   const fullMax = Math.round(base.hp * m) + (c.hpForge || 0) * 2;
   const maxHp = c.dgnInjured ? Math.max(1, Math.round(fullMax * 0.7)) : fullMax;
@@ -550,7 +551,7 @@ export default function DungeonPage() {
   const power = partyCards.reduce((n, c) => {
     const def = byId[c.cardId];
     if (!def) return n;
-    const s = effStats(c, def.rarity);
+    const s = effStats(c, def.rarity, def.set);
     return n + s.atk + s.maxHp;
   }, 0);
   const ratio = dgn ? power / Math.max(1, dgn.recPower) : 0;
@@ -640,7 +641,7 @@ export default function DungeonPage() {
                       // condition — a wounded unit fans out at its real HP,
                       // not a fresh copy of itself.
                       const row = cards.find((c) => c.cardId === id);
-                      const s = row ? effStats(row, def.rarity) : null;
+                      const s = row ? effStats(row, def.rarity, def.set) : null;
                       return (
                         <button key={i} onClick={() => toggle(id)} title={`${def.name} — tap to remove`}
                           className="dg-fan-card relative shrink-0" style={style}>
@@ -720,7 +721,7 @@ export default function DungeonPage() {
                   {cards.map((c) => {
                     const def = byId[c.cardId];
                     if (!def) return null;
-                    const s = effStats(c, def.rarity);
+                    const s = effStats(c, def.rarity, def.set);
                     const picked = party.includes(c.cardId);
                     const status = c.dgnDead ? "DEAD" : c.dgnInjured ? "INJURED" : s.hp < s.maxHp ? "WOUNDED" : "HEALTHY";
                     const statusTone = c.dgnDead ? "#ff5f5f" : c.dgnInjured ? "#ffd23e" : s.hp < s.maxHp ? "#ffb45f" : "#5fd18a";

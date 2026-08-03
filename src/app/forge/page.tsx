@@ -240,8 +240,9 @@ export default function ForgePage() {
               Two eligible cards go in. <b className="text-white">Both are consumed.</b>{" "}
               The pair decides what comes out — the machine only rolls its affix and its eruption.
               A failed reaction returns <b className="text-amber-300">one</b> parent, never neither.
-              Any two of the five legendaries make a Mythic; three <b className="text-rose-300">written
-              pairs of Mythics</b> make the Pantheon — Gojo, Sukuna, Unohana.
+              Any two of the five legendaries forge a Mythic. And three <b className="text-rose-300">specific
+              pairs of two Mythics</b> each forge a GOD — Doors+Hours → Gojo, Blade+Tomorrow → Sukuna,
+              Saint+Tide → Unohana.
             </p>
 
             {/* eligible roster */}
@@ -316,8 +317,8 @@ export default function ForgePage() {
                           </div>
                         ) : (
                           <span className="absolute inset-0 grid place-items-center px-2 text-center text-[9px] font-black uppercase tracking-[0.24em]"
-                            style={{ color: centre ? "rgba(251,113,133,.5)" : "rgba(148,163,184,.55)" }}>
-                            {centre ? "The Mythic" : label}
+                            style={{ color: centre ? "rgba(251,113,133,.6)" : "rgba(203,213,225,.6)" }}>
+                            {centre ? "The Result" : label}
                           </span>
                         )}
                       </div>
@@ -376,7 +377,7 @@ export default function ForgePage() {
                   <span className="relative">{busy === "fuse" ? "REACTING…" : holdPct > 0 ? "HOLD…" : "HOLD TO FUSE"}</span>
                 </button>
                 <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.18em] text-red-300">
-                  ⚠ Both legendaries are consumed — hold the lever to commit
+                  ⚠ Both parents are consumed — hold the lever to commit
                 </div>
               </div>
             </div>

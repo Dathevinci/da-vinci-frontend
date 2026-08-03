@@ -8,7 +8,7 @@ import { displayArisePoints, displayShards } from "@/lib/admin";
 import { authHeaders } from "@/lib/authToken";
 import { useToast } from "@/components/ui/Toast";
 import PageTransition from "@/components/layout/PageTransition";
-import CardFace, { CardDef, FALLBACK_STATS } from "@/components/cards/CardFace";
+import CardFace, { CardDef, FALLBACK_STATS, GOD_STATS_MIRROR } from "@/components/cards/CardFace";
 import DeckBuilder, { loadSavedDeck, saveDeck } from "@/components/cards/DeckBuilder";
 import Arena, { duelPayout } from "@/components/cards/Arena";
 import { notch, ACCENT } from "@/components/cards/gacha";
@@ -319,7 +319,7 @@ export default function DuelsPage() {
     return deck.reduce((sum, id) => {
       const c = byId[id];
       if (!c) return sum;
-      const base = S[c.rarity] || S.common;
+      const base = c.set === "Pantheon" ? GOD_STATS_MIRROR : S[c.rarity] || S.common;
       const m = foils[id] ? 1.2 : 1;
       // The FULL formula — level curve and forge points included, exactly
       // like the cards below it show. The old base-only sum read a maxed

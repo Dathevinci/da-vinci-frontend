@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Check, Shuffle, Swords } from "lucide-react";
-import CardFace, { CardDef, RARITY_META, FALLBACK_STATS } from "./CardFace";
+import CardFace, { CardDef, RARITY_META, FALLBACK_STATS, GOD_STATS_MIRROR } from "./CardFace";
 
 /**
  * DECK BUILDER — pick your five, keep them.
@@ -112,7 +112,7 @@ export default function DeckBuilder({
   const trueStats = (id: string) => {
     const c = byId[id];
     if (!c) return { atk: 0, hp: 0 };
-    const base = S[c.rarity] || S.common;
+    const base = c.set === "Pantheon" ? GOD_STATS_MIRROR : S[c.rarity] || S.common;
     const m = foils[id] ? 1.2 : 1;
     const lvlM = 1 + (Math.min(10, Math.max(1, levels[id] || 1)) - 1) * 0.07;
     const fg = forges[id] || { atk: 0, hp: 0 };

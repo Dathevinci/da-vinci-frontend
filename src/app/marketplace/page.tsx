@@ -353,7 +353,7 @@ function ListingCard({ listing, meId, busy, onOpen, onCancel }: {
               a fighter — rarity base, then foil, then level — so the figures
               here are the ones that actually walk into a duel. */}
           {card && (() => {
-            const base = MARKET_STATS[card.rarity] || MARKET_STATS.common;
+            const base = card.set === "Pantheon" ? { hp: 44, atk: 19 } : MARKET_STATS[card.rarity] || MARKET_STATS.common;
             const mult = (foil ? 1.2 : 1) * (1 + (Math.max(1, level || 1) - 1) * 0.07);
             const hp = Math.round(base.hp * mult);
             const atk = Math.round(base.atk * mult);
