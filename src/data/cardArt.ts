@@ -87,10 +87,32 @@ export const CARD_ART: Record<string, string> = {
  * PNG, and a binder full of legendaries fetched megabytes to paint tiles.
  * The full file only loads from 340 up, where its detail is actually visible.
  */
+/**
+ * Cards whose painting exists ONLY at full size, with no sm/ or md/ thumbnail
+ * beside it. The size rewrite is skipped for these and the full file is served
+ * at every size.
+ *
+ * This is not a nicety: the rewrite is a blind string swap, so without this a
+ * binder tile asks for /cards/md/<name>.jpg, gets a 404, and the card silently
+ * falls back to its drawn motif — the art looks "not loading" with no error to
+ * chase. That is exactly how the Knight set landed.
+ *
+ * The cost is bandwidth, not correctness: these serve the full PNG into small
+ * slots. Generate the two thumbnail sizes and delete the id from this set to
+ * get it back.
+ */
+const FULL_SIZE_ONLY = new Set([
+  "card_squire", "card_jester", "card_knightradiant", "card_royalknight",
+  "card_sunknight", "card_crimsonknight", "card_gloriousone", "card_saintking",
+  "card_swordsakura", "card_swordrose", "card_shieldradiant", "card_cloakinvis",
+  "card_shieldlion", "card_swordcrystal", "card_fittingend",
+]);
+
 export function cardArt(id: string, override?: string, size = 999): string | null {
   if (override) return override;
   const full = CARD_ART[id];
   if (!full) return null;
+  if (FULL_SIZE_ONLY.has(id)) return full;
   if (size < 200) return full.replace("/cards/", "/cards/sm/").replace(/\.png$/, ".jpg");
   if (size < 340) return full.replace("/cards/", "/cards/md/").replace(/\.png$/, ".jpg");
   return full;
