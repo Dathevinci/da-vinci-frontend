@@ -60,7 +60,6 @@ import Navbar from "@/components/layout/Navbar";
 import ModeTransition from "@/components/layout/ModeTransition";
 import Footer from "@/components/layout/Footer";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
-import SplashScreen from "@/components/ui/SplashScreen";
 import SupportUsModal from "@/components/layout/SupportUsModal";
 import AuthSync from "@/components/providers/AuthSync";
 import MaintenanceOverlay from "@/components/ui/MaintenanceOverlay";
@@ -125,7 +124,6 @@ export default function RootLayout({
                   <InviteOnlyGuard>
                     <SupportUsModal />
                     <MaintenanceOverlay />
-                    <SplashScreen />
                     <Navbar />
                     <main className="flex-1 pb-20 md:pb-0">{children}</main>
                     <Footer />

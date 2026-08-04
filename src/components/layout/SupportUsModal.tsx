@@ -24,25 +24,24 @@ export default function SupportUsModal() {
     setMounted(true);
 
     let alreadyShown = false;
-    let splashPlaying = false;
     try {
       alreadyShown = !!sessionStorage.getItem(SESSION_KEY);
-      // The splash plays once per session; if its flag isn't set yet it's about to.
-      splashPlaying = !sessionStorage.getItem("cinematicIntroPlayed");
     } catch {
       /* storage blocked — fall through and show */
     }
 
     if (alreadyShown) return; // already shown this session
 
-    // Let the splash finish so the popup animates in cleanly on a fresh load.
-    const delay = splashPlaying ? 6200 : 1800;
+    // A flat wait now that the cinematic intro is gone. This used to stretch
+    // to 6.2s to let the splash finish; with the splash removed its session
+    // flag is never written, so keeping that branch would have made every
+    // load take the long wait.
     const timer = setTimeout(() => {
       // Mark shown for this session as soon as it appears, so navigating
       // around doesn't pop it a second time.
       try { sessionStorage.setItem(SESSION_KEY, "1"); } catch { /* ignore */ }
       setShow(true);
-    }, delay);
+    }, 1800);
     return () => clearTimeout(timer);
   }, []);
 
