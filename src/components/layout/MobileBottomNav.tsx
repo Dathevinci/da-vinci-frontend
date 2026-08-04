@@ -79,6 +79,10 @@ export default function MobileBottomNav() {
   // Hide on immersive chapter readers so it doesn't cover their controls.
   if (pathname && pathname.includes("/chapter/")) return null;
 
+  // Nothing to navigate to from the login gate — and on a phone this bar
+  // sat directly over the form.
+  if (pathname === "/login") return null;
+
   /**
    * A route is active when the path IS it or sits under it. Matching on
    * equality alone meant Profile never lit up (the path is /user/<name>) and

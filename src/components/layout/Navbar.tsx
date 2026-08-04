@@ -175,6 +175,11 @@ export default function Navbar() {
   // hide the global navbar so it doesn't overlap them.
   if (pathname && pathname.includes('/chapter/')) return null;
 
+  // The login gate is a doorway, not a page you navigate from. This one
+  // return covers all three surfaces the navbar mounts: the top bar, the
+  // signed-out NavIsland, and the signed-in BottomDock.
+  if (pathname === '/login') return null;
+
   return (
     <>
       {/* ── DESKTOP, SIGNED-OUT ONLY ── signed-in users get the Dock on

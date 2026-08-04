@@ -134,8 +134,10 @@ function LoginPageInner() {
     "w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 font-mono text-sm text-white placeholder-slate-600 outline-none transition focus:border-violet-400/50 focus:bg-white/[0.06]";
   const label = "mb-1.5 block font-mono text-sm font-bold text-slate-200";
 
+  // pb-12, not pb-28: that clearance existed for the bottom nav, which no
+  // longer renders on this route.
   return (
-    <div className="min-h-screen bg-[#070709] pb-28">
+    <div className="min-h-screen bg-[#070709] pb-12">
       {/* ── HERO ── */}
       <div className="relative overflow-hidden">
         <div
