@@ -47,12 +47,28 @@ class AsuraScans extends MangaParser {
       return await this.request<T>(this.getProxiedUrl(path));
     } catch (error: any) {
       console.log(`Direct access failed, trying proxy: ${error.message}`);
+      /**
+       * WHICH FAILURES ARE WORTH RETRYING THROUGH THE PROXY.
+       *
+       * 5xx was missing, and that omission is most of why chapters go missing.
+       * Asura sits behind Cloudflare, whose characteristic failures — 502, 503,
+       * 520, 521, 522, 524 — all land in exactly the band this list excluded,
+       * so the single most common upstream failure skipped the proxy entirely
+       * and fell straight through to the caller. The proxy is alive and returns
+       * correct data; it was simply never being asked.
+       *
+       * It also contradicted the retry loop in models/index.ts, which has
+       * always treated `status >= 500` as transient. Two layers disagreeing
+       * about what "transient" means is how this stayed hidden.
+       */
+      const status = error.response?.status;
       if (
-        !error.response || 
-        error.response.status === 403 || 
-        error.response.status === 429 ||
-        error.code === 'ECONNRESET' || 
-        error.code === 'ETIMEDOUT' || 
+        !error.response ||
+        status === 403 ||
+        status === 429 ||
+        status >= 500 ||
+        error.code === 'ECONNRESET' ||
+        error.code === 'ETIMEDOUT' ||
         error.code === 'ERR_NETWORK'
       ) {
         try {
@@ -193,6 +209,21 @@ class AsuraScans extends MangaParser {
       // Fetch chapters
       try {
         const chaptersData = await this.requestWithFallback<any>(`series/${mangaId}/chapters`);
+        /**
+         * A NULL PAYLOAD IS A FAILURE, NOT AN EMPTY SERIES.
+         *
+         * The endpoint answers HTTP 200 with `{"data": null}` for a slug it
+         * cannot resolve. `null || []` is `[]` with no exception thrown, so the
+         * catch below never fired and there was not even a console line — the
+         * series rendered complete, with a cover and a synopsis, and simply had
+         * no chapters. That silent path is the reason this looked like a
+         * per-series data problem instead of a per-request one.
+         *
+         * An empty ARRAY is left alone: that genuinely means no chapters.
+         */
+        if (chaptersData.data == null) {
+          throw new Error(`Asura returned no chapter payload for "${mangaId}"`);
+        }
         const chaptersList = chaptersData.data || [];
         info.chapters = chaptersList.map((chap: any): IMangaChapter => {
           // A chapter might be locked if is_locked is true, is_premium is true, or early_access_until is in the future
@@ -208,8 +239,25 @@ class AsuraScans extends MangaParser {
           };
         });
       } catch (e) {
+        /**
+         * SAY THAT IT FAILED. Do not pretend the series has no chapters.
+         *
+         * This catch used to set `chapters = []` and return normally, so the
+         * route answered 200 with a perfect-looking series and the reader
+         * printed "No chapters available yet. Check back later!" — a sentence
+         * that is a lie about a transient network error, and one the owner has
+         * reported as a bug more than once because it is indistinguishable
+         * from a genuinely empty series.
+         *
+         * The series info is still returned, because it IS good and throwing
+         * would downgrade the page to "Series Not Found" — a worse and equally
+         * untrue message. The flag lets the UI tell the truth and offer a
+         * retry, which is the one thing that actually works here.
+         */
         console.error('Failed to fetch chapters:', e);
         info.chapters = [];
+        (info as any).chaptersFailed = true;
+        (info as any).chaptersError = (e as Error)?.message || 'unknown error';
       }
 
       return info;

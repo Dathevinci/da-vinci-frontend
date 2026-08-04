@@ -307,6 +307,26 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
                             Its chapters are published elsewhere, so they can&rsquo;t be read here.
                           </span>
                         </>
+                      ) : (manhwa as any).chaptersFailed ? (
+                        /* THE SOURCE FAILED — say so, and offer the one thing
+                           that works. This used to print "No chapters available
+                           yet", which is a statement about the SERIES when the
+                           truth was a statement about ONE REQUEST. Every reload
+                           re-fetches (nothing here is cached), so a retry
+                           genuinely fixes it — but only if the reader is told
+                           retrying is worth doing. */
+                        <>
+                          <span className="block text-amber-400">Couldn&rsquo;t load the chapter list.</span>
+                          <span className="mt-2 block text-xs text-slate-600">
+                            The source didn&rsquo;t answer. This is usually temporary.
+                          </span>
+                          <button
+                            onClick={() => window.location.reload()}
+                            className="mt-4 rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-slate-200 transition hover:bg-white/10"
+                          >
+                            Try again
+                          </button>
+                        </>
                       ) : (
                         "No chapters available yet. Check back later!"
                       )}

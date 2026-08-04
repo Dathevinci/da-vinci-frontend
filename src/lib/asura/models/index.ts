@@ -64,7 +64,20 @@ export abstract class MangaParser {
   protected abstract readonly classPath: string;
   abstract readonly name: string;
 
-  protected client: AxiosInstance = axios.create();
+  /**
+   * A TIMEOUT, because axios defaults to 0 — wait forever.
+   *
+   * With no ceiling, a single hung upstream request could outlive the whole
+   * serverless invocation. That is the worst possible failure here: the
+   * function is killed, so nothing is returned, nothing is logged, and the
+   * reader shows a generic error for what was really one slow socket.
+   *
+   * 12s is chosen against the retry budget rather than picked at random. The
+   * loop below sleeps 1s + 2s + 3s between attempts, and fetchMangaInfo makes
+   * two sequential calls that can each fall back to a proxy — so the ceiling
+   * has to leave room for that whole chain inside the platform's limit.
+   */
+  protected client: AxiosInstance = axios.create({ timeout: 12_000 });
 
   /**
    * Makes a request with automatic retries for transient errors
