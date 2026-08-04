@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, MapPin, Calendar, Clock, Star, TrendingUp, Compass, Settings, Check, X, Shield, Users, Zap, User as UserIcon, Code2, Sparkles, Crown, Feather, Flame, Leaf, UserPlus, UserMinus, Eye, Heart, ListFilter } from 'lucide-react';
 import BioRenderer from '@/components/profile/BioRenderer';
 import { parseBio } from "@/lib/bioUtils";
@@ -42,8 +42,6 @@ import ManhwaTrackerButton from "@/components/manhwa/ManhwaTrackerButton";
 import { useNovelStatus } from "@/hooks/useNovelStatus";
 import NovelTrackerButton from "@/components/novel/NovelTrackerButton";
 import { novelCover } from "@/lib/novelImage";
-import { useManhwaModal } from "@/components/providers/ManhwaModalProvider";
-import { useNovelModal } from "@/components/providers/NovelModalProvider";
 import ShowcaseCards from "@/components/profile/ShowcaseCards";
 import TitleRack from "@/components/profile/TitleRack";
 import RecentComments from "@/components/profile/RecentComments";
@@ -75,10 +73,9 @@ export default function PublicProfilePage() {
   const { tracked: liveTrackedManhwa } = useManhwaStatus();
   const { tracked: liveTrackedNovel } = useNovelStatus();
 
-  // Manhwa/novel cards pop a quick-view modal (like the anime tab) instead of
-  // navigating away to the detail page.
-  const { openManhwa } = useManhwaModal();
-  const { openNovel } = useNovelModal();
+  // Manhwa/novel cards navigate straight to their detail pages now — the
+  // quick-view popups are retired by the owner's ask.
+  const router = useRouter();
 
   const [activeAnime, setActiveAnime] = useState<any | null>(null);
   const [showQuickView, setShowQuickView] = useState(false);
@@ -751,7 +748,7 @@ export default function PublicProfilePage() {
                               transition={{ duration: 0.35, delay: Math.min(revealIndex * 0.035, 0.35), ease: [0.16, 1, 0.3, 1] }}
                               key={item.id}
                               className="relative group rounded-xl overflow-hidden shadow-lg border border-white/10 cursor-pointer block text-left bg-white/5 w-full"
-                              onClick={() => openManhwa({ id: item.mangaId, title: item.title, image: item.coverImage } as any)}
+                              onClick={() => router.push(`/manhwa/${encodeURIComponent(item.mangaId)}`)}
                             >
                                 <div className="w-full aspect-[2/3] relative">
                                   {item.coverImage ? (
@@ -847,7 +844,7 @@ export default function PublicProfilePage() {
                               transition={{ duration: 0.35, delay: Math.min(revealIndex * 0.035, 0.35), ease: [0.16, 1, 0.3, 1] }}
                               key={item.id}
                               className="relative group rounded-xl overflow-hidden shadow-lg border border-white/10 cursor-pointer block text-left bg-white/5 w-full"
-                              onClick={() => openNovel({ id: item.novelId, title: item.title, cover: item.coverImage } as any)}
+                              onClick={() => router.push(`/novel/${encodeURIComponent(item.novelId)}`)}
                             >
                                 <div className="w-full aspect-[2/3] relative">
                                   {cover ? (

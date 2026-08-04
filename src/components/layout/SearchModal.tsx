@@ -81,9 +81,9 @@ export default function SearchModal({ onClose }: SearchModalProps) {
     e.preventDefault();
     if (query.trim()) {
       if (mode === 'manhwa') {
-        // If there's a top result, open its quick view modal
+        // Enter goes straight to the top result's page (popups retired)
         if (results.length > 0) {
-          openManhwa(results[0]);
+          router.push(`/manhwa/${encodeURIComponent(results[0].id)}`);
         }
       } else if (mode === 'novel') {
         router.push(`/novel?q=${encodeURIComponent(query)}`);
@@ -162,8 +162,11 @@ export default function SearchModal({ onClose }: SearchModalProps) {
                       key={key}
                       onClick={() => {
                         onClose();
-                        if (isManhwa) openManhwa(item);
-                        else if (isNovel) openNovel(item);
+                        // Manhwa/novels go straight to their pages now — the
+                        // quick-view popups are retired. Anime keeps the
+                        // detail overlay.
+                        if (isManhwa) router.push(`/manhwa/${encodeURIComponent(item.id)}`);
+                        else if (isNovel) router.push(`/novel/${encodeURIComponent(item.id)}`);
                         else openAnime(item);
                       }}
                       className="w-full text-left flex items-center gap-4 p-4 hover:bg-white/5 rounded-xl transition cursor-pointer"

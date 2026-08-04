@@ -4,11 +4,11 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { Play, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
 import { IMangaResult } from "@/lib/asura/models";
-import { useManhwaModal } from "@/components/providers/ManhwaModalProvider";
 
 export default function ManhwaCard({ manhwa }: { manhwa: IMangaResult }) {
-  const { openManhwa } = useManhwaModal();
+  const router = useRouter();
 
   const [isHovered, setIsHovered] = useState(false);
   const [transformOrigin, setTransformOrigin] = useState("center center");
@@ -30,9 +30,11 @@ export default function ManhwaCard({ manhwa }: { manhwa: IMangaResult }) {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     setIsHovered(false);
   };
+  // Straight to the series page — the quick-view popup is retired by the
+  // owner's ask; the detail screen IS the destination now.
   const handleOpen = () => {
     closeHover();
-    openManhwa(manhwa);
+    router.push(`/manhwa/${encodeURIComponent(manhwa.id)}`);
   };
 
   // Fine pointers only (no hover pop-out on touch, where there's no mouseleave).

@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { searchAnime } from "@/lib/jikan";
 import { useAnimeModal } from "@/components/providers/AnimeModalProvider";
+import HoverPreview from "@/components/anime/HoverPreview";
 import { Anime } from "@tutkli/jikan-ts";
 
 /**
@@ -268,8 +269,8 @@ function ExploreInner() {
         ) : (
           <div className="mt-7 grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
             {shownMedia.map((a, i) => (
+              <HoverPreview key={`${a.mal_id}-${i}`} anime={a}>
               <button
-                key={`${a.mal_id}-${i}`}
                 onClick={() => openAnime(a)}
                 className="group text-left"
               >
@@ -295,6 +296,7 @@ function ExploreInner() {
                   ) : null}
                 </p>
               </button>
+              </HoverPreview>
             ))}
           </div>
         )}

@@ -1,7 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import DeckHero, { DeckItem } from "@/components/ui/DeckHero";
-import { useNovelModal } from "@/components/providers/NovelModalProvider";
 import { novelCover } from "@/lib/novelImage";
 import type { NovelResult } from "@/lib/novel/ReadNovelFull";
 
@@ -13,7 +13,7 @@ import type { NovelResult } from "@/lib/novel/ReadNovelFull";
  * source URL.
  */
 export default function NovelHeroCarousel({ items }: { items: NovelResult[] }) {
-  const { openNovel } = useNovelModal();
+  const router = useRouter();
 
   const deckItems: DeckItem[] = (items || []).map((n) => ({
     key: n.id,
@@ -23,7 +23,8 @@ export default function NovelHeroCarousel({ items }: { items: NovelResult[] }) {
       "Light Novel",
       ...(n.latestChapter ? [n.latestChapter] : []),
     ],
-    onOpen: () => openNovel(n),
+    // straight to the novel page — popups are retired
+    onOpen: () => router.push(`/novel/${encodeURIComponent(n.id)}`),
   }));
 
   return (
@@ -31,8 +32,7 @@ export default function NovelHeroCarousel({ items }: { items: NovelResult[] }) {
       items={deckItems}
       primaryLabel="Read Now"
       onPrimary={(item) => {
-        const src = (items || []).find((n) => n.id === item.key);
-        if (src) openNovel(src);
+        router.push(`/novel/${encodeURIComponent(item.key)}`);
       }}
       browseHref="/novel?view=all&page=1"
       browseLabel="Browse Library"

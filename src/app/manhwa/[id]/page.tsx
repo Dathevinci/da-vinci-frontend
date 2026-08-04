@@ -100,12 +100,16 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="min-h-screen bg-[#070709] text-slate-200">
-      {/* ═══ HERO ═══ */}
-      <div className="relative overflow-hidden">
-        {cover && (
-          <img src={cover} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-35 blur-2xl" />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-[#070709]/60 to-[#070709]" />
+      {/* ═══ HERO ═══ overflow-hidden lives on the BACKDROP wrapper, not
+          the hero itself — on the hero it clipped the Add to Library
+          dropdown, which opens past the hero's bottom edge. */}
+      <div className="relative">
+        <div className="absolute inset-0 overflow-hidden">
+          {cover && (
+            <img src={cover} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-35 blur-2xl" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-[#070709]/60 to-[#070709]" />
+        </div>
 
         <div className="relative mx-auto flex max-w-4xl flex-col items-center px-4 pb-10 pt-20 text-center sm:pt-24">
           <motion.div
@@ -155,7 +159,7 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
             </div>
           )}
 
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <div className="relative z-20 mt-8 flex flex-wrap items-center justify-center gap-3">
             {readTarget ? (
               <Link
                 href={`/manhwa/${encodeURIComponent(id)}/chapter/${encodeURIComponent(readTarget.id)}`}

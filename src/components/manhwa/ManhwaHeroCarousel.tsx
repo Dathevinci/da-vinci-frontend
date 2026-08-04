@@ -1,7 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import DeckHero, { DeckItem } from "@/components/ui/DeckHero";
-import { useManhwaModal } from "@/components/providers/ManhwaModalProvider";
 import { IMangaResult } from "@/lib/asura/models";
 
 /**
@@ -13,7 +13,7 @@ import { IMangaResult } from "@/lib/asura/models";
  * them, so a raw URL renders a broken card.
  */
 export default function ManhwaHeroCarousel({ items }: { items: IMangaResult[] }) {
-  const { openManhwa } = useManhwaModal();
+  const router = useRouter();
 
   const deckItems: DeckItem[] = (items || []).map((m) => ({
     key: m.id,
@@ -25,7 +25,8 @@ export default function ManhwaHeroCarousel({ items }: { items: IMangaResult[] })
       ...(m.status ? [String(m.status)] : []),
       ...(m.latestChapter ? [m.latestChapter] : []),
     ],
-    onOpen: () => openManhwa(m),
+    // straight to the series page — popups are retired
+    onOpen: () => router.push(`/manhwa/${encodeURIComponent(m.id)}`),
   }));
 
   return (
@@ -33,8 +34,7 @@ export default function ManhwaHeroCarousel({ items }: { items: IMangaResult[] })
       items={deckItems}
       primaryLabel="Read Now"
       onPrimary={(item) => {
-        const src = (items || []).find((m) => m.id === item.key);
-        if (src) openManhwa(src);
+        router.push(`/manhwa/${encodeURIComponent(item.key)}`);
       }}
       browseHref="/manhwa?view=all&page=1"
       browseLabel="Browse Comics"

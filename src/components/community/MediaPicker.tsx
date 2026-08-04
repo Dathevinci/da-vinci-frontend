@@ -234,11 +234,15 @@ function GifPanel({
   const left = anchorRect ? Math.min(Math.max(8, anchorRect.left), Math.max(8, vw - W - 8)) : 8;
   const spaceBelow = anchorRect ? vh - anchorRect.bottom : vh;
   const openUp = anchorRect ? spaceBelow < 420 && anchorRect.top > spaceBelow : false;
+  // Above EVERYTHING — the anime detail overlay is z-9999, and a z-200
+  // panel opened from its Discussions tab rendered invisibly behind it
+  // (while working fine on manhwa/novel pages and the forum).
+  const Z = 10000;
   const pos: React.CSSProperties = anchorRect
     ? openUp
-      ? { position: "fixed", left, bottom: vh - anchorRect.top + 8, zIndex: 200 }
-      : { position: "fixed", left, top: anchorRect.bottom + 8, zIndex: 200 }
-    : { position: "fixed", left: 8, bottom: 8, zIndex: 200 };
+      ? { position: "fixed", left, bottom: vh - anchorRect.top + 8, zIndex: Z }
+      : { position: "fixed", left, top: anchorRect.bottom + 8, zIndex: Z }
+    : { position: "fixed", left: 8, bottom: 8, zIndex: Z };
 
   if (typeof document === "undefined") return null;
   return createPortal(

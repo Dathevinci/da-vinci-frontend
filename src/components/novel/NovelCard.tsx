@@ -3,30 +3,31 @@
 import { useState, useRef, useEffect } from "react";
 import { BookOpen, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
 import type { NovelResult } from "@/lib/novel/ReadNovelFull";
-import { useNovelModal } from "@/components/providers/NovelModalProvider";
 import NovelTrackerButton from "@/components/novel/NovelTrackerButton";
-import { novelCover } from "@/lib/novelImage";
 
 import { useNovelCover } from "@/lib/novel/useNovelCover";
 
 export default function NovelCard({ novel }: { novel: NovelResult }) {
-  const { openNovel } = useNovelModal();
+  const router = useRouter();
 
   const [isHovered, setIsHovered] = useState(false);
   const [transformOrigin, setTransformOrigin] = useState("center center");
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  const { cover, onError } = useNovelCover(novel.title, novel.cover);
+  const { cover, onError: onCoverError } = useNovelCover(novel.title, novel.cover);
 
   const closeHover = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     setIsHovered(false);
   };
+  // Straight to the novel page — the quick-view popup is retired by the
+  // owner's ask; the detail screen IS the destination now.
   const handleOpen = () => {
     closeHover();
-    openNovel(novel);
+    router.push(`/novel/${encodeURIComponent(novel.id)}`);
   };
 
   // Fine pointers only (no hover pop-out on touch, where there's no mouseleave).
@@ -66,9 +67,7 @@ export default function NovelCard({ novel }: { novel: NovelResult }) {
             alt={novel.title}
             loading="lazy"
             decoding="async"
-            onError={() => {
-              if (highResCover) setHighResCover(null);
-            }}
+            onError={onCoverError}
             className="w-full h-full object-cover hq-image"
           />
         ) : (
