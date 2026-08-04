@@ -6,6 +6,8 @@ import Link from "next/link";
 import { BookOpen, ChevronLeft, ChevronRight, Flame, Clock, CheckCircle2, BookMarked, Star, Sparkles } from "lucide-react";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 import HeroSearchBar from "@/components/ui/HeroSearchBar";
+import DiscoverRail from "@/components/media/DiscoverRail";
+import { novelCover } from "@/lib/novelImage";
 import NovelCard from "@/components/novel/NovelCard";
 import NovelCarousel from "@/components/novel/NovelCarousel";
 import NovelHeroCarousel from "@/components/novel/NovelHeroCarousel";
@@ -92,6 +94,18 @@ function NovelInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sp.toString(), isHome]);
 
+  // Novel rows carry a cover, a title and a latest-chapter string — no rating
+  // and no chapter count — so that string is the only meta passed through.
+  // Nothing here fabricates a score the sources don't publish.
+  const toDiscover = (arr: NovelResult[]) =>
+    (arr || []).filter((n) => n && n.id).map((n) => ({
+      id: n.id,
+      title: n.title,
+      image: novelCover(n.cover) || null,
+      meta: n.latestChapter || null,
+      href: `/novel/${encodeURIComponent(n.id)}`,
+    }));
+
   const buildUrl = (p: number) => {
     const u = new URLSearchParams(sp.toString());
     u.set("page", String(p));
@@ -131,6 +145,19 @@ function NovelInner() {
               {/* Ranked by rating, not requested as "popular" — this source
                   ignores its own sort params, so the order is derived here. */}
               <NovelCarousel title="Top Rated on LightNovelWorld" icon={<Flame className="w-6 h-6 text-orange-500" />} items={lnwTop} seeAllLink="/novel?view=all&list=lightnovelworld-top" />
+
+              <div className="pt-6">
+                <DiscoverRail
+                  title="Discover Novels"
+                  subtitle="Trending shelves, reader favourites, and top rated picks"
+                  accent="#ec4899"
+                  tabs={[
+                    { key: "trending", label: "Trending", icon: "trending", items: toDiscover(trending) },
+                    { key: "updated", label: "Recently Updated", icon: "popular", items: toDiscover(latest) },
+                    { key: "top", label: "Top Rated", icon: "top", items: toDiscover(lnwTop) },
+                  ]}
+                />
+              </div>
 
               <div className="flex justify-center pt-4 pb-2 pl-4 md:pl-12">
                 <button

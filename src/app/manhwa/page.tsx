@@ -11,6 +11,7 @@ import { ChevronLeft, ChevronRight, BookMarked, Flame, Clock, Star } from "lucid
 import LoadingScreen from "@/components/ui/LoadingScreen";
 import HeroSearchBar from "@/components/ui/HeroSearchBar";
 import LatestUpdatesGrid from "@/components/manhwa/LatestUpdatesGrid";
+import DiscoverRail from "@/components/media/DiscoverRail";
 import { useSearchParams, useRouter } from "next/navigation";
 import { IMangaResult, ISearch } from "@/lib/asura/models";
 import { motion, AnimatePresence } from "framer-motion";
@@ -103,6 +104,18 @@ function ManhwaPageInner() {
     .sort((a, b) => (Number(b.rating) || 0) - (Number(a.rating) || 0))
     .slice(0, 18);
 
+  // Shape rows for the Discover rail. Only meta the source actually publishes
+  // is passed through — a rating when there is one, otherwise the latest
+  // chapter, otherwise nothing at all rather than a placeholder.
+  const toDiscover = (arr: IMangaResult[]) =>
+    (arr || []).filter((m) => m && m.id).map((m) => ({
+      id: m.id,
+      title: m.title,
+      image: m.image ? `/api/manhwa-image?url=${encodeURIComponent(m.image)}` : null,
+      meta: m.rating ? `★ ${m.rating}` : m.latestChapter || null,
+      href: `/manhwa/${encodeURIComponent(m.id)}`,
+    }));
+
   return (
     <div className="bg-[#0b0b0c] min-h-screen pt-16 pb-16 text-white font-sans selection:bg-red-500/30">
       <AnimatePresence mode="wait">
@@ -143,6 +156,21 @@ function ManhwaPageInner() {
                 <LatestUpdatesGrid
                   items={latestUpdates}
                   subtitle="Freshly uploaded chapters from AsuraScans and MangaDex"
+                />
+              </div>
+
+              <div className="pt-6">
+                <DiscoverRail
+                  title="Discover Comics"
+                  subtitle="Trending shelves, reader favourites, and top rated picks"
+                  tabs={[
+                    { key: "trending", label: "Trending", icon: "trending",
+                      items: toDiscover(trending) },
+                    { key: "recent", label: "Recently Added", icon: "popular",
+                      items: toDiscover(latestUpdates) },
+                    { key: "top", label: "Top Rated", icon: "top",
+                      items: toDiscover(topRated) },
+                  ]}
                 />
               </div>
 
