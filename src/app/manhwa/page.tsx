@@ -145,10 +145,15 @@ function ManhwaPageInner() {
             <div className="relative z-20 space-y-2 pt-6 max-w-[1600px] mx-auto">
               {/* Resume where you left off (client-side; hidden until you've read something) */}
               <ContinueReading kind="manhwa" />
-              <ManhwaCarousel title="Trending Now" icon={<Flame className="w-6 h-6 text-orange-500" />} items={trending} />
-              <ManhwaCarousel title="Recently Added" icon={<Clock className="w-6 h-6 text-[#dc2626]" />} items={latestUpdates} />
+              {/* Each See All carries its shelf's own filter, so the explore
+                  page opens on what the row was showing. */}
+              <ManhwaCarousel title="Trending Now" icon={<Flame className="w-6 h-6 text-orange-500" />} items={trending}
+                seeAllLink="/manhwa/explore?sort=popular" />
+              <ManhwaCarousel title="Recently Added" icon={<Clock className="w-6 h-6 text-[#dc2626]" />} items={latestUpdates}
+                seeAllLink="/manhwa/explore" />
               {topRated.length > 0 && (
-                <ManhwaCarousel title="Top Rated" icon={<Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />} items={topRated} />
+                <ManhwaCarousel title="Top Rated" icon={<Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />} items={topRated}
+                  seeAllLink="/manhwa/explore?sort=rating" />
               )}
 
               {/* The reference layout's defining block: chapters you can

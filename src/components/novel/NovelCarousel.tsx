@@ -15,7 +15,9 @@ interface NovelCarouselProps {
 
 // Horizontal, snap-scrolling shelf of novel covers — the novel twin of
 // ManhwaCarousel / AnimeCarousel, so all three modes share the Netflix feel.
-export default function NovelCarousel({ title, items, icon, seeAllLink = "/novel?view=all" }: NovelCarouselProps) {
+// See All lands on the novel explore, not the old browse grid. Callers pass
+// their shelf's own list so the page opens showing what the row was showing.
+export default function NovelCarousel({ title, items, icon, seeAllLink = "/novel/explore" }: NovelCarouselProps) {
   const rowRef = useRef<HTMLDivElement>(null);
 
   const handleScroll = (direction: "left" | "right") => {

@@ -15,7 +15,10 @@ interface ManhwaCarouselProps {
 
 // Horizontal, snap-scrolling row of manhwa covers — the manhwa twin of
 // AnimeCarousel, so both modes share the same Netflix-style shelf feel.
-export default function ManhwaCarousel({ title, items, icon, seeAllLink = "/manhwa?view=all&page=1" }: ManhwaCarouselProps) {
+// See All lands on the comics explore, not the old browse grid. Callers pass
+// the filter that matches their shelf, so the page opens showing what the row
+// was showing rather than a generic list.
+export default function ManhwaCarousel({ title, items, icon, seeAllLink = "/manhwa/explore" }: ManhwaCarouselProps) {
   const rowRef = useRef<HTMLDivElement>(null);
 
   const handleScroll = (direction: "left" | "right") => {
