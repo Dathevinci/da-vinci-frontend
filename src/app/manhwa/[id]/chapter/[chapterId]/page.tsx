@@ -171,7 +171,17 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
 
   const currentChapter = manhwa?.chapters?.find(c => c.id === chapterId);
 
-  if (currentChapter?.isLocked) {
+  /**
+   * The lock screen only wins once we've actually FAILED to get pages.
+   *
+   * This used to fire purely off the series list's `isLocked` flag, before the
+   * page request had happened — so it short-circuited the reader and no
+   * fallback could ever have rendered behind it. Now a locked chapter is still
+   * attempted: the router tries Asura, and if Asura says locked it borrows the
+   * same chapter from MangaDex. Only when that comes back empty too does the
+   * reader admit defeat and show this.
+   */
+  if (currentChapter?.isLocked && !loading && pages.length === 0) {
     return (
       <div className="bg-[#09090b] min-h-screen flex items-center justify-center text-white flex-col gap-6 px-4 text-center">
         <Lock className="w-16 h-16 text-red-500 mb-2" />

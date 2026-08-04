@@ -276,11 +276,43 @@ class AsuraScans extends MangaParser {
       const [seriesSlug, chapterNumber] = parts;
       
       const data = await this.requestWithFallback<any>(`series/${seriesSlug}/chapters/${chapterNumber}`);
-      
+
       const chapterData = data.data?.chapter || {};
-      
-      if (chapterData.is_premium && !chapterData.pages) {
-        throw new Error('Premium chapter is locked');
+
+      /**
+       * LOCK DETECTION READS THE TOP LEVEL, WHERE THE TRUTH ACTUALLY IS.
+       *
+       * A locked chapter comes back as HTTP 200 — not an error — with
+       * `data.is_locked: true` and `data.unlock_time` set, while
+       * `data.chapter` carries `is_premium: true`, `page_count: 0` and no
+       * `pages` key at all. The old guard tested `chapter.is_premium &&
+       * !chapter.pages`, which happens to fire for that shape but reads
+       * neither authoritative field — and `chapter.is_locked` /
+       * `chapter.unlock_time` do not exist on this endpoint. So a chapter
+       * locked WITHOUT being flagged premium slipped past and fell through to
+       * the generic "No pages found" below.
+       *
+       * `unlock_time` is the whole reason the MangaDex fallback can be
+       * temporary rather than permanent: it is the exact moment Asura reopens
+       * the chapter, handed to us on every locked request, and it was being
+       * thrown away.
+       */
+      const lockedFlag = data.data?.is_locked === true;
+      const unlockTime: string | undefined = data.data?.unlock_time || undefined;
+      const noPages = !chapterData.pages || chapterData.pages.length === 0;
+
+      if ((lockedFlag || chapterData.is_premium) && noPages) {
+        const err = new Error('Premium chapter is locked') as Error & {
+          isLocked?: boolean; unlockTime?: string; seriesSlug?: string; chapterNumber?: string;
+        };
+        // Carried on the error rather than logged, so the source router can
+        // decide to serve the chapter from somewhere else instead of the
+        // reader just showing a wall.
+        err.isLocked = true;
+        err.unlockTime = unlockTime;
+        err.seriesSlug = seriesSlug;
+        err.chapterNumber = chapterNumber;
+        throw err;
       }
 
       const pages: { url: string }[] = chapterData.pages || [];

@@ -218,6 +218,68 @@ async function fetchChapters(mid: string): Promise<IMangaChapter[]> {
   return out;
 }
 
+/**
+ * Find one chapter of one series, by the series' AsuraScans SLUG and the
+ * chapter NUMBER — the two things a locked Asura chapter can tell us about
+ * itself.
+ *
+ * This exists for the locked-chapter fallback and deliberately does nothing
+ * else. It is strict on purpose: serving the WRONG chapter is far worse than
+ * serving none, because the reader has no way to tell and would silently read
+ * a different series. So the title must match after normalisation, and the
+ * chapter number must match exactly.
+ *
+ * Returns null on any doubt. Every caller is expected to fall back to showing
+ * the lock rather than guessing.
+ */
+export async function findChapterBySlugAndNumber(
+  seriesSlug: string,
+  chapterNumber: string
+): Promise<{ chapterId: string; mangaTitle: string } | null> {
+  // Asura slugs are the title, lowercased and hyphenated, sometimes with a
+  // trailing hash the site appends for uniqueness. Both are stripped so the
+  // search sees words rather than an id.
+  const guess = seriesSlug.replace(/-[a-f0-9]{6,}$/i, "").replace(/-/g, " ").trim();
+  if (!guess) return null;
+
+  const norm = (t: string) => (t || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const want = norm(guess);
+  const wantNum = String(parseFloat(chapterNumber));
+  if (wantNum === "NaN") return null;
+
+  let results: IMangaResult[] = [];
+  try {
+    results = (await search(guess, 1)).results || [];
+  } catch {
+    return null;
+  }
+
+  // Only an exact normalised title match counts — a fuzzy "close enough" here
+  // is how a reader ends up in the wrong series without ever being told.
+  const hit = results.find((r) => {
+    const t = norm(String(r.title || ""));
+    return t === want || t.startsWith(want) || want.startsWith(t);
+  });
+  if (!hit) return null;
+
+  let chapters: IMangaChapter[] = [];
+  try {
+    chapters = await fetchChapters(strip(String(hit.id)));
+  } catch {
+    return null;
+  }
+
+  // fetchChapters already dropped anything with no pages, an external host or
+  // an unavailable flag, so a hit here is genuinely readable.
+  const match = chapters.find((c) => {
+    const m = /chapter\s+([\d.]+)/i.exec(c.title || "");
+    return !!m && String(parseFloat(m[1])) === wantNum;
+  });
+  if (!match) return null;
+
+  return { chapterId: match.id, mangaTitle: String(hit.title || guess) };
+}
+
 export async function fetchPages(chapterId: string): Promise<IMangaChapterPage[]> {
   const cid = strip(chapterId);
   const d = await mdx(`/at-home/server/${cid}`, 0); // token is short-lived → no cache

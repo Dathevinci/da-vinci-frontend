@@ -17,9 +17,51 @@ export async function getManhwaInfo(id: string): Promise<IMangaInfo> {
   return asura().fetchMangaInfo(id);
 }
 
+/**
+ * Pages for one chapter — with a MangaDex rescue when Asura has it locked.
+ *
+ * AsuraScans paywalls its newest chapter for a window and then releases it.
+ * While it is locked the reader had nothing to show. MangaDex usually carries
+ * the same chapter already, so we borrow it for the duration.
+ *
+ * THE RETURN TO ASURA IS AUTOMATIC, and that is the part worth being careful
+ * about. Nothing here is persisted and nothing on this path is cached — the
+ * lock is re-checked on every single request, so the moment Asura stops
+ * answering "locked" the very next read comes from Asura again. There is no
+ * flag to clear, no TTL to wait out, and no state that can get stuck pointing
+ * at the wrong source. (Asura clears is_premium and is_locked together at
+ * unlock, so the signal itself is not sticky either.)
+ *
+ * The fallback is strictly BEST EFFORT. If MangaDex does not carry the series,
+ * or carries it under a title that doesn't match, or lacks that exact chapter
+ * number, the original lock error is rethrown untouched and the reader shows
+ * the lock — which is the honest outcome. Serving the wrong chapter would be
+ * far worse than serving none, because nothing downstream could detect it.
+ */
 export async function getChapterPages(chapterId: string): Promise<IMangaChapterPage[]> {
   if (MDX.isMdx(chapterId)) return MDX.fetchPages(chapterId);
-  return asura().fetchChapterPages(chapterId);
+  try {
+    return await asura().fetchChapterPages(chapterId);
+  } catch (err: any) {
+    if (!err?.isLocked) throw err;
+
+    const slug: string | undefined = err.seriesSlug;
+    const num: string | undefined = err.chapterNumber;
+    if (!slug || !num) throw err;
+
+    const found = await MDX.findChapterBySlugAndNumber(slug, num).catch(() => null);
+    if (!found) throw err;
+
+    const pages = await MDX.fetchPages(found.chapterId).catch(() => [] as IMangaChapterPage[]);
+    if (pages.length === 0) throw err;
+
+    console.log(
+      `[manhwa] ${slug} ch ${num} is locked on Asura` +
+        (err.unlockTime ? ` until ${err.unlockTime}` : "") +
+        ` — serving ${pages.length} pages from MangaDex ("${found.mangaTitle}")`
+    );
+    return pages;
+  }
 }
 
 // ── merge helpers ────────────────────────────────────────────────────────────

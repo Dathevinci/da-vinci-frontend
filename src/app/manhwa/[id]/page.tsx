@@ -273,14 +273,31 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
                           </>
                         );
                         const cls = "group flex items-center justify-between px-4 py-3 transition-colors odd:bg-white/[0.02]";
+                        /**
+                         * A LOCKED CHAPTER IS NOW WORTH OPENING.
+                         *
+                         * It used to render as a dead div, which was right when
+                         * a lock meant there was nothing to read. Now the reader
+                         * tries MangaDex for the same chapter while Asura has it
+                         * paywalled, so refusing the click would hide a chapter
+                         * that is very often available.
+                         *
+                         * It stays visibly locked — the badge and the tooltip
+                         * are unchanged — because it IS locked on Asura, and the
+                         * reader still shows the lock screen when no fallback
+                         * turns up. Optimism here, honesty there.
+                         */
                         return isLocked ? (
-                          <div
+                          <Link
                             key={chap.id}
-                            className={`${cls} cursor-not-allowed`}
-                            title={chap.earlyAccessUntil ? `Early Access Until: ${new Date(chap.earlyAccessUntil).toLocaleString()}` : "This chapter is locked"}
+                            href={`/manhwa/${encodeURIComponent(id)}/chapter/${encodeURIComponent(chap.id)}`}
+                            className={`${cls} hover:bg-white/[0.06]`}
+                            title={chap.earlyAccessUntil
+                              ? `Locked on Asura until ${new Date(chap.earlyAccessUntil).toLocaleString()} — we'll try another source`
+                              : "Locked on Asura — we'll try another source"}
                           >
                             {inner}
-                          </div>
+                          </Link>
                         ) : (
                           <Link
                             key={chap.id}
