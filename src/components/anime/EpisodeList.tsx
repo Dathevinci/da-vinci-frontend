@@ -1,12 +1,11 @@
-+"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { searchAnikotoAnime, getAnikotoEpisodes, AnikotoEpisode } from "@/lib/anikoto";
-import { Loader2, PlayCircle, Tv, AlertCircle, Play, ChevronDown, Clock, Sparkles } from "lucide-react";
+import { Loader2, Tv, AlertCircle, ChevronDown, Clock, Sparkles, Search } from "lucide-react";
 import WatchOverlay from "./WatchOverlay";
 import AnikotoPlayer from "./AnikotoPlayer";
 import { Anime } from "@tutkli/jikan-ts";
-import { formatDistanceToNow } from "date-fns";
 import { useSearchParams } from 'next/navigation';
 
 const EPISODES_PER_SEASON = 12;
@@ -52,6 +51,9 @@ export default function EpisodeList({
   }, [autoPlay, autoPlayEp, episodes, watchEpisodeId, hasAutoPlayed]);
   // Season/group selector
   const [activeSeason, setActiveSeason] = useState(0);
+  // Search across ALL episodes — the reference layout is a flat searchable
+  // grid, with the season selector kept only for very long runs.
+  const [epFilter, setEpFilter] = useState("");
 
   // Check if anime is unreleased. Status arrives in AniList form ("NOT_YET_RELEASED")
   // or MAL/Jikan form ("Not yet aired") depending on which data source served it —
@@ -363,129 +365,96 @@ export default function EpisodeList({
           </div>
         )}
 
-        {/* ── Header: Title + Season Selector ── */}
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-2xl font-black text-white">Episodes</h3>
-
-          <div className="flex items-center gap-3">
-            {/* Player toggle */}
-            <button
-              onClick={() => setUseCustomPlayer(v => !v)}
-              title={useCustomPlayer ? "Switch to classic player" : "Switch to new player (beta)"}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition border ${
-                useCustomPlayer
-                  ? "bg-purple-600/20 border-purple-500/40 text-purple-300"
-                  : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10"
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              {useCustomPlayer ? "New Player ON" : "New Player"}
-            </button>
-
-            {seasons.length > 1 && (
-              <div className="relative">
-                <select
-                  value={activeSeason}
-                  onChange={(e) => setActiveSeason(Number(e.target.value))}
-                  className="appearance-none bg-[#141414] border border-white/20 text-white rounded-md px-4 py-2.5 pr-10 font-bold text-sm focus:outline-none focus:border-white/40 cursor-pointer hover:bg-[#1a1a1a] transition"
-                >
-                  {seasons.map((s, i) => (
-                    <option key={i} value={i} className="bg-[#141414] text-white">
-                      {s.label}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-              </div>
-            )}
+        {/* ── Search + player toggle + (long runs only) season selector ── */}
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />
+            <input
+              value={epFilter}
+              onChange={(e) => setEpFilter(e.target.value)}
+              placeholder="Search episodes..."
+              className="w-full rounded-xl border border-white/10 bg-white/[0.04] py-2.5 pl-10 pr-4 font-mono text-sm text-white placeholder:text-slate-600 focus:border-white/25 focus:outline-none"
+            />
           </div>
-        </div>
-
-        {/* ── Content rating & season info ── */}
-        <div className="flex items-center gap-3 mb-6 text-sm text-slate-400">
-          <span className="font-bold text-white">{seasons[activeSeason]?.label}:</span>
-          <span>{currentSeasonEpisodes.length} Episodes</span>
-        </div>
-
-        {/* ── Netflix-style Episode List ── */}
-        <div className="flex flex-col divide-y divide-white/5">
-          {currentSeasonEpisodes.map((ep, idx) => {
-            const epNumber = ep.number || idx + 1 + activeSeason * EPISODES_PER_SEASON;
-
-            return (
-              <button
-                key={ep.id || idx}
-                onClick={() => {
-                  if (!isStreamable) return;
-                  setWatchEpisodeId(ep.id);
-                  setWatchEpisodeNo(epNumber);
-                }}
-                disabled={!isStreamable}
-                title={!isStreamable ? "Stream not available for this anime" : undefined}
-                className={`group flex items-start gap-4 md:gap-6 py-5 px-2 md:px-4 text-left transition-colors rounded-lg ${isStreamable ? 'hover:bg-white/[0.03] cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}
+          <button
+            onClick={() => setUseCustomPlayer(v => !v)}
+            title={useCustomPlayer ? "Switch to classic player" : "Switch to new player (beta)"}
+            className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 font-mono text-xs font-bold transition ${
+              useCustomPlayer
+                ? "border-purple-500/40 bg-purple-600/20 text-purple-300"
+                : "border-white/10 bg-white/[0.04] text-slate-400 hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            {useCustomPlayer ? "New Player ON" : "New Player"}
+          </button>
+          {seasons.length > 1 && !epFilter && (
+            <div className="relative">
+              <select
+                value={activeSeason}
+                onChange={(e) => setActiveSeason(Number(e.target.value))}
+                className="cursor-pointer appearance-none rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 pr-9 font-mono text-xs font-bold text-white transition focus:outline-none hover:bg-white/10"
               >
-                {/* Episode number */}
-                <div className="w-6 md:w-8 text-center flex-shrink-0 pt-2">
-                  <span className="text-slate-500 text-lg md:text-2xl font-medium">
-                    {epNumber}
-                  </span>
-                </div>
-
-                {/* Thumbnail */}
-                <div className="relative w-28 md:w-40 aspect-video flex-shrink-0 rounded-md overflow-hidden bg-[#1a1a1a]">
-                  {ep.image ? (
-                    <img
-                      src={ep.image}
-                      alt={ep.title || `Episode ${epNumber}`}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a]">
-                      <Tv className="w-8 h-8 text-slate-700" />
-                    </div>
-                  )}
-                  {/* Play overlay on hover */}
-                  {isStreamable ? (
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
-                      <div className="w-10 h-10 rounded-full border-2 border-white flex items-center justify-center bg-black/60">
-                        <Play className="w-4 h-4 text-white fill-white ml-0.5" />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                      <span className="text-[10px] font-bold text-white/60 uppercase tracking-wider text-center leading-tight px-1">Not Available</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Episode Info */}
-                <div className="flex-1 min-w-0 pt-0.5">
-                  <div className="flex items-center justify-between mb-1">
-                    <h4 className="text-white font-bold text-sm md:text-base truncate pr-4">
-                      {ep.title || `Episode ${epNumber}`}
-                    </h4>
-                    {anime.duration && (
-                      <span className="text-slate-500 text-xs md:text-sm flex-shrink-0 font-medium">
-                        {String(anime.duration).replace(" per ep", "")}
-                      </span>
-                    )}
-                  </div>
-                  {ep.description && (
-                    <p className="text-slate-500 text-xs md:text-sm line-clamp-2 leading-relaxed mt-1">
-                      {ep.description}
-                    </p>
-                  )}
-                  {ep.createdAt && (
-                    <p className="text-purple-400/80 text-xs font-medium mt-1.5 flex items-center gap-1.5">
-                      <Clock className="w-3 h-3" />
-                      Arrived {formatDistanceToNow(new Date(ep.createdAt), { addSuffix: true })}
-                    </p>
-                  )}
-                </div>
-              </button>
-            );
-          })}
+                {seasons.map((s, i) => (
+                  <option key={i} value={i} className="bg-[#141414] text-white">
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
+            </div>
+          )}
         </div>
+
+        {(() => {
+          // Searching looks across EVERYTHING; otherwise the season chunk.
+          const q = epFilter.trim().toLowerCase();
+          const pool = q
+            ? episodes.filter((ep, idx) => {
+                const n = ep.number || idx + 1;
+                return String(n).includes(q) || (ep.title || "").toLowerCase().includes(q);
+              })
+            : currentSeasonEpisodes;
+          return (
+            <>
+              <p className="mb-4 font-mono text-xs font-bold text-slate-500">
+                {pool.length} episodes{q ? " found" : ""}
+              </p>
+
+              {/* ── the reference grid: number + title cards ── */}
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                {pool.map((ep, idx) => {
+                  const epNumber = ep.number || (q ? idx + 1 : idx + 1 + activeSeason * EPISODES_PER_SEASON);
+                  return (
+                    <button
+                      key={ep.id || idx}
+                      onClick={() => {
+                        if (!isStreamable) return;
+                        setWatchEpisodeId(ep.id);
+                        setWatchEpisodeNo(epNumber);
+                      }}
+                      disabled={!isStreamable}
+                      title={!isStreamable ? "Stream not available for this anime" : ep.title || `Episode ${epNumber}`}
+                      className={`rounded-xl border p-3.5 text-left transition-colors ${
+                        isStreamable
+                          ? "border-white/10 bg-white/[0.03] hover:border-white/30 hover:bg-white/[0.07]"
+                          : "cursor-not-allowed border-white/5 bg-white/[0.02] opacity-50"
+                      }`}
+                    >
+                      <p className="font-mono text-base font-black text-white">{epNumber}</p>
+                      <p className="mt-1 line-clamp-1 font-mono text-xs text-slate-400">
+                        {ep.title || `Episode ${epNumber}`}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+              {pool.length === 0 && (
+                <p className="py-8 text-center font-mono text-sm text-slate-500">No episodes match your search.</p>
+              )}
+            </>
+          );
+        })()}
       </div>
 
       {/* Fullscreen Watch Overlay (legacy) */}

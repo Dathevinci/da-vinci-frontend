@@ -399,6 +399,9 @@ export async function searchAnime(variables: any) {
     const seasonMap: Record<string, string> = { winter: "WINTER", spring: "SPRING", summer: "SUMMER", fall: "FALL" };
     v.season = seasonMap[String(variables.season).toLowerCase()] || String(variables.season).toUpperCase();
     v.seasonYear = variables.seasonYear || new Date().getFullYear();
+  } else if (variables.seasonYear) {
+    // a bare year filter (no season) is valid on its own
+    v.seasonYear = variables.seasonYear;
   }
   if (variables.format) v.format = String(variables.format).toUpperCase().replace(/\s+/g, "_");
   if (variables.genre_in && variables.genre_in.length > 0) v.genre_in = variables.genre_in;
@@ -407,6 +410,9 @@ export async function searchAnime(variables: any) {
     score: "SCORE_DESC", popularity: "POPULARITY_DESC", trending: "TRENDING_DESC",
     favourites: "FAVOURITES_DESC", favorites: "FAVOURITES_DESC",
     newest: "START_DATE_DESC", oldest: "START_DATE", updated: "UPDATED_AT_DESC",
+    // ENGLISH, not romaji — the cards display English titles, and an A-Z
+    // ordered by a different alphabet's titles reads as broken sorting
+    title_az: "TITLE_ENGLISH", title_za: "TITLE_ENGLISH_DESC",
   };
   v.sort = variables.sort?.length
     ? [sortMap[variables.sort[0]] || "POPULARITY_DESC"]

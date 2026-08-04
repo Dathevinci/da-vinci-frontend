@@ -13,6 +13,7 @@ import UserLink from "@/components/profile/UserLink";
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import HeartExplosion from '@/components/ui/HeartExplosion';
 import CommentsDrawer from '@/components/ui/CommentsDrawer';
+import MediaPicker from '@/components/community/MediaPicker';
 import { getRankTheme } from '@/lib/ranks';
 const RankIcons: Record<string, any> = {
   Code2,
@@ -1143,24 +1144,31 @@ export default function CommunityFeed({
                   />
 
                   {showMediaInput && (
-                    <div className="mt-2 flex items-center gap-2.5 rounded-xl border border-white/10 bg-black/40 px-3 py-2 transition-colors focus-within:border-purple-500/50">
-                      <ImageIcon className="h-4 w-4 shrink-0 text-slate-500" />
-                      <input
-                        type="url"
-                        autoFocus
-                        placeholder="Paste an image or GIF link…"
-                        value={newMediaUrl}
-                        onChange={(e) => setNewMediaUrl(e.target.value)}
-                        className="w-full bg-transparent text-sm text-white placeholder-slate-500 outline-none"
-                      />
-                      <button
-                        onClick={() => { setNewMediaUrl(""); setShowMediaInput(false); }}
-                        aria-label="Remove attachment"
-                        className="shrink-0 rounded-full p-1 text-slate-500 transition hover:bg-white/10 hover:text-white"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
+                    <>
+                      <div className="mt-2 flex items-center gap-2.5 rounded-xl border border-white/10 bg-black/40 px-3 py-2 transition-colors focus-within:border-purple-500/50">
+                        <ImageIcon className="h-4 w-4 shrink-0 text-slate-500" />
+                        <input
+                          type="url"
+                          autoFocus
+                          placeholder="Paste an image or GIF link…"
+                          value={newMediaUrl}
+                          onChange={(e) => setNewMediaUrl(e.target.value)}
+                          className="w-full bg-transparent text-sm text-white placeholder-slate-500 outline-none"
+                        />
+                        <button
+                          onClick={() => { setNewMediaUrl(""); setShowMediaInput(false); }}
+                          aria-label="Remove attachment"
+                          className="shrink-0 rounded-full p-1 text-slate-500 transition hover:bg-white/10 hover:text-white"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      {/* or skip the link entirely: upload from the device /
+                          search KLIPY — either fills the same field above */}
+                      <div className="mt-2">
+                        <MediaPicker value={newMediaUrl} onChange={setNewMediaUrl} userId={user?.id} />
+                      </div>
+                    </>
                   )}
 
                   {/* live preview so a bad link is obvious before posting */}

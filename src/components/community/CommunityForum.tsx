@@ -12,6 +12,7 @@ import { useToast } from "@/components/ui/Toast";
 import { isAdmin, isLeadDev } from "@/lib/admin";
 import UserLink from "@/components/profile/UserLink";
 import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
+import MediaPicker from "@/components/community/MediaPicker";
 import { effectNameClass } from "@/lib/effectTheme";
 import { ACCENT, ACCENT_LIT, notch } from "@/components/cards/gacha";
 
@@ -912,8 +913,14 @@ function Composer({ onClose, onPosted }: { onClose: () => void; onPosted: () => 
 
           <input value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)}
             placeholder="Image URL (optional)"
-            className="mb-5 w-full bg-black/50 px-3.5 py-2.5 text-sm text-white outline-none placeholder:text-slate-600"
+            className="mb-3 w-full bg-black/50 px-3.5 py-2.5 text-sm text-white outline-none placeholder:text-slate-600"
             style={{ clipPath: notch(10), boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }} />
+
+          {/* or bring your own: PC upload (Cloudinary) / KLIPY GIF search —
+              both just fill the same mediaUrl the input above edits */}
+          <div className="mb-5">
+            <MediaPicker value={mediaUrl} onChange={setMediaUrl} userId={user?.id} />
+          </div>
 
           <label className="mb-2 block text-sm font-black">Tag</label>
           <div className="flex flex-wrap gap-2">

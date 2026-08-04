@@ -1,8 +1,9 @@
 "use client";
 
 import { useUser } from "@/hooks/useUser";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import LoginModal from "@/components/layout/LoginModal";
+import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
 import {
   Lock, Play, ArrowRight, Tv, BookMarked, BookOpen,
   Library, Users, Zap, MonitorPlay, Layers, Swords, Gem, Palette, MonitorSmartphone,
@@ -20,6 +21,54 @@ const AMETHYST: React.CSSProperties = {
 };
 
 const easeCine: [number, number, number, number] = [0.16, 1, 0.3, 1];
+
+/** The keepers, by handle. Their avatars, frames and effects come from the
+ *  PUBLIC profile endpoint at mount — the landing shows the real people,
+ *  decorations and all, not initial-letter placeholders. */
+const STAFF: { u: string; n: string; r: string; tint: string }[] = [
+  { u: "dejavuh", n: "Dejavuh", r: "Lead Developer", tint: "#a78bfa" },
+  { u: "davinci", n: "Da Vinci", r: "Admin", tint: "#f87171" },
+  { u: "xhackerdevil", n: "xHackerDevil", r: "Bug Founder", tint: "#4ade80" },
+  { u: "coffee", n: "Coffee", r: "Admin", tint: "#f87171" },
+  { u: "speyvenerable", n: "SpeyVenerable", r: "Admin", tint: "#f87171" },
+  { u: "ash", n: "Ash", r: "Admin", tint: "#f87171" },
+];
+
+type StaffProfile = { avatar?: string; frame?: string | null; effect?: string | null };
+// One fetch per session, shared across remounts of the landing.
+let staffCache: Record<string, StaffProfile> | null = null;
+
+function useStaffProfiles(enabled: boolean): Record<string, StaffProfile> {
+  const [profiles, setProfiles] = useState<Record<string, StaffProfile>>(staffCache || {});
+  useEffect(() => {
+    // Only the LANDING needs these — the guard also wraps every signed-in
+    // page, and six profile fetches on every app boot for people who will
+    // never see the staff section was pure waste.
+    if (!enabled || staffCache) return;
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+    let live = true;
+    Promise.allSettled(
+      STAFF.map(async (s) => {
+        const res = await fetch(`${API_URL}/api/users/username/${s.u}`);
+        const d = await res.json();
+        return [s.u, {
+          avatar: d?.data?.avatar || undefined,
+          frame: d?.data?.activeFrame || null,
+          effect: d?.data?.activeEffect || null,
+        }] as const;
+      })
+    ).then((settled) => {
+      const out: Record<string, StaffProfile> = {};
+      for (const r of settled) if (r.status === "fulfilled") out[r.value[0]] = r.value[1];
+      // A total failure (backend waking up) is NOT cached — the next
+      // mount gets to try again instead of initials forever.
+      if (Object.keys(out).length > 0) staffCache = out;
+      if (live) setProfiles(out);
+    });
+    return () => { live = false; };
+  }, [enabled]);
+  return profiles;
+}
 
 /**
  * The landing artwork. Drop a file at `public/landing-bg.jpg` and it appears
@@ -59,6 +108,7 @@ const WORDMARK_WINDOW: React.CSSProperties = {
 export default function InviteOnlyGuard({ children }: { children: React.ReactNode }) {
   const { user, isLoaded } = useUser();
   const [showLogin, setShowLogin] = useState(false);
+  const staffProfiles = useStaffProfiles(isLoaded && !user);
 
   if (!isLoaded) {
     return (
@@ -317,25 +367,29 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
             The people keeping the atelier open.
           </p>
           <div className="mx-auto mt-10 grid max-w-4xl grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {[
-              { n: "Dejavuh", r: "Lead Developer", tint: "#a78bfa" },
-              { n: "Da Vinci", r: "Admin", tint: "#f87171" },
-              { n: "xHackerDevil", r: "Bug Founder", tint: "#4ade80" },
-              { n: "Coffee", r: "Admin", tint: "#f87171" },
-              { n: "SpeyVenerable", r: "Admin", tint: "#f87171" },
-              { n: "Ash", r: "Admin", tint: "#f87171" },
-            ].map(({ n, r, tint }) => (
-              <div key={n} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/45 px-4 py-3.5 backdrop-blur">
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full font-mono text-sm font-black text-white"
-                  style={{ background: `${tint}22`, boxShadow: `inset 0 0 0 1.5px ${tint}66` }}>
-                  {n[0]}
-                </span>
-                <span className="min-w-0">
-                  <span className="block truncate font-mono text-sm font-black text-white">{n}</span>
-                  <span className="block font-mono text-[11px] font-bold" style={{ color: tint }}>{r}</span>
-                </span>
-              </div>
-            ))}
+            {STAFF.map(({ u, n, r, tint }) => {
+              const p = staffProfiles[u];
+              return (
+                <div key={u} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/45 px-4 py-3.5 backdrop-blur">
+                  <span className="relative h-10 w-10 shrink-0">
+                    {p?.avatar ? (
+                      <img src={p.avatar} alt="" className="relative z-10 h-10 w-10 rounded-full object-cover ring-1 ring-white/20" />
+                    ) : (
+                      <span className="relative z-10 grid h-10 w-10 place-items-center rounded-full font-mono text-sm font-black text-white"
+                        style={{ background: `${tint}22`, boxShadow: `inset 0 0 0 1.5px ${tint}66` }}>
+                        {n[0]}
+                      </span>
+                    )}
+                    {/* their real equipped frame + profile effect */}
+                    <AvatarDecoration frame={p?.frame} effect={p?.effect} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate font-mono text-sm font-black text-white">{n}</span>
+                    <span className="block font-mono text-[11px] font-bold" style={{ color: tint }}>{r}</span>
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
 

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Bell, CheckCircle2, AlertCircle, Info, CheckCheck, Trash2, X, UserPlus, Heart, MessageSquare, AtSign, Sparkles, Gift, Diamond, Wand2 } from "lucide-react";
+import { Bell, CheckCircle2, AlertCircle, Info, CheckCheck, Trash2, X, UserPlus, Heart, MessageSquare, AtSign, Sparkles, Gift, Diamond, Wand2, Inbox, PlayCircle } from "lucide-react";
+import ReleaseRadar from "@/components/layout/ReleaseRadar";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useRouter, usePathname } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
@@ -49,10 +50,22 @@ export default function NotificationsMenu({ openUp = false, onOpenChange }: { op
   const pathname = usePathname();
   const { notifications, unreadCount, markAllAsRead, clearAll, removeNotification, markAsRead } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
-  const [filter, setFilter] = useState<"all" | "unread">("all");
+  // The reference panel's three rooms: everything unread, the conversation
+  // (replies/mentions/likes), and fresh drops for tracked titles.
+  const [tab, setTab] = useState<"unread" | "chat" | "releases">("unread");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const shown = filter === "unread" ? notifications.filter((n) => !n.read) : notifications;
+  const CHAT_TYPES = ["reply", "mention", "like"];
+  // Read history stays reachable — the Unread tab can unfold it. Without
+  // this, a linkless notification VANISHED on the very click that marked
+  // it read, and nothing anywhere showed past notifications again.
+  const [showRead, setShowRead] = useState(false);
+  const shown = tab === "chat"
+    ? notifications.filter((n) => CHAT_TYPES.includes((n as any).rawType || n.type || ""))
+    : showRead
+      ? notifications
+      : notifications.filter((n) => !n.read);
+  const readCount = notifications.filter((n) => n.read).length;
 
   // Group by day so a long list reads as a timeline instead of one flat wall.
   const groups: { label: string; items: typeof notifications }[] = [];
@@ -146,18 +159,17 @@ export default function NotificationsMenu({ openUp = false, onOpenChange }: { op
             <div className={`hidden sm:block absolute right-14 sm:right-10 w-3 h-3 bg-[#0f0f13] transform rotate-45 z-0 ${openUp ? "-bottom-[5px]" : "-top-[5px]"}`} />
 
             <div className="flex flex-col flex-1 overflow-hidden rounded-2xl relative z-10 bg-[#0f0f13]">
-            {/* Header */}
-            <div className="flex items-center justify-between gap-2 border-b border-white/10 bg-white/[0.04] px-4 py-3">
+            {/* Header — the reference: a spark, the word, the actions */}
+            <div className="flex items-center justify-between gap-2 border-b border-white/10 px-4 py-3.5">
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-black tracking-tight text-white">Notifications</h3>
+                <Sparkles className="h-4 w-4 text-violet-300" />
+                <h3 className="font-mono text-base font-black tracking-tight text-white">Notifications</h3>
                 {unreadCount > 0 && (
                   <span className="rounded-full bg-purple-600 px-2 py-0.5 text-[10px] font-black text-white">
                     {unreadCount}
                   </span>
                 )}
               </div>
-              {/* icon-only actions with tooltips — two competing red/purple text
-                  links read as the loudest thing in the panel */}
               <div className="flex items-center gap-1">
                 <button
                   onClick={markAllAsRead}
@@ -178,35 +190,41 @@ export default function NotificationsMenu({ openUp = false, onOpenChange }: { op
               </div>
             </div>
 
-            {/* All / Unread — the old panel made you eyeball the list for
-                the ones you hadn't seen yet. */}
-            <div className="flex gap-1 border-b border-white/10 px-3 py-2">
-              {(["all", "unread"] as const).map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  className={`rounded-full px-3 py-1 text-[11px] font-bold capitalize transition ${
-                    filter === f ? "bg-white/10 text-white" : "text-slate-500 hover:text-slate-300"
-                  }`}
-                >
-                  {f}
-                  {f === "unread" && unreadCount > 0 && <span className="ml-1 text-purple-400">{unreadCount}</span>}
-                </button>
-              ))}
+            {/* the three rooms */}
+            <div className="border-b border-white/10 px-3 py-2.5">
+              <div className="inline-flex gap-1 rounded-xl border border-white/10 bg-white/[0.04] p-1">
+                {([
+                  { key: "unread" as const, label: "Unread", Icon: Inbox },
+                  { key: "chat" as const, label: "Chat", Icon: MessageSquare },
+                  { key: "releases" as const, label: "New Episodes", Icon: PlayCircle },
+                ]).map(({ key, label, Icon }) => (
+                  <button
+                    key={key}
+                    onClick={() => setTab(key)}
+                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-mono text-[11px] font-bold transition ${
+                      tab === key ? "bg-white/15 text-white" : "text-slate-500 hover:text-slate-300"
+                    }`}
+                  >
+                    <Icon className="h-3.5 w-3.5" /> {label}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Notifications List */}
+            {/* Content */}
             <div className="flex-1 overflow-y-auto overscroll-contain max-h-[400px] custom-scrollbar">
-              {shown.length === 0 ? (
+              {tab === "releases" ? (
+                <ReleaseRadar onClose={() => setIsOpen(false)} />
+              ) : shown.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
                   <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-3">
                     <Bell className="w-6 h-6 text-white/20" />
                   </div>
-                  <p className="text-slate-400 text-sm font-medium">
-                    {filter === "unread" ? "Nothing unread" : "You're all caught up!"}
+                  <p className="text-slate-400 text-sm font-medium font-mono">
+                    {tab === "chat" ? "No chat notifications" : "No unread notifications"}
                   </p>
-                  <p className="text-slate-500 text-xs mt-1">
-                    {filter === "unread" ? "Every notification has been read." : "No new notifications."}
+                  <p className="text-slate-500 text-xs mt-1 font-mono">
+                    {tab === "chat" ? "Replies and mentions land here." : "You're all caught up!"}
                   </p>
                 </div>
               ) : (
@@ -265,6 +283,14 @@ export default function NotificationsMenu({ openUp = false, onOpenChange }: { op
                 </div>
                 </div>
                 ))
+              )}
+              {tab === "unread" && readCount > 0 && (
+                <button
+                  onClick={() => setShowRead((v) => !v)}
+                  className="w-full border-t border-white/10 py-2.5 text-center font-mono text-[11px] font-bold text-slate-500 transition hover:bg-white/5 hover:text-slate-300"
+                >
+                  {showRead ? "Hide read notifications" : `Show ${readCount} read`}
+                </button>
               )}
             </div>
             </div>
