@@ -1,10 +1,12 @@
 "use client";
 
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Pin, Plus, X, ImagePlus, Hash, ChevronUp, ChevronDown, MessageSquare, Loader2,
   Crown, Shield, Star, Sparkles, Zap, CornerDownRight, Send, MoreHorizontal, Pencil, Trash2,
+  BarChart3,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { authHeaders } from "@/lib/authToken";
@@ -13,6 +15,7 @@ import { isAdmin, isLeadDev } from "@/lib/admin";
 import UserLink from "@/components/profile/UserLink";
 import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
 import MediaPicker from "@/components/community/MediaPicker";
+import { PollBuilder, PollCard, EMPTY_POLL, pollIsValid, type PollDraft, type PollData } from "@/components/community/Poll";
 import { effectNameClass } from "@/lib/effectTheme";
 import { ACCENT, ACCENT_LIT, notch } from "@/components/cards/gacha";
 
@@ -64,6 +67,7 @@ type Post = {
   score?: number;
   userVote?: number;
   user?: Author;
+  poll?: PollData;
 };
 
 /**
@@ -280,7 +284,26 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
       .catch(() => {});
   }, [posts.length]);
 
-  const pinned = useMemo(() => posts.filter((p) => p.isPinned).slice(0, 2), [posts]);
+  /**
+   * PINNED POSTS come from their own request, not from whatever landed in
+   * page one. Filtering the loaded page meant a pin that fell outside the
+   * first 30 rows — or that the active tag filtered out — silently vanished
+   * from the shelf, and pinned posts also rendered TWICE, once on the shelf
+   * and again in the feed below.
+   */
+  const [pinned, setPinned] = useState<Post[]>([]);
+  useEffect(() => {
+    const url = new URL(`${API_URL}/api/comments`);
+    url.searchParams.set("forum", "true");
+    url.searchParams.set("pinned", "true");
+    if (user?.id) url.searchParams.set("userId", user.id);
+    fetch(url.toString())
+      .then((r) => r.json())
+      .then((d) => { if (d?.success && Array.isArray(d.data)) setPinned(d.data.filter((p: Post) => !p.parentId)); })
+      .catch(() => {});
+  }, [user?.id, posts.length]);
+
+  const pinnedIds = useMemo(() => new Set(pinned.map((p) => p.id)), [pinned]);
 
   /**
    * Rank by NET score — upvotes minus downvotes — with pinned posts held on top
@@ -311,11 +334,12 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
   }, [idKey, sort]);
 
   // Render in ranked order but read LIVE post objects, so an optimistic score
-  // updates in place without moving anything.
+  // updates in place without moving anything. Anything on the pinned shelf is
+  // dropped here — it already has a home at the top of the page.
   const ranked = useMemo(() => {
     const byId = new Map(posts.map((p) => [p.id, p]));
-    return order.map((id) => byId.get(id)).filter(Boolean) as Post[];
-  }, [order, posts]);
+    return order.map((id) => byId.get(id)).filter((p): p is Post => !!p && !pinnedIds.has(p.id));
+  }, [order, posts, pinnedIds]);
 
   /**
    * Who may edit or delete a post. Mirrors the server, which decides from the
@@ -461,7 +485,8 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                 </p>
                 <div className="mb-7 grid gap-3 sm:grid-cols-2">
                   {pinned.map((p) => (
-                    <div key={p.id} className="relative overflow-hidden px-5 py-5"
+                    <Link key={p.id} href={`/community/post/${p.id}`}
+                      className="relative block overflow-hidden px-5 py-5 text-left transition hover:brightness-125"
                       style={{ clipPath: notch(16), background: "rgba(255,255,255,.028)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.08)" }}>
                       {/* the headline ghosted huge behind itself — cheap depth,
                           and it fills a card that would otherwise be mostly air */}
@@ -480,7 +505,7 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                       <p className="relative mt-1 text-xs text-slate-500">
                         by <span className="font-bold text-slate-300">{p.user?.username || "someone"}</span>
                       </p>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </>
@@ -543,12 +568,18 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
               <div className="grid place-items-center py-20 text-slate-600">
                 <Loader2 className="h-6 w-6 animate-spin" />
               </div>
-            ) : posts.length === 0 ? (
+            ) : ranked.length === 0 ? (
               <div className="py-20 text-center"
                 style={{ clipPath: notch(16), background: "rgba(255,255,255,.02)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.06)" }}>
                 <MessageSquare className="mx-auto h-8 w-8 text-slate-700" />
+                {/* `ranked` excludes whatever is on the pinned shelf, so a
+                    feed of only-pinned posts is empty DOWN HERE while the
+                    shelf above is full — testing posts.length left a blank
+                    gap with no explanation at all. */}
                 <p className="mt-3 text-sm text-slate-500">
-                  {tag === "All" ? "Nothing posted yet. Start it." : `No posts tagged ${tag} yet.`}
+                  {posts.length > 0
+                    ? "Everything here is pinned above."
+                    : tag === "All" ? "Nothing posted yet. Start it." : `No posts tagged ${tag} yet.`}
                 </p>
               </div>
             ) : (
@@ -654,7 +685,15 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                         </div>
                       ) : (
                         <>
-                          {p.title && <h3 className="mt-3 text-2xl font-black leading-tight">{p.title}</h3>}
+                          {/* the headline opens the post's own page — the
+                              whole card isn't a link because it already
+                              contains votes, menus and a poll */}
+                          {p.title && (
+                            <Link href={`/community/post/${p.id}`}
+                              className="mt-3 block text-2xl font-black leading-tight transition hover:text-violet-300">
+                              {p.title}
+                            </Link>
+                          )}
                           {p.content && (
                             <p className="mt-2 whitespace-pre-wrap break-words text-[15px] leading-[1.65] text-slate-200">
                               {p.content}
@@ -668,15 +707,30 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                           style={{ clipPath: notch(12) }} />
                       )}
 
+                      {p.poll && (
+                        <PollCard
+                          poll={p.poll}
+                          onUpdate={(next) =>
+                            setPosts((list) => list.map((x) => (x.id === p.id ? { ...x, poll: { ...x.poll!, ...next } } : x)))
+                          }
+                        />
+                      )}
+
                       {/* ── THREAD ── a forum post you can't answer is a notice board */}
-                      <button
-                        onClick={() => setOpenThread(openThread === p.id ? null : p.id)}
-                        className="mt-3.5 inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-slate-400 transition hover:text-white">
-                        <MessageSquare className="h-3 w-3" />
-                        {(replies[p.id]?.length || 0) === 0
-                          ? "Reply"
-                          : `${replies[p.id].length} ${replies[p.id].length === 1 ? "reply" : "replies"}`}
-                      </button>
+                      <div className="mt-3.5 flex flex-wrap items-center gap-4">
+                        <button
+                          onClick={() => setOpenThread(openThread === p.id ? null : p.id)}
+                          className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-slate-400 transition hover:text-white">
+                          <MessageSquare className="h-3 w-3" />
+                          {(replies[p.id]?.length || 0) === 0
+                            ? "Reply"
+                            : `${replies[p.id].length} ${replies[p.id].length === 1 ? "reply" : "replies"}`}
+                        </button>
+                        <Link href={`/community/post/${p.id}`}
+                          className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-slate-500 transition hover:text-white">
+                          Open post
+                        </Link>
+                      </div>
 
                       <AnimatePresence initial={false}>
                         {openThread === p.id && (
@@ -839,7 +893,7 @@ function ReplyBox({ postId, onDone }: { postId: string; onDone: () => void }) {
   );
 }
 
-/** Create New Post. Post only — reels and polls are not this component's job. */
+/** Create New Post — text, an image, and optionally a poll. */
 function Composer({ onClose, onPosted }: { onClose: () => void; onPosted: () => void }) {
   const { user } = useUser();
   const { toast } = useToast();
@@ -848,12 +902,17 @@ function Composer({ onClose, onPosted }: { onClose: () => void; onPosted: () => 
   const [mediaUrl, setMediaUrl] = useState("");
   const [tag, setTag] = useState<string>("General");
   const [busy, setBusy] = useState(false);
+  const [poll, setPoll] = useState<PollDraft | null>(null);
 
-  const canPost = (content.trim().length > 0 || mediaUrl.trim().length > 0) && !busy;
+  // A poll alone is a post — the question is the content.
+  const canPost = (content.trim().length > 0 || mediaUrl.trim().length > 0 || pollIsValid(poll)) && !busy;
 
   const submit = async () => {
     if (!user) return toast("Sign in to post.", "error");
     if (!canPost) return;
+    if (poll && !pollIsValid(poll)) {
+      return toast("A poll needs a question and at least two options.", "error");
+    }
     setBusy(true);
     try {
       const r = await fetch(`${API_URL}/api/comments`, {
@@ -865,6 +924,13 @@ function Composer({ onClose, onPosted }: { onClose: () => void; onPosted: () => 
           content: content.trim(),
           tag,
           mediaUrl: mediaUrl.trim() || undefined,
+          poll: pollIsValid(poll)
+            ? {
+                question: poll!.question.trim(),
+                options: poll!.options.map((o) => o.trim()).filter(Boolean),
+                closesInHours: poll!.closesInHours,
+              }
+            : undefined,
         }),
       });
       const d = await r.json();
@@ -918,9 +984,24 @@ function Composer({ onClose, onPosted }: { onClose: () => void; onPosted: () => 
 
           {/* or bring your own: PC upload (Cloudinary) / KLIPY GIF search —
               both just fill the same mediaUrl the input above edits */}
-          <div className="mb-5">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
             <MediaPicker value={mediaUrl} onChange={setMediaUrl} userId={user?.id} />
+            {!poll && (
+              <button
+                type="button"
+                onClick={() => setPoll({ ...EMPTY_POLL })}
+                className="flex items-center gap-1.5 rounded-lg border border-indigo-400/40 bg-indigo-500/10 px-3 py-1.5 font-mono text-[11px] font-bold text-indigo-200 transition hover:bg-indigo-500/20"
+              >
+                <BarChart3 className="h-3.5 w-3.5" /> Add Poll
+              </button>
+            )}
           </div>
+
+          {poll && (
+            <div className="mb-5">
+              <PollBuilder value={poll} onChange={setPoll} onRemove={() => setPoll(null)} />
+            </div>
+          )}
 
           <label className="mb-2 block text-sm font-black">Tag</label>
           <div className="flex flex-wrap gap-2">

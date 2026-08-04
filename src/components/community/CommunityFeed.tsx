@@ -12,9 +12,10 @@ import { AvatarDecoration, hasFrameRing } from "@/components/profile/AvatarDecor
 import UserLink from "@/components/profile/UserLink";
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import HeartExplosion from '@/components/ui/HeartExplosion';
-import CommentsDrawer from '@/components/ui/CommentsDrawer';
 import MediaPicker from '@/components/community/MediaPicker';
 import EmojiPicker from '@/components/community/EmojiPicker';
+import Link from 'next/link';
+import { PollCard } from '@/components/community/Poll';
 import { getRankTheme } from '@/lib/ranks';
 const RankIcons: Record<string, any> = {
   Code2,
@@ -182,7 +183,6 @@ const CommentThread = ({
   const [showHeartExplosion, setShowHeartExplosion] = useState(false);
   const [clickCoords, setClickCoords] = useState<{x: number, y: number} | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [showDrawer, setShowDrawer] = useState(false);
   const [showReplies, setShowReplies] = useState(depth < 1);
   const { openAnime } = useAnimeModal();
 
@@ -519,22 +519,30 @@ const CommentThread = ({
             <span className="text-sm font-bold tabular-nums">{node.downvotes ?? 0}</span>
           </button>
 
-          <button
-            onClick={() => {
-              if (depth === 0) {
-                setShowDrawer(true);
-              } else {
-                setReplyingToId(replyingToId === node.id ? null : node.id);
-              }
-            }}
-            title={depth === 0 ? "View replies" : "Reply"}
-            className="group flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-slate-400 transition-colors hover:bg-purple-500/10 hover:text-purple-300"
-          >
-            <motion.span whileTap={{ scale: 0.82 }} className="flex">
+          {/* Top-level comments OPEN THEIR OWN PAGE — a thread you can link,
+              share and open in a tab. Nested replies keep the inline box,
+              since you're already inside the thread they belong to. */}
+          {depth === 0 ? (
+            <Link
+              href={`/community/post/${node.id}`}
+              title="Open this thread"
+              className="group flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-slate-400 transition-colors hover:bg-purple-500/10 hover:text-purple-300"
+            >
               <MessageSquare className="h-[18px] w-[18px]" />
-            </motion.span>
-            <span className="text-sm font-bold tabular-nums">{node.children?.length || 0}</span>
-          </button>
+              <span className="text-sm font-bold tabular-nums">{node.children?.length || 0}</span>
+            </Link>
+          ) : (
+            <button
+              onClick={() => setReplyingToId(replyingToId === node.id ? null : node.id)}
+              title="Reply"
+              className="group flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-slate-400 transition-colors hover:bg-purple-500/10 hover:text-purple-300"
+            >
+              <motion.span whileTap={{ scale: 0.82 }} className="flex">
+                <MessageSquare className="h-[18px] w-[18px]" />
+              </motion.span>
+              <span className="text-sm font-bold tabular-nums">{node.children?.length || 0}</span>
+            </button>
+          )}
 
           {!isAuthor && (
             <button
@@ -613,84 +621,11 @@ const CommentThread = ({
           </AnimatePresence>
       </div>
 
-      {/* Render Children (Replies) */}
-      {depth === 0 ? (
-        <CommentsDrawer isOpen={showDrawer} onClose={() => setShowDrawer(false)} title={`Views on ${node.user?.username || 'User'}'s post`}>
-          <div className="flex flex-col h-full">
-            <div className="flex-1 space-y-4">
-              {node.children.length === 0 ? (
-                <div className="text-center text-sm text-slate-500 py-4">No replies yet. Be the first!</div>
-              ) : (
-                node.children.map(child => (
-                  <CommentThread 
-                    key={child.id} 
-                    node={child} 
-                    depth={currentDepth + 1}
-                    user={user}
-                    replyingToId={replyingToId}
-                    setReplyingToId={setReplyingToId}
-                    replyContent={replyContent}
-                    setReplyContent={setReplyContent}
-                    replyMediaUrl={replyMediaUrl}
-                    setReplyMediaUrl={setReplyMediaUrl}
-                    handlePost={handlePost}
-                    isReplying={isReplying}
-                    handleVote={handleVote} handleTip={handleTip}
-                    handleDelete={handleDelete}
-                    handleEdit={handleEdit}
-                    handleBless={handleBless}
-                    handlePin={handlePin}
-                    onReport={onReport}
-                    showContext={showContext}
-                  />
-                ))
-              )}
-            </div>
-            
-            {/* Always show a reply box at the bottom of the drawer for the root post */}
-            <div className="pt-4 mt-4 border-t border-white/5 bg-black/30 sticky bottom-0">
-              {user ? (
-                <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-3 shadow-lg">
-                  <textarea
-                    value={replyContent}
-                    onChange={(e) => setReplyContent(e.target.value)}
-                    placeholder={`Reply to @${node.user?.username || 'Unknown'}...`}
-                    className="w-full bg-transparent text-white placeholder-slate-500 text-sm resize-none outline-none min-h-[50px]"
-                  />
-                  <div className="mt-2 flex items-center gap-2">
-                    <ImageIcon className="w-4 h-4 text-slate-400 shrink-0" />
-                    <input 
-                      type="url"
-                      placeholder="Attach Image/GIF URL"
-                      value={replyMediaUrl}
-                      onChange={(e) => setReplyMediaUrl(e.target.value)}
-                      className="bg-transparent text-xs text-white placeholder-slate-500 w-full outline-none"
-                    />
-                  </div>
-                  <div className="flex justify-end pt-2 border-t border-white/5 mt-2">
-                    <button
-                      onClick={() => {
-                        handlePost(node.id, replyContent, replyMediaUrl);
-                        if (!isReplying) {
-                          setReplyContent("");
-                          setReplyMediaUrl("");
-                        }
-                      }}
-                      disabled={isReplying || (!replyContent.trim() && !replyMediaUrl.trim())}
-                      className="bg-purple-600 hover:bg-purple-500 shadow-[0_0_15px_rgba(79,70,229,0.3)] hover:shadow-[0_0_20px_rgba(79,70,229,0.5)] disabled:opacity-50 text-white px-5 py-1.5 rounded-full text-xs font-bold transition-all"
-                    >
-                      {isReplying ? 'Replying...' : 'Reply'}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center text-sm text-slate-500">Log in to reply.</div>
-              )}
-            </div>
-          </div>
-        </CommentsDrawer>
-      ) : (
-        node.children.length > 0 && (
+      {/* Render Children (Replies).
+          Depth 0 used to open a side drawer here; those threads now have
+          their own page (/community/post/<id>), so the drawer had no way
+          left to open and was removed rather than left as dead weight. */}
+      {node.children.length > 0 && (
           <div className={isDeep ? "ml-0 mt-4" : "ml-2 sm:ml-6 md:ml-12 mt-4"}>
             {!showReplies ? (
               <button 
@@ -733,7 +668,6 @@ const CommentThread = ({
               </>
             )}
           </div>
-        )
       )}
     </motion.div>
   );
@@ -743,12 +677,18 @@ export default function CommunityFeed({
   animeId, animeTitle,
   mangaId, mangaTitle,
   chapterId, chapterTitle,
-  novelId, novelTitle
+  novelId, novelTitle,
+  postId
 }: {
   animeId?: number, animeTitle?: string,
   mangaId?: string, mangaTitle?: string,
   chapterId?: string, chapterTitle?: string,
-  novelId?: string, novelTitle?: string
+  novelId?: string, novelTitle?: string,
+  /** A forum post's own thread. Replies to it are comments whose parent IS
+   *  this post, so the feed fetches the permalink endpoint and every new
+   *  top-level comment is filed under it. Same cards, same composer, same
+   *  ratings — one comment implementation for the whole app. */
+  postId?: string
 }) {
   const { user } = useUser();
   const [comments, setComments] = useState<Comment[]>([]);
@@ -785,15 +725,17 @@ export default function CommunityFeed({
    * keeps one row per member per key, so scoring again replaces your old
    * score instead of stacking another vote onto the average.
    */
-  const targetKey = chapterId && mangaId
-    ? `manhwa:${mangaId}:${chapterId}`
-    : chapterId && novelId
-      ? `novel:${novelId}:${chapterId}`
-      : mangaId ? `manhwa:${mangaId}`
-        : novelId ? `novel:${novelId}`
-          : animeId ? `anime:${animeId}`
-            : null;
-  const subject = chapterId ? "chapter" : mangaId ? "manhwa" : novelId ? "novel" : "anime";
+  const targetKey = postId
+    ? `post:${postId}`
+    : chapterId && mangaId
+      ? `manhwa:${mangaId}:${chapterId}`
+      : chapterId && novelId
+        ? `novel:${novelId}:${chapterId}`
+        : mangaId ? `manhwa:${mangaId}`
+          : novelId ? `novel:${novelId}`
+            : animeId ? `anime:${animeId}`
+              : null;
+  const subject = postId ? "post" : chapterId ? "chapter" : mangaId ? "manhwa" : novelId ? "novel" : "anime";
 
   const [rating, setRating] = useState<{ average: number | null; count: number; mine: number | null }>({
     average: null, count: 0, mine: null,
@@ -852,6 +794,23 @@ export default function CommunityFeed({
   const fetchComments = async (pageNum = 1, append = false, searchOverride?: string) => {
     try {
       if (pageNum === 1) setLoading(true);
+
+      // A forum post's thread comes from the permalink endpoint, which
+      // returns the post plus four generations of replies in one shot —
+      // there is no pagination to do and nothing to append.
+      if (postId) {
+        const purl = new URL(`${API_URL}/api/comments/${postId}`);
+        if (user) purl.searchParams.set("userId", user.id);
+        const pres = await fetch(purl.toString());
+        if (!pres.ok) throw new Error("Failed to fetch the thread");
+        const pdata = await pres.json();
+        if (pdata.success) {
+          setComments(pdata.data?.replies || []);
+          setHasMore(false);
+        }
+        return;
+      }
+
       const effectiveSearch = searchOverride !== undefined ? searchOverride : searchQuery;
       const url = new URL(`${API_URL}/api/comments`);
       if (animeId) url.searchParams.set('animeId', animeId.toString());
@@ -888,7 +847,7 @@ export default function CommunityFeed({
     setPage(1);
     fetchComments(1, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [animeId, mangaId, chapterId, novelId, user?.id, sortBy, mediaOnly]);
+  }, [animeId, mangaId, chapterId, novelId, postId, user?.id, sortBy, mediaOnly]);
 
   const handlePin = async (commentId: string) => {
     if (!user) return;
@@ -941,7 +900,10 @@ export default function CommunityFeed({
           novelId,
           novelTitle,
           content,
-          parentId,
+          // On a forum post's page a "top-level" comment is really a reply
+          // to that post — otherwise it would be filed as a new forum post
+          // of its own and never appear in the thread it was written in.
+          parentId: parentId || postId || null,
           mediaUrl
         })
       });
@@ -1219,32 +1181,33 @@ export default function CommunityFeed({
         </div>
       </div>
 
-      {/* Controls: search + sort pills + media filter */}
-      <div className="mx-2 mb-5 flex flex-col gap-3 sm:mx-0 sm:flex-row sm:items-center">
-        <div className="group flex flex-1 items-center rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5 transition-colors focus-within:border-purple-500/50 focus-within:bg-purple-500/[0.06]">
-          <Search className="mr-2.5 h-4 w-4 shrink-0 text-slate-500 transition-colors group-focus-within:text-purple-400" />
-          <input
-            type="text"
-            placeholder="Search the feed…"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && (setPage(1), fetchComments(1, false))}
-            className="w-full bg-transparent text-sm text-white placeholder-slate-500 outline-none"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => { setSearchQuery(""); setPage(1); fetchComments(1, false, ""); }}
-              aria-label="Clear search"
-              className="ml-2 shrink-0 rounded-full p-1 text-slate-500 transition hover:bg-white/10 hover:text-white"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
+      {/* Search. HIDDEN on a single thread — the permalink endpoint returns
+          that post's replies whole, with no server-side search or media
+          filter to apply, so the box would look functional and do nothing. */}
+      {!postId && (
+        <div className="mx-2 mb-5 flex flex-col gap-3 sm:mx-0 sm:flex-row sm:items-center">
+          <div className="group flex flex-1 items-center rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5 transition-colors focus-within:border-purple-500/50 focus-within:bg-purple-500/[0.06]">
+            <Search className="mr-2.5 h-4 w-4 shrink-0 text-slate-500 transition-colors group-focus-within:text-purple-400" />
+            <input
+              type="text"
+              placeholder="Search the feed…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && (setPage(1), fetchComments(1, false))}
+              className="w-full bg-transparent text-sm text-white placeholder-slate-500 outline-none"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => { setSearchQuery(""); setPage(1); fetchComments(1, false, ""); }}
+                aria-label="Clear search"
+                className="ml-2 shrink-0 rounded-full p-1 text-slate-500 transition hover:bg-white/10 hover:text-white"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
         </div>
-
-        {/* sort, rating and the media filter live in the header row above —
-            this row is just the search field now */}
-      </div>
+      )}
 
       {user ? (
         <div className="mx-2 mb-6 rounded-2xl border border-white/10 bg-[#121214] transition-colors focus-within:border-purple-500/40 sm:mx-0">
@@ -1458,14 +1421,18 @@ export default function CommunityFeed({
                   <MessageSquare className="h-7 w-7 text-purple-400" />
                 </div>
                 <h3 className="mb-1.5 text-lg font-black text-white">
-                  {searchQuery || mediaOnly ? "Nothing matches that" : "No views yet"}
+                  {postId ? "No replies yet" : searchQuery || mediaOnly ? "Nothing matches that" : "No views yet"}
                 </h3>
                 <p className="max-w-xs text-sm text-slate-500">
-                  {searchQuery || mediaOnly
-                    ? "Try a different search, or clear the filters to see the whole feed."
-                    : "Be the first to share what you're watching or reading."}
+                  {postId
+                    ? "Be the first to reply to this one."
+                    : searchQuery || mediaOnly
+                      ? "Try a different search, or clear the filters to see the whole feed."
+                      : "Be the first to share what you're watching or reading."}
                 </p>
-                {(searchQuery || mediaOnly) && (
+                {/* the filter controls don't exist on a single thread, so
+                    neither should an offer to clear them */}
+                {!postId && (searchQuery || mediaOnly) && (
                   <button
                     onClick={() => { setSearchQuery(""); setMediaOnly(false); setPage(1); fetchComments(1, false); }}
                     className="mt-5 rounded-full bg-white/5 px-5 py-2 text-sm font-bold text-white transition hover:bg-white/10"
