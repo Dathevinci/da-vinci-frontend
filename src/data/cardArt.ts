@@ -23,71 +23,25 @@
  * generated from the same source. See cardArt() for why that exists.
  */
 export const CARD_ART: Record<string, string> = {
-  // ── LEGENDARY ──
-  card_outergod:     "/cards/card_outergod.png",
-  card_gatekey:      "/cards/card_gatekey.png",
-  card_lastronin:    "/cards/card_lastronin.png",
-  card_swordsaint:   "/cards/card_swordsaint.png",
-  card_secondwind:   "/cards/card_secondwind.png",
-  card_longmorrow:   "/cards/card_longmorrow.png",
-  card_leviathan:    "/cards/card_leviathan.png",
-  card_hollowtide:   "/cards/card_hollowtide.png",
-  card_blacksun:     "/cards/card_blacksun.png",
-  card_crowfeast:    "/cards/card_crowfeast.png",
-  card_redmoon:      "/cards/card_redmoon.png",
-  card_palepilgrim:  "/cards/card_palepilgrim.png",
-  card_monarch:      "/cards/card_monarch.png",
-  card_grin:         "/cards/card_grin.png",
-  // The one .jpg — the manifest stores explicit paths precisely so this works;
-  // cardArt()'s sm-thumbnail rewrite handles either extension.
-  card_drownedgate:  "/cards/card_drownedgate.jpg",
-  card_awakening:    "/cards/card_awakening.png",
-  card_shattered:    "/cards/card_shattered.png",
-  card_unchained:    "/cards/card_unchained.png",
-  card_vessel:       "/cards/card_vessel.png",
-  card_wheel:        "/cards/card_wheel.png",
-  card_ashgarden:    "/cards/card_ashgarden.png",
-  card_floodwalker:  "/cards/card_floodwalker.png",
-  // ── COVENANT (legendary supports) ──
-  card_ophanim:      "/cards/card_ophanim.png",
-  card_seraphim:     "/cards/card_seraphim.png",
-  card_deviltrade:   "/cards/card_deviltrade.png",
-  card_rockscissors: "/cards/card_rockscissors.png",
-  card_mirror:       "/cards/card_mirror.png",
-  card_arise:        "/cards/card_arise.png",
-
-  // ── MYTHOS (the ★5 synthesis tier) — one painting per fusion ──
-  myth_lockedblade:    "/cards/myth_lockedblade.png",
-  myth_seagate:        "/cards/myth_seagate.png",
-  myth_hourdoor:       "/cards/myth_hourdoor.png",
-  myth_doordream:      "/cards/myth_doordream.png",
-  myth_leviathansaint: "/cards/myth_leviathansaint.png",
-  myth_endronin:       "/cards/myth_endronin.png",
-  myth_bladebeyond:    "/cards/myth_bladebeyond.png",
-  myth_tideofages:     "/cards/myth_tideofages.png",
-  myth_drownedgod:     "/cards/myth_drownedgod.png",
-  myth_lasttomorrow:   "/cards/myth_lasttomorrow.png",
-
-  // ── PANTHEON — the second-order gods ──
-  myth_gojo:           "/cards/myth_gojo.png",
-  myth_sukuna:         "/cards/myth_sukuna.png",
-  myth_unohana:        "/cards/myth_unohana.png",
-
-  // ── EPIC ──
+  // ── EPIC ── the only tier that survived the card reset. Everything else
+  // was retired, and its art keys went with it: a key matching no card
+  // fails completely SILENTLY (no error, the motif just renders), so a
+  // stale entry here is invisible rather than loud.
+  //
+  // card_trenchmaw is a surviving epic with no file — it renders its drawn
+  // motif. Add a line the day art lands.
+  card_voidgaze:     "/cards/card_voidgaze.png",
+  card_ninehands:    "/cards/card_ninehands.png",
+  card_crimsonsea:   "/cards/card_crimsonsea.png",
+  card_unblinking:   "/cards/card_unblinking.png",
+  card_fallenstar:   "/cards/card_fallenstar.png",
+  card_onimask:      "/cards/card_onimask.png",
+  card_communion:    "/cards/card_communion.png",
   card_ironvow:      "/cards/card_ironvow.png",
   card_gravebloom:   "/cards/card_gravebloom.png",
+  card_blackreach:   "/cards/card_blackreach.png",
   card_lastretainer: "/cards/card_lastretainer.png",
   card_lampofhours:  "/cards/card_lampofhours.png",
-  card_fallenstar:   "/cards/card_fallenstar.png",
-  card_communion:    "/cards/card_communion.png",
-  card_blackreach:   "/cards/card_blackreach.png",
-  card_unblinking:   "/cards/card_unblinking.png",
-  card_onimask:      "/cards/card_onimask.png",
-  card_voidgaze:     "/cards/card_voidgaze.png",
-  card_crimsonsea:   "/cards/card_crimsonsea.png",
-  card_ninehands:    "/cards/card_ninehands.png",
-
-  // Still on a drawn motif: card_trenchmaw. Add a line the day a file lands.
 };
 
 /**
