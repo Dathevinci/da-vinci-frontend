@@ -39,6 +39,9 @@ type Catalog = {
   upgradeBase?: Record<CardRarity, number>;
   upgradeGrowth?: number;
   levelStep?: number;
+  /** The real pull odds as percentages, derived server-side from the same
+   *  RARITY_WEIGHTS the roll uses, so the two can never disagree. */
+  pullRates?: Record<string, number>;
   cardStats?: Record<string, { hp: number; atk: number }>;
   /** PER-CARD stats, which outrank cardStats (keyed by rarity). The Knight set
    *  is authored card by card, so without this a Squire renders the common
@@ -788,13 +791,23 @@ export default function CardsPage() {
                         mirror of RARITY_WEIGHTS the Pull Stats modal uses, so
                         the banner says its chances out loud instead of hinting. */}
                     <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
-                      {([["legendary", "0.6%"], ["epic", "8%"], ["rare", "27.4%"], ["common", "64%"]] as const).map(([r, pct]) => (
-                        <span key={r} className="inline-flex items-center gap-1.5">
-                          <Stars rarity={r as CardRarity} size={11} />
-                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{RARITY_META[r as CardRarity]?.label ?? r}</span>
-                          <span className="font-mono text-[11px] font-bold" style={{ color: RARITY_META[r as CardRarity]?.gem || "#cbd5e1" }}>{pct}</span>
-                        </span>
-                      ))}
+                      {(["legendary", "epic", "rare", "common"] as const).map((r) => {
+                        // FROM THE SERVER, never a literal. These were written
+                        // out by hand and said 0.6 / 8 / 27.4 / 64 long after
+                        // the roll had been retuned to 0.4 / 4.6 / 17 / 78 —
+                        // the banner advertised odds nobody was being given.
+                        // pullRates is derived from RARITY_WEIGHTS itself, so
+                        // the number here and the number rolled cannot drift.
+                        const pct = catalog?.pullRates?.[r] ?? pullStats?.rates?.[r];
+                        if (pct == null) return null;
+                        return (
+                          <span key={r} className="inline-flex items-center gap-1.5">
+                            <Stars rarity={r as CardRarity} size={11} />
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{RARITY_META[r as CardRarity]?.label ?? r}</span>
+                            <span className="font-mono text-[11px] font-bold" style={{ color: RARITY_META[r as CardRarity]?.gem || "#cbd5e1" }}>{pct}%</span>
+                          </span>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -1059,7 +1072,12 @@ export default function CardsPage() {
                       <p className="mt-5 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">Drop rates — every card in a pack</p>
                       <div className="mt-2 flex flex-col gap-1.5">
                         {(["common", "rare", "epic", "legendary"] as const).map((r) => {
-                          const pct = pullStats?.rates?.[r] ?? ({ common: 64, rare: 27.4, epic: 8, legendary: 0.6 } as Record<string, number>)[r];
+                          // Same rule as the banner: the served rates first, and
+                          // no hardcoded fallback. A stale literal here would be
+                          // worse than a blank — the Pull Stats sheet is where a
+                          // player goes specifically to check the odds.
+                          const pct = pullStats?.rates?.[r] ?? catalog?.pullRates?.[r];
+                          if (pct == null) return null;
                           const tint = RARITY_META[r as CardRarity]?.gem || "#cbd5e1";
                           return (
                             <div key={r} className="flex items-center gap-2">
