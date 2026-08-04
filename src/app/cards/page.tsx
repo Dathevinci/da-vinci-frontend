@@ -354,15 +354,18 @@ export default function CardsPage() {
    * card to see what their shards just bought and whether there is another
    * step left.
    */
-  const [mergeOpen, setMergeOpen] = useState(false);
   const [merging, setMerging] = useState(false);
-  const doMerge = async (card: CardDef, fodderId: string) => {
+  /**
+   * Merging takes NO fodder argument: the spare is always another copy of the
+   * same card, so naming it would be naming the card twice and inviting the two
+   * to disagree. The server enforces the same rule and refuses a mismatch.
+   */
+  const doMerge = async (card: CardDef) => {
     if (merging) return;
     setMerging(true);
-    await shardAction("merge", { cardId: card.id, fodderCardId: fodderId }, (d) => {
+    await shardAction("merge", { cardId: card.id }, (d) => {
       setShards(d.shards);
-      setMergeOpen(false);
-      toast(`${card.name} absorbed it — +${d.gainedHp} HP, +${d.gainedAtk} ATK, permanently.`, "success");
+      toast(`${card.name} absorbed a spare copy — +${d.gainedHp} HP, +${d.gainedAtk} ATK, permanently.`, "success");
     });
     setMerging(false);
   };
@@ -1800,25 +1803,32 @@ export default function CardsPage() {
                         block with both numbers visible is the whole point —
                         dust was buried in the action stack below while merge
                         sat up here, so the two were never actually a choice.
-                        Same rank only, so a shelf of commons can never be
-                        laundered into a legendary's line. */}
+                        Both act on a duplicate of THIS card and nothing else,
+                        so the panel needs no picker: strengthening a card is
+                        gated on pulling that same card again. */}
                     {isMine && count > 0 && !selected.support && !selected.ground && catalog.merge && (() => {
                       const cap = catalog.merge.max;
                       const done = mergedTimes;
                       const nextCost = catalog.merge.cost?.[selected.rarity]?.[done] ?? null;
-                      // Anything of the SAME RANK you own and can spare. The
-                      // selected card itself qualifies only at 2+ copies —
-                      // otherwise it would eat itself and leave nothing.
-                      const fodder = (catalog.cards || []).filter((f) => {
-                        const n = owned[f.id] || 0;
-                        if (n <= 0 || f.rarity !== selected.rarity) return false;
-                        return f.id === selected.id ? n >= 2 : true;
-                      });
                       const capped = done >= cap;
                       const tooPoor = nextCost !== null && shards < nextCost;
-                      // Nothing to say if you have neither a spare of THIS card
-                      // to dust nor anything at all to merge with.
-                      if (wearDupes <= 0 && fodder.length === 0) return null;
+                      /**
+                       * MERGE and DUST count spares DIFFERENTLY, on purpose.
+                       *
+                       * Dust is wear-aware: a Fresh Build and a Factory New are
+                       * distinct collectibles, not duplicates, so it refuses to
+                       * melt one for shards. Merging deliberately consumes a
+                       * copy and the server burns the WORST print first, so it
+                       * only needs a second copy to exist at all.
+                       *
+                       * Matching the server exactly matters here — a client that
+                       * used wearDupes for both would grey out a merge the API
+                       * would happily accept, on precisely the legendaries where
+                       * the upgrade is worth the most.
+                       */
+                      const canMerge = count >= 2;
+                      // Nothing to say when there is no spare of any kind.
+                      if (wearDupes <= 0 && !canMerge) return null;
                       return (
                         <div className="rounded-xl border border-fuchsia-500/20 bg-fuchsia-500/[0.06] px-4 py-3">
                           <div className="mb-2 flex items-baseline justify-between gap-2">
@@ -1852,15 +1862,15 @@ export default function CardsPage() {
                             </button>
 
                             <button
-                              onClick={() => setMergeOpen(true)}
-                              disabled={capped || tooPoor || fodder.length === 0}
+                              onClick={() => doMerge(selected)}
+                              disabled={capped || tooPoor || !canMerge || merging}
                               title={capped
                                 ? `Already merged ${cap} times — that's the cap`
-                                : fodder.length === 0
-                                ? `Needs a spare ${RARITY_META[selected.rarity].label.toLowerCase()} card to feed it`
+                                : !canMerge
+                                ? `Needs a second copy of ${selected.name} itself — merging only takes the same card`
                                 : tooPoor
                                 ? `Costs ${nextCost?.toLocaleString()} shards`
-                                : "Spend a spare AND shards to make this copy permanently stronger"}
+                                : "Spend a spare copy AND shards to make this one permanently stronger"}
                               className="rounded-lg border border-fuchsia-400/30 bg-fuchsia-500/15 px-2 py-2 text-center transition hover:bg-fuchsia-500/25 disabled:cursor-not-allowed disabled:opacity-35"
                             >
                               <span className="flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-fuchsia-200">
@@ -1878,6 +1888,8 @@ export default function CardsPage() {
                           <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
                             {capped
                               ? "Merged to the cap — this copy is as strong as merging can make it. Spares can still be dusted."
+                              : !canMerge
+                              ? <>Merging takes a second copy of {selected.name} itself — no other card will do.</>
                               : <>
                                   Dusting pays you and the spare is gone. Merging costs you, the spare is gone,
                                   and this copy keeps
@@ -1886,33 +1898,6 @@ export default function CardsPage() {
                                   {" "}permanently.
                                 </>}
                           </p>
-
-                          {mergeOpen && !capped && fodder.length > 0 && (
-                            <div className="mt-2.5 max-h-52 overflow-y-auto rounded-lg border border-white/10 bg-black/40 p-1.5">
-                              <p className="px-1.5 pb-1 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">
-                                Feed it which card?
-                              </p>
-                              {fodder.map((f) => (
-                                <button
-                                  key={f.id}
-                                  onClick={() => doMerge(selected, f.id)}
-                                  disabled={merging}
-                                  className="flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-2 text-left transition hover:bg-white/10 disabled:opacity-40"
-                                >
-                                  <span className="truncate text-xs font-bold text-slate-200">{f.name}</span>
-                                  <span className="shrink-0 font-mono text-[10px] text-slate-500">
-                                    ×{owned[f.id]}{f.id === selected.id ? " · self" : ""}
-                                  </span>
-                                </button>
-                              ))}
-                              <button
-                                onClick={() => setMergeOpen(false)}
-                                className="mt-1 w-full rounded-md px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 transition hover:text-slate-300"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          )}
                         </div>
                       );
                     })()}
