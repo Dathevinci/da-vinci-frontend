@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { BookOpen, ChevronLeft, ChevronRight, Flame, Clock, CheckCircle2, BookMarked, Star, Sparkles } from "lucide-react";
 import LoadingScreen from "@/components/ui/LoadingScreen";
+import HeroSearchBar from "@/components/ui/HeroSearchBar";
 import NovelCard from "@/components/novel/NovelCard";
 import NovelCarousel from "@/components/novel/NovelCarousel";
 import NovelHeroCarousel from "@/components/novel/NovelHeroCarousel";
@@ -109,6 +110,14 @@ function NovelInner() {
           <motion.div key="home" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }} className="w-full">
             <NovelHeroCarousel items={trending.slice(0, 10)} />
 
+            {/* Scoped to novels — searches this page's own sources. */}
+            <HeroSearchBar
+              mode="novel"
+              initialValue={query}
+              filtersHref="/novel?view=all"
+              className="relative z-30 mx-auto w-full max-w-[960px] px-4 pt-6 pb-2"
+            />
+
             <div className="relative z-20 space-y-2 max-w-[1600px] mx-auto">
               {/* Resume where you left off (client-side; hidden until you've read something) */}
               <ContinueReading kind="novel" />
@@ -135,7 +144,7 @@ function NovelInner() {
           </motion.div>
         ) : (
           <motion.div key="browse" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }} className="max-w-[1500px] mx-auto px-4 md:px-8">
-            {/* Header (search lives in the navbar) */}
+            {/* Header */}
             <div className="flex items-center gap-3 mb-8 pt-4">
               <div className="w-12 h-12 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400">
                 <BookOpen className="w-6 h-6" />
@@ -145,6 +154,17 @@ function NovelInner() {
                 <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">NovelFull &middot; ReadNovelFull &middot; LightNovelWorld</p>
               </div>
             </div>
+
+            {/* Searching unmounts the home branch and its search row with it,
+                so the box has to exist here too — otherwise a wrong search
+                can only be undone with the back button. Keyed on the query so
+                it re-seeds when you search again from somewhere else. */}
+            <HeroSearchBar
+              key={query}
+              mode="novel"
+              initialValue={query}
+              className="mx-auto mb-8 w-full max-w-[960px]"
+            />
 
             {/* List tabs (hidden during search) */}
             {!query && (

@@ -9,6 +9,7 @@ import ContinueReading from "@/components/reading/ContinueReading";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, BookMarked, Flame, Clock, Star } from "lucide-react";
 import LoadingScreen from "@/components/ui/LoadingScreen";
+import HeroSearchBar from "@/components/ui/HeroSearchBar";
 import { useSearchParams, useRouter } from "next/navigation";
 import { IMangaResult, ISearch } from "@/lib/asura/models";
 import { motion, AnimatePresence } from "framer-motion";
@@ -112,7 +113,16 @@ function ManhwaPageInner() {
           <motion.div key="home" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }} className="w-full">
             {/* Top Hero Carousel */}
             <ManhwaHeroCarousel items={trending.slice(0, 10)} />
-            
+
+            {/* Scoped to manhwa — submitting flips this page to its own browse
+                grid rather than sending you to the anime search. */}
+            <HeroSearchBar
+              mode="manhwa"
+              initialValue={query}
+              filtersHref="/manhwa?view=all&page=1"
+              className="relative z-30 mx-auto w-full max-w-[960px] px-4 pt-6"
+            />
+
             {/* Netflix-style horizontal shelves — same feel as anime mode */}
             <div className="relative z-20 space-y-2 pt-6 max-w-[1600px] mx-auto">
               {/* Resume where you left off (client-side; hidden until you've read something) */}
@@ -176,6 +186,15 @@ function ManhwaPageInner() {
           </motion.div>
         ) : (
           <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="max-w-[1400px] mx-auto px-4 md:px-8">
+            {/* "Try adjusting your search query" needs something to adjust it
+                with — this branch renders neither the home row nor the grid's
+                ManhwaFilters, so a dead-end search had no input on screen. */}
+            <HeroSearchBar
+              key={query}
+              mode="manhwa"
+              initialValue={query}
+              className="mx-auto mb-6 w-full max-w-[960px] pt-4"
+            />
             <div className="py-32 text-center flex flex-col items-center bg-[#151518] rounded-2xl border border-[#2a2a32] shadow-xl">
               <span className="text-6xl mb-4 opacity-50">📖</span>
               <h3 className="text-2xl font-black text-white mb-2">No Series Found</h3>

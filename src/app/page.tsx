@@ -8,6 +8,7 @@ import { Info, Clock, PlayCircle, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import PageTransition from "@/components/layout/PageTransition";
 import ContinueWatchingCarousel from "@/components/anime/ContinueWatchingCarousel";
+import HeroSearchBar from "@/components/ui/HeroSearchBar";
 
 // Revalidate the dashboard frequently so a transient API outage can't leave a
 // stale "empty feed" cached for long — it recovers within ~1 minute.
@@ -60,6 +61,12 @@ export default async function Home() {
 
       {/* Carousels */}
       <div className="relative z-20 space-y-4 pt-2">
+        {/* Search sits directly under the hero, above everything else — it's
+            the first thing you reach for when you arrived knowing what you
+            wanted. Submitting hands off to /explore, which owns the anime
+            results grid and the real filter panel. */}
+        <HeroSearchBar mode="anime" filtersHref="/explore" className="mx-auto w-full max-w-[960px] px-4 pb-2" />
+
         {/* Daily Quests used to sit here. Removed — it's reachable from the nav
             (More -> Daily Quests, or /quests), and two entry points meant the
             dashboard opened with a block of UI before any actual content. */}
