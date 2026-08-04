@@ -2,7 +2,7 @@
 
 import { useUser } from "@/hooks/useUser";
 import { useEffect, useState } from "react";
-import LoginModal from "@/components/layout/LoginModal";
+import { usePathname, useRouter } from "next/navigation";
 import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
 import {
   Lock, Play, ArrowRight, Tv, BookMarked, BookOpen,
@@ -107,8 +107,17 @@ const WORDMARK_WINDOW: React.CSSProperties = {
 
 export default function InviteOnlyGuard({ children }: { children: React.ReactNode }) {
   const { user, isLoaded } = useUser();
-  const [showLogin, setShowLogin] = useState(false);
+  const pathname = usePathname();
+  const router = useRouter();
   const staffProfiles = useStaffProfiles(isLoaded && !user);
+
+  /**
+   * /login is the ONE route a signed-out visitor is allowed through to.
+   * This guard wraps every page, so without the exemption the sign-in page
+   * would render the landing page instead — the door would open onto the
+   * door.
+   */
+  if (!user && pathname === "/login") return <>{children}</>;
 
   if (!isLoaded) {
     return (
@@ -190,7 +199,7 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
                 <span className="h-1.5 w-1.5 rounded-full bg-pink-400" /> Novels
               </span>
               <button
-                onClick={() => setShowLogin(true)}
+                onClick={() => router.push("/login")}
                 className="rounded-full px-3 py-1.5 text-[11px] font-bold text-slate-300 transition hover:bg-white/10 hover:text-white"
               >
                 Enter
@@ -253,7 +262,7 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
             className="flex flex-wrap items-center justify-center gap-3"
           >
             <button
-              onClick={() => setShowLogin(true)}
+              onClick={() => router.push("/login")}
               className="group inline-flex items-center gap-2.5 rounded-2xl bg-white px-8 py-3.5 font-mono text-sm font-black text-black shadow-[0_10px_40px_rgba(0,0,0,.6)] transition hover:brightness-90 focus:outline-none focus:ring-2 focus:ring-white/40"
             >
               <Play className="h-4 w-4" fill="currentColor" strokeWidth={0} />
@@ -277,13 +286,13 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
             transition={{ duration: 0.8, delay: 0.55, ease: easeCine }}
             className="mt-12 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 font-mono text-[12px] font-bold"
           >
-            <button onClick={() => setShowLogin(true)} className="flex items-center gap-2 text-slate-300 transition hover:text-violet-300">
+            <button onClick={() => router.push("/login")} className="flex items-center gap-2 text-slate-300 transition hover:text-violet-300">
               <Tv className="h-3.5 w-3.5" /> Anime <span className="text-slate-600">&rsaquo;</span>
             </button>
-            <button onClick={() => setShowLogin(true)} className="flex items-center gap-2 text-slate-300 transition hover:text-red-300">
+            <button onClick={() => router.push("/login")} className="flex items-center gap-2 text-slate-300 transition hover:text-red-300">
               <BookMarked className="h-3.5 w-3.5" /> Manhwa <span className="text-slate-600">&rsaquo;</span>
             </button>
-            <button onClick={() => setShowLogin(true)} className="flex items-center gap-2 text-slate-300 transition hover:text-pink-300">
+            <button onClick={() => router.push("/login")} className="flex items-center gap-2 text-slate-300 transition hover:text-pink-300">
               <BookOpen className="h-3.5 w-3.5" /> Novel <span className="text-slate-600">&rsaquo;</span>
             </button>
           </motion.div>
@@ -411,11 +420,10 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
           }
         `}</style>
 
-        <AnimatePresence>
-          {/* Post-login the guard swaps straight to the page beneath — the
-              landing lives at "/", so Start Watching lands on the homefeed. */}
-          {showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
-        </AnimatePresence>
+        {/* Signing in has its own page now. The guard lets /login through
+            above, and once you're in it swaps straight to the page beneath —
+            the landing lives at "/", so Start Watching lands on the
+            homefeed. */}
       </div>
     );
   }

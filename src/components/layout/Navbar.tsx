@@ -1,13 +1,12 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut, Users, Palette, ShoppingBag, Menu, X, Settings, Heart, ChevronDown, Tv, BookMarked, BookOpen, Swords, Terminal, Layers, Gavel, Trophy, Castle, Gamepad2 } from 'lucide-react';
 import { isAdmin, isLeadDev } from "@/lib/admin";
 import { warmBackend } from "@/lib/warmBackend";
 import BottomDock from "@/components/layout/BottomDock";
-import LoginModal from './LoginModal';
 import SearchModal from './SearchModal';
 import ArisePointPopup from '../ui/ArisePointPopup';
 import ControlCenter from './ControlCenter';
@@ -45,7 +44,6 @@ export default function Navbar() {
   // knock on the Render dyno once per session so it's awake by the time a
   // game page actually needs an answer.
   useEffect(() => { warmBackend(); }, []);
-  const [showLogin, setShowLogin] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [modeMenuOpen, setModeMenuOpen] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
@@ -122,6 +120,7 @@ export default function Navbar() {
 
   const { mode, setMode } = useAppMode();
   const pathname = usePathname();
+  const router = useRouter();
 
   // Theming variables based on mode (anime = amethyst, manhwa = crimson, novel = pink)
   const accentText = mode === 'anime' ? 'text-purple-400 drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]' : mode === 'manhwa' ? 'text-red-500 drop-shadow-[0_0_10px_rgba(220,38,38,0.5)]' : 'text-pink-400 drop-shadow-[0_0_10px_rgba(236,72,153,0.5)]';
@@ -319,8 +318,8 @@ export default function Navbar() {
                   </button>
                 </div>
               ) : (
-                <button 
-                  onClick={() => setShowLogin(true)}
+                <button
+                  onClick={() => router.push("/login")}
                   className="hidden lg:block bg-purple-600 hover:bg-purple-500 text-white font-bold py-1.5 px-5 xl:px-6 border border-purple-500/50 rounded-full text-sm transition shadow-lg shadow-purple-500/20 whitespace-nowrap"
                 >
                   Sign In
@@ -420,7 +419,7 @@ export default function Navbar() {
           {isLoaded && !user && (
             <div className="mt-auto p-6 border-t border-white/10">
               <button 
-                onClick={() => { setIsMobileMenuOpen(false); setShowLogin(true); }}
+                onClick={() => { setIsMobileMenuOpen(false); router.push("/login"); }}
                 className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-4 rounded-xl text-lg transition"
               >
                 Sign In
@@ -449,7 +448,7 @@ export default function Navbar() {
         </div>
       )}
 
-      {showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
+      {/* signing in has its own page now — see /login */}
       {showSearchModal && <SearchModal onClose={() => setShowSearchModal(false)} />}
       {popupData && <ArisePointPopup amount={popupData.amount} />}
       <ControlCenter
