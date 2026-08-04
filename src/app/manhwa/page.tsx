@@ -12,6 +12,7 @@ import LoadingScreen from "@/components/ui/LoadingScreen";
 import HeroSearchBar from "@/components/ui/HeroSearchBar";
 import LatestUpdatesGrid from "@/components/manhwa/LatestUpdatesGrid";
 import DiscoverRail from "@/components/media/DiscoverRail";
+import RecentMediaComments from "@/components/media/RecentMediaComments";
 import { useSearchParams, useRouter } from "next/navigation";
 import { IMangaResult, ISearch } from "@/lib/asura/models";
 import { motion, AnimatePresence } from "framer-motion";
@@ -171,6 +172,14 @@ function ManhwaPageInner() {
                     { key: "top", label: "Top Rated", icon: "top",
                       items: toDiscover(topRated) },
                   ]}
+                />
+              </div>
+
+              <div className="pt-6">
+                <RecentMediaComments
+                  source="manhwa"
+                  title="Recent Comic Comments"
+                  chipLabel="Manga"
                 />
               </div>
 

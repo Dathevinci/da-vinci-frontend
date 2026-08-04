@@ -7,6 +7,7 @@ import { BookOpen, ChevronLeft, ChevronRight, Flame, Clock, CheckCircle2, BookMa
 import LoadingScreen from "@/components/ui/LoadingScreen";
 import HeroSearchBar from "@/components/ui/HeroSearchBar";
 import DiscoverRail from "@/components/media/DiscoverRail";
+import RecentMediaComments from "@/components/media/RecentMediaComments";
 import { novelCover } from "@/lib/novelImage";
 import NovelCard from "@/components/novel/NovelCard";
 import NovelCarousel from "@/components/novel/NovelCarousel";
@@ -156,6 +157,15 @@ function NovelInner() {
                     { key: "updated", label: "Recently Updated", icon: "popular", items: toDiscover(latest) },
                     { key: "top", label: "Top Rated", icon: "top", items: toDiscover(lnwTop) },
                   ]}
+                />
+              </div>
+
+              <div className="pt-6">
+                <RecentMediaComments
+                  source="novel"
+                  title="Recent Novel Comments"
+                  accent="#ec4899"
+                  chipLabel="Novel"
                 />
               </div>
 
