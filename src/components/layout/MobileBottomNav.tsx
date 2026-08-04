@@ -49,13 +49,16 @@ export default function MobileBottomNav() {
       ? { label: "Home", href: "/manhwa", icon: <Home className="h-6 w-6" /> }
       : { label: "Library", href: "/novel", icon: <BookOpen className="h-6 w-6" /> };
 
-  // Four routes plus More. Explore is anime-only, so the other two modes get
-  // Updates in that slot rather than a gap.
+  // Four routes plus More. Every mode has its own Explore now — comics and
+  // novels used to fall back to Updates here because they simply had no
+  // browse page of their own.
   const navItems = [
     home,
-    mode === "anime"
-      ? { label: "Explore", href: "/explore", icon: <Compass className="h-6 w-6" /> }
-      : { label: "Updates", href: "/updates", icon: <Megaphone className="h-6 w-6" /> },
+    {
+      label: "Explore",
+      href: mode === "manhwa" ? "/manhwa/explore" : mode === "novel" ? "/novel/explore" : "/explore",
+      icon: <Compass className="h-6 w-6" />,
+    },
     { label: "Community", href: "/community", icon: <Users className="h-6 w-6" /> },
     { label: "Profile", href: user ? `/user/${user.username}` : "/user/login", icon: <UserIcon className="h-6 w-6" /> },
   ];
