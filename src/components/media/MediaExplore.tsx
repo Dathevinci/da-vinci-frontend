@@ -2,21 +2,27 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Search, Filter, X } from "lucide-react";
+import { Search, Filter, Clock, ListFilter, Library } from "lucide-react";
 import ManhwaCard from "@/components/manhwa/ManhwaCard";
 import NovelCard from "@/components/novel/NovelCard";
 import LoadingScreen, { LoadingDot } from "@/components/ui/LoadingScreen";
 
 /**
- * EXPLORE for comics and novels — the counterpart to the anime one, which
- * these modes never had: their only browse surface was the home page's
- * "view=all" grid with a filter box bolted to a header card.
+ * EXPLORE for comics and novels — the same page anime has, which these modes
+ * never had: their only browse surface was the home page's "view=all" grid
+ * with a filter box bolted onto a header card.
  *
- * Same shape as anime explore: a sticky control bar, live search, filters that
- * apply immediately, and an infinite-scrolling grid. The filters differ per
- * mode because the sources differ — comics can filter status and sort order,
- * novels can only pick a source list — so each mode offers exactly what its
- * API actually honours rather than a shared set of half-working controls.
+ * Deliberately mirrors src/app/explore/page.tsx: the same sticky control bar,
+ * the same floating filter panel with staged changes behind an Apply button,
+ * the same heading and count, the same infinite grid. Someone who knows the
+ * anime page should not have to learn this one.
+ *
+ * WHAT DIFFERS, AND WHY IT MUST: anime is backed by AniList, which publishes
+ * genre, year, season and format. AsuraScans publishes status and a sort
+ * order and nothing else, and the novel sources publish neither — a source
+ * list is the only filter they have. So each mode offers exactly what its API
+ * honours. A year picker over a scraper that never returns a year is a
+ * control that lies.
  *
  * useSearchParams lives here, inside a component the route wraps in Suspense.
  * At page level without a boundary it fails `next build`, and Vercel then
@@ -25,45 +31,148 @@ import LoadingScreen, { LoadingDot } from "@/components/ui/LoadingScreen";
 
 type Mode = "manhwa" | "novel";
 
-const STATUS = [
-  { v: "", label: "Any status" },
-  { v: "ongoing", label: "Ongoing" },
-  { v: "completed", label: "Completed" },
-  { v: "hiatus", label: "Hiatus" },
-  { v: "dropped", label: "Dropped" },
+type Filters = { status: string; sort: string; list: string };
+
+const MANHWA_SORTS = [
+  { key: "", label: "Latest" },
+  { key: "popular", label: "Most Popular" },
+  { key: "rating", label: "Highest Rated" },
+  { key: "title", label: "A–Z" },
 ];
 
-const SORT = [
-  { v: "", label: "Latest" },
-  { v: "popular", label: "Most Popular" },
-  { v: "rating", label: "Highest Rated" },
-  { v: "title", label: "A–Z" },
+const MANHWA_STATUS = [
+  { key: "", label: "Any" },
+  { key: "ongoing", label: "Ongoing" },
+  { key: "completed", label: "Completed" },
+  { key: "hiatus", label: "Hiatus" },
+  { key: "dropped", label: "Dropped" },
 ];
 
 const NOVEL_LISTS = [
-  { v: "most-popular-novel", label: "Most Popular" },
-  { v: "latest-release-novel", label: "Latest Release" },
-  { v: "completed-novel", label: "Completed" },
-  { v: "lightnovelworld", label: "LightNovelWorld" },
-  { v: "lightnovelworld-top", label: "LNW Top Rated" },
+  { key: "most-popular-novel", label: "Most Popular" },
+  { key: "latest-release-novel", label: "Latest Release" },
+  { key: "completed-novel", label: "Completed" },
+  { key: "lightnovelworld", label: "LightNovelWorld" },
+  { key: "lightnovelworld-top", label: "LNW Top Rated" },
 ];
 
 const CFG = {
-  manhwa: { path: "/api/manhwa", accent: "#dc2626", title: "Discover Comics", blurb: "Search every series across AsuraScans and MangaDex" },
-  novel: { path: "/api/novels", accent: "#ec4899", title: "Discover Novels", blurb: "Search every novel across all three sources" },
+  manhwa: { path: "/api/manhwa", heading: "Discover Comics", noun: "comics" },
+  novel: { path: "/api/novels", heading: "Discover Novels", noun: "novels" },
 } as const;
 
+/** Matches the anime page's grouped block, so both panels read identically. */
+function Section({ Icon, label, children }: { Icon: any; label: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3.5">
+      <p className="mb-3 flex items-center gap-2 font-mono text-xs font-black text-white">
+        <Icon className="h-3.5 w-3.5" /> {label}
+      </p>
+      {children}
+    </div>
+  );
+}
+
+function Choice({ on, label, onClick }: { on: boolean; label: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`rounded-lg px-3 py-2 text-left font-mono text-xs font-bold transition ${
+        on ? "bg-white/10 text-white" : "text-slate-400 hover:text-white"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function FiltersPanel({
+  mode,
+  value,
+  anchorRef,
+  onApply,
+  onClose,
+}: {
+  mode: Mode;
+  value: Filters;
+  anchorRef: React.RefObject<HTMLDivElement | null>;
+  onApply: (f: Filters) => void;
+  onClose: () => void;
+}) {
+  const [staged, setStaged] = useState<Filters>(value);
+
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      // The toggle button lives inside the anchor, so a click on it counts as
+      // inside — otherwise mousedown closes the panel and the click reopens it,
+      // losing every staged change to the remount.
+      if (anchorRef.current && !anchorRef.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [onClose, anchorRef]);
+
+  return (
+    <div className="absolute right-0 top-full z-40 mt-2 flex max-h-[min(70vh,640px)] w-[320px] flex-col gap-2.5 overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#0b0b11] p-3 shadow-2xl sm:w-[360px]">
+      {mode === "manhwa" ? (
+        <>
+          <Section Icon={Clock} label="Sort By">
+            <div className="flex flex-col">
+              {MANHWA_SORTS.map((s) => (
+                <Choice key={s.key || "latest"} on={staged.sort === s.key} label={s.label}
+                  onClick={() => setStaged({ ...staged, sort: s.key })} />
+              ))}
+            </div>
+          </Section>
+
+          <Section Icon={ListFilter} label="Status">
+            <div className="flex flex-col">
+              {MANHWA_STATUS.map((s) => (
+                <Choice key={s.key || "any"} on={staged.status === s.key} label={s.label}
+                  onClick={() => setStaged({ ...staged, status: s.key })} />
+              ))}
+            </div>
+          </Section>
+        </>
+      ) : (
+        <Section Icon={Library} label="Source List">
+          <div className="flex flex-col">
+            {NOVEL_LISTS.map((l) => (
+              <Choice key={l.key} on={staged.list === l.key} label={l.label}
+                onClick={() => setStaged({ ...staged, list: l.key })} />
+            ))}
+          </div>
+          <p className="mt-3 font-mono text-[11px] leading-relaxed text-slate-600">
+            The novel sources don&rsquo;t publish a status or a sort order, so a list is
+            the filter. It applies when you aren&rsquo;t searching.
+          </p>
+        </Section>
+      )}
+
+      <button
+        onClick={() => onApply(staged)}
+        className="sticky bottom-0 w-full rounded-xl bg-white py-3 font-mono text-sm font-black text-black transition hover:bg-white/90"
+      >
+        Apply Filters
+      </button>
+    </div>
+  );
+}
+
 export default function MediaExplore({ mode }: { mode: Mode }) {
-  // Params seed the initial state only; filtering after that is local, so the
-  // URL never changes and there is nothing to push.
+  // Params seed the initial state only; filtering after that is local.
   const sp = useSearchParams();
   const cfg = CFG[mode];
 
   const [q, setQ] = useState(sp.get("q") || "");
-  const [status, setStatus] = useState(sp.get("status") || "");
-  const [sort, setSort] = useState(sp.get("sort") || "");
-  const [list, setList] = useState(sp.get("list") || "most-popular-novel");
-  const [openFilters, setOpenFilters] = useState(false);
+  const [filters, setFilters] = useState<Filters>({
+    status: sp.get("status") || "",
+    sort: sp.get("sort") || "",
+    list: sp.get("list") || "most-popular-novel",
+  });
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  // Shared with the panel's outside-click test — see the note in there.
+  const filtersWrapRef = useRef<HTMLDivElement>(null);
 
   const [items, setItems] = useState<any[]>([]);
   const [page, setPage] = useState(1);
@@ -71,8 +180,8 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
   const [loading, setLoading] = useState(true);
   const [more, setMore] = useState(false);
 
-  // Only the newest request may render. Search is a scrape on both sources, so
-  // an earlier slow reply landing last would otherwise replace newer results.
+  // Only the newest request may render. Both sources are scrapes, so a slow
+  // earlier reply landing last would otherwise replace newer results.
   const seq = useRef(0);
   const sentinel = useRef<HTMLDivElement>(null);
 
@@ -81,18 +190,18 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
     u.set("page", String(p));
     if (q.trim()) u.set("q", q.trim());
     if (mode === "manhwa") {
-      if (status) u.set("status", status);
-      if (sort) u.set("sort", sort);
+      if (filters.status) u.set("status", filters.status);
+      if (filters.sort) u.set("sort", filters.sort);
     } else if (!q.trim()) {
       // The novel API treats `list` and `q` as mutually exclusive.
-      u.set("list", list);
+      u.set("list", filters.list);
     }
     return `${cfg.path}?${u.toString()}`;
-  }, [q, status, sort, list, mode, cfg.path]);
+  }, [q, filters, mode, cfg.path]);
 
   const load = useCallback(async (p: number, append: boolean) => {
     const id = ++seq.current;
-    append ? setMore(true) : setLoading(true);
+    if (append) setMore(true); else setLoading(true);
     try {
       const r = await fetch(buildUrl(p));
       const d = await r.json();
@@ -108,13 +217,11 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
     }
   }, [buildUrl]);
 
-  // Debounced reload whenever the query or a filter changes.
   useEffect(() => {
     const t = setTimeout(() => load(1, false), 350);
     return () => clearTimeout(t);
   }, [load]);
 
-  // Infinite scroll.
   useEffect(() => {
     const el = sentinel.current;
     if (!el || !hasNext || loading || more) return;
@@ -125,113 +232,68 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
     return () => io.disconnect();
   }, [hasNext, loading, more, page, load]);
 
-  const clear = () => { setQ(""); setStatus(""); setSort(""); };
-  const activeFilters = (mode === "manhwa" ? [status, sort] : []).filter(Boolean).length;
+  const activeCount = mode === "manhwa"
+    ? [filters.status, filters.sort].filter(Boolean).length
+    : (filters.list !== "most-popular-novel" ? 1 : 0);
 
   return (
-    <div className="min-h-screen bg-[#070709] pb-24 pt-16 text-white">
-      {/* control bar */}
-      <div className="sticky top-0 z-30 border-b border-white/10 bg-[#070709]/95 px-4 py-3">
+    <div className="min-h-screen bg-[#070709] pb-24 text-white">
+      {/* ── control bar ── */}
+      <div className="sticky top-0 z-30 border-b border-white/10 bg-[#070709]/95 px-4 py-3 backdrop-blur">
         <div className="mx-auto flex max-w-[1500px] items-center gap-2.5">
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder={mode === "novel" ? "Search for novels…" : "Search for comics…"}
+              placeholder={mode === "novel" ? "Search for novels..." : "Search for comics..."}
               aria-label="Search"
-              className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-3 pl-11 pr-10 font-mono text-sm text-white placeholder:text-slate-600 outline-none transition focus:border-white/25"
+              className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-3 pl-11 pr-4 font-mono text-sm text-white placeholder:text-slate-600 focus:border-white/25 focus:outline-none"
             />
-            {q && (
-              <button type="button" onClick={() => setQ("")} aria-label="Clear search"
-                className="absolute right-3 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-full text-slate-500 transition hover:bg-white/10 hover:text-white">
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
           </div>
 
-          <button
-            type="button"
-            onClick={() => setOpenFilters((v) => !v)}
-            className={`flex shrink-0 items-center gap-2 rounded-2xl border px-4 py-3 font-mono text-xs font-black leading-5 transition ${
-              openFilters ? "border-white/30 bg-white/10 text-white" : "border-white/10 bg-white/[0.04] text-slate-300 hover:text-white"
-            }`}
-          >
-            <Filter className="h-4 w-4" />
-            <span className="hidden sm:inline">Filters</span>
-            {activeFilters > 0 && (
-              <span className="rounded-full px-1.5 text-[10px]" style={{ background: cfg.accent, color: "#fff" }}>
-                {activeFilters}
-              </span>
+          <div className="relative shrink-0" ref={filtersWrapRef}>
+            <button
+              onClick={() => setFiltersOpen((v) => !v)}
+              className={`flex items-center gap-2 rounded-2xl border px-4 py-3 font-mono text-xs font-black transition ${
+                filtersOpen ? "border-white/30 bg-white/10 text-white" : "border-white/10 bg-white/[0.04] text-slate-300 hover:text-white"
+              }`}
+            >
+              <Filter className="h-4 w-4" /> Filters
+              {activeCount > 0 && (
+                <span className="rounded-full bg-white/20 px-1.5 text-[10px]">{activeCount}</span>
+              )}
+            </button>
+            {filtersOpen && (
+              <FiltersPanel
+                mode={mode}
+                value={filters}
+                anchorRef={filtersWrapRef}
+                onApply={(f) => { setFilters(f); setFiltersOpen(false); }}
+                onClose={() => setFiltersOpen(false)}
+              />
             )}
-          </button>
+          </div>
         </div>
-
-        {openFilters && (
-          <div className="mx-auto mt-3 flex max-w-[1500px] flex-wrap items-center gap-2">
-            {mode === "manhwa" ? (
-              <>
-                {STATUS.map((s) => (
-                  <button key={s.v || "any"} type="button" onClick={() => setStatus(s.v)}
-                    className="rounded-lg border px-3 py-1.5 font-mono text-[11px] font-black transition"
-                    style={status === s.v
-                      ? { borderColor: cfg.accent, background: `${cfg.accent}22`, color: cfg.accent }
-                      : { borderColor: "rgba(255,255,255,.1)", color: "#94a3b8" }}>
-                    {s.label}
-                  </button>
-                ))}
-                <span className="mx-1 h-5 w-px bg-white/10" />
-                {SORT.map((s) => (
-                  <button key={s.v || "latest"} type="button" onClick={() => setSort(s.v)}
-                    className="rounded-lg border px-3 py-1.5 font-mono text-[11px] font-black transition"
-                    style={sort === s.v
-                      ? { borderColor: cfg.accent, background: `${cfg.accent}22`, color: cfg.accent }
-                      : { borderColor: "rgba(255,255,255,.1)", color: "#94a3b8" }}>
-                    {s.label}
-                  </button>
-                ))}
-                {activeFilters > 0 && (
-                  <button type="button" onClick={clear}
-                    className="ml-auto font-mono text-[11px] font-black text-slate-500 hover:text-white">
-                    Clear
-                  </button>
-                )}
-              </>
-            ) : (
-              <>
-                {/* Novel sources ignore status and sort entirely; a list IS the
-                    filter, and it only applies when not searching. */}
-                {NOVEL_LISTS.map((l) => (
-                  <button key={l.v} type="button" onClick={() => setList(l.v)} disabled={!!q.trim()}
-                    title={q.trim() ? "Clear the search to browse a list" : undefined}
-                    className="rounded-lg border px-3 py-1.5 font-mono text-[11px] font-black transition disabled:opacity-35"
-                    style={list === l.v && !q.trim()
-                      ? { borderColor: cfg.accent, background: `${cfg.accent}22`, color: cfg.accent }
-                      : { borderColor: "rgba(255,255,255,.1)", color: "#94a3b8" }}>
-                    {l.label}
-                  </button>
-                ))}
-              </>
-            )}
-          </div>
-        )}
       </div>
 
-      {/* heading + grid */}
+      {/* ── heading + grid ── */}
       <div className="mx-auto max-w-[1500px] px-4 pt-8">
-        <h1 className="font-mono text-3xl font-black">{cfg.title}</h1>
+        <h1 className="font-mono text-3xl font-black text-white">{cfg.heading}</h1>
         <p className="mt-1.5 font-mono text-sm text-slate-500">
-          {loading ? cfg.blurb : `${items.length} shown${q.trim() ? ` for “${q.trim()}”` : ""}`}
+          {loading ? `Searching ${cfg.noun}…` : `${items.length} ${cfg.noun} shown${q.trim() ? ` for “${q.trim()}”` : ""}`}
         </p>
 
         {loading ? (
-          <LoadingScreen fullscreen={false} message={mode === "novel" ? "Searching novels" : "Searching comics"} />
+          <LoadingScreen fullscreen={false} message={`Searching ${cfg.noun}`} />
         ) : items.length === 0 ? (
           <div className="py-24 text-center">
             <p className="font-mono text-sm text-slate-500">Nothing matched that.</p>
-            {(q || activeFilters > 0) && (
-              <button type="button" onClick={clear}
-                className="mt-3 font-mono text-xs font-black" style={{ color: cfg.accent }}>
+            {(q || activeCount > 0) && (
+              <button
+                onClick={() => { setQ(""); setFilters({ status: "", sort: "", list: "most-popular-novel" }); }}
+                className="mt-3 font-mono text-xs font-black text-violet-300 hover:text-violet-200"
+              >
                 Clear search and filters
               </button>
             )}
