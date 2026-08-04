@@ -48,8 +48,8 @@ export default function AuthSync() {
               else if (isAdmin(uName)) toast('Welcome Back, Admin 👑', "success");
               else toast('Welcome Back!', "success");
               // Same destination as a form sign-in from the landing: the
-              // Hub. Two doors into the site must not land in two places.
-              router.replace('/hub');
+              // homefeed. Two doors into the site must not land in two places.
+              router.replace('/');
             } else {
               toast(res.message || "Failed to sign in. Please try again.", "error");
               router.replace('/');
@@ -71,7 +71,7 @@ export default function AuthSync() {
         email={discordData.email}
         avatar={discordData.avatar}
         onClose={() => { setShowInviteModal(false); router.replace('/'); }}
-        onSuccess={() => { setShowInviteModal(false); router.replace('/hub'); }}
+        onSuccess={() => { setShowInviteModal(false); router.replace('/'); }}
       />
     );
   }

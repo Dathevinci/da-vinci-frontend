@@ -324,9 +324,45 @@ export async function getAnimeCharacters(id: number): Promise<string[]> {
   }
 }
 
-// Placeholder to ensure components don't crash
+// Real recommendations from Jikan — this was a stub returning [], which
+// left every "More Like This" section silently empty. The entries are
+// partial Anime objects (id, title, images); the modal's hydration path
+// fills in the rest when one is opened.
 export async function getAnimeRecommendations(id: number): Promise<Anime[]> {
-  return [];
+  try {
+    const res = await jikanFetch(`/anime/${id}/recommendations`);
+    return (res.data || [])
+      .slice(0, 10)
+      .map((r: any) => ({
+        mal_id: r.entry?.mal_id,
+        title: r.entry?.title,
+        images: r.entry?.images,
+        url: r.entry?.url || "",
+      }))
+      .filter((a: any) => a.mal_id && a.title) as Anime[];
+  } catch {
+    return [];
+  }
+}
+
+/** One related work: the tie ("Prequel", "Sequel", "Side Story"…) + id + name. */
+export type AnimeRelation = { relation: string; mal_id: number; name: string; type: string };
+
+// Related anime (prequels/sequels/side stories) from Jikan. Only anime-type
+// entries — manga relations have no page to open here.
+export async function getAnimeRelations(id: number): Promise<AnimeRelation[]> {
+  try {
+    const res = await jikanFetch(`/anime/${id}/relations`);
+    const out: AnimeRelation[] = [];
+    for (const rel of res.data || []) {
+      for (const e of rel.entry || []) {
+        if (e.type === "anime") out.push({ relation: rel.relation, mal_id: e.mal_id, name: e.name, type: e.type });
+      }
+    }
+    return out.slice(0, 8);
+  } catch {
+    return [];
+  }
 }
 
 export async function getAnimeTrailer(id: number): Promise<string | null> {

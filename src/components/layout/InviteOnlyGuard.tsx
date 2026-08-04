@@ -3,7 +3,10 @@
 import { useUser } from "@/hooks/useUser";
 import { useState } from "react";
 import LoginModal from "@/components/layout/LoginModal";
-import { Lock, Play, ArrowRight, Tv, BookMarked, BookOpen } from "lucide-react";
+import {
+  Lock, Play, ArrowRight, Tv, BookMarked, BookOpen,
+  Library, Users, Zap, MonitorPlay, Layers, Swords, Gem, Palette, MonitorSmartphone,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // Shared amethyst-purple text fill, matching the splash wordmark + site theme.
@@ -71,17 +74,21 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
 
   if (!user) {
     return (
-      <div className="relative min-h-screen overflow-hidden bg-[#050505] p-4 text-white selection:bg-violet-500/20">
-        {/* ── THE ARTWORK ── full-bleed, fixed, so the wordmark's window lines
-            up with it exactly. */}
+      <div className="relative min-h-screen overflow-hidden bg-[#050505] text-white selection:bg-violet-500/20">
+        {/* ── THE ARTWORK ── a FIXED viewport layer, not absolute. The page
+            scrolls now, and an absolute inset-0 layer would size against the
+            whole multi-viewport document — cover-cropping the art into a
+            zoomed sliver and dragging the scrim floor to the document
+            bottom. Fixed keeps every layer exactly one viewport, glued in
+            place while the sections scroll over it, and keeps the wordmark's
+            window crop aligned with the art behind it. */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 z-0"
+          className="pointer-events-none fixed inset-0 z-0"
           style={{
             backgroundImage: `url(${LANDING_BG})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
-            backgroundAttachment: "fixed",
             // Blur pushes the art back so the copy sits in front of it rather
             // than fighting it. Scaled up because a blur samples past its own
             // edges and would otherwise leave a soft border around the screen.
@@ -90,14 +97,14 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
           }}
         />
         {/* Scrims. Two of them: a flat darkener so text is legible over any
-            crop, and a bottom-heavy gradient so the page has a floor. */}
-        <div aria-hidden className="pointer-events-none absolute inset-0 z-0 bg-black/55" />
-        <div aria-hidden className="pointer-events-none absolute inset-0 z-0 bg-gradient-to-b from-[#050505]/85 via-transparent to-[#050505]" />
+            crop, and a bottom-heavy gradient so the viewport has a floor. */}
+        <div aria-hidden className="pointer-events-none fixed inset-0 z-0 bg-black/55" />
+        <div aria-hidden className="pointer-events-none fixed inset-0 z-0 bg-gradient-to-b from-[#050505]/85 via-transparent to-[#050505]" />
         {/* The original tri-mode ambience stays underneath — it is what carries
             the page if the artwork file isn't there yet. */}
-        <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_50%_32%,rgba(139,92,246,0.18)_0%,transparent_55%)]" />
-        <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_20%_78%,rgba(220,38,38,0.12)_0%,transparent_50%)]" />
-        <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_80%_75%,rgba(236,72,153,0.12)_0%,transparent_50%)]" />
+        <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(ellipse_at_50%_32%,rgba(139,92,246,0.18)_0%,transparent_55%)]" />
+        <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(ellipse_at_20%_78%,rgba(220,38,38,0.12)_0%,transparent_50%)]" />
+        <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(ellipse_at_80%_75%,rgba(236,72,153,0.12)_0%,transparent_50%)]" />
 
         {/* ── FLOATING PILL BAR, with the mascot perched on top of it ── */}
         <motion.div
@@ -146,7 +153,7 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
             wordmark with art living inside the letters, one mono tagline
             with the load-bearing words in white, two doors, and the three
             arts as a breadcrumb trail. */}
-        <div className="relative z-10 flex min-h-screen flex-col items-center justify-center text-center">
+        <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-4 text-center">
           <motion.div
             initial={{ y: 14, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -232,20 +239,128 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
           </motion.div>
         </div>
 
-        {/* Footer */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1, delay: 0.9 }}
-          className="absolute bottom-8 text-center text-violet-100/25 text-xs tracking-[0.3em] uppercase font-cinzel"
-        >
+        {/* ── BELOW THE FOLD ── the reference landing keeps going: a title
+            marquee, the numbers, what makes the place different, and the
+            people running it — all with OUR truth, no borrowed claims. */}
+
+        {/* the marquee — beloved titles drifting past, twice over for a
+            seamless loop. transform-only, so it never leaves the GPU. */}
+        <div className="relative z-10 overflow-hidden border-y border-white/10 bg-black/40 py-4 backdrop-blur">
+          {/* NO gap on the track — each half carries its own trailing pr-10,
+              so the track is exactly twice the pattern period and the
+              translateX(-50%) wrap is pixel-seamless. A track gap left the
+              loop 20px short and it snapped once per cycle. */}
+          <div className="lp-marquee flex w-max items-center whitespace-nowrap font-mono text-sm text-slate-400">
+            {[0, 1].map((half) => (
+              <span key={half} aria-hidden={half === 1} className="flex items-center gap-10 pr-10">
+                {[
+                  ["Dragon Ball", "ドラゴンボール"], ["Attack on Titan", "進撃の巨人"],
+                  ["Demon Slayer", "鬼滅の刃"], ["Naruto", "ナルト"],
+                  ["Jujutsu Kaisen", "呪術廻戦"], ["Death Note", "デスノート"],
+                  ["Bleach", "ブリーチ"], ["One Piece", "ワンピース"],
+                  ["Solo Leveling", "나 혼자만 레벨업"], ["Frieren", "葬送のフリーレン"],
+                ].map(([en, jp]) => (
+                  <span key={en} className="flex items-center gap-10">
+                    <span>{en} <span className="text-slate-600">{jp}</span></span>
+                    <span className="text-slate-700">•</span>
+                  </span>
+                ))}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* the numbers — ours, honestly */}
+        <div className="relative z-10 mx-auto grid max-w-5xl grid-cols-2 gap-4 px-4 py-20 lg:grid-cols-4">
+          {[
+            { Icon: Library, big: "20,000+", small: "Titles inside" },
+            { Icon: Users, big: "Invite", small: "Only members" },
+            { Icon: Zap, big: "Zero", small: "Ads, ever" },
+            { Icon: MonitorPlay, big: "HD", small: "Max quality" },
+          ].map(({ Icon, big, small }) => (
+            <div key={small} className="flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-black/45 px-4 py-9 backdrop-blur">
+              <Icon className="h-5 w-5 text-violet-300" />
+              <span className="font-mono text-3xl font-black text-white sm:text-4xl">{big}</span>
+              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500">{small}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* what makes it different — every card is a thing that EXISTS here */}
+        <div className="relative z-10 mx-auto max-w-5xl px-4 pb-20">
+          <h2 className="text-center font-mono text-3xl font-black text-white sm:text-4xl">Everything you need</h2>
+          <p className="mx-auto mt-3 max-w-md text-center font-mono text-sm leading-relaxed text-slate-500">
+            Built for the devoted, by the devoted. Here&apos;s what makes Da Vinci different.
+          </p>
+          <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              { Icon: Tv, t: "Three Arts in One", d: "Anime to watch, manhwa and light novels to read — one vault, one account." },
+              { Icon: Layers, t: "Arise Cards", d: "A living card game: pull heroes, collect serialled prints, forge Mythics." },
+              { Icon: Swords, t: "Duels & Dungeons", d: "Stake your deck in duels or dispatch a party into the depths." },
+              { Icon: Gem, t: "Earn as You Go", d: "Watching and reading pays Arise Points — the currency of everything here." },
+              { Icon: Palette, t: "Full Customization", d: "Profile frames, canvas effects, animated titles, showcases." },
+              { Icon: MonitorSmartphone, t: "App & Sync", d: "Installable on your phone; progress follows you across devices." },
+            ].map(({ Icon, t, d }) => (
+              <div key={t} className="rounded-2xl border border-white/10 bg-black/45 p-6 backdrop-blur transition-colors hover:border-violet-400/30">
+                <Icon className="h-5 w-5 text-slate-300" />
+                <p className="mt-4 font-mono text-base font-black text-white">{t}</p>
+                <p className="mt-2 font-mono text-xs leading-relaxed text-slate-500">{d}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* the people keeping it open */}
+        <div className="relative z-10 border-t border-white/10 bg-black/30 px-4 py-20 backdrop-blur">
+          <h2 className="text-center font-mono text-3xl font-black text-white sm:text-4xl">The keepers</h2>
+          <p className="mx-auto mt-3 max-w-md text-center font-mono text-sm leading-relaxed text-slate-500">
+            The people keeping the atelier open.
+          </p>
+          <div className="mx-auto mt-10 grid max-w-4xl grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              { n: "Dejavuh", r: "Lead Developer", tint: "#a78bfa" },
+              { n: "Da Vinci", r: "Admin", tint: "#f87171" },
+              { n: "xHackerDevil", r: "Bug Founder", tint: "#4ade80" },
+              { n: "Coffee", r: "Admin", tint: "#f87171" },
+              { n: "SpeyVenerable", r: "Admin", tint: "#f87171" },
+              { n: "Ash", r: "Admin", tint: "#f87171" },
+            ].map(({ n, r, tint }) => (
+              <div key={n} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/45 px-4 py-3.5 backdrop-blur">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full font-mono text-sm font-black text-white"
+                  style={{ background: `${tint}22`, boxShadow: `inset 0 0 0 1.5px ${tint}66` }}>
+                  {n[0]}
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate font-mono text-sm font-black text-white">{n}</span>
+                  <span className="block font-mono text-[11px] font-bold" style={{ color: tint }}>{r}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer — in flow now that the page scrolls */}
+        <div className="relative z-10 py-10 text-center text-violet-100/25 text-xs tracking-[0.3em] uppercase font-cinzel">
           &copy; {new Date().getFullYear()} Da Vinci &middot; All Rights Reserved
-        </motion.div>
+        </div>
+
+        <style jsx global>{`
+          .lp-marquee {
+            animation: lpMarquee 48s linear infinite;
+          }
+          @keyframes lpMarquee {
+            from { transform: translateX(0); }
+            to { transform: translateX(-50%); }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .lp-marquee { animation: none; }
+          }
+        `}</style>
 
         <AnimatePresence>
-          {/* Landing sign-ins arrive at the Hub — the sections screen is the
-              "what do you want today" moment the reference flow opens with. */}
-          {showLogin && <LoginModal onClose={() => setShowLogin(false)} redirectTo="/hub" />}
+          {/* Post-login the guard swaps straight to the page beneath — the
+              landing lives at "/", so Start Watching lands on the homefeed. */}
+          {showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
         </AnimatePresence>
       </div>
     );

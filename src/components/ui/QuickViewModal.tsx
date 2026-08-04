@@ -1,16 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Play } from "lucide-react";
+import { X, Play, Info, Clapperboard, Star, MessagesSquare, ChevronRight } from "lucide-react";
 import { Anime } from "@tutkli/jikan-ts";
 
 import TrackerButton from "@/components/anime/TrackerButton";
-import { useToast } from "@/components/ui/Toast";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import { useAnimeModal } from "@/components/providers/AnimeModalProvider";
-import { getAnimeDetails, getAnimeCharacters, getAnimeRecommendations, getYouTubeId } from "@/lib/jikan";
+import {
+  getAnimeDetails, getAnimeCharacters, getAnimeRecommendations,
+  getAnimeRelations, getYouTubeId, type AnimeRelation,
+} from "@/lib/jikan";
 import { getAnimeDetailsKitsu } from "@/lib/kitsu";
 import EpisodeList from "@/components/anime/EpisodeList";
 import CommunityFeed from "@/components/community/CommunityFeed";
@@ -23,48 +25,68 @@ interface QuickViewModalProps {
   onPlayTrailer: (youtubeId?: string | null) => void;
 }
 
+type Tab = "overview" | "episodes" | "trailer" | "discussions" | "morelike";
+
+const TABS: { key: Tab; label: string; Icon: any }[] = [
+  { key: "overview", label: "Overview", Icon: Info },
+  { key: "episodes", label: "Episodes", Icon: Play },
+  { key: "trailer", label: "Trailer", Icon: Clapperboard },
+  { key: "discussions", label: "Discussions", Icon: MessagesSquare },
+  { key: "morelike", label: "More Like This", Icon: Star },
+];
+
+/** Relation badge tint — sequels/prequels get the green treatment. */
+function relTint(rel: string): string {
+  const r = rel.toLowerCase();
+  if (r.includes("sequel") || r.includes("prequel")) return "#34d399";
+  return "#94a3b8";
+}
+
+/**
+ * THE DETAIL SCREEN — the owner's reference layout: a poster-first hero
+ * over the show's blurred art, a mono title, chips, one white Watch Now,
+ * then a tabbed Details block. It opens from EVERYWHERE (cards, deck
+ * hero, search, community, profile) via the same provider it always used;
+ * partial anime objects hydrate through getAnimeDetails exactly as before.
+ */
 export default function QuickViewModal({ anime, options, onClose, onPlayTrailer }: QuickViewModalProps) {
   const [mounted, setMounted] = useState(false);
   const [cast, setCast] = useState<string[]>([]);
   const [fullAnime, setFullAnime] = useState<Anime | null>(anime);
   const [recommendations, setRecommendations] = useState<Anime[]>([]);
-  const [activeTab, setActiveTab] = useState<"episodes" | "discussions">(options?.startTab === "discussions" ? "discussions" : "episodes");
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [relations, setRelations] = useState<AnimeRelation[]>([]);
+  const [activeTab, setActiveTab] = useState<Tab>(
+    options?.startTab === "discussions" ? "discussions" : options?.autoPlay ? "episodes" : "overview"
+  );
+  // Watch Now arms EpisodeList's autoplay — the same prop ContinueWatching
+  // has always driven; the button just flips it on after mount too.
+  const [watchNow, setWatchNow] = useState(!!options?.autoPlay);
+  const detailsRef = useRef<HTMLDivElement>(null);
 
   const { openAnime } = useAnimeModal();
-  const { toast } = useToast();
 
   useLockBodyScroll();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  useEffect(() => { setMounted(true); }, []);
 
   // Close on Escape
   useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
+    const handleKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, [onClose]);
 
-  // Fetch full anime if trailer/synopsis is missing (e.g. from Tracker local state).
+  // Hydrate partial anime objects (community chips pass just an id+title).
   useEffect(() => {
     if (!anime) return;
     let isMounted = true;
-
     const loadFull = async () => {
-      if (anime.trailer && anime.synopsis) {
-        setFullAnime(anime);
-        return;
-      }
-
+      if (anime.trailer && anime.synopsis) { setFullAnime(anime); return; }
       try {
         const full = await getAnimeDetails(anime.mal_id);
         if (isMounted) setFullAnime(full);
       } catch (err) {
-        console.error("Failed to load full anime details via AniList:", err);
+        console.error("Failed to load full anime details:", err);
         try {
           const kitsuFull = await getAnimeDetailsKitsu(anime.mal_id);
           if (isMounted) setFullAnime(kitsuFull);
@@ -73,303 +95,323 @@ export default function QuickViewModal({ anime, options, onClose, onPlayTrailer 
         }
       }
     };
-
     loadFull();
     return () => { isMounted = false; };
   }, [anime]);
 
-  // Fetch cast — AniList first, Jikan characters as backup
+  // Characters ride with the hydration burst; recommendations and relations
+  // wait a beat. Four simultaneous calls tripped Jikan's 3/sec limit and the
+  // 429 retry could land on the POSTER fetch — the hero stayed empty while
+  // two below-the-fold sections loaded first.
   useEffect(() => {
     if (!anime) return;
     let isMounted = true;
-
-    const fetchCast = async () => {
-      try {
-        const characters = await getAnimeCharacters(anime.mal_id);
-        if (isMounted) setCast(characters);
-      } catch (err) {
-        console.error("Failed to fetch characters via AniList:", err);
-      }
-    };
-
-    fetchCast();
-    return () => { isMounted = false; };
-  }, [anime]);
-
-  // Fetch "More Like This" recommendations
-  useEffect(() => {
-    if (!anime) return;
-    let isMounted = true;
-
-    const fetchRecommendationsAsync = async () => {
-      try {
-        const recs = await getAnimeRecommendations(anime.mal_id);
-        if (isMounted) setRecommendations(recs);
-      } catch (err) {
-        console.error("Failed to load recommendations via AniList:", err);
-      }
-    };
-
-    fetchRecommendationsAsync();
-    return () => { isMounted = false; };
+    getAnimeCharacters(anime.mal_id).then((c) => { if (isMounted) setCast(c); }).catch(() => {});
+    const t = setTimeout(() => {
+      if (!isMounted) return;
+      getAnimeRecommendations(anime.mal_id).then((r) => { if (isMounted) setRecommendations(r); }).catch(() => {});
+      getAnimeRelations(anime.mal_id).then((r) => { if (isMounted) setRelations(r); }).catch(() => {});
+    }, 1400);
+    return () => { isMounted = false; clearTimeout(t); };
   }, [anime]);
 
   if (!mounted) return null;
 
   const displayAnime = fullAnime || anime;
-
-
-
   const title = displayAnime?.title_english || displayAnime?.title || "";
-  const bannerUrl = displayAnime?.trailer?.images?.maximum_image_url || displayAnime?.images?.jpg?.large_image_url || displayAnime?.images?.jpg?.image_url;
+  const posterUrl = displayAnime?.images?.jpg?.large_image_url || displayAnime?.images?.jpg?.image_url;
+  const bannerUrl = displayAnime?.trailer?.images?.maximum_image_url || posterUrl;
   const youtubeId = displayAnime ? getYouTubeId(displayAnime.trailer) : null;
+  const statusLabel = displayAnime?.status
+    ? displayAnime.status.toLowerCase().includes("finished") ? "Finished"
+      : displayAnime.status.toLowerCase().includes("airing") ? "Airing" : displayAnime.status
+    : null;
+
+  const openRelated = (r: AnimeRelation) => {
+    openAnime({
+      mal_id: r.mal_id,
+      title: r.name,
+      images: { jpg: { image_url: "", large_image_url: "" }, webp: { image_url: "", large_image_url: "" } },
+      url: "",
+    } as unknown as Anime);
+  };
 
   return createPortal(
     <AnimatePresence>
       {displayAnime && (
-        <div className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto">
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.25 }}
+          className="fixed inset-0 z-[9999] overflow-y-auto overscroll-contain bg-[#070709]"
+        >
+          {/* Close — pinned above everything while the page scrolls */}
+          <button
             onClick={onClose}
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm cursor-pointer"
-          />
-
-          {/* Modal Container */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.92, y: 40 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 30 }}
-            transition={{ type: "spring", damping: 28, stiffness: 260 }}
-            className="relative w-full max-w-4xl bg-[#181818] rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.9)] border border-[#404040] z-10 my-8 mx-4 overflow-hidden"
+            aria-label="Close"
+            className="fixed right-4 top-4 z-50 grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-black/60 text-white backdrop-blur transition hover:bg-black/80"
           >
-            {/* Close Button */}
-            <button
-              onClick={onClose}
-              className="absolute top-4 right-4 z-50 p-2 bg-[#181818]/70 hover:bg-[#181818] text-white rounded-full transition-colors border border-white/10 shadow-lg"
-            >
-              <X className="w-6 h-6" />
-            </button>
+            <X className="h-5 w-5" />
+          </button>
 
-            {/* ═══ BANNER: trailer playing in the background, info overlaid ═══ */}
-            <div className="relative w-full h-[300px] sm:h-[400px] md:h-[480px] shrink-0 bg-[#181818] overflow-hidden">
-              {/* Blurred high-res backdrop so portrait / letterboxed art still
-                  fills the frame richly instead of showing bars or stretching. */}
-              {bannerUrl && (
-                <img
-                  src={bannerUrl}
-                  alt=""
-                  aria-hidden="true"
-                  className="absolute inset-0 w-full h-full object-cover scale-125 blur-2xl opacity-50"
-                />
-              )}
-              {youtubeId ? (
-                <div className="absolute inset-0 w-full h-[150%] -top-[35%] pointer-events-none">
-                  <iframe
-                    src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1&loop=1&playlist=${youtubeId}&vq=hd1080&hd=1`}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    className="absolute inset-0 w-full h-full object-cover opacity-90"
-                  />
-                </div>
-              ) : (
-                <img
-                  src={bannerUrl}
-                  alt={title}
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-              )}
+          {/* ═══ HERO — poster first, over the show's own blurred art ═══ */}
+          <div className="relative overflow-hidden">
+            {bannerUrl && (
+              <img
+                src={bannerUrl}
+                alt=""
+                aria-hidden
+                className="absolute inset-0 h-full w-full scale-110 object-cover opacity-35 blur-2xl"
+              />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-[#070709]/60 to-[#070709]" />
 
-              {/* Netflix-style gradients */}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#181818] via-[#181818]/50 to-transparent pointer-events-none"></div>
-              <div className="absolute inset-0 bg-gradient-to-r from-[#181818]/80 via-transparent to-transparent pointer-events-none"></div>
+            <div className="relative mx-auto flex max-w-4xl flex-col items-center px-4 pb-10 pt-16 text-center sm:pt-20">
+              <motion.div
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                className="relative w-44 shrink-0 overflow-hidden rounded-xl sm:w-56"
+                style={{ boxShadow: "0 0 0 1px rgba(255,255,255,.14), 0 30px 80px rgba(0,0,0,.8)" }}
+              >
+                {posterUrl && <img src={posterUrl} alt={title} className="aspect-[2/3] w-full object-cover" />}
+              </motion.div>
 
-              {/* Title + controls + synopsis overlaid on the playing trailer */}
-              <div className="absolute bottom-0 left-0 w-full p-6 sm:p-8 md:p-12 pb-6">
-                <motion.h2
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15, duration: 0.5 }}
-                  className="text-3xl md:text-5xl font-black text-white mb-4 drop-shadow-lg max-w-2xl line-clamp-2"
-                >
-                  {title}
-                </motion.h2>
-
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.25, duration: 0.5 }}
-                  className="flex items-center gap-3 mb-4"
-                >
-                  <button
-                    onClick={() => {
-                      if (!youtubeId) {
-                        toast("No trailer available for this anime.", "error");
-                        return;
-                      }
-                      onClose();
-                      onPlayTrailer(youtubeId);
-                    }}
-                    className="flex items-center gap-2 bg-white text-black px-6 md:px-8 py-2 md:py-2.5 rounded hover:bg-white/80 transition-colors font-bold text-lg"
-                  >
-                    <Play className="w-5 h-5 md:w-6 md:h-6 fill-current" />
-                    Play
-                  </button>
-
-                  {displayAnime && <TrackerButton anime={displayAnime} variant="full" />}
-
-
-                </motion.div>
-
-
-              </div>
-            </div>
-
-            {/* ═══ META + DETAILS ═══ */}
-            <div className="p-6 sm:p-8 md:p-12 pt-6 grid grid-cols-1 md:grid-cols-3 gap-8 text-white">
-              <div className="md:col-span-2 space-y-4">
-                <div className="flex flex-wrap items-center gap-3 text-sm md:text-base font-semibold">
-                  <span className="text-green-500">{displayAnime.score ? `${(displayAnime.score * 10).toFixed(0)}% Match` : "New"}</span>
-                  <span className="text-slate-300">{displayAnime.year || "N/A"}</span>
-                  <span className="border border-white/40 text-slate-300 px-1.5 py-0.5 text-xs rounded">
-                    {displayAnime.rating ? displayAnime.rating.split('-')[0].trim() : "13+"}
+              {/* meta chips */}
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+                className="mt-7 flex flex-wrap items-center justify-center gap-2 font-mono text-[11px] font-black uppercase tracking-wide"
+              >
+                {displayAnime.score ? (
+                  <span className="flex items-center gap-1.5 rounded-lg border border-amber-400/40 bg-amber-400/10 px-2.5 py-1 text-amber-300">
+                    <Star className="h-3 w-3 fill-current" /> {(displayAnime.score * 10).toFixed(0)}%
                   </span>
-                  <span className="text-slate-300">{displayAnime.episodes ? `${displayAnime.episodes} Episodes` : "Ongoing"}</span>
-                  <span className="border border-white/40 text-slate-300 px-1.5 py-0.5 text-xs rounded">HD</span>
-                </div>
+                ) : null}
+                {displayAnime.year ? <span className="rounded-lg border border-white/10 bg-white/[0.05] px-2.5 py-1 text-slate-300">{displayAnime.year}</span> : null}
+                <span className="rounded-lg border border-white/10 bg-white/[0.05] px-2.5 py-1 text-slate-300">{displayAnime.type || "TV"}</span>
+                <span className="rounded-lg border border-white/10 bg-white/[0.05] px-2.5 py-1 text-slate-300">
+                  {displayAnime.episodes ? `${displayAnime.episodes} Episodes` : "Ongoing"}
+                </span>
+                {statusLabel && <span className="rounded-lg border border-white/10 bg-white/[0.05] px-2.5 py-1 text-slate-300">{statusLabel}</span>}
+              </motion.div>
 
-                {/* Full synopsis for extended reading */}
-                <div className="text-sm md:text-base text-slate-300 max-w-3xl leading-relaxed">
-                  {displayAnime?.synopsis ? (
-                    <div>
-                      <p className={`transition-all ${isExpanded ? "" : "line-clamp-4"}`}>{displayAnime.synopsis}</p>
-                      <button 
-                        onClick={() => setIsExpanded(!isExpanded)}
-                        className="text-purple-400 hover:text-purple-300 font-bold text-sm mt-1 transition-colors"
-                      >
-                        {isExpanded ? "Show Less" : "See More"}
-                      </button>
+              <motion.h1
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, delay: 0.16, ease: [0.16, 1, 0.3, 1] }}
+                className="mt-5 max-w-3xl font-mono text-3xl font-black uppercase tracking-wider text-white sm:text-4xl md:text-5xl"
+              >
+                {title}
+              </motion.h1>
+
+              {(displayAnime.genres?.length || 0) > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.45, delay: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                  className="mt-4 flex flex-wrap items-center justify-center gap-2"
+                >
+                  {displayAnime.genres!.slice(0, 5).map((g) => (
+                    <span key={g.name} className="rounded-lg border border-white/10 bg-white/[0.05] px-3 py-1 font-mono text-xs font-bold text-slate-200">
+                      {g.name}
+                    </span>
+                  ))}
+                </motion.div>
+              )}
+
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, delay: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                className="mt-8 flex flex-wrap items-center justify-center gap-3"
+              >
+                <button
+                  onClick={() => {
+                    setActiveTab("episodes");
+                    setWatchNow(true);
+                    detailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }}
+                  className="flex items-center gap-2.5 rounded-xl bg-white px-7 py-3 font-mono text-sm font-black text-black transition hover:bg-white/85"
+                >
+                  <Play className="h-4 w-4 fill-current" strokeWidth={0} />
+                  Watch Now
+                </button>
+                <TrackerButton anime={displayAnime} variant="full" />
+              </motion.div>
+            </div>
+          </div>
+
+          {/* ═══ DETAILS ═══ */}
+          <div ref={detailsRef} className="mx-auto max-w-5xl scroll-mt-6 px-4 pb-28 sm:px-6">
+            <div className="rounded-2xl border border-white/10 bg-[#0b0b11]">
+              <div className="px-5 pt-6 sm:px-7">
+                <h2 className="font-mono text-2xl font-black text-white">Details</h2>
+                <p className="mt-1 font-mono text-xs text-slate-500">Explore more about {title}</p>
+              </div>
+
+              {/* tab bar */}
+              <div className="mt-5 flex gap-1 overflow-x-auto border-b border-white/10 px-3 sm:px-5">
+                {TABS.map(({ key, label, Icon }) => (
+                  <button
+                    key={key}
+                    onClick={() => {
+                      // Leaving Episodes DISARMS autoplay. EpisodeList
+                      // unmounts per tab, wiping its own has-played guard —
+                      // with the arm still set, every return to Episodes
+                      // force-reopened the player.
+                      if (key !== "episodes") setWatchNow(false);
+                      setActiveTab(key);
+                    }}
+                    className={`flex shrink-0 items-center gap-2 border-b-2 px-3.5 py-3 font-mono text-xs font-bold transition-colors ${
+                      activeTab === key
+                        ? "border-white text-white"
+                        : "border-transparent text-slate-500 hover:text-slate-300"
+                    }`}
+                  >
+                    <Icon className="h-3.5 w-3.5" /> {label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="px-5 py-7 sm:px-7">
+                {activeTab === "overview" && (
+                  <div className="space-y-8">
+                    {relations.length > 0 && (
+                      <div>
+                        <p className="mb-3 font-mono text-[11px] font-black uppercase tracking-[0.22em] text-slate-500">Related Anime</p>
+                        <div className="flex flex-col gap-1.5">
+                          {relations.map((r) => (
+                            <button
+                              key={`${r.relation}-${r.mal_id}`}
+                              onClick={() => openRelated(r)}
+                              className="group flex items-center justify-between gap-3 rounded-lg px-2 py-1.5 text-left transition hover:bg-white/5"
+                            >
+                              <span className="flex min-w-0 items-center gap-2 font-mono text-sm text-slate-200">
+                                <ChevronRight className="h-3.5 w-3.5 shrink-0 text-slate-600 transition group-hover:text-slate-300" />
+                                <span className="truncate">{r.name}</span>
+                              </span>
+                              <span
+                                className="shrink-0 rounded border px-2 py-0.5 font-mono text-[10px] font-black uppercase"
+                                style={{ color: relTint(r.relation), borderColor: `${relTint(r.relation)}55`, background: `${relTint(r.relation)}12` }}
+                              >
+                                {r.relation}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-5 border-y border-white/10 py-6 sm:grid-cols-4">
+                      {[
+                        ["Format", displayAnime.type || "—"],
+                        ["Episodes", displayAnime.episodes ? String(displayAnime.episodes) : "—"],
+                        ["Duration", displayAnime.duration ? displayAnime.duration.replace(" per ep", "") : "—"],
+                        ["Score", displayAnime.score ? `${(displayAnime.score * 10).toFixed(0)}%` : "—"],
+                        ["Status", statusLabel || "—"],
+                        ["Studio", displayAnime.studios?.[0]?.name || "—"],
+                        ["Source", displayAnime.source || "—"],
+                        ["Season", displayAnime.season ? `${displayAnime.season[0].toUpperCase()}${displayAnime.season.slice(1)} ${displayAnime.year || ""}` : displayAnime.year ? String(displayAnime.year) : "—"],
+                      ].map(([k, v]) => (
+                        <div key={k as string}>
+                          <p className="font-mono text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">{k}</p>
+                          <p className="mt-1 font-mono text-sm font-bold text-white">{v}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="font-mono text-sm leading-relaxed text-slate-300">
+                      {displayAnime.synopsis
+                        ? displayAnime.synopsis.split("\n\n").map((para, pi) => (
+                            <p key={pi} className={pi > 0 ? "mt-4" : ""}>{para}</p>
+                          ))
+                        : <p className="italic text-slate-500">No synopsis available.</p>}
+                    </div>
+
+                    {cast.length > 0 && (
+                      <p className="font-mono text-xs text-slate-500">
+                        Cast: <span className="text-slate-300">{cast.join(", ")}</span><span className="italic">, more</span>
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === "episodes" && (
+                  <EpisodeList
+                    anime={displayAnime}
+                    autoPlayProp={watchNow}
+                    autoPlayEpProp={options?.startEpisode}
+                    resumeSecondsProp={options?.startSeconds}
+                  />
+                )}
+
+                {activeTab === "trailer" && (
+                  youtubeId ? (
+                    <div className="max-w-2xl">
+                      <div className="aspect-video w-full overflow-hidden rounded-xl border border-white/10 bg-black">
+                        <iframe
+                          src={`https://www.youtube-nocookie.com/embed/${youtubeId}?rel=0&modestbranding=1`}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="h-full w-full"
+                          title={`${title} trailer`}
+                        />
+                      </div>
+                      <p className="mt-3 font-mono text-sm font-bold text-white">Official Trailer</p>
                     </div>
                   ) : (
-                    <p className="italic text-slate-500">No synopsis available.</p>
-                  )}
-                </div>
-              </div>
+                    <p className="font-mono text-sm italic text-slate-500">No trailer available for this anime.</p>
+                  )
+                )}
 
-              <div className="space-y-4 text-sm">
-                <div className="text-slate-400">
-                  <span className="text-slate-500">Cast: </span>
-                  {cast.length > 0 ? (
-                    <span className="text-slate-300">{cast.join(", ")}<span className="italic">, more</span></span>
+                {activeTab === "discussions" && (
+                  <CommunityFeed
+                    animeId={displayAnime.mal_id}
+                    animeTitle={displayAnime.title_english || displayAnime.title}
+                  />
+                )}
+
+                {activeTab === "morelike" && (
+                  recommendations.length > 0 ? (
+                    <div>
+                      <h3 className="mb-5 font-mono text-lg font-black text-white">Recommended Anime</h3>
+                      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+                        {recommendations.map((rec) => (
+                          <button
+                            key={rec.mal_id}
+                            type="button"
+                            onClick={() => openAnime(rec)}
+                            className="group text-left"
+                          >
+                            <div className="relative aspect-[2/3] overflow-hidden rounded-xl border border-white/10 bg-[#101018]">
+                              <img
+                                src={(rec.images?.jpg?.large_image_url || rec.images?.jpg?.image_url || "") as string}
+                                alt={rec.title_english || rec.title}
+                                loading="lazy"
+                                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                              />
+                              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-3 pt-10">
+                                <p className="line-clamp-1 font-mono text-sm font-black text-white">{rec.title_english || rec.title}</p>
+                                <p className="mt-0.5 font-mono text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                                  Anime{rec.score ? ` • ${(rec.score * 10).toFixed(0)}%` : ""}
+                                </p>
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   ) : (
-                    <span className="text-slate-500 italic">Unavailable</span>
-                  )}
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <span className="text-slate-500 w-16">Genres:</span>
-                  <span className="text-slate-300">
-                    {displayAnime.genres?.map(g => g.name).join(", ") || "Unknown"}
-                  </span>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <span className="text-slate-500 w-16">Type:</span>
-                  <span className="text-slate-300">
-                    {displayAnime.type || "Unknown"}
-                  </span>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <span className="text-slate-500 w-16">Studios:</span>
-                  <span className="text-slate-300">
-                    {displayAnime.studios?.map(s => s.name).join(", ") || "Unknown"}
-                  </span>
-                </div>
+                    <p className="font-mono text-sm italic text-slate-500">No recommendations yet.</p>
+                  )
+                )}
               </div>
             </div>
-
-            {/* ═══ EPISODES / DISCUSSIONS TABS ═══ */}
-            <div className="px-6 sm:px-8 md:px-12 pb-8 border-t border-[#404040]/50 pt-6">
-              <div className="flex gap-6 border-b border-white/10 mb-6">
-                <button
-                  onClick={() => setActiveTab("episodes")}
-                  className={`pb-3 font-bold text-base md:text-lg transition-colors border-b-2 -mb-px ${
-                    activeTab === "episodes" ? "border-purple-500 text-white" : "border-transparent text-slate-400 hover:text-white"
-                  }`}
-                >
-                  Episodes
-                </button>
-                <button
-                  onClick={() => setActiveTab("discussions")}
-                  className={`pb-3 font-bold text-base md:text-lg transition-colors border-b-2 -mb-px ${
-                    activeTab === "discussions" ? "border-purple-500 text-white" : "border-transparent text-slate-400 hover:text-white"
-                  }`}
-                >
-                  Discussions
-                </button>
-              </div>
-
-              {activeTab === "episodes" ? (
-                <EpisodeList
-                  anime={displayAnime}
-                  autoPlayProp={options?.autoPlay}
-                  autoPlayEpProp={options?.startEpisode}
-                  resumeSecondsProp={options?.startSeconds}
-                />
-              ) : (
-                <CommunityFeed
-                  animeId={displayAnime.mal_id}
-                  animeTitle={displayAnime.title_english || displayAnime.title}
-                />
-              )}
-            </div>
-
-            {/* ═══ MORE LIKE THIS ═══ */}
-            {recommendations.length > 0 && (
-              <div className="px-6 sm:px-8 md:px-12 pb-12 border-t border-[#404040]/50 pt-8">
-                <h3 className="text-2xl font-black text-white mb-6">More Like This</h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {recommendations.map((rec) => (
-                    <button
-                      key={rec.mal_id}
-                      type="button"
-                      onClick={() => openAnime(rec)}
-                      className="group bg-[#2f2f2f] rounded-lg overflow-hidden border border-white/5 hover:border-white/20 transition-colors flex flex-col text-left"
-                    >
-                      <div className="relative aspect-video overflow-hidden bg-[#1a1a1a]">
-                        <img
-                          src={(rec.trailer?.images?.maximum_image_url || rec.images?.jpg?.large_image_url || rec.images?.jpg?.image_url || "") as string}
-                          alt={rec.title_english || rec.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          loading="lazy"
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
-                          <div className="w-11 h-11 rounded-full border-2 border-white flex items-center justify-center bg-black/60">
-                            <Play className="w-4 h-4 text-white fill-white ml-0.5" />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="p-3 flex-1 flex flex-col gap-1.5">
-                        <h4 className="text-white font-bold text-sm line-clamp-1">{rec.title_english || rec.title}</h4>
-                        <div className="flex items-center gap-2 text-xs font-semibold">
-                          {rec.score && <span className="text-green-500">★ {rec.score}</span>}
-                          {rec.year && <span className="text-slate-400">{rec.year}</span>}
-                          {rec.episodes && <span className="text-slate-400">{rec.episodes} EPS</span>}
-                        </div>
-                        {rec.synopsis && (
-                          <p className="text-slate-400 text-xs line-clamp-3 leading-relaxed">{rec.synopsis}</p>
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </motion.div>
-        </div>
+          </div>
+        </motion.div>
       )}
     </AnimatePresence>,
     document.body
