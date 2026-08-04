@@ -4,8 +4,8 @@ import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Pin, Plus, X, ImagePlus, Hash, ChevronUp, ChevronDown, MessageSquare, Loader2,
-  Crown, Shield, Star, Sparkles, Zap, CornerDownRight, Send, MoreHorizontal, Pencil, Trash2,
+  Pin, Plus, X, ImagePlus, Hash, Heart, ThumbsDown, MessageSquare, Loader2,
+  CornerDownRight, Send, MoreHorizontal, Pencil, Trash2,
   BarChart3,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
@@ -13,6 +13,7 @@ import { authHeaders } from "@/lib/authToken";
 import { useToast } from "@/components/ui/Toast";
 import { isAdmin, isLeadDev } from "@/lib/admin";
 import UserLink from "@/components/profile/UserLink";
+import UserBadges from "@/components/profile/UserBadges";
 import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
 import MediaPicker from "@/components/community/MediaPicker";
 import { PollBuilder, PollCard, EMPTY_POLL, pollIsValid, type PollDraft, type PollData } from "@/components/community/Poll";
@@ -52,6 +53,13 @@ type Author = {
   id: string; username: string; avatar?: string | null;
   activeRole?: string | null; activeTag?: string | null;
   activeEffect?: string | null; activeFrame?: string | null;
+  /** The account's real role column — authoritative over the username list. */
+  role?: string | null;
+  /** Drives the Heart Cultivation rank chip. */
+  xp?: number | null;
+  /** Worn titles, wearer-ordered, plus the legacy single-title fallback. */
+  equippedTitles?: string[] | null;
+  cardTitle?: string | null;
 };
 
 type Post = {
@@ -65,6 +73,11 @@ type Post = {
   blessed?: boolean;
   createdAt: string;
   score?: number;
+  /** Loves and dislikes, tallied separately from the net score. The server has
+   *  always sent both (shapeComment computes them); the forum simply never
+   *  declared them, so the rail could show a net number and nothing else. */
+  upvotes?: number;
+  downvotes?: number;
   userVote?: number;
   user?: Author;
   poll?: PollData;
@@ -79,8 +92,6 @@ type Post = {
  */
 function AuthorLine({ user, blessed }: { user?: Author; blessed?: boolean }) {
   if (!user) return <span className="text-sm font-black text-slate-400">someone</span>;
-  const lead = isLeadDev({ username: user.username } as any);
-  const admin = !lead && isAdmin(user.username);
   return (
     <>
       {/* EffectLayer draws at NEGATIVE insets (-inset-1 to -inset-2), so it
@@ -113,38 +124,11 @@ function AuthorLine({ user, blessed }: { user?: Author; blessed?: boolean }) {
         className={`text-[15px] font-black hover:underline ${effectNameClass(user.activeEffect) || "text-white"}`}>
         {user.username}
       </UserLink>
-      {lead ? (
-        <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-white shadow-[0_0_14px_rgba(168,85,247,.55)]">
-          <Crown className="h-2.5 w-2.5" /> Lead Dev
-        </span>
-      ) : admin ? (
-        <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-500/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-amber-300">
-          <Shield className="h-2.5 w-2.5" /> Staff
-        </span>
-      ) : user.activeRole === "role_watcher" ? (
-        <span className="inline-flex items-center gap-1 rounded-full border border-purple-500/30 bg-purple-500/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-purple-300">
-          <Shield className="h-2.5 w-2.5" /> Watcher
-        </span>
-      ) : user.activeRole === "role_elite" ? (
-        <span className="inline-flex items-center gap-1 rounded-full border border-yellow-500/30 bg-yellow-500/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-yellow-300">
-          <Star className="h-2.5 w-2.5" /> Elite
-        </span>
-      ) : null}
-      {user.activeTag === "tag_og" && (
-        <span className="inline-flex items-center gap-1 rounded-full bg-red-500/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-red-300">
-          <Zap className="h-2.5 w-2.5" /> OG
-        </span>
-      )}
-      {user.activeTag === "tag_weeb" && (
-        <span className="inline-flex items-center gap-1 rounded-full bg-pink-500/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-pink-300">
-          <Sparkles className="h-2.5 w-2.5" /> Weeb Lord
-        </span>
-      )}
-      {blessed && (
-        <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-400/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-amber-300">
-          <Sparkles className="h-2.5 w-2.5" /> Blessed
-        </span>
-      )}
+      {/* One shared strip: role, Heart rank, and whatever titles they wear.
+          This was seven hand-written chips that decided Lead Dev from the
+          username string, so a renamed staff account lost its badge on every
+          post it had ever made. */}
+      <UserBadges user={user} blessed={blessed} size="sm" />
     </>
   );
 }
@@ -465,11 +449,22 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
     // Optimistic: a vote that waits for a round trip feels broken.
     const next = post.userVote === value ? 0 : value;
     setPosts((ps) =>
-      ps.map((p) =>
-        p.id === post.id
-          ? { ...p, userVote: next, score: (p.score || 0) - (p.userVote || 0) + next }
-          : p
-      )
+      ps.map((p) => {
+        if (p.id !== post.id) return p;
+        const was = p.userVote || 0;
+        // The two tallies move independently of the net score, because the rail
+        // now shows all three. Each is adjusted by whether THAT side was held
+        // before and is held after — a switch from love to dislike has to
+        // decrement one and increment the other, not just shift the net.
+        const step = (side: number) => (next === side ? 1 : 0) - (was === side ? 1 : 0);
+        return {
+          ...p,
+          userVote: next,
+          score: (p.score || 0) - was + next,
+          upvotes: Math.max(0, (p.upvotes || 0) + step(1)),
+          downvotes: Math.max(0, (p.downvotes || 0) + step(-1)),
+        };
+      })
     );
     try {
       const r = await fetch(`${API_URL}/api/comments/${post.id}/vote`, {
@@ -648,13 +643,22 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                           boxShadow: `inset 0 0 0 1px ${p.userVote === 1 ? ACCENT : "rgba(255,255,255,.09)"}`,
                           color: p.userVote === 1 ? ACCENT_LIT : "#64748b",
                         }}>
-                        <ChevronUp className="h-4 w-4" />
+                        {/* A LOVE, not an upvote. The arrow said "is this
+                            useful"; the heart says "I liked this", which is the
+                            reaction this community actually gives. Filled once
+                            you've given it, so the rail reads at a glance. */}
+                        <Heart className="h-4 w-4" fill={p.userVote === 1 ? "currentColor" : "none"} />
                       </button>
+                      {typeof p.upvotes === "number" && (
+                        <span className="text-[10px] font-black tabular-nums" style={{ color: p.userVote === 1 ? "#fda4af" : "#52525b" }}>
+                          {p.upvotes}
+                        </span>
+                      )}
                       <span className="text-base font-black tabular-nums" style={{ color: (p.score || 0) > 0 ? ACCENT_LIT : "#64748b" }}>
                         {p.score ?? 0}
                       </span>
                       <span className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-700">Score</span>
-                      <button onClick={() => vote(p, -1)} aria-label="Downvote"
+                      <button onClick={() => vote(p, -1)} aria-label="Dislike"
                         className="mt-0.5 grid h-10 w-10 place-items-center transition hover:brightness-150"
                         style={{
                           clipPath: notch(7),
@@ -662,8 +666,11 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                           boxShadow: `inset 0 0 0 1px ${p.userVote === -1 ? "#f43f5e" : "rgba(255,255,255,.09)"}`,
                           color: p.userVote === -1 ? "#fda4af" : "#64748b",
                         }}>
-                        <ChevronDown className="h-4 w-4" />
+                        <ThumbsDown className="h-4 w-4" fill={p.userVote === -1 ? "currentColor" : "none"} />
                       </button>
+                      {typeof p.downvotes === "number" && p.downvotes > 0 && (
+                        <span className="text-[10px] font-black tabular-nums text-zinc-600">{p.downvotes}</span>
+                      )}
                     </div>
 
                     {/* body */}

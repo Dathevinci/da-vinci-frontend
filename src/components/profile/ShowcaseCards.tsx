@@ -275,7 +275,22 @@ export default function ShowcaseCards({
               return (
                 <motion.div key={`${id}-${i}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.06 }} className="group relative">
-                  <div style={ghost ? { filter: "grayscale(1) brightness(.55)" } : undefined}>
+                  {/* THE SHOWCASE IS MONOCHROME.
+                      Rarity colour is doing a job everywhere else — in the
+                      binder it is how you find things — but a showcase is three
+                      cards someone chose, and three competing rarity glows
+                      fight each other instead of reading as a set.
+                      Desaturating is a wrapper rather than a CardFace prop on
+                      purpose: the card keeps drawing its real colours, so the
+                      art, the frame and the plate all go grey together and
+                      nothing has to know it is being shown here.
+
+                      BRIGHTNESS, not saturation, now carries the dead-pin
+                      signal. Grayscale used to be what marked a card you no
+                      longer own, so making the whole shelf grey would have
+                      erased that tell — the ghost is dimmed instead, and still
+                      wears its NO LONGER YOURS banner. */}
+                  <div style={{ filter: ghost ? "grayscale(1) brightness(.4)" : "grayscale(1)" }}>
                     <CardFace card={card} owned foil={!!foils[card.id]} size={cardSize} ratio="5 / 9"
                       level={levels[card.id]} forge={forges[card.id]} wear={wears[card.id]}
                       skillLevel={skillLvls[card.id]} skillCap={capFor(card)} />

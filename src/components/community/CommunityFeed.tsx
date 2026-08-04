@@ -10,6 +10,7 @@ import { isAdmin, isLeadDev } from "@/lib/admin";
 import { nameColorClass } from "@/lib/cosmetics";
 import { AvatarDecoration, hasFrameRing } from "@/components/profile/AvatarDecoration";
 import UserLink from "@/components/profile/UserLink";
+import { TitleChips } from "@/components/profile/UserBadges";
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import HeartExplosion from '@/components/ui/HeartExplosion';
 import MediaPicker from '@/components/community/MediaPicker';
@@ -276,7 +277,7 @@ const CommentThread = ({
                     <Crown className="w-3 h-3" />
                     <span className="text-[10px] font-black tracking-wider uppercase">Lead Developer</span>
                   </div>
-                ) : isAdmin(node.user?.username) && rankTheme.title ? (
+                ) : isAdmin(node.user) && rankTheme.title ? (
                   <div className={`hidden sm:flex px-2 py-0.5 rounded-full items-center gap-1 ${rankTheme.badgeClass}`}>
                     {RankIcon && <RankIcon className="w-3 h-3" />}
                     <span className="text-[10px] font-black tracking-wider uppercase">{rankTheme.title}</span>
@@ -316,6 +317,11 @@ const CommentThread = ({
                     <span className="text-[10px] font-black tracking-wider uppercase">Divine Blessing</span>
                   </div>
                 )}
+                {/* The one thing a user actually CHOOSES to wear. Everything
+                    above is a role or an XP rank; this is the title they earned
+                    and picked. Capped at one here — an author line has a
+                    fraction of the room a profile panel does. */}
+                <TitleChips user={node.user} size="sm" max={1} />
               </div>
               <span className="text-[10px] sm:text-xs text-slate-500">{timeAgo(node.createdAt)}</span>
             </div>

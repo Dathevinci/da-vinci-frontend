@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { Globe, Tv, BookMarked, BookOpen, ArrowRight, Loader2, MessagesSquare, Info, Heart, ThumbsDown } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import UserLink from "@/components/profile/UserLink";
+import UserBadges from "@/components/profile/UserBadges";
 import { ACCENT, ACCENT_LIT, notch } from "@/components/cards/gacha";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -46,7 +47,18 @@ type Row = {
   // Anime episodes were never captured; null on every comment made before
   // the watch page started sending it.
   episodeNo?: number | null;
-  user?: { id: string; username: string; avatar?: string | null };
+  /**
+   * The backend has always sent the full cosmetic set here — this type simply
+   * declared three fields and threw the rest away, which is why this was the
+   * one comment surface with no badges at all. Widening the type is the whole
+   * fix; no backend change was needed for anything but the titles.
+   */
+  user?: {
+    id: string; username: string; avatar?: string | null;
+    role?: string | null; xp?: number | null;
+    activeRole?: string | null; activeTag?: string | null;
+    equippedTitles?: string[] | null; cardTitle?: string | null;
+  };
 };
 
 const SOURCES: { key: Source; label: string; Icon: any; tint: string }[] = [
@@ -285,6 +297,12 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
                         ) : (
                           <span className="text-sm font-black text-slate-400">someone</span>
                         )}
+                        {/* Role and worn title. The Heart rank is suppressed
+                            here on purpose: this list is dense, every row
+                            already carries a source chip and two vote tallies,
+                            and a rank on every line would crowd out the thing
+                            the row exists for — the comment. */}
+                        <UserBadges user={c.user} size="sm" showHeart={false} maxTitles={1} />
                         <span className="text-[10px] font-bold text-slate-600">{ago(c.createdAt)}</span>
                         {/* The loves and the dislikes, not a net number. This
                             list is ordered by loves-minus-dislikes, so showing
