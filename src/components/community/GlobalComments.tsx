@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Globe, Tv, BookMarked, BookOpen, ArrowRight, Loader2, MessagesSquare, Info } from "lucide-react";
+import { Globe, Tv, BookMarked, BookOpen, ArrowRight, Loader2, MessagesSquare, Info, Heart, ThumbsDown } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import UserLink from "@/components/profile/UserLink";
 import { ACCENT, ACCENT_LIT, notch } from "@/components/cards/gacha";
@@ -37,6 +37,10 @@ type Row = {
   novelTitle?: string | null;
   // Already on the wire — getComments includes the whole row — the feed just
   // never read them, so every chapter comment linked to the series instead.
+  // Both already arrive on the wire; the feed simply never declared them, so
+  // all it could show was a net score.
+  upvotes?: number;
+  downvotes?: number;
   chapterId?: string | null;
   chapterTitle?: string | null;
   // Anime episodes were never captured; null on every comment made before
@@ -118,7 +122,10 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
   const { user } = useUser();
   const [rows, setRows] = useState<Row[]>([]);
   const [source, setSource] = useState<Source>("all");
-  const [sort, setSort] = useState<"newest" | "top">("newest");
+  // Defaults to most-loved, not newest. The ranking was always loves minus
+  // dislikes server-side, but landing on pure chronology meant nobody ever
+  // saw it unless they went looking for the toggle.
+  const [sort, setSort] = useState<"newest" | "top">("top");
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -200,7 +207,7 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
             })}
           </div>
           <div className="flex items-center gap-2">
-            {([["newest", "Recent"], ["top", "Top"]] as const).map(([k, label]) => (
+            {([["top", "Most Loved"], ["newest", "Recent"]] as const).map(([k, label]) => (
               <button key={k} onClick={() => setSort(k)}
                 className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] transition ${
                   sort === k ? "text-white" : "text-slate-500 hover:text-slate-300"}`}
@@ -274,10 +281,17 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
                           <span className="text-sm font-black text-slate-400">someone</span>
                         )}
                         <span className="text-[10px] font-bold text-slate-600">{ago(c.createdAt)}</span>
-                        {typeof c.score === "number" && c.score !== 0 && (
-                          <span className="text-[10px] font-black tabular-nums"
-                            style={{ color: c.score > 0 ? ACCENT_LIT : "#f87171" }}>
-                            {c.score > 0 ? "+" : ""}{c.score}
+                        {/* The loves and the dislikes, not a net number. This
+                            list is ordered by loves-minus-dislikes, so showing
+                            only the difference hid what the ranking is made of
+                            — and a comment sitting at zero showed nothing at
+                            all, whether it had no votes or fifty of each. */}
+                        <span className="inline-flex items-center gap-1 text-[10px] font-black tabular-nums text-rose-400">
+                          <Heart className="h-3 w-3" /> {c.upvotes ?? Math.max(0, c.score ?? 0)}
+                        </span>
+                        {(c.downvotes ?? 0) > 0 && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-black tabular-nums text-slate-500">
+                            <ThumbsDown className="h-3 w-3" /> {c.downvotes}
                           </span>
                         )}
                       </div>
