@@ -30,7 +30,14 @@ const PAGES: { href: string; label: string; Icon: any; tint: string }[] = [
   { href: "/",            label: "Anime Home",       Icon: Tv,           tint: "#a274ff" },
   { href: "/manhwa",      label: "Manhwa Home",      Icon: BookOpen,     tint: "#38bdf8" },
   { href: "/novel",       label: "Novel Home",       Icon: Feather,      tint: "#fbbf24" },
-  { href: "/explore",     label: "Explore",          Icon: Compass,      tint: "#818cf8" },
+  // One row per mode's own explore. The dock is a flat list of every
+  // destination rather than a mode-aware menu, so all three are listed —
+  // previously only anime's was here, which made the comics and novel
+  // explores unreachable for anyone signed in (the mode-aware bar below is
+  // guests-only).
+  { href: "/explore",         label: "Explore Anime",    Icon: Compass,      tint: "#818cf8" },
+  { href: "/manhwa/explore",  label: "Explore Comics",   Icon: Compass,      tint: "#38bdf8" },
+  { href: "/novel/explore",   label: "Explore Novels",   Icon: Compass,      tint: "#fbbf24" },
   { href: "/airing",      label: "Airing Now",       Icon: Activity,     tint: "#4ade80" },
   { href: "/calendar",    label: "Schedule",         Icon: Calendar,     tint: "#f472b6" },
   { href: "/cards",       label: "Arise Cards",      Icon: Layers,       tint: "#c084fc" },

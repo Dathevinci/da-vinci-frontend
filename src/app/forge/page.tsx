@@ -48,12 +48,7 @@ export default function ForgePage() {
   const [shards, setShards] = useState(0);
   const [busy, setBusy] = useState<string | null>(null);
 
-  const [slotA, setSlotA] = useState<string | null>(null);
-  const [slotB, setSlotB] = useState<string | null>(null);
-  const [boost, setBoost] = useState(0); // steps of +5%
-  const [rite, setRite] = useState<{ a: CardDef; b: CardDef; outcome: any } | null>(null);
   const [bench, setBench] = useState<string | null>(null);
-  const [showRecipes, setShowRecipes] = useState(false);
   // Three full-size chambers are ~360px of glass before gaps — wider than a
   // phone. Small screens get a scaled-down machine that actually fits.
   const [smallScr, setSmallScr] = useState(false);
@@ -101,64 +96,8 @@ export default function ForgePage() {
     return m;
   }, [catalog]);
 
-  const synth: Synth | null = catalog?.synthesis || null;
-  const eligibleOwned = useMemo(
-    () => (synth?.eligible || []).filter((id: string) => (owned[id] || 0) > 0),
-    [synth, owned]
-  );
-  const resultId = slotA && slotB ? synth?.fusions?.[[slotA, slotB].sort().join("+")] : null;
-  const resultDef = resultId ? byId[resultId] : null;
-  const chance = Math.min(100, (synth?.baseChance ?? 85) + boost * 5);
-  const shardCost = (synth?.shards ?? 800) + boost * (synth?.boostStep ?? 150);
   const lead = isLeadDev(user);
 
-  // ── HOLD TO FUSE ── the lever. 1.2s of commitment, because both parents
-  // are consumed and a click is too cheap a gesture for that.
-  const [holdPct, setHoldPct] = useState(0);
-  const holdRef = useRef<{ t0: number; raf: number } | null>(null);
-  const startHold = () => {
-    if (!slotA || !slotB || busy) return;
-    const t0 = performance.now();
-    const step = () => {
-      const pct = Math.min(100, ((performance.now() - t0) / 1200) * 100);
-      setHoldPct(pct);
-      if (pct >= 100) { endHold(true); return; }
-      holdRef.current = { t0, raf: requestAnimationFrame(step) };
-    };
-    holdRef.current = { t0, raf: requestAnimationFrame(step) };
-  };
-  const endHold = (fire = false) => {
-    if (holdRef.current) cancelAnimationFrame(holdRef.current.raf);
-    holdRef.current = null;
-    setHoldPct(0);
-    if (fire) fuse();
-  };
-
-  const fuse = async () => {
-    if (!user || !slotA || !slotB) return;
-    setBusy("fuse");
-    try {
-      const r = await fetch(`${API_URL}/api/cards/synthesize`, {
-        method: "POST", headers: authHeaders(),
-        body: JSON.stringify({ userId: user.id, a: slotA, b: slotB, boostShards: boost * (synth?.boostStep ?? 150) }),
-      });
-      const d = await r.json();
-      if (!r.ok || !d.success) return toast(d.message || "The machine refused.", "error");
-      setShards(d.data.shards);
-      setRite({
-        a: byId[slotA], b: byId[slotB],
-        outcome: {
-          held: d.data.held,
-          myth: d.data.mythId ? byId[d.data.mythId] || null : null,
-          affixLabel: d.data.affixLabel,
-          modLabel: d.data.modLabel,
-          returned: d.data.returned ? byId[d.data.returned] || null : null,
-        },
-      });
-      setSlotA(null); setSlotB(null); setBoost(0);
-      await loadCollection();
-    } catch { toast("The machine refused.", "error"); } finally { setBusy(null); }
-  };
 
   const act = async (path: string, body: any, okMsg: string) => {
     if (!user) return;

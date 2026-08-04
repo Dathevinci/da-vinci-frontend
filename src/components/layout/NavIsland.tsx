@@ -41,12 +41,14 @@ const READ: Record<string, Dest[]> = {
   ],
   manhwa: [
     { href: "/manhwa", label: "Dashboard", Icon: Home },
-    { href: "/explore", label: "Explore", Icon: Compass },
+    // Each mode's OWN explore. These pointed at /explore, which is the anime
+    // page — so the comics and novel explores were unreachable from the nav.
+    { href: "/manhwa/explore", label: "Explore", Icon: Compass },
     { href: "/updates", label: "Updates", Icon: Newspaper },
   ],
   novel: [
     { href: "/novel", label: "Library", Icon: Home },
-    { href: "/explore", label: "Explore", Icon: Compass },
+    { href: "/novel/explore", label: "Explore", Icon: Compass },
     { href: "/updates", label: "Updates", Icon: Newspaper },
   ],
 };
