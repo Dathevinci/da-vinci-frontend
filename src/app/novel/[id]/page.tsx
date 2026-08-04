@@ -5,10 +5,11 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
-  BookOpen, Loader2, Play, ChevronRight, Search, Server, Info, List, MessagesSquare,
+  BookOpen, Play, ChevronRight, Search, Server, Info, List, MessagesSquare,
 } from "lucide-react";
 import type { NovelInfo } from "@/lib/novel/ReadNovelFull";
 import NovelTrackerButton from "@/components/novel/NovelTrackerButton";
+import LoadingScreen from "@/components/ui/LoadingScreen";
 import { novelCover } from "@/lib/novelImage";
 import CommunityFeed from "@/components/community/CommunityFeed";
 import HeroBackdrop from "@/components/ui/HeroBackdrop";
@@ -77,12 +78,7 @@ export default function NovelDetailPage() {
   const shown = filtered.slice(chapterPage * PAGE_SIZE, (chapterPage + 1) * PAGE_SIZE);
   const firstCh = chapters[0];
 
-  if (loading)
-    return (
-      <div className="flex min-h-screen justify-center bg-[#070709] pt-24">
-        <Loader2 className="h-10 w-10 animate-spin text-pink-500" />
-      </div>
-    );
+  if (loading) return <LoadingScreen message="Loading novel" />;
   if (!novel || !novel.title)
     return (
       <div className="min-h-screen bg-[#070709] pt-32 text-center font-mono text-slate-400">

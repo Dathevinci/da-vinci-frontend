@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowLeft, Heart, ThumbsDown, MessageSquare, Share2, Loader2, Pin } from "lucide-react";
+import { ArrowLeft, Heart, ThumbsDown, MessageSquare, Share2, Pin } from "lucide-react";
+import LoadingScreen from "@/components/ui/LoadingScreen";
 import { useUser } from "@/hooks/useUser";
 import { useToast } from "@/components/ui/Toast";
 import { authHeaders } from "@/lib/authToken";
@@ -135,13 +136,7 @@ export default function PostPage() {
     } catch { /* the user dismissed the sheet */ }
   };
 
-  if (loading) {
-    return (
-      <div className="grid min-h-screen place-items-center bg-[#070709]">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-600" />
-      </div>
-    );
-  }
+  if (loading) return <LoadingScreen message="Loading post" />;
 
   if (failed || !post) {
     return (

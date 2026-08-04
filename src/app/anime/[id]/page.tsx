@@ -3,9 +3,9 @@
 import { Suspense, useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
 import { Anime } from "@tutkli/jikan-ts";
 import AnimeDetailView from "@/components/anime/AnimeDetailView";
+import LoadingScreen from "@/components/ui/LoadingScreen";
 import { getAnimeDetails, getAnimeDetailsAniList } from "@/lib/jikan";
 import { getAnimeDetailsKitsu } from "@/lib/kitsu";
 
@@ -19,7 +19,7 @@ import { getAnimeDetailsKitsu } from "@/lib/kitsu";
  */
 export default function AnimePage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#070709]" />}>
+    <Suspense fallback={<LoadingScreen message="Loading anime" />}>
       <AnimePageInner />
     </Suspense>
   );
@@ -64,13 +64,7 @@ function AnimePageInner() {
     );
   }
 
-  if (!anime) {
-    return (
-      <div className="grid min-h-screen place-items-center bg-[#070709]">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-600" />
-      </div>
-    );
-  }
+  if (!anime) return <LoadingScreen message="Loading anime" />;
 
   return (
     <div className="min-h-screen bg-[#070709]">

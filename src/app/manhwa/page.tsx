@@ -7,7 +7,8 @@ import ManhwaHeroCarousel from "@/components/manhwa/ManhwaHeroCarousel";
 import ManhwaCarousel from "@/components/manhwa/ManhwaCarousel";
 import ContinueReading from "@/components/reading/ContinueReading";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, BookMarked, Loader2, Flame, Clock, Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, BookMarked, Flame, Clock, Star } from "lucide-react";
+import LoadingScreen from "@/components/ui/LoadingScreen";
 import { useSearchParams, useRouter } from "next/navigation";
 import { IMangaResult, ISearch } from "@/lib/asura/models";
 import { motion, AnimatePresence } from "framer-motion";
@@ -18,10 +19,7 @@ export default function ManhwaPage() {
   return (
     <Suspense
       fallback={
-        <div className="bg-[#0b0b0c] min-h-screen pt-16 flex flex-col items-center justify-center py-40 gap-4">
-          <Loader2 className="w-10 h-10 text-red-500 animate-spin" />
-          <p className="text-[#a3a3a3] text-sm font-bold uppercase tracking-widest">Loading AsuraScans...</p>
-        </div>
+        <LoadingScreen message="Loading AsuraScans" />
       }
     >
       <ManhwaPageInner />
@@ -107,9 +105,8 @@ function ManhwaPageInner() {
     <div className="bg-[#0b0b0c] min-h-screen pt-16 pb-16 text-white font-sans selection:bg-red-500/30">
       <AnimatePresence mode="wait">
         {loading ? (
-          <motion.div key="loader" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center py-40 gap-4">
-            <Loader2 className="w-10 h-10 text-red-500 animate-spin" />
-            <p className="text-[#a3a3a3] text-sm font-bold uppercase tracking-widest">Loading AsuraScans...</p>
+          <motion.div key="loader" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <LoadingScreen fullscreen={false} message="Loading AsuraScans" />
           </motion.div>
         ) : isHome ? (
           <motion.div key="home" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }} className="w-full">

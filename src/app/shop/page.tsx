@@ -6,6 +6,7 @@ import { useUser } from "@/hooks/useUser";
 import { isAdmin, isLeadDev, displayArisePoints } from "@/lib/admin";
 import { useToast } from "@/components/ui/Toast";
 import { MountainSnow, ShoppingBag, Sparkles, Check, Diamond, Aperture, CircleDot, Orbit, Snowflake, Flame, Sun, Zap, Leaf, Search, X, LayoutGrid, CloudLightning, CloudFog, Moon, Cog, Target, Trees, Gift, Swords, Flower2, Skull, Sprout, Eye, ArrowRight, Infinity as InfinityIcon, History, Hourglass, Atom, Shell, Tag, Key, Network, Gavel, Layers } from "lucide-react";
+import LoadingScreen from "@/components/ui/LoadingScreen";
 import GiftModal from "@/components/shop/GiftModal";
 import BuyPointsModal from "@/components/shop/BuyPointsModal";
 import { authHeaders } from "@/lib/authToken";
@@ -162,7 +163,7 @@ export default function ShopPage() {
     }
   }, [isLoaded, user, router]);
 
-  if (!isLoaded) return <div className="min-h-screen bg-[#09090b] flex items-center justify-center"><div className="animate-spin w-8 h-8 border-2 border-purple-500 rounded-full border-t-transparent" /></div>;
+  if (!isLoaded) return <LoadingScreen message="Loading shop" />;
   // Open to every logged-in user — cosmetics are the main Arise Points sink.
   if (!user) return null; // redirect to home is handled by the effect above
 

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Anime } from "@tutkli/jikan-ts";
 import WatchOverlay from "@/components/anime/WatchOverlay";
+import LoadingScreen from "@/components/ui/LoadingScreen";
 import AnimeCard from "@/components/anime/AnimeCard";
 import CommunityFeed from "@/components/community/CommunityFeed";
 import { useAnimeModal } from "@/components/providers/AnimeModalProvider";
@@ -46,7 +47,7 @@ function loadWatched(malId: number): number[] {
 
 export default function WatchPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#070709]" />}>
+    <Suspense fallback={<LoadingScreen message="Preparing player" />}>
       <WatchInner />
     </Suspense>
   );

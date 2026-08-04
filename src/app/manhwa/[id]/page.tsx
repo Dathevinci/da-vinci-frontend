@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { IMangaInfo } from "@/lib/asura/models";
 import ManhwaTrackerButton from "@/components/manhwa/ManhwaTrackerButton";
+import LoadingScreen from "@/components/ui/LoadingScreen";
 import CommunityFeed from "@/components/community/CommunityFeed";
 import HeroBackdrop from "@/components/ui/HeroBackdrop";
 
@@ -59,16 +60,7 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
     return chapters.filter((c) => c.title.toLowerCase().includes(q));
   }, [chapters, chapterFilter]);
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#070709] pb-16 pt-24">
-        <div className="flex flex-col items-center gap-4 text-slate-500">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-red-600 border-t-transparent" />
-          <div className="font-mono text-xs font-bold uppercase tracking-widest">Loading Series</div>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <LoadingScreen message="Loading series" />;
 
   if (!manhwa) {
     return (

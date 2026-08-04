@@ -3,6 +3,7 @@
 import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useUser } from "@/hooks/useUser";
+import LoadingScreen from "@/components/ui/LoadingScreen";
 
 function CallbackHandler() {
   const router = useRouter();
@@ -33,23 +34,12 @@ function CallbackHandler() {
     }
   }, [searchParams, router, setDiscordUser]);
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-[#09090b]">
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-white font-bold tracking-widest uppercase">Authenticating...</p>
-      </div>
-    </div>
-  );
+  return <LoadingScreen message="Authenticating" />;
 }
 
 export default function DiscordCallbackPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-[#09090b]">
-        <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    }>
+    <Suspense fallback={<LoadingScreen message="Authenticating" />}>
       <CallbackHandler />
     </Suspense>
   );

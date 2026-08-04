@@ -2,6 +2,7 @@ import { searchAnime } from "@/lib/jikan";
 import HeroBannerCarousel from "@/components/anime/HeroBannerCarousel";
 import AnimatedGrid from "@/components/ui/AnimatedGrid";
 import PageTransition from "@/components/layout/PageTransition";
+import { AlertTriangle } from "lucide-react";
 
 export const revalidate = 3600;
 
@@ -14,8 +15,22 @@ export default async function AiringPage() {
     console.error("Airing API Error:", err);
   }
 
+  // The fetch above has already settled by the time this renders, so an
+  // empty list is a failure, not a pending load — showing a loader here
+  // would spin forever. Same panel the home and calendar pages use.
   if (!animes || animes.length === 0) {
-    return <div className="min-h-screen pt-32 text-center text-white">Loading data or API is temporarily unavailable...</div>;
+    return (
+      <div className="min-h-screen pt-40 pb-20 px-4 flex flex-col items-center justify-center bg-[#09090b] text-center">
+        <AlertTriangle className="w-16 h-16 text-red-500 mb-6 animate-pulse" />
+        <h1 className="text-3xl font-black text-white mb-4">Database Offline</h1>
+        <p className="text-slate-400 max-w-md mx-auto text-lg">
+          The primary AniList API is currently experiencing severe stability issues and has been disabled by its developers.
+        </p>
+        <p className="text-slate-500 max-w-md mx-auto mt-4">
+          We are actively monitoring the situation and your service will automatically resume the moment their servers are back online. Thank you for your patience!
+        </p>
+      </div>
+    );
   }
 
   const heroAnimes = animes.slice(0, 10);

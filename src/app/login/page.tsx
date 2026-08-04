@@ -11,6 +11,7 @@ import {
 import { useUser } from "@/hooks/useUser";
 import { useToast } from "@/components/ui/Toast";
 import { isAdmin, isLeadDev } from "@/lib/admin";
+import LoadingScreen from "@/components/ui/LoadingScreen";
 
 /**
  * THE DOOR — sign in and sign up as a real page rather than a modal.
@@ -66,7 +67,7 @@ function DiscordButton({ label }: { label: string }) {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#070709]" />}>
+    <Suspense fallback={<LoadingScreen message="Loading" />}>
       <LoginPageInner />
     </Suspense>
   );

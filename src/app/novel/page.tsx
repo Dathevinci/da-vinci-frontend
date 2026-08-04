@@ -3,7 +3,8 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, BookOpen, ChevronLeft, ChevronRight, Flame, Clock, CheckCircle2, BookMarked, Star, Sparkles } from "lucide-react";
+import { BookOpen, ChevronLeft, ChevronRight, Flame, Clock, CheckCircle2, BookMarked, Star, Sparkles } from "lucide-react";
+import LoadingScreen from "@/components/ui/LoadingScreen";
 import NovelCard from "@/components/novel/NovelCard";
 import NovelCarousel from "@/components/novel/NovelCarousel";
 import NovelHeroCarousel from "@/components/novel/NovelHeroCarousel";
@@ -31,10 +32,7 @@ export default function NovelBrowsePage() {
   return (
     <Suspense
       fallback={
-        <div className="bg-[#0b0b0c] min-h-screen pt-24 flex flex-col items-center justify-center gap-4">
-          <Loader2 className="w-10 h-10 text-pink-500 animate-spin" />
-          <p className="text-slate-500 text-sm font-bold uppercase tracking-widest">Loading Library…</p>
-        </div>
+        <LoadingScreen message="Loading library" />
       }
     >
       <NovelInner />
@@ -104,9 +102,8 @@ function NovelInner() {
     <div className="bg-[#0b0b0c] min-h-screen pt-16 pb-16 text-white selection:bg-pink-500/30">
       <AnimatePresence mode="wait">
         {loading ? (
-          <motion.div key="loader" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center py-40 gap-4">
-            <Loader2 className="w-10 h-10 text-pink-500 animate-spin" />
-            <p className="text-slate-500 text-sm font-bold uppercase tracking-widest">Loading novels…</p>
+          <motion.div key="loader" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <LoadingScreen fullscreen={false} message="Loading novels" />
           </motion.div>
         ) : isHome ? (
           <motion.div key="home" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }} className="w-full">

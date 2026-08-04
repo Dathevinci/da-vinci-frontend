@@ -9,6 +9,7 @@ import {
 import { searchAnime } from "@/lib/jikan";
 import { useAnimeModal } from "@/components/providers/AnimeModalProvider";
 import HoverPreview from "@/components/anime/HoverPreview";
+import LoadingScreen from "@/components/ui/LoadingScreen";
 import { Anime } from "@tutkli/jikan-ts";
 
 /**
@@ -51,7 +52,7 @@ type Filters = {
 
 export default function ExplorePage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#070709]" />}>
+    <Suspense fallback={<LoadingScreen message="Loading discover" />}>
       <ExploreInner />
     </Suspense>
   );

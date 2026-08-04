@@ -2,7 +2,8 @@
 
 import { useState, useEffect, use, useCallback } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, ArrowLeft, Loader2, Lock, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowLeft, Lock, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
+import LoadingScreen from "@/components/ui/LoadingScreen";
 import { IMangaChapterPage, IMangaInfo } from "@/lib/asura/models";
 import CommunityFeed from "@/components/community/CommunityFeed";
 import { useUser } from "@/hooks/useUser";
@@ -192,10 +193,7 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
 
   if (loading) {
     return (
-      <div className="bg-[#09090b] min-h-screen flex items-center justify-center text-white flex-col gap-4">
-        <Loader2 className="w-10 h-10 animate-spin text-red-500" />
-        <p className="text-slate-400">Loading chapter pages from Asura...</p>
-      </div>
+      <LoadingScreen message="Loading pages from Asura" />
     );
   }
 
