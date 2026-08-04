@@ -47,7 +47,11 @@ const when = (iso: string) => {
 function chapterLabel(title?: string | null, id?: string | null) {
   const t = (title || "").trim();
   if (t && !/^chapter$/i.test(t)) return t.length > 24 ? `${t.slice(0, 23)}…` : t;
-  const tail = (id || "").split("|").pop() || "";
+  // A MangaDex UUID is full of digits; deriving a number from one gives a
+  // confident, wrong "Ch. 0". See the twin of this in GlobalComments.
+  const raw = id || "";
+  if (raw.startsWith("mdx:")) return "Chapter";
+  const tail = raw.split("|").pop() || "";
   const n = tail.match(/(\d+(?:\.\d+)?)/);
   return n ? `Ch. ${n[1]}` : "Chapter";
 }

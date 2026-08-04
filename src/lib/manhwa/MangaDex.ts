@@ -21,9 +21,12 @@ import {
 const API = "https://api.mangadex.org";
 const UPLOADS = "https://uploads.mangadex.org";
 
-// Korean manhwa + Chinese manhua (the webtoon side); we deliberately skip
-// Japanese manga (ja) so the "Manhwa" mode stays on-theme.
-const LANGS = ["ko", "zh", "zh-hk"];
+// Korean manhwa, Chinese manhua, AND Japanese manga. The first cut of this
+// file skipped `ja` to keep the mode "on-theme", which is exactly why simply
+// restoring it would not have delivered what was asked for — the request was
+// a source covering manhwa, manga and manhua alike. originalLanguage is what
+// tells them apart downstream: ko → Manhwa, zh/zh-hk → Manhua, ja → Manga.
+const LANGS = ["ko", "zh", "zh-hk", "ja"];
 // Exclude only "pornographic"; the app's Safe-Browse toggle handles the rest.
 const RATINGS = ["safe", "suggestive", "erotica"];
 
@@ -191,7 +194,10 @@ async function fetchChapters(mid: string): Promise<IMangaChapter[]> {
   const out: IMangaChapter[] = [];
   for (const c of raw) {
     const a = c.attributes || {};
-    if (!(a.pages > 0) || a.externalUrl) continue;
+    // isUnavailable is a real flag on the live chapter payload and was missing
+    // from this filter: such a chapter reports pages but serves none, so it
+    // reached the reader as a blank page rather than being skipped.
+    if (!(a.pages > 0) || a.externalUrl || a.isUnavailable) continue;
     const num = a.chapter ?? "";
     const key = num || c.id;
     if (seen.has(key)) continue;

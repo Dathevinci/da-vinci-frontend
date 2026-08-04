@@ -20,7 +20,11 @@ export default function ManhwaCard({ manhwa }: { manhwa: IMangaResult }) {
 
   const cover = manhwa.image ? `/api/manhwa-image?url=${encodeURIComponent(manhwa.image)}` : null;
   const chapterLabel = manhwa.latestChapter || (manhwa.latest_chapters?.[0] ? `Chapter ${manhwa.latest_chapters[0].number}` : null);
-  const chapterHref = manhwa.latest_chapters?.[0]
+  // The `<id>|<number>` chapter id is an AsuraScans shape. Synthesising one
+  // for a MangaDex row builds `mdx:<uuid>|12`, which is a dead link — its
+  // chapter ids are their own UUIDs and cannot be derived from the series id.
+  // Those rows fall back to the detail page, which lists real chapters.
+  const chapterHref = !String(manhwa.id).startsWith("mdx:") && manhwa.latest_chapters?.[0]
     ? `/manhwa/${encodeURIComponent(manhwa.id)}/chapter/${encodeURIComponent(`${manhwa.id}|${manhwa.latest_chapters[0].number}`)}`
     : `/manhwa/${encodeURIComponent(manhwa.id)}`;
 

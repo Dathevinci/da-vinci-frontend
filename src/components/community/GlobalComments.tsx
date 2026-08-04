@@ -76,7 +76,12 @@ const ago = (iso: string) => {
 function chapterLabel(title?: string | null, id?: string | null) {
   const t = (title || "").trim();
   if (t && !/^chapter$/i.test(t)) return t.length > 30 ? `${t.slice(0, 29)}…` : t;
-  const tail = (id || "").split("|").pop() || "";
+  // MangaDex ids are UUIDs, which are full of digits — deriving a number from
+  // one yields a confident, wrong "Ch. 0". Only the `<slug>|<number>` shape
+  // AsuraScans uses carries a number worth reading.
+  const raw = id || "";
+  if (raw.startsWith("mdx:")) return "Chapter";
+  const tail = raw.split("|").pop() || "";
   const n = tail.match(/(\d+(?:\.\d+)?)/);
   return n ? `Ch. ${n[1]}` : "Chapter";
 }

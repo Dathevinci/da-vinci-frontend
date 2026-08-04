@@ -305,7 +305,14 @@ export default function ManhwaQuickViewModal({ manhwa, options, onClose }: Manhw
                         }`}
                       >
                         <div className="font-bold text-sm text-[#e2e8f0] group-hover:text-[#dc2626] transition-colors line-clamp-1 min-w-0">
-                          {chapter.title || `Chapter ${chapter.id?.split("|")[1] ?? ""}`.trim()}
+                          {/* The number after "|" is an AsuraScans id shape.
+                              A MangaDex chapter id is a UUID with no number in
+                              it, so fall back to a bare "Chapter" there rather
+                              than printing a slice of the uuid. */}
+                          {chapter.title
+                            || (String(chapter.id || "").includes("|")
+                                  ? `Chapter ${String(chapter.id).split("|")[1] ?? ""}`.trim()
+                                  : "Chapter")}
                         </div>
                         <div className="text-xs text-slate-500 font-medium flex items-center gap-2 shrink-0">
                           {formatChapterDate(chapter.releaseDate)}
