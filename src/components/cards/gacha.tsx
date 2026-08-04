@@ -154,6 +154,7 @@ export function Panel({
   className = "",
   edge,
   sheen = false,
+  surface,
 }: {
   children: ReactNode;
   tone?: "ink" | "gold" | "danger" | "jade";
@@ -164,6 +165,12 @@ export function Panel({
   /** A light streak that runs the top edge every few seconds — summon-screen
    *  dressing for hero panels. Degrades invisible without GachaAmbience. */
   sheen?: boolean;
+  /**
+   * Overrides the panel's INNER fill. The default is violet-tinted ink, which
+   * is right for the card game's own screens; a surface that wants to be
+   * neutral passes its own here rather than every other panel changing.
+   */
+  surface?: string;
 }) {
   const clip = shape === "bevel" ? bevel(size) : notch(size);
   const edges: Record<string, string> = {
@@ -174,7 +181,7 @@ export function Panel({
   };
   return (
     <div className={`relative ${className}`} style={{ clipPath: clip, background: edge || edges[tone] }}>
-      <div className="relative" style={{ clipPath: clip, margin: 1, background: "linear-gradient(165deg, #1a1230 0%, #110c20 55%, #0c0817 100%)" }}>
+      <div className="relative" style={{ clipPath: clip, margin: 1, background: surface || "linear-gradient(165deg, #1a1230 0%, #110c20 55%, #0c0817 100%)" }}>
         {sheen && (
           <span aria-hidden className="ga-anim pointer-events-none absolute left-0 top-0 z-10 h-[2px] w-1/4"
             style={{
@@ -289,14 +296,27 @@ export function GachaButton({
 
 /** Section heading: a slanted accent bar, a heavy title, and a small Latin
  *  subtitle under it. */
-export function Heading({ title, sub, right }: { title: string; sub?: string; right?: ReactNode }) {
+export function Heading({ title, sub, right, mono = false }: {
+  title: string; sub?: string; right?: ReactNode;
+  /** Drop the violet accent for a neutral white-on-black treatment. Opt-in, so
+   *  every existing heading keeps the card game's palette untouched. */
+  mono?: boolean;
+}) {
+  const bar = mono
+    ? "linear-gradient(rgba(255,255,255,.92), rgba(255,255,255,.35))"
+    : `linear-gradient(${ACCENT_LIT}, ${ACCENT})`;
   return (
     <div className="mb-4 flex items-end justify-between gap-4">
       <div className="flex items-stretch gap-3">
-        <span aria-hidden className="w-[6px] shrink-0" style={{ background: `linear-gradient(${ACCENT_LIT}, ${ACCENT})`, transform: "skewX(-14deg)" }} />
+        <span aria-hidden className="w-[6px] shrink-0" style={{ background: bar, transform: "skewX(-14deg)" }} />
         <div>
           <h3 className="text-lg font-black uppercase tracking-[0.10em] text-white">{title}</h3>
-          {sub && <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.28em]" style={{ color: ACCENT }}>{sub}</p>}
+          {sub && (
+            <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.28em]"
+              style={{ color: mono ? "rgba(255,255,255,.55)" : ACCENT }}>
+              {sub}
+            </p>
+          )}
         </div>
       </div>
       {right}

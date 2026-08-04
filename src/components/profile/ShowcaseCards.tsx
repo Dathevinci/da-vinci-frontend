@@ -246,9 +246,17 @@ export default function ShowcaseCards({
   const list = editing ? draft : committed;
 
   return (
-    <Panel size={20} className="mb-6">
+    {/* MONOCHROME CHROME, COLOURED CARDS.
+        The panel's default fill is violet-tinted ink, which suits the card
+        game's own screens but competes with the art on a shelf whose whole job
+        is to frame four paintings. Neutral grey lets the cards be the only
+        colour in the block — the cards themselves are untouched, since
+        desaturating those is reserved for marking a pin you no longer own. */}
+    <Panel size={20} className="mb-6"
+      surface="linear-gradient(165deg, #16161a 0%, #101012 55%, #0a0a0c 100%)">
       <div className="relative p-5">
         <Heading
+          mono
           title="Showcase"
           sub={isMine ? `${list.length} of ${SLOTS} pinned` : "Cards on display"}
           right={
@@ -275,22 +283,12 @@ export default function ShowcaseCards({
               return (
                 <motion.div key={`${id}-${i}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.06 }} className="group relative">
-                  {/* THE SHOWCASE IS MONOCHROME.
-                      Rarity colour is doing a job everywhere else — in the
-                      binder it is how you find things — but a showcase is three
-                      cards someone chose, and three competing rarity glows
-                      fight each other instead of reading as a set.
-                      Desaturating is a wrapper rather than a CardFace prop on
-                      purpose: the card keeps drawing its real colours, so the
-                      art, the frame and the plate all go grey together and
-                      nothing has to know it is being shown here.
-
-                      BRIGHTNESS, not saturation, now carries the dead-pin
-                      signal. Grayscale used to be what marked a card you no
-                      longer own, so making the whole shelf grey would have
-                      erased that tell — the ghost is dimmed instead, and still
-                      wears its NO LONGER YOURS banner. */}
-                  <div style={{ filter: ghost ? "grayscale(1) brightness(.4)" : "grayscale(1)" }}>
+                  {/* The CARDS keep their colour. Grayscale here is reserved
+                      for a dead pin — it is the signal that you no longer own
+                      the card — so desaturating live ones would erase the only
+                      thing that distinguishes them. The monochrome treatment
+                      the showcase wanted is on the PANEL around them. */}
+                  <div style={ghost ? { filter: "grayscale(1) brightness(.55)" } : undefined}>
                     <CardFace card={card} owned foil={!!foils[card.id]} size={cardSize} ratio="5 / 9"
                       level={levels[card.id]} forge={forges[card.id]} wear={wears[card.id]}
                       skillLevel={skillLvls[card.id]} skillCap={capFor(card)} />
