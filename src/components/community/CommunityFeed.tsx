@@ -5,7 +5,7 @@ import { useAnimeModal } from '@/components/providers/AnimeModalProvider';
 import { Anime } from '@tutkli/jikan-ts';
 import { useUser } from '@/hooks/useUser';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, Heart, Trash2, Send, CornerDownRight, Zap, Flame, Crown, Code2, Sparkles, Feather, Leaf, User as UserIcon, Image as ImageIcon, Edit, Shield, Star, ShieldAlert, Eye, Compass, ArrowUpRight, Pin, Search, Filter, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { MessageSquare, Heart, Trash2, Send, CornerDownRight, Zap, Flame, Crown, Code2, Sparkles, Feather, Leaf, User as UserIcon, Image as ImageIcon, Edit, Shield, Star, ShieldAlert, Eye, Compass, ArrowUpRight, Pin, Search, Filter, ChevronDown, ChevronUp, X, Clock, TrendingUp, ThumbsDown, Flag } from 'lucide-react';
 import { isAdmin, isLeadDev } from "@/lib/admin";
 import { nameColorClass } from "@/lib/cosmetics";
 import { AvatarDecoration, hasFrameRing } from "@/components/profile/AvatarDecoration";
@@ -14,6 +14,7 @@ import ConfirmModal from '@/components/ui/ConfirmModal';
 import HeartExplosion from '@/components/ui/HeartExplosion';
 import CommentsDrawer from '@/components/ui/CommentsDrawer';
 import MediaPicker from '@/components/community/MediaPicker';
+import EmojiPicker from '@/components/community/EmojiPicker';
 import { getRankTheme } from '@/lib/ranks';
 const RankIcons: Record<string, any> = {
   Code2,
@@ -54,6 +55,10 @@ interface Comment {
   blessed?: boolean;
   createdAt: string;
   score: number;
+  /** Separate tallies — the bar shows likes AND dislikes, and a single net
+   *  score renders as a negative beside the heart once dislikes lead. */
+  upvotes?: number;
+  downvotes?: number;
   userVote: number;
   user: {
     id: string;
@@ -148,6 +153,7 @@ const CommentThread = ({
   handleEdit,
   handleBless,
   handlePin,
+  onReport,
   showContext
 }: {
   node: CommentNode;
@@ -167,6 +173,7 @@ const CommentThread = ({
   handleEdit: (id: string, content: string, mediaUrl?: string) => Promise<void>;
   handleBless: (commentId: string, username: string) => void;
   handlePin: (id: string) => Promise<void>;
+  onReport: (id: string) => void;
   showContext?: boolean;
 }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -493,8 +500,23 @@ const CommentThread = ({
             <motion.span whileTap={{ scale: 0.82 }} className="flex">
               <Heart className={`h-[18px] w-[18px] transition-colors ${node.userVote === 1 ? "fill-red-500" : ""}`} />
             </motion.span>
-            <span className="text-sm font-bold tabular-nums">{node.score}</span>
+            <span className="text-sm font-bold tabular-nums">{node.upvotes ?? Math.max(0, node.score)}</span>
             <HeartExplosion show={showHeartExplosion} coordinates={clickCoords} />
+          </button>
+
+          {/* DOWNVOTE — the schema and the API always supported -1; the old
+              bar simply never offered it, so disagreement had nowhere to go. */}
+          <button
+            onClick={() => handleVote(node.id, node.userVote === -1 ? 0 : -1)}
+            title={node.userVote === -1 ? "Remove dislike" : "Dislike this post"}
+            className={`group flex items-center gap-2 rounded-lg px-2.5 py-1.5 transition-colors hover:bg-slate-500/10 ${
+              node.userVote === -1 ? "text-slate-200" : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <motion.span whileTap={{ scale: 0.82 }} className="flex">
+              <ThumbsDown className={`h-[17px] w-[17px] transition-colors ${node.userVote === -1 ? "fill-slate-300" : ""}`} />
+            </motion.span>
+            <span className="text-sm font-bold tabular-nums">{node.downvotes ?? 0}</span>
           </button>
 
           <button
@@ -513,6 +535,19 @@ const CommentThread = ({
             </motion.span>
             <span className="text-sm font-bold tabular-nums">{node.children?.length || 0}</span>
           </button>
+
+          {!isAuthor && (
+            <button
+              onClick={() => onReport(node.id)}
+              className="group flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-slate-400 transition-colors hover:bg-orange-500/10 hover:text-orange-400"
+              title="Report this comment to staff"
+            >
+              <motion.span whileTap={{ scale: 0.85 }} className="flex">
+                <Flag className="h-[17px] w-[17px]" />
+              </motion.span>
+              <span className="hidden text-sm font-bold sm:inline">Report</span>
+            </button>
+          )}
 
           {!isAuthor && (
             <button
@@ -605,6 +640,7 @@ const CommentThread = ({
                     handleEdit={handleEdit}
                     handleBless={handleBless}
                     handlePin={handlePin}
+                    onReport={onReport}
                     showContext={showContext}
                   />
                 ))
@@ -690,6 +726,7 @@ const CommentThread = ({
                     handleEdit={handleEdit}
                     handleBless={handleBless}
                     handlePin={handlePin}
+                    onReport={onReport}
                     showContext={showContext}
                   />
                 ))}
@@ -742,6 +779,63 @@ export default function CommunityFeed({
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
+  /**
+   * WHAT IS BEING RATED. One opaque key covers every surface this feed
+   * mounts on — a series, one of its chapters, a novel — and the backend
+   * keeps one row per member per key, so scoring again replaces your old
+   * score instead of stacking another vote onto the average.
+   */
+  const targetKey = chapterId && mangaId
+    ? `manhwa:${mangaId}:${chapterId}`
+    : mangaId ? `manhwa:${mangaId}`
+      : novelId ? `novel:${novelId}`
+        : animeId ? `anime:${animeId}`
+          : null;
+  const subject = chapterId ? "chapter" : mangaId ? "manhwa" : novelId ? "novel" : "anime";
+
+  const [rating, setRating] = useState<{ average: number | null; count: number; mine: number | null }>({
+    average: null, count: 0, mine: null,
+  });
+  const [ratingBusy, setRatingBusy] = useState(false);
+  const [hoverStar, setHoverStar] = useState(0);
+
+  useEffect(() => {
+    if (!targetKey) return;
+    let live = true;
+    const url = new URL(`${API_URL}/api/ratings`);
+    url.searchParams.set("targetKey", targetKey);
+    if (user?.id) url.searchParams.set("userId", user.id);
+    fetch(url.toString())
+      .then((r) => r.json())
+      .then((d) => { if (live && d?.success && d.data) setRating(d.data); })
+      .catch(() => { /* a missing score just hides the chip */ });
+    return () => { live = false; };
+  }, [targetKey, user?.id, API_URL]);
+
+  const submitRating = async (value: number) => {
+    if (!user) return toast("Sign in to rate.", "error");
+    if (!targetKey || ratingBusy) return;
+    setRatingBusy(true);
+    const previous = rating;
+    setRating((r) => ({ ...r, mine: value })); // optimistic star fill
+    try {
+      const res = await fetch(`${API_URL}/api/ratings`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ userId: user.id, targetKey, value }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || "Rating failed");
+      setRating(data.data);
+      toast(`Rated ${value}/10.`, "success");
+    } catch {
+      setRating(previous);
+      toast("Couldn't save your rating.", "error");
+    } finally {
+      setRatingBusy(false);
+    }
+  };
+
   useEffect(() => {
     if (error) {
       const timer = setTimeout(() => setError(null), 5000);
@@ -749,9 +843,14 @@ export default function CommunityFeed({
     }
   }, [error]);
 
-  const fetchComments = async (pageNum = 1, append = false) => {
+  /** `searchOverride` exists because state updates are async: clearing the
+   *  box called setSearchQuery("") then fetched immediately, and the fetch
+   *  still read the OLD query from its closure — so the X appeared to do
+   *  nothing and the feed stayed filtered. */
+  const fetchComments = async (pageNum = 1, append = false, searchOverride?: string) => {
     try {
       if (pageNum === 1) setLoading(true);
+      const effectiveSearch = searchOverride !== undefined ? searchOverride : searchQuery;
       const url = new URL(`${API_URL}/api/comments`);
       if (animeId) url.searchParams.set('animeId', animeId.toString());
       if (mangaId) url.searchParams.set('mangaId', mangaId);
@@ -759,7 +858,7 @@ export default function CommunityFeed({
       if (novelId) url.searchParams.set('novelId', novelId);
       if (user) url.searchParams.set('userId', user.id);
       url.searchParams.set('sort', sortBy);
-      if (searchQuery.trim()) url.searchParams.set('search', searchQuery.trim());
+      if (effectiveSearch.trim()) url.searchParams.set('search', effectiveSearch.trim());
       if (mediaOnly) url.searchParams.set('mediaOnly', 'true');
       url.searchParams.set('page', pageNum.toString());
       url.searchParams.set('limit', '20');
@@ -881,11 +980,24 @@ export default function CommunityFeed({
     if (comment.userVote === value) newValue = 0;
 
     const voteDiff = newValue - comment.userVote;
+    // Move the two tallies as well as the net score. The vote endpoint
+    // returns nothing, so this arithmetic IS the displayed truth until the
+    // next refetch — leaving up/down stale showed a like count that never
+    // changed while the heart lit up.
+    const prevUp = comment.upvotes ?? 0;
+    const prevDown = comment.downvotes ?? 0;
+    const wasUp = comment.userVote === 1 ? 1 : 0;
+    const wasDown = comment.userVote === -1 ? 1 : 0;
+    const isUp = newValue === 1 ? 1 : 0;
+    const isDown = newValue === -1 ? 1 : 0;
+
     const newComments = [...comments];
     newComments[commentIndex] = {
       ...comment,
       userVote: newValue,
-      score: comment.score + voteDiff
+      score: comment.score + voteDiff,
+      upvotes: Math.max(0, prevUp - wasUp + isUp),
+      downvotes: Math.max(0, prevDown - wasDown + isDown),
     };
     setComments(newComments);
 
@@ -900,6 +1012,24 @@ export default function CommunityFeed({
       console.error(err);
       setError("Failed to cast vote.");
       fetchComments(); // revert optimistic update
+    }
+  };
+
+  /** Flag a comment for staff. One report per member per comment — the
+   *  backend upserts, so tapping twice can't inflate the count. */
+  const onReport = async (commentId: string) => {
+    if (!user) return toast("Sign in to report.", "error");
+    try {
+      const res = await fetch(`${API_URL}/api/comments/${commentId}/report`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ userId: user.id, reason: null }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || "Report failed");
+      toast(data.message || "Reported. Staff will take a look.", "success");
+    } catch (err: any) {
+      toast(err?.message || "Couldn't send that report.", "error");
     }
   };
 
@@ -1015,6 +1145,9 @@ export default function CommunityFeed({
   };
 
   const commentTree = buildCommentTree(comments, sortBy);
+  // Count THREADS, not rows — the flat payload carries replies too, so
+  // comments.length always over-reported the number in the header.
+  const rootCount = commentTree.length;
 
   return (
     <div className="w-full max-w-4xl mx-auto px-2 sm:px-4 py-8 relative z-20">
@@ -1026,20 +1159,61 @@ export default function CommunityFeed({
             exit={{ opacity: 0 }}
             className="fixed top-20 right-4 bg-red-600/90 backdrop-blur-md border border-red-400 text-white px-4 py-2 rounded-lg font-bold shadow-2xl z-50 flex items-center gap-2"
           >
-            <span>⚠️</span> {error}
+            <span>⚠ï¸</span> {error}
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="mb-5 flex items-end justify-between gap-4 px-2 sm:px-0">
-        <div>
-          <h2 className="flex items-center gap-2.5 text-2xl font-black tracking-tight text-white sm:text-3xl">
-            <MessageSquare className="h-6 w-6 text-purple-400 sm:h-7 sm:w-7" />
-            Community
-          </h2>
-          <p className="mt-1 text-sm text-slate-500">
-            {comments.length > 0 ? `${comments.length} view${comments.length === 1 ? "" : "s"} shared` : "Share what you're watching and reading"}
-          </p>
+      {/* ── header: the count, the sort, the community's score ── */}
+      <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 px-2 sm:px-0">
+        <h2 className="flex items-center gap-2.5 font-mono text-2xl font-black tracking-tight text-white">
+          <MessageSquare className="h-6 w-6 text-slate-400" />
+          Comments
+          <span className="text-slate-500">({rootCount})</span>
+        </h2>
+      </div>
+
+      <div className="mb-5 flex flex-wrap items-center gap-2 px-2 sm:px-0">
+        <div className="flex items-center gap-0.5 rounded-xl border border-white/10 bg-white/[0.04] p-1">
+          {([
+            { key: "newest", label: "Newest", Icon: Clock },
+            { key: "top", label: "Top", Icon: TrendingUp },
+          ] as const).map((opt) => (
+            <button
+              key={opt.key}
+              onClick={() => setSortBy(opt.key)}
+              className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 font-mono text-xs font-bold transition-colors ${
+                sortBy === opt.key ? "bg-white/10 text-white" : "text-slate-500 hover:text-slate-300"
+              }`}
+            >
+              <opt.Icon className="h-3.5 w-3.5" /> {opt.label}
+            </button>
+          ))}
+        </div>
+
+        {rating.average != null && (
+          <span
+            className="flex items-center gap-1.5 rounded-xl px-3 py-2 font-mono text-sm font-black text-amber-300"
+            title={`${rating.count} member${rating.count === 1 ? "" : "s"} rated this`}
+          >
+            <Star className="h-4 w-4 fill-current" />
+            {rating.average}<span className="text-slate-500">/10</span>
+          </span>
+        )}
+
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            onClick={() => setMediaOnly(!mediaOnly)}
+            title="Only show posts with images"
+            className={`flex items-center gap-2 rounded-xl border px-3 py-2 font-mono text-xs font-bold transition-colors ${
+              mediaOnly
+                ? "border-purple-500/50 bg-purple-500/15 text-purple-300"
+                : "border-white/10 bg-white/[0.04] text-slate-400 hover:text-white"
+            }`}
+          >
+            <ImageIcon className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Media</span>
+          </button>
         </div>
       </div>
 
@@ -1057,7 +1231,7 @@ export default function CommunityFeed({
           />
           {searchQuery && (
             <button
-              onClick={() => { setSearchQuery(""); setPage(1); fetchComments(1, false); }}
+              onClick={() => { setSearchQuery(""); setPage(1); fetchComments(1, false, ""); }}
               aria-label="Clear search"
               className="ml-2 shrink-0 rounded-full p-1 text-slate-500 transition hover:bg-white/10 hover:text-white"
             >
@@ -1066,40 +1240,8 @@ export default function CommunityFeed({
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* segmented sort — replaces a native <select> that rendered with the
-              OS dropdown styling and broke the dark theme */}
-          <div className="flex items-center gap-0.5 rounded-xl border border-white/10 bg-white/[0.04] p-1">
-            {([
-              { key: "newest", label: "New" },
-              { key: "top", label: "Top" },
-              { key: "oldest", label: "Old" },
-            ] as const).map((opt) => (
-              <button
-                key={opt.key}
-                onClick={() => setSortBy(opt.key)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${
-                  sortBy === opt.key ? "bg-purple-600 text-white shadow-sm" : "text-slate-400 hover:bg-white/5 hover:text-white"
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-
-          <button
-            onClick={() => setMediaOnly(!mediaOnly)}
-            title="Only show posts with images"
-            className={`flex h-[42px] items-center gap-2 rounded-xl border px-3.5 text-xs font-bold transition-colors ${
-              mediaOnly
-                ? "border-purple-500/50 bg-purple-500/15 text-purple-300"
-                : "border-white/10 bg-white/[0.04] text-slate-400 hover:text-white"
-            }`}
-          >
-            <ImageIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Media</span>
-          </button>
-        </div>
+        {/* sort, rating and the media filter live in the header row above —
+            this row is just the search field now */}
       </div>
 
       {user ? (
@@ -1163,11 +1305,6 @@ export default function CommunityFeed({
                           <X className="h-3.5 w-3.5" />
                         </button>
                       </div>
-                      {/* or skip the link entirely: upload from the device /
-                          search KLIPY — either fills the same field above */}
-                      <div className="mt-2">
-                        <MediaPicker value={newMediaUrl} onChange={setNewMediaUrl} userId={user?.id} />
-                      </div>
                     </>
                   )}
 
@@ -1183,34 +1320,71 @@ export default function CommunityFeed({
                     </div>
                   )}
 
-                  <div className="mt-3 flex items-center justify-between gap-3 border-t border-white/5 pt-3">
-                    <button
-                      onClick={() => setShowMediaInput((v) => !v)}
-                      title="Attach an image or GIF"
-                      className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-bold transition-colors ${
-                        showMediaInput || newMediaUrl ? "bg-purple-500/15 text-purple-300" : "text-slate-400 hover:bg-white/5 hover:text-white"
-                      }`}
-                    >
-                      <ImageIcon className="h-4 w-4" /> Media
-                    </button>
+                  {/* ── rate what you're commenting on ── */}
+                  {targetKey && (
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-xs text-slate-400">Rate this {subject}:</span>
+                      <span className="flex items-center gap-0.5" onMouseLeave={() => setHoverStar(0)}>
+                        {Array.from({ length: 10 }).map((_, i) => {
+                          const n = i + 1;
+                          const lit = n <= (hoverStar || rating.mine || 0);
+                          return (
+                            <button
+                              key={n}
+                              type="button"
+                              disabled={ratingBusy}
+                              onMouseEnter={() => setHoverStar(n)}
+                              onClick={() => submitRating(n)}
+                              aria-label={`Rate ${n} out of 10`}
+                              className="p-0.5 transition disabled:opacity-50"
+                            >
+                              <Star
+                                className={`h-4 w-4 transition-colors ${lit ? "fill-amber-400 text-amber-400" : "text-slate-600 hover:text-slate-400"}`}
+                              />
+                            </button>
+                          );
+                        })}
+                      </span>
+                      {rating.mine != null && (
+                        <span className="font-mono text-xs font-bold text-amber-300">{rating.mine}/10</span>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-white/5 pt-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <EmojiPicker onPick={(e) => setNewComment((c) => c + e)} />
+                      <MediaPicker value={newMediaUrl} onChange={setNewMediaUrl} userId={user?.id} />
+                      <button
+                        onClick={() => setShowMediaInput((v) => !v)}
+                        title="Paste an image or GIF link"
+                        className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-[11px] font-bold transition-colors ${
+                          showMediaInput || newMediaUrl
+                            ? "border-purple-500/40 bg-purple-500/15 text-purple-300"
+                            : "border-white/10 bg-white/[0.05] text-slate-300 hover:bg-white/10 hover:text-white"
+                        }`}
+                      >
+                        <ImageIcon className="h-3.5 w-3.5" /> Link
+                      </button>
+                    </div>
 
                     <div className="flex items-center gap-3">
                       {newComment.length > 0 && (
-                        <span className={`text-xs tabular-nums ${newComment.length > 1000 ? "text-red-400" : "text-slate-500"}`}>
+                        <span className={`font-mono text-xs tabular-nums ${newComment.length > 1000 ? "text-red-400" : "text-slate-500"}`}>
                           {newComment.length}
                         </span>
                       )}
                       <button
                         onClick={() => handlePost(null, newComment, newMediaUrl)}
                         disabled={isPosting || (!newComment.trim() && !newMediaUrl.trim())}
-                        className="flex items-center gap-2 rounded-full bg-purple-600 px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-40"
+                        className="flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 font-mono text-sm font-black text-black transition hover:bg-white/85 disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         {isPosting ? (
-                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-black/30 border-t-black" />
                         ) : (
                           <Send className="h-4 w-4" />
                         )}
-                        {isPosting ? "Posting…" : "Post"}
+                        {isPosting ? "Posting…" : "Post Comment"}
                       </button>
                     </div>
                   </div>
@@ -1271,6 +1445,7 @@ export default function CommunityFeed({
                 handleEdit={handleEdit}
                 handleBless={handleBless}
                 handlePin={handlePin}
+                    onReport={onReport}
                 showContext={!animeId && !mangaId && !novelId}
               />
             ))}
@@ -1329,3 +1504,4 @@ export default function CommunityFeed({
     </div>
   );
 }
+

@@ -42,8 +42,9 @@ const when = (iso: string) => {
 /** Where the comment was left, and where clicking should go. */
 function target(c: Comment): { label: string; href: string | null } {
   if (c.animeId) return { label: c.animeTitle || "Anime", href: `/anime/${c.animeId}` };
-  if (c.mangaId) return { label: c.mangaTitle || "Manhwa", href: `/manhwa/${c.mangaId}` };
-  if (c.novelId) return { label: c.novelTitle || "Novel", href: `/novel/${c.novelId}` };
+  // slug ids must be encoded — see GlobalComments for the same fix
+  if (c.mangaId) return { label: c.mangaTitle || "Manhwa", href: `/manhwa/${encodeURIComponent(c.mangaId)}` };
+  if (c.novelId) return { label: c.novelTitle || "Novel", href: `/novel/${encodeURIComponent(c.novelId)}` };
   return { label: "Discussion", href: null };
 }
 

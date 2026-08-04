@@ -1,141 +1,83 @@
+"use client";
+
+import { Suspense, useEffect, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { Loader2 } from "lucide-react";
+import { Anime } from "@tutkli/jikan-ts";
+import AnimeDetailView from "@/components/anime/AnimeDetailView";
 import { getAnimeDetails, getAnimeDetailsAniList } from "@/lib/jikan";
-
 import { getAnimeDetailsKitsu } from "@/lib/kitsu";
-import { notFound } from "next/navigation";
-import { ExternalLink } from "lucide-react";
-import AnimeStatusBadge from "@/components/anime/AnimeStatusBadge";
-import AnimeTrackerPanel from "@/components/anime/AnimeTrackerPanel";
-import AnimeBackgroundTrailer from "@/components/anime/AnimeBackgroundTrailer";
-import AnimeTabs from "@/components/anime/AnimeTabs";
-import { getYouTubeId } from "@/lib/jikan";
-import PageTransition from "@/components/layout/PageTransition";
 
-export const revalidate = 3600;
+/**
+ * /anime/[id] — the detail screen as a real page.
+ *
+ * It renders the SAME AnimeDetailView as the overlay, so following a
+ * comment link from the community or a profile lands on the current
+ * design instead of the retired two-column layout. `?tab=discussions`
+ * still works — that's what those comment links carry.
+ */
+export default function AnimePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#070709]" />}>
+      <AnimePageInner />
+    </Suspense>
+  );
+}
 
-export default async function AnimeDetails({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = await params;
-  const animeId = parseInt(resolvedParams.id, 10);
-  if (isNaN(animeId)) return notFound();
+function AnimePageInner() {
+  const params = useParams();
+  const sp = useSearchParams();
+  const malId = Number(params.id);
 
-  let anime = null;
-  try {
-    anime = await getAnimeDetails(animeId);
-  } catch (err) {
-    console.error("Anime Details API Error:", err);
-    try {
-      anime = await getAnimeDetailsKitsu(animeId);
-    } catch (kitsuErr) {
-      console.error("Kitsu fallback also failed:", kitsuErr);
-      try {
-        anime = await getAnimeDetailsAniList(animeId);
-      } catch (aniListErr) {
-        console.error("AniList final fallback failed:", aniListErr);
+  const [anime, setAnime] = useState<Anime | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    if (!malId) { setFailed(true); return; }
+    let live = true;
+    (async () => {
+      // The same triple fallback the old page used: Jikan → Kitsu → AniList.
+      let a: Anime | null = null;
+      try { a = await getAnimeDetails(malId); }
+      catch {
+        try { a = await getAnimeDetailsKitsu(malId); }
+        catch {
+          try { a = await getAnimeDetailsAniList(malId); } catch { /* dead id */ }
+        }
       }
-    }
+      if (!live) return;
+      if (a) setAnime(a); else setFailed(true);
+    })();
+    return () => { live = false; };
+  }, [malId]);
+
+  if (failed) {
+    return (
+      <div className="min-h-screen bg-[#070709] pt-32 text-center">
+        <p className="font-mono text-base font-black text-white">Couldn&apos;t load this anime</p>
+        <p className="mt-2 font-mono text-xs text-slate-500">The id may be wrong, or the metadata sources are down.</p>
+        <Link href="/" className="mt-6 inline-block rounded-xl border border-white/15 bg-white/[0.05] px-6 py-3 font-mono text-sm font-bold text-slate-200 transition hover:bg-white/10">
+          Back to home
+        </Link>
+      </div>
+    );
   }
 
   if (!anime) {
-    return <div className="min-h-screen pt-32 text-center text-white">Loading data or API is temporarily unavailable...</div>;
+    return (
+      <div className="grid min-h-screen place-items-center bg-[#070709]">
+        <Loader2 className="h-8 w-8 animate-spin text-slate-600" />
+      </div>
+    );
   }
 
-  const title = anime.title_english || anime.title;
-  const bannerUrl = anime.trailer?.images?.maximum_image_url || anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url;
-  const trailerId = getYouTubeId(anime.trailer);
-
   return (
-    <PageTransition>
-      <div className="bg-[#09090b] min-h-screen text-white pt-16">
-      {/* Cinematic Banner Area */}
-      <div className="relative w-full h-[50vh] md:h-[60vh]">
-        {trailerId ? (
-          <AnimeBackgroundTrailer trailerId={trailerId} bannerUrl={bannerUrl || ""} />
-        ) : (
-          <>
-            <img src={bannerUrl || ""} alt={title} className="w-full h-full object-cover opacity-50 mix-blend-screen" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/80 to-transparent" />
-          </>
-        )}
-          
-          <div className="relative md:absolute md:bottom-0 md:left-0 w-full md:translate-y-0">
-            <div className="container mx-auto px-4 md:px-12 flex flex-col md:flex-row gap-4 md:gap-8 items-center md:items-end pb-8 text-center md:text-left">
-              <div className="w-32 sm:w-48 md:w-64 flex-shrink-0 rounded-xl overflow-hidden border-2 border-white/10 shadow-2xl translate-y-0 md:translate-y-24 bg-[#141414] z-10 -mt-24 md:mt-0">
-                <img src={(anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url || "") as string} alt={title} className="w-full h-auto" />
-              </div>
-              
-              <div className="flex-1 pb-4 flex flex-col items-center md:items-start w-full z-10">
-                <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-3 mt-4 md:mt-0">
-                  <AnimeStatusBadge status={anime.status || "Unknown"} />
-                  {anime.score && <span className="text-green-400 font-bold bg-green-500/10 px-2 py-0.5 rounded border border-green-500/20 text-sm">★ {anime.score}</span>}
-                </div>
-                <h1 className="text-2xl sm:text-3xl md:text-5xl font-black mb-2 drop-shadow-lg leading-tight break-words">{title}</h1>
-                <p className="text-slate-400 font-medium mb-6 text-sm md:text-base">{anime.title_japanese}</p>
-                
-                <div className="flex flex-wrap gap-4 items-center">
-                  <AnimeTrackerPanel anime={anime as any} />
-                  
-                  {anime.url && (
-                    <a href={anime.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-slate-300 hover:text-white transition px-4 py-3 bg-white/5 rounded-full border border-white/10 font-medium">
-                      <ExternalLink className="w-4 h-4" /> View on {(anime as any)._source === "jikan" ? "MyAnimeList" : "AniList"}
-                    </a>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Content Area */}
-        <div className="container mx-auto px-4 md:px-12 pt-8 md:pt-32 pb-20 flex flex-col lg:flex-row gap-8 lg:gap-12">
-          
-          {/* Main Info */}
-          <div className="flex-1 flex flex-col gap-8">
-            <AnimeTabs anime={anime as any} />
-          </div>
-
-          {/* Sidebar Stats */}
-          <div className="w-full lg:w-80 flex-shrink-0 space-y-6">
-            <div className="bg-white/5 border border-white/5 p-6 rounded-2xl">
-              <h3 className="font-bold text-lg mb-4 text-white border-b border-white/10 pb-2">Information</h3>
-              <ul className="space-y-4 text-sm">
-                <li>
-                  <span className="text-slate-500 block mb-1">Format</span>
-                  <span className="text-slate-200 font-medium">{anime.type || "Unknown"}</span>
-                </li>
-                <li>
-                  <span className="text-slate-500 block mb-1">Episodes</span>
-                  <span className="text-slate-200 font-medium">{anime.episodes || "Unknown"}</span>
-                </li>
-                <li>
-                  <span className="text-slate-500 block mb-1">Duration</span>
-                  <span className="text-slate-200 font-medium">{anime.duration || "Unknown"}</span>
-                </li>
-                <li>
-                  <span className="text-slate-500 block mb-1">Season</span>
-                  <span className="text-slate-200 font-medium capitalize">{anime.season} {anime.year}</span>
-                </li>
-                <li>
-                  <span className="text-slate-500 block mb-1">Studios</span>
-                  <span className="text-slate-200 font-medium">
-                    {anime.studios?.map(s => s.name).join(", ") || "Unknown"}
-                  </span>
-                </li>
-              </ul>
-            </div>
-            
-            <div className="bg-white/5 border border-white/5 p-6 rounded-2xl">
-              <h3 className="font-bold text-lg mb-4 text-white border-b border-white/10 pb-2">Genres</h3>
-              <div className="flex flex-wrap gap-2">
-                {anime.genres.map((g: any) => (
-                  <span key={g.name} className="bg-purple-500/10 text-purple-300 border border-purple-500/20 px-3 py-1 rounded-full text-xs font-medium">
-                    {g.name}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </PageTransition>
-    );
+    <div className="min-h-screen bg-[#070709]">
+      <AnimeDetailView
+        anime={anime}
+        options={sp.get("tab") === "discussions" ? { startTab: "discussions" } : undefined}
+      />
+    </div>
+  );
 }

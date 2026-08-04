@@ -57,11 +57,13 @@ const ago = (iso: string) => {
   return `${Math.floor(d / 30)}mo ago`;
 };
 
-/** Where a comment lives, and the link back to it. */
+/** Where a comment lives, and the link back to it. Manhwa and novel ids
+ *  are slugs — they MUST be encoded, or one with a slash or a colon
+ *  routes somewhere else entirely. */
 function origin(c: Row) {
   if (c.animeId) return { label: c.animeTitle || "Anime", href: `/anime/${c.animeId}`, Icon: Tv, tint: "#c084fc", kind: "Anime" };
-  if (c.mangaId) return { label: c.mangaTitle || "Manhwa", href: `/manhwa/${c.mangaId}`, Icon: BookMarked, tint: "#f87171", kind: "Manhwa" };
-  if (c.novelId) return { label: c.novelTitle || "Novel", href: `/novel/${c.novelId}`, Icon: BookOpen, tint: "#f472b6", kind: "Novel" };
+  if (c.mangaId) return { label: c.mangaTitle || "Manhwa", href: `/manhwa/${encodeURIComponent(c.mangaId)}`, Icon: BookMarked, tint: "#f87171", kind: "Manhwa" };
+  if (c.novelId) return { label: c.novelTitle || "Novel", href: `/novel/${encodeURIComponent(c.novelId)}`, Icon: BookOpen, tint: "#f472b6", kind: "Novel" };
   return null;
 }
 
