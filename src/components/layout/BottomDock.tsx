@@ -35,7 +35,7 @@ const PAGES: { href: string; label: string; Icon: any; tint: string }[] = [
   { href: "/calendar",    label: "Schedule",         Icon: Calendar,     tint: "#f472b6" },
   { href: "/cards",       label: "Arise Cards",      Icon: Layers,       tint: "#c084fc" },
   { href: "/duels",       label: "Card Duels",       Icon: Swords,       tint: "#f43f5e" },
-  { href: "/forge",       label: "Synthesis Lab",    Icon: FlaskConical, tint: "#ef4444" },
+  { href: "/forge",       label: "Card Workbench",   Icon: FlaskConical, tint: "#ef4444" },
   { href: "/marketplace", label: "Marketplace",      Icon: Store,        tint: "#22d3ee" },
   { href: "/auctions",    label: "Auction House",    Icon: Gavel,        tint: "#f59e0b" },
   { href: "/community",   label: "Community",        Icon: Users,        tint: "#34d399" },

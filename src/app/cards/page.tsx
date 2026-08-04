@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { Layers, Sparkles, Gem, X, Hammer, Recycle, PackageOpen, Users, Heart, Swords, Zap, ArrowUp, BarChart3, FlaskConical } from "lucide-react";
+import { Layers, Sparkles, Gem, X, Hammer, Recycle, PackageOpen, Users, Heart, Swords, Zap, ArrowUp, BarChart3 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { loadCatalog } from "@/lib/catalogCache";
 import { swrJson } from "@/lib/swrCache";
@@ -792,63 +792,6 @@ export default function CardsPage() {
             </Rise>
           )}
 
-          {/* ── THE LAB'S DOOR ── synthesis gets ONE advertisement, here,
-              as a hero banner — not a button chasing you around the app. */}
-          {catalog && (() => {
-            const elig: string[] = (catalog as any).synthesis?.eligible || [];
-            const rarOf = (id: string) => catalog.cards.find((c: CardDef) => c.id === id)?.rarity;
-            const legendsHeld = elig.filter((id) => rarOf(id) === "legendary" && (owned[id] || 0) > 0).length;
-            const ready = legendsHeld >= 2;
-            return (
-              <Rise delay={0.05}>
-              <div className="relative mb-8 overflow-hidden"
-                style={{ clipPath: notch(20), background: "linear-gradient(115deg, #240a14 0%, #150612 55%, #0b0410 100%)", boxShadow: "inset 0 0 0 1px rgba(225,29,72,.4)" }}>
-                {/* the glow of the reaction chamber, bleeding through the wall */}
-                <div aria-hidden className="pointer-events-none absolute -right-24 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full"
-                  style={{ background: "radial-gradient(circle, rgba(225,29,72,.28), transparent 65%)" }} />
-                <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.05]"
-                  style={{ backgroundImage: "repeating-linear-gradient(115deg, transparent 0 26px, #fb7185 26px 27px)" }} />
-                <div className="relative flex flex-col items-start justify-between gap-6 p-6 sm:p-8 lg:flex-row lg:items-center">
-                  <div className="min-w-0">
-                    <span className="inline-block px-3 py-1 text-[10px] font-black uppercase tracking-[0.32em] text-white"
-                      style={{ clipPath: "polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)", background: "linear-gradient(100deg, #b91c1c, #7f1d1d)" }}>
-                      The Machine
-                    </span>
-                    <h2 className="mt-3 flex items-center gap-3 font-fell text-3xl font-bold uppercase tracking-[0.08em] text-white sm:text-4xl">
-                      <FlaskConical className="h-7 w-7 text-red-400" /> Synthesis Lab
-                    </h2>
-                    <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-300">
-                      Two eligible cards go in — both consumed. Ten Mythics wait inside legendary
-                      pairs, and three Gods inside Mythic pairs. The machine only rolls the affix.
-                    </p>
-                    <p className="mt-2 text-[11px] font-black uppercase tracking-[0.18em]"
-                      style={{ color: ready ? "#6ee7b7" : "#94a3b8" }}>
-                      {ready
-                        ? `⚗ ${legendsHeld} of 5 eligible legendaries held — a fusion is ready`
-                        : "Collect two of the five eligible legendaries to fire it"}
-                    </p>
-                  </div>
-                  <motion.div
-                    animate={ready ? { scale: [1, 1.045, 1] } : {}}
-                    transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-                    className="shrink-0">
-                    <Link href="/forge"
-                      className="flex items-center gap-2.5 px-8 py-4 text-[13px] font-black uppercase tracking-[0.28em] text-white transition hover:brightness-115"
-                      style={{
-                        clipPath: "polygon(26% 0, 74% 0, 100% 30%, 100% 70%, 74% 100%, 26% 100%, 0 70%, 0 30%)",
-                        background: "linear-gradient(160deg, #b91c1c, #7f1d1d)",
-                        boxShadow: ready
-                          ? "0 0 0 3px rgba(248,113,113,.7), 0 6px 34px rgba(225,29,72,.7)"
-                          : "0 0 0 2px rgba(248,113,113,.45), 0 4px 22px rgba(185,28,28,.45)",
-                      }}>
-                      <FlaskConical className="h-5 w-5" /> Synthesize
-                    </Link>
-                  </motion.div>
-                </div>
-              </div>
-              </Rise>
-            );
-          })()}
 
           {/* ── what shards do ── */}
           {catalog && (

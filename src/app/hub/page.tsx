@@ -33,7 +33,7 @@ const SECTIONS: Section[] = [
   { href: "/community",   label: "Community",        desc: "Connect with your fellow devotees.",               Icon: Users,        tint: "#34d399" },
   { href: "/cards",       label: "Arise Cards",      desc: "Pull heroes, collect prints, forge Mythics.",      Icon: Layers,       tint: "#c084fc" },
   { href: "/duels",       label: "Card Duels",       desc: "Stake your cards and fight.",                      Icon: Swords,       tint: "#f43f5e" },
-  { href: "/forge",       label: "Synthesis Lab",    desc: "Fuse legendaries into something greater.",         Icon: FlaskConical, tint: "#ef4444" },
+  { href: "/forge",       label: "Card Workbench",   desc: "Level, forge and dissolve your cards.",            Icon: FlaskConical, tint: "#ef4444" },
   { href: "/marketplace", label: "Marketplace",      desc: "Trade cards, serials and wears.",                  Icon: Store,        tint: "#22d3ee" },
   { href: "/auctions",    label: "Auction House",    desc: "Bid on the rarest prints.",                        Icon: Gavel,        tint: "#f59e0b" },
   { href: "/quests",      label: "Daily Quests",     desc: "Earn Arise Points every day.",                     Icon: Trophy,       tint: "#fb923c" },
