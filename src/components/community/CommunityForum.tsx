@@ -13,14 +13,29 @@ import { authHeaders } from "@/lib/authToken";
 import { useToast } from "@/components/ui/Toast";
 import { isAdmin, isLeadDev } from "@/lib/admin";
 import UserLink from "@/components/profile/UserLink";
-import UserBadges from "@/components/profile/UserBadges";
+import { UserBadgesCompact } from "@/components/profile/UserBadges";
 import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
 import MediaPicker from "@/components/community/MediaPicker";
 import { PollBuilder, PollCard, EMPTY_POLL, pollIsValid, type PollDraft, type PollData } from "@/components/community/Poll";
 import { effectNameClass } from "@/lib/effectTheme";
-import { ACCENT, ACCENT_LIT, notch } from "@/components/cards/gacha";
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+/**
+ * THE FORUM HAS ITS OWN PALETTE AND ITS OWN CORNERS.
+ *
+ * It used to import ACCENT from the card game's gacha kit and cut every
+ * surface with notch() — angled polygon corners in violet. That is the right
+ * language for a summon screen and the wrong one for a place people read and
+ * argue in: the notches make every card look like a ticket stub, and the
+ * violet fights the per-topic tag colours that are supposed to be the only
+ * hues on the page.
+ *
+ * Indigo and plain rounded corners instead. Defined HERE rather than added to
+ * the shared kit, because the card game should keep its own look — this is a
+ * deliberate divergence, not a global restyle.
+ */
+const F_ACCENT = "#6366f1";
+const F_ACCENT_LIT = "#c7d2fe";
 
 /**
  * COMMUNITY FORUM.
@@ -124,11 +139,11 @@ function AuthorLine({ user, blessed }: { user?: Author; blessed?: boolean }) {
         className={`text-[15px] font-black hover:underline ${effectNameClass(user.activeEffect) || "text-white"}`}>
         {user.username}
       </UserLink>
-      {/* One shared strip: role, Heart rank, and whatever titles they wear.
-          This was seven hand-written chips that decided Lead Dev from the
-          username string, so a renamed staff account lost its badge on every
-          post it had ever made. */}
-      <UserBadges user={user} blessed={blessed} size="sm" />
+      {/* Role, rank and worn titles as icon squares. The full wording lives in
+          each badge's tooltip — spelled out, "KEEPER OF THE FOUNDATION" beside
+          every post pushed the timestamp onto its own line and made the badge
+          strip louder than the post. */}
+      <UserBadgesCompact user={user} blessed={blessed} />
     </>
   );
 }
@@ -208,11 +223,11 @@ const ago = (iso: string) => {
 };
 
 function TagChip({ tag, size = "sm" }: { tag: string; size?: "sm" | "xs" }) {
-  const tint = TAG_TINT[tag] || ACCENT;
+  const tint = TAG_TINT[tag] || F_ACCENT;
   return (
     <span
       className={`inline-block font-black uppercase tracking-[0.16em] ${size === "xs" ? "px-2 py-0.5 text-[10px]" : "px-2.5 py-1 text-[11px]"}`}
-      style={{ clipPath: notch(5), background: `${tint}1f`, boxShadow: `inset 0 0 0 1px ${tint}66`, color: tint }}
+      style={{ borderRadius: 5, background: `${tint}1f`, boxShadow: `inset 0 0 0 1px ${tint}66`, color: tint }}
     >
       {tag}
     </span>
@@ -505,22 +520,22 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                 A plain sans heading read as a form label rather than a place. */}
             <h1 className="font-fell text-4xl font-bold uppercase tracking-[0.14em] md:text-5xl"
               style={{
-                background: `linear-gradient(100deg, #fff 10%, ${ACCENT_LIT} 55%, ${ACCENT} 90%)`,
+                background: `linear-gradient(100deg, #fff 10%, ${F_ACCENT_LIT} 55%, ${F_ACCENT} 90%)`,
                 WebkitBackgroundClip: "text",
                 backgroundClip: "text",
                 color: "transparent",
-                filter: `drop-shadow(0 2px 18px ${ACCENT}55)`,
+                filter: `drop-shadow(0 2px 18px ${F_ACCENT}55)`,
               }}>
               Community
             </h1>
             <span className="px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.24em]"
-              style={{ clipPath: notch(6), background: `${ACCENT}22`, boxShadow: `inset 0 0 0 1px ${ACCENT}66`, color: ACCENT_LIT }}>
+              style={{ borderRadius: 6, background: `${F_ACCENT}22`, boxShadow: `inset 0 0 0 1px ${F_ACCENT}66`, color: F_ACCENT_LIT }}>
               Forum
             </span>
           </div>
           <button onClick={() => (user ? setComposing(true) : toast("Sign in to post.", "error"))}
             className="inline-flex items-center gap-2 px-5 py-2.5 text-[12px] font-black uppercase tracking-[0.16em] text-white transition hover:brightness-115"
-            style={{ clipPath: "polygon(11px 0, 100% 0, calc(100% - 11px) 100%, 0 100%)", background: `linear-gradient(100deg, #7c3aed, ${ACCENT})` }}>
+            style={{ clipPath: "polygon(11px 0, 100% 0, calc(100% - 11px) 100%, 0 100%)", background: `linear-gradient(100deg, #7c3aed, ${F_ACCENT})` }}>
             <Plus className="h-4 w-4" /> Create
           </button>
         </div>
@@ -538,7 +553,7 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                   {pinned.map((p) => (
                     <Link key={p.id} href={`/community/post/${p.id}`}
                       className="relative block overflow-hidden px-5 py-5 text-left transition hover:brightness-125"
-                      style={{ clipPath: notch(16), background: "rgba(255,255,255,.028)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.08)" }}>
+                      style={{ borderRadius: 16, background: "rgba(255,255,255,.028)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.08)" }}>
                       {/* the headline ghosted huge behind itself — cheap depth,
                           and it fills a card that would otherwise be mostly air */}
                       <span aria-hidden
@@ -548,7 +563,7 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                       <div className="relative flex items-center gap-2">
                         {p.tag && <TagChip tag={p.tag} size="xs" />}
                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.16em]"
-                          style={{ clipPath: notch(4), background: "rgba(251,191,36,.14)", boxShadow: "inset 0 0 0 1px rgba(251,191,36,.5)", color: "#fcd34d" }}>
+                          style={{ borderRadius: 4, background: "rgba(251,191,36,.14)", boxShadow: "inset 0 0 0 1px rgba(251,191,36,.5)", color: "#fcd34d" }}>
                           <Pin className="h-2.5 w-2.5" /> Pinned
                         </span>
                       </div>
@@ -565,7 +580,7 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
             {/* composer bar */}
             <button onClick={() => (user ? setComposing(true) : toast("Sign in to post.", "error"))}
               className="mb-6 flex w-full items-center gap-3 px-4 py-4 text-left transition hover:brightness-125"
-              style={{ clipPath: notch(14), background: "rgba(255,255,255,.03)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.09)" }}>
+              style={{ borderRadius: 14, background: "rgba(255,255,255,.03)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.09)" }}>
               {user?.avatar ? (
                 <img src={user.avatar} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
               ) : (
@@ -586,8 +601,8 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                     sort === k ? "text-white" : "text-slate-500 hover:text-slate-300"}`}
                   style={{
                     clipPath: "polygon(7px 0, 100% 0, calc(100% - 7px) 100%, 0 100%)",
-                    background: sort === k ? `${ACCENT}33` : "rgba(255,255,255,.04)",
-                    boxShadow: `inset 0 0 0 1px ${sort === k ? `${ACCENT}99` : "rgba(255,255,255,.08)"}`,
+                    background: sort === k ? `${F_ACCENT}33` : "rgba(255,255,255,.04)",
+                    boxShadow: `inset 0 0 0 1px ${sort === k ? `${F_ACCENT}99` : "rgba(255,255,255,.08)"}`,
                   }}>
                   {label}
                 </button>
@@ -598,12 +613,12 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
             <div className="mb-6 flex flex-wrap gap-2">
               {["All", ...TAGS].map((t) => {
                 const on = tag === t;
-                const tint = t === "All" ? ACCENT : TAG_TINT[t];
+                const tint = t === "All" ? F_ACCENT : TAG_TINT[t];
                 return (
                   <button key={t} onClick={() => setTag(t)}
                     className="px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] transition"
                     style={{
-                      clipPath: notch(7),
+                      borderRadius: 7,
                       background: on ? `${tint}30` : "rgba(255,255,255,.03)",
                       boxShadow: `inset 0 0 0 1px ${on ? tint : "rgba(255,255,255,.08)"}`,
                       color: on ? "#fff" : "#64748b",
@@ -621,7 +636,7 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
               </div>
             ) : ranked.length === 0 ? (
               <div className="py-20 text-center"
-                style={{ clipPath: notch(16), background: "rgba(255,255,255,.02)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.06)" }}>
+                style={{ borderRadius: 16, background: "rgba(255,255,255,.02)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.06)" }}>
                 <MessageSquare className="mx-auto h-8 w-8 text-slate-700" />
                 <p className="mt-3 text-sm text-slate-500">
                   {tag === "All" ? "Nothing posted yet. Start it." : `No posts tagged ${tag} yet.`}
@@ -632,16 +647,16 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                 {ranked.map((p) => (
                   <motion.article key={p.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                     className="flex gap-4 p-5"
-                    style={{ clipPath: notch(16), background: "rgba(255,255,255,.028)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.075)" }}>
+                    style={{ borderRadius: 16, background: "rgba(255,255,255,.028)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.075)" }}>
                     {/* vote rail */}
                     <div className="flex w-14 shrink-0 flex-col items-center gap-1">
                       <button onClick={() => vote(p, 1)} aria-label="Upvote"
                         className="grid h-10 w-10 place-items-center transition hover:brightness-150"
                         style={{
-                          clipPath: notch(7),
-                          background: p.userVote === 1 ? `${ACCENT}33` : "rgba(255,255,255,.04)",
-                          boxShadow: `inset 0 0 0 1px ${p.userVote === 1 ? ACCENT : "rgba(255,255,255,.09)"}`,
-                          color: p.userVote === 1 ? ACCENT_LIT : "#64748b",
+                          borderRadius: 7,
+                          background: p.userVote === 1 ? `${F_ACCENT}33` : "rgba(255,255,255,.04)",
+                          boxShadow: `inset 0 0 0 1px ${p.userVote === 1 ? F_ACCENT : "rgba(255,255,255,.09)"}`,
+                          color: p.userVote === 1 ? F_ACCENT_LIT : "#64748b",
                         }}>
                         {/* A LOVE, not an upvote. The arrow said "is this
                             useful"; the heart says "I liked this", which is the
@@ -649,28 +664,24 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                             you've given it, so the rail reads at a glance. */}
                         <Heart className="h-4 w-4" fill={p.userVote === 1 ? "currentColor" : "none"} />
                       </button>
-                      {typeof p.upvotes === "number" && (
-                        <span className="text-[10px] font-black tabular-nums" style={{ color: p.userVote === 1 ? "#fda4af" : "#52525b" }}>
-                          {p.upvotes}
-                        </span>
-                      )}
-                      <span className="text-base font-black tabular-nums" style={{ color: (p.score || 0) > 0 ? ACCENT_LIT : "#64748b" }}>
+                      {/* ONE number. Showing the love count here as well as the
+                          net score printed "2" twice above the word SCORE, which
+                          reads as a rendering bug. The separate tallies moved to
+                          the footer, where they say something the score cannot. */}
+                      <span className="text-base font-black tabular-nums" style={{ color: (p.score || 0) > 0 ? F_ACCENT_LIT : "#64748b" }}>
                         {p.score ?? 0}
                       </span>
                       <span className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-700">Score</span>
                       <button onClick={() => vote(p, -1)} aria-label="Dislike"
                         className="mt-0.5 grid h-10 w-10 place-items-center transition hover:brightness-150"
                         style={{
-                          clipPath: notch(7),
+                          borderRadius: 7,
                           background: p.userVote === -1 ? "rgba(244,63,94,.22)" : "rgba(255,255,255,.04)",
                           boxShadow: `inset 0 0 0 1px ${p.userVote === -1 ? "#f43f5e" : "rgba(255,255,255,.09)"}`,
                           color: p.userVote === -1 ? "#fda4af" : "#64748b",
                         }}>
                         <ThumbsDown className="h-4 w-4" fill={p.userVote === -1 ? "currentColor" : "none"} />
                       </button>
-                      {typeof p.downvotes === "number" && p.downvotes > 0 && (
-                        <span className="text-[10px] font-black tabular-nums text-zinc-600">{p.downvotes}</span>
-                      )}
                     </div>
 
                     {/* body */}
@@ -679,7 +690,7 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                         <AuthorLine user={p.user} blessed={p.blessed} />
                         {p.isPinned && (
                           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.14em]"
-                            style={{ clipPath: notch(4), background: "rgba(251,191,36,.14)", boxShadow: "inset 0 0 0 1px rgba(251,191,36,.5)", color: "#fcd34d" }}>
+                            style={{ borderRadius: 4, background: "rgba(251,191,36,.14)", boxShadow: "inset 0 0 0 1px rgba(251,191,36,.5)", color: "#fcd34d" }}>
                             <Pin className="h-2.5 w-2.5" /> Pinned
                           </span>
                         )}
@@ -707,21 +718,21 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                             onChange={(e) => setDraftTitle(e.target.value.slice(0, 30))}
                             placeholder="Title (optional)"
                             className="w-full bg-black/50 px-3.5 py-2 text-sm font-black text-white outline-none placeholder:text-slate-600"
-                            style={{ clipPath: notch(9), boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }}
+                            style={{ borderRadius: 9, boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }}
                           />
                           <textarea
                             value={draftBody}
                             onChange={(e) => setDraftBody(e.target.value.slice(0, 1500))}
                             rows={4}
                             className="w-full resize-y bg-black/50 px-3.5 py-2.5 text-[15px] leading-relaxed text-white outline-none"
-                            style={{ clipPath: notch(10), boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }}
+                            style={{ borderRadius: 10, boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }}
                           />
                           <div className="flex flex-wrap gap-1.5">
                             {TAGS.map((t) => (
                               <button key={t} onClick={() => setDraftTag(t)}
                                 className="px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] transition"
                                 style={{
-                                  clipPath: notch(5),
+                                  borderRadius: 5,
                                   background: draftTag === t ? `${TAG_TINT[t]}30` : "rgba(255,255,255,.04)",
                                   boxShadow: `inset 0 0 0 1px ${draftTag === t ? TAG_TINT[t] : "rgba(255,255,255,.1)"}`,
                                   color: draftTag === t ? "#fff" : "#64748b",
@@ -733,12 +744,12 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                           <div className="flex justify-end gap-2 pt-1">
                             <button onClick={() => setEditing(null)}
                               className="px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-300 transition hover:brightness-125"
-                              style={{ clipPath: notch(8), background: "rgba(255,255,255,.05)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }}>
+                              style={{ borderRadius: 8, background: "rgba(255,255,255,.05)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }}>
                               Cancel
                             </button>
                             <button onClick={() => saveEdit(p)} disabled={!draftBody.trim() || savingEdit}
                               className="px-5 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white transition hover:brightness-115 disabled:opacity-35"
-                              style={{ clipPath: "polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%)", background: `linear-gradient(100deg, #7c3aed, ${ACCENT})` }}>
+                              style={{ clipPath: "polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%)", background: `linear-gradient(100deg, #7c3aed, ${F_ACCENT})` }}>
                               {savingEdit ? "Saving…" : "Save"}
                             </button>
                           </div>
@@ -764,7 +775,7 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                       {p.mediaUrl && (
                         <img src={p.mediaUrl} alt="" loading="lazy"
                           className="mt-3 max-h-[420px] w-auto max-w-full object-contain"
-                          style={{ clipPath: notch(12) }} />
+                          style={{ borderRadius: 12 }} />
                       )}
 
                       {p.poll && (
@@ -775,6 +786,26 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                           }
                         />
                       )}
+
+                      {/* ── HOW IT LANDED ── the tallies, said in words.
+                          The rail can only show a net score, which hides its own
+                          ingredients: 0 looks identical whether nobody voted or
+                          fifty people split evenly. Total engagement plus the
+                          share that was positive tells both halves in one line,
+                          and only appears once somebody has actually voted. */}
+                      {(() => {
+                        const up = p.upvotes || 0;
+                        const down = p.downvotes || 0;
+                        const total = up + down;
+                        if (total === 0) return null;
+                        return (
+                          <div className="mt-3.5 font-mono text-[11px] text-slate-600">
+                            {total} interaction{total === 1 ? "" : "s"}
+                            <span className="mx-1.5 text-slate-700">•</span>
+                            {Math.round((up / total) * 100)}% positive
+                          </div>
+                        );
+                      })()}
 
                       {/* ── THREAD ── a forum post you can't answer is a notice board */}
                       <div className="mt-3.5 flex flex-wrap items-center gap-4">
@@ -798,7 +829,7 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                             transition={{ duration: 0.15 }}
                             className="mt-3 space-y-2.5 border-l pl-3"
-                            style={{ borderColor: `${ACCENT}44` }}>
+                            style={{ borderColor: `${F_ACCENT}44` }}>
                             {(replies[p.id] || []).map((r) => (
                               <div key={r.id} className="flex items-start gap-2.5">
                                 <CornerDownRight className="mt-1.5 h-3 w-3 shrink-0 text-slate-700" />
@@ -827,17 +858,17 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                                         onChange={(e) => setDraftBody(e.target.value.slice(0, 800))}
                                         rows={3}
                                         className="w-full resize-y bg-black/50 px-3 py-2 text-sm leading-relaxed text-white outline-none"
-                                        style={{ clipPath: notch(8), boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }}
+                                        style={{ borderRadius: 8, boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }}
                                       />
                                       <div className="flex justify-end gap-2">
                                         <button onClick={() => setEditing(null)}
                                           className="px-3.5 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-slate-300 transition hover:brightness-125"
-                                          style={{ clipPath: notch(7), background: "rgba(255,255,255,.05)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }}>
+                                          style={{ borderRadius: 7, background: "rgba(255,255,255,.05)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }}>
                                           Cancel
                                         </button>
                                         <button onClick={() => saveEdit(r)} disabled={!draftBody.trim() || savingEdit}
                                           className="px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-white transition hover:brightness-115 disabled:opacity-35"
-                                          style={{ clipPath: "polygon(7px 0, 100% 0, calc(100% - 7px) 100%, 0 100%)", background: `linear-gradient(100deg, #7c3aed, ${ACCENT})` }}>
+                                          style={{ clipPath: "polygon(7px 0, 100% 0, calc(100% - 7px) 100%, 0 100%)", background: `linear-gradient(100deg, #7c3aed, ${F_ACCENT})` }}>
                                           {savingEdit ? "Saving…" : "Save"}
                                         </button>
                                       </div>
@@ -863,22 +894,22 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
 
           {/* ══ TOPICS SIDEBAR ══ */}
           <aside className="lg:sticky lg:top-24 lg:self-start">
-            <div className="p-4" style={{ clipPath: notch(18), background: "rgba(255,255,255,.028)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.08)" }}>
+            <div className="p-4" style={{ borderRadius: 18, background: "rgba(255,255,255,.028)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.08)" }}>
               <div className="mb-3 flex items-center justify-between">
                 <span className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.24em] text-slate-300">
-                  <Hash className="h-3.5 w-3.5" style={{ color: ACCENT }} /> Topics
+                  <Hash className="h-3.5 w-3.5" style={{ color: F_ACCENT }} /> Topics
                 </span>
                 <span className="text-[11px] font-black tabular-nums text-slate-600">{TAGS.length + 1}</span>
               </div>
               <div className="space-y-1">
                 {[{ tag: "All", count: total }, ...topics].map((t) => {
                   const on = tag === t.tag || (t.tag === "All" && tag === "All");
-                  const tint = t.tag === "All" ? ACCENT : TAG_TINT[t.tag];
+                  const tint = t.tag === "All" ? F_ACCENT : TAG_TINT[t.tag];
                   return (
                     <button key={t.tag} onClick={() => setTag(t.tag)}
                       className="flex w-full items-center gap-2.5 px-3 py-2 text-left transition"
                       style={{
-                        clipPath: notch(9),
+                        borderRadius: 9,
                         background: on ? `${tint}22` : "transparent",
                         boxShadow: on ? `inset 0 0 0 1px ${tint}88` : "none",
                       }}>
@@ -944,11 +975,11 @@ function ReplyBox({ postId, onDone }: { postId: string; onDone: () => void }) {
         onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
         placeholder="Write a reply…"
         className="min-w-0 flex-1 bg-black/45 px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600"
-        style={{ clipPath: notch(8), boxShadow: "inset 0 0 0 1px rgba(255,255,255,.11)" }}
+        style={{ borderRadius: 8, boxShadow: "inset 0 0 0 1px rgba(255,255,255,.11)" }}
       />
       <button onClick={send} disabled={!text.trim() || busy} aria-label="Send reply"
         className="grid h-9 w-9 shrink-0 place-items-center text-white transition hover:brightness-115 disabled:opacity-30"
-        style={{ clipPath: notch(7), background: `linear-gradient(100deg, #7c3aed, ${ACCENT})` }}>
+        style={{ borderRadius: 7, background: `linear-gradient(100deg, #7c3aed, ${F_ACCENT})` }}>
         <Send className="h-3.5 w-3.5" />
       </button>
     </div>
@@ -1011,7 +1042,7 @@ function Composer({ onClose, onPosted }: { onClose: () => void; onPosted: () => 
       className="fixed inset-0 z-[130] grid place-items-center bg-black/85 p-4 backdrop-blur" onClick={onClose}>
       <motion.div initial={{ scale: 0.95, y: 14 }} animate={{ scale: 1, y: 0 }}
         className="flex max-h-[92dvh] w-full max-w-xl flex-col p-6"
-        style={{ clipPath: notch(22), background: "linear-gradient(165deg, #16102b, #0c0818)", boxShadow: "inset 0 0 0 1px rgba(162,116,255,.35)" }}
+        style={{ borderRadius: 22, background: "linear-gradient(165deg, #16102b, #0c0818)", boxShadow: "inset 0 0 0 1px rgba(162,116,255,.35)" }}
         onClick={(e) => e.stopPropagation()}>
         <div className="mb-5 flex shrink-0 items-center justify-between">
           <h2 className="text-xl font-black">Create New Post</h2>
@@ -1028,7 +1059,7 @@ function Composer({ onClose, onPosted }: { onClose: () => void; onPosted: () => 
           <input value={title} onChange={(e) => setTitle(e.target.value.slice(0, 30))}
             placeholder="Enter post title…"
             className="mb-4 w-full bg-black/50 px-3.5 py-2.5 text-sm text-white outline-none placeholder:text-slate-600"
-            style={{ clipPath: notch(10), boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }} />
+            style={{ borderRadius: 10, boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }} />
 
           <div className="mb-1 flex items-baseline justify-between">
             <label className="text-sm font-black">Content</label>
@@ -1037,12 +1068,12 @@ function Composer({ onClose, onPosted }: { onClose: () => void; onPosted: () => 
           <textarea value={content} onChange={(e) => setContent(e.target.value.slice(0, 1500))}
             placeholder="What's on your mind?" rows={6}
             className="mb-3 w-full resize-y bg-black/50 px-3.5 py-2.5 text-sm leading-relaxed text-white outline-none placeholder:text-slate-600"
-            style={{ clipPath: notch(10), boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }} />
+            style={{ borderRadius: 10, boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }} />
 
           <input value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)}
             placeholder="Image URL (optional)"
             className="mb-3 w-full bg-black/50 px-3.5 py-2.5 text-sm text-white outline-none placeholder:text-slate-600"
-            style={{ clipPath: notch(10), boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }} />
+            style={{ borderRadius: 10, boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }} />
 
           {/* or bring your own: PC upload (Cloudinary) / KLIPY GIF search —
               both just fill the same mediaUrl the input above edits */}
@@ -1074,7 +1105,7 @@ function Composer({ onClose, onPosted }: { onClose: () => void; onPosted: () => 
                 <button key={t} onClick={() => setTag(t)}
                   className="px-3.5 py-1.5 text-[11px] font-black uppercase tracking-[0.12em] transition"
                   style={{
-                    clipPath: notch(6),
+                    borderRadius: 6,
                     background: on ? `${tint}30` : "rgba(255,255,255,.04)",
                     boxShadow: `inset 0 0 0 1px ${on ? tint : "rgba(255,255,255,.1)"}`,
                     color: on ? "#fff" : "#64748b",
@@ -1089,12 +1120,12 @@ function Composer({ onClose, onPosted }: { onClose: () => void; onPosted: () => 
         <div className="mt-6 flex shrink-0 justify-end gap-2">
           <button onClick={onClose}
             className="px-5 py-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-slate-300 transition hover:brightness-125"
-            style={{ clipPath: notch(9), background: "rgba(255,255,255,.05)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }}>
+            style={{ borderRadius: 9, background: "rgba(255,255,255,.05)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }}>
             Cancel
           </button>
           <button onClick={submit} disabled={!canPost}
             className="px-6 py-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-white transition hover:brightness-115 disabled:opacity-35"
-            style={{ clipPath: "polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%)", background: `linear-gradient(100deg, #7c3aed, ${ACCENT})` }}>
+            style={{ clipPath: "polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%)", background: `linear-gradient(100deg, #7c3aed, ${F_ACCENT})` }}>
             {busy ? "Posting…" : "Create Post"}
           </button>
         </div>

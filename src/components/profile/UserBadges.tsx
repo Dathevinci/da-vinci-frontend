@@ -1,6 +1,6 @@
 "use client";
 
-import { Crown, Shield, Star, Zap, Sparkles } from "lucide-react";
+import { Crown, Shield, Star, Zap, Sparkles, Heart } from "lucide-react";
 import { isLeadDev, isAdmin } from "@/lib/admin";
 import { calculateLevel } from "@/lib/levels";
 import { getHeartRank } from "@/lib/heartRanks";
@@ -106,6 +106,73 @@ export function TitleChips({
     </>
   );
 }
+
+/**
+ * ICON-ONLY BADGES, for dense author lines.
+ *
+ * A feed row has room for a name, a time and a few pixels. Spelling out
+ * "KEEPER OF THE FOUNDATION" beside every post pushes the timestamp onto a
+ * second line and turns the strip into the loudest thing on the card — which
+ * is backwards, because the post is what people came for.
+ *
+ * Each badge collapses to a coloured square holding just its icon, with the
+ * full wording moved to the tooltip. Nothing is lost: the same badges, the
+ * same colours, the same order, a tenth of the width.
+ */
+function IconBadge({ icon: Icon, tint, label }: { icon: any; tint: string; label: string }) {
+  return (
+    <span
+      title={label}
+      aria-label={label}
+      className="grid h-5 w-5 shrink-0 place-items-center rounded-md"
+      style={{ background: `${tint}22`, boxShadow: `inset 0 0 0 1px ${tint}77`, color: tint }}
+    >
+      <Icon className="h-3 w-3" />
+    </span>
+  );
+}
+
+/** The same badges as UserBadges, collapsed to icon squares. */
+export function UserBadgesCompact({
+  user,
+  blessed = false,
+  maxTitles = 1,
+}: {
+  user?: BadgeUser | null;
+  blessed?: boolean;
+  maxTitles?: number;
+}) {
+  if (!user) return null;
+  const lead = isLeadDev(user);
+  const admin = !lead && isAdmin(user);
+  const level = lead || admin ? 10 : calculateLevel(user.xp || 0);
+  const heart = getHeartRank(level);
+  const titles = wornTitles(user).slice(0, Math.max(0, maxTitles));
+
+  return (
+    <>
+      {lead && <IconBadge icon={Crown} tint="#a78bfa" label="Lead Dev" />}
+      {admin && <IconBadge icon={Shield} tint="#fbbf24" label="Staff" />}
+      {user.activeRole === "role_watcher" && <IconBadge icon={Shield} tint="#c084fc" label="The Watcher" />}
+      {user.activeRole === "role_elite" && <IconBadge icon={Star} tint="#facc15" label="Elite" />}
+      {user.activeTag === "tag_og" && <IconBadge icon={Zap} tint="#f87171" label="OG" />}
+      {user.activeTag === "tag_weeb" && <IconBadge icon={Sparkles} tint="#f472b6" label="Weeb Lord" />}
+      {blessed && <IconBadge icon={Sparkles} tint="#fcd34d" label="Blessed" />}
+      {/* The rank keeps its own hue so ten tiers stay distinguishable at a
+          glance — that is the one thing a shared tint would destroy. */}
+      <IconBadge icon={Heart} tint={HEART_TINT[level] || "#94a3b8"} label={`${heart.name} · ${heart.numeral}`} />
+      {titles.map((t) => (
+        <IconBadge key={t} icon={Crown} tint="#fbbf24" label={t} />
+      ))}
+    </>
+  );
+}
+
+/** One colour per Heart tier, mirroring the badgeClass gradients in heartRanks. */
+const HEART_TINT: Record<number, string> = {
+  1: "#94a3b8", 2: "#7dd3fc", 3: "#38bdf8", 4: "#34d399", 5: "#a3e635",
+  6: "#facc15", 7: "#fb923c", 8: "#f87171", 9: "#2dd4bf", 10: "#fb7185",
+};
 
 export default function UserBadges({
   user,

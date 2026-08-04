@@ -168,7 +168,7 @@ export async function fetchInfo(id: string): Promise<IMangaInfo> {
   };
 }
 
-async function fetchChapters(mid: string): Promise<IMangaChapter[]> {
+async function fetchChapters(mid: string, langs: string[] | null = ["en"]): Promise<IMangaChapter[]> {
   const limit = 500;
   const raw: any[] = [];
   // Newest-first (order desc) to match the AsuraScans convention the detail
@@ -176,7 +176,8 @@ async function fetchChapters(mid: string): Promise<IMangaChapter[]> {
   // series can't hammer the API.
   for (let offset = 0; offset < 3000; offset += limit) {
     const q = qs({
-      "translatedLanguage[]": ["en"],
+      // `langs: null` drops the language filter entirely — see the retry below.
+      ...(langs ? { "translatedLanguage[]": langs } : {}),
       "contentRating[]": RATINGS,
       "order[chapter]": "desc",
       "includes[]": ["scanlation_group"],
@@ -215,6 +216,26 @@ async function fetchChapters(mid: string): Promise<IMangaChapter[]> {
       isLocked: false,
     });
   }
+
+  /**
+   * IF ENGLISH GAVE US NOTHING READABLE, TRY EVERY LANGUAGE ONCE.
+   *
+   * Search asks for `availableTranslatedLanguage: en`, so a title only reaches
+   * us if SOME English chapter exists — but "exists" is not "readable". The
+   * filter above drops chapters that are external links, unavailable, or carry
+   * no pages, and for officially licensed series that is every single English
+   * chapter. The result was a series page that looked complete and listed
+   * nothing, which is exactly what keeps getting reported.
+   *
+   * Manhwa pages are art, so a non-English scan is genuinely readable rather
+   * than a consolation prize — far better than an empty list. Only ever one
+   * retry, and only when the first pass found nothing, so a healthy series
+   * costs no extra request.
+   */
+  if (out.length === 0 && langs !== null) {
+    return fetchChapters(mid, null);
+  }
+
   return out;
 }
 
