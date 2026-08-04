@@ -8,7 +8,7 @@ import {
   ArrowLeft, ArrowRight, RotateCw, Home, X, Search, Settings, LogOut,
   Tv, BookOpen, Feather, Layers, Swords, Castle, FlaskConical,
   Store, Gavel, Users, Trophy, ShoppingBag, Megaphone,
-  Compass, Activity, Calendar, Clock, HelpCircle, Heart, Terminal,
+  Compass, Activity, Calendar, Clock, HelpCircle, Heart, Terminal, LayoutGrid,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { isLeadDev } from "@/lib/admin";
@@ -26,6 +26,7 @@ import NotificationsMenu from "./NotificationsMenu";
  */
 
 const PAGES: { href: string; label: string; Icon: any; tint: string }[] = [
+  { href: "/hub",         label: "The Hub",          Icon: LayoutGrid,   tint: "#8b5cf6" },
   { href: "/",            label: "Anime Home",       Icon: Tv,           tint: "#a274ff" },
   { href: "/manhwa",      label: "Manhwa Home",      Icon: BookOpen,     tint: "#38bdf8" },
   { href: "/novel",       label: "Novel Home",       Icon: Feather,      tint: "#fbbf24" },

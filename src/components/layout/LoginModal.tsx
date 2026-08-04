@@ -1,14 +1,24 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { isAdmin, isLeadDev } from "@/lib/admin";
 import { useUser } from "@/hooks/useUser";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import { useToast } from "@/components/ui/Toast";
 
-export default function LoginModal({ onClose }: { onClose: () => void }) {
+export default function LoginModal({
+  onClose,
+  redirectTo,
+}: {
+  onClose: () => void;
+  /** Where a successful sign-in lands. The landing page sends people to the
+   *  Hub; everywhere else omits it and stays on the page they were on. */
+  redirectTo?: string;
+}) {
   const { login, signup } = useUser();
+  const router = useRouter();
   const { toast } = useToast();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [identifier, setIdentifier] = useState("");
@@ -49,6 +59,7 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
         toast('Welcome to Da Vinci!', "success");
       }
       onClose();
+      if (redirectTo) router.push(redirectTo);
     } else {
       setError(res.message || "Authentication failed. Please try again.");
     }

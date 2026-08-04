@@ -137,6 +137,18 @@ export default function HeroBannerCarousel({ animes }: Props) {
   const title = (hero.title_english || hero.title || "") as string;
   const words = title.split(" ");
   const lastWord = words.length > 1 ? words.pop() : null;
+  // Long light-novel titles scale DOWN instead of wrapping into a wall —
+  // a 100-character title at text-6xl stacked four huge lines and shoved
+  // the buttons off the stage.
+  const titleCls = title.length > 70
+    ? "text-xl sm:text-2xl md:text-3xl"
+    : title.length > 40
+      ? "text-3xl sm:text-4xl md:text-5xl"
+      : "text-4xl sm:text-5xl md:text-6xl";
+  // The ghost is a WATERMARK, not a second title — ghosting the whole of a
+  // long title painted serif clean across the hero. Only the tail haunts.
+  const tail = title.split(" ").slice(-2).join(" ");
+  const ghostText = tail.length > 24 ? title.split(" ").slice(-1)[0] : tail;
   const bgImg = (hero.trailer?.images?.maximum_image_url ||
     hero.images?.jpg?.large_image_url ||
     hero.images?.jpg?.image_url ||
@@ -201,7 +213,7 @@ export default function HeroBannerCarousel({ animes }: Props) {
           className="pointer-events-none absolute right-[-2%] top-[32%] z-[2] hidden whitespace-nowrap font-fell text-7xl italic md:block lg:text-8xl"
           style={{ color: accent }}
         >
-          {title}
+          {ghostText}
         </motion.span>
       </AnimatePresence>
 
@@ -342,7 +354,7 @@ export default function HeroBannerCarousel({ animes }: Props) {
               {hero.year ? <span className="px-2.5 py-1 text-slate-300">{hero.year}</span> : null}
             </div>
 
-            <h1 className="max-w-3xl text-center font-fell text-4xl leading-[1.04] text-white drop-shadow-2xl sm:text-5xl md:text-6xl">
+            <h1 className={`max-w-4xl text-center font-fell leading-[1.04] text-white drop-shadow-2xl ${titleCls}`}>
               {words.join(" ")}
               {lastWord && (
                 <>

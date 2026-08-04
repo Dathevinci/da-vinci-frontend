@@ -3,7 +3,7 @@
 import { useUser } from "@/hooks/useUser";
 import { useState } from "react";
 import LoginModal from "@/components/layout/LoginModal";
-import { Lock, KeyRound, Tv, BookMarked, BookOpen } from "lucide-react";
+import { Lock, Play, ArrowRight, Tv, BookMarked, BookOpen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // Shared amethyst-purple text fill, matching the splash wordmark + site theme.
@@ -99,41 +99,68 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
         <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_20%_78%,rgba(220,38,38,0.12)_0%,transparent_50%)]" />
         <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_80%_75%,rgba(236,72,153,0.12)_0%,transparent_50%)]" />
 
-        {/* ── FLOATING PILL BAR ── */}
+        {/* ── FLOATING PILL BAR, with the mascot perched on top of it ── */}
         <motion.div
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.8, ease: easeCine }}
-          className="absolute inset-x-0 top-5 z-20 flex justify-center px-4"
+          className="absolute inset-x-0 top-9 z-20 flex justify-center px-4"
         >
-          <div className="flex items-center gap-2 rounded-full border border-white/10 bg-black/50 px-3 py-2 backdrop-blur-xl sm:gap-5 sm:px-5">
-            <span className="flex items-center gap-2 pr-1 sm:pr-3">
-              <img src="/logo.png" alt="" className="h-7 w-7 rounded-full object-cover ring-1 ring-violet-400/50" />
-              <span className="font-fell text-sm font-bold uppercase tracking-[0.24em] text-white">Da Vinci</span>
-            </span>
-            <span aria-hidden className="hidden h-5 w-px bg-white/10 sm:block" />
-            <span className="hidden items-center gap-1.5 text-[11px] font-bold text-slate-300 sm:flex">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Anime
-            </span>
-            <span className="hidden items-center gap-1.5 text-[11px] font-bold text-slate-300 sm:flex">
-              <span className="h-1.5 w-1.5 rounded-full bg-red-400" /> Manhwa
-            </span>
-            <span className="hidden items-center gap-1.5 text-[11px] font-bold text-slate-300 sm:flex">
-              <span className="h-1.5 w-1.5 rounded-full bg-pink-400" /> Novels
-            </span>
+          <div className="relative">
+            {/* the mascot bobs gently above the bar, pointer tucked under it */}
+            <motion.div
+              aria-hidden
+              animate={{ y: [0, -4, 0] }}
+              transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+              className="pointer-events-none absolute -top-8 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center"
+            >
+              <img src="/logo.png" alt="" className="h-10 w-10 rounded-full object-cover shadow-[0_6px_20px_rgba(0,0,0,.6)] ring-2 ring-white/25" />
+              <span className="-mt-1 h-2.5 w-2.5 rotate-45 rounded-[2px] bg-white/90" />
+            </motion.div>
+            <div className="flex items-center gap-1 rounded-full border border-white/10 bg-black/55 px-2 py-1.5 backdrop-blur-xl sm:gap-2 sm:px-3">
+              <span className="flex items-center gap-2 px-2 sm:pr-4">
+                <img src="/logo.png" alt="" className="h-6 w-6 rounded-full object-cover ring-1 ring-violet-400/50" />
+                <span className="font-fell text-sm font-bold uppercase tracking-[0.22em] text-white">Da Vinci</span>
+              </span>
+              <span className="rounded-full bg-white/12 px-4 py-1.5 text-[11px] font-bold text-white">Home</span>
+              <span className="hidden items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-slate-300 sm:flex">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Anime
+              </span>
+              <span className="hidden items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-slate-300 sm:flex">
+                <span className="h-1.5 w-1.5 rounded-full bg-red-400" /> Manhwa
+              </span>
+              <span className="hidden items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-slate-300 sm:flex">
+                <span className="h-1.5 w-1.5 rounded-full bg-pink-400" /> Novels
+              </span>
+              <button
+                onClick={() => setShowLogin(true)}
+                className="rounded-full px-3 py-1.5 text-[11px] font-bold text-slate-300 transition hover:bg-white/10 hover:text-white"
+              >
+                Enter
+              </button>
+            </div>
           </div>
         </motion.div>
 
-        {/* ── HERO ── */}
+        {/* ── HERO ── the owner's reference layout: status pills, the huge
+            wordmark with art living inside the letters, one mono tagline
+            with the load-bearing words in white, two doors, and the three
+            arts as a breadcrumb trail. */}
         <div className="relative z-10 flex min-h-screen flex-col items-center justify-center text-center">
           <motion.div
             initial={{ y: 14, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.15, ease: easeCine }}
-            className="mb-6 inline-flex items-center gap-2 rounded-full border border-violet-300/25 bg-black/40 px-4 py-1.5 backdrop-blur"
+            className="mb-8 flex flex-wrap items-center justify-center gap-2"
           >
-            <Lock className="h-3 w-3 text-violet-200" strokeWidth={2} />
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-violet-100">Invitation only</span>
+            <span className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-black/50 px-3.5 py-1.5 backdrop-blur">
+              <Lock className="h-3 w-3 text-emerald-300" strokeWidth={2.5} />
+              <span className="font-mono text-[11px] font-bold tracking-wide text-slate-200">invitation only</span>
+            </span>
+            <span className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-black/50 px-3.5 py-1.5 backdrop-blur">
+              <span className="h-1.5 w-1.5 rounded-full bg-violet-400" />
+              <span className="font-mono text-[11px] font-bold tracking-wide text-slate-200">three arts inside</span>
+            </span>
           </motion.div>
 
           {/* The wordmark — a window onto the art behind it */}
@@ -147,72 +174,61 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
             Da Vinci
           </motion.h1>
 
-          {/* Ornamental rule */}
-          <motion.div
-            initial={{ opacity: 0, scaleX: 0 }}
-            animate={{ opacity: 1, scaleX: 1 }}
-            transition={{ duration: 0.9, delay: 0.35, ease: easeCine }}
-            className="mt-7 mb-7 h-px w-44 origin-center bg-[linear-gradient(to_right,transparent,rgba(167,139,250,0.6),rgba(248,113,113,0.5),rgba(244,114,182,0.6),transparent)] md:w-72"
-          />
-
-          {/* Refined Renaissance copy */}
           <motion.p
             initial={{ y: 16, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.9, delay: 0.25, ease: easeCine }}
-            className="font-garamond mb-3 max-w-2xl text-xl italic leading-relaxed text-violet-50/90 md:text-3xl"
+            transition={{ duration: 0.9, delay: 0.28, ease: easeCine }}
+            className="mx-auto mt-8 mb-10 max-w-2xl font-mono text-base leading-relaxed text-slate-400 md:text-lg"
           >
-            An invitation-only atelier for the devoted student of the anime, manhwa &amp; light-novel arts.
-          </motion.p>
-          <motion.p
-            initial={{ y: 16, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.9, delay: 0.32, ease: easeCine }}
-            className="text-sm md:text-base text-slate-400/80 mb-12 max-w-md mx-auto font-light tracking-wide"
-          >
-            Present your seal to unlock the vault — anime to watch, manhwa &amp; novels to read — and begin your study.
+            The anime, manhwa &amp; light-novel atelier that&apos;s{" "}
+            <strong className="font-bold text-white">invitation-only</strong>,{" "}
+            <strong className="font-bold text-white">ad-free</strong>, and{" "}
+            <strong className="font-bold text-white">beautiful</strong>.
           </motion.p>
 
-          {/* ── ONE WAY IN ──────────────────────────────────────────────────
-              There were three buttons — Sign in, Request Access, I have a seal
-              — and every one of them opened the SAME modal. Three doors into
-              one room is a choice the visitor has to make for no reason and
-              can't make wrongly. The modal already handles both new and
-              returning people, so the page offers one door and says so. */}
+          {/* ── TWO DOORS ── the white one starts the journey (the modal
+              handles both new seals and returning ones), the dark one goes
+              to the atelier's Discord. */}
           <motion.div
             initial={{ y: 16, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.9, delay: 0.4, ease: easeCine }}
-            className="flex flex-col items-center gap-3"
+            className="flex flex-wrap items-center justify-center gap-3"
           >
             <button
               onClick={() => setShowLogin(true)}
-              className="group inline-flex items-center gap-3 rounded-full bg-white px-10 py-4 text-sm font-black uppercase tracking-[0.16em] text-black shadow-[0_10px_40px_rgba(0,0,0,.6)] transition hover:brightness-90 focus:outline-none focus:ring-2 focus:ring-white/40"
+              className="group inline-flex items-center gap-2.5 rounded-2xl bg-white px-8 py-3.5 font-mono text-sm font-black text-black shadow-[0_10px_40px_rgba(0,0,0,.6)] transition hover:brightness-90 focus:outline-none focus:ring-2 focus:ring-white/40"
             >
-              <KeyRound className="h-4 w-4 transition-transform duration-500 group-hover:-rotate-12" strokeWidth={2} />
-              Enter the Vault
+              <Play className="h-4 w-4" fill="currentColor" strokeWidth={0} />
+              Start Watching
             </button>
-            <p className="text-[11px] font-bold tracking-wide text-slate-400">
-              Already have a seal? Same door.
-            </p>
+            <a
+              href="https://discord.gg/dSPPjPUQbM"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group inline-flex items-center gap-2.5 rounded-2xl border border-white/12 bg-white/[0.06] px-7 py-3.5 font-mono text-sm font-bold text-slate-100 backdrop-blur transition hover:bg-white/10"
+            >
+              Join Discord
+              <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+            </a>
           </motion.div>
 
-          {/* ── THE THREE ARTS ── */}
+          {/* ── THE THREE ARTS, as a trail ── each one is a door too. */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.55, ease: easeCine }}
-            className="mt-12 flex flex-wrap items-center justify-center gap-x-7 gap-y-2 text-[11px] font-black uppercase tracking-[0.24em]"
+            className="mt-12 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 font-mono text-[12px] font-bold"
           >
-            <span className="flex items-center gap-2 text-violet-300">
-              <Tv className="h-3.5 w-3.5" /> Anime
-            </span>
-            <span className="flex items-center gap-2 text-red-400">
-              <BookMarked className="h-3.5 w-3.5" /> Manhwa
-            </span>
-            <span className="flex items-center gap-2 text-pink-400">
-              <BookOpen className="h-3.5 w-3.5" /> Novels
-            </span>
+            <button onClick={() => setShowLogin(true)} className="flex items-center gap-2 text-slate-300 transition hover:text-violet-300">
+              <Tv className="h-3.5 w-3.5" /> Anime <span className="text-slate-600">&rsaquo;</span>
+            </button>
+            <button onClick={() => setShowLogin(true)} className="flex items-center gap-2 text-slate-300 transition hover:text-red-300">
+              <BookMarked className="h-3.5 w-3.5" /> Manhwa <span className="text-slate-600">&rsaquo;</span>
+            </button>
+            <button onClick={() => setShowLogin(true)} className="flex items-center gap-2 text-slate-300 transition hover:text-pink-300">
+              <BookOpen className="h-3.5 w-3.5" /> Novel <span className="text-slate-600">&rsaquo;</span>
+            </button>
           </motion.div>
         </div>
 
@@ -227,7 +243,9 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
         </motion.div>
 
         <AnimatePresence>
-          {showLogin && <LoginModal onClose={() => setShowLogin(false)} />}
+          {/* Landing sign-ins arrive at the Hub — the sections screen is the
+              "what do you want today" moment the reference flow opens with. */}
+          {showLogin && <LoginModal onClose={() => setShowLogin(false)} redirectTo="/hub" />}
         </AnimatePresence>
       </div>
     );
