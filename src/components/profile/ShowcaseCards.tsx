@@ -245,13 +245,18 @@ export default function ShowcaseCards({
 
   const list = editing ? draft : committed;
 
+  /* MONOCHROME CHROME, COLOURED CARDS.
+     The panel's default fill is violet-tinted ink, which suits the card game's
+     own screens but competes with the art on a shelf whose whole job is to
+     frame four paintings. Neutral grey lets the cards be the only colour in the
+     block — the cards themselves are untouched, since desaturating those is
+     reserved for marking a pin you no longer own.
+
+     This comment sits ABOVE the return, not inside it. A JSX comment placed as
+     the first thing inside a return parenthesis is two children where JSX
+     allows one, and it is a PARSE error — one of the few things that actually
+     fails this build rather than shipping broken. */
   return (
-    {/* MONOCHROME CHROME, COLOURED CARDS.
-        The panel's default fill is violet-tinted ink, which suits the card
-        game's own screens but competes with the art on a shelf whose whole job
-        is to frame four paintings. Neutral grey lets the cards be the only
-        colour in the block — the cards themselves are untouched, since
-        desaturating those is reserved for marking a pin you no longer own. */}
     <Panel size={20} className="mb-6"
       surface="linear-gradient(165deg, #16161a 0%, #101012 55%, #0a0a0c 100%)">
       <div className="relative p-5">
