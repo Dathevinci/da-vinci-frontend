@@ -149,10 +149,12 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
             backgroundSize: "cover",
             backgroundPosition: "center",
             // Blur pushes the art back so the copy sits in front of it rather
-            // than fighting it. Scaled up because a blur samples past its own
-            // edges and would otherwise leave a soft border around the screen.
-            filter: "blur(14px) saturate(1.1)",
-            transform: "scale(1.08)",
+            // than fighting it — but 14px erased the artwork entirely, leaving
+            // a coloured haze. Six keeps it soft enough to read text over and
+            // still recognisable as a picture. Scaled up because a blur samples
+            // past its own edges and would otherwise leave a soft border.
+            filter: "blur(6px) saturate(1.1)",
+            transform: "scale(1.04)",
           }}
         />
         {/* Scrims. Two of them: a flat darkener so text is legible over any
