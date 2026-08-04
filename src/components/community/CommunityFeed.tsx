@@ -154,7 +154,8 @@ const CommentThread = ({
   handleBless,
   handlePin,
   onReport,
-  showContext
+  showContext,
+  linkToPost
 }: {
   node: CommentNode;
   depth?: number;
@@ -175,6 +176,13 @@ const CommentThread = ({
   handlePin: (id: string) => Promise<void>;
   onReport: (id: string) => void;
   showContext?: boolean;
+  /**
+   * Only the forum LIST opens a comment in its own page. Inside a post, and
+   * anywhere on anime/manhwa/novel, a top-level comment replies in place —
+   * otherwise every reply spawned another permalink, and replying to that one
+   * spawned another, forever.
+   */
+  linkToPost?: boolean;
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(node.content);
@@ -521,7 +529,7 @@ const CommentThread = ({
           {/* Top-level comments OPEN THEIR OWN PAGE — a thread you can link,
               share and open in a tab. Nested replies keep the inline box,
               since you're already inside the thread they belong to. */}
-          {depth === 0 ? (
+          {depth === 0 && linkToPost ? (
             <Link
               href={`/community/post/${node.id}`}
               title="Open this thread"
@@ -662,6 +670,7 @@ const CommentThread = ({
                     handlePin={handlePin}
                     onReport={onReport}
                     showContext={showContext}
+                    linkToPost={linkToPost}
                   />
                 ))}
               </>
@@ -1415,6 +1424,12 @@ export default function CommunityFeed({
                 handlePin={handlePin}
                     onReport={onReport}
                 showContext={!animeId && !mangaId && !novelId}
+                // The forum LIST is the only place a comment opens its own
+                // page. On a post's page its replies are themselves depth 0,
+                // so linking there meant every reply opened another page, and
+                // replying inside that opened another — with no way back to
+                // simply answering someone.
+                linkToPost={!postId && !animeId && !mangaId && !novelId}
               />
             ))}
             

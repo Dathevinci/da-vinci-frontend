@@ -367,13 +367,18 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
 
       {/* Chapter Comments */}
       {!isFullscreen && (
-        <div className="max-w-[1000px] mx-auto p-4 sm:p-8 mt-4 border-t border-white/5">
-          <CommunityFeed 
-            mangaId={id} 
-            mangaTitle={manhwa?.title} 
-            chapterId={chapterId} 
-            chapterTitle={currentChapter?.title || `Chapter`} 
+        {/* Its own dark surface: the reader's page tint sits behind this, and
+            the comment chrome is built for dark. Pinning the background here
+            keeps it readable whatever the reader is set to. */}
+        <div className="mt-4 border-t border-white/5 bg-[#09090b] text-white">
+          <div className="max-w-[1000px] mx-auto p-4 sm:p-8">
+          <CommunityFeed
+            mangaId={id}
+            mangaTitle={manhwa?.title}
+            chapterId={chapterId}
+            chapterTitle={currentChapter?.title || `Chapter`}
           />
+          </div>
         </div>
       )}
     </div>
