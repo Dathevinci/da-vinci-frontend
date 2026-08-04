@@ -19,7 +19,20 @@ const MAX_WORN = 3;
  * page's edit stays a single line. The server re-derives ownership from
  * claimedSets on every save, so this picker is a convenience, not the check.
  */
-export default function TitleRack({ userId, isMine }: { userId: string; isMine: boolean }) {
+export default function TitleRack({ userId, isMine, onChange }: {
+  userId: string;
+  isMine: boolean;
+  /**
+   * Fires whenever the worn set changes — on load and after a save.
+   *
+   * The rack owns this data (it fetches /api/cards/titles itself), but the
+   * profile HERO now renders the same titles from its own `profileUser`
+   * object. Without this the two disagree the moment you change anything:
+   * the rack updates, the strip beside your name keeps showing the old
+   * titles, and only a reload settles it.
+   */
+  onChange?: (worn: string[]) => void;
+}) {
   const [owned, setOwned] = useState<{ set: string; title: string }[]>([]);
   const [worn, setWorn] = useState<string[]>([]);
   const [editing, setEditing] = useState(false);
@@ -34,6 +47,7 @@ export default function TitleRack({ userId, isMine }: { userId: string; isMine: 
         if (!d?.success) return;
         setOwned(d.data.owned || []);
         setWorn(d.data.equipped || []);
+        onChange?.(d.data.equipped || []);
       })
       .catch(() => { /* offline — the section simply isn't there */ });
   }, [userId]);
@@ -57,6 +71,7 @@ export default function TitleRack({ userId, isMine }: { userId: string; isMine: 
       const d = await r.json();
       if (d?.success) {
         setWorn(d.data.equipped || []);
+        onChange?.(d.data.equipped || []);
         setEditing(false);
       }
     } catch { /* leave the picker open so the choice isn't lost */ } finally { setSaving(false); }

@@ -44,6 +44,7 @@ import NovelTrackerButton from "@/components/novel/NovelTrackerButton";
 import { novelCover } from "@/lib/novelImage";
 import ShowcaseCards from "@/components/profile/ShowcaseCards";
 import TitleRack from "@/components/profile/TitleRack";
+import { TitleChips } from "@/components/profile/UserBadges";
 import RecentComments from "@/components/profile/RecentComments";
 
 export default function PublicProfilePage() {
@@ -53,6 +54,10 @@ export default function PublicProfilePage() {
   const { toast } = useToast();
   
   const [profileUser, setProfileUser] = useState<User | null>(null);
+  /** Worn titles, owned by TitleRack. `null` until it has answered — the hero
+   *  falls back to the profile payload in the meantime rather than flashing
+   *  an empty strip on every load. */
+  const [wornTitles, setWornTitles] = useState<string[] | null>(null);
   const [watchlist, setWatchlist] = useState<any[]>([]);
   const [manhwaWatchlist, setManhwaWatchlist] = useState<any[]>([]);
   const [novelWatchlist, setNovelWatchlist] = useState<any[]>([]);
@@ -483,6 +488,25 @@ export default function PublicProfilePage() {
                   <span className="text-xs font-black tracking-wider uppercase">Weeb Lord</span>
                 </div>
               )}
+              {/* WORN TITLES, beside the role and the rank at last.
+                  This row drew everything a profile could say about someone
+                  EXCEPT the one thing they actually chose. Titles lived only in
+                  the rack further down the page, so they now appeared on every
+                  comment and forum post while being absent from the profile
+                  those comments link back to.
+                  All three are shown, not one: this row has the width, and the
+                  rack right below it is where the wearer picks them — a hero
+                  that showed fewer than the rack would look like a bug in the
+                  rack. */}
+              {/* Seeded from the profile payload so the strip paints on first
+                  render, then kept live by the rack below. `null` means the
+                  rack has not answered yet — falling back to profileUser then
+                  avoids a flash of no titles on load. */}
+              <TitleChips
+                user={wornTitles ? { equippedTitles: wornTitles } : profileUser}
+                size="md"
+                max={3}
+              />
             </div>
 
             {/* one line of facts, channel-style — four stat boxes read as a
@@ -564,7 +588,10 @@ export default function PublicProfilePage() {
             profile does not grow empty boxes and a failed fetch degrades to an
             absent section rather than a broken page. */}
         <div className="px-1 pt-6">
-          <TitleRack userId={profileUser.id} isMine={isSelf} />
+          {/* onChange keeps the hero strip and this rack in agreement. The
+              rack is the one that actually knows — it fetches the titles
+              endpoint — so it feeds the page rather than the other way round. */}
+          <TitleRack userId={profileUser.id} isMine={isSelf} onChange={setWornTitles} />
           <ShowcaseCards
             userId={profileUser.id}
             isMine={isSelf}
