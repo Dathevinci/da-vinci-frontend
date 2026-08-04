@@ -154,7 +154,15 @@ function AuthorLine({ user, blessed }: { user?: Author; blessed?: boolean }) {
  * line saying so — moderating quietly, in a UI identical to editing your own,
  * is how someone deletes a member's post thinking it was theirs.
  */
-function PostMenu({ isOwn, onEdit, onDelete }: { isOwn: boolean; onEdit: () => void; onDelete: () => void }) {
+function PostMenu({ isOwn, isPinned, canPin, onEdit, onDelete, onPin }: {
+  isOwn: boolean;
+  isPinned?: boolean;
+  /** Staff only. The server gates this too — this just decides whether to draw it. */
+  canPin: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+  onPin: () => void;
+}) {
   const [open, setOpen] = useState(false);
   useEffect(() => {
     if (!open) return;
@@ -180,6 +188,14 @@ function PostMenu({ isOwn, onEdit, onDelete }: { isOwn: boolean; onEdit: () => v
             <span className="block px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.18em] text-amber-300/80">
               Moderating
             </span>
+          )}
+          {canPin && (
+            <button onClick={(e) => { e.stopPropagation(); setOpen(false); onPin(); }}
+              className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-bold transition hover:bg-amber-400/10 ${
+                isPinned ? "text-amber-300" : "text-slate-300 hover:text-amber-200"}`}>
+              <Pin className={`h-3.5 w-3.5 ${isPinned ? "fill-current" : ""}`} />
+              {isPinned ? "Unpin post" : "Pin post"}
+            </button>
           )}
           <button onClick={(e) => { e.stopPropagation(); setOpen(false); onEdit(); }}
             className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-bold text-slate-300 transition hover:bg-white/5 hover:text-white">
@@ -292,6 +308,9 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
    * and again in the feed below.
    */
   const [pinned, setPinned] = useState<Post[]>([]);
+  // Bumped after a pin/unpin so the shelf refetches — the feed's own reload
+  // doesn't necessarily change posts.length, so nothing else would.
+  const [pinRefresh, setPinRefresh] = useState(0);
   useEffect(() => {
     const url = new URL(`${API_URL}/api/comments`);
     url.searchParams.set("forum", "true");
@@ -301,7 +320,7 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
       .then((r) => r.json())
       .then((d) => { if (d?.success && Array.isArray(d.data)) setPinned(d.data.filter((p: Post) => !p.parentId)); })
       .catch(() => {});
-  }, [user?.id, posts.length]);
+  }, [user?.id, posts.length, pinRefresh]);
 
   const pinnedIds = useMemo(() => new Set(pinned.map((p) => p.id)), [pinned]);
 
@@ -379,6 +398,35 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
       toast("Couldn't save that.", "error");
     } finally {
       setSavingEdit(false);
+    }
+  };
+
+  /** Staff only, and the server checks the token independently. */
+  const canPin = !!user && (isAdmin(user.username) || isLeadDev(user));
+
+  /**
+   * Pin or unpin. The forum could SHOW pinned posts but never had a control
+   * to create one — the only pin toggle in the app lived on media comment
+   * threads, so a forum post could only be pinned from outside the forum.
+   */
+  const togglePin = async (p: Post) => {
+    if (!user) return;
+    const wasPinned = !!p.isPinned;
+    setPosts((list) => list.map((x) => (x.id === p.id ? { ...x, isPinned: !wasPinned } : x)));
+    try {
+      const r = await fetch(`${API_URL}/api/comments/${p.id}/pin`, {
+        method: "PUT",
+        headers: authHeaders(),
+        body: JSON.stringify({ userId: user.id }),
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) throw new Error(d.message || "Couldn't change the pin.");
+      toast(wasPinned ? "Unpinned." : "Pinned to the top.", "success");
+      load();          // refresh the feed ordering
+      setPinRefresh((n) => n + 1); // and the shelf
+    } catch (err: any) {
+      setPosts((list) => list.map((x) => (x.id === p.id ? { ...x, isPinned: wasPinned } : x)));
+      toast(err?.message || "Couldn't change the pin.", "error");
     }
   };
 
@@ -631,8 +679,11 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                         {canManage(p) && (
                           <PostMenu
                             isOwn={p.user?.id === user?.id}
+                            isPinned={p.isPinned}
+                            canPin={canPin}
                             onEdit={() => startEdit(p)}
                             onDelete={() => removePost(p)}
+                            onPin={() => togglePin(p)}
                           />
                         )}
                       </div>
@@ -751,8 +802,10 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                                     {canManage(r) && (
                                       <PostMenu
                                         isOwn={r.user?.id === user?.id}
+                                        canPin={false} /* pinning a reply would put it on a shelf of posts */
                                         onEdit={() => startEdit(r)}
                                         onDelete={() => removePost(r)}
+                                        onPin={() => {}}
                                       />
                                     )}
                                   </div>
