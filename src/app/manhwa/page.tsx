@@ -10,6 +10,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, BookMarked, Flame, Clock, Star } from "lucide-react";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 import HeroSearchBar from "@/components/ui/HeroSearchBar";
+import LatestUpdatesGrid from "@/components/manhwa/LatestUpdatesGrid";
 import { useSearchParams, useRouter } from "next/navigation";
 import { IMangaResult, ISearch } from "@/lib/asura/models";
 import { motion, AnimatePresence } from "framer-motion";
@@ -134,6 +135,16 @@ function ManhwaPageInner() {
               {topRated.length > 0 && (
                 <ManhwaCarousel title="Top Rated" icon={<Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />} items={topRated} />
               )}
+
+              {/* The reference layout's defining block: chapters you can
+                  actually reach, with when they landed — rather than another
+                  rail of covers. */}
+              <div className="pt-6">
+                <LatestUpdatesGrid
+                  items={latestUpdates}
+                  subtitle="Freshly uploaded chapters from AsuraScans and MangaDex"
+                />
+              </div>
 
               {/* Browse-all CTA */}
               <div className="flex justify-center pt-4 pb-2 pl-4 md:pl-12">
