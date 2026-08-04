@@ -11,7 +11,7 @@ import { isLeadDev, displayArisePoints, displayShards } from "@/lib/admin";
 import { authHeaders } from "@/lib/authToken";
 import { useToast } from "@/components/ui/Toast";
 import PageTransition from "@/components/layout/PageTransition";
-import CardFace, { CardDef, CardRarity, RARITY_META, supportText } from "@/components/cards/CardFace";
+import CardFace, { CardDef, CardRarity, RARITY_META, supportText, groundText } from "@/components/cards/CardFace";
 import PackReveal from "@/components/cards/PackReveal";
 import { Panel, CornerTicks, Stars, SegBar, GachaButton, Heading, StatRow, notch, ACCENT, ACCENT_LIT, GachaAmbience, Rise, Twinkles } from "@/components/cards/gacha";
 import { DIMENSIONS, DIMENSION_ORDER, CARD_LORE } from "@/data/cardLore";
@@ -40,6 +40,17 @@ type Catalog = {
   upgradeGrowth?: number;
   levelStep?: number;
   cardStats?: Record<string, { hp: number; atk: number }>;
+  /** PER-CARD stats, which outrank cardStats (keyed by rarity). The Knight set
+   *  is authored card by card, so without this a Squire renders the common
+   *  line — 18/7 instead of the 9/4 it actually fights at. */
+  cardStatsById?: Record<string, { hp: number; atk: number }>;
+  /** Merge rules — the cap, the step, and the full shard ladder per rarity, so
+   *  the button can name the price before the finger commits. */
+  merge?: {
+    max: number;
+    step: number;
+    cost: Record<string, number[]>;
+  };
   foilMult?: number;
   maxSkillLevel?: number;
   maxDomainLevel?: number;
@@ -73,6 +84,16 @@ export default function CardsPage() {
   const [skillLevels, setSkillLevels] = useState<Record<string, number>>({});
   // Forge ranks — flat per-stat training, the third shard track.
   const [forges, setForges] = useState<Record<string, { atk: number; hp: number }>>({});
+  /**
+   * THE PULL ROLL — this copy's own HP/ATK, stamped when it was pulled, plus
+   * how many times it has been merged. Held here rather than derived because
+   * it is a property of the COPY, not the card: two players holding the same
+   * card hold genuinely different objects, and the binder is where that has to
+   * become visible. Until this shipped, every surface fell back to the printed
+   * line and the randomisation was invisible outside a duel.
+   */
+  const [rolls, setRolls] = useState<Record<string, { hp?: number | null; atk?: number | null }>>({});
+  const [merges, setMerges] = useState<Record<string, number>>({});
   // The binder's two readings: BY SET (the chase — what's missing) or
   // INVENTORY (what you HOLD, by rarity, legendaries shelved by build).
   const [view, setView] = useState<"sets" | "inv" | "dex">("sets");
@@ -128,6 +149,8 @@ export default function CardsPage() {
     const sk: Record<string, number> = {};
     const fg: Record<string, { atk: number; hp: number }> = {};
     const pr: Record<string, { serial: number; condition: string }[]> = {};
+    const rl: Record<string, { hp?: number | null; atk?: number | null }> = {};
+    const mg: Record<string, number> = {};
     for (const c of data?.cards || []) {
       map[c.cardId] = c.count;
       if (c.foil) fo[c.cardId] = true;
@@ -135,6 +158,14 @@ export default function CardsPage() {
       lv[c.cardId] = c.level || 1;
       sk[c.cardId] = c.skillLevel || 1;
       fg[c.cardId] = { atk: c.atkForge || 0, hp: c.hpForge || 0 };
+      // Only recorded when the server actually rolled this copy. A null is NOT
+      // written as 0 — CardFace treats a positive number as the roll and
+      // anything else as "use the printed line", so a zero here would render
+      // every pre-roll card as a 0/0.
+      if (typeof c.rolledHp === "number" || typeof c.rolledAtk === "number") {
+        rl[c.cardId] = { hp: c.rolledHp, atk: c.rolledAtk };
+      }
+      if (c.merges) mg[c.cardId] = c.merges;
       if (Array.isArray(c.prints) && c.prints.length) pr[c.cardId] = c.prints;
     }
     setOwned(map);
@@ -143,6 +174,8 @@ export default function CardsPage() {
     setLevels(lv);
     setSkillLevels(sk);
     setForges(fg);
+    setRolls(rl);
+    setMerges(mg);
     setPrints(pr);
     setClaimedSets(data?.claimedSets || []);
     setShards(data?.shards || 0);
@@ -186,7 +219,11 @@ export default function CardsPage() {
     // fetch fails) showed YOUR cards — and your print serials — under their
     // name, which is exactly the kind of lie a collection page can't tell.
     setOwned({}); setFoils({}); setAsleep({}); setLevels({});
-    setSkillLevels({}); setForges({}); setPrints({}); setLoading(true);
+    setSkillLevels({}); setForges({}); setPrints({});
+    // Cleared with the rest: a stale roll under someone else's name would show
+    // THEIR card carrying YOUR copy's numbers, which is the same lie the
+    // print serials were cleared to avoid.
+    setRolls({}); setMerges({}); setLoading(true);
     loadCollection(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, viewing?.id]);
@@ -310,6 +347,27 @@ export default function CardsPage() {
     });
 
   /**
+   * MERGE — feed a spare of the same rank in and keep the stronger card.
+   *
+   * The sheet stays OPEN afterwards, unlike foiling. Merging is a repeatable
+   * ladder with a visible cap, so closing it would make the player reopen the
+   * card to see what their shards just bought and whether there is another
+   * step left.
+   */
+  const [mergeOpen, setMergeOpen] = useState(false);
+  const [merging, setMerging] = useState(false);
+  const doMerge = async (card: CardDef, fodderId: string) => {
+    if (merging) return;
+    setMerging(true);
+    await shardAction("merge", { cardId: card.id, fodderCardId: fodderId }, (d) => {
+      setShards(d.shards);
+      setMergeOpen(false);
+      toast(`${card.name} absorbed it — +${d.gainedHp} HP, +${d.gainedAtk} ATK, permanently.`, "success");
+    });
+    setMerging(false);
+  };
+
+  /**
    * A short burst keyed to an action. Rendered as ONE absolutely-positioned
    * element that animates transform and opacity — no layout, and it unmounts
    * itself, so nothing lingers costing frames after the moment has passed.
@@ -403,7 +461,15 @@ export default function CardsPage() {
   // should scroll it to find one. The name search and rarity chips filter
   // WHAT RENDERS; set completion counts stay true to the full set.
   const [q, setQ] = useState("");
-  const [rarFilter, setRarFilter] = useState<CardRarity | "all">("all");
+  /**
+   * The binder filter is by RARITY *or* by CLASS, in one row of chips.
+   *
+   * They share a control because they answer the same question — "show me
+   * fewer cards" — and a player looking for their supports is not also
+   * narrowing by rarity at that moment. Class is not a rarity, so the two
+   * live in one union rather than pretending "ground" is a tier.
+   */
+  const [rarFilter, setRarFilter] = useState<CardRarity | "all" | "support" | "ground">("all");
   // The skill cap for the MAX sign: domains max lower than skills, and a
   // card with neither has no skill requirement to meet.
   const skillCapFor = (c: CardDef) =>
@@ -473,7 +539,13 @@ export default function CardsPage() {
   const filtering = qn.length > 0 || rarFilter !== "all";
   const matches = useCallback(
     (c: CardDef) =>
-      (rarFilter === "all" || c.rarity === rarFilter) &&
+      (rarFilter === "all"
+        ? true
+        : rarFilter === "support"
+        ? !!c.support
+        : rarFilter === "ground"
+        ? !!c.ground
+        : c.rarity === rarFilter) &&
       (!qn || c.name.toLowerCase().includes(qn)),
     [qn, rarFilter]
   );
@@ -882,12 +954,23 @@ export default function CardsPage() {
                   style={{ clipPath: notch(9), boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }}
                 />
                 <div className="flex gap-1">
-                  {(["all", "common", "rare", "epic", "legendary", "mythic"] as const).map((r) => {
+                  {/* S and G are CLASS filters sitting among the rarity ones.
+                      Tinted to match their own plates (cyan for supports,
+                      orange for grounds) rather than borrowing a rarity colour,
+                      so it stays visible that they are a different question. */}
+                  {(["all", "common", "rare", "epic", "legendary", "mythic", "support", "ground"] as const).map((r) => {
                     const on = rarFilter === r;
-                    const tint = r === "all" ? "#cbd5e1" : RARITY_META[r as CardRarity]?.gem || "#cbd5e1";
+                    const tint = r === "all" ? "#cbd5e1"
+                      : r === "support" ? "#67e8f9"
+                      : r === "ground" ? "#fdba74"
+                      : RARITY_META[r as CardRarity]?.gem || "#cbd5e1";
+                    const label = r === "all" ? "Every rarity"
+                      : r === "support" ? "Support cards — played, never fielded"
+                      : r === "ground" ? "Ground cards — laid for a whole set"
+                      : RARITY_META[r as CardRarity]?.label;
                     return (
                       <button key={r} onClick={() => setRarFilter(on && r !== "all" ? "all" : r)}
-                        title={r === "all" ? "Every rarity" : RARITY_META[r as CardRarity]?.label}
+                        title={label}
                         className="px-2.5 py-2 text-[10px] font-black uppercase tracking-[0.1em] transition"
                         style={{
                           clipPath: notch(7),
@@ -1183,7 +1266,7 @@ export default function CardsPage() {
                             <button key={`${c.id}-${w}`} onClick={() => setSelected(c)}
                               className="group relative flex flex-col items-center gap-1.5 p-2 transition hover:-translate-y-1"
                               style={tileStyle}>
-                              <CardFace card={c} owned count={byWear[w]} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} level={levels[c.id]} forge={forges[c.id]} skillLevel={skillLevels[c.id]} skillCap={skillCapFor(c)} wear={w} size={gridCard} ratio="5 / 9" />
+                              <CardFace card={c} owned count={byWear[w]} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} level={levels[c.id]} forge={forges[c.id]} skillLevel={skillLevels[c.id]} skillCap={skillCapFor(c)} stats={catalog?.cardStats} statsById={catalog?.cardStatsById} roll={rolls[c.id]} merges={merges[c.id] || 0} wear={w} size={gridCard} ratio="5 / 9" />
                               <span className={`pointer-events-none inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] ${wearMeta[w].cls}`}>
                                 {wearMeta[w].label}{byWear[w] > 1 ? ` ×${byWear[w]}` : ""}
                               </span>
@@ -1198,7 +1281,7 @@ export default function CardsPage() {
                           {/* The card carries its own name, stars and rarity
                               badge now that the art is full-bleed, so nothing
                               is repeated underneath it. */}
-                          <CardFace card={c} owned={has} count={count} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} level={levels[c.id]} forge={forges[c.id]} skillLevel={skillLevels[c.id]} skillCap={skillCapFor(c)} size={gridCard} ratio="5 / 9" />
+                          <CardFace card={c} owned={has} count={count} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} level={levels[c.id]} forge={forges[c.id]} skillLevel={skillLevels[c.id]} skillCap={skillCapFor(c)} stats={catalog?.cardStats} statsById={catalog?.cardStatsById} roll={rolls[c.id]} merges={merges[c.id] || 0} size={gridCard} ratio="5 / 9" />
                         </button>,
                       ];
                     })}
@@ -1258,7 +1341,7 @@ export default function CardsPage() {
                                 boxShadow: "inset 0 0 0 1px rgba(162,116,255,.24)",
                                 contentVisibility: "auto", containIntrinsicSize: `auto ${smallScreen ? 310 : 400}px`,
                               } as any}>
-                              <CardFace card={c} owned count={owned[c.id]} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} level={levels[c.id]} forge={forges[c.id]} skillLevel={skillLevels[c.id]} skillCap={skillCapFor(c)} size={gridCard} ratio="5 / 9" />
+                              <CardFace card={c} owned count={owned[c.id]} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} level={levels[c.id]} forge={forges[c.id]} skillLevel={skillLevels[c.id]} skillCap={skillCapFor(c)} stats={catalog?.cardStats} statsById={catalog?.cardStatsById} roll={rolls[c.id]} merges={merges[c.id] || 0} size={gridCard} ratio="5 / 9" />
                             </button>
                           ))}
                         </div>
@@ -1298,7 +1381,7 @@ export default function CardsPage() {
                                         boxShadow: "inset 0 0 0 1px rgba(245,158,11,.28)",
                                         contentVisibility: "auto", containIntrinsicSize: `auto ${smallScreen ? 310 : 400}px`,
                                       } as any}>
-                                      <CardFace card={c} owned count={n} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} level={levels[c.id]} forge={forges[c.id]} skillLevel={skillLevels[c.id]} skillCap={skillCapFor(c)} wear={w.key} size={gridCard} ratio="5 / 9" />
+                                      <CardFace card={c} owned count={n} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} level={levels[c.id]} forge={forges[c.id]} skillLevel={skillLevels[c.id]} skillCap={skillCapFor(c)} stats={catalog?.cardStats} statsById={catalog?.cardStatsById} roll={rolls[c.id]} merges={merges[c.id] || 0} wear={w.key} size={gridCard} ratio="5 / 9" />
                                     </button>
                                   ))}
                                 </div>
@@ -1475,7 +1558,23 @@ export default function CardsPage() {
           const craftable = selected.rarity !== "event" && (catalog.craftCost[selected.rarity] || 0) > 0;
           const cost = catalog.craftCost[selected.rarity] || 0;
           const dustEach = catalog.dustValue[selected.rarity] || 0;
-          const cs = catalog.cardStats?.[selected.rarity] || { atk: 0, hp: 0 };
+          /**
+           * BASE STATS, in the server's own precedence: this copy's roll, then
+           * the per-card table, then rarity. Both upper rungs were missing
+           * here — the sheet read the rarity line only, so a Squire's detail
+           * panel advertised 18/7 and every rolled copy showed numbers the
+           * arena would never honour.
+           */
+          const printedCs = catalog.cardStatsById?.[selected.id]
+            || catalog.cardStats?.[selected.rarity]
+            || { atk: 0, hp: 0 };
+          const myRoll = rolls[selected.id];
+          const cs = {
+            atk: typeof myRoll?.atk === "number" && myRoll.atk > 0 ? myRoll.atk : printedCs.atk,
+            hp: typeof myRoll?.hp === "number" && myRoll.hp > 0 ? myRoll.hp : printedCs.hp,
+          };
+          const mergedTimes = merges[selected.id] || 0;
+          const isRolled = cs.atk !== printedCs.atk || cs.hp !== printedCs.hp;
           const m = foils[selected.id] ? 1.2 : 1;
           const lvl = levels[selected.id] || 1;
           const maxLvl = catalog.maxCardLevel ?? 10;
@@ -1557,6 +1656,9 @@ export default function CardsPage() {
                     ratio="5 / 9"
                     showStats={false}
                     stats={catalog.cardStats}
+                    statsById={catalog.cardStatsById}
+                    roll={myRoll}
+                    merges={mergedTimes}
                   />
                 </div>
 
@@ -1611,11 +1713,47 @@ export default function CardsPage() {
                         <p className="text-[10px] font-black uppercase tracking-[0.22em] text-cyan-300/80">Effect</p>
                         <p className="mt-1 text-sm font-bold leading-relaxed text-cyan-100">{supportText(selected.support, levels[selected.id] || 1)}</p>
                       </div>
+                    ) : selected.ground ? (
+                      /* Grounds are their own class — laid, never fielded, and
+                         scoped to one set. Given their own plate rather than
+                         folded in with supports so the scope is unmissable:
+                         splashing this into a mixed deck buys nothing. */
+                      <div className="rounded-xl border border-orange-400/25 bg-orange-500/10 px-4 py-3">
+                        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-orange-300/80">
+                          Ground · {selected.ground.set} only
+                        </p>
+                        <p className="mt-1 text-sm font-bold leading-relaxed text-orange-100">{groundText(selected.ground, levels[selected.id] || 1)}</p>
+                      </div>
                     ) : (
                       <div className="grid grid-cols-3 gap-2.5">
                         <StatTile Icon={Heart} value={hp} label="HP" tint="#fb7185" wash="rgba(190,24,60,.16)" edge="rgba(251,113,133,.30)" />
                         <StatTile Icon={Swords} value={atk} label="ATK" tint="#fbbf24" wash="rgba(180,83,9,.16)" edge="rgba(251,191,36,.30)" />
                         <StatTile Icon={Layers} value={count} label="COPIES" tint="#60a5fa" wash="rgba(30,64,175,.16)" edge="rgba(96,165,250,.30)" />
+                      </div>
+                    )}
+
+                    {/* ── THIS COPY ── the pull roll, said out loud.
+                        Every pulled card is stamped with its own HP/ATK inside
+                        ±15% of the printed line, so two copies of one card are
+                        genuinely different objects. That was true for a while
+                        before anything on any screen SAID so, which read from
+                        the outside exactly like the feature never shipped. */}
+                    {count > 0 && !selected.support && !selected.ground && (isRolled || mergedTimes > 0) && (
+                      <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/[0.07] px-4 py-3">
+                        <p className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-emerald-300/80">
+                          <Sparkles className="h-3 w-3" /> This copy
+                          {mergedTimes > 0 && <span className="text-amber-300">· merged {mergedTimes}×</span>}
+                        </p>
+                        <p className="mt-1 font-mono text-sm font-bold text-emerald-100">
+                          {cs.hp} HP · {cs.atk} ATK
+                          <span className="ml-2 font-sans text-[11px] font-medium text-slate-500">
+                            printed {printedCs.hp} / {printedCs.atk}
+                          </span>
+                        </p>
+                        <p className="mt-1 text-[11px] text-slate-500">
+                          Rolled when it was pulled. Levels and the forge apply on top, so this is a
+                          starting point rather than a ceiling.
+                        </p>
                       </div>
                     )}
 
@@ -1640,6 +1778,87 @@ export default function CardsPage() {
                         </p>
                       </div>
                     )}
+
+                    {/* ── MERGE ── two of the same rank in, one stronger card out.
+                        The duplicate sink this game was missing: dusting a
+                        spare pays shards, merging spends a spare AND shards to
+                        raise the copy you keep. Same rank only, so a shelf of
+                        commons can never be laundered into a legendary's line. */}
+                    {isMine && count > 0 && !selected.support && !selected.ground && catalog.merge && (() => {
+                      const cap = catalog.merge.max;
+                      const done = mergedTimes;
+                      const nextCost = catalog.merge.cost?.[selected.rarity]?.[done] ?? null;
+                      // Anything of the SAME RANK you own and can spare. The
+                      // selected card itself qualifies only at 2+ copies —
+                      // otherwise it would eat itself and leave nothing.
+                      const fodder = (catalog.cards || []).filter((f) => {
+                        const n = owned[f.id] || 0;
+                        if (n <= 0 || f.rarity !== selected.rarity) return false;
+                        return f.id === selected.id ? n >= 2 : true;
+                      });
+                      return (
+                        <div className="rounded-xl border border-fuchsia-500/20 bg-fuchsia-500/[0.06] px-4 py-3">
+                          <div className="mb-2 flex items-baseline justify-between gap-2">
+                            <span className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.2em] text-fuchsia-200">
+                              <Layers className="h-3.5 w-3.5" /> Merge
+                            </span>
+                            <span className="font-mono text-xs text-slate-400">{done} / {cap}</span>
+                          </div>
+                          <SegBar value={done} max={cap} tone="#E879F9" />
+                          {done >= cap ? (
+                            <p className="mt-2 text-[11px] text-slate-500">
+                              Merged to the cap. This copy is as strong as merging can make it.
+                            </p>
+                          ) : fodder.length === 0 ? (
+                            <p className="mt-2 text-[11px] text-slate-500">
+                              Nothing to feed it. Merging needs a spare {RARITY_META[selected.rarity].label.toLowerCase()} card —
+                              another copy of this one, or a different card of the same rank.
+                            </p>
+                          ) : (
+                            <>
+                              <p className="mt-2 text-[11px] text-slate-500">
+                                {nextCost !== null ? `${nextCost.toLocaleString()} shards` : "Free"} + one spare
+                                {" "}{RARITY_META[selected.rarity].label.toLowerCase()} card ·
+                                {" "}+{Math.max(1, Math.round(printedCs.hp * (catalog.merge.step ?? 0.08)))} HP,
+                                {" "}+{Math.max(1, Math.round(printedCs.atk * (catalog.merge.step ?? 0.08)))} ATK, permanently.
+                                {" "}The card you feed it is gone.
+                              </p>
+                              {!mergeOpen ? (
+                                <button
+                                  onClick={() => setMergeOpen(true)}
+                                  disabled={nextCost !== null && shards < nextCost}
+                                  className="mt-2.5 w-full rounded-lg border border-fuchsia-400/30 bg-fuchsia-500/15 px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-fuchsia-100 transition hover:bg-fuchsia-500/25 disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                  {nextCost !== null && shards < nextCost ? "Not enough shards" : "Choose what to feed it"}
+                                </button>
+                              ) : (
+                                <div className="mt-2.5 max-h-52 overflow-y-auto rounded-lg border border-white/10 bg-black/40 p-1.5">
+                                  {fodder.map((f) => (
+                                    <button
+                                      key={f.id}
+                                      onClick={() => doMerge(selected, f.id)}
+                                      disabled={merging}
+                                      className="flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-2 text-left transition hover:bg-white/10 disabled:opacity-40"
+                                    >
+                                      <span className="truncate text-xs font-bold text-slate-200">{f.name}</span>
+                                      <span className="shrink-0 font-mono text-[10px] text-slate-500">
+                                        ×{owned[f.id]}{f.id === selected.id ? " · self" : ""}
+                                      </span>
+                                    </button>
+                                  ))}
+                                  <button
+                                    onClick={() => setMergeOpen(false)}
+                                    className="mt-1 w-full rounded-md px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 transition hover:text-slate-300"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     {/* ── THE FORGE ── flat stat training, one stat at a time,
                         deliberately dear: the price doubles per rank. Sits

@@ -34,7 +34,22 @@ export type SupportEffect =
   | { kind: "pact"; power: number }
   | { kind: "stone"; power: number }
   | { kind: "mirror"; power: number }
-  | { kind: "arise"; power: number };
+  | { kind: "arise"; power: number }
+  // ── the Knight set — STANDING effects, unlike everything above ──
+  // Those fire once and are spent; these hold for the rest of the fight.
+  | { kind: "guard"; power: number }
+  | { kind: "edge"; power: number }
+  | { kind: "veil"; power: number };
+
+/**
+ * GROUND — a third card class, alongside units and supports.
+ *
+ * A mirror of GroundEffect on the server. It is a separate field rather than
+ * another SupportEffect kind because a ground holds the whole board and only
+ * answers to its own `set`, so it can never be treated as "a support with
+ * different wording".
+ */
+export type GroundEffect = { kind: "bulwark"; power: number; set: string };
 
 export interface CardDef {
   id: string;
@@ -46,6 +61,8 @@ export interface CardDef {
   flavor: string;
   /** Present on support cards — they're played for an effect, never fielded. */
   support?: SupportEffect;
+  /** Present on ground cards — laid during a duel, never fielded. */
+  ground?: GroundEffect;
   /**
    * A painted image to use instead of the drawn motif. Optional escape hatch
    * over the local manifest in data/cardArt.ts, so the server can start
@@ -81,10 +98,28 @@ export function supportText(s: SupportEffect, level = 1): string {
     case "stone":   return `+${Math.min(60, Math.round(s.power * m))}% ATK · untouchable for 2 attacks`;
     case "mirror":  return `Reflect ${Math.min(30, Math.round(s.power * 100 * m))}% of damage — and drink it`;
     case "arise":   return `ARISE — all fallen return at ${Math.min(25, Math.round(s.power * 100 * m))}%, +${Math.min(40, Math.round(20 * m))}% ATK`;
+    // Knight supports. Worded as STANDING ("every blow", "the rest of the
+    // duel") rather than "the next" on purpose — that is the whole difference
+    // between these and the ward-style cards above, and the card face is where
+    // a player learns it. Caps mirror the engine's exactly.
+    case "guard":  return `Every blow lands ${Math.max(1, Math.round(s.power * m))} lighter, all duel`;
+    case "edge":   return `Each card's FIRST strike carries +${Math.max(1, Math.round(s.power * m))}`;
+    case "veil":   return `${Math.round(Math.min(0.6, s.power * m) * 100)}% of attacks find nobody there`;
     // The ability row is now the ONLY place this text appears, so an
     // unhandled kind would leave a support card's primary line blank rather
     // than merely missing a tooltip.
     default: return `Effect: ${(s as { kind: string }).kind}`;
+  }
+}
+
+/** What a ground card does when laid. Grounds don't scale off a per-card
+ *  level curve the way supports do — the server applies the same levelMult,
+ *  so this mirrors it for the same reason supportText does. */
+export function groundText(g: GroundEffect, level = 1): string {
+  const m = 1 + (Math.min(10, Math.max(1, Math.floor(level || 1))) - 1) * 0.07;
+  switch (g.kind) {
+    case "bulwark": return `Every living ${g.set} card gains +${Math.max(1, Math.round(g.power * m))} max HP`;
+    default: return `Effect: ${(g as { kind: string }).kind}`;
   }
 }
 
@@ -778,6 +813,9 @@ function CardFaceImpl({
   // combat stats) still get what they asked for.
   showStats = true,
   stats,
+  statsById,
+  roll,
+  merges = 0,
   liveHp,
   liveMaxHp,
   liveAtk,
@@ -797,6 +835,23 @@ function CardFaceImpl({
   /** Show the ATK/HP badges — what this card actually does in a duel. */
   showStats?: boolean;
   stats?: Record<string, { hp: number; atk: number }>;
+  /**
+   * PER-CARD stats keyed by card id, which outrank `stats` (keyed by rarity).
+   * The Knight set is authored card by card, so without this a Squire renders
+   * the common line — 18/7 instead of its actual 9/4 — and the face advertises
+   * numbers no fight will ever use.
+   */
+  statsById?: Record<string, { hp: number; atk: number }>;
+  /**
+   * THIS COPY's pull roll. Every pulled card is stamped with HP/ATK inside a
+   * ±15% band of its printed line, so two copies of the same card genuinely
+   * differ. It outranks both tables above because it IS this card — the tables
+   * only describe what the card would have been.
+   */
+  roll?: { hp?: number | null; atk?: number | null };
+  /** Times this copy has been merged. Already baked into `roll`; shown so the
+   *  player can tell a lucky pull from a paid-for one. */
+  merges?: number;
   /**
    * Current health mid-duel. In the arena the badge used to keep showing the
    * card's MAX health while the bar beside it counted down, so the same card
@@ -830,7 +885,26 @@ function CardFaceImpl({
   /** CSS aspect-ratio for the whole card. Defaults to the arena's 5/7. */
   ratio?: string;
 }) {
-  const S = card.set === "Pantheon" ? GOD_STATS_MIRROR : (stats || FALLBACK_STATS)[card.rarity] || FALLBACK_STATS.common;
+  /**
+   * BASE STATS — this copy's roll, then the per-card table, then the Pantheon's
+   * flat line, then rarity. Exactly the precedence buildFighter uses on the
+   * server, in the same order, so the face promises what the fight delivers.
+   *
+   * The roll landing HERE rather than beside the badges is deliberate: foil,
+   * level and forge all multiply the base, so a roll applied afterwards would
+   * be a levelled card's roll scaled wrong.
+   */
+  const printedBase = card.set === "Pantheon"
+    ? GOD_STATS_MIRROR
+    : statsById?.[card.id] || (stats || FALLBACK_STATS)[card.rarity] || FALLBACK_STATS.common;
+  const S = {
+    hp: typeof roll?.hp === "number" && roll.hp > 0 ? roll.hp : printedBase.hp,
+    atk: typeof roll?.atk === "number" && roll.atk > 0 ? roll.atk : printedBase.atk,
+  };
+  // Did this copy actually roll away from its printed line? Drives the tell
+  // below — a roll that landed exactly on the printed number is not worth
+  // decorating, and claiming it rolled would be noise.
+  const rolled = S.hp !== printedBase.hp || S.atk !== printedBase.atk;
   const mult = foil ? 1.2 : 1;
   /**
    * BOUGHT POWER SHOWS ON THE FACE. The badges knew rarity and foil but not
@@ -943,6 +1017,8 @@ function CardFaceImpl({
 
   const abilityText = card.support
     ? supportText(card.support, level)
+    : card.ground
+    ? groundText(card.ground, level)
     : hibernating && owned
     ? "FALLEN, NOT DEAD — WAKE WITH SHARDS"
     : card.flavor;
@@ -1506,12 +1582,38 @@ function CardFaceImpl({
 
           {/* R3 — what it does in a fight. Support cards have no attack or
               health and printing 0/0 would be a lie, so they skip this. */}
-          {showStats && !card.support && (
+          {/* Grounds are excluded alongside supports: neither is ever fielded,
+              so neither has a stat line, and printing rarity numbers on one
+              would invent combat stats for a card that cannot fight. */}
+          {showStats && !card.support && !card.ground && (
             <div style={{ display: "flex", gap: T.gap, alignItems: "center" }}>
               <Stat glyph="⚔" value={owned ? atk : "—"} tone={dim ? "#3F3F46" : "#F87171"}
                 bg={pillBg} h={T.pillH} fs={T.stat} chrome={chrome} />
               <Stat glyph="♥" value={owned ? hp : "—"} tone={dim ? "#3F3F46" : hpTone}
                 bg={pillBg} h={T.pillH} fs={T.stat} chrome={chrome} />
+              {/* THE ROLL TELL. Every pulled copy rolls inside a ±15% band, so
+                  two of the same card really are different objects — but until
+                  something says so on the face, a player reads the difference
+                  as the numbers being wrong somewhere. Inline in this row on
+                  purpose: the card is a strict 5:7 with no slack, so a new row
+                  would push the arena's champion into the opponent bench. */}
+              {owned && (rolled || merges > 0) && chrome && (
+                <span
+                  title={merges > 0
+                    ? `Rolled on pull, then merged ${merges}×`
+                    : "This copy's own roll — every pull lands inside ±15% of the printed line"}
+                  style={{
+                    fontSize: T.micro,
+                    fontFamily: MONO,
+                    fontWeight: 700,
+                    letterSpacing: "0.08em",
+                    color: merges > 0 ? "#FDE68A" : "#71717A",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {merges > 0 ? `◆${merges}` : "◆"}
+                </span>
+              )}
             </div>
           )}
 

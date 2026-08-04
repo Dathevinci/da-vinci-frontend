@@ -66,6 +66,15 @@ function supportBrief(s: any): { what: string; how: string } {
     case "shield": return { what: "Halves the next hit you take.", how: "Play it — it guards whoever is out there." };
     case "block":  return { what: "The next attack against you doesn't land at all.", how: "Play it — it guards whoever is out there." };
     case "focus":  return { what: `Your next strike hits ${s.power}× as hard.`, how: "Play it, then attack." };
+    // ── Knight supports ── STANDING, not spent on one blow. Worded to make
+    // that the first thing you read: these are the only cards in the tray that
+    // keep working after the turn you played them.
+    case "guard":  return { what: `Every blow against you lands ${s.power} lighter, for the rest of the duel.`, how: "Play it — it holds for the whole fight, not just the next hit." };
+    case "edge":   return { what: `Each of your cards carries +${s.power} damage on its FIRST strike.`, how: "Play it early — a card that has already swung has spent its first strike." };
+    case "veil":   return { what: `${Math.round((s.power || 0) * 100)}% of attacks against you find nobody there.`, how: "Play it — the cloak stays up; it doesn't fall off because it worked." };
+    // ── Ground ── a different class entirely, and the tray is where a player
+    // finds that out. Named as a LAY rather than a play.
+    case "bulwark": return { what: `Every living ${s.set} card you have gains +${s.power} max health.`, how: "Lay it — it holds the whole board, and costs you no support slot." };
     default:       return { what: "Does something helpful.", how: "Play it." };
   }
 }
@@ -229,7 +238,7 @@ function KoBurst({ show, koKey }: { show?: boolean; koKey?: number }) {
 export default function Arena({
   mine, foe, byId, myName, foeName, myTurn, finished, resultText, won = false,
   bag = [], busy, log = [], stake, round = 1,
-  supports = [], usedSupports = [],
+  supports = [], usedSupports = [], usedGrounds = [],
   onAttack, onDeploy, onItem, onSupport, onAbility, abilityIds, abilities, onForfeit, onClose,
 }: {
   mine: ArenaSide; foe: ArenaSide;
@@ -242,9 +251,16 @@ export default function Arena({
   bag?: string[]; busy?: boolean; log?: string[]; stake?: number;
   /** Current round, shown live in the battle log header. */
   round?: number;
-  /** Support cards you OWN — never spent, but each is playable once per duel. */
+  /** Support cards you OWN — never spent, but each is playable once per duel.
+   *  GROUND cards ride this same list: both are played rather than fielded. */
   supports?: CardDef[];
   usedSupports?: string[];
+  /** Grounds already laid this duel. Tracked SEPARATELY from usedSupports
+   *  because the server does: a ground is once-per-duel like a support but
+   *  does NOT count against the three-support limit. Sharing one list would
+   *  either grey out a ground the server would happily accept, or let a
+   *  laid ground eat a support slot. */
+  usedGrounds?: string[];
   /** Swing with whoever is already on the field. Deploying is a separate move. */
   onAttack: () => void;
   onDeploy: (index: number) => void;
@@ -275,7 +291,29 @@ export default function Arena({
   // The support rail starts shut — see the note beside it.
   const [showSupports, setShowSupports] = useState(false);
 
-  const playableSupports = useMemo(() => supports.filter((c) => !!c.support), [supports]);
+  // Grounds belong here too — the tray is "cards you play rather than field",
+  // and filtering to `c.support` was why a held ground had no way onto the board.
+  const playableSupports = useMemo(
+    () => supports.filter((c) => !!c.support || !!(c as any).ground),
+    [supports]
+  );
+  /**
+   * Has this card already been played, and is it blocked by the slot limit?
+   *
+   * One helper because the answer differs by CLASS and the question is asked in
+   * three places — the drag guard, the tray tile, and the inspect panel. A
+   * ground checks its own list and ignores the three-support limit entirely,
+   * exactly as the server does; keeping that rule in one place is what stops
+   * the three copies drifting apart.
+   */
+  const playState = useCallback((c: CardDef) => {
+    const isGround = !!(c as any).ground;
+    return {
+      isGround,
+      spent: (isGround ? usedGrounds : usedSupports).includes(c.id),
+      outOfSlots: !isGround && usedSupports.length >= SUPPORTS_PER_DUEL,
+    };
+  }, [usedSupports, usedGrounds]);
   const hasSupport = playableSupports.length > 0 && !!onSupport && !finished;
 
   // ── Measured layout ──────────────────────────────────────────────────────
@@ -513,7 +551,13 @@ export default function Arena({
     if (!onSupport) return;
     // Drag has to respect the slot limit too — the rail greys spent cards out,
     // but a drag started before the third play resolved would slip past it.
-    if (usedSupports.includes(d.cardId) || usedSupports.length >= SUPPORTS_PER_DUEL) return;
+    // Routed through playState so a ground dragged onto the board isn't
+    // refused for having no support slots left; it never needed one.
+    const dragDef = playableSupports.find((c) => c.id === d.cardId);
+    if (dragDef) {
+      const ps = playState(dragDef);
+      if (ps.spent || ps.outOfSlots) return;
+    }
     if (target.startsWith("ally-")) {
       const idx = Number(target.slice(5));
       onSupport(d.cardId, Number.isInteger(idx) ? idx : undefined);
@@ -1128,10 +1172,11 @@ export default function Arena({
             </button>
             <div className={`gap-2 overflow-x-auto pb-1 ${showSupports ? "flex" : "hidden"}`}>
               {playableSupports.map((c) => {
-                const spent = usedSupports.includes(c.id);
-                // Three per duel, matching the server. Once you've spent them
-                // the rest grey out rather than failing on click.
-                const outOfSlots = usedSupports.length >= SUPPORTS_PER_DUEL;
+                // Three supports per duel, matching the server — once spent,
+                // the rest grey out rather than failing on click. A GROUND is
+                // once-per-duel but slot-free, which is why this comes from
+                // playState rather than reading usedSupports directly.
+                const { spent, outOfSlots } = playState(c);
                 const usable = live && !spent && !outOfSlots;
                 const targeted = TARGETED.has((c.support as any)?.kind);
                 return (
@@ -1308,10 +1353,12 @@ export default function Arena({
               }}
             >
               {(() => {
-                const spent = usedSupports.includes(peek.id);
-                const outOfSlots = usedSupports.length >= SUPPORTS_PER_DUEL;
+                const { spent, outOfSlots, isGround } = playState(peek);
                 const targeted = TARGETED.has((peek.support as any)?.kind);
-                const brief = supportBrief(peek.support);
+                // Grounds have no `support` object — read their effect from
+                // `ground` instead, or the panel falls through to the generic
+                // "does something helpful" and tells the player nothing.
+                const brief = supportBrief(peek.support || (peek as any).ground);
                 const canPlay = live && !spent && !outOfSlots;
                 return (
                   <>
@@ -1320,7 +1367,9 @@ export default function Arena({
                     <p className="mt-2 text-sm leading-relaxed text-cyan-100">{brief.what}</p>
                     <p className="mt-1.5 text-[11px] leading-relaxed text-slate-400">{brief.how}</p>
                     <p className="mt-3 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
-                      Free to play — keeps your turn · {usedSupports.length}/{SUPPORTS_PER_DUEL} used
+                      {isGround
+                        ? "Free to lay — keeps your turn · costs no support slot"
+                        : `Free to play — keeps your turn · ${usedSupports.length}/${SUPPORTS_PER_DUEL} used`}
                     </p>
 
                     <div className="mt-4 flex gap-2">

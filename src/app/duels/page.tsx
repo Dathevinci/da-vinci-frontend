@@ -33,6 +33,9 @@ type Side = {
   // `mine.usedSupports` type-checked as an error the build was configured to
   // ignore — it worked by accident rather than by declaration.
   usedSupports?: string[]; usedAbilities?: string[]; shield?: boolean; block?: boolean; focus?: boolean; focusMult?: number;
+  // Grounds laid this duel — a separate list from usedSupports because the
+  // server keeps them separate: once each, but slot-free.
+  usedGrounds?: string[];
 };
 type DuelState = {
   a: Side; b: Side; turn: string; log: string[]; round: number;
@@ -902,8 +905,14 @@ function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMo
   // Filtered ONCE per collection, not once per render. Arena memoizes its
   // playable supports off this array, so handing it a fresh one every render
   // made that memo recompute every time — the exact thing it exists to avoid.
+  // Grounds ride this tray alongside supports. They are a different card class
+  // with different accounting on the server — laid once, not counted against
+  // the three-support limit, scoped to their own set — but both are "cards you
+  // play rather than field", and this list is what makes them reachable at all.
+  // Filtering to `c.support` alone was why A Fitting End could be owned and
+  // never laid: the server accepted it, the tray never offered it.
   const supportCards = useMemo(
-    () => (myCards || []).filter((c: any) => !!c.support),
+    () => (myCards || []).filter((c: any) => !!c.support || !!c.ground),
     [myCards]
   );
   // Parsed once per state STRING, not once per render. DuelBoard re-renders
@@ -948,6 +957,7 @@ function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMo
         bag={bag} busy={busy} log={state.log} stake={duel.stake} round={state.round}
         supports={supportCards}
         usedSupports={mine.usedSupports || []}
+        usedGrounds={mine.usedGrounds || []}
         onAttack={() => onMove("attack")}
         onDeploy={(i: number) => onMove("deploy", i)}
         onItem={(item: string) => onMove(item)}
