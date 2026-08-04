@@ -11,7 +11,7 @@ import { isLeadDev, displayArisePoints, displayShards } from "@/lib/admin";
 import { authHeaders } from "@/lib/authToken";
 import { useToast } from "@/components/ui/Toast";
 import PageTransition from "@/components/layout/PageTransition";
-import CardFace, { CardDef, CardRarity, RARITY_META, supportText, groundText } from "@/components/cards/CardFace";
+import CardFace, { CardDef, CardRarity, RARITY_META, supportText, groundText, GOD_STATS_MIRROR } from "@/components/cards/CardFace";
 import PackReveal from "@/components/cards/PackReveal";
 import { Panel, CornerTicks, Stars, SegBar, GachaButton, Heading, StatRow, notch, ACCENT, ACCENT_LIT, GachaAmbience, Rise, Twinkles } from "@/components/cards/gacha";
 import { DIMENSIONS, DIMENSION_ORDER, CARD_LORE } from "@/data/cardLore";
@@ -1568,8 +1568,14 @@ export default function CardsPage() {
            * panel advertised 18/7 and every rolled copy showed numbers the
            * arena would never honour.
            */
+          // All THREE rungs the server uses, in order: per-card table, then the
+          // Pantheon's flat line, then rarity. The middle one was missing, so a
+          // god read off the mythic row (36/15) and the sheet contradicted the
+          // grid tile behind it (44/19) on the same screen.
           const printedCs = catalog.cardStatsById?.[selected.id]
-            || catalog.cardStats?.[selected.rarity]
+            || (selected.set === "Pantheon"
+              ? GOD_STATS_MIRROR
+              : catalog.cardStats?.[selected.rarity])
             || { atk: 0, hp: 0 };
           const myRoll = rolls[selected.id];
           const cs = {
@@ -1907,7 +1913,12 @@ export default function CardsPage() {
                         under LEVEL because it's the same idea, sharpened —
                         level raises everything a little, the forge raises ONE
                         thing a lot. */}
-                    {count > 0 && !selected.support && F && isMine && (() => {
+                    {/* Grounds excluded, same as every other stat panel in this
+                        sheet. They were the one panel that missed it, so a
+                        ground offered live forge buttons the server honoured —
+                        up to 34,100 shards bought into ranks that buildFighter
+                        never reads, because a ground is never a fighter. */}
+                    {count > 0 && !selected.support && !selected.ground && F && isMine && (() => {
                       const rows = [
                         { stat: "atk" as const, label: "ATK", step: F.atkStep, rank: fg.atk, costs: F.atkCost?.[selected.rarity] || [], tint: "#fbbf24" },
                         { stat: "hp" as const, label: "HP", step: F.hpStep, rank: fg.hp, costs: F.hpCost?.[selected.rarity] || [], tint: "#fb7185" },

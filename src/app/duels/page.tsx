@@ -58,6 +58,16 @@ export default function DuelsPage() {
   const [board, setBoard] = useState<any[]>([]);
   const [catalog, setCatalog] = useState<CardDef[]>([]);
   const [cardStats, setCardStats] = useState<Record<string, { hp: number; atk: number }> | undefined>(undefined);
+  /**
+   * PER-CARD stats, which outrank the rarity table above.
+   *
+   * The catalog has shipped these since the Knight set landed and this page
+   * simply never read them, so every deck-selection surface fell back to the
+   * rarity line: the Squire (9/4) and the Jester (13/1) are both common, so
+   * both printed 18/7. The binder was fixed and this screen — the one where
+   * you actually commit to a deck — was not.
+   */
+  const [cardStatsById, setCardStatsById] = useState<Record<string, { hp: number; atk: number }> | undefined>(undefined);
   // Which cards have a skill or a domain, so the arena only offers the button
   // on cards that actually have one.
   const [abilityIds, setAbilityIds] = useState<Set<string>>(new Set());
@@ -71,6 +81,8 @@ export default function DuelsPage() {
   // Bought power, so the cards SHOW what they'll actually fight with.
   const [cardLevels, setCardLevels] = useState<Record<string, number>>({});
   const [cardForges, setCardForges] = useState<Record<string, { atk: number; hp: number }>>({});
+  /** Per-copy pull rolls, so the picker scores the copy you actually own. */
+  const [cardRolls, setCardRolls] = useState<Record<string, { hp?: number | null; atk?: number | null }>>({});
   const [cardSkillLvls, setCardSkillLvls] = useState<Record<string, number>>({});
   // Caps for the MAX sign: domains top out at 3, skills at 5 — display-only
   // mirrors of the server caps, same contract as the cardStats mirror.
@@ -145,9 +157,16 @@ export default function DuelsPage() {
         const lv: Record<string, number> = {};
         const fg: Record<string, { atk: number; hp: number }> = {};
         const sk: Record<string, number> = {};
+        // The per-copy pull roll. Only recorded when the server actually rolled
+        // this copy — a null must NOT become 0, or a pre-roll card renders as
+        // a 0/0 instead of falling back to its printed line.
+        const rl: Record<string, { hp?: number | null; atk?: number | null }> = {};
         for (const x of c.data?.cards || []) {
           m[x.cardId] = x.count;
           if (x.foil) fo[x.cardId] = true;
+          if (typeof x.rolledHp === "number" || typeof x.rolledAtk === "number") {
+            rl[x.cardId] = { hp: x.rolledHp, atk: x.rolledAtk };
+          }
           // Captured so the deck picker can grey a sleeping card out. Without
           // it the picker showed every card as available and the server threw
           // the deck back only after you had committed to the challenge.
@@ -162,6 +181,7 @@ export default function DuelsPage() {
         setCardLevels((p) => keep(p, lv));
         setCardForges((p) => keep(p, fg));
         setCardSkillLvls((p) => keep(p, sk));
+        setCardRolls((p) => keep(p, rl));
         setShards(c.data.shards || 0);
       }
       // Keep the open board fresh so the opponent's move appears.
@@ -221,6 +241,7 @@ export default function DuelsPage() {
         for (const [id, d] of Object.entries<any>(data.domains || {})) abil[id] = { ...d, isDomain: true };
         setAbilities(abil);
         setCardStats(data.cardStats);
+        setCardStatsById(data.cardStatsById);
         setCatalogFailed(false);
       },
       () => { if (!cancelled) setCatalogFailed(true); }
@@ -322,7 +343,16 @@ export default function DuelsPage() {
     return deck.reduce((sum, id) => {
       const c = byId[id];
       if (!c) return sum;
-      const base = c.set === "Pantheon" ? GOD_STATS_MIRROR : S[c.rarity] || S.common;
+      // Full server precedence: this copy's roll, then the per-card table, then
+      // the Pantheon line, then rarity. Rarity alone scored every Knight of a
+      // tier identically and credited a Squire 25 for a card that fights at 13.
+      const printed = cardStatsById?.[c.id]
+        || (c.set === "Pantheon" ? GOD_STATS_MIRROR : S[c.rarity] || S.common);
+      const r = cardRolls[id];
+      const base = {
+        atk: typeof r?.atk === "number" && r.atk > 0 ? r.atk : printed.atk,
+        hp: typeof r?.hp === "number" && r.hp > 0 ? r.hp : printed.hp,
+      };
       const m = foils[id] ? 1.2 : 1;
       // The FULL formula — level curve and forge points included, exactly
       // like the cards below it show. The old base-only sum read a maxed
@@ -333,7 +363,11 @@ export default function DuelsPage() {
         + Math.round(base.atk * m * lvlM) + fg.atk
         + Math.round(base.hp * m * lvlM) + fg.hp * 2;
     }, 0);
-  }, [deck, byId, cardStats, foils, cardLevels, cardForges]);
+    // cardStatsById and cardRolls belong in the deps: both now feed the sum, and
+    // both arrive AFTER the first render (one from the catalog fetch, one from
+    // the collection fetch). Left out, the readout would freeze at the rarity
+    // numbers it computed before either landed.
+  }, [deck, byId, cardStats, cardStatsById, cardRolls, foils, cardLevels, cardForges]);
   const pending = duels.filter((d) => d.status === "PENDING");
   const running = duels.filter((d) => d.status === "ACTIVE");
   // What's waiting on YOU — the two lists that should never be below a shop.
@@ -528,7 +562,7 @@ export default function DuelsPage() {
                     return c ? (
                       <button key={i} onClick={() => setEditDeck(true)} title={`${c.name} — tap to edit your deck`}
                         className="relative transition hover:-translate-y-0.5">
-                        <CardFace card={c} owned foil={foils[c.id]} size={92} ratio="5 / 9" showStats stats={cardStats} hibernating={!!asleep[c.id]} level={cardLevels[c.id]} forge={cardForges[c.id]} skillLevel={cardSkillLvls[c.id]} skillCap={abilities[c.id] ? (abilities[c.id].isDomain ? 3 : 5) : undefined} />
+                        <CardFace card={c} owned foil={foils[c.id]} size={92} ratio="5 / 9" showStats stats={cardStats} statsById={cardStatsById} roll={cardRolls[c.id]} hibernating={!!asleep[c.id]} level={cardLevels[c.id]} forge={cardForges[c.id]} skillLevel={cardSkillLvls[c.id]} skillCap={abilities[c.id] ? (abilities[c.id].isDomain ? 3 : 5) : undefined} />
                       </button>
                     ) : (
                       <button key={i} onClick={() => setEditDeck(true)} title="Empty slot — tap to build your deck"
@@ -685,7 +719,7 @@ export default function DuelsPage() {
                 <button onClick={() => setEditDeck(false)} aria-label="Close"><X className="h-5 w-5 text-slate-500" /></button>
               </div>
               <div className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1">
-                <DeckBuilder myCards={myCards} foils={foils} asleep={asleep} stats={cardStats} levels={cardLevels} forges={cardForges} skillLvls={cardSkillLvls} skillCaps={skillCaps} deck={deck}
+                <DeckBuilder myCards={myCards} foils={foils} asleep={asleep} stats={cardStats} statsById={cardStatsById} rolls={cardRolls} levels={cardLevels} forges={cardForges} skillLvls={cardSkillLvls} skillCaps={skillCaps} deck={deck}
                   onChange={(d) => { setDeck(d); saveDeck(d); }} />
               </div>
               <button onClick={() => setEditDeck(false)}
@@ -696,7 +730,7 @@ export default function DuelsPage() {
           </motion.div>
         )}
         {showChallenge && (
-          <ChallengeModal myCards={myCards} meId={user?.id} foils={foils} asleep={asleep} cardStats={cardStats} levels={cardLevels} forges={cardForges} skillLvls={cardSkillLvls} skillCaps={skillCaps}
+          <ChallengeModal myCards={myCards} meId={user?.id} foils={foils} asleep={asleep} cardStats={cardStats} cardStatsById={cardStatsById} cardRolls={cardRolls} levels={cardLevels} forges={cardForges} skillLvls={cardSkillLvls} skillCaps={skillCaps}
             onClose={() => { setShowChallenge(false); setDeck(loadSavedDeck()); }}
             onSend={(opp, stake, deck) => post("", { opponentUsername: opp, stake, deck }, (d) => {
               setShowChallenge(false);
@@ -709,7 +743,7 @@ export default function DuelsPage() {
             busy={busy} />
         )}
         {active && (
-          <DuelBoard duel={active} me={user?.id} byId={byId} myCards={myCards} bag={bag} busy={busy} foils={foils} cardStats={cardStats} abilityIds={abilityIds} abilities={abilities} asleep={asleep} levels={cardLevels} forges={cardForges} skillLvls={cardSkillLvls} skillCaps={skillCaps}
+          <DuelBoard duel={active} me={user?.id} byId={byId} myCards={myCards} bag={bag} busy={busy} foils={foils} cardStats={cardStats} cardStatsById={cardStatsById} cardRolls={cardRolls} abilityIds={abilityIds} abilities={abilities} asleep={asleep} levels={cardLevels} forges={cardForges} skillLvls={cardSkillLvls} skillCaps={skillCaps}
             onClose={() => { setActive(null); setDeck(loadSavedDeck()); }}
             onAccept={(deck) => post(`${active.id}/accept`, { deck }, (d) => { setActive(d); toast("Duel started!", "success"); }, "background")}
             onMove={(action: string, index?: number, cardId?: string, target?: number) =>
@@ -768,7 +802,7 @@ function DuelRow({ duel, me, right, onOpen }: { duel: Duel; me?: string; right: 
   );
 }
 
-function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats, asleep = {}, levels = {}, forges = {}, skillLvls = {}, skillCaps = {} }: any) {
+function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats, cardStatsById, cardRolls = {}, asleep = {}, levels = {}, forges = {}, skillLvls = {}, skillCaps = {} }: any) {
   const [opp, setOpp] = useState("");
   const [stake, setStake] = useState("100");
   const stakeNum = Math.floor(Number(stake)) || 0;
@@ -880,7 +914,7 @@ function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats
         </div>
         {/* the deck grid scrolls; the header and the action button stay put */}
         <div className="mb-4 min-h-0 flex-1 overflow-y-auto">
-          <DeckBuilder myCards={myCards} foils={foils} asleep={asleep} stats={cardStats} levels={levels} forges={forges} skillLvls={skillLvls} skillCaps={skillCaps} deck={deck}
+          <DeckBuilder myCards={myCards} foils={foils} asleep={asleep} stats={cardStats} statsById={cardStatsById} rolls={cardRolls} levels={levels} forges={forges} skillLvls={skillLvls} skillCaps={skillCaps} deck={deck}
             onChange={(d) => { setDeck(d); saveDeck(d); }} />
         </div>
         {/* Requires a PICKED member, not just typed text — so a challenge can
@@ -900,7 +934,7 @@ function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats
   );
 }
 
-function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMove, onForfeit, onCancel, foils, cardStats, abilityIds, abilities, asleep = {}, levels = {}, forges = {}, skillLvls = {}, skillCaps = {} }: any) {
+function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMove, onForfeit, onCancel, foils, cardStats, cardStatsById, cardRolls = {}, abilityIds, abilities, asleep = {}, levels = {}, forges = {}, skillLvls = {}, skillCaps = {} }: any) {
   const [deck, setDeck] = useState<string[]>(() => loadSavedDeck());
   // Filtered ONCE per collection, not once per render. Arena memoizes its
   // playable supports off this array, so handing it a fresh one every render
@@ -994,7 +1028,7 @@ function DuelBoard({ duel, me, byId, myCards, bag, busy, onClose, onAccept, onMo
         {needsAccept ? (
           <>
             <div className="-mx-1 mb-4 min-h-0 flex-1 overflow-y-auto px-1">
-              <DeckBuilder myCards={myCards} foils={foils} asleep={asleep} stats={cardStats} levels={levels} forges={forges} skillLvls={skillLvls} skillCaps={skillCaps} deck={deck}
+              <DeckBuilder myCards={myCards} foils={foils} asleep={asleep} stats={cardStats} statsById={cardStatsById} rolls={cardRolls} levels={levels} forges={forges} skillLvls={skillLvls} skillCaps={skillCaps} deck={deck}
                 onChange={(d) => { setDeck(d); saveDeck(d); }} compact />
             </div>
             <button disabled={busy || deck.length !== DECK_SIZE} onClick={() => onAccept(deck)}

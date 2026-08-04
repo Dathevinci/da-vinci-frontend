@@ -37,6 +37,8 @@ export default function DeckBuilder({
   myCards,
   foils = {},
   stats,
+  statsById,
+  rolls = {},
   deck,
   onChange,
   compact = false,
@@ -53,6 +55,17 @@ export default function DeckBuilder({
    *  to be visibly unpickable HERE rather than rejected after you commit. */
   asleep?: Record<string, boolean>;
   stats?: Record<string, { hp: number; atk: number }>;
+  /**
+   * PER-CARD stats, which outrank the rarity table. Without this every Knight
+   * of one rarity looked identical here: the Squire (9/4) and the Jester
+   * (13/1) are both common, so the picker printed 18/7 for each and the power
+   * badge credited them the same. This is the screen where you COMMIT to a
+   * deck, so it is the worst place in the app to be showing numbers the engine
+   * will not use.
+   */
+  statsById?: Record<string, { hp: number; atk: number }>;
+  /** Per-copy pull rolls. Outrank both tables — they are what this copy IS. */
+  rolls?: Record<string, { hp?: number | null; atk?: number | null }>;
   /** Bought power — levels and forge ranks — so every card here shows the
    *  numbers it will actually fight with, not its untrained base. */
   levels?: Record<string, number>;
@@ -121,7 +134,16 @@ export default function DeckBuilder({
   const trueStats = (id: string) => {
     const c = byId[id];
     if (!c) return { atk: 0, hp: 0 };
-    const base = c.set === "Pantheon" ? GOD_STATS_MIRROR : S[c.rarity] || S.common;
+    // The server's precedence, in full: this copy's roll, then the per-card
+    // table, then the Pantheon line, then rarity. Anything less and the power
+    // badge scores a card the engine will not build.
+    const printed = statsById?.[c.id]
+      || (c.set === "Pantheon" ? GOD_STATS_MIRROR : S[c.rarity] || S.common);
+    const r = rolls[id];
+    const base = {
+      atk: typeof r?.atk === "number" && r.atk > 0 ? r.atk : printed.atk,
+      hp: typeof r?.hp === "number" && r.hp > 0 ? r.hp : printed.hp,
+    };
     const m = foils[id] ? 1.2 : 1;
     const lvlM = 1 + (Math.min(10, Math.max(1, levels[id] || 1)) - 1) * 0.07;
     const fg = forges[id] || { atk: 0, hp: 0 };
@@ -179,7 +201,7 @@ export default function DeckBuilder({
               {card ? (
                 <motion.button initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
                   onClick={() => toggle(card.id)} title="Remove from deck">
-                  <CardFace card={card} owned foil={foils[card.id]} size={slot} ratio="5 / 9" showStats stats={S} level={levels[card.id]} forge={forges[card.id]} skillLevel={skillLvls[card.id]} skillCap={skillCaps[card.id]} />
+                  <CardFace card={card} owned foil={foils[card.id]} size={slot} ratio="5 / 9" showStats stats={S} statsById={statsById} roll={rolls[card.id]} level={levels[card.id]} forge={forges[card.id]} skillLevel={skillLvls[card.id]} skillCap={skillCaps[card.id]} />
                 </motion.button>
               ) : (
                 <div className="grid place-items-center rounded-xl border-2 border-dashed border-white/15"
@@ -222,7 +244,7 @@ export default function DeckBuilder({
                 >
                   {/* CardFace wears the crime-scene tape itself now — one
                       treatment for fallen cards everywhere. */}
-                  <CardFace card={c} owned foil={foils[c.id]} size={tile} ratio="5 / 9" showStats stats={S} hibernating={out} level={levels[c.id]} forge={forges[c.id]} skillLevel={skillLvls[c.id]} skillCap={skillCaps[c.id]} />
+                  <CardFace card={c} owned foil={foils[c.id]} size={tile} ratio="5 / 9" showStats stats={S} statsById={statsById} roll={rolls[c.id]} hibernating={out} level={levels[c.id]} forge={forges[c.id]} skillLevel={skillLvls[c.id]} skillCap={skillCaps[c.id]} />
                   {picked && !out && (
                     <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-rose-500 text-white">
                       <Check className="h-3 w-3" />
