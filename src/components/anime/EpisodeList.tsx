@@ -9,7 +9,16 @@ import { Anime } from "@tutkli/jikan-ts";
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAnimeModal } from "@/components/providers/AnimeModalProvider";
 
-const EPISODES_PER_SEASON = 12;
+/**
+ * Only split the list when it is genuinely long. This used to be 12, on the
+ * theory that a chunk of twelve approximates a season — but seasons are not
+ * reliably twelve episodes, so a 16-episode show got a pointless dropdown
+ * reading "Episodes 1-12" and "Episodes 13-16" instead of just showing all
+ * sixteen. A hundred matches the range size the watch page and the chapter
+ * lists already use, and still keeps a 1000-episode run from rendering at
+ * once.
+ */
+const EPISODES_PER_CHUNK = 100;
 
 export default function EpisodeList({
   anime,
@@ -290,12 +299,12 @@ export default function EpisodeList({
 
   // Group episodes into chunks (avoiding confusing "Season" labels if the anime is already a specific season)
   const seasons: { label: string; episodes: AnikotoEpisode[] }[] = [];
-  for (let i = 0; i < episodes.length; i += EPISODES_PER_SEASON) {
-    const chunk = episodes.slice(i, i + EPISODES_PER_SEASON);
+  for (let i = 0; i < episodes.length; i += EPISODES_PER_CHUNK) {
+    const chunk = episodes.slice(i, i + EPISODES_PER_CHUNK);
     seasons.push({
-      label: episodes.length <= EPISODES_PER_SEASON
+      label: episodes.length <= EPISODES_PER_CHUNK
         ? "All Episodes"
-        : `Episodes ${i + 1}-${Math.min(i + EPISODES_PER_SEASON, episodes.length)}`,
+        : `Episodes ${i + 1}-${Math.min(i + EPISODES_PER_CHUNK, episodes.length)}`,
       episodes: chunk,
     });
   }
@@ -425,7 +434,7 @@ export default function EpisodeList({
               {/* ── the reference grid: number + title cards ── */}
               <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                 {pool.map((ep, idx) => {
-                  const epNumber = ep.number || (q ? idx + 1 : idx + 1 + activeSeason * EPISODES_PER_SEASON);
+                  const epNumber = ep.number || (q ? idx + 1 : idx + 1 + activeSeason * EPISODES_PER_CHUNK);
                   return (
                     <button
                       key={ep.id || idx}
