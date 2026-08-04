@@ -1615,6 +1615,20 @@ export default function CardsPage() {
           };
           const tag = String(Math.abs([...selected.id].reduce((a, c) => (a * 31 + c.charCodeAt(0)) | 0, 7)) % 10000).padStart(4, "0");
 
+          /**
+           * SPARE COPIES — computed ONCE, read by both things that can consume
+           * one. Dusting and merging are now presented as a choice, so if they
+           * disagreed about how many spares exist the panel would offer a
+           * merge the dust button says you can't afford, or vice versa.
+           *
+           * WEAR-AWARE for legendaries: a Fresh Build and a Factory New are
+           * different objects, not duplicates of each other, and only same-build
+           * extras count. Mirrors the server's rule exactly.
+           */
+          const wearDupes = myPrints.length > 0
+            ? myPrints.length - new Set(myPrints.map((p) => p.condition)).size
+            : count - 1;
+
           // The card yields to the phone: full 340 on desktop, whatever the
           // viewport actually affords on mobile. Computed at open — the sheet
           // is transient, so a rotation just means reopening it.
@@ -1779,11 +1793,15 @@ export default function CardsPage() {
                       </div>
                     )}
 
-                    {/* ── MERGE ── two of the same rank in, one stronger card out.
-                        The duplicate sink this game was missing: dusting a
-                        spare pays shards, merging spends a spare AND shards to
-                        raise the copy you keep. Same rank only, so a shelf of
-                        commons can never be laundered into a legendary's line. */}
+                    {/* ── SPARE COPIES ── the choice, priced both ways.
+                        A duplicate can go two places and they are opposites:
+                        DUST pays you shards and the spare is gone, MERGE costs
+                        you shards and the spare is gone. Presenting them in one
+                        block with both numbers visible is the whole point —
+                        dust was buried in the action stack below while merge
+                        sat up here, so the two were never actually a choice.
+                        Same rank only, so a shelf of commons can never be
+                        laundered into a legendary's line. */}
                     {isMine && count > 0 && !selected.support && !selected.ground && catalog.merge && (() => {
                       const cap = catalog.merge.max;
                       const done = mergedTimes;
@@ -1796,65 +1814,104 @@ export default function CardsPage() {
                         if (n <= 0 || f.rarity !== selected.rarity) return false;
                         return f.id === selected.id ? n >= 2 : true;
                       });
+                      const capped = done >= cap;
+                      const tooPoor = nextCost !== null && shards < nextCost;
+                      // Nothing to say if you have neither a spare of THIS card
+                      // to dust nor anything at all to merge with.
+                      if (wearDupes <= 0 && fodder.length === 0) return null;
                       return (
                         <div className="rounded-xl border border-fuchsia-500/20 bg-fuchsia-500/[0.06] px-4 py-3">
                           <div className="mb-2 flex items-baseline justify-between gap-2">
                             <span className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.2em] text-fuchsia-200">
-                              <Layers className="h-3.5 w-3.5" /> Merge
+                              <Layers className="h-3.5 w-3.5" /> Spare copies
                             </span>
-                            <span className="font-mono text-xs text-slate-400">{done} / {cap}</span>
+                            <span className="font-mono text-xs text-slate-400">merged {done}/{cap}</span>
                           </div>
                           <SegBar value={done} max={cap} tone="#E879F9" />
-                          {done >= cap ? (
-                            <p className="mt-2 text-[11px] text-slate-500">
-                              Merged to the cap. This copy is as strong as merging can make it.
-                            </p>
-                          ) : fodder.length === 0 ? (
-                            <p className="mt-2 text-[11px] text-slate-500">
-                              Nothing to feed it. Merging needs a spare {RARITY_META[selected.rarity].label.toLowerCase()} card —
-                              another copy of this one, or a different card of the same rank.
-                            </p>
-                          ) : (
-                            <>
-                              <p className="mt-2 text-[11px] text-slate-500">
-                                {nextCost !== null ? `${nextCost.toLocaleString()} shards` : "Free"} + one spare
-                                {" "}{RARITY_META[selected.rarity].label.toLowerCase()} card ·
-                                {" "}+{Math.max(1, Math.round(printedCs.hp * (catalog.merge.step ?? 0.08)))} HP,
-                                {" "}+{Math.max(1, Math.round(printedCs.atk * (catalog.merge.step ?? 0.08)))} ATK, permanently.
-                                {" "}The card you feed it is gone.
+
+                          {/* The two paths, side by side, each showing its own
+                              price. Disabled states say WHY rather than going
+                              quietly grey — "no spare to dust" and "not enough
+                              shards" are different problems with different fixes. */}
+                          <div className="mt-2.5 grid grid-cols-2 gap-2">
+                            <button
+                              onClick={() => dust(selected)}
+                              disabled={wearDupes <= 0}
+                              title={wearDupes <= 0
+                                ? "No spare copy of this card to dust"
+                                : `Melt ${wearDupes} spare cop${wearDupes === 1 ? "y" : "ies"} down for shards`}
+                              className="rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-2 py-2 text-center transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-35"
+                            >
+                              <span className="flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-200">
+                                <Recycle className="h-3 w-3" /> Dust
+                              </span>
+                              <span className="mt-0.5 block font-mono text-[11px] font-bold text-cyan-100">
+                                {wearDupes > 0 ? `+${(wearDupes * dustEach).toLocaleString()}` : "—"}
+                              </span>
+                              <span className="block text-[9px] uppercase tracking-[0.12em] text-slate-500">shards</span>
+                            </button>
+
+                            <button
+                              onClick={() => setMergeOpen(true)}
+                              disabled={capped || tooPoor || fodder.length === 0}
+                              title={capped
+                                ? `Already merged ${cap} times — that's the cap`
+                                : fodder.length === 0
+                                ? `Needs a spare ${RARITY_META[selected.rarity].label.toLowerCase()} card to feed it`
+                                : tooPoor
+                                ? `Costs ${nextCost?.toLocaleString()} shards`
+                                : "Spend a spare AND shards to make this copy permanently stronger"}
+                              className="rounded-lg border border-fuchsia-400/30 bg-fuchsia-500/15 px-2 py-2 text-center transition hover:bg-fuchsia-500/25 disabled:cursor-not-allowed disabled:opacity-35"
+                            >
+                              <span className="flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-fuchsia-200">
+                                <ArrowUp className="h-3 w-3" /> Merge
+                              </span>
+                              <span className="mt-0.5 block font-mono text-[11px] font-bold text-fuchsia-100">
+                                {capped ? "MAX" : nextCost !== null ? `−${nextCost.toLocaleString()}` : "Free"}
+                              </span>
+                              <span className="block text-[9px] uppercase tracking-[0.12em] text-slate-500">
+                                {capped ? "merged out" : "shards"}
+                              </span>
+                            </button>
+                          </div>
+
+                          <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
+                            {capped
+                              ? "Merged to the cap — this copy is as strong as merging can make it. Spares can still be dusted."
+                              : <>
+                                  Dusting pays you and the spare is gone. Merging costs you, the spare is gone,
+                                  and this copy keeps
+                                  {" "}+{Math.max(1, Math.round(printedCs.hp * (catalog.merge.step ?? 0.08)))} HP
+                                  {" "}/ +{Math.max(1, Math.round(printedCs.atk * (catalog.merge.step ?? 0.08)))} ATK
+                                  {" "}permanently.
+                                </>}
+                          </p>
+
+                          {mergeOpen && !capped && fodder.length > 0 && (
+                            <div className="mt-2.5 max-h-52 overflow-y-auto rounded-lg border border-white/10 bg-black/40 p-1.5">
+                              <p className="px-1.5 pb-1 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">
+                                Feed it which card?
                               </p>
-                              {!mergeOpen ? (
+                              {fodder.map((f) => (
                                 <button
-                                  onClick={() => setMergeOpen(true)}
-                                  disabled={nextCost !== null && shards < nextCost}
-                                  className="mt-2.5 w-full rounded-lg border border-fuchsia-400/30 bg-fuchsia-500/15 px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-fuchsia-100 transition hover:bg-fuchsia-500/25 disabled:cursor-not-allowed disabled:opacity-40"
+                                  key={f.id}
+                                  onClick={() => doMerge(selected, f.id)}
+                                  disabled={merging}
+                                  className="flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-2 text-left transition hover:bg-white/10 disabled:opacity-40"
                                 >
-                                  {nextCost !== null && shards < nextCost ? "Not enough shards" : "Choose what to feed it"}
+                                  <span className="truncate text-xs font-bold text-slate-200">{f.name}</span>
+                                  <span className="shrink-0 font-mono text-[10px] text-slate-500">
+                                    ×{owned[f.id]}{f.id === selected.id ? " · self" : ""}
+                                  </span>
                                 </button>
-                              ) : (
-                                <div className="mt-2.5 max-h-52 overflow-y-auto rounded-lg border border-white/10 bg-black/40 p-1.5">
-                                  {fodder.map((f) => (
-                                    <button
-                                      key={f.id}
-                                      onClick={() => doMerge(selected, f.id)}
-                                      disabled={merging}
-                                      className="flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-2 text-left transition hover:bg-white/10 disabled:opacity-40"
-                                    >
-                                      <span className="truncate text-xs font-bold text-slate-200">{f.name}</span>
-                                      <span className="shrink-0 font-mono text-[10px] text-slate-500">
-                                        ×{owned[f.id]}{f.id === selected.id ? " · self" : ""}
-                                      </span>
-                                    </button>
-                                  ))}
-                                  <button
-                                    onClick={() => setMergeOpen(false)}
-                                    className="mt-1 w-full rounded-md px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 transition hover:text-slate-300"
-                                  >
-                                    Cancel
-                                  </button>
-                                </div>
-                              )}
-                            </>
+                              ))}
+                              <button
+                                onClick={() => setMergeOpen(false)}
+                                className="mt-1 w-full rounded-md px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 transition hover:text-slate-300"
+                              >
+                                Cancel
+                              </button>
+                            </div>
                           )}
                         </div>
                       );
@@ -1999,20 +2056,17 @@ export default function CardsPage() {
                           </ActionButton>
                         )}
 
-                        {(() => {
-                          // WEAR-AWARE dupes: a Fresh Build and a Factory New
-                          // are different objects. Only same-build extras are
-                          // duplicates — mirrors the server's rule exactly.
-                          const wearDupes = myPrints.length > 0
-                            ? myPrints.length - new Set(myPrints.map((p) => p.condition)).size
-                            : count - 1;
-                          if (wearDupes <= 0) return null;
-                          return (
-                            <ActionButton onClick={() => dust(selected)} Icon={Recycle}>
-                              Dust {wearDupes} same-build dupe{wearDupes === 1 ? "" : "s"} (+{wearDupes * dustEach} shards)
-                            </ActionButton>
-                          );
-                        })()}
+                        {/* Dust lives in the SPARE COPIES panel above for
+                            anything that can merge, so the two fates of a
+                            duplicate are presented as one choice with both
+                            prices on screen. This button is the fallback for
+                            cards that panel never renders for — supports and
+                            grounds, which have no stat line to merge into. */}
+                        {wearDupes > 0 && (selected.support || selected.ground || !catalog.merge) && (
+                          <ActionButton onClick={() => dust(selected)} Icon={Recycle}>
+                            Dust {wearDupes} same-build dupe{wearDupes === 1 ? "" : "s"} (+{wearDupes * dustEach} shards)
+                          </ActionButton>
+                        )}
 
                         {count > 0 && !foils[selected.id] && selected.rarity !== "event" && (
                           <ActionButton

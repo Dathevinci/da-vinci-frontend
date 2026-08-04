@@ -80,8 +80,17 @@ export default function DeckBuilder({
   // Support cards can't be FIELDED — the server refuses to build a fighter
   // from one, so letting you pick it here would silently send you into a duel
   // with two cards instead of three.
-  const units = myCards.filter((c) => !c.support);
-  const supports = myCards.filter((c) => !!c.support);
+  //
+  // GROUNDS ARE THE SAME AND WERE MISSING. buildFighter drops a ground exactly
+  // like a support, but this filter only knew about `support`, so A Fitting
+  // End sat in the pool looking like a fieldable legendary, could be picked
+  // into a deck, and was only refused on submit — after the deck read 5/5 and
+  // the challenge button had lit up. The list of what cannot be fielded has to
+  // match the server's, which names both.
+  const fieldable = (c: CardDef) => !c.support && !(c as any).ground;
+  const units = myCards.filter(fieldable);
+  // The tray below is "cards you play rather than field", which is both classes.
+  const supports = myCards.filter((c) => !fieldable(c));
   const byId = Object.fromEntries(units.map((c) => [c.id, c]));
   const S = stats || FALLBACK_STATS;
 
@@ -229,8 +238,10 @@ export default function DeckBuilder({
       {/* support cards — owned, not decked. They ride along automatically. */}
       {supports.length > 0 && (
         <div className="mt-4">
+          {/* Names both classes, because the tray now holds both. Calling a
+              ground "Support" here is what makes a player try to field it. */}
           <p className="mb-2 text-xs font-black uppercase tracking-widest text-cyan-400/70">
-            Support · carried into every duel
+            Support &amp; Ground · carried into every duel, never fielded
           </p>
           <div className="flex gap-2.5 overflow-x-auto rounded-xl border border-cyan-500/20 bg-cyan-500/[0.04] p-3">
             {supports.map((c) => (
