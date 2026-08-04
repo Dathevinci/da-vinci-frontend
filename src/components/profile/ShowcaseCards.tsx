@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Star, Plus, X, Check, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { authHeaders } from "@/lib/authToken";
@@ -59,6 +60,9 @@ export default function ShowcaseCards({
   // Has the collection actually arrived? Without this, an empty first render
   // reads as "you own nothing" and every pin looks dead.
   const [loaded, setLoaded] = useState(false);
+  // The picker portals to <body>, which does not exist during SSR.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   // skills/domains + caps from the catalog, for CardFace's MAX sign.
   const [catMeta, setCatMeta] = useState<any>(null);
   const capFor = (c: CardDef) =>
@@ -349,7 +353,15 @@ export default function ShowcaseCards({
       </div>
 
       {/* ── PICKER SHEET ── a modal, not the old inline drawer: that one shoved
-          the whole profile down and left the grid 72px of scroll. */}
+          the whole profile down and left the grid 72px of scroll.
+
+          PORTALLED TO <body>, and it must stay that way. Panel draws itself
+          with a clipPath, and a clip-path on an ancestor clips EVERY
+          descendant — including position:fixed ones. Rendered in place, the
+          sheet was cropped to the panel's box: the header carrying Cancel and
+          Save sat outside the clip and simply wasn't there, leaving no way
+          out of the picker. */}
+      {mounted && createPortal(
       <AnimatePresence>
         {editing && (
           <motion.div
@@ -508,7 +520,9 @@ export default function ShowcaseCards({
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
     </Panel>
   );
 }
