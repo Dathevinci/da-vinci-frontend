@@ -14,7 +14,6 @@ import ConfirmModal from '@/components/ui/ConfirmModal';
 import HeartExplosion from '@/components/ui/HeartExplosion';
 import MediaPicker from '@/components/community/MediaPicker';
 import EmojiPicker from '@/components/community/EmojiPicker';
-import Link from 'next/link';
 import { PollCard } from '@/components/community/Poll';
 import { getRankTheme } from '@/lib/ranks';
 const RankIcons: Record<string, any> = {
