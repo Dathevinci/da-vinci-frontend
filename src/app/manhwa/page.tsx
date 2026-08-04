@@ -137,7 +137,7 @@ function ManhwaPageInner() {
             <HeroSearchBar
               mode="manhwa"
               initialValue={query}
-              filtersHref="/manhwa?view=all&page=1"
+              filtersHref="/manhwa/explore"
               className="relative z-30 mx-auto w-full max-w-[960px] px-4 pt-6"
             />
 
@@ -191,7 +191,7 @@ function ManhwaPageInner() {
               {/* Browse-all CTA */}
               <div className="flex justify-center pt-4 pb-2 pl-4 md:pl-12">
                 <button
-                  onClick={() => router.push("/manhwa?view=all&page=1")}
+                  onClick={() => router.push("/manhwa/explore")}
                   className="flex items-center gap-2 px-8 py-3 bg-[#dc2626] hover:bg-[#ef4444] text-white font-bold rounded-full shadow-[0_0_20px_rgba(220,38,38,0.3)] transition-colors"
                 >
                   <BookMarked className="w-5 h-5" /> Browse All Comics

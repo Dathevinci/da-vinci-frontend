@@ -130,23 +130,23 @@ function NovelInner() {
             <HeroSearchBar
               mode="novel"
               initialValue={query}
-              filtersHref="/novel?view=all"
+              filtersHref="/novel/explore"
               className="relative z-30 mx-auto w-full max-w-[960px] px-4 pt-6 pb-2"
             />
 
             <div className="relative z-20 space-y-2 max-w-[1600px] mx-auto">
               {/* Resume where you left off (client-side; hidden until you've read something) */}
               <ContinueReading kind="novel" />
-              <NovelCarousel title="Trending Now" icon={<Flame className="w-6 h-6 text-orange-500" />} items={trending} seeAllLink="/novel?view=all&list=most-popular-novel" />
-              <NovelCarousel title="Recently Updated" icon={<Clock className="w-6 h-6 text-pink-400" />} items={latest} seeAllLink="/novel?view=all&list=latest-release-novel" />
-              <NovelCarousel title="Completed" icon={<CheckCircle2 className="w-6 h-6 text-green-500" />} items={completed} seeAllLink="/novel?view=all&list=completed-novel" />
+              <NovelCarousel title="Trending Now" icon={<Flame className="w-6 h-6 text-orange-500" />} items={trending} seeAllLink="/novel/explore?list=most-popular-novel" />
+              <NovelCarousel title="Recently Updated" icon={<Clock className="w-6 h-6 text-pink-400" />} items={latest} seeAllLink="/novel/explore?list=latest-release-novel" />
+              <NovelCarousel title="Completed" icon={<CheckCircle2 className="w-6 h-6 text-green-500" />} items={completed} seeAllLink="/novel/explore?list=completed-novel" />
               {/* Sourced from LightNovelWorld, so it's labelled honestly rather
                   than as a vague "More" — these are titles the other sources
                   don't carry. */}
-              <NovelCarousel title="New on LightNovelWorld" icon={<BookOpen className="w-6 h-6 text-pink-400" />} items={fanmtl} seeAllLink="/novel?view=all&list=lightnovelworld" />
+              <NovelCarousel title="New on LightNovelWorld" icon={<BookOpen className="w-6 h-6 text-pink-400" />} items={fanmtl} seeAllLink="/novel/explore?list=lightnovelworld" />
               {/* Ranked by rating, not requested as "popular" — this source
                   ignores its own sort params, so the order is derived here. */}
-              <NovelCarousel title="Top Rated on LightNovelWorld" icon={<Flame className="w-6 h-6 text-orange-500" />} items={lnwTop} seeAllLink="/novel?view=all&list=lightnovelworld-top" />
+              <NovelCarousel title="Top Rated on LightNovelWorld" icon={<Flame className="w-6 h-6 text-orange-500" />} items={lnwTop} seeAllLink="/novel/explore?list=lightnovelworld-top" />
 
               <div className="pt-6">
                 <DiscoverRail
@@ -176,7 +176,7 @@ function NovelInner() {
 
               <div className="flex justify-center pt-4 pb-2 pl-4 md:pl-12">
                 <button
-                  onClick={() => router.push("/novel?view=all&page=1")}
+                  onClick={() => router.push("/novel/explore")}
                   className="flex items-center gap-2 px-8 py-3 bg-pink-500 hover:bg-pink-400 text-white font-bold rounded-full shadow-[0_0_20px_rgba(236,72,153,0.3)] transition-colors"
                 >
                   <BookMarked className="w-5 h-5" /> Browse All Novels
