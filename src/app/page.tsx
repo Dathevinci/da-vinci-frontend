@@ -65,7 +65,11 @@ export default async function Home() {
             the first thing you reach for when you arrived knowing what you
             wanted. Submitting hands off to /explore, which owns the anime
             results grid and the real filter panel. */}
-        <HeroSearchBar mode="anime" filtersHref="/explore" className="mx-auto w-full max-w-[960px] px-4 pb-2" />
+        {/* z-[60], not the z-30 manhwa and novel use: there the row is a
+            sibling placed BEFORE the shelf container, so 30 beats its 20.
+            Here it sits INSIDE that container alongside carousel rows that
+            lift to z-50 on hover, and would otherwise be painted over. */}
+        <HeroSearchBar mode="anime" filtersHref="/explore" className="relative z-[60] mx-auto w-full max-w-[960px] px-4 pb-2" />
 
         {/* Daily Quests used to sit here. Removed — it's reachable from the nav
             (More -> Daily Quests, or /quests), and two entry points meant the
