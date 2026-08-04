@@ -42,6 +42,30 @@ export const CARD_ART: Record<string, string> = {
   card_blackreach:   "/cards/card_blackreach.png",
   card_lastretainer: "/cards/card_lastretainer.png",
   card_lampofhours:  "/cards/card_lampofhours.png",
+
+  // ── THE KNIGHT SET ──
+  // These filenames carry SPACES, so every path is percent-encoded. An
+  // unencoded space in a URL is not a 404 you can see coming — some browsers
+  // repair it, some do not, and the art silently fails for the ones that
+  // don't. Encoding it here means it never depends on that.
+  //
+  // Note these have no md/ or sm/ thumbnails yet: cardArt() rewrites the path
+  // by size, so small renders will 404 until the resized copies exist.
+  card_squire:        "/cards/The%20Squire.png",
+  card_jester:        "/cards/The%20Jester%20of%20Honor.png",
+  card_knightradiant: "/cards/Knight%20Of%20Radiance.png",
+  card_royalknight:   "/cards/Royal%20Knight.png",
+  card_sunknight:     "/cards/The%20Sun%20Knight.png",
+  card_crimsonknight: "/cards/Crimson%20Knight.png",
+  card_gloriousone:   "/cards/The%20Glorious%20One.png",
+  card_saintking:     "/cards/The%20Saint%20King.png",
+  card_swordsakura:   "/cards/Sword%20Of%20Sakura.png",
+  card_swordrose:     "/cards/Sword%20Of%20Rose.png",
+  card_shieldradiant: "/cards/Shield%20Of%20Radiance.png",
+  card_cloakinvis:    "/cards/Cloak%20Of%20Invisibility.png",
+  card_shieldlion:    "/cards/Shield%20of%20the%20Lionheart.png",
+  card_swordcrystal:  "/cards/Sword%20Of%20Crystal.png",
+  card_fittingend:    "/cards/A%20Fitting%20End.png",
 };
 
 /**
