@@ -66,6 +66,19 @@ export const CARD_ART: Record<string, string> = {
   card_shieldlion:    "/cards/Shield%20of%20the%20Lionheart.png",
   card_swordcrystal:  "/cards/Sword%20Of%20Crystal.png",
   card_fittingend:    "/cards/A%20Fitting%20End.png",
+
+  // ── THE SORCERER SET ──
+  // Same percent-encoded filenames-with-spaces as the Knight set, and the same
+  // caveat: no md/ or sm/ thumbnails exist yet, so every id here must also be
+  // in FULL_SIZE_ONLY below or the size rewrite asks for a file that isn't
+  // there and the card silently falls back to its drawn motif.
+  card_fallenspell:   "/cards/The%20Fallen%20Spell.png",
+  card_healingorb:    "/cards/Healing%20Orb.png",
+  card_inkmage:       "/cards/The%20Ink%20Mage.png",
+  card_poisonmage:    "/cards/The%20Poisonous%20Mage.png",
+  card_loopgrimoire:  "/cards/The%20Loop%20Grimoire.png",
+  card_witchhorror:   "/cards/The%20Witch%20of%20Horror.png",
+  card_icemage:       "/cards/The%20Ice%20Mage.png",
 };
 
 /**
@@ -106,6 +119,8 @@ const FULL_SIZE_ONLY = new Set([
   "card_sunknight", "card_crimsonknight", "card_gloriousone", "card_saintking",
   "card_swordsakura", "card_swordrose", "card_shieldradiant", "card_cloakinvis",
   "card_shieldlion", "card_swordcrystal", "card_fittingend",
+  "card_fallenspell", "card_healingorb", "card_inkmage", "card_poisonmage",
+  "card_loopgrimoire", "card_witchhorror", "card_icemage",
 ]);
 
 export function cardArt(id: string, override?: string, size = 999): string | null {
