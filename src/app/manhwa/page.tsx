@@ -13,6 +13,7 @@ import HeroSearchBar from "@/components/ui/HeroSearchBar";
 import LatestUpdatesGrid from "@/components/manhwa/LatestUpdatesGrid";
 import DiscoverRail from "@/components/media/DiscoverRail";
 import RecentMediaComments from "@/components/media/RecentMediaComments";
+import HiddenGems from "@/components/media/HiddenGems";
 import { useSearchParams, useRouter } from "next/navigation";
 import { IMangaResult, ISearch } from "@/lib/asura/models";
 import { motion, AnimatePresence } from "framer-motion";
@@ -173,6 +174,10 @@ function ManhwaPageInner() {
                       items: toDiscover(topRated) },
                   ]}
                 />
+              </div>
+
+              <div className="pt-6">
+                <HiddenGems source="manhwa" />
               </div>
 
               <div className="pt-6">

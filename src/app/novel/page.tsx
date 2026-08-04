@@ -8,6 +8,7 @@ import LoadingScreen from "@/components/ui/LoadingScreen";
 import HeroSearchBar from "@/components/ui/HeroSearchBar";
 import DiscoverRail from "@/components/media/DiscoverRail";
 import RecentMediaComments from "@/components/media/RecentMediaComments";
+import HiddenGems from "@/components/media/HiddenGems";
 import { novelCover } from "@/lib/novelImage";
 import NovelCard from "@/components/novel/NovelCard";
 import NovelCarousel from "@/components/novel/NovelCarousel";
@@ -158,6 +159,10 @@ function NovelInner() {
                     { key: "top", label: "Top Rated", icon: "top", items: toDiscover(lnwTop) },
                   ]}
                 />
+              </div>
+
+              <div className="pt-6">
+                <HiddenGems source="novel" accent="#ec4899" />
               </div>
 
               <div className="pt-6">
