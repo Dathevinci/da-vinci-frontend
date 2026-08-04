@@ -294,7 +294,22 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
                     </div>
                   ) : (
                     <div className="p-12 text-center font-mono text-sm text-slate-500">
-                      {chapters.length === 0 ? "No chapters available yet. Check back later!" : "No chapters match your search."}
+                      {chapters.length > 0 ? (
+                        "No chapters match your search."
+                      ) : String(manhwa.id).startsWith("mdx:") ? (
+                        /* MangaDex lists officially licensed titles but serves
+                           their chapters as links to the publisher rather than
+                           pages, so there is genuinely nothing to read here.
+                           Saying so beats an empty list that reads as broken. */
+                        <>
+                          <span className="block text-slate-400">This title is officially licensed.</span>
+                          <span className="mt-2 block text-xs text-slate-600">
+                            Its chapters are published elsewhere, so they can&rsquo;t be read here.
+                          </span>
+                        </>
+                      ) : (
+                        "No chapters available yet. Check back later!"
+                      )}
                     </div>
                   )}
                 </div>
