@@ -356,7 +356,7 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
           <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[
               { Icon: Tv, t: "Three Arts in One", d: "Anime to watch, manhwa and light novels to read — one vault, one account." },
-              { Icon: Layers, t: "Arise Cards", d: "A living card game: pull heroes, collect serialled prints, forge Mythics." },
+              { Icon: Layers, t: "Arise Cards", d: "A living card game — being rebuilt from the ground up right now." },
               { Icon: Swords, t: "Card Duels", d: "Stake your deck against another member and fight it out." },
               { Icon: Gem, t: "Earn as You Go", d: "Watching and reading pays Arise Points — the currency of everything here." },
               { Icon: Palette, t: "Full Customization", d: "Profile frames, canvas effects, animated titles, showcases." },

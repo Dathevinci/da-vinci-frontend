@@ -31,7 +31,7 @@ const SECTIONS: Section[] = [
   { href: "/novel",       label: "Novels",           desc: "Dive into light novels and web novels.",           Icon: Feather,      tint: "#fbbf24" },
   { href: "/explore",     label: "Explore",          desc: "Search every world at once.",                      Icon: Compass,      tint: "#818cf8" },
   { href: "/community",   label: "Community",        desc: "Connect with your fellow devotees.",               Icon: Users,        tint: "#34d399" },
-  { href: "/cards",       label: "Arise Cards",      desc: "Pull heroes, collect prints, forge Mythics.",      Icon: Layers,       tint: "#c084fc" },
+  { href: "/cards",       label: "Arise Cards",      desc: "Your collection. Pulls are closed during the rework.", Icon: Layers,       tint: "#c084fc" },
   { href: "/duels",       label: "Card Duels",       desc: "Stake your cards and fight.",                      Icon: Swords,       tint: "#f43f5e" },
   { href: "/forge",       label: "Card Workbench",   desc: "Level, forge and dissolve your cards.",            Icon: FlaskConical, tint: "#ef4444" },
   { href: "/marketplace", label: "Marketplace",      desc: "Trade cards, serials and wears.",                  Icon: Store,        tint: "#22d3ee" },
