@@ -1414,7 +1414,16 @@ function CardFaceImpl({
             {card.rarity === "mythic" && !dim && size >= 120 && (
               <span style={{ fontSize: "1.5em", verticalAlign: "-0.12em", marginRight: 3, color: "#fb7185" }}>★</span>
             )}
-            {card.support ? "SUPPORT" : (card.gradeLabel ?? R.label).toUpperCase()}
+            {/* Rank FIRST, then the class. A support showing only "SUPPORT"
+                hid whether it was a common or an epic — which is the thing
+                that decides its dust, its craft cost and whether pulling it
+                was luck. Ground cards get the same treatment. */}
+            {(() => {
+              const rank = (card.gradeLabel ?? R.label).toUpperCase();
+              if ((card as any).ground) return `${rank} · GROUND`;
+              if (card.support) return `${rank} · SUPPORT`;
+              return rank;
+            })()}
           </span>
         )}
 
