@@ -168,16 +168,27 @@ export async function fetchInfo(id: string): Promise<IMangaInfo> {
   };
 }
 
-async function fetchChapters(mid: string, langs: string[] | null = ["en"]): Promise<IMangaChapter[]> {
+async function fetchChapters(mid: string): Promise<IMangaChapter[]> {
   const limit = 500;
   const raw: any[] = [];
-  // Newest-first (order desc) to match the AsuraScans convention the detail
-  // page + reader assume (index 0 = latest). Cap the walk so a 3000-entry
-  // series can't hammer the API.
+  /**
+   * NO LANGUAGE FILTER ON THE REQUEST — the preference is applied below.
+   *
+   * Asking the API for English only cannot express "English if it exists,
+   * otherwise anything", which is what a reader actually wants. It also hid
+   * the failure that keeps getting reported: for an officially licensed
+   * series every English chapter is an external link, so an en-only feed came
+   * back full and the readability filter emptied it, leaving a series page
+   * that looked complete and listed nothing.
+   *
+   * Fetching everything and choosing per chapter costs the same single walk.
+   *
+   * Newest-first (order desc) to match the AsuraScans convention the detail
+   * page + reader assume (index 0 = latest). Cap the walk so a 3000-entry
+   * series can't hammer the API.
+   */
   for (let offset = 0; offset < 3000; offset += limit) {
     const q = qs({
-      // `langs: null` drops the language filter entirely — see the retry below.
-      ...(langs ? { "translatedLanguage[]": langs } : {}),
       "contentRating[]": RATINGS,
       "order[chapter]": "desc",
       "includes[]": ["scanlation_group"],
@@ -189,25 +200,63 @@ async function fetchChapters(mid: string, langs: string[] | null = ["en"]): Prom
     if (offset + limit >= (d.total || 0)) break;
   }
 
-  // Keep one readable version per chapter number (feeds carry duplicates across
-  // scanlation groups). Skip chapters with no pages or an external host.
-  const seen = new Set<string>();
-  const out: IMangaChapter[] = [];
-  for (const c of raw) {
+  /**
+   * ONE VERSION PER CHAPTER NUMBER, AND ENGLISH WINS WHENEVER IT EXISTS.
+   *
+   * The feed carries the same chapter many times over — once per scanlation
+   * group, and once per language. The old dedupe kept whichever row happened
+   * to arrive FIRST, which is arbitrary, so as soon as other languages were in
+   * the payload a series could show chapter 12 in Portuguese while a perfectly
+   * good English scan of chapter 12 sat further down the same list.
+   *
+   * That is the bug this replaces. The previous attempt was all-or-nothing: if
+   * English produced no readable chapters it re-fetched everything and served
+   * whatever came back, which threw away the English chapters that DID exist
+   * further into the series. A series translated to chapter 40 in English and
+   * to chapter 90 elsewhere is the normal case, not an edge case, and both
+   * halves have to survive.
+   *
+   * So: gather every readable candidate per number, then pick English if any
+   * English candidate is readable, else fall back to another language for THAT
+   * NUMBER ONLY. Chapters keep their own language independently.
+   */
+  const readable = raw.filter((c) => {
     const a = c.attributes || {};
     // isUnavailable is a real flag on the live chapter payload and was missing
     // from this filter: such a chapter reports pages but serves none, so it
     // reached the reader as a blank page rather than being skipped.
-    if (!(a.pages > 0) || a.externalUrl || a.isUnavailable) continue;
+    return a.pages > 0 && !a.externalUrl && !a.isUnavailable;
+  });
+
+  const byNumber = new Map<string, any>();
+  for (const c of readable) {
+    const a = c.attributes || {};
+    const key = (a.chapter ?? "") || c.id;
+    const prev = byNumber.get(key);
+    if (!prev) {
+      byNumber.set(key, c);
+      continue;
+    }
+    // English displaces anything else; nothing displaces English.
+    const prevEn = (prev.attributes?.translatedLanguage || "") === "en";
+    const thisEn = (a.translatedLanguage || "") === "en";
+    if (thisEn && !prevEn) byNumber.set(key, c);
+  }
+
+  const out: IMangaChapter[] = [];
+  for (const c of byNumber.values()) {
+    const a = c.attributes || {};
     const num = a.chapter ?? "";
-    const key = num || c.id;
-    if (seen.has(key)) continue;
-    seen.add(key);
+    const lang = (a.translatedLanguage || "").toLowerCase();
 
     let title: string;
     if (num && a.title) title = `Chapter ${num} — ${a.title}`;
     else if (num) title = `Chapter ${num}`;
     else title = a.title || "Oneshot";
+    // Mark the language when it is NOT English, so a reader who opens one is
+    // not surprised by it. Silence would be the dishonest option here: the
+    // pages are art either way, but the person clicking deserves to know.
+    if (lang && lang !== "en") title += ` [${lang.toUpperCase()}]`;
 
     out.push({
       id: MDX_PREFIX + c.id,
@@ -217,24 +266,16 @@ async function fetchChapters(mid: string, langs: string[] | null = ["en"]): Prom
     });
   }
 
-  /**
-   * IF ENGLISH GAVE US NOTHING READABLE, TRY EVERY LANGUAGE ONCE.
-   *
-   * Search asks for `availableTranslatedLanguage: en`, so a title only reaches
-   * us if SOME English chapter exists — but "exists" is not "readable". The
-   * filter above drops chapters that are external links, unavailable, or carry
-   * no pages, and for officially licensed series that is every single English
-   * chapter. The result was a series page that looked complete and listed
-   * nothing, which is exactly what keeps getting reported.
-   *
-   * Manhwa pages are art, so a non-English scan is genuinely readable rather
-   * than a consolation prize — far better than an empty list. Only ever one
-   * retry, and only when the first pass found nothing, so a healthy series
-   * costs no extra request.
-   */
-  if (out.length === 0 && langs !== null) {
-    return fetchChapters(mid, null);
-  }
+  // The map preserved insertion order, which was the feed's chapter-desc order
+  // only until a later English row displaced an earlier one in place. Sort
+  // explicitly so the reader's "index 0 is latest" assumption always holds.
+  out.sort((x, y) => {
+    const n = (t: string) => {
+      const m = /chapter\s+([\d.]+)/i.exec(t || "");
+      return m ? parseFloat(m[1]) : -1;
+    };
+    return n(y.title) - n(x.title);
+  });
 
   return out;
 }
