@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
@@ -116,7 +116,50 @@ export default function BottomDock({
   const { user, logout } = useUser();
   const [open, setOpen] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
+  const [hidden, setHidden] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const reduce = useReducedMotion();
+
+  /**
+   * READING HIDES IT, REACHING BRINGS IT BACK.
+   *
+   * Scroll down and the bar drops away; scroll up — the gesture you make
+   * when you want navigation — and it returns. It always returns near the
+   * top of a page, and on any route change.
+   *
+   * ONLY the page scroller drives this, deliberately. Watching every
+   * internal scroller (overlays, modals, carousels) sounds more thorough
+   * and is a trap: a container that hid the bar can UNMOUNT — close a
+   * modal you scrolled — and then nothing is left to scroll back up, so
+   * the only navigation a signed-in user has stays hidden with no gesture
+   * to recover it. Horizontal carousels made it worse still, reporting
+   * scrollTop 0 so every sideways swipe yanked the bar back.
+   *
+   * Surfaces that scroll internally lock the page scroll anyway, so the
+   * bar simply stays visible over them — which is where you want
+   * navigation most.
+   */
+  useEffect(() => {
+    // Never hide while something anchored to the bar is open.
+    if (open || notifOpen) { setHidden(false); return; }
+
+    let lastY = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (y < 80) { lastY = y; setHidden(false); return; }  // near the top: always shown
+      const delta = y - lastY;
+      if (Math.abs(delta) < 8) return;                      // ignore jitter and rubber-band
+      lastY = y;
+      setHidden(delta > 0);
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [open, notifOpen]);
+
+  // A route change always restores it — otherwise you could land on a new
+  // page with no navigation until you happened to scroll up.
+  useEffect(() => { setHidden(false); }, [pathname]);
 
   // Reader screens hide all chrome; the dock respects that.
   if (pathname?.includes("/chapter/")) return null;
@@ -135,13 +178,33 @@ export default function BottomDock({
             descendant, which shrank the notifications panel to pill width
             and trapped it inside the pill. The near-opaque bg reads the
             same without the blur. */}
+        {/* ONE style prop. Two of them meant the later object won and the
+            pointerEvents rule was silently dropped — and since the
+            reduced-motion path only fades (no slide), that left an
+            invisible bar parked over the page still catching taps, Reload
+            included. `visibility` at the end of the animation takes it out
+            of hit-testing AND the tab order, so a keyboard user can't land
+            on a bar they can't see either. */}
         <motion.div
           initial={reduce ? false : { y: 28, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.8 }}
+          animate={{
+            y: reduce ? 0 : hidden ? 110 : 0,
+            opacity: hidden ? 0 : 1,
+            ...(hidden
+              ? { transitionEnd: { visibility: "hidden" as const } }
+              : { visibility: "visible" as const }),
+          }}
+          transition={reduce
+            ? { duration: 0.15 }
+            : { type: "spring", stiffness: 420, damping: 34, mass: 0.8 }}
           onMouseLeave={() => setHovered(null)}
+          aria-hidden={hidden}
           className="flex items-center gap-1 rounded-full px-3 py-1.5"
-          style={{ background: "rgba(10,9,15,.95)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.10), 0 10px 34px rgba(0,0,0,.65)" }}>
+          style={{
+            pointerEvents: hidden ? "none" : "auto",
+            background: "rgba(10,9,15,.95)",
+            boxShadow: "inset 0 0 0 1px rgba(255,255,255,.10), 0 10px 34px rgba(0,0,0,.65)",
+          }}>
           <DockBtn {...btn("back")} onClick={() => router.back()} label="Back"><ArrowLeft className="h-[18px] w-[18px]" /></DockBtn>
           <DockBtn {...btn("fwd")} onClick={() => router.forward()} label="Forward"><ArrowRight className="h-[18px] w-[18px]" /></DockBtn>
           <DockBtn {...btn("reload")} onClick={() => window.location.reload()} label="Reload"><RotateCw className="h-[17px] w-[17px]" /></DockBtn>
@@ -153,7 +216,10 @@ export default function BottomDock({
               glow themselves — otherwise it stayed stranded on whichever
               icon you left as the pointer moved onto them */}
           <div className="grid h-10 w-10 place-items-center" onMouseEnter={() => setHovered(null)}>
-            <NotificationsMenu openUp />
+            {/* onOpenChange keeps the bar pinned while the panel is open —
+                the panel is anchored to the bell, so hiding the bar under
+                it would leave it floating over nothing. */}
+            <NotificationsMenu openUp onOpenChange={setNotifOpen} />
           </div>
           {user && (
             <button onClick={() => router.push(`/user/${user.username}`)} aria-label="Your profile"
