@@ -39,7 +39,10 @@ export type SupportEffect =
   // Those fire once and are spent; these hold for the rest of the fight.
   | { kind: "guard"; power: number }
   | { kind: "edge"; power: number }
-  | { kind: "veil"; power: number };
+  | { kind: "veil"; power: number }
+  // ── the Sorcerer set — standing, but measured in TURNS rather than numbers ──
+  | { kind: "regen"; power: number }
+  | { kind: "loop"; power: number };
 
 /**
  * GROUND — a third card class, alongside units and supports.
@@ -105,6 +108,10 @@ export function supportText(s: SupportEffect, level = 1): string {
     case "guard":  return `Every blow lands ${Math.max(1, Math.round(s.power * m))} lighter, all duel`;
     case "edge":   return `Each card's FIRST strike carries +${Math.max(1, Math.round(s.power * m))}`;
     case "veil":   return `${Math.round(Math.min(0.6, s.power * m) * 100)}% of attacks find nobody there`;
+    // Sorcerer. `loop` deliberately names the tiers it works on — a support
+    // that silently does nothing for your epic would read as broken.
+    case "regen":  return `Recover ${Math.max(1, Math.round(s.power * m))} HP at the end of every turn`;
+    case "loop":   return `One common or rare card strikes TWICE, once this duel`;
     // The ability row is now the ONLY place this text appears, so an
     // unhandled kind would leave a support card's primary line blank rather
     // than merely missing a tooltip.
