@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
-  Tv, BookOpen, Feather, Compass, Users, Layers, Swords, Castle,
+  Tv, BookOpen, Feather, Compass, Users, Layers, Swords,
   FlaskConical, Store, Gavel, Trophy, ShoppingBag, Crown, Megaphone,
   Terminal, ArrowUpRight, Sparkles, Diamond, Zap,
 } from "lucide-react";
@@ -33,7 +33,6 @@ const SECTIONS: Section[] = [
   { href: "/community",   label: "Community",        desc: "Connect with your fellow devotees.",               Icon: Users,        tint: "#34d399" },
   { href: "/cards",       label: "Arise Cards",      desc: "Pull heroes, collect prints, forge Mythics.",      Icon: Layers,       tint: "#c084fc" },
   { href: "/duels",       label: "Card Duels",       desc: "Stake your cards and fight.",                      Icon: Swords,       tint: "#f43f5e" },
-  { href: "/dungeon",     label: "Dungeon Dispatch", desc: "Send a party into the depths.",                    Icon: Castle,       tint: "#5fd18a" },
   { href: "/forge",       label: "Synthesis Lab",    desc: "Fuse legendaries into something greater.",         Icon: FlaskConical, tint: "#ef4444" },
   { href: "/marketplace", label: "Marketplace",      desc: "Trade cards, serials and wears.",                  Icon: Store,        tint: "#22d3ee" },
   { href: "/auctions",    label: "Auction House",    desc: "Bid on the rarest prints.",                        Icon: Gavel,        tint: "#f59e0b" },

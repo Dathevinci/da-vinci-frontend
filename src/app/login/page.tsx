@@ -26,7 +26,7 @@ const FEATURES: { Icon: any; title: string; body: string }[] = [
   { Icon: CheckCircle2, title: "Track Your Progress", body: "Mark episodes watched and chapters read, across devices." },
   { Icon: Award, title: "Earn Points & Levels", body: "Watching and reading pay Arise Points. Rank up, wear titles." },
   { Icon: MessagesSquare, title: "Comment on Everything", body: "Anime, manhwa and light novels — every page has a thread." },
-  { Icon: Layers, title: "Collect Arise Cards", body: "Pull heroes, duel other members, dispatch parties into dungeons." },
+  { Icon: Layers, title: "Collect Arise Cards", body: "Pull heroes, trade on the market, and duel other members." },
 ];
 
 /** Cheap, honest strength read — length first, then variety. */
