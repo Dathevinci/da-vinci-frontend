@@ -258,7 +258,7 @@ export default function ForgePage() {
             <div>
               <p className="text-[11px] font-black uppercase tracking-[0.4em] text-red-400/80">Da Vinci Archive</p>
               <h1 className="mt-1 flex items-center gap-3 font-fell text-4xl font-bold uppercase tracking-[0.06em]">
-                <FlaskConical className="h-8 w-8 text-red-400" /> Synthesis Lab
+                <FlaskConical className="h-8 w-8 text-red-400" /> Card Workbench
               </h1>
               <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-300">
                 The one place cards are made stronger. Levels, skills and stat forging on the
