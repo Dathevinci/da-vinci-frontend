@@ -31,6 +31,15 @@ interface WatchOverlayProps {
   initialSeconds?: number | null;
   allEpisodes: AnikotoEpisode[];
   onClose: () => void;
+  /**
+   * Inline mode: render as a normal aspect-video block inside a page (the
+   * /watch route) instead of a fullscreen portal. Skips the body-scroll
+   * lock and the Escape-closes-everything behaviour; the fullscreen button
+   * still works because containerRef stays on the wrapper.
+   */
+  inline?: boolean;
+  /** Fires when the native video reaches its end (auto-next lives upstairs). */
+  onEnded?: () => void;
 }
 
 export default function WatchOverlay({
@@ -41,6 +50,8 @@ export default function WatchOverlay({
   initialSeconds = null,
   allEpisodes,
   onClose,
+  inline = false,
+  onEnded,
 }: WatchOverlayProps) {
   const { addXpForWatching, user } = useUser();
   const { isTracked, setStatus } = useAnimeStatus();
@@ -68,6 +79,8 @@ export default function WatchOverlay({
   // Throttle refs for high-frequency video events to save CPU
   const lastTimeUpdateRef = useRef(0);
   const lastProgressUpdateRef = useRef(0);
+  // Inline mode: is the pointer over the player? Gates the Space shortcut.
+  const hoverRef = useRef(false);
 
   // Playback state (for the custom Netflix-style controls)
   const [isPlaying, setIsPlaying] = useState(true);
@@ -120,12 +133,12 @@ export default function WatchOverlay({
     setIsBrowser(true);
   }, []);
 
-  // Lock body scroll
+  // Lock body scroll — only as a fullscreen overlay; the inline page scrolls.
   useEffect(() => {
-    if (!isBrowser) return;
+    if (!isBrowser || inline) return;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = ""; };
-  }, [isBrowser]);
+  }, [isBrowser, inline]);
 
   const lastStorageUpdateRef = useRef(0);
 
@@ -298,18 +311,26 @@ export default function WatchOverlay({
   // Escape key to close, Space to play/pause
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
+      // Never hijack typing — the inline page has search inputs and the
+      // comment composer; a global Space here was eating every space
+      // character AND toggling playback.
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
       if (e.key === "Escape") {
         if (showEpisodePanel) setShowEpisodePanel(false);
         else if (showServerPanel) setShowServerPanel(false);
-        else onClose();
+        else if (!inline) onClose(); // inline: Escape closing panels, never the page
       } else if (e.code === "Space" && !showEpisodePanel && !showServerPanel) {
+        // Inline: Space belongs to the player only while the pointer is
+        // over it — elsewhere the page keeps Space-to-scroll.
+        if (inline && !hoverRef.current) return;
         e.preventDefault();
         togglePlay();
       }
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [onClose, showEpisodePanel, showServerPanel, togglePlay]);
+  }, [onClose, showEpisodePanel, showServerPanel, togglePlay, inline]);
 
   // Auto-hide controls — but always stay visible while paused, like Netflix
   const resetControlsTimer = useCallback(() => {
@@ -522,13 +543,17 @@ export default function WatchOverlay({
 
   if (!isBrowser) return null;
 
-  return createPortal(
-    <div 
+  const shell = (
+    <div
       ref={containerRef}
-      className="fixed inset-0 z-[99999] bg-black flex flex-col"
+      className={inline
+        ? "relative aspect-video w-full overflow-hidden rounded-2xl border border-white/10 bg-black flex flex-col"
+        : "fixed inset-0 z-[99999] bg-black flex flex-col"}
       style={{ cursor: controlsVisible || !isPlaying ? 'default' : 'none' }}
       onMouseMove={resetControlsTimer}
       onClick={resetControlsTimer}
+      onMouseEnter={() => { hoverRef.current = true; }}
+      onMouseLeave={() => { hoverRef.current = false; }}
     >
       {/* ═══ TOP BAR ═══ */}
       <div className={`${activeSourceObj?.isEmbed ? 'relative' : 'absolute top-0'} left-0 right-0 z-50 transition-all duration-500 ${controlsVisible || activeSourceObj?.isEmbed ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full pointer-events-none"}`}>
@@ -588,6 +613,7 @@ export default function WatchOverlay({
               crossOrigin="anonymous"
               onPlay={() => { setIsPlaying(true); setHasStarted(true); }}
               onPause={() => setIsPlaying(false)}
+              onEnded={() => onEnded?.()}
               onTimeUpdate={(e) => { 
                 if (!isSeeking) {
                   const now = Date.now();
@@ -779,14 +805,20 @@ export default function WatchOverlay({
                 {streamType === "sub" ? "Sub" : "Dub"}
               </button>
 
-              <button
-                disabled={!hasNext}
-                onClick={() => goToEpisode("next")}
-                title="Next Episode"
-                className="text-white hover:text-slate-300 disabled:opacity-30 transition flex-shrink-0"
-              >
-                <ChevronRight className="w-8 h-8" />
-              </button>
+              {/* Inline mode hides the internal episode navigation — the
+                  watch PAGE owns prev/next and the episode list there, and
+                  navigating inside the player desynced the page's header,
+                  URL, watched-marking and auto-next. */}
+              {!inline && (
+                <button
+                  disabled={!hasNext}
+                  onClick={() => goToEpisode("next")}
+                  title="Next Episode"
+                  className="text-white hover:text-slate-300 disabled:opacity-30 transition flex-shrink-0"
+                >
+                  <ChevronRight className="w-8 h-8" />
+                </button>
+              )}
 
                 <button
                   onClick={() => { setShowServerPanel(v => !v); setShowEpisodePanel(false); }}
@@ -796,13 +828,15 @@ export default function WatchOverlay({
                   <Server className="w-6 h-6" />
                 </button>
 
-                <button
-                  onClick={() => { setShowEpisodePanel(v => !v); setShowServerPanel(false); }}
-                  className={`transition ${showEpisodePanel ? "text-red-500" : "text-white hover:text-slate-300"}`}
-                  title="Episodes"
-                >
-                  <List className="w-7 h-7" />
-                </button>
+                {!inline && (
+                  <button
+                    onClick={() => { setShowEpisodePanel(v => !v); setShowServerPanel(false); }}
+                    className={`transition ${showEpisodePanel ? "text-red-500" : "text-white hover:text-slate-300"}`}
+                    title="Episodes"
+                  >
+                    <List className="w-7 h-7" />
+                  </button>
+                )}
 
                 {!activeSourceObj?.isEmbed && (
                   <button
@@ -942,7 +976,9 @@ export default function WatchOverlay({
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
       `}</style>
-    </div>,
-    document.body
+    </div>
   );
+
+  // Fullscreen overlay portals to body; inline renders where it stands.
+  return inline ? shell : createPortal(shell, document.body);
 }

@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import TrackerButton from '@/components/anime/TrackerButton';
 import { useAnimeModal } from '@/components/providers/AnimeModalProvider';
 import { usePreferences } from '@/hooks/usePreferences';
+import { useRouter } from 'next/navigation';
 
 interface ContinueWatchingCardProps {
   anime: Anime;
@@ -30,6 +31,7 @@ export default function ContinueWatchingCard({
 
   const { openAnime } = useAnimeModal();
   const { preferences } = usePreferences();
+  const router = useRouter();
 
   const title = anime.title_english || anime.title || "Unknown Anime";
   const image = anime.trailer?.images?.maximum_image_url || anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url;
@@ -116,12 +118,8 @@ export default function ContinueWatchingCard({
   const handlePlay = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     closeHover();
-    openAnime(anime, {
-      startEpisode: savedEpisodeNo || undefined,
-      // Resume the exact spot, not just the right episode.
-      startSeconds: savedSeconds > 0 ? savedSeconds : undefined,
-      autoPlay: true
-    });
+    // Straight onto the watch page, at the exact saved second.
+    router.push(`/watch/${anime.mal_id}?ep=${savedEpisodeNo || 1}${savedSeconds > 0 ? `&t=${Math.floor(savedSeconds)}` : ""}`);
   };
 
   useEffect(() => {

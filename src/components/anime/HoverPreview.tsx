@@ -213,3 +213,138 @@ export default function HoverPreview({ anime, children }: { anime: Anime; childr
     </div>
   );
 }
+
+/**
+ * THE SAME FOLLOWER, media-generic — manhwa and novels get the hover
+ * dossier too, built from whatever fields their scrapers actually carry
+ * (no synopsis or trailer on list items, so: art, chips, stats).
+ */
+export function MediaHoverPreview({
+  title,
+  image,
+  chips,
+  stats,
+  children,
+}: {
+  title: string;
+  image: string | null;
+  /** small pills under the title — first gets the accent look */
+  chips: string[];
+  /** label/value pairs for the stats grid */
+  stats: [string, string][];
+  children: ReactNode;
+}) {
+  const MH = 330;
+  const [show, setShow] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const posRef = useRef({ x: 0, y: 0 });
+  const showTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const raf = useRef(0);
+
+  const hide = () => {
+    if (showTimer.current) clearTimeout(showTimer.current);
+    showTimer.current = null;
+    setShow(false);
+  };
+
+  useEffect(() => {
+    if (!show) return;
+    const dismiss = () => hide();
+    window.addEventListener("scroll", dismiss, { passive: true, capture: true });
+    return () => window.removeEventListener("scroll", dismiss, { capture: true } as any);
+  }, [show]);
+
+  useEffect(() => () => { if (showTimer.current) clearTimeout(showTimer.current); cancelAnimationFrame(raf.current); }, []);
+
+  const place = () => {
+    const el = panelRef.current;
+    if (!el) return;
+    const { x, y } = posRef.current;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const left = Math.min(Math.max(8, x - W / 2), vw - W - 8);
+    const top = y - MH - 18 > 8 ? y - MH - 18 : Math.min(y + 22, vh - MH - 8);
+    el.style.left = `${left}px`;
+    el.style.top = `${Math.max(8, top)}px`;
+  };
+
+  const onMove = (e: React.MouseEvent) => {
+    posRef.current = { x: e.clientX, y: e.clientY };
+    if (show) {
+      cancelAnimationFrame(raf.current);
+      raf.current = requestAnimationFrame(place);
+    }
+  };
+
+  const onEnter = (e: React.MouseEvent) => {
+    if (typeof window !== "undefined" && window.matchMedia("(hover: none)").matches) return;
+    posRef.current = { x: e.clientX, y: e.clientY };
+    if (showTimer.current) clearTimeout(showTimer.current);
+    showTimer.current = setTimeout(() => setShow(true), SHOW_DELAY);
+  };
+
+  return (
+    <div onMouseEnter={onEnter} onMouseMove={onMove} onMouseLeave={hide} onClickCapture={hide} className="contents">
+      {children}
+      {show && typeof document !== "undefined" && createPortal(
+        <div
+          ref={(el) => { (panelRef as any).current = el; if (el) place(); }}
+          style={{ position: "fixed", width: W, zIndex: 120 }}
+          className="hp-in pointer-events-none overflow-hidden rounded-2xl border border-white/10 bg-[#0b0b11] shadow-[0_30px_80px_rgba(0,0,0,.85)]"
+        >
+          <div className="relative h-36 w-full overflow-hidden bg-black">
+            {image && <img src={image} alt="" className="h-full w-full object-cover object-top" />}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0b0b11] to-transparent" />
+          </div>
+
+          <div className="relative px-4 pb-4">
+            <div className="-mt-10 flex items-end gap-3">
+              {image && (
+                <img src={image} alt="" className="h-24 w-16 shrink-0 rounded-lg border border-white/20 object-cover shadow-xl" />
+              )}
+              <p className="line-clamp-2 flex-1 pb-0.5 font-mono text-base font-black leading-snug text-white">{title}</p>
+            </div>
+
+            {chips.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {chips.map((c, i) => (
+                  <span key={c} className={`rounded-md border px-2 py-0.5 font-mono text-[10px] font-bold ${
+                    i === 0 ? "border-amber-400/40 bg-amber-400/10 text-amber-300" : "border-white/10 bg-white/[0.05] text-slate-300"
+                  }`}>
+                    {c}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {stats.length > 0 && (
+              <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-white/10 pt-3.5">
+                {stats.map(([k, v]) => (
+                  <div key={k} className="min-w-0">
+                    <p className="font-mono text-[9px] font-black uppercase tracking-[0.18em] text-slate-600">{k}</p>
+                    <p className="mt-0.5 truncate font-mono text-xs font-bold text-white">{v}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
+      {/* the entry keyframes ride along here too — on manhwa/novel pages
+          no anime HoverPreview is mounted to provide them */}
+      <style jsx global>{`
+        .hp-in {
+          animation: hpIn 180ms cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes hpIn {
+          from { opacity: 0; transform: translateY(6px) scale(0.98); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .hp-in { animation: none; }
+        }
+      `}</style>
+    </div>
+  );
+}

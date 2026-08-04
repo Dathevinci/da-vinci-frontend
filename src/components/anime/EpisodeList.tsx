@@ -6,7 +6,8 @@ import { Loader2, Tv, AlertCircle, ChevronDown, Clock, Sparkles, Search } from "
 import WatchOverlay from "./WatchOverlay";
 import AnikotoPlayer from "./AnikotoPlayer";
 import { Anime } from "@tutkli/jikan-ts";
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useAnimeModal } from "@/components/providers/AnimeModalProvider";
 
 const EPISODES_PER_SEASON = 12;
 
@@ -34,6 +35,15 @@ export default function EpisodeList({
   // Toggle between legacy WatchOverlay and new AnikotoPlayer
   const [useCustomPlayer, setUseCustomPlayer] = useState(false);
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const { closeAnime } = useAnimeModal();
+
+  // Episodes play on the WATCH PAGE now — a real, shareable route with the
+  // player and the episode world around it. The modal closes as we leave.
+  const goWatch = (epNumber: number, seconds?: number | null) => {
+    closeAnime();
+    router.push(`/watch/${anime.mal_id}?ep=${epNumber}${seconds ? `&t=${Math.floor(seconds)}` : ""}`);
+  };
   
   const autoPlay = autoPlayProp || searchParams?.get("play") === "true";
   const epParam = searchParams?.get("ep");
@@ -44,10 +54,10 @@ export default function EpisodeList({
     if (autoPlay && episodes.length > 0 && !watchEpisodeId && !hasAutoPlayed) {
       const targetEp = autoPlayEp ? episodes.find(e => e.number === autoPlayEp) : null;
       const epToPlay = targetEp || episodes[0];
-      setWatchEpisodeId(epToPlay.id);
-      setWatchEpisodeNo(epToPlay.number || 1);
       setHasAutoPlayed(true);
+      goWatch(epToPlay.number || 1, resumeSecondsProp);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoPlay, autoPlayEp, episodes, watchEpisodeId, hasAutoPlayed]);
   // Season/group selector
   const [activeSeason, setActiveSeason] = useState(0);
@@ -376,18 +386,9 @@ export default function EpisodeList({
               className="w-full rounded-xl border border-white/10 bg-white/[0.04] py-2.5 pl-10 pr-4 font-mono text-sm text-white placeholder:text-slate-600 focus:border-white/25 focus:outline-none"
             />
           </div>
-          <button
-            onClick={() => setUseCustomPlayer(v => !v)}
-            title={useCustomPlayer ? "Switch to classic player" : "Switch to new player (beta)"}
-            className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 font-mono text-xs font-bold transition ${
-              useCustomPlayer
-                ? "border-purple-500/40 bg-purple-600/20 text-purple-300"
-                : "border-white/10 bg-white/[0.04] text-slate-400 hover:bg-white/10 hover:text-white"
-            }`}
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            {useCustomPlayer ? "New Player ON" : "New Player"}
-          </button>
+          {/* the old New Player toggle is gone — playback lives on the
+              /watch page now, and a switch that changed nothing was worse
+              than no switch */}
           {seasons.length > 1 && !epFilter && (
             <div className="relative">
               <select
@@ -430,8 +431,7 @@ export default function EpisodeList({
                       key={ep.id || idx}
                       onClick={() => {
                         if (!isStreamable) return;
-                        setWatchEpisodeId(ep.id);
-                        setWatchEpisodeNo(epNumber);
+                        goWatch(epNumber);
                       }}
                       disabled={!isStreamable}
                       title={!isStreamable ? "Stream not available for this anime" : ep.title || `Episode ${epNumber}`}
