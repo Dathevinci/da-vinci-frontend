@@ -75,6 +75,7 @@ export default function AnimeModalProvider({ children }: { children: React.React
   const [anime, setAnime] = useState<Anime | null>(null);
   const [options, setOptions] = useState<AnimeModalOptions | undefined>();
   const [trailerId, setTrailerId] = useState<string | null>(null);
+  const routePath = usePathname();
 
   const openAnime = useCallback((a: Anime, opts?: AnimeModalOptions) => {
     setAnime(a);
@@ -84,6 +85,23 @@ export default function AnimeModalProvider({ children }: { children: React.React
     setAnime(null);
     setOptions(undefined);
   }, []);
+
+  /**
+   * NAVIGATING AWAY CLOSES IT.
+   *
+   * The detail screen sits below the Dock now, so its navigation is
+   * reachable while the screen is open — and nothing was dismissing the
+   * screen on a route change, leaving an opaque full-page overlay
+   * stranded on top of wherever you just went. Skipped on the very first
+   * render so a deep link (?view=…) still opens.
+   */
+  const firstRoute = useRef(true);
+  useEffect(() => {
+    if (firstRoute.current) { firstRoute.current = false; return; }
+    setAnime(null);
+    setOptions(undefined);
+    setTrailerId(null);
+  }, [routePath]);
 
   return (
     <AnimeModalContext.Provider value={{ openAnime, closeAnime }}>

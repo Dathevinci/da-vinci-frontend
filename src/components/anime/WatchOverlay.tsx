@@ -82,8 +82,16 @@ export default function WatchOverlay({
   // Inline mode: is the pointer over the player? Gates the Space shortcut.
   const hoverRef = useRef(false);
 
-  // Playback state (for the custom Netflix-style controls)
-  const [isPlaying, setIsPlaying] = useState(true);
+  // Playback state (for the custom Netflix-style controls).
+  // Starts FALSE: a blocked autoplay fires no `pause` event, so seeding
+  // this true left the UI insisting it was playing — pause overlay never
+  // shown, a Pause icon on a stopped video, and the controls auto-hiding
+  // after 4s into a black rectangle.
+  const [isPlaying, setIsPlaying] = useState(false);
+  /** Autoplay only survived by muting — offer one tap to get sound back. */
+  const [needsUnmute, setNeedsUnmute] = useState(false);
+  /** Even muted autoplay was refused: only a real tap will start it. */
+  const [autoplayBlocked, setAutoplayBlocked] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -451,6 +459,42 @@ export default function WatchOverlay({
     }
   }, [allEpisodes, streamType]);
 
+  /**
+   * Start playback, surviving the autoplay policy.
+   *
+   * Phones block UNMUTED autoplay outright — there is no engagement
+   * exemption the way desktop Chrome has — so the old bare `play()` was
+   * rejected on every mobile load and, because nothing handled the
+   * rejection, the player just sat there black. We try with sound first
+   * (desktop keeps its behaviour), and on rejection fall back to a muted
+   * start and flag that sound needs one tap to switch on.
+   */
+  const startPlayback = useCallback((video: HTMLVideoElement) => {
+    const attempt = video.play();
+    if (!attempt || typeof attempt.catch !== "function") return;
+    attempt.catch((err: any) => {
+      // ONLY NotAllowedError means "the browser blocked autoplay".
+      // play() also rejects with AbortError whenever a pending load is
+      // interrupted — which happens every time the viewer pauses, taps
+      // back, or switches server/sub-dub during the second or two a
+      // manifest takes to load. Treating those as a block muted a video
+      // nobody muted and force-resumed a deliberate pause.
+      if (err?.name !== "NotAllowedError") {
+        setIsPlaying(false);
+        return;
+      }
+      video.muted = true;
+      setIsMuted(true);
+      setNeedsUnmute(true);
+      video.play().catch(() => {
+        // Even muted autoplay refused — leave it paused and let the
+        // centre play button do the work on a real tap.
+        setIsPlaying(false);
+        setAutoplayBlocked(true);
+      });
+    });
+  }, []);
+
   // Play a source URL using HLS.js or native video
   const playSource = useCallback((url: string, isM3U8: boolean, headers?: Record<string, string>, isEmbed?: boolean) => {
     setActiveSourceObj({ url, isM3U8, isEmbed });
@@ -483,7 +527,7 @@ export default function WatchOverlay({
         hls.loadSource(url);
         hls.attachMedia(video);
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          video.play().catch(() => {});
+          startPlayback(video);
         });
         hls.on(Hls.Events.ERROR, (_, data) => {
           if (data.fatal) {
@@ -494,11 +538,11 @@ export default function WatchOverlay({
       } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
         // Safari native HLS
         video.src = url;
-        video.play().catch(() => {});
+        startPlayback(video);
       } else {
         // Direct MP4 or other
         video.src = url;
-        video.play().catch(() => {});
+        startPlayback(video);
       }
     }, 0);
   }, []);
@@ -543,11 +587,21 @@ export default function WatchOverlay({
 
   if (!isBrowser) return null;
 
+  // An embedded (iframe) source rendered inline: its own player chrome
+  // lives inside the frame, so ours must stack around it rather than
+  // float on top and bury the embed's controls.
+  const inlineEmbed = inline && !!activeSourceObj?.isEmbed;
+
   const shell = (
     <div
       ref={containerRef}
       className={inline
-        ? "relative aspect-video w-full overflow-hidden rounded-2xl border border-white/10 bg-black flex flex-col"
+        // An EMBED stacks: bar / iframe / bar, so the shell grows to fit
+        // instead of pinning a 16:9 box. Forcing aspect-video here is what
+        // starved the flex-1 iframe area to zero height and made embedded
+        // sources render nothing on a phone. Native video still gets the
+        // clean 16:9 frame with overlaid controls.
+        ? `relative w-full overflow-hidden rounded-2xl border border-white/10 bg-black flex flex-col ${inlineEmbed ? "" : "aspect-video"}`
         : "fixed inset-0 z-[99999] bg-black flex flex-col"}
       style={{ cursor: controlsVisible || !isPlaying ? 'default' : 'none' }}
       onMouseMove={resetControlsTimer}
@@ -555,21 +609,27 @@ export default function WatchOverlay({
       onMouseEnter={() => { hoverRef.current = true; }}
       onMouseLeave={() => { hoverRef.current = false; }}
     >
-      {/* ═══ TOP BAR ═══ */}
+      {/* ═══ TOP BAR ═══
+          INLINE keeps the bars as OVERLAYS even for embeds. Going
+          `relative` gave them real layout height, and inside a fixed
+          aspect-video box (≈193px on a phone) the two bars' 220px of
+          chrome starved the `flex-1` video area down to ZERO — embeds
+          rendered nothing at all. Fullscreen keeps the old behaviour,
+          where an iframe swallowing mouse events matters more. */}
       <div className={`${activeSourceObj?.isEmbed ? 'relative' : 'absolute top-0'} left-0 right-0 z-50 transition-all duration-500 ${controlsVisible || activeSourceObj?.isEmbed ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full pointer-events-none"}`}>
-        <div className="px-4 sm:px-8 py-6 flex items-center justify-between">
-          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition group">
-            <ArrowLeft className="w-8 h-8 text-white group-hover:-translate-x-1 transition-transform" />
+        <div className="px-3 py-2.5 sm:px-8 sm:py-6 flex items-center justify-between">
+          <button onClick={onClose} className="p-1.5 sm:p-2 hover:bg-white/10 rounded-full transition group">
+            <ArrowLeft className="w-6 h-6 sm:w-8 sm:h-8 text-white group-hover:-translate-x-1 transition-transform" />
           </button>
-          <button className="p-2 hover:bg-white/10 rounded-full transition" title="Report Issue">
-            <Flag className="w-7 h-7 text-white" />
+          <button className="p-1.5 sm:p-2 hover:bg-white/10 rounded-full transition" title="Report Issue">
+            <Flag className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
           </button>
         </div>
       </div>
 
       {/* ═══ MAIN VIDEO AREA ═══ */}
       <div
-        className="flex-1 relative flex items-center justify-center bg-black"
+        className={`${inlineEmbed ? "relative aspect-video w-full" : "flex-1 relative"} flex items-center justify-center bg-black`}
         onClick={() => { if (!activeSourceObj?.isEmbed && !loadingStream && !streamError) togglePlay(); }}
       >
         {/* Loading */}
@@ -595,6 +655,22 @@ export default function WatchOverlay({
           </div>
         )}
 
+        {/* ── CENTRE PLAY ── the one target that always works.
+            When autoplay is refused (every phone, unmuted) the only other
+            affordance was a small button in a bar that auto-hides, so the
+            player looked broken. Sits above the video, below the bars. */}
+        {!isPlaying && !loadingStream && !streamError && !activeSourceObj?.isEmbed && (hasStarted || autoplayBlocked) && (
+          <button
+            onClick={(e) => { e.stopPropagation(); setNeedsUnmute(false); togglePlay(); }}
+            aria-label="Play"
+            className="absolute inset-0 z-20 grid place-items-center"
+          >
+            <span className="grid h-16 w-16 place-items-center rounded-full bg-black/60 ring-2 ring-white/70 backdrop-blur-sm transition hover:scale-105 sm:h-20 sm:w-20">
+              <Play className="ml-1 h-7 w-7 fill-white text-white sm:h-9 sm:w-9" />
+            </span>
+          </button>
+        )}
+
         {/* Player (Video or Iframe) */}
         <div className="absolute inset-0 z-10">
           {activeSourceObj?.isEmbed ? (
@@ -610,7 +686,14 @@ export default function WatchOverlay({
               className="w-full h-full object-contain absolute inset-0 z-10"
               autoPlay
               playsInline
-              crossOrigin="anonymous"
+              // crossOrigin forced every direct-src load (native HLS on iOS,
+              // and mp4) into CORS mode, so a CDN without the header simply
+              // failed. Nothing here reads pixels, so it bought us nothing.
+              onError={() => {
+                if (!activeSourceObj?.isEmbed) {
+                  setStreamError("This source wouldn't play. Try another server.");
+                }
+              }}
               onPlay={() => { setIsPlaying(true); setHasStarted(true); }}
               onPause={() => setIsPlaying(false)}
               onEnded={() => onEnded?.()}
@@ -672,32 +755,39 @@ export default function WatchOverlay({
             <img src="/logo.png" alt="Da Vinci" className="w-6 h-6 md:w-8 md:h-8 opacity-80" />
             <span className="font-fell font-bold tracking-widest text-white/80 text-xs md:text-sm uppercase">Da Vinci</span>
           </div>
-          {/* ═══ NETFLIX-STYLE PAUSE SCREEN ═══ */}
-          {!activeSourceObj?.isEmbed && !loadingStream && !streamError && !isPlaying && (
+          {/* ═══ NETFLIX-STYLE PAUSE SCREEN ═══
+              hasStarted gates it: seeding isPlaying=false (so a blocked
+              autoplay is honest) otherwise painted this whole wall of
+              text over EVERY episode at load, before playback began.
+              Typography scales down too — at 5xl it overflowed the
+              inline player on a phone, the very thing the compact
+              control bars were fixing. */}
+          {!activeSourceObj?.isEmbed && !loadingStream && !streamError && !isPlaying && hasStarted && (
             <div className="absolute inset-0 z-20 bg-black/80 pointer-events-none flex flex-col justify-center">
               {/* Left-aligned episode info block */}
-              <div className="absolute left-8 sm:left-16 md:left-24 lg:left-32 top-1/2 -translate-y-1/2 max-w-3xl pr-8">
-                <p className="text-slate-300 text-base sm:text-lg mb-1">
-                  You're watching
+              <div className="absolute left-4 sm:left-16 md:left-24 lg:left-32 top-1/2 -translate-y-1/2 max-w-3xl pr-4 sm:pr-8">
+                <p className="hidden sm:block text-slate-300 text-base sm:text-lg mb-1">
+                  You&apos;re watching
                 </p>
-                <h2 className="text-white text-5xl sm:text-6xl md:text-7xl font-black mb-3 leading-tight tracking-tight">
+                <h2 className="text-white text-xl sm:text-5xl md:text-7xl font-black mb-1 sm:mb-3 leading-tight tracking-tight line-clamp-2">
                   {anime.title_english || anime.title}
                 </h2>
-                <p className="text-white text-xl sm:text-2xl font-bold mb-8">
+                <p className="text-white text-sm sm:text-2xl font-bold mb-2 sm:mb-8">
                   Season {activeSeason + 1}
                 </p>
-                <p className="text-white text-lg sm:text-xl font-bold mt-4 mb-2">
+                <p className="text-white text-sm sm:text-xl font-bold mt-2 sm:mt-4 mb-1 sm:mb-2 line-clamp-1">
                   {activeEpisode?.title || `Episode ${activeEpisodeNo}`}
                 </p>
                 {activeEpisode?.description && (
-                  <p className="text-slate-300 text-sm sm:text-base md:text-lg leading-relaxed line-clamp-4 md:line-clamp-none max-w-2xl">
+                  <p className="hidden sm:block text-slate-300 text-sm sm:text-base md:text-lg leading-relaxed line-clamp-4 md:line-clamp-none max-w-2xl">
                     {activeEpisode.description}
                   </p>
                 )}
               </div>
 
-              {/* Paused indicator, bottom right */}
-              <span className="absolute bottom-24 right-8 sm:bottom-32 sm:right-16 text-slate-300 text-base sm:text-lg font-medium tracking-wide">
+              {/* Paused indicator, bottom right — desktop only; on a phone
+                  it landed in the middle of the picture. */}
+              <span className="hidden sm:block absolute bottom-24 right-8 sm:bottom-32 sm:right-16 text-slate-300 text-base sm:text-lg font-medium tracking-wide">
                 Paused
               </span>
             </div>
@@ -710,7 +800,7 @@ export default function WatchOverlay({
         className={`${activeSourceObj?.isEmbed ? 'relative bg-black' : 'absolute bottom-0'} left-0 right-0 z-50 transition-all duration-500 ${controlsVisible || activeSourceObj?.isEmbed ? "opacity-100 translate-y-0" : "opacity-0 translate-y-full pointer-events-none"}`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="bg-gradient-to-t from-black/90 via-black/70 to-transparent pt-12 pb-6 flex flex-col">
+        <div className="bg-gradient-to-t from-black/90 via-black/70 to-transparent pt-5 pb-2.5 sm:pt-12 sm:pb-6 flex flex-col">
           {/* Progress / seek bar (At the very top edge of the bottom bar) */}
           {!activeSourceObj?.isEmbed && (
             <div className="relative w-full h-1 group/seek cursor-pointer hover:h-1.5 transition-all bg-white/20">
@@ -735,6 +825,10 @@ export default function WatchOverlay({
                 onChange={(e) => handleSeek(parseFloat(e.target.value))}
                 onMouseDown={() => setIsSeeking(true)}
                 onMouseUp={() => setIsSeeking(false)}
+                // Touch equivalents: without these the seeking latch never
+                // engaged on a phone, so onTimeUpdate fought every drag.
+                onTouchStart={() => setIsSeeking(true)}
+                onTouchEnd={() => setIsSeeking(false)}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               />
               {/* Remaining Time overlay */}
@@ -744,30 +838,34 @@ export default function WatchOverlay({
             </div>
           )}
 
-          <div className="px-4 sm:px-8 mt-4 flex items-center justify-between gap-4">
+          <div className="px-3 sm:px-8 mt-2 sm:mt-4 flex items-center justify-between gap-3 sm:gap-4">
             {/* Left Controls */}
-            <div className="flex items-center gap-4 sm:gap-6">
+            <div className="flex items-center gap-3 sm:gap-6">
               {!activeSourceObj?.isEmbed ? (
                 <>
                   {/* Play / Pause */}
                   <button onClick={togglePlay} className="text-white hover:text-slate-300 transition flex-shrink-0">
-                    {isPlaying ? <Pause className="w-8 h-8" fill="currentColor" /> : <Play className="w-8 h-8" fill="currentColor" />}
+                    {isPlaying ? <Pause className="w-6 h-6 sm:w-8 sm:h-8" fill="currentColor" /> : <Play className="w-6 h-6 sm:w-8 sm:h-8" fill="currentColor" />}
                   </button>
 
                   {/* Skip Back 10s */}
                   <button onClick={() => skipTime(-10)} className="text-white hover:text-slate-300 transition flex-shrink-0" title="Skip back 10s">
-                    <RotateCcw className="w-7 h-7" />
+                    <RotateCcw className="w-5 h-5 sm:w-7 sm:h-7" />
                   </button>
 
                   {/* Skip Forward 10s */}
                   <button onClick={() => skipTime(10)} className="text-white hover:text-slate-300 transition flex-shrink-0" title="Skip forward 10s">
-                    <RotateCw className="w-7 h-7" />
+                    <RotateCw className="w-5 h-5 sm:w-7 sm:h-7" />
                   </button>
 
                   {/* Volume */}
                   <div className="flex items-center gap-2 group/volume">
-                    <button onClick={toggleMute} className="text-white hover:text-slate-300 transition flex-shrink-0" title="Toggle Mute">
-                      {isMuted || volume === 0 ? <VolumeX className="w-6 h-6 sm:w-7 sm:h-7" /> : <Volume2 className="w-6 h-6 sm:w-7 sm:h-7" />}
+                    <button
+                      onClick={() => { setNeedsUnmute(false); toggleMute(); }}
+                      className={`relative text-white hover:text-slate-300 transition flex-shrink-0 ${needsUnmute ? "animate-pulse text-amber-300" : ""}`}
+                      title={needsUnmute ? "Tap for sound" : "Toggle Mute"}
+                    >
+                      {isMuted || volume === 0 ? <VolumeX className="w-5 h-5 sm:w-7 sm:h-7" /> : <Volume2 className="w-5 h-5 sm:w-7 sm:h-7" />}
                     </button>
                     <input
                       type="range"

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   ArrowLeft, ArrowRight, RotateCw, Home, X, Search, Settings, LogOut,
   Tv, BookOpen, Feather, Layers, Swords, Castle, FlaskConical,
@@ -49,6 +49,59 @@ const PAGES: { href: string; label: string; Icon: any; tint: string }[] = [
   { href: "/support",     label: "Support Us",       Icon: Heart,        tint: "#fda4af" },
 ];
 
+/**
+ * ONE DOCK BUTTON. Hoisted to module scope on purpose: defined inside
+ * BottomDock it became a NEW component type on every render, so React
+ * remounted every button each time the hover state changed — which is
+ * exactly when the animation needs the elements to persist.
+ *
+ * The lit pill behind the hovered icon is a single shared element
+ * (layoutId), so it SLIDES from icon to icon instead of blinking out and
+ * in, and the icon itself lifts and grows a little as it takes over.
+ */
+function DockBtn({
+  id, hovered, setHovered, reduce, onClick, label, children,
+}: {
+  id: string;
+  hovered: string | null;
+  setHovered: (v: string | null) => void;
+  reduce: boolean;
+  onClick: () => void;
+  label: string;
+  children: React.ReactNode;
+}) {
+  const on = hovered === id;
+  return (
+    <button
+      onClick={onClick}
+      aria-label={label}
+      onMouseEnter={() => setHovered(id)}
+      onFocus={() => setHovered(id)}
+      onBlur={() => setHovered(null)}
+      className={`relative grid h-10 w-10 place-items-center rounded-full transition-colors active:scale-90 ${
+        on ? "text-white" : "text-slate-300"
+      }`}
+    >
+      {on && !reduce && (
+        <motion.span
+          layoutId="dock-glow"
+          transition={{ type: "spring", stiffness: 520, damping: 36, mass: 0.6 }}
+          className="absolute inset-0 rounded-full"
+          style={{ background: "rgba(255,255,255,.12)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.14)" }}
+        />
+      )}
+      {on && reduce && <span className="absolute inset-0 rounded-full bg-white/10" />}
+      <motion.span
+        className="relative flex"
+        animate={reduce ? { y: 0, scale: 1 } : { y: on ? -2.5 : 0, scale: on ? 1.14 : 1 }}
+        transition={{ type: "spring", stiffness: 500, damping: 24, mass: 0.5 }}
+      >
+        {children}
+      </motion.span>
+    </button>
+  );
+}
+
 export default function BottomDock({
   onSearch,
   onSettings,
@@ -62,16 +115,15 @@ export default function BottomDock({
   const pathname = usePathname();
   const { user, logout } = useUser();
   const [open, setOpen] = useState(false);
+  const [hovered, setHovered] = useState<string | null>(null);
+  const reduce = useReducedMotion();
 
   // Reader screens hide all chrome; the dock respects that.
   if (pathname?.includes("/chapter/")) return null;
 
-  const DockBtn = ({ onClick, label, children }: { onClick: () => void; label: string; children: React.ReactNode }) => (
-    <button onClick={onClick} aria-label={label}
-      className="grid h-10 w-10 place-items-center rounded-full text-slate-300 transition hover:bg-white/10 hover:text-white active:scale-90">
-      {children}
-    </button>
-  );
+  const btn = (id: string) => ({
+    id, hovered, setHovered, reduce: !!reduce,
+  });
 
   return (
     <>
@@ -83,20 +135,29 @@ export default function BottomDock({
             descendant, which shrank the notifications panel to pill width
             and trapped it inside the pill. The near-opaque bg reads the
             same without the blur. */}
-        <div className="flex items-center gap-1 rounded-full px-3 py-1.5"
+        <motion.div
+          initial={reduce ? false : { y: 28, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.8 }}
+          onMouseLeave={() => setHovered(null)}
+          className="flex items-center gap-1 rounded-full px-3 py-1.5"
           style={{ background: "rgba(10,9,15,.95)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.10), 0 10px 34px rgba(0,0,0,.65)" }}>
-          <DockBtn onClick={() => router.back()} label="Back"><ArrowLeft className="h-[18px] w-[18px]" /></DockBtn>
-          <DockBtn onClick={() => router.forward()} label="Forward"><ArrowRight className="h-[18px] w-[18px]" /></DockBtn>
-          <DockBtn onClick={() => window.location.reload()} label="Reload"><RotateCw className="h-[17px] w-[17px]" /></DockBtn>
-          <DockBtn onClick={() => setOpen(true)} label="Navigation"><Home className="h-[18px] w-[18px]" /></DockBtn>
+          <DockBtn {...btn("back")} onClick={() => router.back()} label="Back"><ArrowLeft className="h-[18px] w-[18px]" /></DockBtn>
+          <DockBtn {...btn("fwd")} onClick={() => router.forward()} label="Forward"><ArrowRight className="h-[18px] w-[18px]" /></DockBtn>
+          <DockBtn {...btn("reload")} onClick={() => window.location.reload()} label="Reload"><RotateCw className="h-[17px] w-[17px]" /></DockBtn>
+          <DockBtn {...btn("nav")} onClick={() => setOpen(true)} label="Navigation"><Home className="h-[18px] w-[18px]" /></DockBtn>
           {/* the REAL notifications panel, unread badge and all — this bell
               used to just route to /updates, which is a page, not your
               notifications. Updates still lives in the sheet's page list. */}
-          <div className="grid h-10 w-10 place-items-center">
+          {/* the bell and the avatar aren't DockBtns, so they must clear the
+              glow themselves — otherwise it stayed stranded on whichever
+              icon you left as the pointer moved onto them */}
+          <div className="grid h-10 w-10 place-items-center" onMouseEnter={() => setHovered(null)}>
             <NotificationsMenu openUp />
           </div>
           {user && (
             <button onClick={() => router.push(`/user/${user.username}`)} aria-label="Your profile"
+              onMouseEnter={() => setHovered(null)}
               className="ml-0.5 grid h-9 w-9 place-items-center overflow-hidden rounded-full transition active:scale-90"
               style={{ boxShadow: "inset 0 0 0 1.5px rgba(162,116,255,.6)" }}>
               {user.avatar
@@ -104,7 +165,7 @@ export default function BottomDock({
                 : <span className="text-xs font-black text-purple-200">{user.username?.[0]?.toUpperCase()}</span>}
             </button>
           )}
-        </div>
+        </motion.div>
       </div>
 
       {/* ── the navigation sheet ── */}

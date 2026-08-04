@@ -48,7 +48,12 @@ export default function QuickViewModal({ anime, options, onClose }: QuickViewMod
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.25 }}
-          className="fixed inset-0 z-[9999] overflow-y-auto overscroll-contain bg-[#070709]"
+          // z-70 — BELOW the Dock (75) and real dialogs (login/search/
+          // control centre), ABOVE page content and the mobile header.
+          // At z-9999 this opaque full-screen surface buried the navbar
+          // every single time an anime was opened; it isn't a dialog, it's
+          // a page that happens to float.
+          className="fixed inset-0 z-[70] overflow-y-auto overscroll-contain bg-[#070709]"
         >
           {/* Close — pinned above everything while the page scrolls */}
           <button
