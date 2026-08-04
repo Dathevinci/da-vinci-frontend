@@ -10,6 +10,7 @@ import { earnPoints } from "@/lib/earn";
 import { recordReading } from "@/lib/readingHistory";
 import { useNovelReaderPrefs, themeById, fontById, spacingById, widthById } from "@/lib/novel/readerPrefs";
 import ReaderSettings from "@/components/novel/ReaderSettings";
+import CommunityFeed from "@/components/community/CommunityFeed";
 
 export default function NovelReaderPage() {
   const params = useParams();
@@ -182,6 +183,28 @@ export default function NovelReaderPage() {
             >
               Next <ChevronRight className="w-5 h-5" />
             </button>
+          </div>
+
+          {/* Per-chapter discussion. The manhwa reader has always had this;
+              the novel reader was the one surface with no comments at all.
+
+              It gets its OWN dark surface and resets the inherited reading
+              serif: the feed is hardcoded dark (white headings, white-on-
+              translucent inputs), and this reader can be set to Sepia or
+              Paper — on those, the section's chrome rendered white on cream
+              and you couldn't see what you were typing. */}
+          <div
+            className="mt-14 rounded-2xl bg-[#070709] px-3 py-4 sm:px-5"
+            style={{ fontFamily: "var(--font-geist-sans, ui-sans-serif, system-ui)", color: "#e2e8f0" }}
+          >
+            <CommunityFeed
+              novelId={id}
+              // never persist the URL slug as a display title — the global
+              // feed would render "nf:overlord-ln" as the novel's name
+              novelTitle={novel?.title || undefined}
+              chapterId={chapterId}
+              chapterTitle={chapter.title}
+            />
           </div>
         </article>
       )}

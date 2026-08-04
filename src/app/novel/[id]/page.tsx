@@ -11,6 +11,7 @@ import type { NovelInfo } from "@/lib/novel/ReadNovelFull";
 import NovelTrackerButton from "@/components/novel/NovelTrackerButton";
 import { novelCover } from "@/lib/novelImage";
 import CommunityFeed from "@/components/community/CommunityFeed";
+import HeroBackdrop from "@/components/ui/HeroBackdrop";
 
 /**
  * NOVEL DETAIL — the reference layout: blurred cover stage, poster front
@@ -97,12 +98,7 @@ export default function NovelDetailPage() {
           the hero itself — on the hero it clipped the tracker dropdown,
           which opens past the hero's bottom edge. */}
       <div className="relative">
-        <div className="absolute inset-0 overflow-hidden">
-          {cover && (
-            <img src={cover} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-30 blur-2xl" />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-[#070709]/60 to-[#070709]" />
-        </div>
+        <HeroBackdrop src={cover} wide={false} />
 
         <div className="relative mx-auto flex max-w-4xl flex-col items-center px-4 pb-10 pt-20 text-center sm:pt-24">
           <motion.div

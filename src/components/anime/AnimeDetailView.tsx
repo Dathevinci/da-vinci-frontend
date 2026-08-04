@@ -14,6 +14,7 @@ import {
 import { getAnimeDetailsKitsu } from "@/lib/kitsu";
 import EpisodeList from "@/components/anime/EpisodeList";
 import CommunityFeed from "@/components/community/CommunityFeed";
+import HeroBackdrop from "@/components/ui/HeroBackdrop";
 
 /**
  * THE ANIME DETAIL SCREEN — poster-first hero over the show's own blurred
@@ -104,7 +105,12 @@ export default function AnimeDetailView({
   const displayAnime = fullAnime || anime;
   const title = displayAnime?.title_english || displayAnime?.title || "";
   const posterUrl = displayAnime?.images?.jpg?.large_image_url || displayAnime?.images?.jpg?.image_url;
-  const bannerUrl = displayAnime?.trailer?.images?.maximum_image_url || posterUrl;
+  // maximum_image_url is where the mapper parks genuine WIDE art (AniList's
+  // bannerImage, else the trailer's HD still). Only that gets shown sharp;
+  // a portrait poster standing in for it still needs the blur.
+  const wideBanner = displayAnime?.trailer?.images?.maximum_image_url;
+  const bannerUrl = wideBanner || posterUrl;
+  const hasWideBanner = !!wideBanner;
   const youtubeId = displayAnime ? getYouTubeId(displayAnime.trailer) : null;
   const statusLabel = displayAnime?.status
     ? displayAnime.status.toLowerCase().includes("finished") ? "Finished"
@@ -122,17 +128,9 @@ export default function AnimeDetailView({
 
   return (
     <>
-      {/* ═══ HERO — poster first, over the show's own blurred art ═══ */}
-      <div className="relative overflow-hidden">
-        {bannerUrl && (
-          <img
-            src={bannerUrl}
-            alt=""
-            aria-hidden
-            className="absolute inset-0 h-full w-full scale-110 object-cover opacity-35 blur-2xl"
-          />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-[#070709]/60 to-[#070709]" />
+      {/* ═══ HERO — poster over the show's own wide banner ═══ */}
+      <div className="relative">
+        <HeroBackdrop src={bannerUrl} wide={hasWideBanner} />
 
         <div className="relative mx-auto flex max-w-4xl flex-col items-center px-4 pb-10 pt-16 text-center sm:pt-20">
           <motion.div

@@ -9,6 +9,7 @@ import {
 import { IMangaInfo } from "@/lib/asura/models";
 import ManhwaTrackerButton from "@/components/manhwa/ManhwaTrackerButton";
 import CommunityFeed from "@/components/community/CommunityFeed";
+import HeroBackdrop from "@/components/ui/HeroBackdrop";
 
 /**
  * MANHWA DETAIL — the reference layout: the series' own blurred cover as
@@ -104,12 +105,7 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
           the hero itself — on the hero it clipped the Add to Library
           dropdown, which opens past the hero's bottom edge. */}
       <div className="relative">
-        <div className="absolute inset-0 overflow-hidden">
-          {cover && (
-            <img src={cover} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-35 blur-2xl" />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-[#070709]/60 to-[#070709]" />
-        </div>
+        <HeroBackdrop src={cover} wide={false} />
 
         <div className="relative mx-auto flex max-w-4xl flex-col items-center px-4 pb-10 pt-20 text-center sm:pt-24">
           <motion.div

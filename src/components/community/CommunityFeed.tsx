@@ -787,10 +787,12 @@ export default function CommunityFeed({
    */
   const targetKey = chapterId && mangaId
     ? `manhwa:${mangaId}:${chapterId}`
-    : mangaId ? `manhwa:${mangaId}`
-      : novelId ? `novel:${novelId}`
-        : animeId ? `anime:${animeId}`
-          : null;
+    : chapterId && novelId
+      ? `novel:${novelId}:${chapterId}`
+      : mangaId ? `manhwa:${mangaId}`
+        : novelId ? `novel:${novelId}`
+          : animeId ? `anime:${animeId}`
+            : null;
   const subject = chapterId ? "chapter" : mangaId ? "manhwa" : novelId ? "novel" : "anime";
 
   const [rating, setRating] = useState<{ average: number | null; count: number; mine: number | null }>({
