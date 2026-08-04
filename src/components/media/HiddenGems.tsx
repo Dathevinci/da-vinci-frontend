@@ -29,7 +29,7 @@ export default function HiddenGems({
   source,
   accent = "#dc2626",
 }: {
-  source: "manhwa" | "novel";
+  source: "anime" | "manhwa" | "novel";
   accent?: string;
 }) {
   const { user } = useUser();
@@ -72,7 +72,7 @@ export default function HiddenGems({
     setSearching(true);
     const t = setTimeout(async () => {
       try {
-        const path = source === "novel" ? "/api/novels" : "/api/manhwa";
+        const path = source === "novel" ? "/api/novels" : source === "anime" ? "/api/anime" : "/api/manhwa";
         const r = await fetch(`${path}?q=${encodeURIComponent(term)}&page=1`);
         const d = await r.json();
         setResults((d?.results || []).slice(0, 8));
@@ -248,7 +248,7 @@ export default function HiddenGems({
                   autoFocus
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
-                  placeholder={source === "novel" ? "Search novels…" : "Search comics…"}
+                  placeholder={source === "novel" ? "Search novels…" : source === "anime" ? "Search anime…" : "Search comics…"}
                   aria-label="Search to nominate"
                   className="w-full rounded-xl border border-white/10 bg-white/[0.04] py-2.5 pl-10 pr-3 font-mono text-sm text-white placeholder:text-slate-600 outline-none focus:border-white/25"
                 />
@@ -266,6 +266,9 @@ export default function HiddenGems({
               ) : (
                 results.map((it) => {
                   const cover = source === "novel" ? it.cover : it.image;
+                  // Only AsuraScans art is hotlink-protected. AniList and
+                  // MangaDex covers are served direct.
+                  const needsProxy = source === "manhwa";
                   const picked = myPick?.mediaId === it.id;
                   return (
                     <button
@@ -277,7 +280,7 @@ export default function HiddenGems({
                     >
                       {cover ? (
                         <img
-                          src={source === "novel" ? cover : `/api/manhwa-image?url=${encodeURIComponent(cover)}`}
+                          src={needsProxy ? `/api/manhwa-image?url=${encodeURIComponent(cover)}` : cover}
                           alt=""
                           loading="lazy"
                           className="hq-image h-14 w-10 shrink-0 rounded-md object-cover"

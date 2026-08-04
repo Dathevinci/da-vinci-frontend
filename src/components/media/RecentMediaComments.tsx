@@ -28,6 +28,10 @@ type Row = {
   mangaTitle?: string | null;
   novelId?: string | null;
   novelTitle?: string | null;
+  /** Anime comments. `episodeNo` deep-links to the exact episode. */
+  animeId?: number | null;
+  animeTitle?: string | null;
+  episodeNo?: number | null;
   chapterId?: string | null;
   chapterTitle?: string | null;
   user?: { id: string; username: string; avatar?: string | null; activeColor?: string | null };
@@ -62,7 +66,7 @@ export default function RecentMediaComments({
   accent = "#dc2626",
   chipLabel,
 }: {
-  source: "manhwa" | "novel";
+  source: "anime" | "manhwa" | "novel";
   title: string;
   accent?: string;
   chipLabel: string;
@@ -125,13 +129,30 @@ export default function RecentMediaComments({
         {open && (
           <ul className="mt-4 max-h-[520px] space-y-1 overflow-y-auto pr-1">
             {rows.map((c) => {
-              const isNovel = !!c.novelId;
-              const baseId = isNovel ? c.novelId! : c.mangaId!;
+              /**
+               * THREE MODES, and the branch has to be three-way.
+               *
+               * This was `isNovel ? novel : manhwa`, which meant every anime
+               * comment resolved to /manhwa/<undefined> — the row rendered and
+               * the link went nowhere. Anime is identified by `animeId`, and
+               * it deep-links to an EPISODE rather than a chapter, so it needs
+               * its own arm rather than being folded into the manhwa default.
+               */
+              const isAnime = c.animeId != null;
+              const isNovel = !isAnime && !!c.novelId;
+              const baseId = isAnime ? String(c.animeId) : isNovel ? c.novelId! : c.mangaId!;
               if (!baseId) return null;
-              const root = isNovel ? "novel" : "manhwa";
+              const root = isAnime ? "anime" : isNovel ? "novel" : "manhwa";
               const base = `/${root}/${encodeURIComponent(baseId)}`;
-              const href = c.chapterId ? `${base}/chapter/${encodeURIComponent(c.chapterId)}` : base;
-              const seriesTitle = (isNovel ? c.novelTitle : c.mangaTitle) || baseId;
+              // Anime deep-links by episode NUMBER on the watch route; the other
+              // two carry an opaque chapter id.
+              const href = isAnime
+                ? (c.episodeNo ? `/watch/${encodeURIComponent(baseId)}?ep=${c.episodeNo}` : base)
+                : c.chapterId
+                ? `${base}/chapter/${encodeURIComponent(c.chapterId)}`
+                : base;
+              const seriesTitle =
+                (isAnime ? c.animeTitle : isNovel ? c.novelTitle : c.mangaTitle) || baseId;
 
               return (
                 <li key={c.id}>

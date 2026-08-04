@@ -3,7 +3,10 @@ import { getDashboardData } from "@/lib/jikan";
 import { getDashboardKitsu } from "@/lib/kitsu";
 import AnimeCarousel from "@/components/anime/AnimeCarousel";
 import AnimeStatusBadge from "@/components/anime/AnimeStatusBadge";
-import HeroBannerCarousel from "@/components/anime/HeroBannerCarousel";
+import AnimeHeroCarousel from "@/components/anime/AnimeHeroCarousel";
+import DiscoverRail from "@/components/media/DiscoverRail";
+import HiddenGems from "@/components/media/HiddenGems";
+import RecentMediaComments from "@/components/media/RecentMediaComments";
 import { Info, Clock, PlayCircle, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import PageTransition from "@/components/layout/PageTransition";
@@ -56,8 +59,11 @@ export default async function Home() {
           AniList is currently unavailable — showing backup data from MyAnimeList.
         </div>
       )}
-      {/* Cinematic Dashboard Hero */}
-      <HeroBannerCarousel animes={heroAnimes} />
+      {/* The same fanned-card deck the manhwa and novel homes open with.
+          Anime kept the older HeroBannerCarousel while the other two moved to
+          DeckHero, so the three modes greeted you with two different heroes
+          and the site read as two products stitched together. */}
+      <AnimeHeroCarousel animes={heroAnimes} />
 
       {/* Carousels */}
       <div className="relative z-20 space-y-4 pt-2">
@@ -94,6 +100,39 @@ export default async function Home() {
           const upcoming = filterUnique(data.upcoming.media);
           const finished = filterUnique(data.finished.media);
 
+          /**
+           * The anime twin of the manhwa/novel toDiscover mappers.
+           *
+           * `meta` stays honest about what the source actually publishes: a
+           * score if AniList has one, otherwise an episode count, otherwise
+           * nothing. It never invents a number — an empty meta line is fine,
+           * a wrong one is not.
+           */
+          const toDiscover = (arr: any[]) =>
+            (arr || [])
+              .filter((a) => a && (a.mal_id ?? a.id))
+              .map((a) => {
+                const id = String(a.mal_id ?? a.id);
+                return {
+                  id,
+                  title:
+                    a.title?.english || a.title?.romaji || a.title?.userPreferred || a.title || "Untitled",
+                  image:
+                    a.coverImage?.large ||
+                    a.coverImage?.extraLarge ||
+                    a.images?.jpg?.image_url ||
+                    null,
+                  // AniList scores are out of 100; shown as a 10-point star to
+                  // match how every other shelf on the site reads a rating.
+                  meta: a.averageScore
+                    ? `★ ${(a.averageScore / 10).toFixed(1)}`
+                    : a.episodes
+                    ? `${a.episodes} eps`
+                    : null,
+                  href: `/anime/${encodeURIComponent(id)}`,
+                };
+              });
+
           return (
             <>
               {recentlyUpdated.length > 0 && <AnimeCarousel title="Recently Updated" animes={recentlyUpdated} seeAllLink="/explore?status=releasing&sort=updated&title=Recently+Updated" />}
@@ -102,6 +141,51 @@ export default async function Home() {
               {thisSeason.length > 0 && <AnimeCarousel title="Trending This Season" animes={thisSeason} seeAllLink="/explore?sort=trending&title=Trending+This+Season" />}
               {upcoming.length > 0 && <AnimeCarousel title="Highly Anticipated" animes={upcoming} seeAllLink="/explore?status=upcoming&title=Highly+Anticipated" />}
               {finished.length > 0 && <AnimeCarousel title="Recently Finished" animes={finished} seeAllLink="/explore?status=finished&title=Recently+Finished" />}
+
+              {/* ── PARITY TAIL ── the three sections manhwa and novel end on.
+                  Anime had none of them, which is most of why the three home
+                  feeds felt like different products: the other two closed with
+                  something to explore, something to vote on and something to
+                  read, and anime just stopped after its last shelf.
+
+                  The shelves above are KEPT. Episodes, airing status and next
+                  season have no manhwa/novel equivalent, and matching a layout
+                  is not a reason to delete the things that only make sense
+                  here. */}
+              <div className="pt-6">
+                <DiscoverRail
+                  title="Discover Anime"
+                  subtitle="Airing now, next season, and what everyone is waiting for"
+                  accent="#8b5cf6"
+                  tabs={[
+                    { key: "airing", label: "Airing Now", icon: "trending", items: toDiscover(airingNow) },
+                    { key: "season", label: "This Season", icon: "popular", items: toDiscover(thisSeason) },
+                    { key: "upcoming", label: "Anticipated", icon: "top", items: toDiscover(upcoming) },
+                  ]}
+                />
+              </div>
+
+              <div className="pt-6">
+                <HiddenGems source="anime" accent="#8b5cf6" />
+              </div>
+
+              <div className="pt-6">
+                <RecentMediaComments
+                  source="anime"
+                  title="Recent Anime Comments"
+                  chipLabel="Anime"
+                  accent="#8b5cf6"
+                />
+              </div>
+
+              <div className="flex justify-center pt-10">
+                <Link
+                  href="/explore"
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-6 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-200 transition hover:bg-white/[0.08]"
+                >
+                  <PlayCircle className="h-5 w-5" /> Browse All Anime
+                </Link>
+              </div>
             </>
           );
         })()}
