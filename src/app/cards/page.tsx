@@ -859,7 +859,11 @@ export default function CardsPage() {
               {/* ── VIEW TOGGLE + SEARCH ── one toolbar: how to read the
                   binder, and how to cut straight through it. */}
               <div className="flex flex-wrap items-center gap-2">
-                {([["sets", "By Set"], ["inv", "Inventory"], ["dex", "Codex"]] as const).map(([v, label]) => (
+                {/* Codex removed with the card reset — it catalogued tiers
+                    that no longer exist. Dropped from the tab list so it is
+                    unreachable; its render block is dead and can go with a
+                    tidy pass. */}
+                {([["sets", "By Set"], ["inv", "Inventory"]] as const).map(([v, label]) => (
                   <button key={v} onClick={() => setView(v)}
                     className={`px-5 py-2 text-[11px] font-black uppercase tracking-[0.18em] transition ${view === v ? "text-white" : "text-slate-500 hover:text-slate-300"}`}
                     style={{
