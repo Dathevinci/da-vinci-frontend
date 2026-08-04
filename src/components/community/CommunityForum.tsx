@@ -322,8 +322,6 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
       .catch(() => {});
   }, [user?.id, posts.length, pinRefresh]);
 
-  const pinnedIds = useMemo(() => new Set(pinned.map((p) => p.id)), [pinned]);
-
   /**
    * Rank by NET score — upvotes minus downvotes — with pinned posts held on top
    * and recency breaking ties.
@@ -337,13 +335,24 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
    */
   const idKey = posts.map((p) => p.id).join(",");
   const order = useMemo(() => {
-    // Recent means recent. Only Top re-ranks — otherwise choosing "Recent" and
-    // getting a score-ordered list would make the control look broken, which is
-    // the same bug the backend already had on `isPinned`.
-    if (sort !== "top") return posts.map((p) => p.id);
+    /**
+     * PINNED LEADS EVERY SORT. Not just Top — that is what pinning means
+     * here, and it is also the only way to reach a pinned post's menu:
+     * the shelf cards are links, so the Unpin action lives on the feed
+     * card. Drop pinned posts out of the feed and a pin becomes permanent.
+     *
+     * Sort is stable in JS, so on Recent this preserves the server's
+     * chronological order underneath the pinned block rather than
+     * re-ranking it — an explicit "Recent" still reads as recent.
+     */
+    const pinFirst = (a: Post, b: Post) =>
+      !!a.isPinned !== !!b.isPinned ? (a.isPinned ? -1 : 1) : 0;
+
+    if (sort !== "top") return [...posts].sort(pinFirst).map((p) => p.id);
     return [...posts]
       .sort((a, b) => {
-        if (!!a.isPinned !== !!b.isPinned) return a.isPinned ? -1 : 1;
+        const pin = pinFirst(a, b);
+        if (pin !== 0) return pin;
         const d = (b.score || 0) - (a.score || 0);
         if (d !== 0) return d;
         return +new Date(b.createdAt) - +new Date(a.createdAt);
@@ -353,12 +362,11 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
   }, [idKey, sort]);
 
   // Render in ranked order but read LIVE post objects, so an optimistic score
-  // updates in place without moving anything. Anything on the pinned shelf is
-  // dropped here — it already has a home at the top of the page.
+  // updates in place without moving anything.
   const ranked = useMemo(() => {
     const byId = new Map(posts.map((p) => [p.id, p]));
-    return order.map((id) => byId.get(id)).filter((p): p is Post => !!p && !pinnedIds.has(p.id));
-  }, [order, posts, pinnedIds]);
+    return order.map((id) => byId.get(id)).filter((p): p is Post => !!p);
+  }, [order, posts]);
 
   /**
    * Who may edit or delete a post. Mirrors the server, which decides from the
@@ -620,14 +628,8 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
               <div className="py-20 text-center"
                 style={{ clipPath: notch(16), background: "rgba(255,255,255,.02)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.06)" }}>
                 <MessageSquare className="mx-auto h-8 w-8 text-slate-700" />
-                {/* `ranked` excludes whatever is on the pinned shelf, so a
-                    feed of only-pinned posts is empty DOWN HERE while the
-                    shelf above is full — testing posts.length left a blank
-                    gap with no explanation at all. */}
                 <p className="mt-3 text-sm text-slate-500">
-                  {posts.length > 0
-                    ? "Everything here is pinned above."
-                    : tag === "All" ? "Nothing posted yet. Start it." : `No posts tagged ${tag} yet.`}
+                  {tag === "All" ? "Nothing posted yet. Start it." : `No posts tagged ${tag} yet.`}
                 </p>
               </div>
             ) : (
