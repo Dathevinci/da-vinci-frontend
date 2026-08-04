@@ -29,20 +29,43 @@ const settled = <T>(r: PromiseSettledResult<T>, fallback: T): T =>
 
 const normTitle = (t: string) => (t || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 
-// Interleave two result lists (a, b, a, b, …) and drop cross-source duplicates
-// by normalised title, so the same series from both sources shows once.
-function interleave(a: IMangaResult[], b: IMangaResult[]): IMangaResult[] {
+/**
+ * A MangaDex row with nothing to read behind it. Since `ja` was added to the
+ * language set, search returns a long tail of one-shots, doujin and stalled
+ * uploads that match a word in the query — they look like series until you
+ * open one and find a chapter or two. `latestChapter` comes straight from the
+ * source's own last-chapter marker, so its absence is the honest signal that
+ * there is nothing there.
+ */
+function isStub(r: IMangaResult): boolean {
+  if (!String(r.id).startsWith("mdx:")) return false;
+  const last = String(r.latestChapter || "").trim();
+  if (!last) return true;
+  const n = parseFloat(last.replace(/[^0-9.]/g, ""));
+  return Number.isFinite(n) && n < 3;
+}
+
+/**
+ * Merge two sources, dropping cross-source duplicates by normalised title.
+ *
+ * AsuraScans LEADS and MangaDex follows, rather than the two alternating.
+ * One-for-one interleaving gave MangaDex half of every list, and once `ja`
+ * joined the language set that half filled with loosely-matching manga — so
+ * searching a manhwa returned a page where the actual series was buried
+ * under near-miss Japanese titles with a couple of chapters each.
+ *
+ * The curated source people come here for goes first; MangaDex extends the
+ * catalogue at the tail instead of displacing it.
+ */
+function merge(primary: IMangaResult[], secondary: IMangaResult[]): IMangaResult[] {
   const seen = new Set<string>();
   const out: IMangaResult[] = [];
-  const max = Math.max(a.length, b.length);
-  for (let i = 0; i < max; i++) {
-    for (const r of [a[i], b[i]]) {
-      if (!r) continue;
-      const k = normTitle(r.title);
-      if (k && seen.has(k)) continue;
-      if (k) seen.add(k);
-      out.push(r);
-    }
+  for (const r of [...primary, ...secondary.filter((x) => !isStub(x))]) {
+    if (!r) continue;
+    const k = normTitle(r.title);
+    if (k && seen.has(k)) continue;
+    if (k) seen.add(k);
+    out.push(r);
   }
   return out;
 }
@@ -56,7 +79,7 @@ export async function searchManhwa(query: string, page = 1, filters?: any): Prom
   return {
     currentPage: page,
     hasNextPage: av.hasNextPage || mv.hasNextPage,
-    results: interleave(av.results, mv.results),
+    results: merge(av.results, mv.results),
   };
 }
 
@@ -67,7 +90,7 @@ export async function browseManhwa(page = 1, filters?: any): Promise<ISearch<IMa
   return {
     currentPage: page,
     hasNextPage: av.hasNextPage || mv.length > 0,
-    results: interleave(av.results, mv),
+    results: merge(av.results, mv),
   };
 }
 
@@ -80,7 +103,7 @@ export async function manhwaHome(): Promise<{ trending: IMangaResult[]; latestUp
   ]);
   const emptySearch = { currentPage: 1, hasNextPage: false, results: [] as IMangaResult[] };
   return {
-    trending: interleave(settled(ap, emptySearch).results, settled(mp, [] as IMangaResult[])),
-    latestUpdates: interleave(settled(al, emptySearch).results, settled(ml, [] as IMangaResult[])),
+    trending: merge(settled(ap, emptySearch).results, settled(mp, [] as IMangaResult[])),
+    latestUpdates: merge(settled(al, emptySearch).results, settled(ml, [] as IMangaResult[])),
   };
 }
