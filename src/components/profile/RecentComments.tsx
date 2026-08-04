@@ -30,6 +30,9 @@ type Comment = {
   animeTitle?: string | null;
   mangaTitle?: string | null;
   novelTitle?: string | null;
+  chapterId?: string | null;
+  chapterTitle?: string | null;
+  episodeNo?: number | null;
 };
 
 const when = (iso: string) => {
@@ -39,12 +42,41 @@ const when = (iso: string) => {
     : d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 };
 
-/** Where the comment was left, and where clicking should go. */
+/** The chapter number out of whatever the reader stored — see the twin of
+ *  this in GlobalComments for why the tail, not the whole id. */
+function chapterLabel(title?: string | null, id?: string | null) {
+  const t = (title || "").trim();
+  if (t && !/^chapter$/i.test(t)) return t.length > 24 ? `${t.slice(0, 23)}…` : t;
+  const tail = (id || "").split("|").pop() || "";
+  const n = tail.match(/(\d+(?:\.\d+)?)/);
+  return n ? `Ch. ${n[1]}` : "Chapter";
+}
+
+/** Where the comment was left, and where clicking should go — the exact
+ *  chapter or episode when we have it, the series page when we don't. */
 function target(c: Comment): { label: string; href: string | null } {
-  if (c.animeId) return { label: c.animeTitle || "Anime", href: `/anime/${c.animeId}` };
+  if (c.animeId) {
+    const ep = typeof c.episodeNo === "number" && c.episodeNo > 0 ? c.episodeNo : null;
+    const title = c.animeTitle || "Anime";
+    return ep
+      ? { label: `${title} · Ep. ${ep}`, href: `/watch/${c.animeId}?ep=${ep}` }
+      : { label: title, href: `/anime/${c.animeId}?tab=discussions` };
+  }
   // slug ids must be encoded — see GlobalComments for the same fix
-  if (c.mangaId) return { label: c.mangaTitle || "Manhwa", href: `/manhwa/${encodeURIComponent(c.mangaId)}` };
-  if (c.novelId) return { label: c.novelTitle || "Novel", href: `/novel/${encodeURIComponent(c.novelId)}` };
+  if (c.mangaId) {
+    const base = `/manhwa/${encodeURIComponent(c.mangaId)}`;
+    const title = c.mangaTitle || "Manhwa";
+    return c.chapterId
+      ? { label: `${title} · ${chapterLabel(c.chapterTitle, c.chapterId)}`, href: `${base}/chapter/${encodeURIComponent(c.chapterId)}` }
+      : { label: title, href: base };
+  }
+  if (c.novelId) {
+    const base = `/novel/${encodeURIComponent(c.novelId)}`;
+    const title = c.novelTitle || "Novel";
+    return c.chapterId
+      ? { label: `${title} · ${chapterLabel(c.chapterTitle, c.chapterId)}`, href: `${base}/chapter/${encodeURIComponent(c.chapterId)}` }
+      : { label: title, href: base };
+  }
   return { label: "Discussion", href: null };
 }
 

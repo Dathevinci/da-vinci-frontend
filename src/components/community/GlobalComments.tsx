@@ -35,6 +35,13 @@ type Row = {
   mangaTitle?: string | null;
   novelId?: string | null;
   novelTitle?: string | null;
+  // Already on the wire — getComments includes the whole row — the feed just
+  // never read them, so every chapter comment linked to the series instead.
+  chapterId?: string | null;
+  chapterTitle?: string | null;
+  // Anime episodes were never captured; null on every comment made before
+  // the watch page started sending it.
+  episodeNo?: number | null;
   user?: { id: string; username: string; avatar?: string | null };
 };
 
@@ -57,13 +64,53 @@ const ago = (iso: string) => {
   return `${Math.floor(d / 30)}mo ago`;
 };
 
-/** Where a comment lives, and the link back to it. Manhwa and novel ids
- *  are slugs — they MUST be encoded, or one with a slash or a colon
- *  routes somewhere else entirely. */
+/** "Ch. 190" out of whatever the reader actually stored. `chapterTitle` is
+ *  client-supplied and is sometimes the bare placeholder "Chapter", and
+ *  `chapterId` is a provider string — `<slug>|190` for manhwa, something like
+ *  `chapter-190-the-end` for novels — so the number is read off the TAIL.
+ *  Reading the whole id would pick digits out of the series slug instead. */
+function chapterLabel(title?: string | null, id?: string | null) {
+  const t = (title || "").trim();
+  if (t && !/^chapter$/i.test(t)) return t.length > 30 ? `${t.slice(0, 29)}…` : t;
+  const tail = (id || "").split("|").pop() || "";
+  const n = tail.match(/(\d+(?:\.\d+)?)/);
+  return n ? `Ch. ${n[1]}` : "Chapter";
+}
+
+/** Where a comment lives, and the link back to the EXACT spot it was left.
+ *
+ *  Manhwa and novel ids are slugs and MUST be encoded — a novel id carries a
+ *  colon prefix and a manhwa chapter id contains a literal pipe, either of
+ *  which routes somewhere else entirely raw. Anime ids are numeric and are
+ *  never encoded anywhere in the app.
+ *
+ *  With no chapter or episode we fall back to the series page: a vaguer link,
+ *  never a dead one. */
 function origin(c: Row) {
-  if (c.animeId) return { label: c.animeTitle || "Anime", href: `/anime/${c.animeId}`, Icon: Tv, tint: "#c084fc", kind: "Anime" };
-  if (c.mangaId) return { label: c.mangaTitle || "Manhwa", href: `/manhwa/${encodeURIComponent(c.mangaId)}`, Icon: BookMarked, tint: "#f87171", kind: "Manhwa" };
-  if (c.novelId) return { label: c.novelTitle || "Novel", href: `/novel/${encodeURIComponent(c.novelId)}`, Icon: BookOpen, tint: "#f472b6", kind: "Novel" };
+  if (c.animeId) {
+    const ep = typeof c.episodeNo === "number" && c.episodeNo > 0 ? c.episodeNo : null;
+    return {
+      kind: "Anime", label: c.animeTitle || "Anime", Icon: Tv, tint: "#c084fc",
+      where: ep ? `Ep. ${ep}` : null,
+      href: ep ? `/watch/${c.animeId}?ep=${ep}` : `/anime/${c.animeId}?tab=discussions`,
+    };
+  }
+  if (c.mangaId) {
+    const base = `/manhwa/${encodeURIComponent(c.mangaId)}`;
+    return {
+      kind: "Manhwa", label: c.mangaTitle || "Manhwa", Icon: BookMarked, tint: "#f87171",
+      where: c.chapterId ? chapterLabel(c.chapterTitle, c.chapterId) : null,
+      href: c.chapterId ? `${base}/chapter/${encodeURIComponent(c.chapterId)}` : base,
+    };
+  }
+  if (c.novelId) {
+    const base = `/novel/${encodeURIComponent(c.novelId)}`;
+    return {
+      kind: "Novel", label: c.novelTitle || "Novel", Icon: BookOpen, tint: "#f472b6",
+      where: c.chapterId ? chapterLabel(c.chapterTitle, c.chapterId) : null,
+      href: c.chapterId ? `${base}/chapter/${encodeURIComponent(c.chapterId)}` : base,
+    };
+  }
   return null;
 }
 
@@ -197,6 +244,14 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
                         {o.kind}
                       </span>
                       <span className="truncate text-[11px] font-bold text-slate-300">{o.label}</span>
+                      {/* shrink-0: the title truncates, so a long one gives way
+                          to the chapter rather than swallowing it. */}
+                      {o.where && (
+                        <>
+                          <span className="shrink-0 text-[11px] font-bold text-slate-600">·</span>
+                          <span className="shrink-0 text-[11px] font-black" style={{ color: o.tint }}>{o.where}</span>
+                        </>
+                      )}
                       <ArrowRight className="h-3 w-3 shrink-0 text-slate-600" />
                     </Link>
                   )}
@@ -239,7 +294,7 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
                       {o && (
                         <Link href={o.href}
                           className="mt-3 inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500 transition hover:text-white">
-                          Reply where it lives <ArrowRight className="h-3 w-3" />
+                          {o.where ? `Go to ${o.where}` : "Reply where it lives"} <ArrowRight className="h-3 w-3" />
                         </Link>
                       )}
                     </div>

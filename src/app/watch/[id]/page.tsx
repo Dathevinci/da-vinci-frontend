@@ -341,7 +341,12 @@ function WatchInner() {
           {/* ── DISCUSSION ── */}
           {anime && (
             <div className="mt-8">
-              <CommunityFeed animeId={malId} animeTitle={title} />
+              {/* episodeNo stamps NEW comments with the episode they were left
+                  on, so Global Comments can link back to this exact episode.
+                  It is deliberately NOT a fetch filter — the discussion stays
+                  series-wide, or every episode would open an empty thread and
+                  every existing comment would vanish from the watch page. */}
+              <CommunityFeed animeId={malId} animeTitle={title} episodeNo={epNo} />
             </div>
           )}
         </div>

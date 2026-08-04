@@ -673,13 +673,16 @@ const CommentThread = ({
 };
 
 export default function CommunityFeed({
-  animeId, animeTitle,
+  animeId, animeTitle, episodeNo,
   mangaId, mangaTitle,
   chapterId, chapterTitle,
   novelId, novelTitle,
   postId
 }: {
   animeId?: number, animeTitle?: string,
+  /** The episode a NEW comment is being left on, stamped so Global Comments
+   *  can link back to it. Not a filter — the thread stays series-wide. */
+  episodeNo?: number,
   mangaId?: string, mangaTitle?: string,
   chapterId?: string, chapterTitle?: string,
   novelId?: string, novelTitle?: string,
@@ -892,6 +895,7 @@ export default function CommunityFeed({
           userId: user.id,
           animeId,
           animeTitle,
+          episodeNo,
           mangaId,
           mangaTitle,
           chapterId,
