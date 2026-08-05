@@ -228,35 +228,42 @@ async function fetchChapters(mid: string): Promise<IMangaChapter[]> {
     return a.pages > 0 && !a.externalUrl && !a.isUnavailable;
   });
 
+  /**
+   * ENGLISH ONLY. A chapter with no readable English version is not listed.
+   *
+   * The previous pass fell back to any language when English was missing, so a
+   * series would list Portuguese or Indonesian chapters among its English
+   * ones. The reasoning was that manhwa pages are art and a raw beats an empty
+   * list — that was wrong. Being handed a chapter you cannot read, in a reader
+   * with no way back to one you can, is worse than being told the chapter is
+   * not available: one is a dead end you discover after committing, the other
+   * is information you get up front.
+   *
+   * The consequence is accepted deliberately: some MangaDex titles will show
+   * fewer chapters than MangaDex itself has, and a few will show none. The
+   * series page says so rather than pretending the series is empty.
+   */
   const byNumber = new Map<string, any>();
   for (const c of readable) {
     const a = c.attributes || {};
+    if ((a.translatedLanguage || "").toLowerCase() !== "en") continue;
     const key = (a.chapter ?? "") || c.id;
-    const prev = byNumber.get(key);
-    if (!prev) {
-      byNumber.set(key, c);
-      continue;
-    }
-    // English displaces anything else; nothing displaces English.
-    const prevEn = (prev.attributes?.translatedLanguage || "") === "en";
-    const thisEn = (a.translatedLanguage || "") === "en";
-    if (thisEn && !prevEn) byNumber.set(key, c);
+    // First one wins among English versions — the feed is ordered, and picking
+    // between two English scanlations of the same chapter is a coin flip.
+    if (!byNumber.has(key)) byNumber.set(key, c);
   }
 
   const out: IMangaChapter[] = [];
   for (const c of byNumber.values()) {
     const a = c.attributes || {};
     const num = a.chapter ?? "";
-    const lang = (a.translatedLanguage || "").toLowerCase();
 
     let title: string;
     if (num && a.title) title = `Chapter ${num} — ${a.title}`;
     else if (num) title = `Chapter ${num}`;
     else title = a.title || "Oneshot";
-    // Mark the language when it is NOT English, so a reader who opens one is
-    // not surprised by it. Silence would be the dishonest option here: the
-    // pages are art either way, but the person clicking deserves to know.
-    if (lang && lang !== "en") title += ` [${lang.toUpperCase()}]`;
+    // No language tag any more — everything reaching here is English by the
+    // filter above, so a tag would only ever say "EN" on every row.
 
     out.push({
       id: MDX_PREFIX + c.id,
