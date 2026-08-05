@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use, useCallback, useRef } from "react";
 import Link from "next/link";
-import { ArrowLeft, Lock, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
+import { ArrowLeft, Lock, ZoomIn, ZoomOut, Maximize2, ChevronLeft, ChevronRight, MessageSquare, X } from "lucide-react";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 import { IMangaChapterPage, IMangaInfo } from "@/lib/asura/models";
 import CommunityFeed from "@/components/community/CommunityFeed";
@@ -25,16 +25,17 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
   const [loading, setLoading] = useState(true);
   const { user } = useUser();
 
-  // New UI State
+  // UI State
   const [prefs, setPrefs] = useState<ManhwaReaderPrefs | null>(null);
   const [uiVisible, setUiVisible] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [showChapterSelector, setShowChapterSelector] = useState(false);
+  const [showSideChat, setShowSideChat] = useState(false);
   const [currentPageIndex, setCurrentPageIndex] = useState(1);
 
   // Refs for tracking elements
   const containerRef = useRef<HTMLDivElement>(null);
-  const imageRefs = useRef<(HTMLImageElement | null)[]>([]);
+  const imageRefs = useRef<(HTMLImageElement | HTMLCanvasElement | null)[]>([]);
 
   // Load preferences
   useEffect(() => {
@@ -81,9 +82,23 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
       });
   }, [id, chapterId]);
 
-  // Intersection Observer for Current Page tracking
+  // Figure out prev/next chapter
+  let prevChapterId: string | null = null;
+  let nextChapterId: string | null = null;
+
+  if (manhwa && manhwa.chapters) {
+    const currentIndex = manhwa.chapters.findIndex((c) => c.id === chapterId);
+    if (currentIndex > 0) {
+      nextChapterId = manhwa.chapters[currentIndex - 1].id;
+    }
+    if (currentIndex !== -1 && currentIndex < manhwa.chapters.length - 1) {
+      prevChapterId = manhwa.chapters[currentIndex + 1].id;
+    }
+  }
+
+  // Intersection Observer for Vertical Page tracking
   useEffect(() => {
-    if (pages.length === 0) return;
+    if (pages.length === 0 || !prefs || prefs.onePageView || prefs.readingDirection !== "vertical") return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -96,7 +111,7 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
       },
       {
         root: null,
-        rootMargin: "-45% 0px -45% 0px", // Detect when image crosses middle of screen
+        rootMargin: "-45% 0px -45% 0px",
         threshold: 0,
       }
     );
@@ -106,45 +121,92 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
     });
 
     return () => observer.disconnect();
-  }, [pages.length]);
+  }, [pages.length, prefs?.onePageView, prefs?.readingDirection]);
 
-  // Handle capturing the currently visible panel
+  // Auto scroll feature
+  useEffect(() => {
+    if (!prefs?.autoScroll) return;
+    const interval = setInterval(() => {
+      window.scrollBy({ top: 2, behavior: "smooth" });
+    }, 30);
+    return () => clearInterval(interval);
+  }, [prefs?.autoScroll]);
+
+  // Auto Next Chapter on bottom scroll
+  useEffect(() => {
+    if (!prefs?.autoNextChapter || !nextChapterId) return;
+
+    const handleScroll = () => {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100) {
+        window.removeEventListener("scroll", handleScroll);
+        window.location.href = `/manhwa/${encodeURIComponent(id)}/chapter/${encodeURIComponent(nextChapterId)}`;
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [prefs?.autoNextChapter, nextChapterId, id]);
+
+  // Handle Canvas Rendering toggle
+  useEffect(() => {
+    if (!prefs?.canvasRendering || pages.length === 0) return;
+
+    pages.forEach((page, index) => {
+      const canvas = imageRefs.current[index] as HTMLCanvasElement | null;
+      if (canvas && canvas.tagName === "CANVAS") {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = `/api/manhwa-image?url=${encodeURIComponent(page.img)}`;
+        img.onload = () => {
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          const ctx = canvas.getContext("2d");
+          ctx?.drawImage(img, 0, 0);
+        };
+      }
+    });
+  }, [prefs?.canvasRendering, pages]);
+
+  // Handle capture panel
   const handleCapture = async () => {
-    const currentImg = imageRefs.current[currentPageIndex - 1];
-    if (!currentImg) return;
+    const el = imageRefs.current[currentPageIndex - 1];
+    if (!el) return;
 
     try {
-      // Create an invisible canvas to draw the image natively
-      const canvas = document.createElement("canvas");
-      canvas.width = currentImg.naturalWidth;
-      canvas.height = currentImg.naturalHeight;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-      
-      ctx.drawImage(currentImg, 0, 0);
-      
-      // Download it
-      const dataUrl = canvas.toDataURL("image/png");
-      const a = document.createElement("a");
-      a.href = dataUrl;
-      a.download = `${manhwa?.title || 'manga'}_ch${chapterId}_page${currentPageIndex}.png`;
-      a.click();
+      if (el.tagName === "CANVAS") {
+        const dataUrl = (el as HTMLCanvasElement).toDataURL("image/png");
+        const a = document.createElement("a");
+        a.href = dataUrl;
+        a.download = `${manhwa?.title || 'manga'}_ch${chapterId}_page${currentPageIndex}.png`;
+        a.click();
+      } else {
+        const imgEl = el as HTMLImageElement;
+        const canvas = document.createElement("canvas");
+        canvas.width = imgEl.naturalWidth;
+        canvas.height = imgEl.naturalHeight;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        ctx.drawImage(imgEl, 0, 0);
+        const dataUrl = canvas.toDataURL("image/png");
+        const a = document.createElement("a");
+        a.href = dataUrl;
+        a.download = `${manhwa?.title || 'manga'}_ch${chapterId}_page${currentPageIndex}.png`;
+        a.click();
+      }
     } catch (e) {
       console.error("Capture failed:", e);
       alert("Failed to capture panel. (CORS restriction on proxy image)");
     }
   };
 
-  // Remember where you're up to
+  // Remember progress
   useEffect(() => {
     if (loading || pages.length === 0) return;
     const cc = manhwa?.chapters?.find((c) => c.id === chapterId);
     if ((cc as any)?.isLocked) return;
     try {
       localStorage.setItem(`manhwa-progress:${id}`, chapterId);
-    } catch {
-      /* ignore */
-    }
+    } catch { /* ignore */ }
     if (manhwa?.title) {
       recordReading("manhwa", { id, title: manhwa.title, cover: manhwa.image, chapterId, chapterTitle: cc?.title });
     }
@@ -161,20 +223,6 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
     return () => clearTimeout(t);
   }, [user, loading, pages.length, manhwa, id, chapterId]);
 
-  // Figure out prev/next chapter
-  let prevChapterId: string | null = null;
-  let nextChapterId: string | null = null;
-
-  if (manhwa && manhwa.chapters) {
-    const currentIndex = manhwa.chapters.findIndex((c) => c.id === chapterId);
-    if (currentIndex > 0) {
-      nextChapterId = manhwa.chapters[currentIndex - 1].id;
-    }
-    if (currentIndex !== -1 && currentIndex < manhwa.chapters.length - 1) {
-      prevChapterId = manhwa.chapters[currentIndex + 1].id;
-    }
-  }
-
   // Zoom logic
   const BASE_READER_WIDTH = 800;
   const ZOOM_MIN = 50;
@@ -188,7 +236,7 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
     try {
       const saved = parseInt(localStorage.getItem(ZOOM_KEY) || "", 10);
       if (Number.isFinite(saved) && saved >= ZOOM_MIN && saved <= ZOOM_MAX) setZoom(saved);
-    } catch { /* private mode / storage disabled */ }
+    } catch { /* ignore */ }
   }, []);
 
   const applyZoom = useCallback((next: number) => {
@@ -211,6 +259,14 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
       if (e.key === "+" || e.key === "=") { e.preventDefault(); applyZoom(zoom + ZOOM_STEP); }
       else if (e.key === "-" || e.key === "_") { e.preventDefault(); applyZoom(zoom - ZOOM_STEP); }
       else if (e.key === "0") { e.preventDefault(); applyZoom(100); }
+      else if (e.key === "ArrowLeft") {
+        if (prefs?.readingDirection === "rtl") setCurrentPageIndex(p => Math.min(pages.length, p + 1));
+        else setCurrentPageIndex(p => Math.max(1, p - 1));
+      }
+      else if (e.key === "ArrowRight") {
+        if (prefs?.readingDirection === "rtl") setCurrentPageIndex(p => Math.max(1, p - 1));
+        else setCurrentPageIndex(p => Math.min(pages.length, p + 1));
+      }
     };
     window.addEventListener("wheel", onWheel, { passive: false });
     window.addEventListener("keydown", onKey);
@@ -218,7 +274,7 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
       window.removeEventListener("wheel", onWheel);
       window.removeEventListener("keydown", onKey);
     };
-  }, [zoom, applyZoom]);
+  }, [zoom, applyZoom, pages.length, prefs?.readingDirection]);
 
   const currentChapter = manhwa?.chapters?.find(c => c.id === chapterId);
 
@@ -253,11 +309,12 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
   }
 
   const activeTheme = themeById(prefs.theme);
-  const gapPx = prefs.pageGap;
+  const isSinglePage = prefs.onePageView || prefs.readingDirection === "ltr" || prefs.readingDirection === "rtl";
+  const displayedPages = isSinglePage ? [pages[currentPageIndex - 1] || pages[0]] : pages;
 
   return (
     <div 
-      className="min-h-screen transition-colors duration-300" 
+      className="min-h-screen transition-colors duration-300 relative overflow-x-hidden" 
       style={{ backgroundColor: activeTheme.bg, color: activeTheme.text }}
     >
       {/* Floating Navigation Controls */}
@@ -276,62 +333,138 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
       </div>
 
       {/* Reader Area */}
-      <div className="w-full overflow-x-auto" ref={containerRef}>
+      <div className="w-full overflow-x-auto min-h-screen flex flex-col justify-center" ref={containerRef}>
         <div
           style={{ 
             width: `calc(min(100%, ${BASE_READER_WIDTH}px) * ${zoom / 100})`, 
             maxWidth: "none",
-            gap: `${gapPx}px`,
+            gap: `${prefs.pageGap}px`,
           }}
           className={`mx-auto flex flex-col items-center select-none cursor-pointer transition-all ${uiVisible ? 'pt-24 pb-24' : 'pt-0 pb-0'}`}
           onClick={(e) => {
-            // Don't toggle UI if clicking on a button inside the reader
             if ((e.target as HTMLElement).closest('button, a')) return;
             setUiVisible(!uiVisible);
           }}
         >
-          {pages.map((page, index) => (
-            <img
-              key={page.page || index}
-              ref={(el) => { imageRefs.current[index] = el; }}
-              data-index={index + 1}
-              // The API `/api/manhwa-image` proxies the image natively.
-              // To allow canvas capture, we MUST add crossOrigin="anonymous" 
-              // AND the proxy MUST set Access-Control-Allow-Origin: *
-              crossOrigin="anonymous"
-              src={`/api/manhwa-image?url=${encodeURIComponent(page.img)}`}
-              alt={`Page ${page.page}`}
-              loading="lazy"
-              decoding="async"
-              onLoad={(e) => e.currentTarget.classList.add("is-loaded")}
-              className="reader-page w-full h-auto object-contain"
-              style={{ backgroundColor: activeTheme.panel }}
-            />
-          ))}
+          {displayedPages.map((page, index) => {
+            const actualIndex = isSinglePage ? currentPageIndex : index + 1;
+            
+            return prefs.canvasRendering ? (
+              <canvas
+                key={page.page || actualIndex}
+                ref={(el) => { imageRefs.current[actualIndex - 1] = el; }}
+                data-index={actualIndex}
+                className="reader-page w-full h-auto object-contain"
+                style={{ 
+                  backgroundColor: activeTheme.panel,
+                  filter: `brightness(${prefs.brightness}%)`
+                }}
+              />
+            ) : (
+              <img
+                key={page.page || actualIndex}
+                ref={(el) => { imageRefs.current[actualIndex - 1] = el; }}
+                data-index={actualIndex}
+                crossOrigin="anonymous"
+                src={`/api/manhwa-image?url=${encodeURIComponent(page.img)}`}
+                alt={`Page ${page.page}`}
+                loading="lazy"
+                decoding="async"
+                onLoad={(e) => e.currentTarget.classList.add("is-loaded")}
+                className="reader-page w-full h-auto object-contain"
+                style={{ 
+                  backgroundColor: activeTheme.panel,
+                  filter: `brightness(${prefs.brightness}%)`
+                }}
+              />
+            );
+          })}
         </div>
       </div>
 
-      {/* Zoom Controls (Bottom Right) */}
-      <div
-        className={`fixed bottom-5 right-4 z-[40] flex items-center gap-1 rounded-full border border-white/10 bg-[#09090b]/90 p-1.5 shadow-2xl backdrop-blur-xl transition-opacity duration-300 ${uiVisible ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
-      >
-        <button onClick={() => applyZoom(zoom - ZOOM_STEP)} disabled={zoom <= ZOOM_MIN} className="grid h-9 w-9 place-items-center rounded-full text-slate-300 hover:bg-white/10 hover:text-white">
-          <ZoomOut className="h-4 w-4" />
-        </button>
-        <button onClick={() => applyZoom(100)} className="min-w-[54px] rounded-full px-2 py-1.5 text-center text-xs font-black tabular-nums text-slate-200 hover:bg-white/10 hover:text-white">
-          {zoom}%
-        </button>
-        <button onClick={() => applyZoom(zoom + ZOOM_STEP)} disabled={zoom >= ZOOM_MAX} className="grid h-9 w-9 place-items-center rounded-full text-slate-300 hover:bg-white/10 hover:text-white">
-          <ZoomIn className="h-4 w-4" />
-        </button>
-        <span className="mx-0.5 h-5 w-px bg-white/10" />
-        <button onClick={() => setUiVisible(!uiVisible)} className="grid h-9 w-9 place-items-center rounded-full text-slate-300 hover:bg-white/10 hover:text-white">
-          <Maximize2 className="h-4 w-4" />
-        </button>
-      </div>
+      {/* Single Page Navigation Arrows */}
+      {isSinglePage && (
+        <>
+          <button
+            onClick={() => {
+              if (prefs.readingDirection === "rtl") setCurrentPageIndex(p => Math.min(pages.length, p + 1));
+              else setCurrentPageIndex(p => Math.max(1, p - 1));
+            }}
+            disabled={prefs.readingDirection === "rtl" ? currentPageIndex >= pages.length : currentPageIndex <= 1}
+            className="fixed left-4 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-black/60 text-white backdrop-blur-md hover:bg-black/80 disabled:opacity-20 disabled:cursor-not-allowed transition"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+          <button
+            onClick={() => {
+              if (prefs.readingDirection === "rtl") setCurrentPageIndex(p => Math.max(1, p - 1));
+              else setCurrentPageIndex(p => Math.min(pages.length, p + 1));
+            }}
+            disabled={prefs.readingDirection === "rtl" ? currentPageIndex <= 1 : currentPageIndex >= pages.length}
+            className="fixed right-4 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-black/60 text-white backdrop-blur-md hover:bg-black/80 disabled:opacity-20 disabled:cursor-not-allowed transition"
+          >
+            <ChevronRight className="w-6 h-6" />
+          </button>
+        </>
+      )}
 
-      {/* Chapter Comments (Side Chat / Below) */}
-      {!prefs.plainView && (
+      {/* Side Chat Trigger Button */}
+      {prefs.sideChat && !showSideChat && (
+        <button
+          onClick={() => setShowSideChat(true)}
+          className="fixed bottom-20 right-4 z-40 p-3 rounded-full bg-pink-600 text-white shadow-xl hover:bg-pink-500 transition flex items-center gap-2 font-bold text-sm"
+        >
+          <MessageSquare className="w-5 h-5" />
+          Comments
+        </button>
+      )}
+
+      {/* Side Chat Drawer */}
+      {prefs.sideChat && showSideChat && (
+        <div className="fixed inset-y-0 right-0 z-50 w-full sm:w-[450px] bg-[#09090b] border-l border-white/10 shadow-2xl flex flex-col">
+          <div className="p-4 border-b border-white/10 flex items-center justify-between">
+            <h3 className="font-bold flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-pink-500" />
+              Chapter Comments
+            </h3>
+            <button onClick={() => setShowSideChat(false)} className="p-1 hover:bg-white/10 rounded-full text-white/50 hover:text-white">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4">
+            <CommunityFeed
+              mangaId={id}
+              mangaTitle={manhwa?.title}
+              chapterId={chapterId}
+              chapterTitle={currentChapter?.title || `Chapter`}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Zoom Controls (Bottom Right) */}
+      {prefs.allowZoomInOut && (
+        <div
+          className={`fixed bottom-5 right-4 z-[40] flex items-center gap-1 rounded-full border border-white/10 bg-[#09090b]/90 p-1.5 shadow-2xl backdrop-blur-xl transition-opacity duration-300 ${uiVisible ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        >
+          <button onClick={() => applyZoom(zoom - ZOOM_STEP)} disabled={zoom <= ZOOM_MIN} className="grid h-9 w-9 place-items-center rounded-full text-slate-300 hover:bg-white/10 hover:text-white">
+            <ZoomOut className="h-4 w-4" />
+          </button>
+          <button onClick={() => applyZoom(100)} className="min-w-[54px] rounded-full px-2 py-1.5 text-center text-xs font-black tabular-nums text-slate-200 hover:bg-white/10 hover:text-white">
+            {zoom}%
+          </button>
+          <button onClick={() => applyZoom(zoom + ZOOM_STEP)} disabled={zoom >= ZOOM_MAX} className="grid h-9 w-9 place-items-center rounded-full text-slate-300 hover:bg-white/10 hover:text-white">
+            <ZoomIn className="h-4 w-4" />
+          </button>
+          <span className="mx-0.5 h-5 w-px bg-white/10" />
+          <button onClick={() => setUiVisible(!uiVisible)} className="grid h-9 w-9 place-items-center rounded-full text-slate-300 hover:bg-white/10 hover:text-white">
+            <Maximize2 className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Chapter Comments (Below) */}
+      {!prefs.plainView && !prefs.sideChat && (
         <div className="mt-4 border-t border-white/5 bg-[#09090b] text-white">
           <div className="max-w-[1000px] mx-auto p-4 sm:p-8">
             <CommunityFeed
