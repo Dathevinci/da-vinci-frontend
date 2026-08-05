@@ -48,6 +48,11 @@ export default function NovelReaderPage() {
     } catch {
       /* ignore */
     }
+    // Now largely redundant with the global ScrollReset — chapterId is part of
+    // the pathname, so moving to the next chapter IS a pathname change and the
+    // global reset sees it. Kept because it fires immediately rather than a
+    // frame later, and a reader is the one place where even one frame at the
+    // bottom of the previous chapter is noticeable.
     if (typeof window !== "undefined") window.scrollTo(0, 0);
   }, [id, chapterId]);
 

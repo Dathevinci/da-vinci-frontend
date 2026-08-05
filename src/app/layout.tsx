@@ -57,6 +57,7 @@ const literata = Literata({ weight: ["400", "700"], style: ["normal", "italic"],
 const lexend = Lexend({ weight: ["400", "700"], subsets: ["latin"], variable: "--font-lexend", display: "swap", preload: false });
 
 import Navbar from "@/components/layout/Navbar";
+import ScrollReset from "@/components/layout/ScrollReset";
 import ModeTransition from "@/components/layout/ModeTransition";
 import Footer from "@/components/layout/Footer";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
@@ -125,6 +126,9 @@ export default function RootLayout({
                     <SupportUsModal />
                     <MaintenanceOverlay />
                     <Navbar />
+                    {/* Opens every page at the top of it — see the component
+                        for why the router's own reset misses. Renders nothing. */}
+                    <ScrollReset />
                     <main className="flex-1 pb-20 md:pb-0">{children}</main>
                     <Footer />
                     <MobileBottomNav />
