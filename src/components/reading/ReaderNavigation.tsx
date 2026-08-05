@@ -154,21 +154,21 @@ export default function ReaderNavigation({
       </div>
 
       {/* Stacked Scroll Buttons on Bottom-Right as seen in Screenshot 1 */}
-      <div className={`fixed bottom-5 right-5 z-40 flex flex-col items-center bg-[#0d0f12]/90 backdrop-blur-md rounded-full border border-white/5 text-white shadow-xl overflow-hidden transform transition-all duration-300 ease-in-out ${isVisible ? 'translate-x-0 opacity-100 pointer-events-auto' : 'translate-x-16 opacity-0 pointer-events-none'}`}>
+      <div className={`fixed bottom-5 right-5 z-40 flex flex-col items-center bg-[#131313] rounded-[24px] border border-white/5 text-white shadow-2xl overflow-hidden transform transition-all duration-300 ease-in-out ${isVisible ? 'translate-x-0 opacity-100 pointer-events-auto' : 'translate-x-16 opacity-0 pointer-events-none'}`}>
         <button 
-          onClick={(e) => { e.stopPropagation(); window.scrollBy({ top: -window.innerHeight * 0.8, behavior: 'smooth' }); }}
-          className="p-3 hover:bg-white/10 transition" 
-          title="Scroll Up"
+          onClick={(e) => { e.stopPropagation(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+          className="w-12 h-12 flex items-center justify-center hover:bg-white/10 transition" 
+          title="Scroll to Top"
         >
-          <ChevronUp className="w-4 h-4" />
+          <ChevronUp className="w-5 h-5" />
         </button>
         <span className="w-full h-[1px] bg-white/10" />
         <button 
-          onClick={(e) => { e.stopPropagation(); window.scrollBy({ top: window.innerHeight * 0.8, behavior: 'smooth' }); }}
-          className="p-3 hover:bg-white/10 transition" 
-          title="Scroll Down"
+          onClick={(e) => { e.stopPropagation(); window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); }}
+          className="w-12 h-12 flex items-center justify-center hover:bg-white/10 transition" 
+          title="Scroll to Comments"
         >
-          <ChevronDown className="w-4 h-4" />
+          <ChevronDown className="w-5 h-5" />
         </button>
       </div>
     </>

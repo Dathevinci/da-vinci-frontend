@@ -452,20 +452,20 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
       {/* Zoom Controls (Bottom Right) */}
       {prefs.allowZoomInOut && (
         <div
-          className={`fixed bottom-5 right-24 z-[40] flex items-center gap-1 rounded-full border border-white/10 bg-[#09090b]/90 p-1.5 shadow-2xl backdrop-blur-xl transform transition-all duration-300 ease-in-out ${navVisible ? 'translate-x-0 opacity-100 pointer-events-auto' : 'translate-x-16 opacity-0 pointer-events-none'}`}
+          className={`fixed bottom-5 right-[84px] z-[40] flex items-center h-12 rounded-[24px] border border-white/5 bg-[#131313] px-2 shadow-2xl transform transition-all duration-300 ease-in-out ${navVisible ? 'translate-x-0 opacity-100 pointer-events-auto' : 'translate-x-16 opacity-0 pointer-events-none'}`}
         >
-          <button onClick={() => applyZoom(zoom - ZOOM_STEP)} disabled={zoom <= ZOOM_MIN} className="grid h-9 w-9 place-items-center rounded-full text-slate-300 hover:bg-white/10 hover:text-white">
-            <ZoomOut className="h-4 w-4" />
+          <button onClick={() => applyZoom(zoom - ZOOM_STEP)} disabled={zoom <= ZOOM_MIN} className="w-10 h-10 flex items-center justify-center rounded-full text-white/80 hover:bg-white/10 hover:text-white transition">
+            <ZoomOut className="h-[18px] w-[18px]" />
           </button>
-          <button onClick={() => applyZoom(100)} className="min-w-[54px] rounded-full px-2 py-1.5 text-center text-xs font-black tabular-nums text-slate-200 hover:bg-white/10 hover:text-white">
+          <button onClick={() => applyZoom(100)} className="w-[60px] h-10 flex items-center justify-center rounded-full text-center text-[13px] font-black font-mono tabular-nums text-white hover:bg-white/10 transition">
             {zoom}%
           </button>
-          <button onClick={() => applyZoom(zoom + ZOOM_STEP)} disabled={zoom >= ZOOM_MAX} className="grid h-9 w-9 place-items-center rounded-full text-slate-300 hover:bg-white/10 hover:text-white">
-            <ZoomIn className="h-4 w-4" />
+          <button onClick={() => applyZoom(zoom + ZOOM_STEP)} disabled={zoom >= ZOOM_MAX} className="w-10 h-10 flex items-center justify-center rounded-full text-white/80 hover:bg-white/10 hover:text-white transition">
+            <ZoomIn className="h-[18px] w-[18px]" />
           </button>
-          <span className="mx-0.5 h-5 w-px bg-white/10" />
-          <button onClick={() => setUiVisible(!uiVisible)} className="grid h-9 w-9 place-items-center rounded-full text-slate-300 hover:bg-white/10 hover:text-white">
-            <Maximize2 className="h-4 w-4" />
+          <span className="mx-1 h-5 w-[1px] bg-white/10" />
+          <button onClick={() => setUiVisible(!uiVisible)} className="w-10 h-10 flex items-center justify-center rounded-full text-white/80 hover:bg-white/10 hover:text-white transition">
+            <Maximize2 className="h-[18px] w-[18px]" />
           </button>
         </div>
       )}
