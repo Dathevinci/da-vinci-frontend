@@ -200,7 +200,37 @@ export default function PackReveal({
   // and one that arrives late crashes off-screen.
   // Longer by the owner's ask: the fall is the show, so it gets time to be
   // one — and epic+ hangs even longer before the cut.
-  const fallMs = bestOrder >= 3 ? 2300 : 1650;
+  /**
+   * BEAT TIMING, KEYED BY RARITY — the escalation IS the reward.
+   *
+   * This was one flat number for two tiers: 2300ms for legendary, 1650ms for
+   * everything else. So a common and an epic took exactly as long, which spends
+   * the player's patience on the pulls that least deserve it and flattens the
+   * one curve the sequence exists to draw.
+   *
+   * Two rules from the brief, and they pull in opposite directions on purpose:
+   *
+   *   KEEP JUNK SHORT. A common resolves in about 1.6s with no hold at all.
+   *   Respecting someone's time on a bad pull is what leaves them willing to
+   *   pull again — the sequence has to earn its length, every time.
+   *
+   *   MAKE GOLD WAIT. The hold is dead air with nothing moving, and it is the
+   *   single most effective beat in the whole thing. It scales hard: nothing
+   *   at common, a blink at rare, half a second at epic, and a full stop at
+   *   legendary where the collapse beat carries it.
+   *
+   * `hold` of 0 skips the middle stage entirely rather than running it at zero
+   * duration — a stage that exists for no frames still costs a state flush and
+   * can flicker.
+   */
+  const BEATS: Record<number, { fall: number; hold: number; burst: number }> = {
+    0: { fall: 1100, hold: 0,    burst: 500 },  // common    ~1.6s
+    1: { fall: 1400, hold: 200,  burst: 600 },  // rare      ~2.2s
+    2: { fall: 2000, hold: 500,  burst: 950 },  // epic      ~3.5s
+    3: { fall: 2300, hold: 1500, burst: 950 },  // legendary ~4.8s + solo hero
+  };
+  const beat = BEATS[Math.min(bestOrder, 3)] ?? BEATS[2];
+  const fallMs = beat.fall;
   // A x16/x32 is a different animal: full-size cards at a half-second each
   // would run past twenty seconds and off the screen. Big packs flip fast
   // and small, and the row scrolls.
@@ -213,18 +243,20 @@ export default function PackReveal({
   useEffect(() => {
     if (reduce) return;
     if (stage === "warp") {
-      const t = setTimeout(() => setStage(bestOrder >= 3 ? "hole" : "burst"), fallMs);
+      // Skip the hold entirely when it is worth nothing — a common should not
+      // pay a state transition for a beat it does not get.
+      const t = setTimeout(() => setStage(beat.hold > 0 ? "hole" : "burst"), fallMs);
       return () => clearTimeout(t);
     }
     if (stage === "hole") {
-      const t = setTimeout(() => setStage("burst"), 1500);
+      const t = setTimeout(() => setStage("burst"), beat.hold);
       return () => clearTimeout(t);
     }
     if (stage === "burst") {
-      const t = setTimeout(() => setStage("reveal"), 950);
+      const t = setTimeout(() => setStage("reveal"), beat.burst);
       return () => clearTimeout(t);
     }
-  }, [stage, reduce, fallMs, bestOrder]);
+  }, [stage, reduce, fallMs, beat.hold, beat.burst]);
 
   /**
    * A legendary or better gets taken OUT of the row and shown on its own.
