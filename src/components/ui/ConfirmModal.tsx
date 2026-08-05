@@ -18,9 +18,24 @@ interface ConfirmModalProps {
    * something — keeps exactly the treatment it had.
    */
   danger?: boolean;
+  /**
+   * Offer "skip this next time". When present, the sheet shows a third,
+   * quieter action that confirms AND asks not to be shown again.
+   *
+   * Deliberately absent by default, and it should stay absent on anything
+   * destructive: a delete you can silence is a delete that eventually happens
+   * by accident. This exists for repeated, affordable, intentional actions —
+   * opening packs — where being asked the fortieth time is friction rather
+   * than protection.
+   *
+   * The caller owns the persistence and, importantly, owns giving the player
+   * a way to turn it back ON. A switch with no way back is not a preference.
+   */
+  onSkipFuture?: () => void;
+  skipLabel?: string;
 }
 
-export default function ConfirmModal({ isOpen, title, message, onConfirm, onCancel, confirmText = "Confirm", cancelText = "Cancel", danger = true }: ConfirmModalProps) {
+export default function ConfirmModal({ isOpen, title, message, onConfirm, onCancel, confirmText = "Confirm", cancelText = "Cancel", danger = true, onSkipFuture, skipLabel = "Open and skip this next time" }: ConfirmModalProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -96,6 +111,19 @@ export default function ConfirmModal({ isOpen, title, message, onConfirm, onCanc
                 {confirmText}
               </button>
             </div>
+
+            {/* The quiet third option. Deliberately UNDER the pair and in
+                plain text, not beside them: skipping every future confirm is
+                a bigger decision than this one purchase, so it should take a
+                deliberate read rather than sit where a thumb already is. */}
+            {onSkipFuture && (
+              <button
+                onClick={() => { onSkipFuture(); onCancel(); }}
+                className="mt-3 w-full rounded-lg py-2 text-[11px] font-bold text-slate-500 transition hover:bg-white/[0.04] hover:text-slate-300"
+              >
+                {skipLabel}
+              </button>
+            )}
           </motion.div>
         </motion.div>
       )}

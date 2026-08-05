@@ -263,6 +263,30 @@ export default function CardsPage() {
    * experience than a straight refusal.
    */
   const [pendingPull, setPendingPull] = useState<number | null>(null);
+  /**
+   * The player may switch the pull confirm off.
+   *
+   * This sits right against the rule that a purchase must never complete
+   * without an explicit confirm — so the distinction matters: the APP is not
+   * allowed to remove the step, the PLAYER is. That only holds while the
+   * choice is informed and reversible, which is why it is offered from inside
+   * the sheet itself (you have read what you are silencing) and why a live
+   * "turn it back on" control sits next to the pull buttons whenever it is
+   * off. A switch with no way back is not a preference.
+   *
+   * localStorage rather than the server: it is a per-device comfort setting,
+   * and a failed write should never block a pull.
+   */
+  const SKIP_KEY = "davinci_skip_pull_confirm";
+  const [skipPullConfirm, setSkipPullConfirm] = useState(false);
+  useEffect(() => {
+    try { setSkipPullConfirm(localStorage.getItem(SKIP_KEY) === "1"); } catch { /* private mode */ }
+  }, []);
+  const setSkip = (on: boolean) => {
+    setSkipPullConfirm(on);
+    try { localStorage.setItem(SKIP_KEY, on ? "1" : "0"); } catch { /* private mode */ }
+  };
+
   const askPull = (count?: number) => {
     if (!user) return toast("Sign in to open packs.", "error");
     if (!catalog) return;
@@ -270,6 +294,9 @@ export default function CardsPage() {
     if (!isLeadDev(user) && apDisplay < price) {
       return toast(`That pull costs ${price.toLocaleString()} AP.`, "error");
     }
+    // The affordability check above still runs either way — skipping the
+    // confirm skips being ASKED, never being protected.
+    if (skipPullConfirm) return openPack(count ?? catalog.packSize);
     setPendingPull(count ?? catalog.packSize);
   };
 
@@ -926,6 +953,19 @@ export default function CardsPage() {
                         );
                       })}
                     </Stagger>
+                    {/* THE WAY BACK. Only rendered while confirms are off, so
+                        it costs nothing normally and is impossible to miss when
+                        it matters. Without this the skip would be one-way, and a
+                        preference you cannot undo is just a trap with a nice
+                        label on it. */}
+                    {skipPullConfirm && (
+                      <button
+                        onClick={() => { setSkip(false); toast("Pull confirms are back on.", "success"); }}
+                        className="mx-auto block rounded-lg px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500 transition hover:bg-white/[0.05] hover:text-slate-300"
+                      >
+                        Confirms off · turn back on
+                      </button>
+                    )}
                     {opening && (
                       <p className="text-center text-[10px] font-black uppercase tracking-[0.3em]" style={{ color: ACCENT }}>
                         Opening…
@@ -1690,6 +1730,13 @@ export default function CardsPage() {
         danger={false}
         confirmText="Open"
         cancelText="Not now"
+        skipLabel="Open, and don't ask again"
+        onSkipFuture={() => {
+          setSkip(true);
+          const n = pendingPull;
+          if (n != null) openPack(n);
+          toast("Pull confirms are off. Turn them back on above the pack buttons.", "success");
+        }}
         onCancel={() => setPendingPull(null)}
         onConfirm={() => {
           const n = pendingPull;
