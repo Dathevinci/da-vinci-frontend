@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
   // unavailable, so covers never break.
   async function upstream(): Promise<Response | null> {
     const bare = url.replace(/^https?:\/\//, "");
-    const weserv = `https://images.weserv.nl/?url=${encodeURIComponent(bare)}&w=480&h=720&fit=cover&output=webp&q=85&sharp=3`;
+    const weserv = `https://wsrv.nl/?url=${encodeURIComponent(bare)}&w=480&h=720&fit=cover&output=webp&q=85&sharp=3`;
     const r = await fetch(weserv, { headers: { "User-Agent": UA } }).catch(() => null);
     if (r && r.ok) return r;
     return fetch(url, { headers: { Referer: referer, "User-Agent": UA } }).catch(() => null);
