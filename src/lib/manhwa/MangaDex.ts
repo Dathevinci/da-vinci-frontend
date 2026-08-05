@@ -182,24 +182,15 @@ export async function fetchInfo(id: string): Promise<IMangaInfo> {
 async function fetchChapters(mid: string): Promise<IMangaChapter[]> {
   const limit = 500;
   const raw: any[] = [];
-  /**
-   * NO LANGUAGE FILTER ON THE REQUEST — the preference is applied below.
-   *
-   * Asking the API for English only cannot express "English if it exists,
-   * otherwise anything", which is what a reader actually wants. It also hid
-   * the failure that keeps getting reported: for an officially licensed
-   * series every English chapter is an external link, so an en-only feed came
-   * back full and the readability filter emptied it, leaving a series page
-   * that looked complete and listed nothing.
-   *
-   * Fetching everything and choosing per chapter costs the same single walk.
-   *
-   * Newest-first (order desc) to match the AsuraScans convention the detail
-   * page + reader assume (index 0 = latest). Cap the walk so a 3000-entry
-   * series can't hammer the API.
-   */
+  
+  // We ONLY fetch English chapters directly from the API.
+  // Fetching all languages causes massive series to fill the 3000-chapter cap 
+  // with recent non-English uploads, burying the English chapters and causing 
+  // the series to appear empty. Since we now keep external/licensed chapters 
+  // downstream, applying this filter at the API level is safe and necessary.
   for (let offset = 0; offset < 3000; offset += limit) {
     const q = qs({
+      "translatedLanguage[]": ["en"],
       "contentRating[]": RATINGS,
       "order[chapter]": "desc",
       "includes[]": ["scanlation_group"],
