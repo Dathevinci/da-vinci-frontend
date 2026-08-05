@@ -1687,6 +1687,7 @@ export default function CardsPage() {
                 apDisplay - ((pendingPull && catalog?.pullPrices?.[pendingPull]) ?? catalog?.packPrice ?? 0)
               ).toLocaleString()} left.`
         }
+        danger={false}
         confirmText="Open"
         cancelText="Not now"
         onCancel={() => setPendingPull(null)}

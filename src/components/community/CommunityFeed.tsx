@@ -1487,7 +1487,7 @@ export default function CommunityFeed({
 
       <ConfirmModal 
         isOpen={!!commentToDelete}
-        title="Delete View"
+        title="Delete comment"
         message="Are you sure you want to permanently delete this comment? This action cannot be undone and your Arise Points will be adjusted."
         confirmText="Delete"
         cancelText="Keep it"
