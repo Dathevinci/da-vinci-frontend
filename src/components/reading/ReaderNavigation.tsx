@@ -32,102 +32,102 @@ export default function ReaderNavigation({
   const chapterNumMatch = currentChapter?.title.match(/(\d+(\.\d+)?)/);
   const shortTitle = chapterNumMatch ? `Ch. ${chapterNumMatch[1]}` : 'Ch. 1';
 
-  // Calculate chapter numbers for prev/next buttons
   const currentIndex = manhwa?.chapters?.findIndex(c => c.id === chapterId) ?? -1;
   const totalChapters = manhwa?.chapters?.length || 0;
   
-  // In Asura/MangaRead arrays, index 0 is newest, higher index is older (e.g. index 0 = Ch. 229, index 228 = Ch. 1)
   const prevChapterNum = currentIndex < totalChapters - 1 ? (totalChapters - 1 - (currentIndex + 1)) : 0;
   const nextChapterNum = currentIndex > 0 ? (totalChapters - currentIndex) : (totalChapters + 1);
 
   return (
     <>
-      {/* Top Floating Pill - Slate Blue translucent styling as seen in screenshot */}
-      <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 flex items-center h-10 px-1 bg-[#4b6b88]/70 backdrop-blur-xl rounded-full border border-white/20 shadow-[0_8px_30px_rgba(0,0,0,0.5)] text-white text-xs font-semibold select-none pointer-events-auto">
+      {/* Top Floating Pill - Solid Slate Blue #54738c as seen in screenshot 1 & 2 */}
+      <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 flex items-center h-[42px] bg-[#54738c] rounded-full text-white text-[13px] font-bold select-none pointer-events-auto overflow-hidden shadow-lg">
         <Link 
           href={`/manhwa/${encodeURIComponent(manhwa?.id || '')}`}
-          className="flex items-center justify-center px-3 h-full hover:bg-white/10 rounded-l-full transition"
+          className="flex items-center justify-center px-4 h-full hover:bg-white/20 transition"
           title={`Back to ${title}`}
         >
           <ArrowLeft className="w-4 h-4" />
         </Link>
 
-        <span className="h-4 w-px bg-white/20 my-auto" />
+        <span className="h-5 w-[1px] bg-white/20 my-auto" />
         
-        <div className="flex items-center px-3 h-full font-bold tabular-nums">
+        <div className="flex items-center px-4 h-full font-bold tabular-nums">
           {currentPageIndex} / {totalPages}
         </div>
 
-        <span className="h-4 w-px bg-white/20 my-auto" />
+        <span className="h-5 w-[1px] bg-white/20 my-auto" />
 
-        <button className="flex items-center justify-center px-2.5 h-full hover:bg-white/10 transition" title="Add to Library">
+        <button className="flex items-center justify-center px-3.5 h-full hover:bg-white/20 transition" title="Add to Library">
           <Plus className="w-4 h-4" />
         </button>
         
-        <button className="flex items-center justify-center px-2.5 h-full hover:bg-white/10 transition" title="Mark as Read">
+        <button className="flex items-center justify-center px-3.5 h-full hover:bg-white/20 transition" title="Mark as Read">
           <Check className="w-4 h-4" />
         </button>
 
-        {/* Camera icon highlighted rounded square when active/hovered as in Screenshot 3 */}
+        {/* Camera icon gets full height background on hover, matching Screenshot 2 */}
         <button 
           onClick={onCapture}
-          className="flex items-center justify-center w-8 h-8 mx-0.5 rounded-lg bg-white/20 hover:bg-white/30 transition text-white" 
+          className="flex items-center justify-center px-4 h-full bg-white/10 hover:bg-white/20 transition text-white group relative" 
           title="Capture visible panels for comment"
         >
           <Camera className="w-4 h-4" />
         </button>
 
-        <button className="flex items-center justify-center px-2.5 h-full hover:bg-white/10 transition" title="Pin Toolbar">
+        <button className="flex items-center justify-center px-3.5 h-full hover:bg-white/20 transition" title="Pin Toolbar">
           <Pin className="w-4 h-4" />
         </button>
 
-        <button onClick={() => window.location.reload()} className="flex items-center justify-center px-2.5 h-full hover:bg-white/10 transition" title="Refresh">
+        <button onClick={() => window.location.reload()} className="flex items-center justify-center px-3.5 h-full hover:bg-white/20 transition" title="Refresh">
           <RefreshCw className="w-4 h-4" />
         </button>
 
+        <span className="h-5 w-[1px] bg-white/20 my-auto" />
+
         <button 
           onClick={onOpenSettings}
-          className="flex items-center justify-center px-3 h-full hover:bg-white/10 rounded-r-full transition" 
+          className="flex items-center justify-center px-4 h-full hover:bg-white/20 transition" 
           title="Settings"
         >
           <Settings className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Bottom Floating Pill - Slate Blue matching Screenshot 1 & 2 */}
-      <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 flex items-center h-10 bg-[#4b6b88]/70 backdrop-blur-xl rounded-full border border-white/20 shadow-[0_8px_30px_rgba(0,0,0,0.5)] text-white text-xs font-bold select-none pointer-events-auto">
+      {/* Bottom Floating Pill - Solid Slate Blue #54738c */}
+      <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 flex items-center h-[42px] bg-[#54738c] rounded-full text-white text-[13px] font-bold select-none pointer-events-auto overflow-hidden shadow-lg">
         {prevChapterId ? (
           <Link 
             href={`/manhwa/${encodeURIComponent(manhwa?.id || '')}/chapter/${encodeURIComponent(prevChapterId)}`}
-            className="flex items-center gap-1.5 px-3.5 h-full hover:bg-white/10 rounded-l-full transition"
+            className="flex items-center gap-1.5 px-4 h-full hover:bg-white/20 transition"
           >
             <ChevronLeft className="w-4 h-4" />
             <span className="tabular-nums">{prevChapterNum}</span>
           </Link>
         ) : (
-          <div className="flex items-center gap-1.5 px-3.5 h-full opacity-40 cursor-not-allowed rounded-l-full">
+          <div className="flex items-center gap-1.5 px-4 h-full opacity-40 cursor-not-allowed">
             <ChevronLeft className="w-4 h-4" />
             <span>0</span>
           </div>
         )}
 
-        <span className="h-4 w-px bg-white/20 my-auto" />
+        <span className="h-5 w-[1px] bg-white/20 my-auto" />
 
         <button 
           onClick={onOpenChapterSelector}
-          className="flex items-center gap-2 px-4 h-full hover:bg-white/10 transition font-bold"
+          className="flex items-center gap-2 px-5 h-full hover:bg-white/20 transition font-bold"
         >
           <List className="w-4 h-4" />
           <span>{shortTitle}</span>
           {isChapterSelectorOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
         </button>
 
-        <span className="h-4 w-px bg-white/20 my-auto" />
+        <span className="h-5 w-[1px] bg-white/20 my-auto" />
 
         {nextChapterId ? (
           <Link 
             href={`/manhwa/${encodeURIComponent(manhwa?.id || '')}/chapter/${encodeURIComponent(nextChapterId)}`}
-            className="flex items-center gap-1.5 px-3.5 h-full hover:bg-white/10 rounded-r-full transition"
+            className="flex items-center gap-1.5 px-4 h-full hover:bg-white/20 transition"
           >
             <span className="tabular-nums">{nextChapterNum}</span>
             <ChevronRight className="w-4 h-4" />
@@ -135,7 +135,7 @@ export default function ReaderNavigation({
         ) : (
           <Link 
             href={`/manhwa/${encodeURIComponent(manhwa?.id || '')}`}
-            className="flex items-center gap-1.5 px-3.5 h-full hover:bg-white/10 rounded-r-full transition"
+            className="flex items-center gap-1.5 px-4 h-full hover:bg-white/20 transition"
           >
             <span>Done</span>
             <ChevronRight className="w-4 h-4" />
@@ -144,17 +144,18 @@ export default function ReaderNavigation({
       </div>
 
       {/* Stacked Scroll Buttons on Bottom-Right as seen in Screenshot 1 */}
-      <div className="fixed bottom-5 right-5 z-40 flex flex-col gap-1 bg-black/80 backdrop-blur-md p-1.5 rounded-full border border-white/10 text-white shadow-xl">
+      <div className="fixed bottom-5 right-5 z-40 flex flex-col items-center bg-[#0d0f12]/90 backdrop-blur-md rounded-full border border-white/5 text-white shadow-xl overflow-hidden pointer-events-auto">
         <button 
-          onClick={() => window.scrollBy({ top: -window.innerHeight * 0.8, behavior: 'smooth' })}
-          className="p-1.5 hover:bg-white/20 rounded-full transition" 
+          onClick={(e) => { e.stopPropagation(); window.scrollBy({ top: -window.innerHeight * 0.8, behavior: 'smooth' }); }}
+          className="p-3 hover:bg-white/10 transition" 
           title="Scroll Up"
         >
           <ChevronUp className="w-4 h-4" />
         </button>
+        <span className="w-full h-[1px] bg-white/10" />
         <button 
-          onClick={() => window.scrollBy({ top: window.innerHeight * 0.8, behavior: 'smooth' })}
-          className="p-1.5 hover:bg-white/20 rounded-full transition" 
+          onClick={(e) => { e.stopPropagation(); window.scrollBy({ top: window.innerHeight * 0.8, behavior: 'smooth' }); }}
+          className="p-3 hover:bg-white/10 transition" 
           title="Scroll Down"
         >
           <ChevronDown className="w-4 h-4" />
