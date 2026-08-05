@@ -7,15 +7,16 @@
 import { AsuraScans } from "@/lib/asura";
 import { IMangaResult, IMangaInfo, IMangaChapterPage, ISearch } from "@/lib/asura/models";
 import * as MDX from "./MangaDex";
-import Manganato from "./parsers/Manganato";
+import MangaRead from "./parsers/MangaRead";
 
 const asura = () => new AsuraScans();
-const mna = () => new Manganato();
+const mrd = () => new MangaRead();
 
 // ── single-item lookups: route by prefix ────────────────────────────────────
 
 export async function getManhwaInfo(id: string): Promise<IMangaInfo> {
-  if (id.startsWith("mna:")) return mna().fetchMangaInfo(id);
+  if (id.startsWith("mrd:")) return mrd().fetchMangaInfo(id);
+  if (id.startsWith("mna:")) return mrd().fetchMangaInfo(id); // fallback for any bookmark
   if (MDX.isMdx(id)) return MDX.fetchInfo(id);
   return asura().fetchMangaInfo(id);
 }
@@ -42,7 +43,8 @@ export async function getManhwaInfo(id: string): Promise<IMangaInfo> {
  * far worse than serving none, because nothing downstream could detect it.
  */
 export async function getChapterPages(chapterId: string): Promise<IMangaChapterPage[]> {
-  if (chapterId.startsWith("mna:")) return mna().fetchChapterPages(chapterId);
+  if (chapterId.startsWith("mrd:")) return mrd().fetchChapterPages(chapterId);
+  if (chapterId.startsWith("mna:")) return mrd().fetchChapterPages(chapterId);
   if (MDX.isMdx(chapterId)) return MDX.fetchPages(chapterId);
   try {
     return await asura().fetchChapterPages(chapterId);
@@ -122,18 +124,18 @@ function merge(primary: IMangaResult[], ...secondaries: IMangaResult[][]): IMang
 // ── browse / search / home: merge Asura + MangaDex ──────────────────────────
 
 export async function searchManhwa(query: string, page = 1, filters?: any): Promise<ISearch<IMangaResult>> {
-  const [a, m, mn] = await Promise.allSettled([
+  const [a, m, mr] = await Promise.allSettled([
     asura().search(query, page, filters), 
     MDX.search(query, page),
-    mna().search(query, page)
+    mrd().search(query, page)
   ]);
   const av = settled(a, { currentPage: page, hasNextPage: false, results: [] });
   const mv = settled(m, { currentPage: page, hasNextPage: false, results: [] });
-  const mnv = settled(mn, { currentPage: page, hasNextPage: false, results: [] });
+  const mrv = settled(mr, { currentPage: page, hasNextPage: false, results: [] });
   return {
     currentPage: page,
-    hasNextPage: av.hasNextPage || mv.hasNextPage || mnv.hasNextPage,
-    results: merge(av.results, mv.results, mnv.results),
+    hasNextPage: av.hasNextPage || mv.hasNextPage || mrv.hasNextPage,
+    results: merge(av.results, mv.results, mrv.results),
   };
 }
 
