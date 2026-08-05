@@ -130,9 +130,6 @@ function IslandLink({ href, label, Icon, active, accent }: Dest & { active?: boo
         <motion.div
           layoutId="nav-island-hover"
           className="absolute inset-0 rounded-full bg-white/10"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
           transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
         />
       )}
@@ -378,9 +375,6 @@ function ProfileDot({ user }: { user: any }) {
           layoutId="nav-island-hover"
           className="absolute inset-0 rounded-full bg-white/10"
           style={{ left: "-4px", right: "-4px", top: "-4px", bottom: "-4px" }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
           transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
         />
       )}
