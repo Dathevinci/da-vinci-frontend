@@ -27,7 +27,13 @@ export default class MangaRead extends MangaParser {
   }
 
   override async search(query: string, page: number = 1): Promise<ISearch<IMangaResult>> {
-    const url = `${this.baseUrl}/page/${page}/?s=${encodeURIComponent(query)}&post_type=wp-manga`;
+    let searchQuery = query;
+    const normalized = query.toLowerCase().trim();
+    if (normalized.includes("spark in your eyes") || normalized.includes("spark in my eyes")) {
+      searchQuery = "blinded by the setting sun";
+    }
+
+    const url = `${this.baseUrl}/page/${page}/?s=${encodeURIComponent(searchQuery)}&post_type=wp-manga`;
     
     try {
       const html = await this.request<string>(url);

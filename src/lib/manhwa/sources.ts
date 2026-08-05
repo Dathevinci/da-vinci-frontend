@@ -15,10 +15,29 @@ const mrd = () => new MangaRead();
 // ── single-item lookups: route by prefix ────────────────────────────────────
 
 export async function getManhwaInfo(id: string): Promise<IMangaInfo> {
-  if (id.startsWith("mrd:")) return mrd().fetchMangaInfo(id);
-  if (id.startsWith("mna:")) return mrd().fetchMangaInfo(id); // fallback for any bookmark
-  if (MDX.isMdx(id)) return MDX.fetchInfo(id);
-  return asura().fetchMangaInfo(id);
+  let info: IMangaInfo;
+  if (id.startsWith("mrd:")) info = await mrd().fetchMangaInfo(id);
+  else if (id.startsWith("mna:")) info = await mrd().fetchMangaInfo(id); // fallback for any bookmark
+  else if (MDX.isMdx(id)) info = await MDX.fetchInfo(id);
+  else info = await asura().fetchMangaInfo(id);
+
+  // Rescue: If a title (like MangaDex DMCA'd licensed titles) returns 0 chapters, rescue chapters from MangaRead!
+  if (!info.chapters || info.chapters.length === 0) {
+    try {
+      const searchRes = await mrd().search(info.title);
+      if (searchRes.results.length > 0) {
+        const rescueInfo = await mrd().fetchMangaInfo(searchRes.results[0].id);
+        if (rescueInfo.chapters && rescueInfo.chapters.length > 0) {
+          info.chapters = rescueInfo.chapters;
+          console.log(`[manhwa] Rescued ${rescueInfo.chapters.length} chapters from MangaRead for "${info.title}"`);
+        }
+      }
+    } catch (e) {
+      console.error(`[manhwa] Failed MangaRead rescue for "${info.title}":`, e);
+    }
+  }
+
+  return info;
 }
 
 /**
