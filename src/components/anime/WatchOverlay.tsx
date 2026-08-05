@@ -858,7 +858,7 @@ export default function WatchOverlay({
       </div>
 
       {/* ═══ INLINE SERVER SELECTION (Styled like Playback Settings) ═══ */}
-      {inlineEmbed && (
+      {inline && (
         <div className="mt-6 rounded-2xl border border-white/10 bg-[#0b0b11] p-5 sm:p-6 w-full shrink-0">
           <p className="font-mono text-xs font-black uppercase tracking-[0.22em] text-slate-500">Servers</p>
           <div className="mt-4 flex flex-wrap gap-3">
