@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, createContext, useContext } from "react";
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -13,13 +14,6 @@ import { useAppMode } from "@/components/providers/AppModeProvider";
 import { isLeadDev } from "@/lib/admin";
 import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
 import NotificationsMenu from "./NotificationsMenu";
-import { motion, AnimatePresence } from "framer-motion";
-import { createContext, useContext } from "react";
-
-const HoverContext = createContext<{
-  hoverId: string | null;
-  setHoverId: (id: string | null) => void;
-}>({ hoverId: null, setHoverId: () => {} });
 
 /**
  * NAV ISLAND — the desktop navigation, docked to the bottom.
@@ -94,6 +88,11 @@ const MODES = [
 ];
 
 /** Label sits ABOVE the icon — the bar is at the bottom of the screen. */
+const HoverContext = createContext<{
+  hoveredId: string | null;
+  setHoveredId: (id: string | null) => void;
+}>({ hoveredId: null, setHoveredId: () => {} });
+
 function Tip({ show, children }: { show: boolean; children: React.ReactNode }) {
   return (
     <span
@@ -112,13 +111,13 @@ function Tip({ show, children }: { show: boolean; children: React.ReactNode }) {
 }
 
 function IslandLink({ href, label, Icon, active, accent }: Dest & { active?: boolean; accent: string }) {
-  const { hoverId, setHoverId } = useContext(HoverContext);
-  const isHovered = hoverId === href;
+  const [hover, setHover] = useState(false);
   return (
     <Link
       href={href}
       aria-label={label}
-      onMouseEnter={() => setHoverId(href)}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
       className={`relative grid h-10 w-10 place-items-center rounded-full transition-colors duration-200 ${
         active ? "text-white" : "text-slate-400 hover:text-white"
       }`}
@@ -126,18 +125,8 @@ function IslandLink({ href, label, Icon, active, accent }: Dest & { active?: boo
         ? { background: `linear-gradient(140deg, ${accent}55, ${accent}22)`, boxShadow: `inset 0 0 0 1px ${accent}88` }
         : undefined}
     >
-      {isHovered && !active && (
-        <motion.div
-          layoutId="nav-island-hover"
-          className="absolute inset-0 rounded-full bg-white/10"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
-        />
-      )}
-      <Icon className="relative z-10 h-[18px] w-[18px]" />
-      <Tip show={isHovered}>{label}</Tip>
+      <Icon className="h-[18px] w-[18px]" />
+      <Tip show={hover}>{label}</Tip>
     </Link>
   );
 }
@@ -156,7 +145,6 @@ export default function NavIsland({ onSearch, onSettings }: { onSearch: () => vo
   const [hoverSearch, setHoverSearch] = useState(false);
   const [hoverSettings, setHoverSettings] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  const [hoverId, setHoverId] = useState<string | null>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const accent = mode === "anime" ? "#a855f7" : mode === "manhwa" ? "#ef4444" : "#ec4899";
@@ -229,21 +217,19 @@ export default function NavIsland({ onSearch, onSettings }: { onSearch: () => vo
           willChange: "transform, opacity",
         }}
       >
-        <HoverContext.Provider value={{ hoverId, setHoverId }}>
-        <nav onMouseLeave={() => setHoverId(null)} className="pointer-events-auto relative flex items-center gap-1 rounded-full border border-white/10 bg-[#0b0b12]/90 px-2.5 py-1.5 shadow-[0_14px_50px_rgba(0,0,0,.7)] backdrop-blur-xl">
+        <nav className="pointer-events-auto flex items-center gap-1 rounded-full border border-white/10 bg-[#0b0b12]/90 px-2.5 py-1.5 shadow-[0_14px_50px_rgba(0,0,0,.7)] backdrop-blur-xl">
           {/* ── mode ── opens UPWARD, with a padding bridge rather than a
               margin. A margin leaves dead space between the button and the
               menu, and crossing it fires mouseleave — which is exactly why
               picking a mode dismissed the menu before the click landed. */}
-          <div className="relative" onMouseEnter={() => { setModeOpen(true); setHoverId("mode"); }} onMouseLeave={() => setModeOpen(false)}>
+          <div className="relative" onMouseEnter={() => setModeOpen(true)} onMouseLeave={() => setModeOpen(false)}>
             <button
-              className="relative flex h-10 items-center gap-1.5 rounded-full py-1 pl-1 pr-2 transition-colors hover:text-white"
+              className="flex items-center gap-1.5 rounded-full py-1 pl-1 pr-2 transition hover:bg-white/5"
               aria-label="Switch mode"
             >
-              {hoverId === "mode" && <motion.div layoutId="nav-island-hover" className="absolute inset-0 rounded-full bg-white/10" transition={{ type: "spring", bounce: 0.15, duration: 0.4 }} />}
-              <img src="/logo.png" alt="" className="relative z-10 h-7 w-7 rounded-full object-cover"
+              <img src="/logo.png" alt="" className="h-7 w-7 rounded-full object-cover"
                 style={{ boxShadow: `0 0 0 1.5px ${accent}88` }} />
-              <ChevronDown className="relative z-10 h-3 w-3 text-slate-500" />
+              <ChevronDown className="h-3 w-3 text-slate-500" />
             </button>
             <div
               className="absolute bottom-full left-0 z-20 w-44 pb-2.5"
@@ -284,12 +270,11 @@ export default function NavIsland({ onSearch, onSettings }: { onSearch: () => vo
           {/* ── MORE ── opens upward, with a padding bridge rather than a
               margin: a gap between the button and the menu fires mouseleave
               as you reach for it. */}
-          <div className="relative" onMouseEnter={() => { setMoreOpen(true); setHoverId("more"); }} onMouseLeave={() => setMoreOpen(false)}>
+          <div className="relative" onMouseEnter={() => setMoreOpen(true)} onMouseLeave={() => setMoreOpen(false)}>
             <button aria-label="More"
               className={`relative grid h-10 w-10 place-items-center rounded-full transition-colors ${
                 moreOpen ? "text-white" : "text-slate-400 hover:text-white"}`}>
-              {hoverId === "more" && <motion.div layoutId="nav-island-hover" className="absolute inset-0 rounded-full bg-white/10" transition={{ type: "spring", bounce: 0.15, duration: 0.4 }} />}
-              <MoreHorizontal className="relative z-10 h-[18px] w-[18px]" />
+              <MoreHorizontal className="h-[18px] w-[18px]" />
             </button>
             <div className="absolute bottom-full right-0 z-20 w-44 pb-2.5"
               style={{
@@ -316,12 +301,11 @@ export default function NavIsland({ onSearch, onSettings }: { onSearch: () => vo
           <button
             onClick={onSearch}
             aria-label="Search"
-            onMouseEnter={() => { setHoverSearch(true); setHoverId("search"); }}
+            onMouseEnter={() => setHoverSearch(true)}
             onMouseLeave={() => setHoverSearch(false)}
             className="relative grid h-10 w-10 place-items-center rounded-full text-slate-400 transition-colors hover:text-white"
           >
-            {hoverId === "search" && <motion.div layoutId="nav-island-hover" className="absolute inset-0 rounded-full bg-white/10" transition={{ type: "spring", bounce: 0.15, duration: 0.4 }} />}
-            <Search className="relative z-10 h-[18px] w-[18px]" />
+            <Search className="h-[18px] w-[18px]" />
             <Tip show={hoverSearch}>Search · Ctrl K</Tip>
           </button>
 
@@ -330,18 +314,14 @@ export default function NavIsland({ onSearch, onSettings }: { onSearch: () => vo
               {/* Neither of these is a PAGE. Notifications is a dropdown and
                   settings opens the Control Center — I had linked both to
                   routes that do not exist, so the bell 404'd. */}
-              <div className="relative grid h-10 w-10 place-items-center" onMouseEnter={() => setHoverId("notif")}>
-                {hoverId === "notif" && <motion.div layoutId="nav-island-hover" className="absolute inset-0 rounded-full bg-white/10" transition={{ type: "spring", bounce: 0.15, duration: 0.4 }} />}
-                <div className="relative z-10 flex items-center justify-center">
-                  <NotificationsMenu openUp onOpenChange={setNotifOpen} />
-                </div>
+              <div className="grid h-10 w-10 place-items-center">
+                <NotificationsMenu openUp onOpenChange={setNotifOpen} />
               </div>
               <button onClick={onSettings} aria-label="Control Center"
-                onMouseEnter={() => { setHoverSettings(true); setHoverId("settings"); }}
+                onMouseEnter={() => setHoverSettings(true)}
                 onMouseLeave={() => setHoverSettings(false)}
                 className="relative grid h-10 w-10 place-items-center rounded-full text-slate-400 transition-colors hover:text-white">
-                {hoverId === "settings" && <motion.div layoutId="nav-island-hover" className="absolute inset-0 rounded-full bg-white/10" transition={{ type: "spring", bounce: 0.15, duration: 0.4 }} />}
-                <Settings className="relative z-10 h-[18px] w-[18px]" />
+                <Settings className="h-[18px] w-[18px]" />
                 <Tip show={hoverSettings}>Control Center</Tip>
               </button>
               {/* The avatar IS the profile link — there was a second one beside
@@ -349,41 +329,27 @@ export default function NavIsland({ onSearch, onSettings }: { onSearch: () => vo
                   identical doors. */}
               <ProfileDot user={user} />
               <button onClick={logout} aria-label="Log out"
-                onMouseEnter={() => setHoverId("logout")}
-                className="relative grid h-10 w-10 place-items-center rounded-full text-slate-500 transition-colors hover:text-rose-400">
-                {hoverId === "logout" && <motion.div layoutId="nav-island-hover" className="absolute inset-0 rounded-full bg-white/10" transition={{ type: "spring", bounce: 0.15, duration: 0.4 }} />}
-                <LogOut className="relative z-10 h-[18px] w-[18px]" />
+                className="grid h-10 w-10 place-items-center rounded-full text-slate-500 transition-colors hover:text-rose-400">
+                <LogOut className="h-[18px] w-[18px]" />
               </button>
             </>
           )}
         </nav>
-        </HoverContext.Provider>
       </div>
     </>
   );
 }
 
 function ProfileDot({ user }: { user: any }) {
-  const { hoverId, setHoverId } = useContext(HoverContext);
-  const isHovered = hoverId === "profile";
+  const [hover, setHover] = useState(false);
   return (
     <Link
       href={`/user/${user.username}`}
       aria-label="Your profile"
-      onMouseEnter={() => setHoverId("profile")}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
       className="relative ml-0.5 mr-1 h-8 w-8 shrink-0"
     >
-      {isHovered && (
-        <motion.div
-          layoutId="nav-island-hover"
-          className="absolute inset-0 rounded-full bg-white/10"
-          style={{ left: "-4px", right: "-4px", top: "-4px", bottom: "-4px" }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
-        />
-      )}
       {user.avatar ? (
         <img src={user.avatar} alt="" className="relative z-10 h-8 w-8 rounded-full object-cover ring-1 ring-black/60" />
       ) : (
@@ -396,3 +362,4 @@ function ProfileDot({ user }: { user: any }) {
     </Link>
   );
 }
+
