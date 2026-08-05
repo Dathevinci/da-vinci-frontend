@@ -12,6 +12,7 @@ import { authHeaders } from "@/lib/authToken";
 import { useToast } from "@/components/ui/Toast";
 import PageTransition from "@/components/layout/PageTransition";
 import CardFace, { CardDef, CardRarity, RARITY_META, supportText, groundText, GOD_STATS_MIRROR } from "@/components/cards/CardFace";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 import PackReveal from "@/components/cards/PackReveal";
 import { Panel, CornerTicks, Stars, SegBar, GachaButton, Heading, StatRow, notch, ACCENT, ACCENT_LIT, GachaAmbience, Rise, Twinkles } from "@/components/cards/gacha";
 import { DIMENSIONS, DIMENSION_ORDER, CARD_LORE } from "@/data/cardLore";
@@ -241,6 +242,31 @@ export default function CardsPage() {
   const isMine = !viewing || viewing.id === user?.id;
 
   const apDisplay = ap !== null ? ap : user?.arisePoints ?? 0;
+
+  /**
+   * A PULL IS A PURCHASE, SO IT ASKS FIRST.
+   *
+   * Every spend in this game fired straight from onClick — a ×32 was 2,000
+   * Arise Points on a single tap with no undo and no sheet. "Any flow where a
+   * purchase can complete without an explicit confirm step" is on the list of
+   * things this product deliberately does not do, and this was the loudest
+   * example of it.
+   *
+   * The affordability check stays HERE rather than moving into the sheet, so
+   * someone who cannot afford a pull is told before being asked to confirm
+   * one — a confirm dialog you are not allowed to complete is a worse
+   * experience than a straight refusal.
+   */
+  const [pendingPull, setPendingPull] = useState<number | null>(null);
+  const askPull = (count?: number) => {
+    if (!user) return toast("Sign in to open packs.", "error");
+    if (!catalog) return;
+    const price = (count && catalog.pullPrices?.[count]) ?? catalog.packPrice;
+    if (!isLeadDev(user) && apDisplay < price) {
+      return toast(`That pull costs ${price.toLocaleString()} AP.`, "error");
+    }
+    setPendingPull(count ?? catalog.packSize);
+  };
 
   const openPack = async (count?: number) => {
     if (!user) return toast("Sign in to open packs.", "error");
@@ -824,7 +850,7 @@ export default function CardsPage() {
                         const headline = n === catalog.packSize;
                         const allIn = n === 32;
                         return (
-                          <button key={n} onClick={() => openPack(n)} disabled={opening}
+                          <button key={n} onClick={() => askPull(n)} disabled={opening}
                             title={`${n} card${n === 1 ? "" : "s"} · ${(price / n) % 1 === 0 ? price / n : (price / n).toFixed(1)} AP per card`}
                             className={`group relative flex flex-col items-center gap-0.5 px-2 py-3 transition hover:-translate-y-0.5 hover:brightness-115 disabled:opacity-40 ${
                               headline ? "text-[#160b2b]" : "text-slate-200"}`}
@@ -1093,9 +1119,27 @@ export default function CardsPage() {
                           );
                         })}
                       </div>
-                      <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
-                        A full pack of 4 turns up at least one legendary about {(100 * (1 - Math.pow(1 - (pullStats?.rates?.legendary ?? 0.6) / 100, 4))).toFixed(1)}% of the time.
-                      </p>
+                      {/* THE DERIVED ODDS LINE, off the served rate only.
+                          This still carried `?? 0.6` after the literals were
+                          removed from the rows above it — and 0.6 has been
+                          wrong since the roll was retuned to 0.4, so whenever
+                          /pull-stats was slow this sentence quietly overstated
+                          the chance of a legendary by half. A stale number
+                          inside a computed sentence is worse than a stale
+                          number in a table: nothing about it looks hardcoded.
+                          No fallback now — the line is omitted until the real
+                          rate arrives. */}
+                      {(() => {
+                        const lg = pullStats?.rates?.legendary ?? catalog?.pullRates?.legendary;
+                        const size = catalog?.packSize ?? 4;
+                        if (lg == null) return null;
+                        return (
+                          <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
+                            A full pack of {size} turns up at least one legendary about{" "}
+                            {(100 * (1 - Math.pow(1 - lg / 100, size))).toFixed(1)}% of the time.
+                          </p>
+                        );
+                      })()}
 
                       <p className="mt-5 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">Legendary build odds</p>
                       <div className="mt-2 flex flex-col gap-1.5">
@@ -1570,6 +1614,32 @@ export default function CardsPage() {
             onClose={() => { setReveal(null); setRevealPrints([]); }} />
         )}
       </AnimatePresence>
+
+      {/* THE PULL CONFIRM. Names the exact size and the exact price, because a
+          sheet that just says "are you sure" makes the player confirm a number
+          they have to remember. Cancel is the plain-text option and Open is the
+          coloured one, but neither is hidden — the rule is that cancelling must
+          never be harder than committing. */}
+      <ConfirmModal
+        isOpen={pendingPull !== null}
+        title={`Open ${pendingPull ?? 0} card${(pendingPull ?? 0) === 1 ? "" : "s"}?`}
+        message={
+          isLeadDev(user)
+            ? `This pull is free on your account.`
+            : `This costs ${((pendingPull && catalog?.pullPrices?.[pendingPull]) ?? catalog?.packPrice ?? 0).toLocaleString()} Arise Points. You'll have ${Math.max(
+                0,
+                apDisplay - ((pendingPull && catalog?.pullPrices?.[pendingPull]) ?? catalog?.packPrice ?? 0)
+              ).toLocaleString()} left.`
+        }
+        confirmText="Open"
+        cancelText="Not now"
+        onCancel={() => setPendingPull(null)}
+        onConfirm={() => {
+          const n = pendingPull;
+          setPendingPull(null);
+          if (n != null) openPack(n);
+        }}
+      />
 
       {/* card detail */}
       <AnimatePresence>
