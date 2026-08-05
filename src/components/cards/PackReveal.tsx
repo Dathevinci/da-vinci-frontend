@@ -32,7 +32,16 @@ import { ACCENT, ACCENT_LIT, notch } from "./gacha";
  * being a reward the second time you see it.
  */
 
-type Stage = "warp" | "hole" | "burst" | "reveal";
+/**
+ * `muster` is the MULTI-PACK COLLECTIVE TELL and exists only for packs of more
+ * than one. Every card leaks its OWN rarity colour at the same moment, held
+ * long enough to be counted.
+ *
+ * Before it, a multi-pull was told by its best card alone: one colour for the
+ * whole pack, so a ×32 with four legendaries looked exactly like a ×32 with
+ * one. The single most replayed moment in the mode was carrying no information.
+ */
+type Stage = "warp" | "muster" | "hole" | "burst" | "reveal";
 
 /** A legendary copy's minted identity, straight from the pull response. */
 export type PulledPrint = { cardId: string; serial: number; condition: string };
@@ -315,9 +324,27 @@ export default function PackReveal({
   useEffect(() => {
     if (reduce) return;
     if (stage === "warp") {
+      // A multi-pull musters first. A single pull has nothing to compare
+      // against, so it goes straight on and is not made to wait for a beat
+      // that would only show it one colour it is about to see anyway.
       // Skip the hold entirely when it is worth nothing — a common should not
       // pay a state transition for a beat it does not get.
-      const t = setTimeout(() => setStage(beat.hold > 0 ? "hole" : "burst"), fallMs);
+      const t = setTimeout(
+        () => setStage(ordered.length > 1 ? "muster" : beat.hold > 0 ? "hole" : "burst"),
+        fallMs
+      );
+      return () => clearTimeout(t);
+    }
+    if (stage === "muster") {
+      /**
+       * 800ms REGARDLESS OF TIER, which is the one timing in the sequence that
+       * deliberately ignores rarity. The point of this beat is counting, and a
+       * pack of commons has exactly as much to count as a pack of gold — the
+       * player learning "none this time" quickly is the same information,
+       * delivered honestly, and shortening it for bad luck would turn the
+       * length of the beat itself into a spoiler.
+       */
+      const t = setTimeout(() => setStage(beat.hold > 0 ? "hole" : "burst"), 800);
       return () => clearTimeout(t);
     }
     if (stage === "hole") {
@@ -328,7 +355,7 @@ export default function PackReveal({
       const t = setTimeout(() => setStage("reveal"), beat.burst);
       return () => clearTimeout(t);
     }
-  }, [stage, reduce, fallMs, beat.hold, beat.burst]);
+  }, [stage, reduce, fallMs, beat.hold, beat.burst, ordered.length]);
 
   /**
    * A legendary or better gets taken OUT of the row and shown on its own.
@@ -406,6 +433,48 @@ export default function PackReveal({
           colour of the best card in the pack — the tell is the fireball. It
           accelerates the whole way down and lands exactly on the cut to the
           crash, because the same fallMs drives both. */}
+      {/* ── THE COLLECTIVE TELL ── every card leaks its OWN colour at once.
+          One seam per card, laid out in the wall's shape, all igniting on the
+          same frame and holding. This is the beat where a ×32 becomes worth
+          watching: the pack is read at a glance, and four gold seams among
+          twenty-eight grey ones is a thing you FEEL before a single card has
+          turned over.
+          Truthful by construction — each seam takes its colour from the card
+          it belongs to, so it cannot promise a rarity that is not there. */}
+      <AnimatePresence>
+        {stage === "muster" && (
+          <motion.div key="muster" className="pointer-events-none absolute inset-0 grid place-items-center"
+            exit={{ opacity: 0, transition: { duration: 0.18 } }}>
+            <div
+              className="grid gap-2 sm:gap-3"
+              style={{ gridTemplateColumns: `repeat(${ordered.length > 16 ? 8 : ordered.length > 8 ? 4 : Math.min(ordered.length, 4)}, minmax(0, 1fr))` }}
+            >
+              {ordered.map((c, i) => {
+                const m = RARITY_META[c.rarity];
+                return (
+                  <motion.span
+                    key={`seam${c.id}-${i}`}
+                    className="rounded-full"
+                    style={{
+                      width: ordered.length > 16 ? 4 : 6,
+                      height: ordered.length > 16 ? 46 : 68,
+                      background: `linear-gradient(${m.frame}, ${m.gem})`,
+                      boxShadow: `0 0 14px ${m.glow}, 0 0 34px ${m.glow}`,
+                    }}
+                    initial={{ opacity: 0, scaleY: 0.2 }}
+                    animate={{ opacity: [0, 1, 0.92], scaleY: 1 }}
+                    /* No stagger. They ignite TOGETHER — a cascade here would
+                       make the player read them in sequence instead of taking
+                       the whole batch in at once, which is the entire point. */
+                    transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+                  />
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {stage === "warp" && (
           <motion.div key="warp" className="pointer-events-none absolute inset-0" exit={{ opacity: 0, transition: { duration: 0.12 } }}>
