@@ -13,6 +13,7 @@ import { useToast } from "@/components/ui/Toast";
 import PageTransition from "@/components/layout/PageTransition";
 import CardFace, { CardDef, CardRarity, RARITY_META, supportText, groundText, GOD_STATS_MIRROR } from "@/components/cards/CardFace";
 import ConfirmModal from "@/components/ui/ConfirmModal";
+import Stagger, { StaggerItem } from "@/components/ui/Stagger";
 import PackReveal from "@/components/cards/PackReveal";
 import { Panel, CornerTicks, Stars, SegBar, GachaButton, Heading, StatRow, notch, ACCENT, ACCENT_LIT, GachaAmbience, Rise, Twinkles } from "@/components/cards/gacha";
 import { DIMENSIONS, DIMENSION_ORDER, CARD_LORE } from "@/data/cardLore";
@@ -844,13 +845,18 @@ export default function CardsPage() {
                         and x32 join — six buttons two-across is a tower.
                         gap-y-3 + pt-2 give the name-ribbons room to sit
                         above their buttons instead of being clipped. */}
-                    <div className={`grid gap-x-2 gap-y-3 pt-2 ${(catalog.pullSizes?.length ?? 3) > 4 ? "grid-cols-3" : "grid-cols-2"}`}>
+                    {/* The six pull tiles deal in one after another rather than
+                        appearing as a block — 50ms apart, the system default.
+                        This is the cheapest quality signal there is and it is
+                        the whole reason lib/motion.ts exists. */}
+                    <Stagger className={`grid gap-x-2 gap-y-3 pt-2 ${(catalog.pullSizes?.length ?? 3) > 4 ? "grid-cols-3" : "grid-cols-2"}`}>
                       {(catalog.pullSizes ?? [catalog.packSize]).map((n) => {
                         const price = catalog.pullPrices?.[n] ?? catalog.packPrice;
                         const headline = n === catalog.packSize;
                         const allIn = n === 32;
                         return (
-                          <button key={n} onClick={() => askPull(n)} disabled={opening}
+                          <StaggerItem key={n} y={10}>
+                          <button onClick={() => askPull(n)} disabled={opening}
                             title={`${n} card${n === 1 ? "" : "s"} · ${(price / n) % 1 === 0 ? price / n : (price / n).toFixed(1)} AP per card`}
                             className={`group relative flex flex-col items-center gap-0.5 px-2 py-3 transition hover:-translate-y-0.5 hover:brightness-115 disabled:opacity-40 ${
                               headline ? "text-[#160b2b]" : "text-slate-200"}`}
@@ -882,9 +888,10 @@ export default function CardsPage() {
                               {price.toLocaleString()} AP
                             </span>
                           </button>
+                          </StaggerItem>
                         );
                       })}
-                    </div>
+                    </Stagger>
                     {opening && (
                       <p className="text-center text-[10px] font-black uppercase tracking-[0.3em]" style={{ color: ACCENT }}>
                         Opening…
