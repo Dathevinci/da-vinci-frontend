@@ -274,6 +274,36 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
                         );
                         const cls = "group flex items-center justify-between px-4 py-3 transition-colors odd:bg-white/[0.02]";
                         /**
+                         * OFFICIALLY LICENSED — send them to the publisher.
+                         *
+                         * MangaDex does not host these, it names where they
+                         * are. Until now that link was thrown away, so the
+                         * series opened with an empty list and looked broken
+                         * while the destination sat unused in the payload.
+                         *
+                         * Checked BEFORE the locked branch: a licensed chapter
+                         * is not paywalled-then-free, it is simply somewhere
+                         * else, and no fallback is going to find it.
+                         */
+                        const official = (chap as any).externalUrl as string | undefined;
+                        if (official) {
+                          return (
+                            <a
+                              key={chap.id}
+                              href={official}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`${cls} hover:bg-white/[0.06]`}
+                              title="Officially licensed — read it at the publisher"
+                            >
+                              {inner}
+                              <span className="ml-3 shrink-0 rounded-md border border-emerald-400/30 bg-emerald-500/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-emerald-300">
+                                Official ↗
+                              </span>
+                            </a>
+                          );
+                        }
+                        /**
                          * A LOCKED CHAPTER IS NOW WORTH OPENING.
                          *
                          * It used to render as a dead div, which was right when

@@ -30,6 +30,17 @@ export interface IMangaChapter {
   releaseDate?: string;
   isLocked?: boolean;
   earlyAccessUntil?: string;
+  /**
+   * Where this chapter is published OFFICIALLY, when it is not hosted here.
+   *
+   * MangaDex does not host licensed titles — it points at the publisher
+   * instead. That link was being discarded, so a licensed series appeared in
+   * search, opened with nothing, and looked broken, while the answer to "where
+   * can I actually read this" was in the payload the whole time.
+   *
+   * Present means: do not try to open a reader, send them here.
+   */
+  externalUrl?: string;
 }
 
 export interface IMangaChapterPage {

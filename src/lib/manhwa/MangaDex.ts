@@ -225,7 +225,20 @@ async function fetchChapters(mid: string): Promise<IMangaChapter[]> {
     // isUnavailable is a real flag on the live chapter payload and was missing
     // from this filter: such a chapter reports pages but serves none, so it
     // reached the reader as a blank page rather than being skipped.
-    return a.pages > 0 && !a.externalUrl && !a.isUnavailable;
+    /**
+     * EXTERNAL CHAPTERS ARE KEPT NOW, and flagged rather than dropped.
+     *
+     * MangaDex does not host licensed titles; it links to the publisher. This
+     * filter binned those, so a licensed series appeared in search, opened with
+     * an empty chapter list, and read as broken — while the payload was
+     * carrying the answer to "where can I actually read this" all along.
+     *
+     * `isUnavailable` still goes: that one reports pages and then serves none,
+     * so it is a dead end with no destination to offer instead.
+     */
+    if (a.isUnavailable) return false;
+    if (a.externalUrl) return true;
+    return a.pages > 0;
   });
 
   /**
@@ -270,6 +283,9 @@ async function fetchChapters(mid: string): Promise<IMangaChapter[]> {
       title,
       releaseDate: a.publishAt ? new Date(a.publishAt).toLocaleDateString() : undefined,
       isLocked: false,
+      // Present only on licensed chapters. The reader never opens these — the
+      // series page sends the reader to the publisher instead.
+      externalUrl: a.externalUrl || undefined,
     });
   }
 
