@@ -14,6 +14,8 @@ import PageTransition from "@/components/layout/PageTransition";
 import CardFace, { CardDef, CardRarity, RARITY_META, supportText, groundText, GOD_STATS_MIRROR } from "@/components/cards/CardFace";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import Stagger, { StaggerItem } from "@/components/ui/Stagger";
+import Tilt from "@/components/ui/Tilt";
+import CountUp from "@/components/ui/CountUp";
 import PackReveal from "@/components/cards/PackReveal";
 import { Panel, CornerTicks, Stars, SegBar, GachaButton, Heading, StatRow, notch, ACCENT, ACCENT_LIT, GachaAmbience, Rise, Twinkles } from "@/components/cards/gacha";
 import { DIMENSIONS, DIMENSION_ORDER, CARD_LORE } from "@/data/cardLore";
@@ -664,15 +666,24 @@ export default function CardsPage() {
                   <div className="flex items-center gap-2">
                     <div className="flex h-10 items-center gap-2 px-3.5" style={{ clipPath: notch(9), background: "rgba(255,255,255,.05)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.10)" }}>
                       <Sparkles className="h-4 w-4" style={{ color: ACCENT }} />
+                      {/* The balance TRAVELS to its new value after a pull or a
+                          spend. A number that snaps tells you what you have; a
+                          number that rolls lets you feel what it cost.
+                          Staff show ∞ and the roll is skipped — there is
+                          nothing to count toward. */}
                       <span className="text-sm font-black tabular-nums">
-                        {user ? (isLeadDev(user) ? "∞" : displayArisePoints({ ...user, arisePoints: apDisplay } as any)) : "—"}
+                        {!user ? "—" : isLeadDev(user) ? "∞" : (
+                          <CountUp value={apDisplay} />
+                        )}
                         <span className="ml-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">AP</span>
                       </span>
                     </div>
                     <div className="flex h-10 items-center gap-2 px-3.5" style={{ clipPath: notch(9), background: "rgba(167,139,250,.07)", boxShadow: "inset 0 0 0 1px rgba(167,139,250,.22)" }}>
                       <Gem className="h-4 w-4 text-cyan-300" />
                       <span className="text-sm font-black tabular-nums text-cyan-100">
-                        {displayShards(user, shards)}
+                        {/* displayShards returns ∞ for staff, so the roll is
+                            reserved for a real number — same rule as AP. */}
+                        {isLeadDev(user) ? displayShards(user, shards) : <CountUp value={shards} />}
                         <span className="ml-1 text-[10px] font-bold uppercase tracking-widest text-cyan-500/70">shards</span>
                       </span>
                     </div>
@@ -1404,10 +1415,23 @@ export default function CardsPage() {
                       <Rise key={r}>
                       <div>
                         <Heading title={r === "gods" ? "Gods · The Pantheon" : RARITY_META[r as CardRarity].label} sub={`${mine.length} owned`} />
-                        <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                        {/* whenVisible: these shelves sit far below the fold, and
+                            a list that already animated before you scrolled to
+                            it spent its one moment on nobody. */}
+                        <Stagger whenVisible className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                           {mine.map((c: CardDef) => (
-                            <button key={c.id} onClick={() => setSelected(c)}
-                              className="group relative flex flex-col items-center gap-1.5 p-2 transition hover:-translate-y-1"
+                            <StaggerItem key={c.id} y={10}>
+                            <Tilt
+                              className="relative h-full"
+                              /* The foil sweep is EPIC AND ABOVE. A specular
+                                 highlight on every common is how a foil stops
+                                 meaning anything — the point of the effect is
+                                 that seeing it tells you something. */
+                              shine={RARITY_META[c.rarity].order >= 2}
+                              max={7}
+                            >
+                            <button onClick={() => setSelected(c)}
+                              className="group relative flex w-full flex-col items-center gap-1.5 p-2"
                               style={{
                                 clipPath: notch(12), background: "rgba(255,255,255,.035)",
                                 boxShadow: "inset 0 0 0 1px rgba(162,116,255,.24)",
@@ -1415,8 +1439,10 @@ export default function CardsPage() {
                               } as any}>
                               <CardFace card={c} owned count={owned[c.id]} foil={!!foils[c.id]} hibernating={!!asleep[c.id]} level={levels[c.id]} forge={forges[c.id]} skillLevel={skillLevels[c.id]} skillCap={skillCapFor(c)} stats={catalog?.cardStats} statsById={catalog?.cardStatsById} roll={rolls[c.id]} merges={merges[c.id] || 0} size={gridCard} ratio="5 / 9" />
                             </button>
+                            </Tilt>
+                            </StaggerItem>
                           ))}
-                        </div>
+                        </Stagger>
                       </div>
                       </Rise>
                     );
