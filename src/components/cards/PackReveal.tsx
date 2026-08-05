@@ -154,6 +154,7 @@ const RevealCard = memo(function RevealCard({
         y: { duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: out ? 0 : i * 0.06 },
         opacity: { duration: 0.35, delay: out ? 0 : i * 0.06 },
       }}
+      style={{ willChange: "transform, opacity", WebkitTransform: "translateZ(0)", transform: "translateZ(0)" }}
     >
       <div className={reduce ? "" : "pr-float"} style={{ animationDelay: `${(i % 8) * 0.45}s` }}>
         {/* the pillar lives OUTSIDE the 3D flipper so it doesn't spin */}
@@ -441,6 +442,7 @@ export default function PackReveal({
       exit={{ opacity: 0 }}
       transition={{ x: { duration: 0.5, ease: "easeOut" }, y: { duration: 0.5, ease: "easeOut" } }}
       className="fixed inset-0 z-[130] flex flex-col items-center justify-center overflow-hidden bg-[#04030a] p-6"
+      style={{ willChange: "transform, opacity", WebkitTransform: "translateZ(0)", transform: "translateZ(0)" }}
       onClick={() => (allOut ? onClose() : skip())}
     >
       {/* ── the night sky ── it IS the background now: a field of stars that
@@ -495,6 +497,9 @@ export default function PackReveal({
                       height: ordered.length > 16 ? 46 : 68,
                       background: `linear-gradient(${m.frame}, ${m.gem})`,
                       boxShadow: `0 0 14px ${m.glow}, 0 0 34px ${m.glow}`,
+                      willChange: "transform, opacity",
+                      WebkitTransform: "translateZ(0)",
+                      transform: "translateZ(0)",
                     }}
                     initial={{ opacity: 0, scaleY: 0.2 }}
                     animate={{ opacity: [0, 1, 0.92], scaleY: 1 }}
