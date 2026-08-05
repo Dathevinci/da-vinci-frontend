@@ -429,13 +429,44 @@ export default function WatchOverlay({
       const epObj = allEpisodes.find(e => e.number === episodeNo) ?? allEpisodes[episodeNo - 1];
       const serverIds = (epObj as any)?.serverIds as string | undefined;
 
-      const data = serverIds
-        ? await getAnikotoStreamUrlFast(consumetAnimeId, episodeNo, serverIds, typeToUse, server)
-        : await getAnikotoStreamUrl(consumetAnimeId, episodeNo, typeToUse, server);
+      let data;
+      if (server === "davinci") {
+        // Query the local backend torrent search API
+        const titleQuery = anime.title_english || anime.title;
+        const res = await fetch(`http://localhost:5000/api/torrent/search?title=${encodeURIComponent(titleQuery)}&ep=${episodeNo}`);
+        const json = await res.json();
+        
+        if (!json.success || !json.data) {
+          setStreamError(`No torrent found for Episode ${episodeNo} on Davinci server.`);
+          return;
+        }
+
+        data = {
+          sources: [{
+            url: `http://localhost:5000/api/torrent/stream?magnet=${encodeURIComponent(json.data.link)}`,
+            quality: "auto",
+            isM3U8: false,
+            isEmbed: false,
+          }],
+          serverName: "davinci",
+          servers: [{ name: "davinci", type: "sub" }],
+        };
+      } else {
+        data = serverIds
+          ? await getAnikotoStreamUrlFast(consumetAnimeId, episodeNo, serverIds, typeToUse, server)
+          : await getAnikotoStreamUrl(consumetAnimeId, episodeNo, typeToUse, server);
+      }
+
       if (!data || !data.sources || data.sources.length === 0) {
         setStreamError(`No stream found for Episode ${episodeNo}. Try switching Sub/Dub or selecting a different episode.`);
         return;
       }
+      // Inject davinci into available servers if not present
+      if (!data.servers) data.servers = [];
+      if (!data.servers.some((s: any) => s.name === "davinci")) {
+        data.servers.push({ name: "davinci", type: streamType });
+      }
+
       setStreamData(data);
       setActiveServer(data.serverName ?? server ?? null);
 
