@@ -50,8 +50,8 @@ export default function ReaderNavigation({
 
   return (
     <>
-      {/* Top Floating Pill - Solid Slate Blue #54738c as seen in screenshot 1 & 2 */}
-      <div className={`fixed top-5 left-1/2 -translate-x-1/2 z-50 flex items-center h-[42px] bg-[#54738c] rounded-full text-white text-[13px] font-bold select-none overflow-hidden shadow-lg transform transition-all duration-300 ease-in-out ${isVisible ? 'translate-y-0 opacity-100 pointer-events-auto' : '-translate-y-16 opacity-0 pointer-events-none'}`}>
+      {/* Top Floating Pill - iOS Glass Style */}
+      <div className={`fixed top-5 left-1/2 -translate-x-1/2 z-50 flex items-center h-[42px] bg-black/40 backdrop-blur-2xl border border-white/10 rounded-full text-white text-[13px] font-bold select-none overflow-hidden shadow-2xl transform transition-all duration-300 ease-in-out ${isVisible ? 'translate-y-0 opacity-100 pointer-events-auto' : '-translate-y-16 opacity-0 pointer-events-none'}`}>
         <Link 
           href={`/manhwa/${encodeURIComponent(manhwa?.id || '')}`}
           className="flex items-center justify-center px-4 h-full hover:bg-white/20 transition"
@@ -104,8 +104,8 @@ export default function ReaderNavigation({
         </button>
       </div>
 
-      {/* Bottom Floating Pill - Solid Slate Blue #54738c */}
-      <div className={`fixed bottom-5 left-1/2 -translate-x-1/2 z-50 flex items-center h-[42px] bg-[#54738c] rounded-full text-white text-[13px] font-bold select-none overflow-hidden shadow-lg transform transition-all duration-300 ease-in-out ${isVisible ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-16 opacity-0 pointer-events-none'}`}>
+      {/* Bottom Floating Pill - iOS Glass Style */}
+      <div className={`fixed bottom-5 left-1/2 -translate-x-1/2 z-50 flex items-center h-[42px] bg-black/40 backdrop-blur-2xl border border-white/10 rounded-full text-white text-[13px] font-bold select-none overflow-hidden shadow-2xl transform transition-all duration-300 ease-in-out ${isVisible ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-16 opacity-0 pointer-events-none'}`}>
         {prevChapterId ? (
           <Link 
             href={`/manhwa/${encodeURIComponent(manhwa?.id || '')}/chapter/${encodeURIComponent(prevChapterId)}`}
