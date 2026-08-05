@@ -405,6 +405,7 @@ export default function DavinciPlayer({ url }: DavinciPlayerProps) {
                   )}
                 </AnimatePresence>
               </div>
+             </div>
             </div>
           </motion.div>
         )}
