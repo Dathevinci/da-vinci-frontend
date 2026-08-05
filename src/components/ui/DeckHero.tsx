@@ -222,6 +222,7 @@ export default function DeckHero({
                 len={len}
                 current={current}
                 seatFrom={seatFrom}
+                dragging={dragging.current}
                 onTap={() => {
                   if (dragging.current || justDragged.current) return;
                   if (!centre) setCurrent(i);
@@ -304,7 +305,7 @@ export default function DeckHero({
 }
 
 function DeckCard({
-  item, seat, abs, centre, compact, reduce, accent, len, current, seatFrom, onTap,
+  item, seat, abs, centre, compact, reduce, accent, len, current, seatFrom, onTap, dragging
 }: {
   item: DeckItem;
   seat: number;
@@ -317,6 +318,7 @@ function DeckCard({
   current: number;
   seatFrom: (centre: number, i: number) => number;
   onTap: () => void;
+  dragging: boolean;
 }) {
   // Wrap detection: a jump wider than half the deck means it went 
   // around the back of the wheel — snap it instantly without animating.
@@ -324,14 +326,16 @@ function DeckCard({
   const wrapped = Math.abs(seat - prevSeat.current) > len / 2;
   useEffect(() => { prevSeat.current = seat; }, [seat]);
 
+  const [isHovered, setIsHovered] = useState(false);
+
   return (
     <motion.div
       className="absolute"
       animate={{
         x: seat * (compact ? 52 : 92),
-        y: abs * 7,
-        rotate: seat * 8.5,
-        scale: centre ? 1 : Math.max(0.82, 0.94 - abs * 0.04),
+        y: abs * 7 - (isHovered && !centre && !dragging ? 12 : 0),
+        rotate: seat * 8.5 - (isHovered && !centre && !dragging ? Math.sign(seat) * 2 : 0),
+        scale: centre ? 1 : Math.max(0.82, 0.94 - abs * 0.04) + (isHovered && !dragging ? 0.06 : 0),
         opacity: abs > 3 ? 0 : 1,
       }}
       transition={reduce || wrapped
@@ -342,11 +346,17 @@ function DeckCard({
       <div className={reduce ? "" : "dh-float"} style={{ animationDelay: `${(Math.abs(seat) * 3 + (seat > 0 ? 1 : 0)) * 0.45}s` }}>
         <button
           onClick={onTap}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          onFocus={() => setIsHovered(true)}
+          onBlur={() => setIsHovered(false)}
           aria-label={centre ? `Open ${item.title}` : `Feature ${item.title}`}
           className="relative block h-[210px] w-[140px] overflow-hidden rounded-xl md:h-[300px] md:w-[200px]"
           style={{
             boxShadow: centre
               ? `0 0 0 1px ${accent}66, 0 24px 60px rgba(0,0,0,.75), 0 0 44px ${accent}33`
+              : isHovered && !dragging
+              ? `0 0 0 1px rgba(255,255,255,.25), 0 24px 50px rgba(0,0,0,.8)`
               : "0 0 0 1px rgba(255,255,255,.10), 0 18px 44px rgba(0,0,0,.6)",
           }}
         >
@@ -359,8 +369,8 @@ function DeckCard({
           )}
           <span
             aria-hidden
-            className="absolute inset-0 bg-black transition-opacity duration-500"
-            style={{ opacity: centre ? 0 : Math.min(0.62, 0.24 + abs * 0.14) }}
+            className="absolute inset-0 bg-black transition-opacity duration-300"
+            style={{ opacity: centre ? 0 : isHovered && !dragging ? 0 : Math.min(0.62, 0.24 + abs * 0.14) }}
           />
         </button>
       </div>
