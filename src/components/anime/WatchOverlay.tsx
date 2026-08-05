@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
+import DavinciPlayer from "./DavinciPlayer";
 import { getAnikotoStreamUrl, getAnikotoStreamUrlFast, AnikotoEpisode, AnikotoStreamResult } from "@/lib/anikoto";
 import { X, ChevronLeft, ChevronRight, Loader2, AlertCircle, Server, PlayCircle, List, ChevronDown, Play, Pause, Volume2, VolumeX, Maximize, Minimize, Tv, ArrowLeft, Flag, RotateCcw, RotateCw } from "lucide-react";
 import Hls from "hls.js";
@@ -662,9 +663,15 @@ export default function WatchOverlay({
       {/* ═══ MAIN VIDEO AREA ═══ */}
       <div
         className={`${inlineEmbed ? "relative aspect-video w-full" : "flex-1 relative"} flex items-center justify-center bg-black`}
-        onClick={() => { if (!activeSourceObj?.isEmbed && !loadingStream && !streamError) togglePlay(); }}
+        onClick={() => { if (!activeSourceObj?.isEmbed && !loadingStream && !streamError && activeServer !== "davinci") togglePlay(); }}
       >
-        {/* Loading */}
+        {activeServer === "davinci" && streamData?.sources?.[0]?.url ? (
+          <div className="absolute inset-0 z-10">
+            <DavinciPlayer url={streamData.sources[0].url} />
+          </div>
+        ) : (
+          <>
+            {/* Loading */}
         {loadingStream && (
           <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
             <Loader2 className="w-16 h-16 animate-spin text-purple-500 mb-4" />
@@ -824,14 +831,16 @@ export default function WatchOverlay({
               </span>
             </div>
           )}
-        </div>
+        </>
+        )}
       </div>
 
       {/* ═══ BOTTOM BAR ═══ */}
-      <div
-        className={`${activeSourceObj?.isEmbed ? 'relative bg-black' : 'absolute bottom-0'} left-0 right-0 z-50 transition-all duration-500 ${controlsVisible || activeSourceObj?.isEmbed ? "opacity-100 translate-y-0" : "opacity-0 translate-y-full pointer-events-none"}`}
-        onClick={(e) => e.stopPropagation()}
-      >
+      {activeServer !== "davinci" && (
+        <div
+          className={`${activeSourceObj?.isEmbed ? 'relative bg-black' : 'absolute bottom-0'} left-0 right-0 z-50 transition-all duration-500 ${controlsVisible || activeSourceObj?.isEmbed ? "opacity-100 translate-y-0" : "opacity-0 translate-y-full pointer-events-none"}`}
+          onClick={(e) => e.stopPropagation()}
+        >
         <div className="bg-gradient-to-t from-black/90 via-black/70 to-transparent pt-5 pb-2.5 sm:pt-12 sm:pb-6 flex flex-col">
           {/* Progress / seek bar (At the very top edge of the bottom bar) */}
           {!activeSourceObj?.isEmbed && (
@@ -981,6 +990,7 @@ export default function WatchOverlay({
             </div>
           </div>
         </div>
+      )}
 
       {/* ═══ SERVER PANEL — switch embed host if the current one is blocked ═══ */}
       {showServerPanel && (
