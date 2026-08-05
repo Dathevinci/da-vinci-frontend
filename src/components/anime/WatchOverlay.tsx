@@ -831,6 +831,7 @@ export default function WatchOverlay({
               </span>
             </div>
           )}
+        </div>
         </>
         )}
       </div>
