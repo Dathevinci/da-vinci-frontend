@@ -318,10 +318,10 @@ function DeckCard({
   seatFrom: (centre: number, i: number) => number;
   onTap: () => void;
 }) {
-  // Wrap detection: remember this card's previous seat; a jump wider than
-  // one step means it went around the back of the wheel — snap it.
+  // Wrap detection: a jump wider than half the deck means it went 
+  // around the back of the wheel — snap it instantly without animating.
   const prevSeat = useRef(seat);
-  const wrapped = Math.abs(seat - prevSeat.current) > 1;
+  const wrapped = Math.abs(seat - prevSeat.current) > len / 2;
   useEffect(() => { prevSeat.current = seat; }, [seat]);
 
   return (
@@ -336,7 +336,7 @@ function DeckCard({
       }}
       transition={reduce || wrapped
         ? { duration: 0 }
-        : { type: "spring", stiffness: 260, damping: 30, mass: 0.9 }}
+        : { type: "tween", duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
       style={{ zIndex: 50 - abs, willChange: "transform, opacity", pointerEvents: abs > 3 ? "none" : "auto" }}
     >
       <div className={reduce ? "" : "dh-float"} style={{ animationDelay: `${(Math.abs(seat) * 3 + (seat > 0 ? 1 : 0)) * 0.45}s` }}>
