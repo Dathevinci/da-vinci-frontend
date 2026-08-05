@@ -91,6 +91,17 @@ function mapResult(m: any): IMangaResult {
     image: coverUrl(m.id, m.relationships || [], 512),
     status: STATUS[at.status] || MediaStatus.UNKNOWN,
     latestChapter: at.lastChapter ? `Chapter ${at.lastChapter}` : undefined,
+    /**
+     * `links.engtl` is the publisher's official English edition.
+     *
+     * This is the ONLY licensing signal available at search time. Whether a
+     * title's chapters are actually hosted here is a property of its chapter
+     * FEED, which would cost one extra request per result — two dozen per
+     * search page, for a badge. So this hints rather than promises, and the
+     * card wording has to match that: it marks "an official edition exists",
+     * not "this is unreadable here".
+     */
+    officialUrl: typeof at.links?.engtl === "string" ? at.links.engtl : undefined,
     // Deliberately NO latest_chapters: the browse card only synthesises an
     // Asura-style "<slug>|<number>" deep link when that's present, so omitting
     // it makes MangaDex cards fall back to the series page (their chapter ids

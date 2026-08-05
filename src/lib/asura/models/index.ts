@@ -22,6 +22,17 @@ export interface IMangaResult {
   latestChapter?: string;
   rating?: string;
   latest_chapters?: ILatestChapter[];
+  /**
+   * The publisher's own English release, when the source names one.
+   *
+   * A HINT, not a verdict. It says an official edition exists — it does NOT
+   * say this title is unreadable here, because a series can have both an
+   * official release and fan translations hosted alongside it. Word any UI
+   * built on this accordingly: claiming "you can't read this here" off a
+   * signal that only means "an official version exists" would be wrong on a
+   * large share of titles.
+   */
+  officialUrl?: string;
 }
 
 export interface IMangaChapter {
