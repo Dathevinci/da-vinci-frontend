@@ -836,6 +836,36 @@ export default function WatchOverlay({
         )}
       </div>
 
+      {/* ═══ INLINE SERVER SELECTION (Styled like Playback Settings) ═══ */}
+      {inlineEmbed && (
+        <div className="mt-6 rounded-2xl border border-white/10 bg-[#0b0b11] p-5 sm:p-6 w-full shrink-0">
+          <p className="font-mono text-xs font-black uppercase tracking-[0.22em] text-slate-500">Servers</p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            {(streamData?.servers && streamData.servers.length > 0
+              ? streamData.servers
+              : (activeServer ? [{ name: activeServer, type: streamType }] : [])
+            ).map((s, i) => (
+              <button
+                key={s.name + i}
+                onClick={() => {
+                  if (activeEpisode) loadStream(activeEpisode.id, activeEpisodeNo, streamType, s.name);
+                }}
+                className={`rounded-lg border px-4 py-2 font-mono text-xs font-black transition flex items-center gap-2 ${
+                  activeServer === s.name
+                    ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300"
+                    : "border-white/15 bg-white/[0.05] text-slate-400 hover:text-white"
+                }`}
+              >
+                {s.name} <span className="opacity-50 text-[10px]">{s.type}</span>
+              </button>
+            ))}
+            {(!streamData?.servers || streamData.servers.length === 0) && !activeServer && (
+              <p className="text-xs font-mono text-slate-500 py-2">No servers available.</p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ═══ BOTTOM BAR ═══ */}
       {activeServer !== "davinci" && (
         <div
@@ -960,13 +990,7 @@ export default function WatchOverlay({
                 </button>
               )}
 
-                <button
-                  onClick={() => { setShowServerPanel(v => !v); setShowEpisodePanel(false); }}
-                  className={`transition ${showServerPanel ? "text-purple-400" : "text-white hover:text-slate-300"}`}
-                  title="Servers — switch if the video won't load"
-                >
-                  <Server className="w-6 h-6" />
-                </button>
+
 
                 {!inline && (
                   <button
@@ -993,42 +1017,7 @@ export default function WatchOverlay({
         </div>
       )}
 
-      {/* ═══ SERVER PANEL — switch embed host if the current one is blocked ═══ */}
-      {showServerPanel && (
-        <>
-          <div className="fixed inset-0 z-[60]" onClick={() => setShowServerPanel(false)} />
-          <div className="absolute top-16 right-4 z-[70] w-72 bg-[#141414]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-4 animate-in fade-in slide-in-from-top-2 duration-300">
-            <h4 className="font-bold text-sm text-slate-300 uppercase tracking-wider mb-1 flex items-center gap-2">
-              <Server className="w-4 h-4 text-purple-400" /> Servers
-            </h4>
-            <p className="text-[11px] text-slate-500 mb-3">Video won&apos;t load? Try another server.</p>
-            <div className="flex flex-col gap-1.5 max-h-64 overflow-y-auto custom-scrollbar">
-              {(streamData?.servers && streamData.servers.length > 0
-                ? streamData.servers
-                : (activeServer ? [{ name: activeServer, type: streamType }] : [])
-              ).map((s, i) => (
-                <button
-                  key={s.name + i}
-                  onClick={() => {
-                    if (activeEpisode) loadStream(activeEpisode.id, activeEpisodeNo, streamType, s.name);
-                    setShowServerPanel(false);
-                  }}
-                  className={`px-4 py-2.5 rounded-lg text-sm font-bold text-left transition flex items-center justify-between ${activeServer === s.name
-                    ? "bg-purple-600 text-white"
-                    : "bg-white/5 text-slate-300 hover:bg-white/10"
-                  }`}
-                >
-                  <span>{s.name}</span>
-                  <span className="text-xs opacity-60 uppercase">{s.type}</span>
-                </button>
-              ))}
-              {(!streamData?.servers || streamData.servers.length === 0) && !activeServer && (
-                <p className="text-xs text-slate-500 px-2 py-1">No alternate servers found.</p>
-              )}
-            </div>
-          </div>
-        </>
-      )}
+
 
       {/* ═══ EPISODE PANEL (Netflix-style sidebar) ═══ */}
       {showEpisodePanel && (

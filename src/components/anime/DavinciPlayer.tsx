@@ -213,12 +213,16 @@ export default function DavinciPlayer({ url }: DavinciPlayerProps) {
         onClick={togglePlay}
         playsInline
         crossOrigin="anonymous"
+        preload="auto"
       />
 
       {/* Loading Spinner */}
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-12 h-12 border-4 border-white/20 border-t-[#fff] rounded-full animate-spin" />
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none bg-black/50 backdrop-blur-sm z-20">
+          <div className="w-12 h-12 border-4 border-white/20 border-t-[#E5FF00] rounded-full animate-spin mb-4" />
+          <p className="font-mono text-xs font-bold text-[#E5FF00] tracking-widest uppercase shadow-black drop-shadow-md">
+            Buffering Torrent...
+          </p>
         </div>
       )}
 
