@@ -68,6 +68,15 @@ export default function MaintenanceOverlay() {
             Our Lead Developer is currently deploying a new cinematic update. Please check back shortly!
           </p>
 
+          <a 
+            href="https://lucid-flix.com/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="mb-8 flex items-center justify-center gap-2 w-full py-4 rounded-xl bg-yellow-500 hover:bg-yellow-400 text-black font-black text-lg transition-colors shadow-[0_0_30px_rgba(234,179,8,0.2)]"
+          >
+            Go to Lucid-Flix for now
+          </a>
+
           <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden relative">
             <div className="absolute top-0 left-0 h-full bg-gradient-to-r from-yellow-500 to-amber-600 animate-[loading_2s_ease-in-out_infinite]" style={{ width: '30%' }}></div>
           </div>
