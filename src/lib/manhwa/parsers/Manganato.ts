@@ -1,5 +1,5 @@
 import * as cheerio from 'cheerio';
-import { MangaParser, ISearch, IMangaInfo, IMangaResult, MediaStatus, IMangaChapterPage, IMangaChapter } from '../../asura/models';
+import { MangaParser, ISearch, IMangaInfo, IMangaResult, MediaStatus, IMangaChapterPage, IMangaChapter } from '@/lib/asura/models';
 
 export default class Manganato extends MangaParser {
   override readonly name = 'Manganato';
