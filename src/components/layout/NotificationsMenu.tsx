@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Bell, CheckCircle2, AlertCircle, Info, CheckCheck, Trash2, X, UserPlus, Heart, MessageSquare, AtSign, Sparkles, Gift, Diamond, Wand2, Inbox, PlayCircle } from "lucide-react";
 import ReleaseRadar from "@/components/layout/ReleaseRadar";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useUser } from "@/hooks/useUser";
 import { useRouter, usePathname } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { AnimatePresence, motion } from "framer-motion";
@@ -49,6 +50,7 @@ export default function NotificationsMenu({ openUp = false, onOpenChange }: { op
   const router = useRouter();
   const pathname = usePathname();
   const { notifications, unreadCount, markAllAsRead, clearAll, removeNotification, markAsRead } = useNotifications();
+  const { user } = useUser();
   const [isOpen, setIsOpen] = useState(false);
   // The reference panel's three rooms: everything unread, the conversation
   // (replies/mentions/likes), and fresh drops for tracked titles.
@@ -243,7 +245,25 @@ export default function NotificationsMenu({ openUp = false, onOpenChange }: { op
                           if (!notif.read) markAsRead(notif.id);
                           if (notif.link) {
                             setIsOpen(false);
-                            router.push(notif.link);
+                            /**
+                             * `/profile` is not a route in this app — profiles
+                             * live at /user/[username] — so every watchlist
+                             * points notification ever sent led to a 404.
+                             *
+                             * The backend no longer writes it, but the link is
+                             * STORED on the notification, so every one already
+                             * in the database still carries the dead path.
+                             * Repointing here fixes the history too, which a
+                             * backend-only fix could not do without a
+                             * migration over every past row.
+                             */
+                            const href =
+                              notif.link === "/profile"
+                                ? user?.username
+                                  ? `/user/${encodeURIComponent(user.username)}`
+                                  : "/"
+                                : notif.link;
+                            router.push(href);
                           }
                         }}
                         className={`group relative flex gap-3 px-4 py-3 transition-colors ${
