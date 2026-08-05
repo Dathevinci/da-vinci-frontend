@@ -61,6 +61,69 @@ const PRINT_META: Record<string, { label: string; cls: string }> = {
  * start (art decoded before the flip, not popping in after) and stays
  * hidden behind the back until the turn passes 90°.
  */
+/**
+ * ASSEMBLY — the card locks together out of light.
+ *
+ * Eight shards fly in from beyond the frame and snap onto the card's edge,
+ * while the rarity frame draws itself around them in two strokes. It plays
+ * OVER a card that is already fully rendered underneath, which is the whole
+ * trick: nothing here gates the result, so a dropped frame or an interrupted
+ * animation costs polish and never information.
+ *
+ * Everything is transform and opacity. No layout property is touched, because
+ * this can be on screen 32 times at once on a phone.
+ *
+ * The frame strokes use scaleX/scaleY from an edge origin rather than a width
+ * or height, for the same reason — a border that animates its own width forces
+ * layout on every frame of every card in the wall.
+ */
+function Assembly({ tint, glow, size }: { tint: string; glow: string; size: number }) {
+  // Eight shards, evenly spread, each starting outside the frame on its own
+  // bearing so they converge rather than sweeping in as a group.
+  const shards = Array.from({ length: 8 }, (_, i) => {
+    const a = (i / 8) * Math.PI * 2;
+    const dist = size * 1.5;
+    return { x: Math.cos(a) * dist, y: Math.sin(a) * dist, rot: (a * 180) / Math.PI };
+  });
+  return (
+    <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]">
+      {shards.map((s, i) => (
+        <motion.span
+          key={i}
+          className="absolute left-1/2 top-1/2"
+          style={{
+            width: Math.max(2, size * 0.012),
+            height: size * 0.22,
+            background: `linear-gradient(${tint}, transparent)`,
+            boxShadow: `0 0 10px ${glow}`,
+            transformOrigin: "center",
+          }}
+          initial={{ x: s.x, y: s.y, rotate: s.rot, opacity: 0, scaleY: 1.6 }}
+          animate={{ x: 0, y: 0, rotate: s.rot, opacity: [0, 1, 0], scaleY: 0.2 }}
+          transition={{ duration: 0.5, delay: i * 0.02, ease: [0.22, 1, 0.36, 1] }}
+        />
+      ))}
+      {/* The frame draws itself: verticals first from the centre out, then the
+          horizontals, so it reads as being struck rather than switched on. */}
+      <motion.span
+        className="absolute inset-0 rounded-[inherit]"
+        style={{ boxShadow: `inset 0 0 0 1.5px ${tint}`, transformOrigin: "center" }}
+        initial={{ scaleY: 0, opacity: 0 }}
+        animate={{ scaleY: 1, opacity: [0, 1, 0.9, 0] }}
+        transition={{ duration: 0.55, delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
+      />
+      {/* One clean sweep across the face as the last shard lands. */}
+      <motion.span
+        className="absolute inset-y-0 w-1/3"
+        style={{ background: `linear-gradient(90deg, transparent, ${glow}, transparent)` }}
+        initial={{ x: "-120%", opacity: 0 }}
+        animate={{ x: "320%", opacity: [0, 0.9, 0] }}
+        transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
+      />
+    </span>
+  );
+}
+
 const RevealCard = memo(function RevealCard({
   c, i, out, revealSize, showStats, reduce, print,
 }: {
@@ -100,6 +163,15 @@ const RevealCard = memo(function RevealCard({
         >
           <div className="relative" style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
             <CardFace card={c} owned size={revealSize} showStats={showStats} />
+            {/* ── ASSEMBLY ── the card is BUILT, not shown.
+                Eight shards of light fly in from outside the frame and lock
+                onto the card's edge, and the rarity frame draws itself around
+                them. Assembly reads as creation; a fade reads as loading, and
+                that difference is most of why a reveal lands or doesn't.
+                Sits OVER the finished face rather than replacing it, so the
+                card underneath is real from the first frame and nothing here
+                can delay or hide the actual result. */}
+            {out && !reduce && <Assembly tint={meta.frame} glow={meta.glow} size={revealSize} />}
             {/* the copy's minted identity — condition + serial */}
             {out && print && (
               <span className={`pointer-events-none absolute inset-x-1 bottom-1 z-10 flex items-center justify-center gap-1 rounded-md border px-1 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] ${(PRINT_META[print.condition] || PRINT_META.factory).cls}`}>
