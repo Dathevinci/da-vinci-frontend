@@ -116,6 +116,8 @@ export default function CardsPage() {
   // Prints minted by the pull being revealed, so the reveal can stamp
   // condition + serial on each legendary as it flips.
   const [revealPrints, setRevealPrints] = useState<{ cardId: string; serial: number; condition: string }[]>([]);
+  /** Ids the player did not own before the pull that produced the open reveal. */
+  const [revealNew, setRevealNew] = useState<string[]>([]);
   const [selected, setSelected] = useState<CardDef | null>(null);
   const [ap, setAp] = useState<number | null>(null);
   // Whose binder are we looking at? null = mine.
@@ -290,6 +292,27 @@ export default function CardsPage() {
       }
       const byId = Object.fromEntries((catalog.cards || []).map((c) => [c.id, c]));
       const pulled: CardDef[] = ((d.data?.pulls || []) as string[]).map((id) => byId[id]).filter(Boolean);
+      /**
+       * WHICH CARDS ARE NEW, decided HERE and not one line later.
+       *
+       * `owned` still holds the collection as it was before this request. The
+       * moment loadCollection() below resolves, every card in this pack is
+       * owned and the answer is gone — "new" is a fact about the past, so it
+       * has to be captured before the refetch overwrites the past.
+       *
+       * Deduped, because a pack can contain two copies of a card you did not
+       * own: both are new to the collection, but the second one is a duplicate
+       * of the first and stamping both would be a small lie.
+       */
+      const seenNew = new Set<string>();
+      const freshIds = pulled
+        .filter((c) => {
+          if ((owned[c.id] || 0) > 0 || seenNew.has(c.id)) return false;
+          seenNew.add(c.id);
+          return true;
+        })
+        .map((c) => c.id);
+      setRevealNew(freshIds);
       if (typeof d.data.arisePoints === "number") syncAp(d.data.arisePoints);
       setRevealPrints(Array.isArray(d.data?.prints) ? d.data.prints : []);
       setReveal(pulled);
@@ -1643,8 +1666,8 @@ export default function CardsPage() {
       {/* pack reveal — staggered flip, rarity burst, best card last */}
       <AnimatePresence>
         {reveal && (
-          <PackReveal cards={reveal} prints={revealPrints}
-            onClose={() => { setReveal(null); setRevealPrints([]); }} />
+          <PackReveal cards={reveal} prints={revealPrints} newIds={revealNew}
+            onClose={() => { setReveal(null); setRevealPrints([]); setRevealNew([]); }} />
         )}
       </AnimatePresence>
 

@@ -134,7 +134,7 @@ function Assembly({ tint, glow, size }: { tint: string; glow: string; size: numb
 }
 
 const RevealCard = memo(function RevealCard({
-  c, i, out, revealSize, showStats, reduce, print,
+  c, i, out, revealSize, showStats, reduce, print, isNew,
 }: {
   c: CardDef;
   i: number;
@@ -143,6 +143,7 @@ const RevealCard = memo(function RevealCard({
   showStats: boolean;
   reduce: boolean;
   print?: PulledPrint;
+  isNew?: boolean;
 }) {
   const meta = RARITY_META[c.rarity];
   return (
@@ -181,6 +182,30 @@ const RevealCard = memo(function RevealCard({
                 card underneath is real from the first frame and nothing here
                 can delay or hide the actual result. */}
             {out && !reduce && <Assembly tint={meta.frame} glow={meta.glow} size={revealSize} />}
+            {/* ── NEW ── the one fact a collector actually wants from a pull.
+                Lands AFTER the assembly rather than with it, so the card is
+                read first and the stamp is a second piece of news rather than
+                competing with the reveal it belongs to.
+                Rendered on the reduced-motion path too, without the spring:
+                whether a card is new is information, not decoration, and the
+                accessibility rule is to drop the movement and keep the fact. */}
+            {out && isNew && (
+              <motion.span
+                className="pointer-events-none absolute -right-1 -top-1 z-20 rounded-md px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.18em]"
+                style={{
+                  background: "linear-gradient(120deg,#fde68a,#f59e0b)",
+                  color: "#2a1a02",
+                  boxShadow: "0 0 12px rgba(245,158,11,.6)",
+                }}
+                initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.4, rotate: -18 }}
+                animate={reduce ? { opacity: 1 } : { opacity: 1, scale: [0.4, 1.18, 1], rotate: 0 }}
+                transition={reduce
+                  ? { duration: 0.2, delay: 0.3 }
+                  : { duration: 0.42, delay: 0.55, ease: [0.34, 1.56, 0.64, 1] }}
+              >
+                New
+              </motion.span>
+            )}
             {/* the copy's minted identity — condition + serial */}
             {out && print && (
               <span className={`pointer-events-none absolute inset-x-1 bottom-1 z-10 flex items-center justify-center gap-1 rounded-md border px-1 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] ${(PRINT_META[print.condition] || PRINT_META.factory).cls}`}>
@@ -207,10 +232,20 @@ export default function PackReveal({
   footer,
   calm = false,
   prints = [],
+  /**
+   * Card ids the player did NOT own before this pull.
+   *
+   * Computed by the caller against the collection as it was BEFORE the
+   * request, because by the time the reveal renders the collection has already
+   * been refetched and every card in the pack looks owned. "New" is a fact
+   * about the past, so it cannot be derived here.
+   */
+  newIds = [],
 }: {
   cards: CardDef[];
   onClose: () => void;
   title?: string;
+  newIds?: string[];
   /** Prints minted by THIS pull — legendaries get their condition + serial
    *  stamped as they flip, which is half the drama of pulling one. */
   prints?: PulledPrint[];
@@ -766,7 +801,8 @@ export default function PackReveal({
           <div className={`flex w-full flex-wrap items-end justify-center overflow-y-auto ${big ? "max-h-[62dvh] gap-2" : "max-h-[70dvh] gap-3 sm:gap-5"}`}>
             {ordered.map((c, i) => (
               <RevealCard key={`${c.id}-${i}`} c={c} i={i} out={i < revealed}
-                revealSize={revealSize} showStats={showStats} reduce={reduce} print={printFor[i]} />
+                revealSize={revealSize} showStats={showStats} reduce={reduce} print={printFor[i]}
+                isNew={newIds.includes(c.id)} />
             ))}
           </div>
 
