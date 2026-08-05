@@ -1133,7 +1133,19 @@ function CardFaceImpl({
           {/* The motif's own coordinate space is 100x87, so it finally draws
               at its true proportions — the old wrapper stretched it by
               scale(0.95, 1.16), turning every circle into an ellipse. */}
-          <Motif card={card} dim={dim} />
+          {/* THE MOTIF IS SKIPPED WHEN A PAINTING IS COMING.
+              Drawing it under painted art meant every such card showed a
+              COMPLETELY DIFFERENT PICTURE first and then swapped — read as the
+              art changing, not as the art loading, which is the thing that
+              actually looks broken.
+              The blur-up placeholder below handles cards that have one. The 22
+              Knight and Sorcerer cards do not, so without this they fall all
+              the way through to the drawn scene while a full-size PNG is still
+              in flight. A card that is going to be a painting now starts as
+              its own sky gradient — plainly unfinished, never a different
+              image. Unowned cards keep the motif: there is no painting coming
+              for them, so it is the real content rather than a placeholder. */}
+          {!(owned && painted) && <Motif card={card} dim={dim} />}
         </svg>
 
         {/* Painted art, over the drawn art. If the file 404s this paints
@@ -1166,7 +1178,15 @@ function CardFaceImpl({
             src={painted}
             alt=""
             aria-hidden
-            loading="lazy"
+            /* Small tiles stay lazy — a binder is hundreds of them and eager
+               loading the lot would saturate the connection and make the ones
+               you are actually looking at arrive LATER.
+               Anything rendered large is different: a hero, a reveal or a
+               detail sheet is the thing on screen, so it asks immediately and
+               at high priority rather than waiting for an intersection
+               observer to notice what is plainly already in view. */
+            loading={size >= 260 ? "eager" : "lazy"}
+            {...(size >= 260 ? { fetchPriority: "high" as const } : {})}
             decoding="async"
             draggable={false}
             style={{
