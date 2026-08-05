@@ -150,6 +150,7 @@ export default function WatchOverlay({
   }, [isBrowser, inline]);
 
   const lastStorageUpdateRef = useRef(0);
+  const serversListRef = useRef<any[]>([]);
 
   /**
    * Auto-add to the tracker once you've genuinely started an episode, so
@@ -443,6 +444,21 @@ export default function WatchOverlay({
           return;
         }
 
+        let serversToUse = serversListRef.current;
+        if (serversToUse.length <= 1) {
+          try {
+            const baseData = serverIds
+              ? await getAnikotoStreamUrlFast(consumetAnimeId, episodeNo, serverIds, typeToUse, "vidstream")
+              : await getAnikotoStreamUrl(consumetAnimeId, episodeNo, typeToUse, "vidstream");
+            if (baseData?.servers) {
+              serversToUse = baseData.servers;
+              serversListRef.current = baseData.servers;
+            }
+          } catch (e) {
+            console.warn("Failed to fetch backup servers", e);
+          }
+        }
+
         data = {
           sources: [{
             url: `${API_URL}/api/torrent/stream?magnet=${encodeURIComponent(json.data.link)}`,
@@ -451,7 +467,7 @@ export default function WatchOverlay({
             isEmbed: false,
           }],
           serverName: "davinci",
-          servers: [{ name: "davinci", type: "sub" }],
+          servers: serversToUse.length > 0 ? serversToUse : [{ name: "davinci", type: "sub" }],
         };
       } else {
         data = serverIds
@@ -467,6 +483,11 @@ export default function WatchOverlay({
       if (!data.servers) data.servers = [];
       if (!data.servers.some((s: any) => s.name === "davinci")) {
         data.servers.push({ name: "davinci", type: streamType });
+      }
+
+      // Cache the servers list so it survives switching to davinci
+      if (data.servers.length > 1) {
+        serversListRef.current = data.servers;
       }
 
       setStreamData(data);
