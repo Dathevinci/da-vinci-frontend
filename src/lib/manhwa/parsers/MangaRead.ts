@@ -100,18 +100,20 @@ export default class MangaRead extends MangaParser {
       else if (html.includes('OnGoing') || html.includes('Ongoing')) status = MediaStatus.ONGOING;
       
       const chapters: IMangaChapter[] = [];
-      const chapRegex = /<li[^>]*class="wp-manga-chapter[^"]*"[^>]*>\s*<a[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a>/gi;
+      const chapRegex = /<li[^>]*class="wp-manga-chapter[^"]*"[^>]*>[\s\S]*?<a[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a>(?:[\s\S]*?<i[^>]*>([^<]+)<\/i>)?/gi;
       let chapMatch;
       
       while ((chapMatch = chapRegex.exec(html)) !== null) {
         const cHref = chapMatch[1];
         const cTitle = chapMatch[2].trim();
+        const cDate = chapMatch[3] ? chapMatch[3].trim() : undefined;
         const cSlug = this.extractChapterSlug(cHref);
         
         if (cSlug) {
           chapters.push({
             id: `mrd:${cSlug}`,
-            title: cTitle
+            title: cTitle,
+            releaseDate: cDate
           });
         }
       }
