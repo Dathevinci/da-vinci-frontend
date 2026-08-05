@@ -336,7 +336,7 @@ function DeckCard({
       }}
       transition={reduce || wrapped
         ? { duration: 0 }
-        : { type: "tween", duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+        : { type: "spring", stiffness: 260, damping: 30, mass: 0.9 }}
       style={{ zIndex: 50 - abs, willChange: "transform, opacity", pointerEvents: abs > 3 ? "none" : "auto" }}
     >
       <div className={reduce ? "" : "dh-float"} style={{ animationDelay: `${(Math.abs(seat) * 3 + (seat > 0 ? 1 : 0)) * 0.45}s` }}>
