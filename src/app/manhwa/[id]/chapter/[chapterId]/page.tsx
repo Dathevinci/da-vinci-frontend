@@ -28,6 +28,7 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
   // UI State
   const [prefs, setPrefs] = useState<ManhwaReaderPrefs | null>(null);
   const [uiVisible, setUiVisible] = useState(true);
+  const [isPinned, setIsPinned] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showChapterSelector, setShowChapterSelector] = useState(false);
   const [showSideChat, setShowSideChat] = useState(false);
@@ -312,26 +313,31 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
   const isSinglePage = prefs.onePageView || prefs.readingDirection === "ltr" || prefs.readingDirection === "rtl";
   const displayedPages = isSinglePage ? [pages[currentPageIndex - 1] || pages[0]] : pages;
 
+  const navVisible = isPinned || (uiVisible && !showSettings && !showChapterSelector);
+
   return (
     <div 
       className="min-h-screen transition-colors duration-300 relative overflow-x-hidden" 
       style={{ backgroundColor: activeTheme.bg, color: activeTheme.text }}
     >
       {/* Floating Navigation Controls */}
-      <div className={`transition-opacity duration-300 ${uiVisible && !showSettings && !showChapterSelector ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
-        <ReaderNavigation
-          manhwa={manhwa}
-          chapterId={chapterId}
-          prevChapterId={prevChapterId}
-          nextChapterId={nextChapterId}
-          currentPageIndex={currentPageIndex}
-          totalPages={pages.length}
-          isChapterSelectorOpen={showChapterSelector}
-          onOpenSettings={() => setShowSettings(true)}
-          onOpenChapterSelector={() => setShowChapterSelector(v => !v)}
-          onCapture={handleCapture}
-        />
-      </div>
+      <ReaderNavigation
+        manhwa={manhwa}
+        chapterId={chapterId}
+        prevChapterId={prevChapterId}
+        nextChapterId={nextChapterId}
+        currentPageIndex={currentPageIndex}
+        totalPages={pages.length}
+        isChapterSelectorOpen={showChapterSelector}
+        isVisible={navVisible}
+        isPinned={isPinned}
+        onTogglePin={() => setIsPinned(p => !p)}
+        onLibraryAdd={() => alert("Added to Library!")}
+        onMarkRead={() => alert("Marked as Read!")}
+        onOpenSettings={() => setShowSettings(true)}
+        onOpenChapterSelector={() => setShowChapterSelector(v => !v)}
+        onCapture={handleCapture}
+      />
 
       {/* Reader Area */}
       <div className="w-full overflow-x-auto min-h-screen flex flex-col justify-center" ref={containerRef}>
@@ -446,7 +452,7 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
       {/* Zoom Controls (Bottom Right) */}
       {prefs.allowZoomInOut && (
         <div
-          className={`fixed bottom-5 right-4 z-[40] flex items-center gap-1 rounded-full border border-white/10 bg-[#09090b]/90 p-1.5 shadow-2xl backdrop-blur-xl transition-opacity duration-300 ${uiVisible ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+          className={`fixed bottom-5 right-24 z-[40] flex items-center gap-1 rounded-full border border-white/10 bg-[#09090b]/90 p-1.5 shadow-2xl backdrop-blur-xl transform transition-all duration-300 ease-in-out ${navVisible ? 'translate-x-0 opacity-100 pointer-events-auto' : 'translate-x-16 opacity-0 pointer-events-none'}`}
         >
           <button onClick={() => applyZoom(zoom - ZOOM_STEP)} disabled={zoom <= ZOOM_MIN} className="grid h-9 w-9 place-items-center rounded-full text-slate-300 hover:bg-white/10 hover:text-white">
             <ZoomOut className="h-4 w-4" />
@@ -479,19 +485,19 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
       )}
 
       {/* Modals */}
-      {showSettings && (
-        <ManhwaReaderSettings
-          prefs={prefs}
-          update={updatePrefs}
-          onClose={() => setShowSettings(false)}
-        />
-      )}
+      <ManhwaReaderSettings
+        prefs={prefs}
+        update={updatePrefs}
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+      />
 
-      {showChapterSelector && manhwa?.chapters && (
+      {manhwa?.chapters && (
         <ChapterSelectorModal
           mangaId={id}
           chapters={manhwa.chapters}
           currentChapterId={chapterId}
+          isOpen={showChapterSelector}
           onClose={() => setShowChapterSelector(false)}
         />
       )}

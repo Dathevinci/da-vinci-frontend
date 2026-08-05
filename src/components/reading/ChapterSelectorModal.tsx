@@ -9,11 +9,13 @@ export default function ChapterSelectorModal({
   mangaId,
   chapters,
   currentChapterId,
+  isOpen,
   onClose,
 }: {
   mangaId: string;
   chapters: IMangaChapter[];
   currentChapterId: string;
+  isOpen: boolean;
   onClose: () => void;
 }) {
   const [search, setSearch] = useState("");
@@ -29,11 +31,11 @@ export default function ChapterSelectorModal({
 
   return (
     <>
-      <div className="fixed inset-0 z-[60]" onClick={onClose} aria-hidden />
+      <div className={`fixed inset-0 z-[60] transition-opacity duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} onClick={onClose} aria-hidden />
 
       <div
         role="dialog"
-        className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[70] w-[90vw] sm:w-[380px] h-[480px] rounded-[20px] bg-[#0b0c0e] border border-white/5 shadow-[0_20px_60px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden text-white font-mono"
+        className={`fixed bottom-20 left-1/2 -translate-x-1/2 z-[70] w-[90vw] sm:w-[380px] h-[480px] rounded-[20px] bg-[#0b0c0e] border border-white/5 shadow-[0_20px_60px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden text-white font-mono transform transition-all duration-300 ease-out ${isOpen ? 'scale-100 opacity-100 pointer-events-auto translate-y-0' : 'scale-95 opacity-0 pointer-events-none translate-y-4'}`}
       >
         <div className="p-5 pb-3 border-b border-white/5 shrink-0 bg-[#0b0c0e]">
           <div className="flex items-center gap-2.5 text-[15px] font-bold text-white mb-0.5">

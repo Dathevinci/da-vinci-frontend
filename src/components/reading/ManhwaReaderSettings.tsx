@@ -10,10 +10,12 @@ import {
 export default function ManhwaReaderSettings({
   prefs,
   update,
+  isOpen,
   onClose,
 }: {
   prefs: ManhwaReaderPrefs;
   update: (patch: Partial<ManhwaReaderPrefs>) => void;
+  isOpen: boolean;
   onClose: () => void;
 }) {
   const SectionHeader = ({ icon, children }: { icon: React.ReactNode, children: React.ReactNode }) => (
@@ -50,11 +52,11 @@ export default function ManhwaReaderSettings({
 
   return (
     <>
-      <div className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden />
+      <div className={`fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} onClick={onClose} aria-hidden />
 
       <div
         role="dialog"
-        className="fixed inset-0 sm:inset-auto sm:top-[5vh] sm:bottom-[5vh] sm:left-1/2 sm:-translate-x-1/2 z-[90] w-full sm:w-[900px] sm:rounded-2xl shadow-[0_25px_70px_rgba(0,0,0,0.9)] flex flex-col bg-[#09090b] text-white border border-[#222] overflow-hidden font-mono"
+        className={`fixed inset-0 sm:inset-auto sm:top-[5vh] sm:bottom-[5vh] sm:left-1/2 sm:-translate-x-1/2 z-[90] w-full sm:w-[900px] sm:rounded-2xl shadow-[0_25px_70px_rgba(0,0,0,0.9)] flex flex-col bg-[#09090b] text-white border border-[#222] overflow-hidden font-mono transform transition-all duration-300 ease-out ${isOpen ? 'scale-100 opacity-100 pointer-events-auto translate-y-0' : 'scale-95 opacity-0 pointer-events-none translate-y-4'}`}
       >
         <div className="flex items-center justify-between p-6 border-b border-[#222] shrink-0 bg-[#09090b]">
           <div>

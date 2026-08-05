@@ -23,6 +23,11 @@ export default function ReaderNavigation({
   currentPageIndex: number;
   totalPages: number;
   isChapterSelectorOpen?: boolean;
+  isVisible: boolean;
+  isPinned?: boolean;
+  onTogglePin?: () => void;
+  onLibraryAdd?: () => void;
+  onMarkRead?: () => void;
   onOpenSettings: () => void;
   onOpenChapterSelector: () => void;
   onCapture: () => void;
@@ -41,7 +46,7 @@ export default function ReaderNavigation({
   return (
     <>
       {/* Top Floating Pill - Solid Slate Blue #54738c as seen in screenshot 1 & 2 */}
-      <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 flex items-center h-[42px] bg-[#54738c] rounded-full text-white text-[13px] font-bold select-none pointer-events-auto overflow-hidden shadow-lg">
+      <div className={`fixed top-5 left-1/2 -translate-x-1/2 z-50 flex items-center h-[42px] bg-[#54738c] rounded-full text-white text-[13px] font-bold select-none overflow-hidden shadow-lg transform transition-all duration-300 ease-in-out ${isVisible ? 'translate-y-0 opacity-100 pointer-events-auto' : '-translate-y-16 opacity-0 pointer-events-none'}`}>
         <Link 
           href={`/manhwa/${encodeURIComponent(manhwa?.id || '')}`}
           className="flex items-center justify-center px-4 h-full hover:bg-white/20 transition"
@@ -58,11 +63,11 @@ export default function ReaderNavigation({
 
         <span className="h-5 w-[1px] bg-white/20 my-auto" />
 
-        <button className="flex items-center justify-center px-3.5 h-full hover:bg-white/20 transition" title="Add to Library">
+        <button onClick={onLibraryAdd} className="flex items-center justify-center px-3.5 h-full hover:bg-white/20 transition" title="Add to Library">
           <Plus className="w-4 h-4" />
         </button>
         
-        <button className="flex items-center justify-center px-3.5 h-full hover:bg-white/20 transition" title="Mark as Read">
+        <button onClick={onMarkRead} className="flex items-center justify-center px-3.5 h-full hover:bg-white/20 transition" title="Mark as Read">
           <Check className="w-4 h-4" />
         </button>
 
@@ -75,8 +80,8 @@ export default function ReaderNavigation({
           <Camera className="w-4 h-4" />
         </button>
 
-        <button className="flex items-center justify-center px-3.5 h-full hover:bg-white/20 transition" title="Pin Toolbar">
-          <Pin className="w-4 h-4" />
+        <button onClick={onTogglePin} className={`flex items-center justify-center px-3.5 h-full transition ${isPinned ? 'bg-white/20' : 'hover:bg-white/20'}`} title={isPinned ? "Unpin Toolbar" : "Pin Toolbar"}>
+          <Pin className={`w-4 h-4 ${isPinned ? 'fill-white' : ''}`} />
         </button>
 
         <button onClick={() => window.location.reload()} className="flex items-center justify-center px-3.5 h-full hover:bg-white/20 transition" title="Refresh">
@@ -95,7 +100,7 @@ export default function ReaderNavigation({
       </div>
 
       {/* Bottom Floating Pill - Solid Slate Blue #54738c */}
-      <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 flex items-center h-[42px] bg-[#54738c] rounded-full text-white text-[13px] font-bold select-none pointer-events-auto overflow-hidden shadow-lg">
+      <div className={`fixed bottom-5 left-1/2 -translate-x-1/2 z-50 flex items-center h-[42px] bg-[#54738c] rounded-full text-white text-[13px] font-bold select-none overflow-hidden shadow-lg transform transition-all duration-300 ease-in-out ${isVisible ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-16 opacity-0 pointer-events-none'}`}>
         {prevChapterId ? (
           <Link 
             href={`/manhwa/${encodeURIComponent(manhwa?.id || '')}/chapter/${encodeURIComponent(prevChapterId)}`}
@@ -144,7 +149,7 @@ export default function ReaderNavigation({
       </div>
 
       {/* Stacked Scroll Buttons on Bottom-Right as seen in Screenshot 1 */}
-      <div className="fixed bottom-5 right-5 z-40 flex flex-col items-center bg-[#0d0f12]/90 backdrop-blur-md rounded-full border border-white/5 text-white shadow-xl overflow-hidden pointer-events-auto">
+      <div className={`fixed bottom-5 right-5 z-40 flex flex-col items-center bg-[#0d0f12]/90 backdrop-blur-md rounded-full border border-white/5 text-white shadow-xl overflow-hidden transform transition-all duration-300 ease-in-out ${isVisible ? 'translate-x-0 opacity-100 pointer-events-auto' : 'translate-x-16 opacity-0 pointer-events-none'}`}>
         <button 
           onClick={(e) => { e.stopPropagation(); window.scrollBy({ top: -window.innerHeight * 0.8, behavior: 'smooth' }); }}
           className="p-3 hover:bg-white/10 transition" 
