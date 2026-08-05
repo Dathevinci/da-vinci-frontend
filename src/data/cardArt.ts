@@ -114,14 +114,7 @@ export const CARD_ART: Record<string, string> = {
  * slots. Generate the two thumbnail sizes and delete the id from this set to
  * get it back.
  */
-const FULL_SIZE_ONLY = new Set([
-  "card_squire", "card_jester", "card_knightradiant", "card_royalknight",
-  "card_sunknight", "card_crimsonknight", "card_gloriousone", "card_saintking",
-  "card_swordsakura", "card_swordrose", "card_shieldradiant", "card_cloakinvis",
-  "card_shieldlion", "card_swordcrystal", "card_fittingend",
-  "card_fallenspell", "card_healingorb", "card_inkmage", "card_poisonmage",
-  "card_loopgrimoire", "card_witchhorror", "card_icemage",
-]);
+const FULL_SIZE_ONLY = new Set<string>();
 
 export function cardArt(id: string, override?: string, size = 999): string | null {
   if (override) return override;
