@@ -83,8 +83,8 @@ export default function ManhwaReaderSettings({
               <div className="p-4 rounded-xl bg-[#131313]">
                 <div className="font-mono font-bold text-white text-[14px] mb-4">Reading Direction</div>
                 <div className="flex bg-[#000] p-1 rounded-xl">
-                  <button onClick={() => update({ readingDirection: 'ltr' })} className={`flex-1 py-2.5 text-[13px] font-mono font-bold rounded-lg transition ${prefs.readingDirection === 'ltr' ? 'bg-white text-black' : 'text-white hover:bg-[#1a1a1a]'}`}>Left to Right</button>
-                  <button onClick={() => update({ readingDirection: 'rtl' })} className={`flex-1 py-2.5 text-[13px] font-mono font-bold rounded-lg transition ${prefs.readingDirection === 'rtl' ? 'bg-white text-black' : 'text-white hover:bg-[#1a1a1a]'}`}>Right to Left</button>
+                  <button onClick={() => update({ readingDirection: prefs.readingDirection === 'ltr' ? 'vertical' : 'ltr' })} className={`flex-1 py-2.5 text-[13px] font-mono font-bold rounded-lg transition ${prefs.readingDirection === 'ltr' ? 'bg-white text-black' : 'text-white hover:bg-[#1a1a1a]'}`}>Left to Right</button>
+                  <button onClick={() => update({ readingDirection: prefs.readingDirection === 'rtl' ? 'vertical' : 'rtl' })} className={`flex-1 py-2.5 text-[13px] font-mono font-bold rounded-lg transition ${prefs.readingDirection === 'rtl' ? 'bg-white text-black' : 'text-white hover:bg-[#1a1a1a]'}`}>Right to Left</button>
                 </div>
               </div>
 
