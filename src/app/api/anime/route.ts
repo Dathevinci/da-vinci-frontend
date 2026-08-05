@@ -32,11 +32,9 @@ export async function GET(request: Request) {
     return NextResponse.json({
       results: media.map((m) => ({
         id: String(m.mal_id ?? m.id),
-        title: m.title?.english || m.title?.romaji || m.title?.userPreferred || "Untitled",
-        // `image` rather than `cover`, matching /api/manhwa. AniList covers are
-        // served from its own CDN and are not hotlink-protected, so unlike
-        // manhwa art they need no proxy.
-        image: m.coverImage?.large || m.coverImage?.extraLarge || m.images?.jpg?.image_url || null,
+        title: typeof m.title === 'string' ? m.title : (m.title?.english || m.title?.romaji || m.title?.userPreferred || "Untitled"),
+        // The Anime object is mapped by mapAniListMedia, so images are under m.images.jpg
+        image: m.images?.jpg?.large_image_url || m.images?.jpg?.image_url || null,
       })),
     });
   } catch (error: any) {
