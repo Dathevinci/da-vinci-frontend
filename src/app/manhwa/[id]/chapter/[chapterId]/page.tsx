@@ -326,8 +326,9 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
           nextChapterId={nextChapterId}
           currentPageIndex={currentPageIndex}
           totalPages={pages.length}
+          isChapterSelectorOpen={showChapterSelector}
           onOpenSettings={() => setShowSettings(true)}
-          onOpenChapterSelector={() => setShowChapterSelector(true)}
+          onOpenChapterSelector={() => setShowChapterSelector(v => !v)}
           onCapture={handleCapture}
         />
       </div>
