@@ -52,15 +52,15 @@ export default function MaintenanceOverlay() {
   return (
     <div className="fixed inset-0 z-[99999] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center p-4">
       <div className="relative group">
-        <div className="absolute inset-0 bg-yellow-500/20 blur-3xl rounded-full"></div>
-        <div className="relative bg-[#0a0a0a] border border-yellow-500/30 p-8 md:p-12 rounded-3xl shadow-[0_0_50px_rgba(234,179,8,0.15)] flex flex-col items-center text-center max-w-lg w-full">
+        <div className="absolute inset-0 bg-white/5 blur-3xl rounded-full"></div>
+        <div className="relative bg-[#040404]/80 backdrop-blur-2xl border border-white/10 p-8 md:p-12 rounded-3xl shadow-[0_0_50px_rgba(255,255,255,0.03)] flex flex-col items-center text-center max-w-lg w-full">
           
-          <div className="w-20 h-20 bg-yellow-500/10 rounded-full flex items-center justify-center mb-6 border border-yellow-500/30 relative">
-            <Wrench className="w-10 h-10 text-yellow-400" />
-            <ShieldAlert className="w-5 h-5 text-red-500 absolute -bottom-1 -right-1" />
+          <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/10 relative">
+            <Wrench className="w-10 h-10 text-white" />
+            <ShieldAlert className="w-5 h-5 text-slate-400 absolute -bottom-1 -right-1" />
           </div>
 
-          <h1 className="text-3xl md:text-4xl font-black text-white mb-4">Under Maintenance</h1>
+          <h1 className="text-3xl md:text-4xl font-black text-white mb-4 tracking-tight">Under Maintenance</h1>
           
           <p className="text-slate-400 text-lg mb-8 leading-relaxed">
             The Da Vinci platform is currently undergoing highly anticipated upgrades. 
@@ -72,13 +72,13 @@ export default function MaintenanceOverlay() {
             href="https://lucid-flix.com/" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="mb-8 flex items-center justify-center gap-2 w-full py-4 rounded-xl bg-yellow-500 hover:bg-yellow-400 text-black font-black text-lg transition-colors shadow-[0_0_30px_rgba(234,179,8,0.2)]"
+            className="mb-8 flex items-center justify-center gap-2 w-full py-4 rounded-xl bg-white hover:bg-slate-200 text-black font-black text-lg transition-colors shadow-[0_0_20px_rgba(255,255,255,0.15)]"
           >
             Go to Lucid-Flix for now
           </a>
 
-          <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden relative">
-            <div className="absolute top-0 left-0 h-full bg-gradient-to-r from-yellow-500 to-amber-600 animate-[loading_2s_ease-in-out_infinite]" style={{ width: '30%' }}></div>
+          <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden relative">
+            <div className="absolute top-0 left-0 h-full bg-gradient-to-r from-slate-600 to-white animate-[loading_2s_ease-in-out_infinite]" style={{ width: '30%' }}></div>
           </div>
           
           <style dangerouslySetInnerHTML={{__html: `
