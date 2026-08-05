@@ -25,7 +25,9 @@ export async function GET(req: NextRequest) {
   const isAllowed =
     allowedHosts.includes(parsed.hostname) ||
     parsed.hostname.endsWith(".mangadex.network") ||
-    parsed.hostname === "uploads.mangadex.org";
+    parsed.hostname === "uploads.mangadex.org" ||
+    parsed.hostname.includes("manganato.com") ||
+    parsed.hostname.includes("mkklcdn");
 
   if (!isAllowed) {
     return new NextResponse("Domain not allowed", { status: 403 });
@@ -33,11 +35,15 @@ export async function GET(req: NextRequest) {
 
   try {
     const isAsura = parsed.hostname === "cdn.asurascans.com";
+    const isManganato = parsed.hostname.includes("manganato") || parsed.hostname.includes("mkklcdn");
     
+    let referer = "https://mangadex.org/";
+    if (isAsura) referer = "https://asuracomic.net/";
+    if (isManganato) referer = "https://manganato.com/";
+
     const res = await fetch(url, {
       headers: {
-        // Asura requires their referer, MangaDex requires theirs
-        Referer: isAsura ? "https://asuracomic.net/" : "https://mangadex.org/",
+        Referer: referer,
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
       },
