@@ -432,8 +432,9 @@ export default function WatchOverlay({
       let data;
       if (server === "davinci") {
         // Query the local backend torrent search API
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
         const titleQuery = anime.title_english || anime.title;
-        const res = await fetch(`http://localhost:5000/api/torrent/search?title=${encodeURIComponent(titleQuery)}&ep=${episodeNo}`);
+        const res = await fetch(`${API_URL}/api/torrent/search?title=${encodeURIComponent(titleQuery)}&ep=${episodeNo}`);
         const json = await res.json();
         
         if (!json.success || !json.data) {
@@ -443,7 +444,7 @@ export default function WatchOverlay({
 
         data = {
           sources: [{
-            url: `http://localhost:5000/api/torrent/stream?magnet=${encodeURIComponent(json.data.link)}`,
+            url: `${API_URL}/api/torrent/stream?magnet=${encodeURIComponent(json.data.link)}`,
             quality: "auto",
             isM3U8: false,
             isEmbed: false,
