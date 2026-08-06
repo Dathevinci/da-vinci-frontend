@@ -132,6 +132,31 @@ export default function DavinciPlayer({ url, quality, subtitleUrl, onQualityChan
     };
   }, []);
 
+  const [blobSubtitleUrl, setBlobSubtitleUrl] = useState<string | null>(null);
+
+  // Fetch subtitle and convert to blob URL to bypass CORS on <track> without breaking video
+  useEffect(() => {
+    if (!subtitleUrl) {
+      setBlobSubtitleUrl(null);
+      return;
+    }
+    
+    let active = true;
+    fetch(subtitleUrl)
+      .then(res => res.blob())
+      .then(blob => {
+        if (!active) return;
+        const url = URL.createObjectURL(blob);
+        setBlobSubtitleUrl(url);
+      })
+      .catch(err => console.error("Failed to load subtitle blob:", err));
+
+    return () => {
+      active = false;
+      if (blobSubtitleUrl) URL.revokeObjectURL(blobSubtitleUrl);
+    };
+  }, [subtitleUrl]);
+
   // Initialize Source
   useEffect(() => {
     const video = videoRef.current;
@@ -257,10 +282,10 @@ export default function DavinciPlayer({ url, quality, subtitleUrl, onQualityChan
         playsInline
         preload="auto"
       >
-        {subtitleUrl && subtitlesEnabled && (
+        {blobSubtitleUrl && subtitlesEnabled && (
           <track
             kind="subtitles"
-            src={subtitleUrl}
+            src={blobSubtitleUrl}
             srcLang="en"
             label="English"
             default
