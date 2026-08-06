@@ -45,7 +45,29 @@ function themeCss(prefs: EpubPrefs): string {
   const pal = epubPalette(prefs);
   const face = epubFontById(prefs.font).css;
   const fontRule = face ? `font-family:${face} !important;` : "";
+
+  /**
+   * The ONE structural declaration worth keeping, and only in scrolled flow.
+   *
+   * Fixed-layout sections ship html,body{height:100%}. epub.js sizes its frame
+   * from the content, so a 100% height chain has a fixed point at whatever the
+   * frame already is — and it starts at zero. Unclamping the document breaks
+   * that without contradicting epub.js, because in SCROLLED flow epub.js
+   * writes no height on body at all (Contents.size is called with a null
+   * height, and its setter ignores falsy values).
+   *
+   * In PAGINATED flow it does set one, via Contents.columns(), along with
+   * overflow and box-sizing — so forcing height there would break the columns.
+   * Hence the branch. Everything else the old stylesheet forced on html/body
+   * stays gone.
+   */
+  const unclamp =
+    prefs.flow === "paginated"
+      ? ""
+      : "html, body { height:auto !important; min-height:0 !important; }";
+
   return `
+    ${unclamp}
     /**
      * APPEARANCE ONLY. LAYOUT BELONGS TO epub.js.
      *
@@ -78,12 +100,20 @@ function themeCss(prefs: EpubPrefs): string {
        publisher also forbids scrolling, so the overflow was unreachable. Fit
        them instead of trying to scroll them: capped to the viewport height and
        letterboxed, which is what a working reader does with a cover. */
-    img, image, svg {
+    /* `height:auto` on the SVG is load-bearing, and max-height is gone.
+       A Kobo cover is <svg viewBox><image/></svg> with publisher CSS saying
+       svg{height:100%}. epub.js derives the frame's height FROM its content
+       (IframeView.expand -> textHeight), and IframeView.create starts that
+       frame at height 0 — so a 100% chain has zero as a fixed point and the
+       cover can settle at nothing. Sizing from the viewBox ratio instead is
+       frame-independent and breaks that.
+       A viewport-relative cap had the same circularity in the other
+       direction: 88vh resolved against a height computed from the very
+       content the rule was sizing. Width is safe to cap because epub.js locks
+       it; height is not. A tall cover simply scrolls. */
+    img, svg {
       max-width:100% !important;
-      max-height:88vh !important;
-      width:auto !important;
       height:auto !important;
-      object-fit:contain !important;
       display:block !important;
       margin:1em auto !important;
     }
@@ -130,38 +160,70 @@ function applyBionic(doc: Document) {
  *     toc href     ../Text/cover.xhtml     spine.get() -> null
  *     spine href     Text/cover.xhtml      spine.get() -> found
  *
- * display() resolves its argument through spine.get(), so every chapter click
- * was handing it a path the spine has never heard of. epub.js does not throw
- * for this and the returned promise does not reject, so the click did nothing
- * whatsoever — no navigation, no error, nothing to notice.
+ * display() resolves its argument through spine.get(), which does no path
+ * resolution at all — it is a lookup in a map keyed on three spellings of the
+ * spine href. So every chapter click handed it a path the spine has never
+ * heard of. _display() then rejects with "No Section Found" BEFORE the manager
+ * is involved, which is why no displayError event is emitted and why the click
+ * appeared to do nothing whatsoever.
  *
- * The candidates are ordered cheapest-first and cover the layouts that differ
- * between publishers: as-is, without the fragment, without the `../` climb,
- * without a leading slash, and finally on filename alone.
+ * This scans the spine rather than guessing spellings. Guessing cannot fix the
+ * case where the nav document is SHALLOWER than the OPF — nav says
+ * "part7.xhtml", the spine key is "Text/part7.xhtml" — and a bare-filename
+ * guess is useless because the map never contains bare filenames when content
+ * lives in a subdirectory.
+ *
+ * It returns the spine INDEX as well as an href. The index is the escape
+ * hatch no spelling can defeat: spine.get() takes a numeric branch that
+ * indexes the array directly.
  */
-function resolveNavHref(book: any, href: string): string | null {
-  const spine = book?.spine;
-  if (!spine?.get || !href) return null;
+function resolveSpineTarget(book: any, navHref: string): { href: string; index: number } | null {
+  const items: any[] = book?.spine?.spineItems;
+  if (!Array.isArray(items) || !navHref) return null;
 
-  const noFragment = String(href).split("#")[0];
-  const candidates = [
-    href,
-    noFragment,
-    noFragment.replace(/^(\.\.\/)+/, ""),
-    noFragment.replace(/^\/+/, ""),
-    noFragment.split("/").pop() || "",
-  ];
+  const raw = String(navHref);
+  const hash = raw.indexOf("#");
+  const fragment = hash >= 0 ? raw.slice(hash) : "";
+  const path = hash >= 0 ? raw.slice(0, hash) : raw;
 
-  for (const candidate of candidates) {
-    if (!candidate) continue;
-    try {
-      const item = spine.get(candidate);
-      if (item) return item.href || candidate;
-    } catch {
-      /* try the next shape */
-    }
+  // A bare "#id" target names a spine idref, not a file.
+  if (!path && fragment.length > 1) {
+    const id = fragment.slice(1);
+    const byId = items.find((s) => s && s.idref === id);
+    if (byId) return { href: String(byId.href || ""), index: byId.index };
   }
-  return null;
+
+  const norm = (v: string) => {
+    let out = String(v || "");
+    try {
+      out = decodeURIComponent(out);
+    } catch {
+      /* malformed escape — compare it raw */
+    }
+    return out.replace(/^\.\//, "").replace(/^(\.\.\/)+/, "").replace(/^\/+/, "").toLowerCase();
+  };
+  const base = (v: string) => norm(v).split("/").pop() || "";
+
+  const wantFull = norm(path);
+  const wantBase = base(path);
+  if (!wantFull) return null;
+
+  // Equal, or one nested under the other — covers a nav document that is
+  // deeper than the OPF and one that is shallower.
+  let hit = items.find((s) => {
+    const h = norm(s?.href || "");
+    return h === wantFull || h.endsWith("/" + wantFull) || wantFull.endsWith("/" + h);
+  });
+
+  // Filename alone, but only when unambiguous: Text/a/ch1.xhtml and
+  // Text/b/ch1.xhtml must not silently resolve to whichever came first.
+  if (!hit && wantBase) {
+    const matches = items.filter((s) => base(s?.href || "") === wantBase);
+    if (matches.length === 1) hit = matches[0];
+  }
+
+  if (!hit) return null;
+  return { href: String(hit.href || "") + fragment, index: hit.index };
 }
 
 function styleInto(doc: Document | null | undefined, css: string) {
@@ -220,6 +282,9 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [tocOpen, setTocOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
+  /** Name of a chapter that refused to open, or null. Rendered outside the
+   *  contents panel, which unmounts the moment a chapter is clicked. */
+  const [navError, setNavError] = useState<string | null>(null);
 
   cssRef.current = css;
   bionicRef.current = prefs.bionic;
@@ -325,6 +390,25 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
           // phone and looks broken on anything portrait.
           spread: "none",
           allowScriptedContent: true,
+          /**
+           * Scrolled flow only, and this is what kills the horizontal
+           * scrollbar at its source rather than hiding it.
+           *
+           * epub.js measures the container's clientWidth BEFORE any view
+           * exists, so no vertical scrollbar has been laid out yet and it
+           * samples the full width. That number is frozen into the iframe as
+           * hard pixels. The moment a section is taller than the container,
+           * `overflow:auto` paints a scrollbar, client width drops by its
+           * width, and the frozen frame now overflows horizontally by exactly
+           * that much. Asking for "scroll" instead reserves the gutter up
+           * front, so the first measurement is already correct — and Stage
+           * splits it per axis on the vertical branch, pinning overflow-x to
+           * hidden.
+           *
+           * Not in paginated flow: there the axis IS horizontal, and epub.js
+           * drives it by writing container.scrollLeft itself.
+           */
+          ...(paginated ? {} : { overflow: "scroll" }),
         });
         renditionRef.current = rendition;
 
@@ -586,15 +670,38 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
                     key={`${item.href}-${i}`}
                     onClick={() => {
                       const r = renditionRef.current;
-                      if (r) {
-                        const target = resolveNavHref(book, item.href) ?? item.href;
-                        // display() returns a promise; an unhandled rejection
-                        // here is a chapter that silently refuses to open.
-                        Promise.resolve(r.display(target)).catch(() => {
-                          Promise.resolve(r.display(item.href)).catch(() => {});
-                        });
-                      }
+                      if (!r) return;
+                      const resolved = resolveSpineTarget(book, item.href);
+                      /**
+                       * Three shots, in this order for a reason: the resolved
+                       * href keeps the fragment so an anchor inside a shared
+                       * file still lands; the raw nav href is correct (and
+                       * cheapest) on books whose nav sits beside the OPF; the
+                       * numeric index always works but loses the fragment,
+                       * which is why it is the last resort rather than the
+                       * first.
+                       */
+                      const attempts: Array<string | number> = [];
+                      if (resolved) attempts.push(resolved.href);
+                      attempts.push(item.href);
+                      if (resolved) attempts.push(resolved.index);
+
                       setTocOpen(false);
+                      (async () => {
+                        for (const attempt of attempts) {
+                          try {
+                            await r.display(attempt);
+                            setNavError(null);
+                            return;
+                          } catch {
+                            /* try the next shape */
+                          }
+                        }
+                        // A chapter that cannot open should say so. This was
+                        // the single most misleading thing about the bug: it
+                        // failed in complete silence.
+                        setNavError(item.label?.trim() || "that chapter");
+                      })();
                     }}
                     className="block w-full rounded-lg px-2 py-2 text-left font-mono text-xs transition hover:bg-white/10"
                     style={{ color: chromeText }}
@@ -603,6 +710,21 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
                   </button>
                 ))
               )}
+            </div>
+          )}
+
+          {navError && (
+            <div
+              className="absolute bottom-4 left-1/2 z-30 -translate-x-1/2 rounded-xl border px-4 py-2.5 shadow-xl"
+              style={{ backgroundColor: chrome, borderColor: hair, color: chromeText }}
+            >
+              <span className="font-mono text-xs">Could not open {navError}.</span>
+              <button
+                onClick={() => setNavError(null)}
+                className="ml-3 font-mono text-xs text-pink-400 hover:underline"
+              >
+                Dismiss
+              </button>
             </div>
           )}
 
