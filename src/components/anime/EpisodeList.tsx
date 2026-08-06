@@ -6,7 +6,7 @@ import { Loader2, Tv, AlertCircle, ChevronDown, Clock, Sparkles, Search } from "
 import WatchOverlay from "./WatchOverlay";
 import AnikotoPlayer from "./AnikotoPlayer";
 import { Anime } from "@tutkli/jikan-ts";
-import { useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useAnimeModal } from "@/components/providers/AnimeModalProvider";
 
 /**
@@ -46,13 +46,29 @@ export default function EpisodeList({
   const [useCustomPlayer, setUseCustomPlayer] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
+  const pathname = usePathname();
   const { closeAnime } = useAnimeModal();
 
   // Episodes play on the WATCH PAGE now — a real, shareable route with the
   // player and the episode world around it. The modal closes as we leave.
   const goWatch = (epNumber: number, seconds?: number | null) => {
     closeAnime();
-    router.push(`/watch/${anime.mal_id}?ep=${epNumber}${seconds ? `&t=${Math.floor(seconds)}` : ""}`);
+    const href = `/watch/${anime.mal_id}?ep=${epNumber}${seconds ? `&t=${Math.floor(seconds)}` : ""}`;
+    /**
+     * Already on this anime's watch page? Replace, don't push.
+     *
+     * "Back to series" on the watch page opens the details modal OVER the
+     * player without touching history, so picking an episode from it pushed a
+     * second copy of the page you were already standing on. The back button
+     * then returned you to the episode instead of leaving it — the same trap
+     * the reader arrows had, arrived at from the other direction.
+     *
+     * Only the query string differs between episodes here, and the watch page
+     * already switches episodes by replace (see its goTo), so this matches the
+     * behaviour that page uses for itself.
+     */
+    if (pathname === `/watch/${anime.mal_id}`) router.replace(href, { scroll: false });
+    else router.push(href);
   };
   
   const autoPlay = autoPlayProp || searchParams?.get("play") === "true";

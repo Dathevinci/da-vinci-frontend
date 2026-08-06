@@ -78,8 +78,16 @@ export default function ReaderNavigation({
     <>
       {/* Top Floating Pill - iOS Glass Style */}
       <div className={`fixed top-5 left-1/2 -translate-x-1/2 z-50 flex items-center h-[42px] bg-black/40 backdrop-blur-2xl border border-white/10 rounded-full text-white text-[13px] font-bold select-none overflow-hidden shadow-2xl transform transition-all duration-300 ease-in-out ${isVisible ? 'translate-y-0 opacity-100 pointer-events-auto' : '-translate-y-16 opacity-0 pointer-events-none'}`}>
-        <Link 
+        {/* `replace`, not a push. This arrow LOOKS like back but was adding a
+            history entry, so the stack became [feed, series, chapter, series]:
+            pressing the real back button from here returned you to the chapter
+            you had just left, then the series, then the chapter again, with no
+            way to escape except holding back. Replacing the chapter entry keeps
+            the promise this arrow makes — it always lands on the series — while
+            leaving the stack the same height it was. */}
+        <Link
           href={`/manhwa/${encodeURIComponent(manhwa?.id || '')}`}
+          replace
           className="flex items-center justify-center px-4 h-full hover:bg-white/20 transition"
           title={`Back to ${title}`}
         >

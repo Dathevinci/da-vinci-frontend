@@ -98,7 +98,10 @@ export default function NovelReaderPage() {
       {/* Top bar */}
       <div className="sticky top-0 z-30 backdrop-blur-md border-b" style={{ backgroundColor: t.panel + "e6", borderColor: t.border }}>
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
-          <Link href={`/novel/${encodeURIComponent(id)}`} className="flex items-center gap-2 hover:text-pink-400 transition text-sm font-bold min-w-0" style={{ color: t.muted }}>
+          {/* `replace` for the same reason as the manhwa reader: this arrow was
+              pushing the novel page on top of the chapter, so the back button
+              landed you right back in the chapter you had just left. */}
+          <Link href={`/novel/${encodeURIComponent(id)}`} replace className="flex items-center gap-2 hover:text-pink-400 transition text-sm font-bold min-w-0" style={{ color: t.muted }}>
             <ArrowLeft className="w-4 h-4 shrink-0" /> <span className="hidden sm:inline line-clamp-1">{novel?.title || "Back"}</span>
           </Link>
           <div className="flex items-center gap-1">
