@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
   AlignCenter, AlignJustify, AlignLeft, ArrowLeft, ArrowRight, Bookmark, ChevronLeft,
@@ -10,36 +9,68 @@ import {
 import {
   useEpubPrefs, epubPalette, epubFontById,
   EPUB_THEMES, EPUB_FONTS, EPUB_SIZE_MIN, EPUB_SIZE_MAX,
-  type EpubAlign,
+  type EpubAlign, type EpubPrefs,
 } from "@/lib/novel/epubPrefs";
 import { lnoriFileUrl } from "@/lib/novel/lnoriProxy";
 
-/** epub.js reaches for `window` as it initialises, so this never renders on the server. */
-const ReactReader = dynamic(() => import("react-reader").then((m) => m.ReactReader), {
-  ssr: false,
-  loading: () => (
-    <div className="grid h-full w-full place-items-center text-slate-500">
-      <Loader2 className="h-6 w-6 animate-spin" />
-    </div>
-  ),
-});
-
 /**
- * The book lives in an iframe with its own document, so the app's fonts —
- * loaded by next/font and referenced as CSS variables — are invisible in
- * there. Each rendered section gets these injected directly.
+ * WHY THIS DRIVES epub.js DIRECTLY INSTEAD OF USING react-reader.
+ *
+ * The wrapper draws its own title bar and its own page arrows, so the reader
+ * showed the volume name twice and had two sets of arrows — and it owns the
+ * flow/manager pairing, which is what made scrolling mode intermittently refuse
+ * to scroll. Its layout arrives as inline styles, so none of that can be undone
+ * from the outside without handing it a complete replacement style object.
+ *
+ * epub.js is already a direct dependency. Rendering the book ourselves is about
+ * sixty lines and buys back the container, the chrome and the styling.
  */
+
 const FONT_CSS =
   "https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Comic+Neue:wght@400;700&family=Lexend:wght@400;700&family=Ubuntu:wght@400;700&display=swap";
 
 const DYSLEXIC_FACE = `@font-face{font-family:'OpenDyslexic';src:url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/woff/OpenDyslexic-Regular.woff') format('woff');font-weight:400;font-display:swap}`;
 
 /**
- * Bionic reading: weight the opening of each word so the eye can skip ahead.
+ * The stylesheet injected into each rendered section.
  *
- * Done on the rendered document rather than the source, because we do not own
- * these books and will not be rewriting their markup on disk. It mutates the
- * DOM, so turning it off remounts the reader rather than trying to unpick it.
+ * Every rule is important because publisher stylesheets ship their own
+ * `body { background:#fff; color:#000 }` and load after ours — that fight is
+ * what made dark mode flicker white as new sections came into view.
+ *
+ * Font size lands on body and on body text only. Putting it on every element
+ * would flatten headings to the same size as prose.
+ */
+function themeCss(prefs: EpubPrefs): string {
+  const pal = epubPalette(prefs);
+  const face = epubFontById(prefs.font).css;
+  const fontRule = face ? `font-family:${face} !important;` : "";
+  return `
+    html, body {
+      background:${pal.bg} !important; color:${pal.text} !important;
+      ${fontRule} font-size:${prefs.size}px !important;
+      line-height:1.75 !important; text-align:${prefs.align} !important;
+      margin:0 !important; padding:0 5% !important;
+      -webkit-text-size-adjust:100% !important;
+    }
+    p, li, td, blockquote, div, span, section {
+      color:${pal.text} !important; ${fontRule}
+      text-align:${prefs.align} !important;
+    }
+    p, li, td, blockquote { font-size:${prefs.size}px !important; line-height:1.75 !important; }
+    h1, h2, h3, h4, h5, h6 { color:${pal.text} !important; ${fontRule} }
+    a { color:#f472b6 !important; }
+    /* Cover plates and interior art are sized for print and overflow the
+       column otherwise. */
+    img, image, svg { max-width:100% !important; height:auto !important;
+      display:block !important; margin:1em auto !important; }
+  `;
+}
+
+/**
+ * Bionic reading: weight the opening of each word so the eye can skip ahead.
+ * Done on the rendered document because we do not own these books. It mutates
+ * the DOM, so turning it off rebuilds the rendition rather than unpicking it.
  */
 function applyBionic(doc: Document) {
   if (!doc?.body || doc.body.getAttribute("data-dv-bionic") === "1") return;
@@ -67,6 +98,29 @@ function applyBionic(doc: Document) {
   });
 }
 
+function styleInto(doc: Document | null | undefined, css: string) {
+  if (!doc?.head) return;
+  let el = doc.getElementById("dv-theme") as HTMLStyleElement | null;
+  if (!el) {
+    el = doc.createElement("style");
+    el.id = "dv-theme";
+    doc.head.appendChild(el);
+  }
+  el.textContent = css;
+}
+
+function fontsInto(doc: Document | null | undefined) {
+  if (!doc?.head || doc.getElementById("dv-fonts")) return;
+  const link = doc.createElement("link");
+  link.id = "dv-fonts";
+  link.rel = "stylesheet";
+  link.href = FONT_CSS;
+  doc.head.appendChild(link);
+  const face = doc.createElement("style");
+  face.textContent = DYSLEXIC_FACE;
+  doc.head.appendChild(face);
+}
+
 interface EpubReaderProps {
   /** The real .epub address. Never rendered into a URL the browser can see. */
   file: string;
@@ -80,98 +134,158 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
 
   const url = useMemo(() => lnoriFileUrl(file), [file]);
   const downloadHref = useMemo(() => lnoriFileUrl(file, true), [file]);
+  const css = useMemo(() => themeCss(prefs), [prefs]);
 
-  const [location, setLocation] = useState<string | number>(0);
+  const viewerRef = useRef<HTMLDivElement>(null);
+  const renditionRef = useRef<any>(null);
+  const cssRef = useRef(css);
+  const bionicRef = useRef(prefs.bionic);
+  const startRef = useRef<string | null>(null);
+  const historyRef = useRef<string[]>([]);
+
+  const [ready, setReady] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [cfi, setCfi] = useState<string>("");
+  const [toc, setToc] = useState<any[]>([]);
+  const [marks, setMarks] = useState<string[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [tocOpen, setTocOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
-  const [toc, setToc] = useState<any[]>([]);
-  const [marks, setMarks] = useState<string[]>([]);
-  const renditionRef = useRef<any>(null);
-  const historyRef = useRef<string[]>([]);
+
+  cssRef.current = css;
+  bionicRef.current = prefs.bionic;
 
   const locKey = `epub-loc:${file}`;
   const markKey = `epub-marks:${file}`;
 
-  // Seeding state from localStorage during render makes server and client
-  // disagree about the first paint, so both are restored in effects.
+  // Read before the rendition is built, so the book opens where it was left.
+  if (typeof window !== "undefined" && startRef.current === null) {
+    try {
+      startRef.current = localStorage.getItem(locKey) || "";
+    } catch {
+      startRef.current = "";
+    }
+  }
+
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(locKey);
-      if (saved) setLocation(saved);
-      const savedMarks = localStorage.getItem(markKey);
-      if (savedMarks) setMarks(JSON.parse(savedMarks));
+      const saved = localStorage.getItem(markKey);
+      if (saved) setMarks(JSON.parse(saved));
     } catch {
       /* private mode */
     }
-  }, [locKey, markKey]);
-
-  const onLocationChanged = (cfi: string) => {
-    setLocation((prev) => {
-      if (typeof prev === "string" && prev && prev !== cfi) {
-        historyRef.current.push(prev);
-        if (historyRef.current.length > 50) historyRef.current.shift();
-      }
-      return cfi;
-    });
-    try {
-      localStorage.setItem(locKey, cfi);
-    } catch {
-      /* private mode */
-    }
-  };
+  }, [markKey]);
 
   /**
-   * A registered theme with every rule marked important.
-   *
-   * Publisher stylesheets ship their own `body { background:#fff; color:#000 }`
-   * and load AFTER ours, so anything less specific loses and you get white
-   * pages inside a dark reader.
+   * Build the rendition. Rebuilt only when the book, the flow or bionic
+   * changes: epub.js decides its manager once, and bionic rewrites the DOM in
+   * place. Theme, font, size and alignment all apply live further down.
    */
-  const applyTheme = useCallback(
-    (r: any) => {
-      if (!r) return;
-      const font = epubFontById(prefs.font).css;
-      const fontRule = font ? { "font-family": `${font} !important` } : {};
-      try {
-        r.themes.register("davinci", {
-          "html, body": {
-            background: `${pal.bg} !important`,
-            color: `${pal.text} !important`,
-            "line-height": "1.75 !important",
-            "text-align": `${prefs.align} !important`,
-            padding: "0 5% !important",
-            "-webkit-text-size-adjust": "100% !important",
-            ...fontRule,
-          },
-          "p, div, span, li, td, blockquote": {
-            color: `${pal.text} !important`,
-            "text-align": `${prefs.align} !important`,
-            ...fontRule,
-          },
-          "h1, h2, h3, h4, h5, h6": { color: `${pal.text} !important`, ...fontRule },
-          a: { color: "#f472b6 !important" },
-          // Cover plates and interior art are sized for print and overflow the
-          // column otherwise.
-          img: {
-            "max-width": "100% !important",
-            height: "auto !important",
-            margin: "1em auto !important",
-            display: "block !important",
-          },
-        });
-        r.themes.select("davinci");
-        r.themes.fontSize(`${prefs.size}px`);
-      } catch {
-        /* a book that refuses styling still reads */
-      }
-    },
-    [pal.bg, pal.text, prefs.font, prefs.size, prefs.align]
-  );
-
   useEffect(() => {
-    applyTheme(renditionRef.current);
-  }, [applyTheme]);
+    let cancelled = false;
+    let book: any = null;
+    let rendition: any = null;
+    setReady(false);
+    setFailed(false);
+
+    (async () => {
+      try {
+        const ePub = (await import("epubjs")).default as any;
+        if (cancelled || !viewerRef.current) return;
+
+        book = ePub(url);
+        const paginated = prefs.flow === "paginated";
+        rendition = book.renderTo(viewerRef.current, {
+          width: "100%",
+          height: "100%",
+          // "scrolled" + continuous is the pairing epub.js expects for a
+          // scrolling book. The previous combination asked the continuous
+          // manager for a single-document flow, and the result was a view that
+          // sometimes simply would not move.
+          flow: paginated ? "paginated" : "scrolled",
+          manager: paginated ? "default" : "continuous",
+          // Single column always — a two-page spread halves an already narrow
+          // phone and looks broken on anything portrait.
+          spread: "none",
+          allowScriptedContent: true,
+        });
+        renditionRef.current = rendition;
+
+        rendition.hooks.content.register((contents: any) => {
+          const doc: Document = contents.document;
+          fontsInto(doc);
+          styleInto(doc, cssRef.current);
+          if (bionicRef.current) applyBionic(doc);
+        });
+
+        rendition.on("relocated", (loc: any) => {
+          const next = loc?.start?.cfi;
+          if (!next) return;
+          setCfi((prev) => {
+            if (prev && prev !== next) {
+              historyRef.current.push(prev);
+              if (historyRef.current.length > 50) historyRef.current.shift();
+            }
+            return next;
+          });
+          try {
+            localStorage.setItem(locKey, next);
+          } catch {
+            /* private mode */
+          }
+        });
+
+        rendition.on("keyup", (e: KeyboardEvent) => {
+          if (e.key === "ArrowRight") rendition.next();
+          if (e.key === "ArrowLeft") rendition.prev();
+        });
+
+        await rendition.display(startRef.current || undefined);
+        if (cancelled) return;
+        setReady(true);
+
+        book.loaded.navigation
+          .then((nav: any) => {
+            if (!cancelled) setToc(nav?.toc || []);
+          })
+          .catch(() => {});
+      } catch {
+        if (!cancelled) setFailed(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      try {
+        rendition?.destroy();
+      } catch {
+        /* already gone */
+      }
+      try {
+        book?.destroy();
+      } catch {
+        /* already gone */
+      }
+      renditionRef.current = null;
+    };
+  }, [url, prefs.flow, prefs.bionic, locKey]);
+
+  /**
+   * Live restyle. Sections already on screen keep their own documents, so the
+   * stylesheet is rewritten in each of them rather than waiting for a re-render
+   * — that lag was most of what read as "glitchy" when switching theme.
+   */
+  useEffect(() => {
+    const r = renditionRef.current;
+    if (!r) return;
+    try {
+      const contents = r.getContents?.();
+      const list = Array.isArray(contents) ? contents : contents ? [contents] : [];
+      list.forEach((c: any) => styleInto(c?.document, css));
+    } catch {
+      /* nothing rendered yet */
+    }
+  }, [css, ready]);
 
   const turn = useCallback((dir: "next" | "prev") => {
     try {
@@ -183,7 +297,7 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
   }, []);
 
   // Keystrokes inside the book's iframe never reach the parent window, so the
-  // rendition gets its own listener too (registered in getRendition).
+  // rendition gets its own listener too (registered above).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight") turn("next");
@@ -195,11 +309,16 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
 
   const goBackOne = () => {
     const prev = historyRef.current.pop();
-    if (prev) setLocation(prev);
+    if (prev) {
+      try {
+        renditionRef.current?.display(prev);
+      } catch {
+        /* stale cfi */
+      }
+    }
   };
 
   const toggleBookmark = () => {
-    const cfi = typeof location === "string" ? location : "";
     if (!cfi) return;
     setMarks((m) => {
       const next = m.includes(cfi) ? m.filter((x) => x !== cfi) : [...m, cfi];
@@ -221,7 +340,7 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
     }
   };
 
-  const isMarked = typeof location === "string" && marks.includes(location);
+  const isMarked = !!cfi && marks.includes(cfi);
   const chrome = prefs.dark ? "#111114" : "#f4f4f5";
   const chromeText = prefs.dark ? "#e6e6e6" : "#18181b";
   const chromeMuted = prefs.dark ? "#8a8a8a" : "#6b6b6b";
@@ -235,24 +354,19 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
         className="flex shrink-0 items-center justify-between gap-2 border-b px-2 py-2 sm:px-3"
         style={{ backgroundColor: chrome, borderColor: hair, color: chromeText }}
       >
-        <div className="flex items-center gap-1">
+        <div className="flex min-w-0 items-center gap-1">
           <button onClick={() => setTocOpen((v) => !v)} className={btn} title="Contents">
             <Menu className="h-5 w-5" />
           </button>
-          <Link
-            href={`/novel/${encodeURIComponent(novelId)}`}
-            replace
-            className={btn}
-            title="Back to series"
-          >
+          <Link href={`/novel/${encodeURIComponent(novelId)}`} replace className={btn} title="Back to series">
             <ChevronLeft className="h-5 w-5" />
           </Link>
-          <span className="ml-1 line-clamp-1 max-w-[40vw] font-mono text-xs sm:text-sm" style={{ color: chromeMuted }}>
+          <span className="ml-1 line-clamp-1 font-mono text-xs sm:text-sm" style={{ color: chromeMuted }}>
             {title}
           </span>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1">
           <button onClick={goBackOne} className={btn} title="Back to previous position">
             <Undo2 className="h-5 w-5" />
           </button>
@@ -269,64 +383,31 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
         </div>
       </div>
 
-      {/* `relative` so the settings drawer below anchors to this row rather
-          than to the whole fixed reader, where it would cover both toolbars. */}
       <div className="relative flex min-h-0 flex-1">
         {/* ── the book ── */}
-        <div className="relative min-w-0 flex-1" style={{ backgroundColor: pal.bg }}>
-          <ReactReader
-            // Remounted when flow or bionic changes: epub.js builds its manager
-            // once, and bionic rewrites the rendered DOM in place.
-            key={`${prefs.flow}|${prefs.bionic}`}
-            url={url}
-            location={location}
-            locationChanged={onLocationChanged}
-            title={title}
-            showToc={false}
-            getRendition={(r: any) => {
-              renditionRef.current = r;
-              applyTheme(r);
-              try {
-                r.book?.loaded?.navigation?.then((nav: any) => setToc(nav?.toc || []));
-              } catch {
-                /* no navigation document */
-              }
-              try {
-                r.hooks?.content?.register((contents: any) => {
-                  const doc: Document = contents.document;
-                  if (doc?.head && !doc.getElementById("dv-fonts")) {
-                    const link = doc.createElement("link");
-                    link.id = "dv-fonts";
-                    link.rel = "stylesheet";
-                    link.href = FONT_CSS;
-                    doc.head.appendChild(link);
-                    const face = doc.createElement("style");
-                    face.textContent = DYSLEXIC_FACE;
-                    doc.head.appendChild(face);
-                  }
-                  if (prefs.bionic) applyBionic(doc);
-                });
-              } catch {
-                /* older builds have no content hook */
-              }
-              try {
-                r.on("keyup", (e: KeyboardEvent) => {
-                  if (e.key === "ArrowRight") r.next();
-                  if (e.key === "ArrowLeft") r.prev();
-                });
-              } catch {
-                /* older rendition builds */
-              }
-            }}
-            epubInitOptions={{ openAs: "epub" }}
-            epubOptions={{
-              flow: prefs.flow,
-              manager: prefs.flow === "scrolled-doc" ? "continuous" : "default",
-              // Single column always — a two-page spread halves an already
-              // narrow phone and looks broken on anything portrait.
-              spread: "none",
-            }}
-          />
+        <div className="relative min-w-0 flex-1 overflow-hidden" style={{ backgroundColor: pal.bg }}>
+          <div ref={viewerRef} className="h-full w-full" />
+
+          {!ready && !failed && (
+            <div className="absolute inset-0 grid place-items-center" style={{ backgroundColor: pal.bg, color: pal.muted }}>
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          )}
+
+          {failed && (
+            <div className="absolute inset-0 grid place-items-center px-6 text-center" style={{ backgroundColor: pal.bg }}>
+              <div style={{ color: pal.muted }}>
+                <p className="font-mono text-sm">This volume could not be opened.</p>
+                <Link
+                  href={`/novel/${encodeURIComponent(novelId)}`}
+                  replace
+                  className="mt-3 inline-block font-mono text-sm text-pink-400 hover:underline"
+                >
+                  Back to the series
+                </Link>
+              </div>
+            </div>
+          )}
 
           {tocOpen && (
             <div
@@ -374,7 +455,7 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
             >
               <p className="font-mono text-sm font-bold">{title}</p>
               <p className="mt-1 font-mono text-xs" style={{ color: chromeMuted }}>
-                EPUB · {marks.length} bookmark{marks.length === 1 ? "" : "s"}
+                EPUB · {marks.length} bookmark{marks.length === 1 ? "" : "s"} · {prefs.flow === "paginated" ? "Pages" : "Scrolling"}
               </p>
               <button onClick={() => setInfoOpen(false)} className="mt-3 font-mono text-xs text-pink-400 hover:underline">
                 Close
@@ -390,7 +471,7 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
             style={{ backgroundColor: chrome, borderColor: hair }}
           >
             <div
-              className="mb-4 grid h-24 place-items-center rounded-xl border"
+              className="mb-4 grid h-24 place-items-center rounded-xl border px-3 text-center"
               style={{
                 backgroundColor: pal.bg,
                 borderColor: hair,
@@ -399,11 +480,7 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
                 fontSize: `${prefs.size}px`,
               }}
             >
-              {prefs.bionic ? (
-                <span><b>Lor</b>em <b>ips</b>um</span>
-              ) : (
-                <span>Lorem ipsum</span>
-              )}
+              {prefs.bionic ? <span><b>Lor</b>em <b>ips</b>um</span> : <span>Lorem ipsum</span>}
             </div>
 
             <button
@@ -416,23 +493,21 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
             </button>
 
             <div className="mb-4 grid grid-cols-3 overflow-hidden rounded-xl border" style={{ borderColor: hair }}>
-              {([
-                ["left", AlignLeft],
-                ["center", AlignCenter],
-                ["justify", AlignJustify],
-              ] as [EpubAlign, any][]).map(([id, Icon]) => (
-                <button
-                  key={id}
-                  onClick={() => update({ align: id })}
-                  className="grid place-items-center py-2.5 transition hover:bg-white/10"
-                  style={{
-                    backgroundColor: prefs.align === id ? "rgba(56,189,248,0.15)" : "transparent",
-                    color: prefs.align === id ? "#38bdf8" : chromeMuted,
-                  }}
-                >
-                  <Icon className="h-4 w-4" />
-                </button>
-              ))}
+              {([["left", AlignLeft], ["center", AlignCenter], ["justify", AlignJustify]] as [EpubAlign, any][]).map(
+                ([id, Icon]) => (
+                  <button
+                    key={id}
+                    onClick={() => update({ align: id })}
+                    className="grid place-items-center py-2.5 transition hover:bg-white/10"
+                    style={{
+                      backgroundColor: prefs.align === id ? "rgba(56,189,248,0.15)" : "transparent",
+                      color: prefs.align === id ? "#38bdf8" : chromeMuted,
+                    }}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </button>
+                )
+              )}
             </div>
 
             <div className="mb-5 flex items-center gap-3">
@@ -471,9 +546,7 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
                 className={`relative h-6 w-11 rounded-full transition ${prefs.dark ? "bg-sky-400" : "bg-slate-400"}`}
                 title={prefs.dark ? "Switch to light" : "Switch to dark"}
               >
-                <span
-                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${prefs.dark ? "left-[22px]" : "left-0.5"}`}
-                />
+                <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${prefs.dark ? "left-[22px]" : "left-0.5"}`} />
               </button>
               <span className="font-mono text-xs" style={{ color: chromeMuted }}>Dark</span>
             </div>
@@ -483,10 +556,7 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
                 <button key={theme.id} onClick={() => update({ theme: theme.id })} className="text-center">
                   <span
                     className="block h-16 w-full rounded-xl border-2 transition"
-                    style={{
-                      backgroundColor: theme.swatch,
-                      borderColor: prefs.theme === theme.id ? "#38bdf8" : hair,
-                    }}
+                    style={{ backgroundColor: theme.swatch, borderColor: prefs.theme === theme.id ? "#38bdf8" : hair }}
                   />
                   <span
                     className="mt-1.5 block font-mono text-[11px] font-bold"
