@@ -446,8 +446,9 @@ export default function WatchOverlay({
           return;
         }
 
-        // Resolve the magnet to a direct CDN URL via Real-Debrid
-        const resolveRes = await fetch(`${API_URL}/api/torrent/resolve?magnet=${encodeURIComponent(searchJson.data.link)}`);
+        // Resolve the magnet to a direct CDN URL via Real-Debrid (with automatic DMCA fallback)
+        const candidateMagnets = searchJson.data.allMagnets || [searchJson.data.link];
+        const resolveRes = await fetch(`${API_URL}/api/torrent/resolve?magnets=${encodeURIComponent(JSON.stringify(candidateMagnets))}`);
         const resolveJson = await resolveRes.json();
 
         if (!resolveJson.success || !resolveJson.url) {
