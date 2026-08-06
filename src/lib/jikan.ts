@@ -149,6 +149,7 @@ export interface DashboardData {
   thisSeason: { media: Anime[] };
   nextSeason: { media: Anime[] };
   finished: { media: Anime[] };
+  fourK?: { media: Anime[] };
   recentlyUpdated: { media: Anime[] };
   isFallback?: boolean;
 }
