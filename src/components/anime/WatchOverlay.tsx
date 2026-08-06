@@ -470,17 +470,8 @@ export default function WatchOverlay({
           }
         }
 
-        // Try to fetch subtitles in background
-        try {
-          const subRes = await fetch(`${API_URL}/api/subtitles/search?title=${encodeURIComponent(titleQuery)}&ep=${episodeNo}&lang=en`);
-          const subJson = await subRes.json();
-          if (subJson.success && subJson.data?.length > 0) {
-            const bestSub = subJson.data[0];
-            setDavinciSubtitleUrl(`${API_URL}/api/subtitles/fetch?fileId=${bestSub.fileId}`);
-          } else {
-            setDavinciSubtitleUrl(null);
-          }
-        } catch { setDavinciSubtitleUrl(null); }
+        // Dynamically extract subtitle from the MKV using our backend ffmpeg endpoint
+        setDavinciSubtitleUrl(`${API_URL}/api/subtitles/extract?videoUrl=${encodeURIComponent(resolveJson.url)}`);
 
         data = {
           sources: [{
