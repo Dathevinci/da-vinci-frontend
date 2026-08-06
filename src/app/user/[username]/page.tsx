@@ -22,7 +22,7 @@ import { nameColorClass } from "@/lib/cosmetics";
 import { resolveActiveEffect } from "@/components/profile/CrimsonRealm";
 import { motion, AnimatePresence } from "framer-motion";
 import { getRankTheme } from "@/lib/ranks";
-import { getHeartRank, heartRankTooltip } from "@/lib/heartRanks";
+import { getHeartRank, heartRankTooltip, isHeartRankName } from "@/lib/heartRanks";
 import { effectNameClass } from "@/lib/effectTheme";
 import { usePreferences } from "@/hooks/usePreferences";
 import { Code2 as IconCode2, ShieldAlert, Sparkles as IconSparkles, Crown as IconCrown, Flame as IconFlame, Zap as IconZap, Compass as IconCompass, Leaf as IconLeaf, ArrowUpRight, Feather as IconFeather, Eye as IconEye } from "lucide-react";
@@ -442,7 +442,12 @@ export default function PublicProfilePage() {
             </h1>
 
             <div className="flex flex-wrap items-center justify-center gap-2">
-              {rankTheme.title && rankTheme.title !== getHeartRank(currentLevel).name && (
+              {/* Set membership, not equality against this level's rank: the
+                  two disagree for a role-column admin, whose level is 10 by
+                  isAdmin() but their XP level by getRankTheme(), so the
+                  equality check passed and printed a stale lower title beside
+                  the correct one. Any Opening name belongs to the heart chip. */}
+              {rankTheme.title && !isHeartRankName(rankTheme.title) && (
                 <div className={`shrink-0 px-3 py-1 rounded-full flex items-center gap-1 ${rankTheme.badgeClass}`}>
                   {RankIcon && <RankIcon className="w-4 h-4" />}
                   <span className="text-xs font-black tracking-wider uppercase">{rankTheme.title}</span>

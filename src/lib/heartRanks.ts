@@ -133,3 +133,28 @@ export function getHeartRank(level: number): HeartRank {
 export function heartRankTooltip(rank: HeartRank): string {
   return `${rank.opening} · ${rank.hanzi}\n❤ ${rank.stage}\n✦ ${rank.gained}`;
 }
+
+const HEART_RANK_NAMES = new Set(
+  Object.values(HEART_RANKS).map((r) => r.name.toLowerCase())
+);
+
+/**
+ * Is this title just an Opening name under another name?
+ *
+ * LEVEL_TITLES in lib/ranks.ts is DERIVED from this file, so for every
+ * non-staff user `rankTheme.title` and the heart rank are guaranteed to be the
+ * same words — which is why a profile showed "THE DEVOTED" and
+ * "🤝 THE DEVOTED · III" side by side. Only the staff titles (LEAD DEV, ADMIN)
+ * are genuinely separate names, and those are the only ones worth a second chip.
+ *
+ * Asks "is this a rank name?" rather than "does this equal the rank for level
+ * N?" because the two are not the same question when a user's level is computed
+ * differently by different callers: isAdmin() reads the role column while
+ * getRankTheme() only reads the username, so a role-column admin gets level 10
+ * from one and their XP level from the other. An equality check passes there and
+ * prints a stale, lower title next to the correct one. A set membership test
+ * cannot: any Opening name is the heart badge's job, whichever level produced it.
+ */
+export function isHeartRankName(title: string | null | undefined): boolean {
+  return !!title && HEART_RANK_NAMES.has(title.trim().toLowerCase());
+}

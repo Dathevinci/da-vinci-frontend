@@ -12,7 +12,7 @@ import { ProfileEffect } from "@/components/profile/ProfileEffect";
 import { resolveActiveEffect } from "@/components/profile/CrimsonRealm";
 import { effectNameClass, effectCardBorderClass } from "@/lib/effectTheme";
 import { getRankTheme } from "@/lib/ranks";
-import { getHeartRank, heartRankTooltip } from "@/lib/heartRanks";
+import { getHeartRank, heartRankTooltip, isHeartRankName } from "@/lib/heartRanks";
 import { calculateLevel } from "@/lib/levels";
 import { isAdmin, isLeadDev, displayArisePoints } from "@/lib/admin";
 import { parseBio } from "@/lib/bioUtils";
@@ -184,7 +184,12 @@ function PopoutCard({
 
         {/* badges */}
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          {rankTheme.title && (
+          {/* Staff titles only. The level title is the heart rank's name — see
+              isHeartRankName — so rendering both printed the same words twice,
+              once bare and once with its emoji and numeral. The heart chip is
+              strictly the richer of the two: it carries the tier and the
+              tooltip, so it is the one that stays. */}
+          {rankTheme.title && !isHeartRankName(rankTheme.title) && (
             <span className={`shrink-0 px-2.5 py-1 rounded-full text-[10px] font-black tracking-wider uppercase ${rankTheme.badgeClass}`}>
               {rankTheme.title}
             </span>
