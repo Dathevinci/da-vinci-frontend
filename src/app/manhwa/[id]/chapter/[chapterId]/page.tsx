@@ -215,7 +215,10 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
       if (canvas && canvas.tagName === "CANVAS") {
         const img = new Image();
         img.crossOrigin = "anonymous";
-        img.src = `/api/manhwa-image?url=${encodeURIComponent(page.img)}`;
+        // full=1: the proxy resizes by default now (covers were arriving at
+        // source resolution and dragging the whole manhwa side down). Reader
+        // pages are the one thing that must stay untouched.
+        img.src = `/api/manhwa-image?url=${encodeURIComponent(page.img)}&full=1`;
         img.onload = () => {
           canvas.width = img.naturalWidth;
           canvas.height = img.naturalHeight;
@@ -465,7 +468,7 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
                 ref={(el) => { imageRefs.current[actualIndex - 1] = el; }}
                 data-index={actualIndex}
                 crossOrigin="anonymous"
-                src={`/api/manhwa-image?url=${encodeURIComponent(page.img)}`}
+                src={`/api/manhwa-image?url=${encodeURIComponent(page.img)}&full=1`}
                 alt={`Page ${page.page}`}
                 loading="lazy"
                 decoding="async"
