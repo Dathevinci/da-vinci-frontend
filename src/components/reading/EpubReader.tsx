@@ -46,30 +46,24 @@ function themeCss(prefs: EpubPrefs): string {
   const face = epubFontById(prefs.font).css;
   const fontRule = face ? `font-family:${face} !important;` : "";
   return `
+    /**
+     * APPEARANCE ONLY. LAYOUT BELONGS TO epub.js.
+     *
+     * This stylesheet used to force height, max-height, overflow, position,
+     * max-width, margin and box-sizing onto html/body. Those are exactly the
+     * properties epub.js reads off the body to decide how tall to make its
+     * iframe and how to size a column — so the reader was overriding the
+     * measurements the layout engine depends on, and then the layout came out
+     * wrong. The plain react-reader version had no injected CSS at all and
+     * behaved, which is the tell.
+     *
+     * So: colour, type and image fitting. Nothing that moves a box.
+     */
     html, body {
       background:${pal.bg} !important; color:${pal.text} !important;
       ${fontRule} font-size:${prefs.size}px !important;
       line-height:1.75 !important; text-align:${prefs.align} !important;
-      margin:0 !important; padding:0 5% !important;
       -webkit-text-size-adjust:100% !important;
-      /* THIS IS WHAT BROKE SCROLLING, AND WHY ONLY SOMETIMES.
-         Fixed-layout sections (covers, full-page art, colour inserts) ship
-         their own height:100% and overflow:hidden on the document, so the page
-         cannot move. That is correct for print and fatal here: the section is
-         taller than the viewport, and the publisher has told the document it
-         may not scroll. Prose chapters carry no such rule, which is why it
-         worked on some pages and not others. */
-      height:auto !important; max-height:none !important;
-      overflow:visible !important; position:static !important;
-    }
-    /* A measure, not the full width of a monitor. Prose set edge to edge across
-       a wide screen is genuinely harder to read — the eye loses the line on the
-       way back. Centred with auto margins so it sits where a book would. */
-    body {
-      max-width:42em !important;
-      margin:0 auto !important;
-      padding:1.5em 1.25em 3em !important;
-      box-sizing:border-box !important;
     }
     p, li, td, blockquote, div, span, section {
       color:${pal.text} !important; ${fontRule}
