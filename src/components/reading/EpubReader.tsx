@@ -127,6 +127,49 @@ function applyBionic(doc: Document) {
   });
 }
 
+/**
+ * Turn a table-of-contents href into something rendition.display() accepts.
+ *
+ * MEASURED against a real Yen Press EPUB rather than assumed. Its navigation
+ * document lives in a subdirectory, so every toc href carries a `../` prefix:
+ *
+ *     toc href     ../Text/cover.xhtml     spine.get() -> null
+ *     spine href     Text/cover.xhtml      spine.get() -> found
+ *
+ * display() resolves its argument through spine.get(), so every chapter click
+ * was handing it a path the spine has never heard of. epub.js does not throw
+ * for this and the returned promise does not reject, so the click did nothing
+ * whatsoever — no navigation, no error, nothing to notice.
+ *
+ * The candidates are ordered cheapest-first and cover the layouts that differ
+ * between publishers: as-is, without the fragment, without the `../` climb,
+ * without a leading slash, and finally on filename alone.
+ */
+function resolveNavHref(book: any, href: string): string | null {
+  const spine = book?.spine;
+  if (!spine?.get || !href) return null;
+
+  const noFragment = String(href).split("#")[0];
+  const candidates = [
+    href,
+    noFragment,
+    noFragment.replace(/^(\.\.\/)+/, ""),
+    noFragment.replace(/^\/+/, ""),
+    noFragment.split("/").pop() || "",
+  ];
+
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    try {
+      const item = spine.get(candidate);
+      if (item) return item.href || candidate;
+    } catch {
+      /* try the next shape */
+    }
+  }
+  return null;
+}
+
 function styleInto(doc: Document | null | undefined, css: string) {
   if (!doc?.head) return;
   let el = doc.getElementById("dv-theme") as HTMLStyleElement | null;
@@ -548,10 +591,14 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
                   <button
                     key={`${item.href}-${i}`}
                     onClick={() => {
-                      try {
-                        renditionRef.current?.display(item.href);
-                      } catch {
-                        /* bad href */
+                      const r = renditionRef.current;
+                      if (r) {
+                        const target = resolveNavHref(book, item.href) ?? item.href;
+                        // display() returns a promise; an unhandled rejection
+                        // here is a chapter that silently refuses to open.
+                        Promise.resolve(r.display(target)).catch(() => {
+                          Promise.resolve(r.display(item.href)).catch(() => {});
+                        });
                       }
                       setTocOpen(false);
                     }}
