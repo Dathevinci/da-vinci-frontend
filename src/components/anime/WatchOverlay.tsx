@@ -151,7 +151,7 @@ export default function WatchOverlay({
 
   const lastStorageUpdateRef = useRef(0);
   const serversListRef = useRef<any[]>([]);
-  const [davinciQuality, setDavinciQuality] = useState<string>('1080p');
+  const [davinciQuality, setDavinciQuality] = useState<string>('4k');
   const [davinciSubtitleUrl, setDavinciSubtitleUrl] = useState<string | null>(null);
 
   /**

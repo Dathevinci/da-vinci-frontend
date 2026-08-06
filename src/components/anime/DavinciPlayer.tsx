@@ -143,13 +143,21 @@ export default function DavinciPlayer({ url, quality, subtitleUrl, onQualityChan
     
     let active = true;
     fetch(subtitleUrl)
-      .then(res => res.blob())
-      .then(blob => {
+      .then(res => res.text())
+      .then(text => {
         if (!active) return;
-        const url = URL.createObjectURL(blob);
-        setBlobSubtitleUrl(url);
+        if (text && (text.includes("WEBVTT") || text.includes("-->"))) {
+          const blob = new Blob([text], { type: "text/vtt" });
+          const url = URL.createObjectURL(blob);
+          setBlobSubtitleUrl(url);
+        } else {
+          setBlobSubtitleUrl(null);
+        }
       })
-      .catch(err => console.error("Failed to load subtitle blob:", err));
+      .catch(err => {
+        console.error("Failed to load subtitle blob:", err);
+        setBlobSubtitleUrl(null);
+      });
 
     return () => {
       active = false;
@@ -157,20 +165,22 @@ export default function DavinciPlayer({ url, quality, subtitleUrl, onQualityChan
     };
   }, [subtitleUrl]);
 
-  // Force subtitle track to show/hide dynamically
+  // Force subtitle track to show/hide dynamically across all tracks
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
     
-    // The browser might take a moment to parse the <track> element after it's injected
-    const timer = setTimeout(() => {
+    const applyMode = () => {
       const tracks = video.textTracks;
-      if (tracks && tracks.length > 0) {
-        // If enabled, force showing. If disabled, force hidden.
-        tracks[0].mode = subtitlesEnabled ? "showing" : "hidden";
+      if (tracks) {
+        for (let i = 0; i < tracks.length; i++) {
+          tracks[i].mode = subtitlesEnabled ? "showing" : "hidden";
+        }
       }
-    }, 100);
+    };
 
+    applyMode();
+    const timer = setTimeout(applyMode, 300);
     return () => clearTimeout(timer);
   }, [blobSubtitleUrl, subtitlesEnabled]);
 
