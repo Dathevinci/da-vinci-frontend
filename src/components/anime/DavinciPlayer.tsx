@@ -4,9 +4,7 @@ import {
   Play, Pause, Volume2, VolumeX, Maximize, Minimize, Settings, 
   Camera, PictureInPicture, ChevronRight, ChevronLeft
 } from "lucide-react";
-import Hls from "hls.js";
 
-// We'll use standard Lucide icons and some custom SVGs for the specific skip buttons
 const SkipBack10 = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
@@ -35,10 +33,22 @@ interface DavinciPlayerProps {
   url: string;
 }
 
+const SPEED_OPTIONS = [
+  { label: "0.25x", value: 0.25 },
+  { label: "0.5x", value: 0.5 },
+  { label: "0.75x", value: 0.75 },
+  { label: "Normal", value: 1 },
+  { label: "1.25x", value: 1.25 },
+  { label: "1.5x", value: 1.5 },
+  { label: "1.75x", value: 1.75 },
+  { label: "2x", value: 2 },
+];
+
 export default function DavinciPlayer({ url }: DavinciPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
+  const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -49,22 +59,36 @@ export default function DavinciPlayer({ url }: DavinciPlayerProps) {
   const [showControls, setShowControls] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsMenu, setSettingsMenu] = useState("main");
-  
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
 
-  let controlsTimeout: NodeJS.Timeout;
-
-  const handleMouseMove = () => {
+  const resetControlsTimer = useCallback(() => {
+    if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
     setShowControls(true);
-    clearTimeout(controlsTimeout);
-    controlsTimeout = setTimeout(() => {
-      if (isPlaying) setShowControls(false);
+    controlsTimerRef.current = setTimeout(() => {
+      if (isPlaying && !settingsOpen) setShowControls(false);
     }, 3000);
-  };
+  }, [isPlaying, settingsOpen]);
 
-  const handleMouseLeave = () => {
-    if (isPlaying) setShowControls(false);
-  };
+  const handleMouseMove = useCallback(() => {
+    resetControlsTimer();
+  }, [resetControlsTimer]);
+
+  const handleMouseLeave = useCallback(() => {
+    if (isPlaying && !settingsOpen) {
+      if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+      setShowControls(false);
+    }
+  }, [isPlaying, settingsOpen]);
+
+  // Keep controls visible when settings are open
+  useEffect(() => {
+    if (settingsOpen) {
+      setShowControls(true);
+      if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+    }
+  }, [settingsOpen]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -76,9 +100,12 @@ export default function DavinciPlayer({ url }: DavinciPlayerProps) {
     const onLoadedMetadata = () => {
       setDuration(video.duration);
       setIsLoading(false);
+      setHasError(false);
     };
     const onWaiting = () => setIsLoading(true);
-    const onPlaying = () => setIsLoading(false);
+    const onPlaying = () => { setIsLoading(false); setHasError(false); };
+    const onError = () => { setIsLoading(false); setHasError(true); };
+    const onCanPlay = () => setIsLoading(false);
 
     video.addEventListener("play", onPlay);
     video.addEventListener("pause", onPause);
@@ -86,6 +113,8 @@ export default function DavinciPlayer({ url }: DavinciPlayerProps) {
     video.addEventListener("loadedmetadata", onLoadedMetadata);
     video.addEventListener("waiting", onWaiting);
     video.addEventListener("playing", onPlaying);
+    video.addEventListener("error", onError);
+    video.addEventListener("canplay", onCanPlay);
 
     return () => {
       video.removeEventListener("play", onPlay);
@@ -94,6 +123,8 @@ export default function DavinciPlayer({ url }: DavinciPlayerProps) {
       video.removeEventListener("loadedmetadata", onLoadedMetadata);
       video.removeEventListener("waiting", onWaiting);
       video.removeEventListener("playing", onPlaying);
+      video.removeEventListener("error", onError);
+      video.removeEventListener("canplay", onCanPlay);
     };
   }, []);
 
@@ -103,10 +134,10 @@ export default function DavinciPlayer({ url }: DavinciPlayerProps) {
     if (!video || !url) return;
 
     setIsLoading(true);
+    setHasError(false);
     video.src = url;
     video.load();
     
-    // Auto-play muted so it works without interaction blocks
     video.muted = false;
     video.play().catch(() => {
       video.muted = true;
@@ -150,6 +181,13 @@ export default function DavinciPlayer({ url }: DavinciPlayerProps) {
     videoRef.current.muted = val === 0;
     setVolume(val);
     setIsMuted(val === 0);
+  };
+
+  const changeSpeed = (speed: number) => {
+    if (!videoRef.current) return;
+    videoRef.current.playbackRate = speed;
+    setPlaybackSpeed(speed);
+    setSettingsMenu("main");
   };
 
   const toggleFullscreen = () => {
@@ -198,6 +236,7 @@ export default function DavinciPlayer({ url }: DavinciPlayerProps) {
     return `${min.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
   };
 
+  const speedLabel = playbackSpeed === 1 ? "Normal" : `${playbackSpeed}x`;
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
@@ -220,14 +259,21 @@ export default function DavinciPlayer({ url }: DavinciPlayerProps) {
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none bg-black/50 backdrop-blur-sm z-20">
           <div className="w-12 h-12 border-4 border-white/20 border-t-[#E5FF00] rounded-full animate-spin mb-4" />
           <p className="font-mono text-xs font-bold text-[#E5FF00] tracking-widest uppercase shadow-black drop-shadow-md">
-            Buffering Torrent...
+            Loading Stream...
           </p>
         </div>
       )}
 
-      {/* Big Center Play Button (only when paused and not loading) */}
+      {/* Error State */}
+      {hasError && !isLoading && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none bg-black/60 z-20">
+          <p className="font-mono text-sm text-red-400 tracking-wide">Failed to load video</p>
+        </div>
+      )}
+
+      {/* Big Center Play Button */}
       <AnimatePresence>
-        {!isPlaying && !isLoading && (
+        {!isPlaying && !isLoading && !hasError && (
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -248,12 +294,11 @@ export default function DavinciPlayer({ url }: DavinciPlayerProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="absolute bottom-4 left-4 right-4 flex flex-col"
+            className="absolute bottom-4 left-4 right-4 flex flex-col z-30"
           >
-            {/* Control Panel Container */}
-            <div className="bg-[#1A1D24]/90 backdrop-blur-md rounded-2xl border border-white/10 flex flex-col overflow-hidden shadow-2xl relative">
+            <div className="bg-[#1A1D24]/90 backdrop-blur-md rounded-2xl border border-white/10 flex flex-col shadow-2xl relative">
               
-              {/* Progress Bar (at the top edge of the control panel) */}
+              {/* Progress Bar */}
               <div 
                 className="relative w-full h-1.5 bg-white/20 cursor-pointer group/progress shrink-0"
                 ref={progressRef}
@@ -314,7 +359,7 @@ export default function DavinciPlayer({ url }: DavinciPlayerProps) {
                 </button>
 
                 <button 
-                  onClick={() => { setSettingsOpen(!settingsOpen); setSettingsMenu("main"); }} 
+                  onClick={(e) => { e.stopPropagation(); setSettingsOpen(!settingsOpen); setSettingsMenu("main"); }} 
                   className={`transition-colors ${settingsOpen ? 'text-[#E5FF00]' : 'text-white hover:text-[#E5FF00]'}`}
                 >
                   <Settings size={20} className={settingsOpen ? 'rotate-90 transition-transform' : 'transition-transform'} />
@@ -336,7 +381,8 @@ export default function DavinciPlayer({ url }: DavinciPlayerProps) {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
                       transition={{ duration: 0.2 }}
-                      className="absolute bottom-full right-16 mb-4 w-64 bg-[#1A1D24] text-white/90 rounded-2xl shadow-2xl overflow-hidden border border-white/5 z-50"
+                      className="absolute bottom-full right-0 mb-4 w-64 bg-[#1A1D24] text-white/90 rounded-2xl shadow-2xl border border-white/10 z-[60]"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <AnimatePresence mode="wait">
                         {settingsMenu === "main" && (
@@ -347,18 +393,13 @@ export default function DavinciPlayer({ url }: DavinciPlayerProps) {
                             exit={{ x: -20, opacity: 0 }}
                             className="flex flex-col py-2"
                           >
-                            <SettingsRow label="Play Speed" value="Normal" onClick={() => setSettingsMenu("speed")} />
-                            <SettingsRow label="Subtitles" value="English" onClick={() => setSettingsMenu("subtitles")} />
-                            <SettingsRow label="Subtitle Size" value="100%" onClick={() => setSettingsMenu("subSize")} />
-                            <SettingsRow label="Subtitle Quality" value="Auto" onClick={() => setSettingsMenu("subQuality")} />
-                            <SettingsRow label="Volume Boost" value="Off" onClick={() => setSettingsMenu("volBoost")} />
-                            <SettingsRow label="Audio Tracks" value="Native" onClick={() => setSettingsMenu("audio")} />
+                            <SettingsRow label="Play Speed" value={speedLabel} onClick={() => setSettingsMenu("speed")} />
                           </motion.div>
                         )}
 
-                        {settingsMenu === "subQuality" && (
+                        {settingsMenu === "speed" && (
                           <motion.div
-                            key="subQuality"
+                            key="speed"
                             initial={{ x: 20, opacity: 0 }}
                             animate={{ x: 0, opacity: 1 }}
                             exit={{ x: 20, opacity: 0 }}
@@ -368,38 +409,23 @@ export default function DavinciPlayer({ url }: DavinciPlayerProps) {
                               className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-white/5 transition-colors font-medium border-b border-white/5"
                               onClick={() => setSettingsMenu("main")}
                             >
-                              <ChevronLeft size={16} /> Subtitle Quality
+                              <ChevronLeft size={16} /> Play Speed
                             </button>
-                            <div className="px-4 py-2 text-xs text-white/50 border-b border-white/5">
-                              Lower is smoother on slow devices
-                            </div>
-                            <div className="flex flex-col py-2">
-                              <RadioOption label="Auto" active />
-                              <RadioOption label="High (Source)" />
-                              <RadioOption label="Medium (720p)" />
-                              <RadioOption label="Low (480p)" />
-                              <RadioOption label="Minimal (480p, no effects)" />
-                            </div>
-                          </motion.div>
-                        )}
-
-                        {/* Dummy states for others to allow returning to main */}
-                        {["speed", "subtitles", "subSize", "volBoost", "audio"].includes(settingsMenu) && (
-                          <motion.div
-                            key="dummy"
-                            initial={{ x: 20, opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            exit={{ x: 20, opacity: 0 }}
-                            className="flex flex-col py-2"
-                          >
-                            <button 
-                              className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-white/5 transition-colors font-medium border-b border-white/5"
-                              onClick={() => setSettingsMenu("main")}
-                            >
-                              <ChevronLeft size={16} /> Back
-                            </button>
-                            <div className="px-4 py-4 text-sm text-center text-white/50">
-                              Option coming soon
+                            <div className="flex flex-col py-1 max-h-64 overflow-y-auto">
+                              {SPEED_OPTIONS.map((opt) => (
+                                <button
+                                  key={opt.value}
+                                  onClick={() => changeSpeed(opt.value)}
+                                  className={`flex items-center gap-3 w-full px-5 py-2.5 text-sm text-left transition-colors ${
+                                    playbackSpeed === opt.value 
+                                      ? "text-[#E5FF00] bg-[#E5FF00]/5 font-medium" 
+                                      : "text-white/70 hover:bg-white/5 hover:text-white"
+                                  }`}
+                                >
+                                  <div className={`w-1 h-4 rounded-full ${playbackSpeed === opt.value ? 'bg-[#E5FF00]' : 'bg-transparent'}`} />
+                                  {opt.label}
+                                </button>
+                              ))}
                             </div>
                           </motion.div>
                         )}
@@ -413,6 +439,14 @@ export default function DavinciPlayer({ url }: DavinciPlayerProps) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Click outside settings to close */}
+      {settingsOpen && (
+        <div 
+          className="absolute inset-0 z-20" 
+          onClick={() => setSettingsOpen(false)} 
+        />
+      )}
     </div>
   );
 }
@@ -428,15 +462,6 @@ function SettingsRow({ label, value, onClick }: { label: string, value: string, 
         <span>{value}</span>
         <ChevronRight size={16} />
       </div>
-    </button>
-  );
-}
-
-function RadioOption({ label, active }: { label: string, active?: boolean }) {
-  return (
-    <button className="flex items-center gap-3 w-full px-5 py-3 hover:bg-white/5 transition-colors text-sm text-left">
-      <div className={`w-0.5 h-4 rounded-full ${active ? 'bg-white' : 'bg-transparent'}`} />
-      <span className={active ? "text-white font-medium" : "text-white/70"}>{label}</span>
     </button>
   );
 }
