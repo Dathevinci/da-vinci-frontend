@@ -3,6 +3,7 @@
 import { ChevronLeft, ChevronRight, ArrowLeft, Settings, RefreshCw, Pin, Plus, Check, Camera, List, ChevronDown, ChevronUp } from "lucide-react";
 import Link from "next/link";
 import { IMangaInfo } from "@/lib/asura/models";
+import { chapterNo } from "./ChapterSelectorModal";
 
 export default function ReaderNavigation({
   manhwa,
@@ -39,14 +40,39 @@ export default function ReaderNavigation({
 }) {
   const currentChapter = manhwa?.chapters?.find(c => c.id === chapterId);
   const title = manhwa?.title || 'Details';
-  const chapterNumMatch = currentChapter?.title.match(/(\d+(\.\d+)?)/);
-  const shortTitle = chapterNumMatch ? `Ch. ${chapterNumMatch[1]}` : 'Ch. 1';
+  /**
+   * Same rule as the chapter list: the number comes from the ID.
+   *
+   * This read the first digits in the TITLE and fell back to a hardcoded
+   * 'Ch. 1' — so a chapter with a real name showed a number that was simply
+   * invented, and the button disagreed with the list it opens. A fabricated
+   * number is worse than none: "Ch. 1" is a specific, checkable claim, and it
+   * was wrong on every titled chapter.
+   *
+   * Falls back to the word "Chapters" now, which promises nothing.
+   */
+  const currentNo = currentChapter ? chapterNo(currentChapter) : null;
+  const shortTitle = currentNo ? `Ch. ${currentNo}` : 'Chapters';
 
   const currentIndex = manhwa?.chapters?.findIndex(c => c.id === chapterId) ?? -1;
   const totalChapters = manhwa?.chapters?.length || 0;
-  
-  const prevChapterNum = currentIndex < totalChapters - 1 ? (totalChapters - 1 - (currentIndex + 1)) : 0;
-  const nextChapterNum = currentIndex > 0 ? (totalChapters - currentIndex) : (totalChapters + 1);
+
+  /**
+   * The neighbours' numbers are READ OFF THE NEIGHBOURS, not recomputed.
+   *
+   * These were positional arithmetic — `totalChapters - 1 - (currentIndex + 1)`
+   * and similar — which was off by one in both directions, so the "next" badge
+   * printed the number of the chapter you were already on. It also could not be
+   * right in principle: a positional count is not the chapter number when a
+   * series has specials, decimals or gaps.
+   *
+   * The list is newest-first, so index+1 is the PREVIOUS chapter and index-1 is
+   * the next one.
+   */
+  const prevChapter = currentIndex >= 0 ? manhwa?.chapters?.[currentIndex + 1] : undefined;
+  const nextChapter = currentIndex > 0 ? manhwa?.chapters?.[currentIndex - 1] : undefined;
+  const prevChapterNum = prevChapter ? chapterNo(prevChapter) : null;
+  const nextChapterNum = nextChapter ? chapterNo(nextChapter) : null;
 
   return (
     <>
@@ -119,7 +145,7 @@ export default function ReaderNavigation({
             className="flex items-center gap-1.5 px-4 h-full hover:bg-white/20 transition"
           >
             <ChevronLeft className="w-4 h-4" />
-            <span className="tabular-nums">{prevChapterNum}</span>
+            <span className="tabular-nums">{prevChapterNum ?? "–"}</span>
           </Link>
         ) : (
           <div className="flex items-center gap-1.5 px-4 h-full opacity-40 cursor-not-allowed">
@@ -146,7 +172,7 @@ export default function ReaderNavigation({
             href={`/manhwa/${encodeURIComponent(manhwa?.id || '')}/chapter/${encodeURIComponent(nextChapterId)}`}
             className="flex items-center gap-1.5 px-4 h-full hover:bg-white/20 transition"
           >
-            <span className="tabular-nums">{nextChapterNum}</span>
+            <span className="tabular-nums">{nextChapterNum ?? "–"}</span>
             <ChevronRight className="w-4 h-4" />
           </Link>
         ) : (

@@ -21,7 +21,7 @@ import { IMangaChapter } from "@/lib/asura/models";
  * MangaDex ids are "mdx:<uuid>" with no number, so those fall through to the
  * title — which for that source really does carry "Chapter N".
  */
-function chapterNo(chap: IMangaChapter): string | null {
+export function chapterNo(chap: IMangaChapter): string | null {
   const fromId = String(chap.id).split("|")[1];
   if (fromId && /^\d+(\.\d+)?$/.test(fromId)) return fromId;
   const m = chap.title.match(/chapter\s*(\d+(?:\.\d+)?)/i);
