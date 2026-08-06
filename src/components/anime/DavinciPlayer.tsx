@@ -157,6 +157,23 @@ export default function DavinciPlayer({ url, quality, subtitleUrl, onQualityChan
     };
   }, [subtitleUrl]);
 
+  // Force subtitle track to show/hide dynamically
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    
+    // The browser might take a moment to parse the <track> element after it's injected
+    const timer = setTimeout(() => {
+      const tracks = video.textTracks;
+      if (tracks && tracks.length > 0) {
+        // If enabled, force showing. If disabled, force hidden.
+        tracks[0].mode = subtitlesEnabled ? "showing" : "hidden";
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [blobSubtitleUrl, subtitlesEnabled]);
+
   // Initialize Source
   useEffect(() => {
     const video = videoRef.current;
