@@ -93,6 +93,16 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
   // Fetch chapter images
   useEffect(() => {
     setLoading(true);
+    /**
+     * Drop the previous chapter's element refs before the new pages land.
+     *
+     * Since this component is reused across chapters, the array kept whatever
+     * the last chapter put there — so going from a 20-page chapter to a
+     * 12-page one left eight detached <img> nodes in slots 12–19 for the next
+     * observer to pick up. React only ever writes indices that still exist, so
+     * nothing else would have cleared them.
+     */
+    imageRefs.current = [];
     fetch(`/api/manhwa/${encodeURIComponent(id)}/chapter/${encodeURIComponent(chapterId)}`)
       .then(res => res.json())
       .then((data: any) => {
@@ -149,7 +159,28 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
     });
 
     return () => observer.disconnect();
-  }, [pages.length, prefs?.onePageView, prefs?.readingDirection]);
+    /**
+     * THE OBSERVER WATCHES ELEMENTS, SO IT MUST BE REBUILT WHENEVER THE
+     * ELEMENTS ARE REPLACED.
+     *
+     * It reads imageRefs.current once, at effect time, and holds those exact
+     * nodes until it is torn down. Two things swapped the nodes out from under
+     * it without changing any dependency here, and both froze the page counter
+     * with no error and no way to notice except that the number stopped:
+     *
+     *  - canvasRendering. Toggling it unmounts every <img> and mounts a
+     *    <canvas> in its place. The observer went on watching the detached
+     *    <img> elements, which can never intersect anything again.
+     *
+     *  - pages.length. Chapter links are client-side navigation, so this
+     *    component is REUSED across chapters — and two consecutive chapters
+     *    with the same number of pages left the length unchanged, so the
+     *    observer kept watching the previous chapter's images. Depending on
+     *    `pages` itself is what's actually meant: it is replaced wholesale by
+     *    each fetch, so its identity changes on every chapter, same length or
+     *    not.
+     */
+  }, [pages, prefs?.onePageView, prefs?.readingDirection, prefs?.canvasRendering]);
 
   // Auto scroll feature
   useEffect(() => {
