@@ -149,7 +149,6 @@ export interface DashboardData {
   thisSeason: { media: Anime[] };
   nextSeason: { media: Anime[] };
   finished: { media: Anime[] };
-  fourK?: { media: Anime[] };
   recentlyUpdated: { media: Anime[] };
   isFallback?: boolean;
 }
@@ -259,7 +258,6 @@ export async function getDashboardData(): Promise<DashboardData> {
       nextSeason: Page(page: 1, perPage: 20) { media(season: $nextSeason, seasonYear: $nextYear, sort: POPULARITY_DESC, type: ANIME) { ${DASH_FRAGMENT} } }
       upcoming: Page(page: 1, perPage: 20) { media(status: NOT_YET_RELEASED, sort: POPULARITY_DESC, type: ANIME) { ${DASH_FRAGMENT} } }
       finished: Page(page: 1, perPage: 20) { media(status: FINISHED, sort: POPULARITY_DESC, type: ANIME, season: $season, seasonYear: $year) { ${DASH_FRAGMENT} } }
-      fourK: Page(page: 1, perPage: 20) { media(idMal_in: [52034, 38000, 52299, 40591, 51009, 44511, 41467, 33352, 31240, 21], type: ANIME, format_in: [TV, TV_SHORT]) { ${DASH_FRAGMENT} } }
       recentlyUpdated: Page(page: 1, perPage: 20) { airingSchedules(airingAt_greater: $threeDaysAgo, airingAt_lesser: $now, sort: TIME_DESC) { media { ${DASH_FRAGMENT} } } }
     }
   `;
@@ -280,7 +278,6 @@ export async function getDashboardData(): Promise<DashboardData> {
     thisSeason: { media: map(data.thisSeason?.media) },
     nextSeason: { media: map(data.nextSeason?.media) },
     finished: { media: map(data.finished?.media) },
-    fourK: { media: map(data.fourK?.media) },
     recentlyUpdated: {
       media: (data.recentlyUpdated?.airingSchedules || [])
         .map((s: any) => s.media)

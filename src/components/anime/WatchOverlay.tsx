@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
-import DavinciPlayer from "./DavinciPlayer";
 import { getAnikotoStreamUrl, getAnikotoStreamUrlFast, AnikotoEpisode, AnikotoStreamResult } from "@/lib/anikoto";
 import { X, ChevronLeft, ChevronRight, Loader2, AlertCircle, Server, PlayCircle, List, ChevronDown, Play, Pause, Volume2, VolumeX, Maximize, Minimize, Tv, ArrowLeft, Flag, RotateCcw, RotateCw } from "lucide-react";
 import Hls from "hls.js";
@@ -41,8 +40,6 @@ interface WatchOverlayProps {
   inline?: boolean;
   /** Fires when the native video reaches its end (auto-next lives upstairs). */
   onEnded?: () => void;
-  /** When true, auto-select the davinci torrent server for 4K playback. */
-  preferDavinci?: boolean;
 }
 
 export default function WatchOverlay({
@@ -55,7 +52,6 @@ export default function WatchOverlay({
   onClose,
   inline = false,
   onEnded,
-  preferDavinci = false,
 }: WatchOverlayProps) {
   const { addXpForWatching, user } = useUser();
   const { isTracked, setStatus } = useAnimeStatus();
@@ -154,8 +150,6 @@ export default function WatchOverlay({
 
   const lastStorageUpdateRef = useRef(0);
   const serversListRef = useRef<any[]>([]);
-  const [davinciQuality, setDavinciQuality] = useState<string>('4k');
-  const [davinciSubtitleUrl, setDavinciSubtitleUrl] = useState<string | null>(null);
 
   /**
    * Auto-add to the tracker once you've genuinely started an episode, so
@@ -436,79 +430,16 @@ export default function WatchOverlay({
       const epObj = allEpisodes.find(e => e.number === episodeNo) ?? allEpisodes[episodeNo - 1];
       const serverIds = (epObj as any)?.serverIds as string | undefined;
 
-      let data;
-      if (server === "davinci") {
-        // Query the backend torrent search API
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-        const titleQuery = anime.title_english || anime.title;
-        const searchRes = await fetch(`${API_URL}/api/torrent/search?title=${encodeURIComponent(titleQuery)}&ep=${episodeNo}&quality=${davinciQuality}`);
-        const searchJson = await searchRes.json();
-        
-        if (!searchJson.success || !searchJson.data) {
-          setStreamError(`No torrent found for Episode ${episodeNo} on Davinci server.`);
-          return;
-        }
-
-        // Resolve the magnet to a direct CDN URL via Real-Debrid (with automatic DMCA fallback)
-        const candidateMagnets = searchJson.data.allMagnets || [searchJson.data.link];
-        const resolveRes = await fetch(`${API_URL}/api/torrent/resolve?magnets=${encodeURIComponent(JSON.stringify(candidateMagnets))}`);
-        const resolveJson = await resolveRes.json();
-
-        if (!resolveJson.success || !resolveJson.url) {
-          setStreamError(resolveJson.message || `Davinci: Failed to resolve stream. The torrent may still be caching.`);
-          return;
-        }
-
-        let serversToUse = serversListRef.current;
-        if (serversToUse.length <= 1) {
-          try {
-            const baseData = serverIds
-              ? await getAnikotoStreamUrlFast(consumetAnimeId, episodeNo, serverIds, typeToUse, "vidstream")
-              : await getAnikotoStreamUrl(consumetAnimeId, episodeNo, typeToUse, "vidstream");
-            if (baseData?.servers) {
-              serversToUse = baseData.servers;
-              serversListRef.current = baseData.servers;
-            }
-          } catch (e) {
-            console.warn("Failed to fetch backup servers", e);
-          }
-        }
-
-        // Dynamically extract subtitle from the MKV using our backend ffmpeg endpoint
-        setDavinciSubtitleUrl(`${API_URL}/api/subtitles/extract?videoUrl=${encodeURIComponent(resolveJson.url)}`);
-
-        data = {
-          sources: [{
-            url: resolveJson.url,
-            quality: searchJson.data.quality || davinciQuality,
-            isM3U8: false,
-            isEmbed: false,
-          }],
-          serverName: "davinci",
-          servers: serversToUse.length > 0 ? serversToUse : [{ name: "davinci", type: "sub" }],
-          davinciMeta: {
-            quality: searchJson.data.quality || davinciQuality,
-            seeders: searchJson.data.seeders,
-            title: searchJson.data.title,
-          }
-        };
-      } else {
-        data = serverIds
-          ? await getAnikotoStreamUrlFast(consumetAnimeId, episodeNo, serverIds, typeToUse, server)
-          : await getAnikotoStreamUrl(consumetAnimeId, episodeNo, typeToUse, server);
-      }
+      const data = serverIds
+        ? await getAnikotoStreamUrlFast(consumetAnimeId, episodeNo, serverIds, typeToUse, server)
+        : await getAnikotoStreamUrl(consumetAnimeId, episodeNo, typeToUse, server);
 
       if (!data || !data.sources || data.sources.length === 0) {
         setStreamError(`No stream found for Episode ${episodeNo}. Try switching Sub/Dub or selecting a different episode.`);
         return;
       }
-      // Inject davinci into available servers if not present
       if (!data.servers) data.servers = [];
-      if (!data.servers.some((s: any) => s.name === "davinci")) {
-        data.servers.push({ name: "davinci", type: streamType });
-      }
 
-      // Cache the servers list so it survives switching to davinci
       if (data.servers.length > 1) {
         serversListRef.current = data.servers;
       }
@@ -626,13 +557,8 @@ export default function WatchOverlay({
 
   // Auto-load initial episode
   useEffect(() => {
-    if (preferDavinci) {
-      // 4K section: go straight to the davinci torrent server
-      loadStream(initialEpisodeId, initialEpisodeNo, undefined, "davinci");
-    } else {
-      loadStream(initialEpisodeId, initialEpisodeNo);
-    }
-  }, [initialEpisodeId, initialEpisodeNo, loadStream, preferDavinci]);
+    loadStream(initialEpisodeId, initialEpisodeNo);
+  }, [initialEpisodeId, initialEpisodeNo, loadStream]);
 
   // Navigate episodes
   const goToEpisode = useCallback((direction: "prev" | "next") => {
@@ -712,22 +638,8 @@ export default function WatchOverlay({
       {/* ═══ MAIN VIDEO AREA ═══ */}
       <div
         className={`${inlineEmbed ? "relative aspect-video w-full" : "flex-1 relative"} flex items-center justify-center bg-black`}
-        onClick={() => { if (!activeSourceObj?.isEmbed && !loadingStream && !streamError && activeServer !== "davinci") togglePlay(); }}
+        onClick={() => { if (!activeSourceObj?.isEmbed && !loadingStream && !streamError) togglePlay(); }}
       >
-        {activeServer === "davinci" && streamData?.sources?.[0]?.url ? (
-          <div className="absolute inset-0 z-10">
-            <DavinciPlayer 
-              url={streamData.sources[0].url} 
-              quality={streamData.davinciMeta?.quality || davinciQuality}
-              subtitleUrl={davinciSubtitleUrl}
-              onQualityChange={(q: string) => {
-                setDavinciQuality(q);
-                if (activeEpisode) loadStream(activeEpisode.id, activeEpisodeNo, streamType, "davinci");
-              }}
-            />
-          </div>
-        ) : (
-          <>
             {/* Loading */}
         {loadingStream && (
           <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
@@ -889,8 +801,6 @@ export default function WatchOverlay({
             </div>
           )}
         </div>
-        </>
-        )}
       </div>
 
       {/* ═══ INLINE SERVER SELECTION (Styled like Playback Settings) ═══ */}
@@ -924,7 +834,7 @@ export default function WatchOverlay({
       )}
 
       {/* ═══ BOTTOM BAR ═══ */}
-      {activeServer !== "davinci" && (
+      {(
         <div
           className={`${activeSourceObj?.isEmbed ? 'relative bg-black' : 'absolute bottom-0'} left-0 right-0 z-50 transition-all duration-500 ${controlsVisible || activeSourceObj?.isEmbed ? "opacity-100 translate-y-0" : "opacity-0 translate-y-full pointer-events-none"}`}
           onClick={(e) => e.stopPropagation()}

@@ -10,10 +10,10 @@ interface AnimeCarouselProps {
   title: string;
   animes: Anime[];
   seeAllLink?: string;
-  is4K?: boolean;
+
 }
 
-export default function AnimeCarousel({ title, animes, seeAllLink = "/explore", is4K }: AnimeCarouselProps) {
+export default function AnimeCarousel({ title, animes, seeAllLink = "/explore" }: AnimeCarouselProps) {
   const rowRef = useRef<HTMLDivElement>(null);
 
   const handleScroll = (direction: 'left' | 'right') => {
@@ -30,11 +30,6 @@ export default function AnimeCarousel({ title, animes, seeAllLink = "/explore", 
     <div className="mb-8 md:mb-12 relative group pl-4 md:pl-12 hover:z-50 z-10 transition-all duration-300">
       <div className="flex items-center gap-3 mb-2 md:mb-4 px-2">
         <h2 className="text-xl md:text-2xl font-bold text-[#e5e5e5]">{title}</h2>
-        {is4K && (
-          <span className="rounded-md bg-gradient-to-r from-amber-400 to-yellow-500 px-2 py-0.5 text-[10px] font-black uppercase text-black tracking-widest shadow-md">
-            Ultra HD 4K
-          </span>
-        )}
       </div>
       
       <div className="relative">
@@ -50,7 +45,7 @@ export default function AnimeCarousel({ title, animes, seeAllLink = "/explore", 
           style={{ overscrollBehaviorX: "contain", WebkitOverflowScrolling: "touch" }}
           className="flex gap-2 md:gap-4 overflow-x-auto hide-scrollbar scroll-smooth px-2 pt-8 pb-12 -mt-4 -mb-4 snap-x snap-mandatory"
         >
-          {animes.map(a => <AnimeCard key={a.mal_id} anime={a} is4K={is4K} />)}
+          {animes.map(a => <AnimeCard key={a.mal_id} anime={a} />)}
           
           {/* See More Card */}
           <Link href={seeAllLink} className="snap-start">

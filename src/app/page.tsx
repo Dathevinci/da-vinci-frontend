@@ -95,7 +95,6 @@ export default async function Home() {
 
           const recentlyUpdated = filterUnique(data.recentlyUpdated.media);
           const airingNow = filterUnique(data.airingNow.media);
-          const fourKAnime = data.fourK?.media ? filterUnique(data.fourK.media) : [];
           const nextSeason = filterUnique(data.nextSeason.media);
           const thisSeason = filterUnique(data.thisSeason.media);
           const upcoming = filterUnique(data.upcoming.media);
@@ -138,7 +137,6 @@ export default async function Home() {
             <>
               {recentlyUpdated.length > 0 && <AnimeCarousel title="Recently Updated" animes={recentlyUpdated} seeAllLink="/explore?status=releasing&sort=updated&title=Recently+Updated" />}
               {airingNow.length > 0 && <AnimeCarousel title="Currently Airing" animes={airingNow} seeAllLink="/explore?status=releasing&title=Currently+Airing" />}
-              {fourKAnime.length > 0 && <AnimeCarousel title="4K Ultra HD Anime" animes={fourKAnime} seeAllLink="/explore?quality=4k&title=4K+Ultra+HD+Anime" is4K={true} />}
               {nextSeason.length > 0 && <AnimeCarousel title="Upcoming Next Season" animes={nextSeason} seeAllLink="/explore?status=upcoming&title=Upcoming+Next+Season" />}
               {thisSeason.length > 0 && <AnimeCarousel title="Trending This Season" animes={thisSeason} seeAllLink="/explore?sort=trending&title=Trending+This+Season" />}
               {upcoming.length > 0 && <AnimeCarousel title="Highly Anticipated" animes={upcoming} seeAllLink="/explore?status=upcoming&title=Highly+Anticipated" />}

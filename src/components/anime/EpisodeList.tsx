@@ -25,7 +25,6 @@ export default function EpisodeList({
   autoPlayProp,
   autoPlayEpProp,
   resumeSecondsProp,
-  preferDavinci
 }: {
   anime: Anime;
   autoPlayProp?: boolean;
@@ -33,7 +32,6 @@ export default function EpisodeList({
   /** Seconds to resume the opened episode from (Continue Watching). */
   resumeSecondsProp?: number | null;
   /** When true, auto-select the davinci torrent server for 4K playback. */
-  preferDavinci?: boolean;
 }) {
   const [episodes, setEpisodes] = useState<AnikotoEpisode[]>([]);
   const [loading, setLoading] = useState(true);
@@ -479,7 +477,6 @@ export default function EpisodeList({
           initialSeconds={resumeSecondsProp ?? null}
           allEpisodes={episodes}
           onClose={() => { setWatchEpisodeId(null); setWatchEpisodeNo(null); }}
-          preferDavinci={preferDavinci}
         />
       )}
 

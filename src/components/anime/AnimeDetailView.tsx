@@ -309,7 +309,6 @@ export default function AnimeDetailView({
                 autoPlayProp={watchNow}
                 autoPlayEpProp={options?.startEpisode}
                 resumeSecondsProp={options?.startSeconds}
-                preferDavinci={options?.preferDavinci}
               />
             )}
 

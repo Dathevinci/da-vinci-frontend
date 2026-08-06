@@ -8,7 +8,7 @@ import { usePreferences } from '@/hooks/usePreferences';
 
 interface AnimeCardProps {
   anime: Anime;
-  is4K?: boolean;
+
 }
 
 /**
@@ -18,7 +18,7 @@ interface AnimeCardProps {
  * competing hover surfaces on one card fought each other, and the
  * reference design is the follower panel.
  */
-export default function AnimeCard({ anime, is4K }: AnimeCardProps) {
+export default function AnimeCard({ anime }: AnimeCardProps) {
   const { openAnime } = useAnimeModal();
   const { preferences } = usePreferences();
 
@@ -32,7 +32,7 @@ export default function AnimeCard({ anime, is4K }: AnimeCardProps) {
       <div className="relative w-[160px] md:w-[220px] aspect-[2/3] flex-shrink-0 snap-start">
         <button
           type="button"
-          onClick={() => openAnime(anime, is4K ? { preferDavinci: true } : undefined)}
+          onClick={() => openAnime(anime)}
           aria-label={`View ${title}`}
           className="absolute inset-0 block cursor-pointer overflow-hidden rounded-xl border border-white/10 bg-white/5 text-left shadow-lg transition-transform duration-300 hover:scale-[1.03]"
         >
@@ -45,12 +45,6 @@ export default function AnimeCard({ anime, is4K }: AnimeCardProps) {
               </span>
             )}
           </div>
-          {is4K && (
-            <div className="absolute bottom-2 left-2 z-10 rounded bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 px-2 py-0.5 text-[9px] font-black uppercase text-slate-950 shadow-lg tracking-wider border border-yellow-200/50 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-950 animate-pulse" />
-              4K UHD
-            </div>
-          )}
         </button>
       </div>
     </HoverPreview>
