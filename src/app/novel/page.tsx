@@ -140,7 +140,7 @@ function NovelInner() {
             <div className="relative z-20 space-y-2 max-w-[1600px] mx-auto">
               {/* Resume where you left off (client-side; hidden until you've read something) */}
               <ContinueReading kind="novel" />
-              <LnoriCarousel title="LNORI Official EPUBs" items={lnori} />
+              <LnoriCarousel title="LNORI Official EPUBs" items={lnori} exploreHref="/novel/lnori" />
               <NovelCarousel title="Trending Now" icon={<Flame className="w-6 h-6 text-orange-500" />} items={trending} seeAllLink="/novel/explore?list=most-popular-novel" />
               <NovelCarousel title="Recently Updated" icon={<Clock className="w-6 h-6 text-pink-400" />} items={latest} seeAllLink="/novel/explore?list=latest-release-novel" />
               <NovelCarousel title="Completed" icon={<CheckCircle2 className="w-6 h-6 text-green-500" />} items={completed} seeAllLink="/novel/explore?list=completed-novel" />

@@ -53,9 +53,9 @@ export default function LnoriCarousel({ title, items, exploreHref }: LnoriCarous
           {exploreHref && (
             <Link
               href={exploreHref}
-              className="hidden sm:flex items-center gap-1 text-xs font-mono font-bold uppercase tracking-wider text-amber-300/80 hover:text-amber-300 transition-colors mr-2"
+              className="flex items-center gap-1 text-xs font-mono font-bold uppercase tracking-wider text-amber-300/80 hover:text-amber-300 transition-colors mr-2"
             >
-              Explore <ChevronRight className="w-3 h-3" />
+              See All <ChevronRight className="w-3 h-3" />
             </Link>
           )}
           <button
