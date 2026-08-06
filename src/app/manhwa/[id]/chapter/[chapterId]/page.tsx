@@ -10,6 +10,8 @@ import { useUser } from "@/hooks/useUser";
 import { earnPoints } from "@/lib/earn";
 import { recordReading } from "@/lib/readingHistory";
 
+import { useManhwaStatus } from "@/hooks/useManhwaStatus";
+import { useToast } from "@/components/ui/Toast";
 import ReaderNavigation from "@/components/reading/ReaderNavigation";
 import ChapterSelectorModal from "@/components/reading/ChapterSelectorModal";
 import ManhwaReaderSettings from "@/components/reading/ManhwaReaderSettings";
@@ -24,6 +26,8 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
   const [manhwa, setManhwa] = useState<IMangaInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const { user } = useUser();
+  const { setStatus, isTracked } = useManhwaStatus();
+  const { toast } = useToast();
 
   // UI State
   const [prefs, setPrefs] = useState<ManhwaReaderPrefs | null>(null);
@@ -332,8 +336,28 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
         isVisible={navVisible}
         isPinned={isPinned}
         onTogglePin={() => setIsPinned(p => !p)}
-        onLibraryAdd={() => alert("Added to Library!")}
-        onMarkRead={() => alert("Marked as Read!")}
+        /**
+         * These two were `alert("Added to Library!")` and
+         * `alert("Marked as Read!")` — they claimed to save and saved nothing,
+         * while the real implementations sat unused in useManhwaStatus.
+         *
+         * Both now call setStatus, which persists locally, syncs to the
+         * backend, and awards Arise Points for tracking. Feedback goes through
+         * the app's toast rather than a browser alert, like every other action.
+         */
+        onLibraryAdd={async () => {
+          if (!manhwa) return;
+          const on = isTracked(id);
+          await setStatus(id, manhwa.title, manhwa.image, on ? "None" : "Reading");
+          toast(on ? "Removed from your library." : `${manhwa.title} added to your library.`, "success");
+        }}
+        onMarkRead={async () => {
+          if (!manhwa) return;
+          // Marking read implies you have it — track it if you don't, so the
+          // status has somewhere to live.
+          await setStatus(id, manhwa.title, manhwa.image, "Completed");
+          toast("Marked as read.", "success");
+        }}
         onOpenSettings={() => setShowSettings(true)}
         onOpenChapterSelector={() => setShowChapterSelector(v => !v)}
         onCapture={handleCapture}
