@@ -53,12 +53,12 @@ function themeCss(prefs: EpubPrefs): string {
       margin:0 !important; padding:0 5% !important;
       -webkit-text-size-adjust:100% !important;
       /* THIS IS WHAT BROKE SCROLLING, AND WHY ONLY SOMETIMES.
-         Fixed-layout sections — covers, full-page art, colour inserts — ship
-         `html,body{height:100%;overflow:hidden}` so the page cannot move. That
-         is correct for print and fatal here: the section is taller than the
-         viewport, and the publisher has told the document it may not scroll.
-         Prose chapters carry no such rule, which is why it worked on some
-         pages and not others. */
+         Fixed-layout sections (covers, full-page art, colour inserts) ship
+         their own height:100% and overflow:hidden on the document, so the page
+         cannot move. That is correct for print and fatal here: the section is
+         taller than the viewport, and the publisher has told the document it
+         may not scroll. Prose chapters carry no such rule, which is why it
+         worked on some pages and not others. */
       height:auto !important; max-height:none !important;
       overflow:visible !important; position:static !important;
     }
