@@ -151,6 +151,8 @@ export default function WatchOverlay({
 
   const lastStorageUpdateRef = useRef(0);
   const serversListRef = useRef<any[]>([]);
+  const [davinciQuality, setDavinciQuality] = useState<string>('1080p');
+  const [davinciSubtitleUrl, setDavinciSubtitleUrl] = useState<string | null>(null);
 
   /**
    * Auto-add to the tracker once you've genuinely started an episode, so
@@ -436,7 +438,7 @@ export default function WatchOverlay({
         // Query the backend torrent search API
         const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
         const titleQuery = anime.title_english || anime.title;
-        const searchRes = await fetch(`${API_URL}/api/torrent/search?title=${encodeURIComponent(titleQuery)}&ep=${episodeNo}`);
+        const searchRes = await fetch(`${API_URL}/api/torrent/search?title=${encodeURIComponent(titleQuery)}&ep=${episodeNo}&quality=${davinciQuality}`);
         const searchJson = await searchRes.json();
         
         if (!searchJson.success || !searchJson.data) {
@@ -468,15 +470,32 @@ export default function WatchOverlay({
           }
         }
 
+        // Try to fetch subtitles in background
+        try {
+          const subRes = await fetch(`${API_URL}/api/subtitles/search?title=${encodeURIComponent(titleQuery)}&ep=${episodeNo}&lang=en`);
+          const subJson = await subRes.json();
+          if (subJson.success && subJson.data?.length > 0) {
+            const bestSub = subJson.data[0];
+            setDavinciSubtitleUrl(`${API_URL}/api/subtitles/fetch?fileId=${bestSub.fileId}`);
+          } else {
+            setDavinciSubtitleUrl(null);
+          }
+        } catch { setDavinciSubtitleUrl(null); }
+
         data = {
           sources: [{
             url: resolveJson.url,
-            quality: "auto",
+            quality: searchJson.data.quality || davinciQuality,
             isM3U8: false,
             isEmbed: false,
           }],
           serverName: "davinci",
           servers: serversToUse.length > 0 ? serversToUse : [{ name: "davinci", type: "sub" }],
+          davinciMeta: {
+            quality: searchJson.data.quality || davinciQuality,
+            seeders: searchJson.data.seeders,
+            title: searchJson.data.title,
+          }
         };
       } else {
         data = serverIds
@@ -697,7 +716,15 @@ export default function WatchOverlay({
       >
         {activeServer === "davinci" && streamData?.sources?.[0]?.url ? (
           <div className="absolute inset-0 z-10">
-            <DavinciPlayer url={streamData.sources[0].url} />
+            <DavinciPlayer 
+              url={streamData.sources[0].url} 
+              quality={streamData.davinciMeta?.quality || davinciQuality}
+              subtitleUrl={davinciSubtitleUrl}
+              onQualityChange={(q: string) => {
+                setDavinciQuality(q);
+                if (activeEpisode) loadStream(activeEpisode.id, activeEpisodeNo, streamType, "davinci");
+              }}
+            />
           </div>
         ) : (
           <>

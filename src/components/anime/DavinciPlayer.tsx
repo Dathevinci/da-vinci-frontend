@@ -31,6 +31,9 @@ const SkipIntro85 = () => (
 
 interface DavinciPlayerProps {
   url: string;
+  quality?: string;
+  subtitleUrl?: string | null;
+  onQualityChange?: (quality: string) => void;
 }
 
 const SPEED_OPTIONS = [
@@ -44,7 +47,7 @@ const SPEED_OPTIONS = [
   { label: "2x", value: 2 },
 ];
 
-export default function DavinciPlayer({ url }: DavinciPlayerProps) {
+export default function DavinciPlayer({ url, quality, subtitleUrl, onQualityChange }: DavinciPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
@@ -60,6 +63,7 @@ export default function DavinciPlayer({ url }: DavinciPlayerProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsMenu, setSettingsMenu] = useState("main");
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [subtitlesEnabled, setSubtitlesEnabled] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
@@ -252,7 +256,17 @@ export default function DavinciPlayer({ url }: DavinciPlayerProps) {
         onClick={togglePlay}
         playsInline
         preload="auto"
-      />
+      >
+        {subtitleUrl && subtitlesEnabled && (
+          <track
+            kind="subtitles"
+            src={subtitleUrl}
+            srcLang="en"
+            label="English"
+            default
+          />
+        )}
+      </video>
 
       {/* Loading Spinner */}
       {isLoading && (
@@ -393,7 +407,51 @@ export default function DavinciPlayer({ url }: DavinciPlayerProps) {
                             exit={{ x: -20, opacity: 0 }}
                             className="flex flex-col py-2"
                           >
+                            <SettingsRow label="Quality" value={quality ? quality.toUpperCase() : "Auto"} onClick={() => setSettingsMenu("quality")} />
                             <SettingsRow label="Play Speed" value={speedLabel} onClick={() => setSettingsMenu("speed")} />
+                            {subtitleUrl && (
+                              <SettingsRow 
+                                label="Subtitles" 
+                                value={subtitlesEnabled ? "On" : "Off"} 
+                                onClick={() => setSubtitlesEnabled(!subtitlesEnabled)} 
+                              />
+                            )}
+                          </motion.div>
+                        )}
+
+                        {settingsMenu === "quality" && (
+                          <motion.div
+                            key="quality"
+                            initial={{ x: 20, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            exit={{ x: 20, opacity: 0 }}
+                            className="flex flex-col py-2"
+                          >
+                            <button 
+                              className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-white/5 transition-colors font-medium border-b border-white/5"
+                              onClick={() => setSettingsMenu("main")}
+                            >
+                              <ChevronLeft size={16} /> Quality
+                            </button>
+                            <div className="flex flex-col py-1">
+                              {["4k", "1080p", "720p"].map((opt) => (
+                                <button
+                                  key={opt}
+                                  onClick={() => {
+                                    if (onQualityChange) onQualityChange(opt);
+                                    setSettingsMenu("main");
+                                  }}
+                                  className={`flex items-center gap-3 w-full px-5 py-2.5 text-sm text-left transition-colors ${
+                                    quality === opt 
+                                      ? "text-[#E5FF00] bg-[#E5FF00]/5 font-medium" 
+                                      : "text-white/70 hover:bg-white/5 hover:text-white"
+                                  }`}
+                                >
+                                  <div className={`w-1 h-4 rounded-full ${quality === opt ? 'bg-[#E5FF00]' : 'bg-transparent'}`} />
+                                  {opt.toUpperCase()}
+                                </button>
+                              ))}
+                            </div>
                           </motion.div>
                         )}
 
