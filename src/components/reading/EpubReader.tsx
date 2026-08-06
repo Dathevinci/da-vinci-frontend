@@ -62,6 +62,15 @@ function themeCss(prefs: EpubPrefs): string {
       height:auto !important; max-height:none !important;
       overflow:visible !important; position:static !important;
     }
+    /* A measure, not the full width of a monitor. Prose set edge to edge across
+       a wide screen is genuinely harder to read — the eye loses the line on the
+       way back. Centred with auto margins so it sits where a book would. */
+    body {
+      max-width:42em !important;
+      margin:0 auto !important;
+      padding:1.5em 1.25em 3em !important;
+      box-sizing:border-box !important;
+    }
     p, li, td, blockquote, div, span, section {
       color:${pal.text} !important; ${fontRule}
       text-align:${prefs.align} !important;
@@ -69,10 +78,21 @@ function themeCss(prefs: EpubPrefs): string {
     p, li, td, blockquote { font-size:${prefs.size}px !important; line-height:1.75 !important; }
     h1, h2, h3, h4, h5, h6 { color:${pal.text} !important; ${fontRule} }
     a { color:#f472b6 !important; }
-    /* Cover plates and interior art are sized for print and overflow the
-       column otherwise. */
-    img, image, svg { max-width:100% !important; height:auto !important;
-      display:block !important; margin:1em auto !important; }
+    /* FULL-PAGE ART MUST FIT THE VIEWPORT, NOT OVERFLOW IT.
+       Covers and colour inserts are sized for print, so at the reader's width
+       they run taller than the screen — and on exactly those sections the
+       publisher also forbids scrolling, so the overflow was unreachable. Fit
+       them instead of trying to scroll them: capped to the viewport height and
+       letterboxed, which is what a working reader does with a cover. */
+    img, image, svg {
+      max-width:100% !important;
+      max-height:88vh !important;
+      width:auto !important;
+      height:auto !important;
+      object-fit:contain !important;
+      display:block !important;
+      margin:1em auto !important;
+    }
   `;
 }
 
