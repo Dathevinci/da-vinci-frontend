@@ -105,7 +105,14 @@ export default function ReaderNavigation({
       </div>
 
       {/* Bottom Floating Pill - iOS Glass Style */}
-      <div className={`fixed bottom-5 left-1/2 -translate-x-1/2 z-50 flex items-center h-[42px] bg-black/40 backdrop-blur-2xl border border-white/10 rounded-full text-white text-[13px] font-bold select-none overflow-hidden shadow-2xl transform transition-all duration-300 ease-in-out ${isVisible ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-16 opacity-0 pointer-events-none'}`}>
+      {/* THREE CONTROLS SHARE bottom-5 ON A PHONE and collide there: this
+          centred chapter pill, the zoom bar at right-[84px], and the scroll
+          arrows at right-5. On a narrow screen the pill runs underneath the
+          right-hand pair, which reads as one bar stacked on another rather
+          than as three separate controls.
+          Lifted to its own row below sm; from sm up there is width for all
+          three on one line, so the original layout is unchanged. */}
+      <div className={`fixed bottom-24 sm:bottom-5 left-1/2 -translate-x-1/2 z-50 flex items-center h-[42px] bg-black/40 backdrop-blur-2xl border border-white/10 rounded-full text-white text-[13px] font-bold select-none overflow-hidden shadow-2xl transform transition-all duration-300 ease-in-out ${isVisible ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-16 opacity-0 pointer-events-none'}`}>
         {prevChapterId ? (
           <Link 
             href={`/manhwa/${encodeURIComponent(manhwa?.id || '')}/chapter/${encodeURIComponent(prevChapterId)}`}
