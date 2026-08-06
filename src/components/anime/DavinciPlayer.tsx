@@ -212,7 +212,6 @@ export default function DavinciPlayer({ url }: DavinciPlayerProps) {
         className="w-full h-full object-contain"
         onClick={togglePlay}
         playsInline
-        crossOrigin="anonymous"
         preload="auto"
       />
 

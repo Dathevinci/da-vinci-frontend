@@ -433,14 +433,23 @@ export default function WatchOverlay({
 
       let data;
       if (server === "davinci") {
-        // Query the local backend torrent search API
+        // Query the backend torrent search API
         const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
         const titleQuery = anime.title_english || anime.title;
-        const res = await fetch(`${API_URL}/api/torrent/search?title=${encodeURIComponent(titleQuery)}&ep=${episodeNo}`);
-        const json = await res.json();
+        const searchRes = await fetch(`${API_URL}/api/torrent/search?title=${encodeURIComponent(titleQuery)}&ep=${episodeNo}`);
+        const searchJson = await searchRes.json();
         
-        if (!json.success || !json.data) {
+        if (!searchJson.success || !searchJson.data) {
           setStreamError(`No torrent found for Episode ${episodeNo} on Davinci server.`);
+          return;
+        }
+
+        // Resolve the magnet to a direct CDN URL via Real-Debrid
+        const resolveRes = await fetch(`${API_URL}/api/torrent/resolve?magnet=${encodeURIComponent(searchJson.data.link)}`);
+        const resolveJson = await resolveRes.json();
+
+        if (!resolveJson.success || !resolveJson.url) {
+          setStreamError(resolveJson.message || `Davinci: Failed to resolve stream. The torrent may still be caching.`);
           return;
         }
 
@@ -461,7 +470,7 @@ export default function WatchOverlay({
 
         data = {
           sources: [{
-            url: `${API_URL}/api/torrent/stream?magnet=${encodeURIComponent(json.data.link)}`,
+            url: resolveJson.url,
             quality: "auto",
             isM3U8: false,
             isEmbed: false,
