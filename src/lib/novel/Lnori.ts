@@ -26,36 +26,94 @@ export async function getCatalog() {
   return items;
 }
 
-export async function browseNovels(page = 1): Promise<{ results: NovelResult[]; totalPages: number }> {
-  const catalog = await getCatalog();
-  const PAGE_SIZE = 24;
-  const totalPages = Math.ceil(catalog.length / PAGE_SIZE);
-  const slice = catalog.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  
-  const results: NovelResult[] = await Promise.all(slice.map(async (item) => {
-    let cover = "";
-    try {
-      let aniCover = await getNovelCover(item.title);
-      if (!aniCover) {
-        const cleanTitle = item.title
-          .replace(/- Year \d+/i, "")
-          .replace(/\[.*?\]/g, "")
-          .replace(/\(.*?\)/g, "")
-          .trim();
-        if (cleanTitle !== item.title) {
-          aniCover = await getNovelCover(cleanTitle);
-        }
-      }
-      cover = aniCover || `https://placehold.co/400x600/101018/e2e8f0?text=${encodeURIComponent(item.title.substring(0, 15))}`;
-    } catch {}
-    return {
+const PAGE_SIZE = 24;
+
+/**
+ * AniList art if this title exists there, otherwise NOTHING — and nothing is
+ * deliberate.
+ *
+ * This used to fall back to a placehold.co URL, which the app then wrapped in
+ * /api/novel-image. That proxy has an allowlist, placehold.co is not on it, and
+ * so every title AniList could not match came back 403: one row of real covers
+ * and a whole page of broken images. An empty cover lets the card fall through
+ * to the volume's own artwork instead, which is the better picture anyway.
+ */
+async function coverFor(title: string): Promise<string> {
+  try {
+    let cover = await getNovelCover(title);
+    if (!cover) {
+      // Publisher and edition tags ("[Yen Press]", "- Year 2") are not part of
+      // the name AniList knows the series by.
+      const clean = title
+        .replace(/- Year \d+/i, "")
+        .replace(/\[.*?\]/g, "")
+        .replace(/\(.*?\)/g, "")
+        .trim();
+      if (clean && clean !== title) cover = await getNovelCover(clean);
+    }
+    return cover || "";
+  } catch {
+    return "";
+  }
+}
+
+async function toResults(slice: { title: string; id: string }[]): Promise<NovelResult[]> {
+  return Promise.all(
+    slice.map(async (item) => ({
       id: item.id,
       title: item.title,
-      cover,
-    };
-  }));
+      cover: await coverFor(item.title),
+    }))
+  );
+}
 
-  return { results, totalPages };
+export async function browseNovels(page = 1): Promise<{ results: NovelResult[]; totalPages: number }> {
+  const catalog = await getCatalog();
+  const totalPages = Math.max(1, Math.ceil(catalog.length / PAGE_SIZE));
+  const slice = catalog.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  return { results: await toResults(slice), totalPages };
+}
+
+/**
+ * Search is a filter over the cached catalogue rather than a request.
+ *
+ * The whole listing is one page on their end and we already hold it for an
+ * hour, so matching locally is instant and costs the source nothing. Tokenised
+ * so "bookworm ascendance" finds "Ascendance of a Bookworm" — the titles here
+ * carry volume and publisher tags that break a plain substring match.
+ */
+export async function searchNovels(
+  query: string,
+  page = 1
+): Promise<{ results: NovelResult[]; totalPages: number }> {
+  const catalog = await getCatalog();
+  const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+  const matches = terms.length
+    ? catalog.filter((c) => {
+        const hay = c.title.toLowerCase();
+        return terms.every((t) => hay.includes(t));
+      })
+    : catalog;
+
+  const totalPages = Math.max(1, Math.ceil(matches.length / PAGE_SIZE));
+  const slice = matches.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  return { results: await toResults(slice), totalPages };
+}
+
+/**
+ * The first volume's file, used to borrow its cover for the series as a whole.
+ * Volume one's art is the one most people recognise a light novel by.
+ */
+export async function firstVolumeFile(slug: string): Promise<string | null> {
+  try {
+    const res = await fetch(`${BASE}/${slug}.html`, { next: { revalidate: 3600 } });
+    if (!res.ok) return null;
+    const $ = cheerio.load(await res.text());
+    const href = $("#files li a.epub").first().attr("href");
+    return href ? `${BASE}${href}` : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function getNovelInfo(slug: string): Promise<NovelInfo> {

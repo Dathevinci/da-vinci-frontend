@@ -1,14 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { BookOpen, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { BookOpen, ChevronLeft, ChevronRight, Loader2, Search, X } from "lucide-react";
 import type { NovelResult } from "@/lib/novel/ReadNovelFull";
-import { novelCover } from "@/lib/novelImage";
+import LnoriCard from "@/components/novel/LnoriCard";
 
 /**
- * The whole Lnori catalogue, which the home shelf only ever showed the first
- * page of.
+ * The whole Lnori catalogue, which the home shelf only ever showed one page of.
  *
  * Its own route rather than a mode of /novel/explore: that screen browses the
  * ranked lists the scraping sources expose ("most popular", "latest release"),
@@ -21,11 +19,26 @@ export default function LnoriExplorePage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState("");
+  const [debounced, setDebounced] = useState("");
+
+  /**
+   * Search is debounced because every result resolves a cover, so firing on
+   * each keystroke would queue a page of lookups per letter typed.
+   */
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebounced(query.trim());
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query]);
 
   useEffect(() => {
     let alive = true;
     setLoading(true);
-    fetch(`/api/novels?source=lnori&page=${page}`)
+    const qs = debounced ? `&q=${encodeURIComponent(debounced)}` : "";
+    fetch(`/api/novels?source=lnori&page=${page}${qs}`)
       .then((r) => r.json())
       .then((data) => {
         if (!alive) return;
@@ -39,22 +52,46 @@ export default function LnoriExplorePage() {
     return () => {
       alive = false;
     };
-  }, [page]);
+  }, [page, debounced]);
 
   return (
     <div className="min-h-screen bg-[#070709] px-4 pb-24 pt-24 sm:px-6 md:px-8">
       <div className="mx-auto max-w-[1600px]">
-        <div className="mb-8 flex items-center gap-3">
-          <div className="rounded-lg bg-gradient-to-br from-amber-400 to-pink-500 p-2 text-black shadow-[0_0_20px_rgba(245,158,11,0.4)]">
-            <BookOpen className="h-5 w-5" />
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-gradient-to-br from-amber-400 to-pink-500 p-2 text-black shadow-[0_0_20px_rgba(245,158,11,0.4)]">
+              <BookOpen className="h-5 w-5" />
+            </div>
+            <div>
+              <h1 className="bg-gradient-to-r from-amber-200 to-pink-300 bg-clip-text font-mono text-2xl font-black uppercase tracking-widest text-transparent sm:text-3xl">
+                Lnori Official EPUBs
+              </h1>
+              <p className="mt-1 font-mono text-xs uppercase tracking-widest text-amber-200/60">
+                {debounced ? `Results for “${debounced}”` : "Complete volumes"} · page {page} of {totalPages}
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="bg-gradient-to-r from-amber-200 to-pink-300 bg-clip-text font-mono text-2xl font-black uppercase tracking-widest text-transparent sm:text-3xl">
-              Lnori Official EPUBs
-            </h1>
-            <p className="mt-1 font-mono text-xs uppercase tracking-widest text-amber-200/60">
-              Complete volumes · page {page} of {totalPages}
-            </p>
+
+          <div className="relative w-full sm:w-[320px]">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-amber-300/50" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search EPUBs..."
+              // 16px so iOS Safari does not zoom the page on focus and leave it
+              // zoomed.
+              className="w-full rounded-xl border border-amber-500/20 bg-amber-500/5 py-2.5 pl-10 pr-9 font-mono text-[16px] text-slate-200 placeholder:text-slate-500 focus:border-amber-400/50 focus:outline-none sm:text-sm"
+            />
+            {query && (
+              <button
+                onClick={() => setQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 transition hover:text-amber-300"
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -64,30 +101,17 @@ export default function LnoriExplorePage() {
           </div>
         ) : items.length === 0 ? (
           <p className="py-32 text-center font-mono text-sm text-slate-500">
-            Nothing here right now — the source may be unreachable.
+            {debounced ? `Nothing matched “${debounced}”.` : "Nothing here right now — the source may be unreachable."}
           </p>
         ) : (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
             {items.map((item) => (
-              <Link key={item.id} href={`/novel/${encodeURIComponent(item.id)}`} className="group block">
-                <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl border border-amber-500/20 bg-[#101018] transition-all duration-300 group-hover:border-amber-400/50 group-hover:shadow-[0_10px_30px_rgba(245,158,11,0.2)]">
-                  <img
-                    src={novelCover(item.cover)}
-                    alt={item.title}
-                    loading="lazy"
-                    decoding="async"
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                </div>
-                <h3 className="mt-2 line-clamp-2 font-mono text-sm font-bold leading-snug text-slate-200 transition-colors group-hover:text-amber-300">
-                  {item.title}
-                </h3>
-              </Link>
+              <LnoriCard key={item.id} novel={item} />
             ))}
           </div>
         )}
 
-        {totalPages > 1 && (
+        {!loading && totalPages > 1 && (
           <div className="mt-10 flex items-center justify-center gap-3">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}

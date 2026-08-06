@@ -11,9 +11,11 @@ export async function GET(request: Request) {
     const source = searchParams.get('source');
 
     // Lnori is a flat catalogue rather than a set of ranked lists, so it has
-    // its own browse path instead of pretending to honour `list`.
+    // its own browse path instead of pretending to honour `list`. Its search is
+    // a filter over the cached listing, which is why it does not go through
+    // searchAll with the scraping sources.
     if (source === 'lnori') {
-      const data = await Lnori.browseNovels(page);
+      const data = query ? await Lnori.searchNovels(query, page) : await Lnori.browseNovels(page);
       return NextResponse.json(data);
     }
 

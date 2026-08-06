@@ -3,9 +3,9 @@
 import { useRef } from "react";
 import Link from "next/link";
 import { motion, useInView } from "framer-motion";
-import { ChevronRight, ChevronLeft, BookOpen, Download } from "lucide-react";
+import { ChevronRight, ChevronLeft, BookOpen } from "lucide-react";
 import type { NovelResult } from "@/lib/novel/ReadNovelFull";
-import { novelCover } from "@/lib/novelImage";
+import LnoriCard from "@/components/novel/LnoriCard";
 
 interface LnoriCarouselProps {
   title: string;
@@ -86,29 +86,13 @@ export default function LnoriCarousel({ title, items, exploreHref }: LnoriCarous
               transition={{ duration: 0.5, delay: i * 0.05, ease: [0.16, 1, 0.3, 1] }}
               className="shrink-0 snap-start group relative"
             >
-              <Link href={`/novel/${encodeURIComponent(item.id)}`} className="block w-[140px] sm:w-[160px] md:w-[180px]">
-                {/* Book Card */}
-                <div className="relative aspect-[2/3] w-full rounded-xl overflow-hidden bg-[#101018] border border-amber-500/20 transition-all duration-300 group-hover:scale-[1.02] group-hover:shadow-[0_10px_30px_rgba(245,158,11,0.2)] group-hover:border-amber-400/50">
-                  <img
-                    src={novelCover(item.cover)}
-                    alt={item.title}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  {/* Glass overlay on hover */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
-                    <div className="flex items-center gap-2 text-amber-300 font-mono text-[10px] uppercase font-bold tracking-wider">
-                      <Download className="w-3 h-3" />
-                      EPUBs
-                    </div>
-                  </div>
-                  {/* Decorative book binding effect */}
-                  <div className="absolute left-0 inset-y-0 w-2 bg-gradient-to-r from-black/40 to-transparent pointer-events-none" />
-                </div>
-                {/* Title */}
-                <h3 className="mt-3 font-mono font-bold text-sm text-slate-200 line-clamp-2 leading-snug group-hover:text-amber-300 transition-colors">
-                  {item.title}
-                </h3>
-              </Link>
+              {/* The shelf shares the grid's card so both get the hover
+                  dossier and, more importantly, the same three-stage cover
+                  fallback. Duplicating that here is how the two drifted into
+                  showing different art for the same book. */}
+              <div className="w-[140px] sm:w-[160px] md:w-[180px]">
+                <LnoriCard novel={item} />
+              </div>
             </motion.div>
           ))}
         </div>
