@@ -177,23 +177,63 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
   }, [markKey]);
 
   /**
-   * Build the rendition. Rebuilt only when the book, the flow or bionic
-   * changes: epub.js decides its manager once, and bionic rewrites the DOM in
-   * place. Theme, font, size and alignment all apply live further down.
+   * DOWNLOAD THE BOOK ONCE, SEPARATELY FROM RENDERING IT.
+   *
+   * epub.js reads the whole archive before it can draw a page, so opening a
+   * volume is dominated by that transfer. Building the book inside the
+   * rendition effect meant every switch between scrolling and pages, and every
+   * Bionic toggle, threw the parsed archive away and fetched it again.
+   *
+   * `openAs` matters more than it looks: epub.js otherwise guesses the format
+   * from the URL's extension, and base64-ing the address to keep download
+   * managers away left nothing to guess from — so it probed for an unpacked
+   * book, requesting container.xml and friends against a URL that serves an
+   * archive, before eventually settling. Saying so outright skips all of it.
    */
+  const [book, setBook] = useState<any>(null);
+
   useEffect(() => {
     let cancelled = false;
-    let book: any = null;
-    let rendition: any = null;
+    let created: any = null;
+    setBook(null);
     setReady(false);
     setFailed(false);
 
     (async () => {
       try {
         const ePub = (await import("epubjs")).default as any;
-        if (cancelled || !viewerRef.current) return;
+        if (cancelled) return;
+        created = ePub(url, { openAs: "epub" });
+        setBook(created);
+      } catch {
+        if (!cancelled) setFailed(true);
+      }
+    })();
 
-        book = ePub(url);
+    return () => {
+      cancelled = true;
+      try {
+        created?.destroy();
+      } catch {
+        /* already gone */
+      }
+    };
+  }, [url]);
+
+  /**
+   * Build the rendition. Rebuilt when the flow or bionic changes: epub.js
+   * decides its manager once, and bionic rewrites the DOM in place. Theme,
+   * font, size and alignment all apply live further down.
+   */
+  useEffect(() => {
+    if (!book) return;
+    let cancelled = false;
+    let rendition: any = null;
+    setReady(false);
+
+    (async () => {
+      try {
+        if (cancelled || !viewerRef.current) return;
         const paginated = prefs.flow === "paginated";
         rendition = book.renderTo(viewerRef.current, {
           width: "100%",
@@ -261,14 +301,12 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
       } catch {
         /* already gone */
       }
-      try {
-        book?.destroy();
-      } catch {
-        /* already gone */
-      }
       renditionRef.current = null;
+      // The BOOK is not destroyed here. It belongs to the effect above and
+      // outlives every flow and bionic change — destroying it here is exactly
+      // what made toggling a setting re-download the whole archive.
     };
-  }, [url, prefs.flow, prefs.bionic, locKey]);
+  }, [book, prefs.flow, prefs.bionic, locKey]);
 
   /**
    * Live restyle. Sections already on screen keep their own documents, so the

@@ -47,6 +47,21 @@ export async function GET(req: NextRequest) {
       proxyHeaders.set("Content-Disposition", "inline");
     }
 
+    /**
+     * CACHE THE BOOK. It is the whole reason opening a volume felt slow.
+     *
+     * epub.js reads the entire archive before it can render a single page, and
+     * this response carried no cache headers at all — so every open, every
+     * reload, and every switch between scrolling and pages pulled the whole
+     * file across two hops again (lnori to us, us to the reader).
+     *
+     * These files are immutable: a published volume at a fixed URL never
+     * changes. `max-age` makes a reopen a browser cache hit, and `s-maxage`
+     * lets the edge serve the second reader of a popular volume without
+     * touching the source at all.
+     */
+    proxyHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=31536000, immutable");
+
     return new Response(response.body, {
       status: response.status,
       headers: proxyHeaders,
