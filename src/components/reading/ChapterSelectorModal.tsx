@@ -21,7 +21,21 @@ export default function ChapterSelectorModal({
   const [search, setSearch] = useState("");
   const [sortNewest, setSortNewest] = useState(true);
 
-  let filtered = chapters.filter(c => c.title.toLowerCase().includes(search.toLowerCase()));
+  /**
+   * Search matches the title OR the chapter number.
+   *
+   * Title-only matching meant typing "270" found nothing on a source whose
+   * titles read "Chapter 270" only when they happen to — and the number is the
+   * first thing anyone types in a list of 272 chapters.
+   */
+  const q = search.trim().toLowerCase();
+  let filtered = q
+    ? chapters.filter((c) => {
+        if (c.title.toLowerCase().includes(q)) return true;
+        const m = c.title.match(/chapter\s*(\d+(?:\.\d+)?)/i) || c.title.match(/^\s*(\d+(?:\.\d+)?)\b/);
+        return !!m && m[1].startsWith(q);
+      })
+    : chapters;
   if (!sortNewest) {
     filtered = [...filtered].reverse();
   }
@@ -74,8 +88,28 @@ export default function ChapterSelectorModal({
           ) : (
             filtered.map((chap) => {
               const isActive = chap.id === currentChapterId;
-              const match = chap.title.match(/(\d+(\.\d+)?)/);
-              const numStr = match ? match[1] : chap.title.replace(/chapter/i, '').trim();
+              /**
+               * NUMBER AND TITLE ARE DIFFERENT THINGS.
+               *
+               * This took the first digits anywhere in the title and, failing
+               * that, fell back to the WHOLE TITLE as the "number" — so a
+               * chapter called "A Saintess' Duty" rendered its entire name
+               * inside a 36px badge and again as "Ch. A Saintess' Duty".
+               *
+               * Anchored on "Chapter N" first so a title like "The 100th Day"
+               * cannot be mistaken for chapter 100, with a bare leading number
+               * as the fallback. When there is genuinely no number — some
+               * sources title specials and side stories only — the badge shows
+               * a dash instead of pretending, and the title carries the row.
+               */
+              const m = chap.title.match(/chapter\s*(\d+(?:\.\d+)?)/i)
+                || chap.title.match(/^\s*(\d+(?:\.\d+)?)\b/);
+              const numStr = m ? m[1] : null;
+              // Whatever the title says once the "Chapter N" prefix is removed.
+              // Empty for a plain "Chapter 271", which is the common case.
+              const label = chap.title
+                .replace(/chapter\s*\d+(?:\.\d+)?\s*[-–—:]?\s*/i, "")
+                .trim();
 
               return (
                 <Link
@@ -85,16 +119,21 @@ export default function ChapterSelectorModal({
                   className={`flex items-start gap-4 p-3 rounded-xl transition ${isActive ? 'bg-white/10' : 'hover:bg-white/5'}`}
                 >
                   <div className="w-9 h-9 shrink-0 bg-[#1a1c20] rounded-xl flex items-center justify-center text-[13px] font-bold font-mono text-white/80 border border-white/5 mt-0.5">
-                    {numStr}
+                    {numStr ?? "–"}
                   </div>
 
                   <div className="flex-1 min-w-0 flex flex-col justify-center">
-                    <div className="text-[14px] font-bold font-mono text-white tracking-tight">
-                      Ch. {numStr}
+                    {/* Number on top, title under it — and `truncate` so a long
+                        title takes one line instead of wrapping around the
+                        badge and pushing the next row off its own baseline. */}
+                    <div className="truncate text-[14px] font-bold font-mono text-white tracking-tight">
+                      {numStr ? `Ch. ${numStr}` : label || chap.title}
                     </div>
-                    <div className="flex items-center mt-1">
-                      <span className="text-sm leading-none" title="Source Language">🇮🇩</span>
-                    </div>
+                    {numStr && label && (
+                      <div className="mt-0.5 truncate text-[12px] font-medium text-white/45">
+                        {label}
+                      </div>
+                    )}
                   </div>
                 </Link>
               );
