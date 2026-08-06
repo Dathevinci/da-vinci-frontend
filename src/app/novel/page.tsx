@@ -12,6 +12,7 @@ import HiddenGems from "@/components/media/HiddenGems";
 import { novelCover } from "@/lib/novelImage";
 import NovelCard from "@/components/novel/NovelCard";
 import NovelCarousel from "@/components/novel/NovelCarousel";
+import LnoriCarousel from "@/components/novel/LnoriCarousel";
 import NovelHeroCarousel from "@/components/novel/NovelHeroCarousel";
 import ContinueReading from "@/components/reading/ContinueReading";
 import { motion, AnimatePresence } from "framer-motion";
@@ -60,6 +61,7 @@ function NovelInner() {
   const [completed, setCompleted] = useState<NovelResult[]>([]);
   const [fanmtl, setFanmtl] = useState<NovelResult[]>([]);
   const [lnwTop, setLnwTop] = useState<NovelResult[]>([]);
+  const [lnori, setLnori] = useState<NovelResult[]>([]);
   const [hasNext, setHasNext] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -74,6 +76,7 @@ function NovelInner() {
           setCompleted(res.completed || []);
           setFanmtl(res.fanmtl || []);
           setLnwTop(res.lnwTop || []);
+          setLnori(res.lnori || []);
           setLoading(false);
         })
         .catch(() => setLoading(false));
@@ -137,6 +140,7 @@ function NovelInner() {
             <div className="relative z-20 space-y-2 max-w-[1600px] mx-auto">
               {/* Resume where you left off (client-side; hidden until you've read something) */}
               <ContinueReading kind="novel" />
+              <LnoriCarousel title="LNORI Official EPUBs" items={lnori} />
               <NovelCarousel title="Trending Now" icon={<Flame className="w-6 h-6 text-orange-500" />} items={trending} seeAllLink="/novel/explore?list=most-popular-novel" />
               <NovelCarousel title="Recently Updated" icon={<Clock className="w-6 h-6 text-pink-400" />} items={latest} seeAllLink="/novel/explore?list=latest-release-novel" />
               <NovelCarousel title="Completed" icon={<CheckCircle2 className="w-6 h-6 text-green-500" />} items={completed} seeAllLink="/novel/explore?list=completed-novel" />

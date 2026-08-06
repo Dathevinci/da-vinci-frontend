@@ -11,6 +11,7 @@ import { recordReading } from "@/lib/readingHistory";
 import { useNovelReaderPrefs, themeById, fontById, spacingById, widthById } from "@/lib/novel/readerPrefs";
 import ReaderSettings from "@/components/novel/ReaderSettings";
 import CommunityFeed from "@/components/community/CommunityFeed";
+import EpubReader from "@/components/reading/EpubReader";
 
 export default function NovelReaderPage() {
   const params = useParams();
@@ -92,6 +93,16 @@ export default function NovelReaderPage() {
   const go = (cid: string | null) => {
     if (cid) router.push(`/novel/${encodeURIComponent(id)}/chapter/${encodeURIComponent(cid)}`);
   };
+
+  if (chapterId.endsWith(".epub") || chapterId.includes("files.lnori.com")) {
+    return (
+      <EpubReader
+        url={chapterId}
+        title={chapter?.title || novel?.title || "EPUB Volume"}
+        novelId={id}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen selection:bg-pink-500/30" style={{ backgroundColor: t.bg, color: t.text }}>

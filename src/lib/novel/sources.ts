@@ -15,12 +15,14 @@ import * as RNF from "./ReadNovelFull";
 import * as NF from "./NovelFull";
 import * as FMTL from "./FanMTL";
 import * as LNW from "./LightNovelWorld";
+import * as Lnori from "./Lnori";
 import type { NovelResult, NovelInfo, ChapterContent } from "./ReadNovelFull";
 
-export function resolveSource(id: string): { source: "nf" | "fmtl" | "rnf" | "lnw"; slug: string } {
+export function resolveSource(id: string): { source: "nf" | "fmtl" | "rnf" | "lnw" | "lnori"; slug: string } {
   if (id.startsWith("nf:")) return { source: "nf", slug: id.slice(3) };
   if (id.startsWith("fmtl:")) return { source: "fmtl", slug: id.slice(5) };
   if (id.startsWith("lnw:")) return { source: "lnw", slug: id.slice(4) };
+  if (id.startsWith("lnori:")) return { source: "lnori", slug: id.slice(6) };
   return { source: "rnf", slug: id.replace(/^rnf:/, "") };
 }
 
@@ -33,6 +35,7 @@ export async function getNovelInfo(id: string): Promise<NovelInfo> {
   if (source === "nf") infoPromise = NF.getNovelInfo(slug);
   else if (source === "fmtl") infoPromise = FMTL.getNovelInfo(slug);
   else if (source === "lnw") infoPromise = LNW.getNovelInfo(slug);
+  else if (source === "lnori") infoPromise = Lnori.getNovelInfo(slug);
   else infoPromise = RNF.getNovelInfo(slug);
 
   const info = await infoPromise;
@@ -83,6 +86,7 @@ export async function getChapterContent(id: string, chapterId: string): Promise<
   if (source === "nf") return NF.getChapterContent(slug, chapterId);
   if (source === "fmtl") return FMTL.getChapterContent(slug, chapterId);
   if (source === "lnw") return LNW.getChapterContent(slug, chapterId);
+  if (source === "lnori") return Lnori.getChapterContent(slug, chapterId);
   return RNF.getChapterContent(slug, chapterId);
 }
 
@@ -195,12 +199,13 @@ export async function browseNovels(page = 1, list = "most-popular-novel") {
  * of what was already above it.
  */
 export async function homeShelves() {
-  const [trending, latest, completed, more, lnwTop] = await Promise.allSettled([
+  const [trending, latest, completed, more, lnwTop, lnori] = await Promise.allSettled([
     RNF.browseNovels(1, "most-popular-novel"),
     RNF.browseNovels(1, "latest-release-novel"),
     RNF.browseNovels(1, "completed-novel"),
     LNW.browseNovels(1),
     LNW.browseTopRated(),
+    Lnori.browseNovels(1),
   ]);
   return {
     trending: trending.status === "fulfilled" ? trending.value.results : [],
@@ -213,5 +218,6 @@ export async function homeShelves() {
     // Ranked by rating rather than requested as "popular", since this source
     // ignores its own sort params.
     lnwTop: lnwTop.status === "fulfilled" ? lnwTop.value.results : [],
+    lnori: lnori.status === "fulfilled" ? lnori.value.results : [],
   };
 }
