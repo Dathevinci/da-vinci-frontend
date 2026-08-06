@@ -340,7 +340,21 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
   const isSinglePage = prefs.onePageView || prefs.readingDirection === "ltr" || prefs.readingDirection === "rtl";
   const displayedPages = isSinglePage ? [pages[currentPageIndex - 1] || pages[0]] : pages;
 
-  const navVisible = isPinned || (uiVisible && !showSettings && !showChapterSelector);
+  /**
+   * A ONE-WAY TRAP, closed.
+   *
+   * The chapter modal only renders when `manhwa?.chapters` exists, but opening
+   * it flipped `showChapterSelector` regardless — and this line hides the whole
+   * toolbar whenever that is true. So if the series-info fetch failed (a
+   * SEPARATE request from the pages, against a source this repo documents as
+   * flaky) you could be reading perfectly well, tap the chapter list, and lose
+   * every control with no modal to close and no way back except a reload.
+   *
+   * The toolbar now only hides for a selector that is actually on screen.
+   */
+  const hasChapters = !!manhwa?.chapters?.length;
+  const selectorOpen = showChapterSelector && hasChapters;
+  const navVisible = isPinned || (uiVisible && !showSettings && !selectorOpen);
 
   return (
     <div 
@@ -355,7 +369,7 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
         nextChapterId={nextChapterId}
         currentPageIndex={currentPageIndex}
         totalPages={pages.length}
-        isChapterSelectorOpen={showChapterSelector}
+        isChapterSelectorOpen={selectorOpen}
         isVisible={navVisible}
         isPinned={isPinned}
         onTogglePin={togglePin}
@@ -382,7 +396,7 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
           toast("Marked as read.", "success");
         }}
         onOpenSettings={() => setShowSettings(true)}
-        onOpenChapterSelector={() => setShowChapterSelector(v => !v)}
+        onOpenChapterSelector={() => { if (hasChapters) setShowChapterSelector(v => !v); }}
         onCapture={handleCapture}
       />
 
