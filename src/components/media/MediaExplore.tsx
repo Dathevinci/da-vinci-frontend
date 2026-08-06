@@ -240,15 +240,21 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
     <div className="min-h-screen bg-[#070709] pb-24 text-white">
       {/* ── control bar ── */}
       <div className="sticky top-0 z-30 border-b border-white/10 bg-[#070709]/95 px-4 py-3 backdrop-blur">
-        <div className="mx-auto flex max-w-[1500px] items-center gap-2.5">
-          <div className="relative min-w-0 flex-1">
+        {/* Same wrap as the anime explore bar: the search takes a full row on a
+            phone rather than splitting one with the buttons beside it. This
+            page has fewer controls than anime, so it was less cramped — but
+            "less cramped" is still cramped on a 360px screen. */}
+        <div className="mx-auto flex max-w-[1500px] flex-wrap items-center gap-2.5">
+          <div className="relative order-first w-full min-w-0 sm:w-auto sm:flex-1">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder={mode === "novel" ? "Search for novels..." : "Search for comics..."}
               aria-label="Search"
-              className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-3 pl-11 pr-4 font-mono text-sm text-white placeholder:text-slate-600 focus:border-white/25 focus:outline-none"
+              /* 16px on mobile so iOS Safari does not zoom the page on focus
+                 and leave it that way. sm:text-sm keeps the desktop size. */
+              className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-3 pl-11 pr-4 font-mono text-base text-white placeholder:text-slate-600 focus:border-white/25 focus:outline-none sm:text-sm"
             />
           </div>
 

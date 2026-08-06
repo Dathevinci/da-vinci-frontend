@@ -173,14 +173,24 @@ function ExploreInner() {
     <div className="min-h-screen bg-[#070709] pb-24 text-white">
       {/* ── control bar ── */}
       <div className="sticky top-0 z-30 border-b border-white/10 bg-[#070709]/95 px-4 py-3 backdrop-blur">
-        <div className="mx-auto flex max-w-[1500px] items-center gap-2.5">
-          <div className="relative min-w-0 flex-1">
+        {/* WRAPS ON A PHONE. Four things shared one row — the input and three
+            shrink-0 buttons — so the buttons took their full width and the
+            search got whatever was left, which on a narrow screen was a sliver
+            barely wide enough for a word.
+            The input now claims a whole row of its own and the buttons wrap
+            underneath; from sm up it goes back to the single row it was. */}
+        <div className="mx-auto flex max-w-[1500px] flex-wrap items-center gap-2.5">
+          <div className="relative order-first w-full min-w-0 sm:w-auto sm:flex-1">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search for anime..."
-              className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-3 pl-11 pr-4 font-mono text-sm text-white placeholder:text-slate-600 focus:border-white/25 focus:outline-none"
+              /* 16px on mobile, not 14. Safari on iOS ZOOMS THE PAGE when a
+                 focused input is under 16px, and it does not zoom back out —
+                 so tapping search left the whole page enlarged and scrolled
+                 sideways. sm:text-sm keeps the tighter desktop size. */
+              className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-3 pl-11 pr-4 font-mono text-base text-white placeholder:text-slate-600 focus:border-white/25 focus:outline-none sm:text-sm"
             />
           </div>
 
