@@ -35,8 +35,18 @@ export async function browseNovels(page = 1): Promise<{ results: NovelResult[]; 
   const results: NovelResult[] = await Promise.all(slice.map(async (item) => {
     let cover = "";
     try {
-      const aniCover = await getNovelCover(item.title);
-      cover = aniCover || "";
+      let aniCover = await getNovelCover(item.title);
+      if (!aniCover) {
+        const cleanTitle = item.title
+          .replace(/- Year \d+/i, "")
+          .replace(/\[.*?\]/g, "")
+          .replace(/\(.*?\)/g, "")
+          .trim();
+        if (cleanTitle !== item.title) {
+          aniCover = await getNovelCover(cleanTitle);
+        }
+      }
+      cover = aniCover || `https://placehold.co/400x600/101018/e2e8f0?text=${encodeURIComponent(item.title.substring(0, 15))}`;
     } catch {}
     return {
       id: item.id,

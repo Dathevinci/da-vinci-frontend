@@ -95,9 +95,11 @@ export default function NovelReaderPage() {
   };
 
   if (chapterId.endsWith(".epub") || chapterId.includes("files.lnori.com")) {
+    const proxyUrl = chapterId.includes("files.lnori.com") ? `/api/proxy/lnori?url=${encodeURIComponent(chapterId)}` : chapterId;
     return (
       <EpubReader
-        url={chapterId}
+        url={proxyUrl}
+        downloadUrl={chapterId}
         title={chapter?.title || novel?.title || "EPUB Volume"}
         novelId={id}
       />

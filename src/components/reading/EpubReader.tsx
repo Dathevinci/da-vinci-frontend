@@ -8,11 +8,12 @@ import { motion } from "framer-motion";
 
 interface EpubReaderProps {
   url: string;
+  downloadUrl?: string;
   title: string;
   novelId: string;
 }
 
-export default function EpubReader({ url, title, novelId }: EpubReaderProps) {
+export default function EpubReader({ url, downloadUrl, title, novelId }: EpubReaderProps) {
   const [location, setLocation] = useState<string | number>(0);
 
   return (
@@ -28,8 +29,9 @@ export default function EpubReader({ url, title, novelId }: EpubReaderProps) {
           <h1 className="line-clamp-1 font-mono text-sm font-bold text-white sm:text-base">{title}</h1>
         </div>
         <a
-          href={url}
-          download
+          href={downloadUrl || url}
+          target="_blank"
+          rel="noopener noreferrer"
           className="flex items-center gap-2 rounded-lg bg-pink-500 px-4 py-2 font-mono text-xs font-bold text-white transition hover:bg-pink-600"
         >
           <Download className="h-4 w-4" />
