@@ -32,7 +32,30 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
   // UI State
   const [prefs, setPrefs] = useState<ManhwaReaderPrefs | null>(null);
   const [uiVisible, setUiVisible] = useState(true);
+  /**
+   * The pin survives a reload now.
+   *
+   * It was plain useState, so pinning the toolbar lasted exactly until you
+   * opened the next chapter — and pinning is a preference about how you want to
+   * read, not a per-page whim. Anyone who pinned it had to pin it again on
+   * every single chapter, which is the opposite of what the control is for.
+   *
+   * Its own key rather than the prefs blob: prefs are the settings PANEL's
+   * contents, and the pin lives on the toolbar. Folding it in would put a
+   * control in a save file that no part of the settings UI can edit.
+   */
+  const PIN_KEY = "davinci_reader_pinned";
   const [isPinned, setIsPinned] = useState(false);
+  useEffect(() => {
+    try { setIsPinned(localStorage.getItem(PIN_KEY) === "1"); } catch { /* private mode */ }
+  }, []);
+  const togglePin = () => {
+    setIsPinned((p) => {
+      const next = !p;
+      try { localStorage.setItem(PIN_KEY, next ? "1" : "0"); } catch { /* private mode */ }
+      return next;
+    });
+  };
   const [showSettings, setShowSettings] = useState(false);
   const [showChapterSelector, setShowChapterSelector] = useState(false);
   const [showSideChat, setShowSideChat] = useState(false);
@@ -335,7 +358,7 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
         isChapterSelectorOpen={showChapterSelector}
         isVisible={navVisible}
         isPinned={isPinned}
-        onTogglePin={() => setIsPinned(p => !p)}
+        onTogglePin={togglePin}
         /**
          * These two were `alert("Added to Library!")` and
          * `alert("Marked as Read!")` — they claimed to save and saved nothing,
