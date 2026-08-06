@@ -52,6 +52,15 @@ function themeCss(prefs: EpubPrefs): string {
       line-height:1.75 !important; text-align:${prefs.align} !important;
       margin:0 !important; padding:0 5% !important;
       -webkit-text-size-adjust:100% !important;
+      /* THIS IS WHAT BROKE SCROLLING, AND WHY ONLY SOMETIMES.
+         Fixed-layout sections — covers, full-page art, colour inserts — ship
+         `html,body{height:100%;overflow:hidden}` so the page cannot move. That
+         is correct for print and fatal here: the section is taller than the
+         viewport, and the publisher has told the document it may not scroll.
+         Prose chapters carry no such rule, which is why it worked on some
+         pages and not others. */
+      height:auto !important; max-height:none !important;
+      overflow:visible !important; position:static !important;
     }
     p, li, td, blockquote, div, span, section {
       color:${pal.text} !important; ${fontRule}
@@ -142,6 +151,9 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
   const bionicRef = useRef(prefs.bionic);
   const startRef = useRef<string | null>(null);
   const historyRef = useRef<string[]>([]);
+  /** Held while a bottom-of-section advance is in flight, so one flick of the
+   *  wheel cannot skip several sections at once. */
+  const advancingRef = useRef(false);
 
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -229,6 +241,7 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
     if (!book) return;
     let cancelled = false;
     let rendition: any = null;
+    let detachScroll: (() => void) | null = null;
     setReady(false);
 
     (async () => {
@@ -238,12 +251,19 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
         rendition = book.renderTo(viewerRef.current, {
           width: "100%",
           height: "100%",
-          // "scrolled" + continuous is the pairing epub.js expects for a
-          // scrolling book. The previous combination asked the continuous
-          // manager for a single-document flow, and the result was a view that
-          // sometimes simply would not move.
-          flow: paginated ? "paginated" : "scrolled",
-          manager: paginated ? "default" : "continuous",
+          /**
+           * The default manager for both flows.
+           *
+           * The continuous manager stitches sections into one endless column
+           * and takes over scrolling to do it. That is the exotic path, it is
+           * the piece that changed when scrolling broke, and it is the hardest
+           * to reason about without being able to run the thing. `scrolled-doc`
+           * on the default manager gives epub.js's own container a fixed height
+           * and `overflow:auto`, which is the plainest possible arrangement:
+           * one section, scrolled normally, next section on next().
+           */
+          flow: paginated ? "paginated" : "scrolled-doc",
+          manager: "default",
           // Single column always — a two-page spread halves an already narrow
           // phone and looks broken on anything portrait.
           spread: "none",
@@ -284,6 +304,40 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
         if (cancelled) return;
         setReady(true);
 
+        /**
+         * Reaching the bottom carries you into the next section.
+         *
+         * `scrolled-doc` shows one section at a time, so without this a chapter
+         * ends in a wall and you have to find a button. The guards matter: skip
+         * when the section is shorter than the viewport (nothing to scroll, and
+         * firing there would race through the book), and hold a flag until the
+         * new section settles so one flick cannot advance twice.
+         */
+        const scroller: HTMLElement | null =
+          rendition.manager?.container || (viewerRef.current?.firstElementChild as HTMLElement | null);
+
+        if (scroller && !paginated) {
+          const onScroll = () => {
+            if (advancingRef.current) return;
+            const { scrollTop, clientHeight, scrollHeight } = scroller;
+            if (scrollHeight <= clientHeight + 40) return;
+            if (scrollTop + clientHeight < scrollHeight - 48) return;
+            advancingRef.current = true;
+            Promise.resolve(rendition.next())
+              .then(() => {
+                scroller.scrollTop = 0;
+              })
+              .catch(() => {})
+              .finally(() => {
+                window.setTimeout(() => {
+                  advancingRef.current = false;
+                }, 400);
+              });
+          };
+          scroller.addEventListener("scroll", onScroll, { passive: true });
+          detachScroll = () => scroller.removeEventListener("scroll", onScroll);
+        }
+
         book.loaded.navigation
           .then((nav: any) => {
             if (!cancelled) setToc(nav?.toc || []);
@@ -296,6 +350,11 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
 
     return () => {
       cancelled = true;
+      try {
+        detachScroll?.();
+      } catch {
+        /* listener already gone with the node */
+      }
       try {
         rendition?.destroy();
       } catch {
