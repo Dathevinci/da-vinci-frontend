@@ -5,6 +5,29 @@ import { Search, Book, ArrowUpDown } from "lucide-react";
 import Link from "next/link";
 import { IMangaChapter } from "@/lib/asura/models";
 
+/**
+ * THE CHAPTER NUMBER LIVES IN THE ID, NOT THE TITLE.
+ *
+ * AsuraScans chapter ids are "<series-slug>|<number>" — that is the format the
+ * reader itself splits on to fetch pages. Reading the number from the TITLE
+ * only worked for chapters actually named "Chapter 271"; anything with a real
+ * name ("A Saintess' Duty", "Kraken (3)") had no number in its title and so
+ * showed none, even though its number was sitting in its own id the whole time.
+ *
+ * Order matters. The id is authoritative, so it goes first. "Kraken (3)" is
+ * exactly why the title is only a fallback: that 3 is part of the name, not a
+ * chapter number, and trusting the title would file it under chapter 3.
+ *
+ * MangaDex ids are "mdx:<uuid>" with no number, so those fall through to the
+ * title — which for that source really does carry "Chapter N".
+ */
+function chapterNo(chap: IMangaChapter): string | null {
+  const fromId = String(chap.id).split("|")[1];
+  if (fromId && /^\d+(\.\d+)?$/.test(fromId)) return fromId;
+  const m = chap.title.match(/chapter\s*(\d+(?:\.\d+)?)/i);
+  return m ? m[1] : null;
+}
+
 export default function ChapterSelectorModal({
   mangaId,
   chapters,
@@ -32,8 +55,8 @@ export default function ChapterSelectorModal({
   let filtered = q
     ? chapters.filter((c) => {
         if (c.title.toLowerCase().includes(q)) return true;
-        const m = c.title.match(/chapter\s*(\d+(?:\.\d+)?)/i) || c.title.match(/^\s*(\d+(?:\.\d+)?)\b/);
-        return !!m && m[1].startsWith(q);
+        const n = chapterNo(c);
+        return !!n && n.startsWith(q);
       })
     : chapters;
   if (!sortNewest) {
@@ -102,9 +125,7 @@ export default function ChapterSelectorModal({
                * sources title specials and side stories only — the badge shows
                * a dash instead of pretending, and the title carries the row.
                */
-              const m = chap.title.match(/chapter\s*(\d+(?:\.\d+)?)/i)
-                || chap.title.match(/^\s*(\d+(?:\.\d+)?)\b/);
-              const numStr = m ? m[1] : null;
+              const numStr = chapterNo(chap);
               // Whatever the title says once the "Chapter N" prefix is removed.
               // Empty for a plain "Chapter 271", which is the common case.
               const label = chap.title
