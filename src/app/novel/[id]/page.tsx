@@ -280,7 +280,6 @@ export default function NovelDetailPage() {
                       <EpubVolumeCard 
                         key={ch.id} 
                         url={ch.id} 
-                        proxyUrl={`/api/proxy/lnori?url=${encodeURIComponent(ch.id)}`} 
                         title={ch.title} 
                         novelId={id} 
                       />
