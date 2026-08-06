@@ -32,7 +32,7 @@ export default function AnimeCard({ anime, is4K }: AnimeCardProps) {
       <div className="relative w-[160px] md:w-[220px] aspect-[2/3] flex-shrink-0 snap-start">
         <button
           type="button"
-          onClick={() => openAnime(anime)}
+          onClick={() => openAnime(anime, is4K ? { preferDavinci: true } : undefined)}
           aria-label={`View ${title}`}
           className="absolute inset-0 block cursor-pointer overflow-hidden rounded-xl border border-white/10 bg-white/5 text-left shadow-lg transition-transform duration-300 hover:scale-[1.03]"
         >

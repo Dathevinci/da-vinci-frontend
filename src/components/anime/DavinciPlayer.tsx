@@ -47,6 +47,42 @@ const SPEED_OPTIONS = [
   { label: "2x", value: 2 },
 ];
 
+/** Parse WebVTT text into an array of {start, end, text} cue objects. */
+function parseVTTCues(vtt: string): { start: number; end: number; text: string }[] {
+  const cues: { start: number; end: number; text: string }[] = [];
+  // Split on double newline to get blocks
+  const blocks = vtt.replace(/\r\n/g, '\n').split(/\n\n+/);
+  for (const block of blocks) {
+    const lines = block.trim().split('\n');
+    // Find the line with the timestamp arrow
+    let tsLineIdx = -1;
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].includes('-->')) { tsLineIdx = i; break; }
+    }
+    if (tsLineIdx === -1) continue;
+    const tsParts = lines[tsLineIdx].split('-->');
+    if (tsParts.length < 2) continue;
+    const start = parseVTTTimestamp(tsParts[0].trim());
+    // The end timestamp may have position/alignment settings appended
+    const end = parseVTTTimestamp(tsParts[1].trim().split(/\s/)[0]);
+    if (isNaN(start) || isNaN(end)) continue;
+    const text = lines.slice(tsLineIdx + 1).join('\n').trim();
+    if (text) cues.push({ start, end, text });
+  }
+  return cues;
+}
+
+/** Convert a VTT timestamp like "00:01:23.456" or "01:23.456" to seconds. */
+function parseVTTTimestamp(ts: string): number {
+  const parts = ts.split(':');
+  if (parts.length === 3) {
+    return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseFloat(parts[2]);
+  } else if (parts.length === 2) {
+    return parseInt(parts[0]) * 60 + parseFloat(parts[1]);
+  }
+  return NaN;
+}
+
 export default function DavinciPlayer({ url, quality, subtitleUrl, onQualityChange }: DavinciPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -133,56 +169,89 @@ export default function DavinciPlayer({ url, quality, subtitleUrl, onQualityChan
   }, []);
 
   const [blobSubtitleUrl, setBlobSubtitleUrl] = useState<string | null>(null);
+  const subtitleTrackRef = useRef<TextTrack | null>(null);
 
-  // Fetch subtitle and convert to blob URL to bypass CORS on <track> without breaking video
+  // Fetch subtitle VTT text, parse cues, and add them programmatically via TextTrack API.
+  // This bypasses the well-known browser bug where dynamically inserted <track> elements
+  // after video load are silently ignored.
   useEffect(() => {
     if (!subtitleUrl) {
       setBlobSubtitleUrl(null);
+      // Remove existing track cues if subtitle URL is cleared
+      if (subtitleTrackRef.current) {
+        const track = subtitleTrackRef.current;
+        while (track.cues && track.cues.length > 0) {
+          track.removeCue(track.cues[0]);
+        }
+        track.mode = "disabled";
+      }
       return;
     }
     
     let active = true;
     fetch(subtitleUrl)
       .then(res => res.text())
-      .then(text => {
+      .then(vttText => {
         if (!active) return;
-        if (text && (text.includes("WEBVTT") || text.includes("-->"))) {
-          const blob = new Blob([text], { type: "text/vtt" });
-          const url = URL.createObjectURL(blob);
-          setBlobSubtitleUrl(url);
-        } else {
+        const video = videoRef.current;
+        if (!video) return;
+        
+        // Validate it's actually VTT content
+        if (!vttText || (!vttText.includes("WEBVTT") && !vttText.includes("-->"))) {
+          console.warn("Subtitle response is not valid WebVTT");
           setBlobSubtitleUrl(null);
+          return;
         }
+
+        // Mark that we have valid subtitle data
+        setBlobSubtitleUrl("loaded");
+
+        // Parse VTT cues manually
+        const cues = parseVTTCues(vttText);
+        if (cues.length === 0) {
+          console.warn("No cues found in subtitle data");
+          setBlobSubtitleUrl(null);
+          return;
+        }
+
+        // Create or reuse a TextTrack programmatically
+        let track = subtitleTrackRef.current;
+        if (!track) {
+          track = video.addTextTrack("subtitles", "English", "en");
+          subtitleTrackRef.current = track;
+        } else {
+          // Clear old cues
+          while (track.cues && track.cues.length > 0) {
+            track.removeCue(track.cues[0]);
+          }
+        }
+
+        // Add parsed cues
+        for (const cue of cues) {
+          try {
+            track.addCue(new VTTCue(cue.start, cue.end, cue.text));
+          } catch (e) {
+            // Skip invalid cues silently
+          }
+        }
+
+        // Show the track
+        track.mode = subtitlesEnabled ? "showing" : "hidden";
       })
       .catch(err => {
-        console.error("Failed to load subtitle blob:", err);
+        console.error("Failed to load subtitles:", err);
         setBlobSubtitleUrl(null);
       });
 
-    return () => {
-      active = false;
-      if (blobSubtitleUrl) URL.revokeObjectURL(blobSubtitleUrl);
-    };
+    return () => { active = false; };
   }, [subtitleUrl]);
 
-  // Force subtitle track to show/hide dynamically across all tracks
+  // Toggle subtitle visibility when the user toggles the setting
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    
-    const applyMode = () => {
-      const tracks = video.textTracks;
-      if (tracks) {
-        for (let i = 0; i < tracks.length; i++) {
-          tracks[i].mode = subtitlesEnabled ? "showing" : "hidden";
-        }
-      }
-    };
-
-    applyMode();
-    const timer = setTimeout(applyMode, 300);
-    return () => clearTimeout(timer);
-  }, [blobSubtitleUrl, subtitlesEnabled]);
+    if (subtitleTrackRef.current) {
+      subtitleTrackRef.current.mode = subtitlesEnabled ? "showing" : "hidden";
+    }
+  }, [subtitlesEnabled]);
 
   // Initialize Source
   useEffect(() => {
@@ -308,17 +377,7 @@ export default function DavinciPlayer({ url, quality, subtitleUrl, onQualityChan
         onClick={togglePlay}
         playsInline
         preload="auto"
-      >
-        {blobSubtitleUrl && subtitlesEnabled && (
-          <track
-            kind="subtitles"
-            src={blobSubtitleUrl}
-            srcLang="en"
-            label="English"
-            default
-          />
-        )}
-      </video>
+      />
 
       {/* Loading Spinner */}
       {isLoading && (

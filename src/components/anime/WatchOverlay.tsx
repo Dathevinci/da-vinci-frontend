@@ -41,6 +41,8 @@ interface WatchOverlayProps {
   inline?: boolean;
   /** Fires when the native video reaches its end (auto-next lives upstairs). */
   onEnded?: () => void;
+  /** When true, auto-select the davinci torrent server for 4K playback. */
+  preferDavinci?: boolean;
 }
 
 export default function WatchOverlay({
@@ -53,6 +55,7 @@ export default function WatchOverlay({
   onClose,
   inline = false,
   onEnded,
+  preferDavinci = false,
 }: WatchOverlayProps) {
   const { addXpForWatching, user } = useUser();
   const { isTracked, setStatus } = useAnimeStatus();
@@ -623,8 +626,13 @@ export default function WatchOverlay({
 
   // Auto-load initial episode
   useEffect(() => {
-    loadStream(initialEpisodeId, initialEpisodeNo);
-  }, [initialEpisodeId, initialEpisodeNo, loadStream]);
+    if (preferDavinci) {
+      // 4K section: go straight to the davinci torrent server
+      loadStream(initialEpisodeId, initialEpisodeNo, undefined, "davinci");
+    } else {
+      loadStream(initialEpisodeId, initialEpisodeNo);
+    }
+  }, [initialEpisodeId, initialEpisodeNo, loadStream, preferDavinci]);
 
   // Navigate episodes
   const goToEpisode = useCallback((direction: "prev" | "next") => {

@@ -17,6 +17,8 @@ export interface AnimeModalOptions {
   startTab?: "episodes" | "discussions";
   /** Seconds to resume from — the Netflix-style "pick up where you left off". */
   startSeconds?: number;
+  /** When true, auto-select the davinci torrent server for 4K playback. */
+  preferDavinci?: boolean;
 }
 
 interface AnimeModalContextValue {
