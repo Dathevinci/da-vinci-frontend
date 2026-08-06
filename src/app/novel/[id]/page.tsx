@@ -277,11 +277,12 @@ export default function NovelDetailPage() {
                 <div className={id.startsWith("lnori:") ? "grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4" : "grid grid-cols-1 gap-2 sm:grid-cols-2"}>
                   {shown.map((ch) => (
                     id.startsWith("lnori:") ? (
-                      <EpubVolumeCard 
-                        key={ch.id} 
-                        url={ch.id} 
-                        title={ch.title} 
-                        novelId={id} 
+                      <EpubVolumeCard
+                        key={ch.id}
+                        url={ch.id}
+                        title={ch.title}
+                        novelId={id}
+                        fallbackCover={novelCover(novel.cover)}
                       />
                     ) : (
                       <Link

@@ -91,10 +91,31 @@ export async function getNovelInfo(slug: string): Promise<NovelInfo> {
   };
 }
 
+/**
+ * There is no chapter text to fetch — the volume IS the file, and the reader
+ * swaps itself for the EPUB view. What this still owes the caller is a NAME.
+ *
+ * It used to answer "EPUB File", and since the reader picks
+ * `chapter?.title || novel?.title`, that placeholder won every time: every
+ * volume of every series was titled "EPUB File" in the reader header. The
+ * filename is right there in the id, so use it.
+ */
 export async function getChapterContent(slug: string, chapterId: string): Promise<ChapterContent> {
+  let title = "EPUB Volume";
+  try {
+    const file = decodeURIComponent(new URL(chapterId).pathname.split("/").pop() || "");
+    const name = file.replace(/\.epub$/i, "").replace(/[_+]/g, " ").trim();
+    if (name) title = name;
+  } catch {
+    // Not a URL — older bookmarks stored the raw filename, which is still a
+    // better name than the placeholder was.
+    const name = chapterId.replace(/\.epub$/i, "").trim();
+    if (name) title = name;
+  }
+
   return {
-    title: "EPUB File",
-    content: ["This is an EPUB file. It should be handled by the frontend reader."],
+    title,
+    content: ["This volume opens in the EPUB reader."],
     prev: null,
     next: null,
   };
