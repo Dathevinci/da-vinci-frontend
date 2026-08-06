@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import unzipper from "unzipper";
 import { Readable } from "stream";
+import { decodeLnoriTarget } from "@/lib/novel/lnoriProxy";
 
 export const runtime = "nodejs";
 
@@ -52,9 +53,12 @@ const IMAGE_HEADERS = {
 };
 
 export async function GET(req: NextRequest) {
-  const url = req.nextUrl.searchParams.get("url");
+  const url = decodeLnoriTarget(
+    req.nextUrl.searchParams.get("b"),
+    req.nextUrl.searchParams.get("url")
+  );
 
-  if (!url || !url.startsWith("https://files.lnori.com/")) {
+  if (!url) {
     return new Response("Invalid URL", { status: 400 });
   }
 

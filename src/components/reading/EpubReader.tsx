@@ -3,20 +3,21 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { ArrowLeft, Download, Loader2, Minus, Plus, Type } from "lucide-react";
+import { ArrowLeft, Columns2, Download, Loader2, Minus, Plus, ScrollText, Type } from "lucide-react";
 import {
   useNovelReaderPrefs,
   themeById,
+  spacingById,
   READER_THEMES,
   READER_FONTS,
   SIZE_MIN,
   SIZE_MAX,
 } from "@/lib/novel/readerPrefs";
+import { lnoriFileUrl } from "@/lib/novel/lnoriProxy";
 
 /**
  * epub.js reaches for `window` as it initialises, so this never renders on the
- * server. It was being SSR'd before, which is the sort of thing that works
- * until a particular book makes it not work.
+ * server.
  */
 const ReactReader = dynamic(() => import("react-reader").then((m) => m.ReactReader), {
   ssr: false,
@@ -42,28 +43,50 @@ const EPUB_FONTS: Record<string, string> = {
   mono: "ui-monospace, 'Courier New', monospace",
 };
 
+type Flow = "scrolled-doc" | "paginated";
+const FLOW_KEY = "epub-flow";
+
 interface EpubReaderProps {
-  url: string;
-  downloadUrl?: string;
+  /** The real .epub address. Never rendered into a URL the browser can see. */
+  file: string;
   title: string;
   novelId: string;
 }
 
-export default function EpubReader({ url, downloadUrl, title, novelId }: EpubReaderProps) {
+export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
   const { prefs, update } = useNovelReaderPrefs();
   const t = themeById(prefs.theme);
+  const lineHeight = spacingById(prefs.spacing).value;
+
+  const url = lnoriFileUrl(file);
+  const downloadHref = lnoriFileUrl(file, true);
+
   const [location, setLocation] = useState<string | number>(0);
   const [panel, setPanel] = useState(false);
+  const [flow, setFlow] = useState<Flow>("scrolled-doc");
   const renditionRef = useRef<any>(null);
 
-  // Per-volume, so each book in a series remembers its own page.
-  const locKey = `epub-loc:${url}`;
+  const locKey = `epub-loc:${file}`;
 
   /**
-   * Restored in an effect rather than in useState, deliberately: seeding state
-   * from localStorage during render makes the server and client disagree about
-   * the first paint. The book opens at the start for one frame and then jumps
-   * to where you were, which is the cheaper of the two problems.
+   * Scrolling is the default, and on a phone it is the difference between a
+   * readable book and a fight. Paginated mode pins the text to a fixed-height
+   * column, so any book whose CSS disagrees with the viewport gets clipped
+   * mid-sentence with no way to reach the rest.
+   */
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(FLOW_KEY) as Flow | null;
+      if (saved === "paginated" || saved === "scrolled-doc") setFlow(saved);
+    } catch {
+      /* private mode */
+    }
+  }, []);
+
+  /**
+   * Restored in an effect rather than in useState: seeding state from
+   * localStorage during render makes the server and client disagree about the
+   * first paint.
    */
   useEffect(() => {
     try {
@@ -83,20 +106,52 @@ export default function EpubReader({ url, downloadUrl, title, novelId }: EpubRea
     }
   };
 
-  // Push the reader's theme through to the book's own document.
+  /**
+   * A registered theme rather than per-property overrides, and every rule
+   * marked important.
+   *
+   * Publisher stylesheets ship their own `body { background: #fff; color: #000 }`
+   * and they load AFTER ours, which is why the first attempt at theming left
+   * white pages sitting on a dark reader. `!important` is the only thing that
+   * outranks a stylesheet you do not control.
+   */
   const applyTheme = useCallback(
     (r: any) => {
       if (!r) return;
+      const font = EPUB_FONTS[prefs.font] || EPUB_FONTS.serif;
       try {
-        r.themes.override("color", t.text);
-        r.themes.override("background", t.bg);
+        r.themes.register("davinci", {
+          "html, body": {
+            background: `${t.bg} !important`,
+            color: `${t.text} !important`,
+            "font-family": `${font} !important`,
+            "line-height": `${lineHeight} !important`,
+            padding: "0 5% !important",
+            "-webkit-text-size-adjust": "100% !important",
+          },
+          "p, div, span, li, td, blockquote": {
+            color: `${t.text} !important`,
+            "font-family": `${font} !important`,
+            "line-height": `${lineHeight} !important`,
+          },
+          "h1, h2, h3, h4, h5, h6": { color: `${t.text} !important` },
+          a: { color: "#f472b6 !important" },
+          // Cover plates and interior art are often sized for print and
+          // overflow the column otherwise.
+          img: {
+            "max-width": "100% !important",
+            height: "auto !important",
+            margin: "1em auto !important",
+            display: "block !important",
+          },
+        });
+        r.themes.select("davinci");
         r.themes.fontSize(`${prefs.size}px`);
-        r.themes.font(EPUB_FONTS[prefs.font] || EPUB_FONTS.serif);
       } catch {
         /* a book that refuses styling still reads */
       }
     },
-    [t.text, t.bg, prefs.size, prefs.font]
+    [t.bg, t.text, prefs.font, prefs.size, lineHeight]
   );
 
   useEffect(() => {
@@ -105,7 +160,8 @@ export default function EpubReader({ url, downloadUrl, title, novelId }: EpubRea
 
   const turn = useCallback((dir: "next" | "prev") => {
     try {
-      dir === "next" ? renditionRef.current?.next() : renditionRef.current?.prev();
+      if (dir === "next") renditionRef.current?.next();
+      else renditionRef.current?.prev();
     } catch {
       /* not ready yet */
     }
@@ -129,16 +185,27 @@ export default function EpubReader({ url, downloadUrl, title, novelId }: EpubRea
   const setSize = (delta: number) =>
     update({ size: Math.min(SIZE_MAX, Math.max(SIZE_MIN, prefs.size + delta)) });
 
+  const toggleFlow = () => {
+    const next: Flow = flow === "paginated" ? "scrolled-doc" : "paginated";
+    setFlow(next);
+    try {
+      localStorage.setItem(FLOW_KEY, next);
+    } catch {
+      /* private mode */
+    }
+  };
+
+  const iconBtn = "rounded-lg p-2 transition hover:bg-white/10 disabled:opacity-30";
+
   return (
     <div className="fixed inset-0 z-[100] flex flex-col" style={{ backgroundColor: t.bg }}>
       <div
-        className="flex items-center justify-between border-b px-4 py-3"
+        className="flex items-center justify-between gap-2 border-b px-3 py-2 sm:px-4 sm:py-3"
         style={{ backgroundColor: t.panel, borderColor: t.border }}
       >
-        <div className="flex min-w-0 items-center gap-3">
-          {/* `replace`: this arrow is a back control, and pushing the novel
-              page on top of the volume left the browser's own back button
-              returning you straight into the book you had just closed. */}
+        <div className="flex min-w-0 items-center gap-2">
+          {/* `replace`: a back control that pushes leaves the browser's own
+              back button returning you into the book you just closed. */}
           <Link
             href={`/novel/${encodeURIComponent(novelId)}`}
             replace
@@ -148,48 +215,31 @@ export default function EpubReader({ url, downloadUrl, title, novelId }: EpubRea
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <h1 className="line-clamp-1 font-mono text-sm font-bold sm:text-base" style={{ color: t.text }}>
+          <h1 className="line-clamp-1 font-mono text-xs font-bold sm:text-sm" style={{ color: t.text }}>
             {title}
           </h1>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1">
-          <button
-            onClick={() => setSize(-1)}
-            disabled={prefs.size <= SIZE_MIN}
-            className="rounded-lg p-2 transition hover:bg-white/10 disabled:opacity-30"
-            style={{ color: t.muted }}
-            title="Smaller text"
-          >
+        <div className="flex shrink-0 items-center gap-0.5">
+          <button onClick={toggleFlow} className={iconBtn} style={{ color: t.muted }} title={flow === "paginated" ? "Switch to scrolling" : "Switch to pages"}>
+            {flow === "paginated" ? <ScrollText className="h-4 w-4" /> : <Columns2 className="h-4 w-4" />}
+          </button>
+          <button onClick={() => setSize(-1)} disabled={prefs.size <= SIZE_MIN} className={iconBtn} style={{ color: t.muted }} title="Smaller text">
             <Minus className="h-4 w-4" />
           </button>
-          <span className="w-8 text-center font-mono text-xs tabular-nums" style={{ color: t.muted }}>
+          <span className="w-6 text-center font-mono text-xs tabular-nums" style={{ color: t.muted }}>
             {prefs.size}
           </span>
-          <button
-            onClick={() => setSize(1)}
-            disabled={prefs.size >= SIZE_MAX}
-            className="rounded-lg p-2 transition hover:bg-white/10 disabled:opacity-30"
-            style={{ color: t.muted }}
-            title="Larger text"
-          >
+          <button onClick={() => setSize(1)} disabled={prefs.size >= SIZE_MAX} className={iconBtn} style={{ color: t.muted }} title="Larger text">
             <Plus className="h-4 w-4" />
           </button>
-
-          <button
-            onClick={() => setPanel((p) => !p)}
-            className="rounded-lg p-2 transition hover:bg-white/10"
-            style={{ color: panel ? t.text : t.muted }}
-            title="Theme and font"
-          >
+          <button onClick={() => setPanel((p) => !p)} className={iconBtn} style={{ color: panel ? t.text : t.muted }} title="Theme and font">
             <Type className="h-4 w-4" />
           </button>
-
           <a
-            href={downloadUrl || url}
-            target="_blank"
-            rel="noopener noreferrer"
+            href={downloadHref}
             className="ml-1 flex items-center gap-2 rounded-lg bg-pink-500 px-3 py-2 font-mono text-xs font-bold text-white transition hover:bg-pink-600"
+            title="Save this volume"
           >
             <Download className="h-4 w-4" />
             <span className="hidden sm:inline">EPUB</span>
@@ -198,18 +248,13 @@ export default function EpubReader({ url, downloadUrl, title, novelId }: EpubRea
       </div>
 
       {panel && (
-        <div
-          className="border-b px-4 py-3"
-          style={{ backgroundColor: t.panel, borderColor: t.border }}
-        >
+        <div className="border-b px-4 py-3" style={{ backgroundColor: t.panel, borderColor: t.border }}>
           <div className="mb-3 flex flex-wrap gap-2">
             {READER_THEMES.map((theme) => (
               <button
                 key={theme.id}
                 onClick={() => update({ theme: theme.id })}
-                className={`rounded-lg border px-3 py-1.5 font-mono text-[11px] font-bold transition ${
-                  prefs.theme === theme.id ? "ring-2 ring-pink-500" : ""
-                }`}
+                className={`rounded-lg border px-3 py-1.5 font-mono text-[11px] font-bold transition ${prefs.theme === theme.id ? "ring-2 ring-pink-500" : ""}`}
                 style={{ backgroundColor: theme.bg, color: theme.text, borderColor: theme.border }}
               >
                 {theme.name}
@@ -239,6 +284,9 @@ export default function EpubReader({ url, downloadUrl, title, novelId }: EpubRea
           no theming at all. */}
       <div className="relative flex-1" style={{ backgroundColor: t.bg }}>
         <ReactReader
+          // Remounted when the flow changes: epub.js builds its manager once,
+          // so switching pages/scrolling on a live rendition does nothing.
+          key={flow}
           url={url}
           location={location}
           locationChanged={onLocationChanged}
@@ -257,7 +305,13 @@ export default function EpubReader({ url, downloadUrl, title, novelId }: EpubRea
             }
           }}
           epubInitOptions={{ openAs: "epub" }}
-          epubOptions={{ flow: "paginated", manager: "continuous" }}
+          epubOptions={{
+            flow,
+            manager: flow === "scrolled-doc" ? "continuous" : "default",
+            // Single column always. The two-page spread halves an already
+            // narrow phone and looks broken on anything portrait.
+            spread: "none",
+          }}
         />
       </div>
     </div>

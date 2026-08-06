@@ -94,13 +94,47 @@ export default function NovelReaderPage() {
     if (cid) router.push(`/novel/${encodeURIComponent(id)}/chapter/${encodeURIComponent(cid)}`);
   };
 
-  if (chapterId.endsWith(".epub") || chapterId.includes("files.lnori.com")) {
-    const proxyUrl = chapterId.includes("files.lnori.com") ? `/api/proxy/lnori?url=${encodeURIComponent(chapterId)}` : chapterId;
+  /**
+   * EPUB volumes are detected from the SERIES id, not from the chapter id.
+   *
+   * It used to sniff for ".epub" on the chapter id, because the id WAS the
+   * file address — which is precisely what made download managers grab every
+   * link on the page. Volumes are "vol-3" now and the address lives on the
+   * chapter record, so the check moved to the one part of the route that still
+   * says which source this is.
+   *
+   * A chapter id that still looks like a URL is an old bookmark, and is used
+   * as-is so those keep opening.
+   */
+  const legacyFile = chapterId.includes("files.lnori.com") ? chapterId : null;
+  if (id.startsWith("lnori:") || legacyFile) {
+    const vol = chapters.find((c) => c.id === chapterId) as any;
+    const file: string | null = legacyFile || vol?.file || null;
+
+    if (!file) {
+      // The volume list arrives with the novel, so until that lands there is
+      // nothing to open yet — and if it landed without this volume, say so
+      // rather than spinning forever.
+      return (
+        <div className="grid min-h-screen place-items-center px-6 text-center" style={{ backgroundColor: t.bg }}>
+          {novel ? (
+            <div style={{ color: t.muted }}>
+              <p className="font-mono text-sm">That volume is no longer listed.</p>
+              <Link href={`/novel/${encodeURIComponent(id)}`} replace className="mt-3 inline-block font-mono text-sm text-pink-400 hover:underline">
+                Back to the series
+              </Link>
+            </div>
+          ) : (
+            <Loader2 className="h-6 w-6 animate-spin" style={{ color: t.muted }} />
+          )}
+        </div>
+      );
+    }
+
     return (
       <EpubReader
-        url={proxyUrl}
-        downloadUrl={chapterId}
-        title={chapter?.title || novel?.title || "EPUB Volume"}
+        file={file}
+        title={vol?.title || chapter?.title || novel?.title || "EPUB Volume"}
         novelId={id}
       />
     );

@@ -67,14 +67,25 @@ export async function getNovelInfo(slug: string): Promise<NovelInfo> {
   const title = $("h1").text().trim();
   const chapters: any[] = [];
   
+  /**
+   * THE ID IS A VOLUME NUMBER, NOT THE FILE URL.
+   *
+   * These ids used to be the absolute `.epub` address, which meant every link
+   * in the app was a route path ending in `.epub` with an encoded `https://`
+   * buried in it. That is how a browser ends up being handed a file to save
+   * instead of a page to render, and it made the app's own URLs fragile for no
+   * benefit. The address now travels in `file`, where nothing navigates to it,
+   * and the reader asks the proxy for it by volume.
+   */
   $("#files li a.epub").each((i, el) => {
     const $el = $(el);
     const href = $el.attr("href") || "";
     const name = $el.text().replace(".epub", "").trim();
     chapters.push({
-      id: `${BASE}${href}`,
+      id: `vol-${i + 1}`,
       title: name,
       number: i + 1,
+      file: `${BASE}${href}`,
     });
   });
 
@@ -102,15 +113,20 @@ export async function getNovelInfo(slug: string): Promise<NovelInfo> {
  */
 export async function getChapterContent(slug: string, chapterId: string): Promise<ChapterContent> {
   let title = "EPUB Volume";
-  try {
-    const file = decodeURIComponent(new URL(chapterId).pathname.split("/").pop() || "");
-    const name = file.replace(/\.epub$/i, "").replace(/[_+]/g, " ").trim();
-    if (name) title = name;
-  } catch {
-    // Not a URL — older bookmarks stored the raw filename, which is still a
-    // better name than the placeholder was.
-    const name = chapterId.replace(/\.epub$/i, "").trim();
-    if (name) title = name;
+
+  const volNo = chapterId.match(/^vol-(\d+)$/i);
+  if (volNo) {
+    title = `Volume ${volNo[1]}`;
+  } else {
+    // An older bookmark, from when the id was the file URL itself.
+    try {
+      const file = decodeURIComponent(new URL(chapterId).pathname.split("/").pop() || "");
+      const name = file.replace(/\.epub$/i, "").replace(/[_+]/g, " ").trim();
+      if (name) title = name;
+    } catch {
+      const name = chapterId.replace(/\.epub$/i, "").trim();
+      if (name) title = name;
+    }
   }
 
   return {

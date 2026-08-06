@@ -2,9 +2,13 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { lnoriCoverUrl } from "@/lib/novel/lnoriProxy";
 
 interface EpubVolumeCardProps {
-  url: string;
+  /** Short opaque id ("vol-3") — what the route actually navigates to. */
+  chapterId: string;
+  /** The real .epub address, used only to ask the proxy for a cover. */
+  file: string;
   title: string;
   novelId: string;
   /**
@@ -15,10 +19,9 @@ interface EpubVolumeCardProps {
   fallbackCover?: string | null;
 }
 
-export default function EpubVolumeCard({ url, title, novelId, fallbackCover }: EpubVolumeCardProps) {
+export default function EpubVolumeCard({ chapterId, file, title, novelId, fallbackCover }: EpubVolumeCardProps) {
   const [failed, setFailed] = useState(false);
-  const coverUrl = `/api/proxy/lnori/cover?url=${encodeURIComponent(url)}`;
-  const src = failed ? fallbackCover : coverUrl;
+  const src = failed ? fallbackCover : lnoriCoverUrl(file);
 
   // Extract volume number for badge
   const volumeMatch = title.match(/Volume\s*(\d+(\.\d+)?)/i) || title.match(/Vol\s*\.?\s*(\d+(\.\d+)?)/i);
@@ -26,7 +29,7 @@ export default function EpubVolumeCard({ url, title, novelId, fallbackCover }: E
 
   return (
     <Link
-      href={`/novel/${encodeURIComponent(novelId)}/chapter/${encodeURIComponent(url)}`}
+      href={`/novel/${encodeURIComponent(novelId)}/chapter/${encodeURIComponent(chapterId)}`}
       className="group relative flex flex-col overflow-hidden rounded-xl border border-white/5 bg-[#12121c] transition hover:border-pink-500/50 hover:shadow-lg hover:shadow-pink-500/10"
     >
       <div className="relative aspect-[2/3] w-full bg-black/40">

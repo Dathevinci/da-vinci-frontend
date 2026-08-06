@@ -279,7 +279,8 @@ export default function NovelDetailPage() {
                     id.startsWith("lnori:") ? (
                       <EpubVolumeCard
                         key={ch.id}
-                        url={ch.id}
+                        chapterId={ch.id}
+                        file={(ch as any).file || ch.id}
                         title={ch.title}
                         novelId={id}
                         fallbackCover={novelCover(novel.cover)}
