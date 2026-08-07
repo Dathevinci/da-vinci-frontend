@@ -26,7 +26,8 @@ export function encodeLnori(url: string): string {
 
 /** The book itself, for epub.js. `download` turns it into a deliberate save. */
 export function lnoriFileUrl(fileUrl: string, download = false): string {
-  return `/api/proxy/lnori?b=${encodeLnori(fileUrl)}${download ? "&dl=1" : ""}`;
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  return `${origin}/api/proxy/lnori?b=${encodeLnori(fileUrl)}${download ? "&dl=1" : ""}`;
 }
 
 /** The volume's cover, extracted from the archive server-side. */

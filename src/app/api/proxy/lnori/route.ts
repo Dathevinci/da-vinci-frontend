@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     const range = req.headers.get("range");
     if (range) headers.set("Range", range);
 
-    const response = await fetch(url, { headers });
+    const response = await fetch(url, { headers, cache: "no-store" });
 
     const proxyHeaders = new Headers();
     proxyHeaders.set("Access-Control-Allow-Origin", "*");
@@ -75,6 +75,6 @@ export async function OPTIONS() {
   const headers = new Headers();
   headers.set("Access-Control-Allow-Origin", "*");
   headers.set("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
-  headers.set("Access-Control-Allow-Headers", "Range, Content-Type");
+  headers.set("Access-Control-Allow-Headers", "*");
   return new Response(null, { status: 204, headers });
 }
