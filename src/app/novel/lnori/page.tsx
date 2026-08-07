@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { BookOpen, ChevronLeft, ChevronRight, Loader2, Search, X } from "lucide-react";
 import type { NovelResult } from "@/lib/novel/ReadNovelFull";
 import LnoriCard from "@/components/novel/LnoriCard";
+import RosePetals from "@/components/novel/RosePetals";
 
 /**
  * The whole Lnori catalogue, which the home shelf only ever showed one page of.
@@ -58,13 +59,14 @@ export default function LnoriExplorePage() {
     <div className="min-h-screen bg-[#070709] px-4 pb-24 pt-24 sm:px-6 md:px-8">
       <div className="mx-auto max-w-[1600px]">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-gradient-to-br from-amber-400 to-pink-500 p-2 text-black shadow-[0_0_20px_rgba(245,158,11,0.4)]">
+          <div className="relative flex items-center gap-3">
+            <RosePetals />
+            <div className="relative z-10 rounded-lg bg-gradient-to-br from-amber-400 to-pink-500 p-2 text-black shadow-[0_0_20px_rgba(245,158,11,0.4)]">
               <BookOpen className="h-5 w-5" />
             </div>
-            <div>
+            <div className="relative z-10">
               <h1 className="bg-gradient-to-r from-amber-200 to-pink-300 bg-clip-text font-mono text-2xl font-black uppercase tracking-widest text-transparent sm:text-3xl">
-                Lnori Official EPUBs
+                Da Vinci Official EPUBs
               </h1>
               <p className="mt-1 font-mono text-xs uppercase tracking-widest text-amber-200/60">
                 {debounced ? `Results for “${debounced}”` : "Complete volumes"} · page {page} of {totalPages}

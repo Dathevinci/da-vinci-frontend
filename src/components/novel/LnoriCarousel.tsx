@@ -6,6 +6,7 @@ import { motion, useInView } from "framer-motion";
 import { ChevronRight, ChevronLeft, BookOpen } from "lucide-react";
 import type { NovelResult } from "@/lib/novel/ReadNovelFull";
 import LnoriCard from "@/components/novel/LnoriCard";
+import RosePetals from "@/components/novel/RosePetals";
 
 interface LnoriCarouselProps {
   title: string;
@@ -37,15 +38,18 @@ export default function LnoriCarousel({ title, items, exploreHref }: LnoriCarous
       <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-[#070709] to-transparent z-10 pointer-events-none" />
 
       <div className="relative z-20 flex items-end justify-between px-4 sm:px-6 md:px-8 max-w-[2000px] mx-auto">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-gradient-to-br from-amber-400 to-pink-500 text-black shadow-[0_0_20px_rgba(245,158,11,0.4)]">
+        {/* `relative` anchors the petals to the wordmark, and they sit at a
+            lower z than the text so they drift behind it rather than over it. */}
+        <div className="relative flex items-center gap-3">
+          <RosePetals />
+          <div className="relative z-10 p-2 rounded-lg bg-gradient-to-br from-amber-400 to-pink-500 text-black shadow-[0_0_20px_rgba(245,158,11,0.4)]">
             <BookOpen className="w-5 h-5" />
           </div>
-          <div>
+          <div className="relative z-10">
             <h2 className="text-xl sm:text-2xl font-mono font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-pink-300 uppercase tracking-widest">
               {title}
             </h2>
-            <p className="text-xs font-mono text-amber-200/60 mt-1 uppercase tracking-widest">Official Licensed EPUBs</p>
+            <p className="text-xs font-mono text-amber-200/60 mt-1 uppercase tracking-widest">Complete Volumes</p>
           </div>
         </div>
 
