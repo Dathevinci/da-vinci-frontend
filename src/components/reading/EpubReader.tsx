@@ -83,8 +83,16 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
 
   const fetchSection = useCallback(
     async (index: number): Promise<SectionPayload | null> => {
+      /**
+       * v=2 is a cache-bust, and it matters more than it looks. Sections are
+       * served immutable with a day of browser cache — so a phone that opened
+       * a book BEFORE the sanitiser stripped inline styles keeps replaying the
+       * poisoned payload from its own cache, and no redeploy can reach it.
+       * A new cache key drains it instantly. Bump when extraction output
+       * changes shape again.
+       */
       const res = await fetch(
-        "/api/proxy/lnori/section?b=" + encodeURIComponent(b) + "&sec=" + index
+        "/api/proxy/lnori/section?b=" + encodeURIComponent(b) + "&sec=" + index + "&v=2"
       ).catch(() => null);
       if (!res || !res.ok) return null;
       return res.json().catch(() => null);
@@ -227,6 +235,62 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
   }, [booting, sections.length]);
 
   /**
+   * ?scrolldebug=1 — a phone-readable diagnosis overlay.
+   *
+   * I cannot reach the reader from here (invite gate), so when scrolling
+   * misbehaves on a device the fastest path is the device telling us why.
+   * Reads window.location.search directly and NOT useSearchParams: that hook
+   * without a Suspense boundary fails `next build` on this repo, and a debug
+   * aid that breaks the build is a bad joke.
+   */
+  const [debug, setDebug] = useState(false);
+  const [dbgInfo, setDbgInfo] = useState("");
+  const dbgCounts = useRef({ touch: 0, scroll: 0 });
+
+  useEffect(() => {
+    try {
+      setDebug(window.location.search.includes("scrolldebug"));
+    } catch {
+      /* ssr */
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!debug) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    const onT = () => { dbgCounts.current.touch++; };
+    const onS = () => { dbgCounts.current.scroll++; };
+    el.addEventListener("touchmove", onT, { passive: true });
+    el.addEventListener("scroll", onS, { passive: true });
+    const timer = window.setInterval(() => {
+      const bad: string[] = [];
+      el.querySelectorAll(".epub-html *").forEach((n) => {
+        if (bad.length >= 5) return;
+        const cs = getComputedStyle(n as Element);
+        if (cs.touchAction === "none" || cs.position === "fixed") {
+          bad.push((n as Element).tagName.toLowerCase());
+        }
+      });
+      setDbgInfo(
+        [
+          "ta=" + getComputedStyle(el).touchAction,
+          "scrollable=" + (el.scrollHeight > el.clientHeight) + "(" + el.scrollHeight + "/" + el.clientHeight + ")",
+          "sec=" + sections.length + "/" + count,
+          "bad=" + (bad.join(",") || "none"),
+          "touch=" + dbgCounts.current.touch,
+          "top=" + Math.round(el.scrollTop),
+        ].join(" ")
+      );
+    }, 600);
+    return () => {
+      el.removeEventListener("touchmove", onT);
+      el.removeEventListener("scroll", onS);
+      window.clearInterval(timer);
+    };
+  }, [debug, sections, count]);
+
+  /**
    * Footnotes and cross-references. The extractor turned their hrefs into data
    * attributes precisely so they can be routed here rather than navigating the
    * whole app to a zip path.
@@ -253,6 +317,9 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
   };
 
   if (fallback) {
+    // Loud on purpose: a "scrolling is broken" report means nothing until we
+    // know WHICH reader the person was in.
+    if (typeof window !== "undefined") console.info("[epub] extractor fallback engaged for", novelId);
     return <EpubJsReader file={file} title={title} novelId={novelId} />;
   }
 
@@ -497,10 +564,18 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
         )}
       </main>
 
+      {debug && (
+        <div className="pointer-events-none fixed bottom-2 left-2 right-2 z-[300] rounded bg-black/85 p-2 font-mono text-[10px] leading-relaxed text-lime-300">
+          {dbgInfo || "collecting…"}
+        </div>
+      )}
+
       {/* The book's markup arrives unstyled, so give its images and tables sane
           behaviour inside our column. Scoped to .epub-html so it cannot leak
           into the reader's own chrome. */}
       <style>{`
+        .epub-html, .epub-html * { touch-action: pan-y !important; position: static !important; }
+        .epub-html table, .epub-html table * { touch-action: pan-x pan-y !important; }
         .epub-html img { max-width: 100%; height: auto; display: block; margin: 1.25em auto; touch-action: pan-y; -webkit-user-drag: none; user-select: none; }
         .epub-html svg { max-width: 100%; height: auto; touch-action: pan-y; }
         .epub-html p { margin: 0.9em 0; }
