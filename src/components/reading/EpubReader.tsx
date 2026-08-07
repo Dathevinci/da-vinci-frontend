@@ -69,6 +69,7 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const scrollRef = useRef<HTMLElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const pendingFragRef = useRef<string | null>(null);
   /**
    * Guards the appender while a fetch is in flight. Scroll events arrive far
@@ -145,11 +146,37 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
     busyRef.current = false;
   }, [sections, count, fetchSection]);
 
-  const onScroll = () => {
-    const el = scrollRef.current;
-    if (!el) return;
-    if (el.scrollTop + el.clientHeight >= el.scrollHeight - PREFETCH_MARGIN) appendNext();
-  };
+  /**
+   * THE APPENDER IS OBSERVED, NOT SCROLL-DRIVEN — this is the stuck-on-mobile
+   * fix.
+   *
+   * The first version appended from onScroll. A section shorter than the
+   * viewport (cover, title page, copyright — and on a phone that is most of
+   * the front matter) has no overflow, so no scroll event can EVER fire, so
+   * the next section never loads: stuck, with nothing to scroll and nothing
+   * coming. On a desktop window the same section overflows, which is why the
+   * bug only existed on mobile.
+   *
+   * A sentinel at the bottom of the column, watched by an IntersectionObserver
+   * rooted on the scroll container, has no such blind spot: visible on first
+   * paint means append immediately. The effect re-runs on every append, and
+   * re-observing always fires the initial callback — so a run of short
+   * sections chains automatically until the column finally overflows or the
+   * book ends.
+   */
+  useEffect(() => {
+    const root = scrollRef.current;
+    const target = sentinelRef.current;
+    if (!root || !target || booting) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) appendNext();
+      },
+      { root, rootMargin: PREFETCH_MARGIN + "px" }
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [appendNext, booting]);
 
   /**
    * Which section is being read, for the header label and the resume point.
@@ -377,7 +404,6 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
           whole app behind the reader. */}
       <main
         ref={scrollRef}
-        onScroll={onScroll}
         className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain"
         // touch-action declares the gesture contract outright: vertical pans
         // belong to this container, full stop. Without it, whatever an
@@ -451,6 +477,10 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
                 dangerouslySetInnerHTML={{ __html: s.html }}
               />
             ))}
+
+            {/* The load-more sentinel. h-px, not h-0: a zero-height element at
+                the exact bottom edge can fail to intersect at all. */}
+            <div ref={sentinelRef} aria-hidden className="h-px" />
 
             {appending && (
               <div className="flex justify-center py-8">
