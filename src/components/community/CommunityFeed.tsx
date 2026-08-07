@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAnimeModal } from '@/components/providers/AnimeModalProvider';
 import { Anime } from '@tutkli/jikan-ts';
 import { useUser } from '@/hooks/useUser';
@@ -212,10 +212,14 @@ const CommentThread = ({
 
   return (
     <motion.div
+      // The anchor notification deep links land on (?comment=<id> →
+      // scrollIntoView). Prefixed because a bare uuid is not a valid CSS id
+      // selector start, and scroll-mt clears the sticky chrome above the feed.
+      id={`c-${node.id}`}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, height: 0 }}
-      className={`relative ${depth > 0 ? 'mt-4' : 'mb-6'}`}
+      className={`relative scroll-mt-24 ${depth > 0 ? 'mt-4' : 'mb-6'}`}
     >
       {depth > 0 && !isDeep && (
         <div className="absolute top-0 -left-4 sm:-left-6 md:-left-8 bottom-0 w-px bg-white/10" />
@@ -753,6 +757,46 @@ export default function CommunityFeed({
             : animeId ? `anime:${animeId}`
               : null;
   const subject = postId ? "post" : chapterId ? "chapter" : mangaId ? "manhwa" : novelId ? "novel" : "anime";
+
+  /**
+   * ?comment=<id> — the landing half of notification deep links.
+   *
+   * The backend now writes links like /manhwa/<id>?comment=<uuid>; this is
+   * what makes that click END on the comment instead of at the top of a feed.
+   * Reads window.location.search directly, NOT useSearchParams — that hook
+   * without a Suspense boundary fails `next build` on this repo.
+   *
+   * Retries briefly because the target may be a reply that renders a beat
+   * after its parents, and gives up quietly if it never appears (deleted
+   * comment, or a page whose feed doesn't include it). One-shot per mount so
+   * refetches and sort changes don't yank the scroll back.
+   */
+  const anchoredRef = useRef(false);
+  useEffect(() => {
+    if (anchoredRef.current || loading || comments.length === 0) return;
+    let target = "";
+    try {
+      target = new URLSearchParams(window.location.search).get("comment") || "";
+    } catch {
+      /* ssr / weird url */
+    }
+    if (!target) return;
+    anchoredRef.current = true;
+
+    let tries = 0;
+    const HIGHLIGHT = ["ring-2", "ring-purple-500/80", "rounded-2xl", "bg-purple-500/10"];
+    const attempt = () => {
+      const el = document.getElementById("c-" + target);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add(...HIGHLIGHT);
+        window.setTimeout(() => el.classList.remove(...HIGHLIGHT), 4000);
+      } else if (++tries < 12) {
+        window.setTimeout(attempt, 300);
+      }
+    };
+    attempt();
+  }, [loading, comments.length]);
 
   const [rating, setRating] = useState<{ average: number | null; count: number; mine: number | null }>({
     average: null, count: 0, mine: null,
@@ -1303,78 +1347,88 @@ export default function CommunityFeed({
                     </div>
                   )}
 
-                  {/* ── rate what you're commenting on ── */}
-                  {targetKey && (
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <span className="font-mono text-xs text-slate-400">Rate this {subject}:</span>
-                      <span className="flex items-center gap-0.5" onMouseLeave={() => setHoverStar(0)}>
-                        {Array.from({ length: 10 }).map((_, i) => {
-                          const n = i + 1;
-                          const lit = n <= (hoverStar || rating.mine || 0);
-                          return (
-                            <button
-                              key={n}
-                              type="button"
-                              disabled={ratingBusy}
-                              onMouseEnter={() => setHoverStar(n)}
-                              onClick={() => submitRating(n)}
-                              aria-label={`Rate ${n} out of 10`}
-                              className="p-0.5 transition disabled:opacity-50"
-                            >
-                              <Star
-                                className={`h-4 w-4 transition-colors ${lit ? "fill-amber-400 text-amber-400" : "text-slate-600 hover:text-slate-400"}`}
-                              />
-                            </button>
-                          );
-                        })}
-                      </span>
-                      {rating.mine != null && (
-                        <span className="font-mono text-xs font-bold text-amber-300">{rating.mine}/10</span>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-white/5 pt-3">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <EmojiPicker onPick={(e) => setNewComment((c) => c + e)} />
-                      <MediaPicker value={newMediaUrl} onChange={setNewMediaUrl} userId={user?.id} />
-                      <button
-                        onClick={() => setShowMediaInput((v) => !v)}
-                        title="Paste an image or GIF link"
-                        className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-[11px] font-bold transition-colors ${
-                          showMediaInput || newMediaUrl
-                            ? "border-purple-500/40 bg-purple-500/15 text-purple-300"
-                            : "border-white/10 bg-white/[0.05] text-slate-300 hover:bg-white/10 hover:text-white"
-                        }`}
-                      >
-                        <ImageIcon className="h-3.5 w-3.5" /> Link
-                      </button>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      {newComment.length > 0 && (
-                        <span className={`font-mono text-xs tabular-nums ${newComment.length > 1000 ? "text-red-400" : "text-slate-500"}`}>
-                          {newComment.length}
-                        </span>
-                      )}
-                      <button
-                        onClick={() => handlePost(null, newComment, newMediaUrl)}
-                        disabled={isPosting || (!newComment.trim() && !newMediaUrl.trim())}
-                        className="flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 font-mono text-sm font-black text-black transition hover:bg-white/85 disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        {isPosting ? (
-                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-black/30 border-t-black" />
-                        ) : (
-                          <Send className="h-4 w-4" />
-                        )}
-                        {isPosting ? "Posting…" : "Post Comment"}
-                      </button>
-                    </div>
-                  </div>
                 </>
               )}
             </div>
           </div>
+
+          {/* ── rating + actions, FULL card width ──
+              These used to live inside the column beside the avatar, which on
+              a phone is ~280px: the ten stars wrapped, the buttons stacked
+              three rows deep, and the avatar floated over the ragged pile —
+              the whole card read as broken. Out here they get the card's
+              entire width on every screen. */}
+          {(composerOpen || !!newComment || !!newMediaUrl) && (
+            <div className="px-4 pb-4">
+              {targetKey && (
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-xs text-slate-400">Rate this {subject}:</span>
+                  <span className="flex items-center gap-0.5" onMouseLeave={() => setHoverStar(0)}>
+                    {Array.from({ length: 10 }).map((_, i) => {
+                      const n = i + 1;
+                      const lit = n <= (hoverStar || rating.mine || 0);
+                      return (
+                        <button
+                          key={n}
+                          type="button"
+                          disabled={ratingBusy}
+                          onMouseEnter={() => setHoverStar(n)}
+                          onClick={() => submitRating(n)}
+                          aria-label={`Rate ${n} out of 10`}
+                          className="p-0.5 transition disabled:opacity-50"
+                        >
+                          <Star
+                            className={`h-4 w-4 transition-colors ${lit ? "fill-amber-400 text-amber-400" : "text-slate-600 hover:text-slate-400"}`}
+                          />
+                        </button>
+                      );
+                    })}
+                  </span>
+                  {rating.mine != null && (
+                    <span className="font-mono text-xs font-bold text-amber-300">{rating.mine}/10</span>
+                  )}
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/5 pt-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <EmojiPicker onPick={(e) => setNewComment((c) => c + e)} />
+                  <MediaPicker value={newMediaUrl} onChange={setNewMediaUrl} userId={user?.id} />
+                  <button
+                    onClick={() => setShowMediaInput((v) => !v)}
+                    title="Paste an image or GIF link"
+                    className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-[11px] font-bold transition-colors ${
+                      showMediaInput || newMediaUrl
+                        ? "border-purple-500/40 bg-purple-500/15 text-purple-300"
+                        : "border-white/10 bg-white/[0.05] text-slate-300 hover:bg-white/10 hover:text-white"
+                    }`}
+                  >
+                    <ImageIcon className="h-3.5 w-3.5" /> Link
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {newComment.length > 0 && (
+                    <span className={`font-mono text-xs tabular-nums ${newComment.length > 1000 ? "text-red-400" : "text-slate-500"}`}>
+                      {newComment.length}
+                    </span>
+                  )}
+                  <button
+                    onClick={() => handlePost(null, newComment, newMediaUrl)}
+                    disabled={isPosting || (!newComment.trim() && !newMediaUrl.trim())}
+                    className="flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 font-mono text-sm font-black text-black transition hover:bg-white/85 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {isPosting ? (
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-black/30 border-t-black" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                    {isPosting ? "Posting…" : "Post Comment"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="mx-2 mb-6 rounded-2xl border border-purple-500/20 bg-purple-600/10 p-5 text-center sm:mx-0">
