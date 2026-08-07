@@ -371,7 +371,10 @@ export default function EpubJsReader({ file, title, novelId }: EpubJsReaderProps
           >
             <Minus className="h-4 w-4" />
           </button>
-          <span className="w-10 text-center font-mono text-xs tabular-nums text-white/60">{fontSize}%</span>
+          {/* The % readout and typeface picker yield below sm — seven controls
+              cannot share a 360px row, and zoom still works blind while the
+              buttons stay. */}
+          <span className="hidden w-10 text-center font-mono text-xs tabular-nums text-white/60 sm:inline">{fontSize}%</span>
           <button
             onClick={() => setFontSize((s) => Math.min(SIZE_MAX, s + SIZE_STEP))}
             disabled={fontSize >= SIZE_MAX}
@@ -388,7 +391,7 @@ export default function EpubJsReader({ file, title, novelId }: EpubJsReaderProps
           <select
             value={fontFamily}
             onChange={(e) => setFontFamily(e.target.value)}
-            className="rounded-lg bg-transparent py-1.5 font-mono text-xs text-white/80 focus:outline-none [&>option]:bg-zinc-900"
+            className="hidden rounded-lg bg-transparent py-1.5 font-mono text-xs text-white/80 focus:outline-none sm:block [&>option]:bg-zinc-900"
             title="Typeface"
           >
             {FONT_FAMILIES.map((f) => (

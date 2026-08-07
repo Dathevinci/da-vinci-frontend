@@ -264,7 +264,7 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
 
         <div className="flex shrink-0 items-center gap-1">
           {count > 0 && (
-            <span className="hidden font-mono text-xs tabular-nums sm:inline" style={{ color: t.muted }}>
+            <span className="font-mono text-[11px] tabular-nums sm:text-xs" style={{ color: t.muted }}>
               {current + 1} / {count}
             </span>
           )}
@@ -287,8 +287,12 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
       </div>
 
       {settingsOpen && (
+        // Capped and internally scrollable: on a phone the wrapped chips run
+        // long, and uncapped they shoved the reading column almost entirely
+        // off screen — which read as "the reader is broken", not "a panel is
+        // open".
         <div
-          className="shrink-0 space-y-3 border-b px-4 py-3"
+          className="max-h-[45vh] shrink-0 space-y-3 overflow-y-auto overscroll-contain border-b px-4 py-3"
           style={{ backgroundColor: t.panel, borderColor: t.border }}
         >
           <div className="flex flex-wrap gap-2">
@@ -320,8 +324,9 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
               </button>
             ))}
           </div>
-          <div className="flex flex-wrap items-center gap-4">
-            <label className="flex items-center gap-2 font-mono text-xs" style={{ color: t.muted }}>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            {/* Full-row on a phone: a 7rem slider is unusable under a thumb. */}
+            <label className="flex w-full items-center gap-2 font-mono text-xs sm:w-auto" style={{ color: t.muted }}>
               Size
               <input
                 type="range"
@@ -329,7 +334,7 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
                 max={SIZE_MAX}
                 value={prefs.size}
                 onChange={(e) => update({ size: Number(e.target.value) })}
-                className="h-1 w-28 cursor-pointer accent-pink-500"
+                className="h-1 min-w-0 flex-1 cursor-pointer accent-pink-500 sm:w-28 sm:flex-none"
               />
               <span className="tabular-nums" style={{ color: t.text }}>{prefs.size}px</span>
             </label>
@@ -367,12 +372,25 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
         </div>
       )}
 
-      <main ref={scrollRef} onScroll={onScroll} className="relative min-h-0 flex-1 overflow-y-auto">
+      {/* overscroll-contain: reaching the end of the book must not hand the
+          gesture to the page underneath — on mobile that rubber-bands the
+          whole app behind the reader. */}
+      <main ref={scrollRef} onScroll={onScroll} className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain">
         {tocOpen && (
-          <div
-            className="absolute inset-y-0 left-0 z-20 w-[300px] overflow-y-auto border-r p-3"
-            style={{ backgroundColor: t.panel, borderColor: t.border }}
-          >
+          <>
+            {/* Tap-outside-to-close. On a phone the drawer covers most of the
+                screen, and without a backdrop the only way out was the small X
+                — the reading area behind it looked broken rather than merely
+                covered. */}
+            <div
+              className="absolute inset-0 z-10 bg-black/50"
+              onClick={() => setTocOpen(false)}
+              aria-hidden
+            />
+            <div
+              className="absolute inset-y-0 left-0 z-20 w-[85vw] max-w-[320px] overflow-y-auto overscroll-contain border-r p-3"
+              style={{ backgroundColor: t.panel, borderColor: t.border }}
+            >
             <div className="mb-2 flex items-center justify-between">
               <span className="font-mono text-xs font-bold uppercase tracking-widest" style={{ color: t.muted }}>
                 Contents
@@ -397,7 +415,8 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
                 </button>
               ))
             )}
-          </div>
+            </div>
+          </>
         )}
 
         {booting ? (
@@ -407,7 +426,7 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
         ) : (
           <div
             onClick={onContentClick}
-            className={`mx-auto w-full ${widthCls} px-5 pb-24 pt-8 sm:px-8`}
+            className={`mx-auto w-full ${widthCls} px-4 pb-28 pt-6 sm:px-8 sm:pt-8`}
             style={{
               fontFamily: fontCss,
               fontSize: prefs.size,
