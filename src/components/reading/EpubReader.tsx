@@ -1,25 +1,35 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { ReactReader, ReactReaderStyle, IReactReaderStyle } from "react-reader";
-import { ArrowLeft, Download, Scroll, BookOpen, ZoomIn, ZoomOut, Type } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { lnoriFileUrl } from "@/lib/novel/lnoriProxy";
+import {
+  ArrowLeft, ArrowRight, ChevronLeft, Download, List, Loader2, Settings, X,
+} from "lucide-react";
+import { encodeLnori, lnoriFileUrl } from "@/lib/novel/lnoriProxy";
+import {
+  useNovelReaderPrefs, themeById, fontById, spacingById, widthById,
+  READER_THEMES, READER_FONTS, READER_SPACING, READER_WIDTHS, SIZE_MIN, SIZE_MAX,
+} from "@/lib/novel/readerPrefs";
+import EpubJsReader from "@/components/reading/EpubJsReader";
 
 /**
- * The plain react-reader, restored.
+ * THE BOOK IS THE PAGE NOW.
  *
- * The custom chrome that replaced it — themes, fonts, bionic text, a contents
- * drawer, bookmarks, scrolled flow — fought epub.js at every turn and never
- * worked as well as this did. Reverted deliberately rather than patched again.
+ * Inspected lnori.com's own reader for the exact book ours choked on: it has
+ * no epub.js at all. The chapter is plain HTML in an article element, the
+ * contents are ordinary anchor links, and every feature is trivial because the
+ * book lives in the page's own DOM. Every problem we fought — iframes that
+ * resist theming, spine lookups that miss, frames measured from their own
+ * content — belongs to the architecture they simply do not use.
  *
- * Two things from that period are kept, because neither is a reading setting:
+ * So this reader does what they do. The server unpacks the EPUB (once, cached)
+ * and hands over one spine section at a time as sanitised HTML; we render it
+ * in OUR page with the same preference system as the novel text reader —
+ * five themes, seven fonts, size, spacing, width — because it is just text in
+ * a div now.
  *
- *  - the file address travels base64'd through the proxy, so no URL the
- *    browser sees ends in `.epub`. Download managers hook that extension and
- *    were throwing a save dialog for every volume link on the page.
- *  - the back arrow replaces rather than pushes, so the browser's own back
- *    button does not drop you straight back into the volume you just closed.
+ * If extraction fails on some odd book, the epub.js reader (EpubJsReader)
+ * still exists and takes over automatically.
  */
 interface EpubReaderProps {
   /** The real .epub address. Never rendered into a URL the browser can see. */
@@ -28,263 +38,364 @@ interface EpubReaderProps {
   novelId: string;
 }
 
-const darkReaderStyles: IReactReaderStyle = {
-  ...ReactReaderStyle,
-  readerArea: {
-    ...ReactReaderStyle.readerArea,
-    backgroundColor: '#070709',
-    overflow: 'auto',
-  },
-  tocArea: {
-    ...ReactReaderStyle.tocArea,
-    backgroundColor: '#070709',
-  },
-  tocAreaButton: {
-    ...ReactReaderStyle.tocAreaButton,
-    color: '#e2e8f0',
-    borderBottom: '1px solid #ffffff1a',
-  },
-  tocButtonExpanded: {
-    ...ReactReaderStyle.tocButtonExpanded,
-    backgroundColor: '#1e293b',
-  },
-  toc: {
-    ...ReactReaderStyle.toc,
-    backgroundColor: '#070709',
-    color: '#e2e8f0',
-  },
-  tocButton: {
-    ...ReactReaderStyle.tocButton,
-    color: '#e2e8f0',
-    borderBottom: '1px solid #ffffff1a',
-  },
-  arrow: {
-    ...ReactReaderStyle.arrow,
-    color: '#e2e8f0',
-    backgroundColor: '#070709',
-  },
-  arrowHover: {
-    ...ReactReaderStyle.arrowHover,
-    color: '#f8fafc',
-  },
-  tocBackground: {
-    ...ReactReaderStyle.tocBackground,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-  },
-  tocButtonBar: {
-    ...ReactReaderStyle.tocButtonBar,
-    background: '#e2e8f0',
-  },
-  tocButtonBarTop: {
-    ...ReactReaderStyle.tocButtonBarTop,
-    background: '#e2e8f0',
-  },
-  tocButtonBottom: {
-    ...ReactReaderStyle.tocButtonBottom,
-    background: '#e2e8f0',
-  }
-};
+interface TocEntry {
+  label: string;
+  index: number;
+  fragment: string;
+}
+
+interface SectionPayload {
+  index: number;
+  count: number;
+  html: string;
+  toc: TocEntry[];
+}
 
 export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
-  const [location, setLocation] = useState<string | number>(0);
-  const [flowMode, setFlowMode] = useState<"scrolled" | "paginated">("scrolled");
-  const [fontSize, setFontSize] = useState<number>(100);
-  const [fontFamily, setFontFamily] = useState<string>("ui-sans-serif, system-ui, sans-serif");
-  const [rendition, setRendition] = useState<any>(null);
+  const { prefs, update } = useNovelReaderPrefs();
+  const t = themeById(prefs.theme);
+  const fontCss = fontById(prefs.font).css;
+  const lineHeight = spacingById(prefs.spacing).value;
+  const widthCls = widthById(prefs.width).cls;
 
-  const url = lnoriFileUrl(file);
+  const [sec, setSec] = useState<number | null>(null);
+  const [data, setData] = useState<SectionPayload | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [fallback, setFallback] = useState(false);
+  const [tocOpen, setTocOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const pendingFragRef = useRef<string | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  const b = encodeLnori(file);
+  const secKey = "epub-sec:" + file;
+
+  // Restore the saved section before the first fetch, so reopening a volume
+  // lands where you left it instead of flashing the cover first.
+  useEffect(() => {
+    let saved = 0;
+    try {
+      saved = Number(localStorage.getItem(secKey)) || 0;
+    } catch {
+      /* private mode */
+    }
+    setSec(saved);
+  }, [secKey]);
 
   useEffect(() => {
-    if (rendition) {
-      rendition.themes.register("dynamicTheme", {
-        "body, p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, section, article, a": {
-          "font-size": `${fontSize}% !important`,
-          "font-family": `${fontFamily} !important`,
+    if (sec === null) return;
+    let alive = true;
+    setLoading(true);
+    fetch("/api/proxy/lnori/section?b=" + encodeURIComponent(b) + "&sec=" + sec)
+      .then((r) => {
+        if (!r.ok) throw new Error("extract failed");
+        return r.json();
+      })
+      .then((payload: SectionPayload) => {
+        if (!alive) return;
+        setData(payload);
+        setLoading(false);
+        try {
+          localStorage.setItem(secKey, String(payload.index));
+        } catch {
+          /* private mode */
         }
+      })
+      .catch(() => {
+        // The extractor could not parse this book — hand over to epub.js
+        // rather than showing an error for a book the old reader can open.
+        if (alive) setFallback(true);
       });
-      rendition.themes.select("dynamicTheme");
-    }
-  }, [rendition, fontSize, fontFamily]);
+    return () => {
+      alive = false;
+    };
+  }, [b, sec, secKey]);
+
+  // New section: back to the top, unless a #fragment inside it was requested.
+  useEffect(() => {
+    if (!data) return;
+    const frag = pendingFragRef.current;
+    pendingFragRef.current = null;
+    requestAnimationFrame(() => {
+      if (frag) {
+        const el = contentRef.current?.querySelector("#" + CSS.escape(frag));
+        if (el) {
+          el.scrollIntoView({ block: "start" });
+          return;
+        }
+      }
+      contentRef.current?.closest("main")?.scrollTo({ top: 0 });
+    });
+  }, [data]);
+
+  const go = useCallback(
+    (index: number, fragment?: string) => {
+      pendingFragRef.current = fragment || null;
+      setTocOpen(false);
+      setSec(Math.max(0, index));
+    },
+    []
+  );
+
+  // Footnotes and cross-references inside the book: the extractor turned their
+  // hrefs into data attributes precisely so we can route them here instead of
+  // letting the browser navigate to a zip path.
+  const onContentClick = (e: React.MouseEvent) => {
+    const a = (e.target as HTMLElement).closest("a[data-epub-sec]");
+    if (!a) return;
+    e.preventDefault();
+    const idx = Number(a.getAttribute("data-epub-sec"));
+    if (!isNaN(idx)) go(idx, a.getAttribute("data-epub-frag") || undefined);
+  };
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!data) return;
+      if (e.key === "ArrowRight" && data.index < data.count - 1) go(data.index + 1);
+      if (e.key === "ArrowLeft" && data.index > 0) go(data.index - 1);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [data, go]);
+
+  if (fallback) {
+    return <EpubJsReader file={file} title={title} novelId={novelId} />;
+  }
+
+  const currentToc = data
+    ? [...data.toc].reverse().find((e) => e.index <= data.index)
+    : undefined;
+
+  const chipBtn =
+    "grid h-9 w-9 place-items-center rounded-lg transition hover:bg-white/10 disabled:opacity-30";
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-[#070709]">
-      <div className="flex items-center justify-between border-b border-white/10 bg-[#0b0b11] px-4 py-3 shadow-md">
-        <div className="flex items-center gap-4">
+    <div className="fixed inset-0 z-[100] flex flex-col" style={{ backgroundColor: t.bg, color: t.text }}>
+      {/* top bar */}
+      <div
+        className="flex shrink-0 items-center justify-between gap-2 border-b px-3 py-2.5 sm:px-4"
+        style={{ backgroundColor: t.panel, borderColor: t.border }}
+      >
+        <div className="flex min-w-0 items-center gap-2">
+          <button onClick={() => setTocOpen((v) => !v)} className={chipBtn} style={{ color: t.text }} title="Contents">
+            <List className="h-5 w-5" />
+          </button>
           <Link
             href={`/novel/${encodeURIComponent(novelId)}`}
             replace
-            className="rounded-full bg-white/5 p-2 text-white transition hover:bg-white/20"
+            className={chipBtn}
+            style={{ color: t.text }}
+            title="Back to series"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ChevronLeft className="h-5 w-5" />
           </Link>
-          <h1 className="line-clamp-1 font-mono text-sm font-bold text-white sm:text-base">{title}</h1>
+          <div className="min-w-0">
+            <h1 className="line-clamp-1 font-mono text-sm font-bold sm:text-base">{title}</h1>
+            {currentToc && (
+              <p className="line-clamp-1 font-mono text-[11px]" style={{ color: t.muted }}>
+                {currentToc.label}
+              </p>
+            )}
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* Zoom Controls */}
-          <div className="hidden sm:flex items-center rounded-lg bg-white/5 p-1 border border-white/10">
-            <button
-              onClick={() => setFontSize(f => Math.max(50, f - 10))}
-              className="p-1 text-zinc-400 hover:text-white transition"
-              title="Zoom Out"
-            >
-              <ZoomOut className="h-4 w-4" />
-            </button>
-            <span className="font-mono text-xs text-white px-2 w-12 text-center">{fontSize}%</span>
-            <button
-              onClick={() => setFontSize(f => Math.min(250, f + 10))}
-              className="p-1 text-zinc-400 hover:text-white transition"
-              title="Zoom In"
-            >
-              <ZoomIn className="h-4 w-4" />
-            </button>
-          </div>
-
-          {/* Font Picker */}
-          <div className="hidden md:flex items-center rounded-lg bg-white/5 border border-white/10 px-2">
-            <Type className="h-3.5 w-3.5 text-zinc-400 mr-2" />
-            <select
-              value={fontFamily}
-              onChange={(e) => setFontFamily(e.target.value)}
-              className="bg-transparent text-xs font-mono text-white py-1.5 focus:outline-none [&>option]:bg-zinc-900"
-            >
-              <option value="ui-sans-serif, system-ui, sans-serif">Sans-Serif</option>
-              <option value="ui-serif, Georgia, serif">Serif</option>
-              <option value="ui-monospace, monospace">Monospace</option>
-            </select>
-          </div>
-
-          {/* Mode Switcher Toggle */}
-          <div className="flex items-center rounded-lg bg-white/5 p-1 border border-white/10">
-            <button
-              onClick={() => setFlowMode("scrolled")}
-              className={`flex items-center gap-1.5 rounded-md px-3 py-1 font-mono text-xs font-semibold transition ${
-                flowMode === "scrolled"
-                  ? "bg-pink-500 text-white shadow"
-                  : "text-zinc-400 hover:text-white"
-              }`}
-              title="Continuous Webtoon-Style Vertical Scroll"
-            >
-              <Scroll className="h-3.5 w-3.5" />
-              <span>Webtoon</span>
-            </button>
-            <button
-              onClick={() => setFlowMode("paginated")}
-              className={`flex items-center gap-1.5 rounded-md px-3 py-1 font-mono text-xs font-semibold transition ${
-                flowMode === "paginated"
-                  ? "bg-pink-500 text-white shadow"
-                  : "text-zinc-400 hover:text-white"
-              }`}
-              title="Page-by-Page Reading Mode"
-            >
-              <BookOpen className="h-3.5 w-3.5" />
-              <span>Paginated</span>
-            </button>
-          </div>
-
+        <div className="flex shrink-0 items-center gap-1">
+          {data && (
+            <span className="hidden font-mono text-xs tabular-nums sm:inline" style={{ color: t.muted }}>
+              {data.index + 1} / {data.count}
+            </span>
+          )}
+          <button
+            onClick={() => setSettingsOpen((v) => !v)}
+            className={chipBtn}
+            style={{ color: settingsOpen ? t.text : t.muted }}
+            title="Reading settings"
+          >
+            <Settings className="h-5 w-5" />
+          </button>
           <a
             href={lnoriFileUrl(file, true)}
-            className="flex items-center gap-2 rounded-lg bg-pink-500/20 text-pink-400 border border-pink-500/30 px-3 py-1.5 font-mono text-xs font-bold transition hover:bg-pink-500 hover:text-white"
+            className="ml-1 flex items-center gap-2 rounded-lg bg-pink-500 px-3 py-2 font-mono text-xs font-bold text-white transition hover:bg-pink-600"
           >
             <Download className="h-4 w-4" />
-            <span className="hidden sm:inline">Download</span>
+            <span className="hidden sm:inline">EPUB</span>
           </a>
         </div>
       </div>
 
-      <div className="relative flex-1 bg-[#070709]">
-        <ReactReader
-          key={flowMode}
-          url={url}
-          location={location}
-          locationChanged={(epubcfi: string) => setLocation(epubcfi)}
-          title={title}
-          getRendition={(rend) => {
-            setRendition(rend);
-            rend.hooks.content.register((contents: any) => {
-              const doc = contents.document;
-              if (doc) {
-                const htmlEl = doc.querySelector("html");
-                const bodyEl = doc.querySelector("body");
-                if (htmlEl) {
-                  htmlEl.style.setProperty("height", "auto", "important");
-                  htmlEl.style.setProperty("overflow-y", "visible", "important");
-                  htmlEl.style.setProperty("overflow-x", "hidden", "important");
-                  htmlEl.style.setProperty("background-color", "#070709", "important");
-                  htmlEl.style.setProperty("color", "#e2e8f0", "important");
-                }
-                if (bodyEl) {
-                  bodyEl.style.setProperty("height", "auto", "important");
-                  bodyEl.style.setProperty("min-height", "100%", "important");
-                  bodyEl.style.setProperty("overflow-y", "visible", "important");
-                  bodyEl.style.setProperty("overflow-x", "hidden", "important");
-                  bodyEl.style.setProperty("background-color", "#070709", "important");
-                  bodyEl.style.setProperty("color", "#e2e8f0", "important");
-                }
-              }
+      {/* settings */}
+      {settingsOpen && (
+        <div
+          className="shrink-0 space-y-3 border-b px-4 py-3"
+          style={{ backgroundColor: t.panel, borderColor: t.border }}
+        >
+          <div className="flex flex-wrap gap-2">
+            {READER_THEMES.map((theme) => (
+              <button
+                key={theme.id}
+                onClick={() => update({ theme: theme.id })}
+                className={`rounded-lg border px-3 py-1.5 font-mono text-[11px] font-bold transition ${
+                  prefs.theme === theme.id ? "ring-2 ring-pink-500" : ""
+                }`}
+                style={{ backgroundColor: theme.bg, color: theme.text, borderColor: theme.border }}
+              >
+                {theme.name}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {READER_FONTS.map((f) => (
+              <button
+                key={f.id}
+                onClick={() => update({ font: f.id })}
+                className="rounded-lg border px-3 py-1.5 font-mono text-[11px] font-bold transition hover:bg-white/10"
+                style={{
+                  color: prefs.font === f.id ? t.text : t.muted,
+                  borderColor: prefs.font === f.id ? t.text : t.border,
+                }}
+              >
+                {f.name}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-4">
+            <label className="flex items-center gap-2 font-mono text-xs" style={{ color: t.muted }}>
+              Size
+              <input
+                type="range"
+                min={SIZE_MIN}
+                max={SIZE_MAX}
+                value={prefs.size}
+                onChange={(e) => update({ size: Number(e.target.value) })}
+                className="h-1 w-28 cursor-pointer accent-pink-500"
+              />
+              <span className="tabular-nums" style={{ color: t.text }}>{prefs.size}px</span>
+            </label>
+            <div className="flex gap-1">
+              {READER_SPACING.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => update({ spacing: s.id })}
+                  className="rounded-lg border px-2.5 py-1 font-mono text-[11px] transition hover:bg-white/10"
+                  style={{
+                    color: prefs.spacing === s.id ? t.text : t.muted,
+                    borderColor: prefs.spacing === s.id ? t.text : t.border,
+                  }}
+                >
+                  {s.name}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-1">
+              {READER_WIDTHS.map((w) => (
+                <button
+                  key={w.id}
+                  onClick={() => update({ width: w.id })}
+                  className="rounded-lg border px-2.5 py-1 font-mono text-[11px] transition hover:bg-white/10"
+                  style={{
+                    color: prefs.width === w.id ? t.text : t.muted,
+                    borderColor: prefs.width === w.id ? t.text : t.border,
+                  }}
+                >
+                  {w.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
-              // Aggressively strip position absolute from elements in Webtoon scrolled mode
-              // This is mandatory for complex EPUBs (Overlord/Tanya) because absolute-positioned
-              // divs completely defeat epub.js continuous scrollHeight iframe calculations!
-              const flowSpecificCss = flowMode === "scrolled" ? `
-                * {
-                  position: static !important;
-                  transform: none !important;
-                  max-height: none !important;
-                  min-height: 0 !important;
-                }
-              ` : "";
+      {/* body */}
+      <main className="relative min-h-0 flex-1 overflow-y-auto">
+        {tocOpen && data && (
+          <div
+            className="absolute inset-y-0 left-0 z-20 w-[300px] overflow-y-auto border-r p-3"
+            style={{ backgroundColor: t.panel, borderColor: t.border }}
+          >
+            <div className="mb-2 flex items-center justify-between">
+              <span className="font-mono text-xs font-bold uppercase tracking-widest" style={{ color: t.muted }}>
+                Contents
+              </span>
+              <button onClick={() => setTocOpen(false)} className={chipBtn} style={{ color: t.text }}>
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            {data.toc.length === 0 ? (
+              <p className="px-2 py-6 text-center font-mono text-xs" style={{ color: t.muted }}>
+                No contents listed.
+              </p>
+            ) : (
+              data.toc.map((entry, i) => (
+                <button
+                  key={i}
+                  onClick={() => go(entry.index, entry.fragment || undefined)}
+                  className="block w-full rounded-lg px-2 py-2 text-left font-mono text-xs transition hover:bg-white/10"
+                  style={{
+                    color: entry.index === data.index ? "#f472b6" : t.text,
+                  }}
+                >
+                  {entry.label}
+                </button>
+              ))
+            )}
+          </div>
+        )}
 
-              contents.addStylesheetCss(`
-                ${flowSpecificCss}
-                html, body {
-                  background-color: #070709 !important;
-                  color: #e2e8f0 !important;
-                  height: auto !important;
-                  min-height: 100% !important;
-                  overflow-y: visible !important;
-                  overflow-x: hidden !important;
-                }
-                p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, section, article {
-                  color: #e2e8f0 !important;
-                  background-color: transparent !important;
-                }
-                a, a * {
-                  color: #f472b6 !important;
-                }
-                img, svg, picture, video {
-                  max-width: 100% !important;
-                  height: auto !important;
-                  object-fit: contain !important;
-                  margin: 0 auto !important;
-                  display: block !important;
-                }
-                svg {
-                  width: 100% !important;
-                }
-              `);
-            });
+        {loading || !data ? (
+          <div className="grid h-full place-items-center">
+            <Loader2 className="h-6 w-6 animate-spin" style={{ color: t.muted }} />
+          </div>
+        ) : (
+          <div
+            ref={contentRef}
+            onClick={onContentClick}
+            className={`epub-html mx-auto w-full ${widthCls} px-5 pb-28 pt-8 sm:px-8`}
+            style={{
+              fontFamily: fontCss,
+              fontSize: prefs.size,
+              lineHeight,
+              textAlign: prefs.justify ? "justify" : undefined,
+            }}
+            dangerouslySetInnerHTML={{ __html: data.html }}
+          />
+        )}
 
-            // Initial theme setup (dynamically overridden in useEffect)
-            rend.themes.register("dark", {
-              body: {
-                background: "#070709 !important",
-                color: "#e2e8f0 !important",
-              },
-            });
-            rend.themes.select("dark");
-          }}
-          epubInitOptions={{
-            openAs: "epub",
-          }}
-          epubOptions={
-            flowMode === "scrolled"
-              ? { flow: "scrolled", manager: "continuous" }
-              : { flow: "paginated", manager: "default" }
-          }
-          readerStyles={darkReaderStyles}
-        />
-      </div>
+        {/* prev / next */}
+        {data && !loading && (
+          <div
+            className="pointer-events-none sticky bottom-0 flex items-center justify-between px-4 pb-4"
+          >
+            <button
+              onClick={() => go(data.index - 1)}
+              disabled={data.index <= 0}
+              className="pointer-events-auto flex items-center gap-1.5 rounded-xl border px-4 py-2.5 font-mono text-xs font-bold shadow-lg backdrop-blur transition hover:border-pink-500/40 disabled:opacity-30"
+              style={{ backgroundColor: t.panel, borderColor: t.border, color: t.text }}
+            >
+              <ArrowLeft className="h-4 w-4" /> Prev
+            </button>
+            <button
+              onClick={() => go(data.index + 1)}
+              disabled={data.index >= data.count - 1}
+              className="pointer-events-auto flex items-center gap-1.5 rounded-xl border px-4 py-2.5 font-mono text-xs font-bold shadow-lg backdrop-blur transition hover:border-pink-500/40 disabled:opacity-30"
+              style={{ backgroundColor: t.panel, borderColor: t.border, color: t.text }}
+            >
+              Next <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+      </main>
+
+      {/* The book's own markup arrives unstyled, so give its images and tables
+          sane behaviour inside our column. Scoped by the .epub-html class. */}
+      <style>{`
+        .epub-html img { max-width: 100%; height: auto; display: block; margin: 1.25em auto; }
+        .epub-html svg { max-width: 100%; height: auto; }
+        .epub-html p { margin: 0.9em 0; }
+        .epub-html h1, .epub-html h2, .epub-html h3 { margin: 1.4em 0 0.7em; font-weight: 700; }
+        .epub-html a[data-epub-sec] { color: #f472b6; cursor: pointer; text-decoration: underline; }
+        .epub-html table { max-width: 100%; overflow-x: auto; display: block; }
+        .epub-html hr { margin: 2em auto; opacity: 0.3; }
+      `}</style>
     </div>
   );
 }
