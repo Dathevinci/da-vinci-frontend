@@ -236,6 +236,20 @@ export async function getSection(
     for (const name of Object.keys(attribs)) {
       if (/^on/i.test(name)) $(el).removeAttr(name);
       else if (/^(href|src)$/i.test(name) && /^\s*javascript:/i.test(attribs[name])) $(el).removeAttr(name);
+      /**
+       * INLINE styles go too, not just <style> blocks. Fixed-layout sections
+       * carry inline position/overflow/height declarations, and an element
+       * whose positioning escapes the reader's scroll container breaks TOUCH
+       * scrolling specifically: a pan scrolls the nearest scrollable ancestor
+       * of the element under the finger, and for a position:fixed element that
+       * chain bypasses the reader's column entirely — while wheel scrolling,
+       * resolved by hover position, keeps working. They also fight the themes
+       * (inline color/background outranks every stylesheet we own).
+       */
+      else if (/^style$/i.test(name)) $(el).removeAttr(name);
+      // Image ghost-drag on touch: a drag that starts a native image drag
+      // never becomes a scroll.
+      else if (/^draggable$/i.test(name)) $(el).removeAttr(name);
     }
   });
 

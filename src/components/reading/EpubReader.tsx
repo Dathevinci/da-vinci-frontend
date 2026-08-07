@@ -375,7 +375,16 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
       {/* overscroll-contain: reaching the end of the book must not hand the
           gesture to the page underneath — on mobile that rubber-bands the
           whole app behind the reader. */}
-      <main ref={scrollRef} onScroll={onScroll} className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain">
+      <main
+        ref={scrollRef}
+        onScroll={onScroll}
+        className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain"
+        // touch-action declares the gesture contract outright: vertical pans
+        // belong to this container, full stop. Without it, whatever an
+        // injected element does with the gesture decides whether the page
+        // moves — and the injected markup is a publisher's, not ours.
+        style={{ touchAction: "pan-y", WebkitOverflowScrolling: "touch" }}
+      >
         {tocOpen && (
           <>
             {/* Tap-outside-to-close. On a phone the drawer covers most of the
@@ -462,8 +471,8 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
           behaviour inside our column. Scoped to .epub-html so it cannot leak
           into the reader's own chrome. */}
       <style>{`
-        .epub-html img { max-width: 100%; height: auto; display: block; margin: 1.25em auto; }
-        .epub-html svg { max-width: 100%; height: auto; }
+        .epub-html img { max-width: 100%; height: auto; display: block; margin: 1.25em auto; touch-action: pan-y; -webkit-user-drag: none; user-select: none; }
+        .epub-html svg { max-width: 100%; height: auto; touch-action: pan-y; }
         .epub-html p { margin: 0.9em 0; }
         .epub-html h1, .epub-html h2, .epub-html h3 { margin: 1.4em 0 0.7em; font-weight: 700; }
         .epub-html a[data-epub-sec] { color: #f472b6; cursor: pointer; text-decoration: underline; }
