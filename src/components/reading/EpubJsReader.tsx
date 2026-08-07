@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ReactReader, ReactReaderStyle, IReactReaderStyle } from "react-reader";
-import { ArrowLeft, Download, Minus, Palette, Plus } from "lucide-react";
+import { ArrowLeft, BookOpen, Download, Minus, Palette, Plus, Scroll } from "lucide-react";
 import Link from "next/link";
 import { lnoriFileUrl } from "@/lib/novel/lnoriProxy";
 
@@ -126,9 +126,15 @@ const PAGE_THEMES: Record<string, ReturnType<typeof pageTheme>> = {
 };
 const THEME_ORDER = ["dark", "light", "sepia"];
 
-const SIZE_MIN = 80;
-const SIZE_MAX = 160;
+const SIZE_MIN = 50;
+const SIZE_MAX = 250;
 const SIZE_STEP = 10;
+
+const FONT_FAMILIES = [
+  { name: "System", css: "ui-sans-serif, system-ui, sans-serif" },
+  { name: "Serif", css: "Georgia, 'Times New Roman', serif" },
+  { name: "Publisher", css: "" },
+];
 
 function resolveSpineTarget(book: any, navHref: string): { href: string; index: number } | null {
   const items: any[] = book?.spine?.spineItems;
@@ -178,11 +184,26 @@ export default function EpubJsReader({ file, title, novelId }: EpubJsReaderProps
   const [location, setLocation] = useState<string | number>(0);
   const [fontSize, setFontSize] = useState(100);
   const [theme, setTheme] = useState("dark");
+  const [fontFamily, setFontFamily] = useState(FONT_FAMILIES[0].css);
+  const [flowMode, setFlowMode] = useState<"scrolled-doc" | "paginated">("scrolled-doc");
   const renditionRef = useRef<any>(null);
   const themeRef = useRef(theme);
   const sizeRef = useRef(fontSize);
+  const fontRef = useRef(fontFamily);
   themeRef.current = theme;
   sizeRef.current = fontSize;
+  fontRef.current = fontFamily;
+  /**
+   * Every theme switch registers under a FRESH name.
+   *
+   * epub.js reuses the <style> node it already made for a theme name and only
+   * appends rules into it — it never moves the node. All three themes use the
+   * same selectors at the same importance, so document order decides the
+   * winner, and whichever theme was injected last keeps winning forever.
+   * Cycling dark → light → sepia → dark left the page sepia while the button
+   * said dark. A new name each time guarantees the newest node is last.
+   */
+  const themeSeq = useRef(0);
 
   const url = lnoriFileUrl(file);
   const locKey = "epub-loc:" + file;
@@ -195,6 +216,10 @@ export default function EpubJsReader({ file, title, novelId }: EpubJsReaderProps
       if (savedSize >= SIZE_MIN && savedSize <= SIZE_MAX) setFontSize(savedSize);
       const savedTheme = localStorage.getItem("epub-theme");
       if (savedTheme && PAGE_THEMES[savedTheme]) setTheme(savedTheme);
+      const savedFont = localStorage.getItem("epub-fontfamily");
+      if (savedFont !== null && FONT_FAMILIES.some((f) => f.css === savedFont)) setFontFamily(savedFont);
+      const savedFlow = localStorage.getItem("epub-flow");
+      if (savedFlow === "paginated" || savedFlow === "scrolled-doc") setFlowMode(savedFlow);
     } catch {
       /* private mode */
     }
@@ -209,15 +234,49 @@ export default function EpubJsReader({ file, title, novelId }: EpubJsReaderProps
     }
   };
 
+  /** Register under a fresh name so this theme's style node is appended last. */
+  const applyTheme = useCallback((rendition: any, id: string) => {
+    if (!rendition) return;
+    const styles = PAGE_THEMES[id] || PAGE_THEMES.dark;
+    const name = id + "-" + themeSeq.current++;
+    rendition.themes.register(name, styles);
+    rendition.themes.select(name);
+  }, []);
+
   const onRendition = useCallback((rendition: any) => {
     renditionRef.current = rendition;
 
-    Object.entries(PAGE_THEMES).forEach(([id, styles]) => {
-      rendition.themes.register(id, styles);
-    });
-    rendition.themes.select(themeRef.current);
+    applyTheme(rendition, themeRef.current);
     rendition.themes.fontSize(sizeRef.current + "%");
+    if (fontRef.current) rendition.themes.font(fontRef.current);
 
+    /**
+     * Publisher print CSS often arrives as an INLINE style attribute on html
+     * or body, and no stylesheet can outrank that — not even !important. The
+     * only way past it is to clear the inline properties on the element
+     * itself, which is why this exists alongside the registered themes.
+     */
+    rendition.hooks.content.register((contents: any) => {
+      const doc: Document = contents.document;
+      [doc?.documentElement, doc?.body].forEach((el: any) => {
+        if (!el?.style) return;
+        el.style.setProperty("height", "auto", "important");
+        el.style.setProperty("max-height", "none", "important");
+        el.style.setProperty("overflow-y", "visible", "important");
+        el.style.setProperty("overflow-x", "hidden", "important");
+      });
+    });
+
+    /**
+     * THE TOC FIX — and note HOW it is reached, because it is indirect.
+     *
+     * A click in react-reader's contents panel does NOT call display()
+     * directly. It calls setLocation(href) → locationChanged(href) → our
+     * handler → the location prop changes → EpubView.componentDidUpdate calls
+     * rendition.display(href). So the patched display is what finally runs,
+     * but only because onLocationChanged feeds the raw href back through the
+     * location prop. Simplify that handler and TOC navigation dies silently.
+     */
     const book = rendition.book;
     const originalDisplay = rendition.display.bind(rendition);
     rendition.display = (target?: string | number) => {
@@ -238,12 +297,30 @@ export default function EpubJsReader({ file, title, novelId }: EpubJsReaderProps
 
   useEffect(() => {
     try {
-      renditionRef.current?.themes.select(theme);
+      applyTheme(renditionRef.current, theme);
       localStorage.setItem("epub-theme", theme);
     } catch {
       /* not ready yet */
     }
-  }, [theme]);
+  }, [theme, applyTheme]);
+
+  useEffect(() => {
+    try {
+      // "" means leave the publisher's own typography alone.
+      if (fontFamily) renditionRef.current?.themes.font(fontFamily);
+      localStorage.setItem("epub-fontfamily", fontFamily);
+    } catch {
+      /* not ready yet */
+    }
+  }, [fontFamily]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("epub-flow", flowMode);
+    } catch {
+      /* private mode */
+    }
+  }, [flowMode]);
 
   useEffect(() => {
     try {
@@ -308,6 +385,27 @@ export default function EpubJsReader({ file, title, novelId }: EpubJsReaderProps
             <Palette className="h-4 w-4" />
           </button>
 
+          <select
+            value={fontFamily}
+            onChange={(e) => setFontFamily(e.target.value)}
+            className="rounded-lg bg-transparent py-1.5 font-mono text-xs text-white/80 focus:outline-none [&>option]:bg-zinc-900"
+            title="Typeface"
+          >
+            {FONT_FAMILIES.map((f) => (
+              <option key={f.name} value={f.css}>
+                {f.name}
+              </option>
+            ))}
+          </select>
+
+          <button
+            onClick={() => setFlowMode((m) => (m === "paginated" ? "scrolled-doc" : "paginated"))}
+            className={btn}
+            title={flowMode === "paginated" ? "Switch to continuous scroll" : "Switch to pages"}
+          >
+            {flowMode === "paginated" ? <Scroll className="h-4 w-4" /> : <BookOpen className="h-4 w-4" />}
+          </button>
+
           <a
             href={lnoriFileUrl(file, true)}
             className="ml-1 flex items-center gap-2 rounded-lg bg-pink-500 px-3 py-2 font-mono text-xs font-bold text-white transition hover:bg-pink-600 sm:px-4"
@@ -320,6 +418,9 @@ export default function EpubJsReader({ file, title, novelId }: EpubJsReaderProps
 
       <div className="relative flex-1 bg-[#070709]">
         <ReactReader
+          // epub.js settles its manager once, so a flow change needs a fresh
+          // rendition. The saved location carries across the remount.
+          key={flowMode}
           url={url}
           location={location}
           locationChanged={onLocationChanged}
@@ -329,8 +430,8 @@ export default function EpubJsReader({ file, title, novelId }: EpubJsReaderProps
             openAs: "epub",
           }}
           epubOptions={{
-            flow: "scrolled-doc",
-            manager: "continuous",
+            flow: flowMode,
+            manager: flowMode === "paginated" ? "default" : "continuous",
           }}
           readerStyles={darkReaderStyles}
         />
