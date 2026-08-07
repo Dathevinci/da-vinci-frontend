@@ -140,7 +140,6 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
           }}
           epubOptions={{
             flow: "scrolled-doc",
-            manager: "continuous",
           }}
           readerStyles={darkReaderStyles}
         />
