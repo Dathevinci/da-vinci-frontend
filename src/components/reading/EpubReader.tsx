@@ -94,23 +94,16 @@ function themeCss(prefs: EpubPrefs): string {
     p, li, td, blockquote { font-size:${prefs.size}px !important; line-height:1.75 !important; }
     h1, h2, h3, h4, h5, h6 { color:${pal.text} !important; ${fontRule} }
     a { color:#f472b6 !important; }
-    /* FULL-PAGE ART MUST FIT THE VIEWPORT, NOT OVERFLOW IT.
-       Covers and colour inserts are sized for print, so at the reader's width
-       they run taller than the screen — and on exactly those sections the
-       publisher also forbids scrolling, so the overflow was unreachable. Fit
-       them instead of trying to scroll them: capped to the viewport height and
-       letterboxed, which is what a working reader does with a cover. */
-    /* `height:auto` on the SVG is load-bearing, and max-height is gone.
-       A Kobo cover is <svg viewBox><image/></svg> with publisher CSS saying
-       svg{height:100%}. epub.js derives the frame's height FROM its content
-       (IframeView.expand -> textHeight), and IframeView.create starts that
-       frame at height 0 — so a 100% chain has zero as a fixed point and the
-       cover can settle at nothing. Sizing from the viewBox ratio instead is
-       frame-independent and breaks that.
-       A viewport-relative cap had the same circularity in the other
-       direction: 88vh resolved against a height computed from the very
-       content the rule was sizing. Width is safe to cap because epub.js locks
-       it; height is not. A tall cover simply scrolls. */
+    /* Auto height on the SVG is load-bearing, and the viewport cap is gone.
+       A Kobo cover is an svg wrapping an image, with publisher CSS setting the
+       svg to 100% height. epub.js derives the frame height FROM its content
+       and starts that frame at zero, so a 100% chain has zero as a fixed point
+       and a cover can settle at nothing. Sizing from the viewBox ratio instead
+       is frame-independent and breaks that.
+       A viewport-relative cap had the same circularity the other way round: it
+       resolved against a height computed from the very content the rule was
+       sizing. Width is safe to cap because epub.js locks it; height is not. A
+       tall cover simply scrolls. */
     img, svg {
       max-width:100% !important;
       height:auto !important;
