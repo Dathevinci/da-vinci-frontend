@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ReactReader } from "react-reader";
+import { ReactReader, ReactReaderStyle, IReactReaderStyle } from "react-reader";
 import { ArrowLeft, Download } from "lucide-react";
 import Link from "next/link";
 import { lnoriFileUrl } from "@/lib/novel/lnoriProxy";
@@ -27,6 +27,62 @@ interface EpubReaderProps {
   title: string;
   novelId: string;
 }
+
+const darkReaderStyles: IReactReaderStyle = {
+  ...ReactReaderStyle,
+  readerArea: {
+    ...ReactReaderStyle.readerArea,
+    backgroundColor: '#070709',
+  },
+  tocArea: {
+    ...ReactReaderStyle.tocArea,
+    backgroundColor: '#070709',
+  },
+  tocAreaButton: {
+    ...ReactReaderStyle.tocAreaButton,
+    color: '#e2e8f0',
+    borderBottom: '1px solid #ffffff1a',
+  },
+  tocButtonExpanded: {
+    ...ReactReaderStyle.tocButtonExpanded,
+    backgroundColor: '#1e293b',
+  },
+  toc: {
+    ...ReactReaderStyle.toc,
+    backgroundColor: '#070709',
+    color: '#e2e8f0',
+  },
+  tocButton: {
+    ...ReactReaderStyle.tocButton,
+    color: '#e2e8f0',
+    borderBottom: '1px solid #ffffff1a',
+  },
+  arrow: {
+    ...ReactReaderStyle.arrow,
+    color: '#e2e8f0',
+    backgroundColor: '#070709',
+  },
+  arrowHover: {
+    ...ReactReaderStyle.arrowHover,
+    color: '#f8fafc',
+  },
+  tocBackground: {
+    ...ReactReaderStyle.tocBackground,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  tocButtonBar: {
+    ...ReactReaderStyle.tocButtonBar,
+    background: '#e2e8f0',
+  },
+  tocButtonBarTop: {
+    ...ReactReaderStyle.tocButtonBarTop,
+    background: '#e2e8f0',
+  },
+  tocButtonBottom: {
+    ...ReactReaderStyle.tocButtonBottom,
+    background: '#e2e8f0',
+  }
+};
 
 export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
   const [location, setLocation] = useState<string | number>(0);
@@ -83,9 +139,10 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
             openAs: "epub",
           }}
           epubOptions={{
-            flow: "scrolled",
+            flow: "scrolled-doc",
             manager: "continuous",
           }}
+          readerStyles={darkReaderStyles}
         />
       </div>
     </div>
