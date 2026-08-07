@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ReactReader, ReactReaderStyle, IReactReaderStyle } from "react-reader";
-import { ArrowLeft, Download, Scroll, BookOpen } from "lucide-react";
+import { ArrowLeft, Download, Scroll, BookOpen, ZoomIn, ZoomOut, Type } from "lucide-react";
 import Link from "next/link";
 import { lnoriFileUrl } from "@/lib/novel/lnoriProxy";
 
@@ -88,7 +88,23 @@ const darkReaderStyles: IReactReaderStyle = {
 export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
   const [location, setLocation] = useState<string | number>(0);
   const [flowMode, setFlowMode] = useState<"scrolled" | "paginated">("scrolled");
+  const [fontSize, setFontSize] = useState<number>(100);
+  const [fontFamily, setFontFamily] = useState<string>("ui-sans-serif, system-ui, sans-serif");
+  const [rendition, setRendition] = useState<any>(null);
+
   const url = lnoriFileUrl(file);
+
+  useEffect(() => {
+    if (rendition) {
+      rendition.themes.register("dynamicTheme", {
+        "body, p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, section, article, a": {
+          "font-size": `${fontSize}% !important`,
+          "font-family": `${fontFamily} !important`,
+        }
+      });
+      rendition.themes.select("dynamicTheme");
+    }
+  }, [rendition, fontSize, fontFamily]);
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-[#070709]">
@@ -105,6 +121,39 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Zoom Controls */}
+          <div className="hidden sm:flex items-center rounded-lg bg-white/5 p-1 border border-white/10">
+            <button
+              onClick={() => setFontSize(f => Math.max(50, f - 10))}
+              className="p-1 text-zinc-400 hover:text-white transition"
+              title="Zoom Out"
+            >
+              <ZoomOut className="h-4 w-4" />
+            </button>
+            <span className="font-mono text-xs text-white px-2 w-12 text-center">{fontSize}%</span>
+            <button
+              onClick={() => setFontSize(f => Math.min(250, f + 10))}
+              className="p-1 text-zinc-400 hover:text-white transition"
+              title="Zoom In"
+            >
+              <ZoomIn className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Font Picker */}
+          <div className="hidden md:flex items-center rounded-lg bg-white/5 border border-white/10 px-2">
+            <Type className="h-3.5 w-3.5 text-zinc-400 mr-2" />
+            <select
+              value={fontFamily}
+              onChange={(e) => setFontFamily(e.target.value)}
+              className="bg-transparent text-xs font-mono text-white py-1.5 focus:outline-none [&>option]:bg-zinc-900"
+            >
+              <option value="ui-sans-serif, system-ui, sans-serif">Sans-Serif</option>
+              <option value="ui-serif, Georgia, serif">Serif</option>
+              <option value="ui-monospace, monospace">Monospace</option>
+            </select>
+          </div>
+
           {/* Mode Switcher Toggle */}
           <div className="flex items-center rounded-lg bg-white/5 p-1 border border-white/10">
             <button
@@ -150,8 +199,9 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
           location={location}
           locationChanged={(epubcfi: string) => setLocation(epubcfi)}
           title={title}
-          getRendition={(rendition) => {
-            rendition.hooks.content.register((contents: any) => {
+          getRendition={(rend) => {
+            setRendition(rend);
+            rend.hooks.content.register((contents: any) => {
               const doc = contents.document;
               if (doc) {
                 const htmlEl = doc.querySelector("html");
@@ -173,7 +223,20 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
                 }
               }
 
+              // Aggressively strip position absolute from elements in Webtoon scrolled mode
+              // This is mandatory for complex EPUBs (Overlord/Tanya) because absolute-positioned
+              // divs completely defeat epub.js continuous scrollHeight iframe calculations!
+              const flowSpecificCss = flowMode === "scrolled" ? `
+                * {
+                  position: static !important;
+                  transform: none !important;
+                  max-height: none !important;
+                  min-height: 0 !important;
+                }
+              ` : "";
+
               contents.addStylesheetCss(`
+                ${flowSpecificCss}
                 html, body {
                   background-color: #070709 !important;
                   color: #e2e8f0 !important;
@@ -202,13 +265,14 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
               `);
             });
 
-            rendition.themes.register("dark", {
+            // Initial theme setup (dynamically overridden in useEffect)
+            rend.themes.register("dark", {
               body: {
                 background: "#070709 !important",
                 color: "#e2e8f0 !important",
               },
             });
-            rendition.themes.select("dark");
+            rend.themes.select("dark");
           }}
           epubInitOptions={{
             openAs: "epub",
