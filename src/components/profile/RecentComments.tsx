@@ -11,8 +11,13 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
  * RECENT COMMENTS — what this person has actually been saying.
  *
  * A profile that only shows counters says how much someone posts but nothing
- * about who they are. This is the cheapest way to fix that: the comments API
- * already filters by userId, so it is one read.
+ * about who they are.
+ *
+ * Filters by `authorId`, NOT `userId`. On the comments API `userId` is the
+ * VIEWER — it personalises vote/poll markers and filters nothing. This
+ * component originally sent `userId` believing it filtered, the API silently
+ * ignored it, and every profile showed the newest comments from the entire
+ * site under "what this person has been saying".
  *
  * Renders nothing when there are no comments, so a quiet profile does not grow
  * an empty box.
@@ -90,7 +95,7 @@ export default function RecentComments({ userId }: { userId: string }) {
 
   useEffect(() => {
     if (!userId) return;
-    fetch(`${API_URL}/api/comments?userId=${userId}&limit=8&sort=new`)
+    fetch(`${API_URL}/api/comments?authorId=${encodeURIComponent(userId)}&limit=8&sort=new`)
       .then((r) => r.json())
       .then((d) => {
         const list = Array.isArray(d?.data) ? d.data : d?.data?.comments;
