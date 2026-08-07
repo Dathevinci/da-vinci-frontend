@@ -53,21 +53,37 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
           <span className="hidden sm:inline">Download EPUB</span>
         </a>
       </div>
-      <div className="relative flex-1 bg-white">
-        {/* White behind the reader because EPUBs assume it. Forcing a dark
-            theme into the book's own document is exactly what went wrong
-            before — publisher stylesheets load after ours and win, and the
-            overrides needed to beat them broke epub.js's own measurements. */}
+      <div className="relative flex-1 bg-[#070709]">
         <ReactReader
           url={url}
           location={location}
           locationChanged={(epubcfi: string) => setLocation(epubcfi)}
           title={title}
+          getRendition={(rendition) => {
+            rendition.themes.register("dark", {
+              body: {
+                background: "#070709 !important",
+                color: "#e2e8f0 !important", // slate-200
+                "font-family": "ui-sans-serif, system-ui, sans-serif !important",
+              },
+              p: {
+                color: "#e2e8f0 !important",
+                "line-height": "1.75 !important",
+              },
+              "h1, h2, h3, h4, h5, h6": {
+                color: "#f8fafc !important", // slate-50
+              },
+              a: {
+                color: "#f472b6 !important", // pink-400
+              }
+            });
+            rendition.themes.select("dark");
+          }}
           epubInitOptions={{
             openAs: "epub",
           }}
           epubOptions={{
-            flow: "paginated",
+            flow: "scrolled",
             manager: "continuous",
           }}
         />
