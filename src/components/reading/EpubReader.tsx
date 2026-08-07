@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ReactReader, ReactReaderStyle, IReactReaderStyle } from "react-reader";
-import { ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft, Download, Scroll, BookOpen } from "lucide-react";
 import Link from "next/link";
 import { lnoriFileUrl } from "@/lib/novel/lnoriProxy";
 
@@ -86,6 +86,7 @@ const darkReaderStyles: IReactReaderStyle = {
 
 export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
   const [location, setLocation] = useState<string | number>(0);
+  const [flowMode, setFlowMode] = useState<"scrolled-doc" | "paginated">("scrolled-doc");
   const url = lnoriFileUrl(file);
 
   return (
@@ -101,46 +102,110 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
           </Link>
           <h1 className="line-clamp-1 font-mono text-sm font-bold text-white sm:text-base">{title}</h1>
         </div>
-        <a
-          href={lnoriFileUrl(file, true)}
-          className="flex items-center gap-2 rounded-lg bg-pink-500 px-4 py-2 font-mono text-xs font-bold text-white transition hover:bg-pink-600"
-        >
-          <Download className="h-4 w-4" />
-          <span className="hidden sm:inline">Download EPUB</span>
-        </a>
+
+        <div className="flex items-center gap-3">
+          {/* Mode Switcher Toggle */}
+          <div className="flex items-center rounded-lg bg-white/5 p-1 border border-white/10">
+            <button
+              onClick={() => setFlowMode("scrolled-doc")}
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1 font-mono text-xs font-semibold transition ${
+                flowMode === "scrolled-doc"
+                  ? "bg-pink-500 text-white shadow"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+              title="Continuous Vertical Scroll Mode"
+            >
+              <Scroll className="h-3.5 w-3.5" />
+              <span>Scroll</span>
+            </button>
+            <button
+              onClick={() => setFlowMode("paginated")}
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1 font-mono text-xs font-semibold transition ${
+                flowMode === "paginated"
+                  ? "bg-pink-500 text-white shadow"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+              title="Page-by-Page Reading Mode"
+            >
+              <BookOpen className="h-3.5 w-3.5" />
+              <span>Paginated</span>
+            </button>
+          </div>
+
+          <a
+            href={lnoriFileUrl(file, true)}
+            className="flex items-center gap-2 rounded-lg bg-pink-500/20 text-pink-400 border border-pink-500/30 px-3 py-1.5 font-mono text-xs font-bold transition hover:bg-pink-500 hover:text-white"
+          >
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Download</span>
+          </a>
+        </div>
       </div>
+
       <div className="relative flex-1 bg-[#070709]">
         <ReactReader
+          key={flowMode}
           url={url}
           location={location}
           locationChanged={(epubcfi: string) => setLocation(epubcfi)}
           title={title}
           getRendition={(rendition) => {
+            rendition.hooks.content.register((contents: any) => {
+              const doc = contents.document;
+              if (doc) {
+                const htmlEl = doc.querySelector("html");
+                const bodyEl = doc.querySelector("body");
+                if (htmlEl) {
+                  htmlEl.style.setProperty("height", "auto", "important");
+                  htmlEl.style.setProperty("overflow-y", "auto", "important");
+                  htmlEl.style.setProperty("overflow-x", "hidden", "important");
+                  htmlEl.style.setProperty("background-color", "#070709", "important");
+                  htmlEl.style.setProperty("color", "#e2e8f0", "important");
+                }
+                if (bodyEl) {
+                  bodyEl.style.setProperty("height", "auto", "important");
+                  bodyEl.style.setProperty("min-height", "100vh", "important");
+                  bodyEl.style.setProperty("overflow-y", "auto", "important");
+                  bodyEl.style.setProperty("overflow-x", "hidden", "important");
+                  bodyEl.style.setProperty("background-color", "#070709", "important");
+                  bodyEl.style.setProperty("color", "#e2e8f0", "important");
+                }
+              }
+
+              contents.addStylesheetCss(`
+                html, body {
+                  background-color: #070709 !important;
+                  color: #e2e8f0 !important;
+                  height: auto !important;
+                  min-height: 100vh !important;
+                  overflow-y: auto !important;
+                  overflow-x: hidden !important;
+                }
+                p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, section, article {
+                  color: #e2e8f0 !important;
+                  background-color: transparent !important;
+                }
+                a, a * {
+                  color: #f472b6 !important;
+                }
+                img, svg, picture, video {
+                  max-width: 100% !important;
+                  height: auto !important;
+                  object-fit: contain !important;
+                  margin: 0 auto !important;
+                  display: block !important;
+                }
+                svg {
+                  width: 100% !important;
+                }
+              `);
+            });
+
             rendition.themes.register("dark", {
               body: {
                 background: "#070709 !important",
-                color: "#e2e8f0 !important", // slate-200
-                "font-family": "ui-sans-serif, system-ui, sans-serif !important",
-              },
-              p: {
                 color: "#e2e8f0 !important",
-                "line-height": "1.75 !important",
               },
-              "h1, h2, h3, h4, h5, h6": {
-                color: "#f8fafc !important", // slate-50
-              },
-              a: {
-                color: "#f472b6 !important", // pink-400
-              },
-              img: {
-                "max-width": "100% !important",
-                "height": "auto !important",
-                "object-fit": "contain !important",
-              },
-              svg: {
-                "max-width": "100% !important",
-                "height": "auto !important",
-              }
             });
             rendition.themes.select("dark");
           }}
@@ -148,7 +213,7 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
             openAs: "epub",
           }}
           epubOptions={{
-            flow: "scrolled-doc",
+            flow: flowMode,
           }}
           readerStyles={darkReaderStyles}
         />
