@@ -33,6 +33,7 @@ const darkReaderStyles: IReactReaderStyle = {
   readerArea: {
     ...ReactReaderStyle.readerArea,
     backgroundColor: '#070709',
+    overflow: 'auto',
   },
   tocArea: {
     ...ReactReaderStyle.tocArea,
@@ -86,7 +87,7 @@ const darkReaderStyles: IReactReaderStyle = {
 
 export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
   const [location, setLocation] = useState<string | number>(0);
-  const [flowMode, setFlowMode] = useState<"scrolled-doc" | "paginated">("scrolled-doc");
+  const [flowMode, setFlowMode] = useState<"scrolled" | "paginated">("scrolled");
   const url = lnoriFileUrl(file);
 
   return (
@@ -107,16 +108,16 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
           {/* Mode Switcher Toggle */}
           <div className="flex items-center rounded-lg bg-white/5 p-1 border border-white/10">
             <button
-              onClick={() => setFlowMode("scrolled-doc")}
+              onClick={() => setFlowMode("scrolled")}
               className={`flex items-center gap-1.5 rounded-md px-3 py-1 font-mono text-xs font-semibold transition ${
-                flowMode === "scrolled-doc"
+                flowMode === "scrolled"
                   ? "bg-pink-500 text-white shadow"
                   : "text-zinc-400 hover:text-white"
               }`}
-              title="Continuous Vertical Scroll Mode"
+              title="Continuous Webtoon-Style Vertical Scroll"
             >
               <Scroll className="h-3.5 w-3.5" />
-              <span>Scroll</span>
+              <span>Webtoon</span>
             </button>
             <button
               onClick={() => setFlowMode("paginated")}
@@ -157,15 +158,15 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
                 const bodyEl = doc.querySelector("body");
                 if (htmlEl) {
                   htmlEl.style.setProperty("height", "auto", "important");
-                  htmlEl.style.setProperty("overflow-y", "auto", "important");
+                  htmlEl.style.setProperty("overflow-y", "visible", "important");
                   htmlEl.style.setProperty("overflow-x", "hidden", "important");
                   htmlEl.style.setProperty("background-color", "#070709", "important");
                   htmlEl.style.setProperty("color", "#e2e8f0", "important");
                 }
                 if (bodyEl) {
                   bodyEl.style.setProperty("height", "auto", "important");
-                  bodyEl.style.setProperty("min-height", "100vh", "important");
-                  bodyEl.style.setProperty("overflow-y", "auto", "important");
+                  bodyEl.style.setProperty("min-height", "100%", "important");
+                  bodyEl.style.setProperty("overflow-y", "visible", "important");
                   bodyEl.style.setProperty("overflow-x", "hidden", "important");
                   bodyEl.style.setProperty("background-color", "#070709", "important");
                   bodyEl.style.setProperty("color", "#e2e8f0", "important");
@@ -177,8 +178,8 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
                   background-color: #070709 !important;
                   color: #e2e8f0 !important;
                   height: auto !important;
-                  min-height: 100vh !important;
-                  overflow-y: auto !important;
+                  min-height: 100% !important;
+                  overflow-y: visible !important;
                   overflow-x: hidden !important;
                 }
                 p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, section, article {
@@ -212,9 +213,11 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
           epubInitOptions={{
             openAs: "epub",
           }}
-          epubOptions={{
-            flow: flowMode,
-          }}
+          epubOptions={
+            flowMode === "scrolled"
+              ? { flow: "scrolled", manager: "continuous" }
+              : { flow: "paginated", manager: "default" }
+          }
           readerStyles={darkReaderStyles}
         />
       </div>
