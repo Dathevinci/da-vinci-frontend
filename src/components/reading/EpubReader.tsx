@@ -21,10 +21,10 @@ import EpubJsReader from "@/components/reading/EpubJsReader";
  * simply does not use.
  *
  * So the server unpacks the EPUB and hands over sanitised HTML, and this
- * renders it as ONE continuous column. Sections are appended as you approach
- * the bottom rather than all at once: a volume is thirty-odd sections, and
- * loading them up front would trade the paging problem for a slow first paint.
- * Reading simply carries on into the next chapter.
+ * renders it as ONE continuous column. The entry section paints first, then
+ * the REST OF THE BOOK streams in eagerly in the background — the archive is
+ * already cached server-side, so the whole volume arrives in seconds and
+ * reading never waits at the bottom for a fetch.
  *
  * If extraction ever fails on an odd book, EpubJsReader takes over.
  */
@@ -48,8 +48,6 @@ interface SectionPayload {
   toc: TocEntry[];
 }
 
-/** Start fetching the next section this far from the bottom, in px. */
-const PREFETCH_MARGIN = 1500;
 
 export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
   const { prefs, update } = useNovelReaderPrefs();
@@ -69,14 +67,16 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const scrollRef = useRef<HTMLElement>(null);
-  const sentinelRef = useRef<HTMLDivElement>(null);
   const pendingFragRef = useRef<string | null>(null);
   /**
-   * Guards the appender while a fetch is in flight. Scroll events arrive far
-   * faster than the network answers, so without this one flick near the bottom
-   * would request the same section a dozen times.
+   * True only between a deliberate jump (open, contents click, footnote) and
+   * its scroll landing. The landing effect re-runs whenever sections change —
+   * without this flag it also fired on every background APPEND, scrolling the
+   * reader back to the top mid-read, again and again as the book streamed in.
    */
-  const busyRef = useRef(false);
+  const jumpedRef = useRef(false);
+  /** Invalidates the background loader when a jump restarts the column. */
+  const loadTokenRef = useRef(0);
 
   const b = encodeLnori(file);
   const secKey = "epub-sec:" + file;
@@ -105,6 +105,8 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
     async (index: number, fragment?: string) => {
       setTocOpen(false);
       setBooting(true);
+      jumpedRef.current = true;
+      loadTokenRef.current++;
       pendingFragRef.current = fragment || null;
       const payload = await fetchSection(index);
       if (!payload) {
@@ -137,54 +139,62 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file]);
 
-  const appendNext = useCallback(async () => {
-    if (busyRef.current) return;
-    const last = sections[sections.length - 1];
-    if (!last || last.index + 1 >= count) return;
-
-    busyRef.current = true;
-    setAppending(true);
-    const payload = await fetchSection(last.index + 1);
-    if (payload) {
-      setSections((prev) =>
-        prev.some((s) => s.index === payload.index) ? prev : [...prev, payload]
-      );
-    }
-    setAppending(false);
-    busyRef.current = false;
-  }, [sections, count, fetchSection]);
-
   /**
-   * THE APPENDER IS OBSERVED, NOT SCROLL-DRIVEN — this is the stuck-on-mobile
-   * fix.
+   * THE WHOLE BOOK LOADS EAGERLY, in order, starting the moment the entry
+   * section is on screen.
    *
-   * The first version appended from onScroll. A section shorter than the
-   * viewport (cover, title page, copyright — and on a phone that is most of
-   * the front matter) has no overflow, so no scroll event can EVER fire, so
-   * the next section never loads: stuck, with nothing to scroll and nothing
-   * coming. On a desktop window the same section overflows, which is why the
-   * bug only existed on mobile.
+   * This replaced two generations of "load more when the reader nears the
+   * bottom" (scroll events, then an observed sentinel). Both meant WAITING at
+   * the bottom mid-read, and combined with the anchor bug they produced the
+   * worst behaviour this reader shipped: reach the bottom, wait for the
+   * fetch, get scrolled back to the top. Streaming everything up front costs
+   * a few seconds of background requests against an already-cached archive
+   * and removes the entire class.
    *
-   * A sentinel at the bottom of the column, watched by an IntersectionObserver
-   * rooted on the scroll container, has no such blind spot: visible on first
-   * paint means append immediately. The effect re-runs on every append, and
-   * re-observing always fires the initial callback — so a run of short
-   * sections chains automatically until the column finally overflows or the
-   * book ends.
+   * Sequential on purpose: sections append strictly in order, so the column
+   * never has a gap, and each response lands below the reading position —
+   * appending below never moves what you are looking at.
+   *
+   * The token invalidates the loop when a contents jump restarts the column
+   * at a different section; without it the old loop would keep appending
+   * from its own cursor and stitch a gap into the new column.
    */
   useEffect(() => {
-    const root = scrollRef.current;
-    const target = sentinelRef.current;
-    if (!root || !target || booting) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((e) => e.isIntersecting)) appendNext();
-      },
-      { root, rootMargin: PREFETCH_MARGIN + "px" }
-    );
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, [appendNext, booting]);
+    if (booting || fallback || count === 0 || sections.length === 0) return;
+    const token = ++loadTokenRef.current;
+    let cancelled = false;
+
+    (async () => {
+      let next = sections[sections.length - 1].index + 1;
+      let failures = 0;
+      if (next < count) setAppending(true);
+      while (!cancelled && token === loadTokenRef.current && next < count) {
+        const payload = await fetchSection(next);
+        if (cancelled || token !== loadTokenRef.current) return;
+        if (payload) {
+          failures = 0;
+          setSections((prev) =>
+            prev.some((s) => s.index === payload.index) ? prev : [...prev, payload]
+          );
+          next++;
+        } else if (++failures >= 3) {
+          // Three consecutive misses: stop quietly rather than hammer a source
+          // that is down. A contents jump re-enters and tries again.
+          break;
+        } else {
+          await new Promise((r) => setTimeout(r, 800));
+        }
+      }
+      if (!cancelled && token === loadTokenRef.current) setAppending(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // `sections` is deliberately not a dependency: the loop keeps its own
+    // cursor, and re-running on every append would spawn a loop per section.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [booting, fallback, count, fetchSection]);
 
   /**
    * Which section is being read, for the header label and the resume point.
@@ -217,9 +227,18 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
     return () => observer.disconnect();
   }, [sections, secKey]);
 
-  // Land on the requested anchor (or the top) once a jump has rendered.
+  /**
+   * Land on the requested anchor (or the top) once a JUMP has rendered — and
+   * only a jump.
+   *
+   * This effect re-runs whenever sections change, and it used to act every
+   * time: each background append scrolled the reader back to the top, over
+   * and over while the book streamed in. The flag is set by jumpTo alone and
+   * consumed here, so appends change nothing about the scroll position.
+   */
   useEffect(() => {
-    if (booting || !sections.length) return;
+    if (booting || !sections.length || !jumpedRef.current) return;
+    jumpedRef.current = false;
     const frag = pendingFragRef.current;
     pendingFragRef.current = null;
     requestAnimationFrame(() => {
@@ -544,10 +563,6 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
                 dangerouslySetInnerHTML={{ __html: s.html }}
               />
             ))}
-
-            {/* The load-more sentinel. h-px, not h-0: a zero-height element at
-                the exact bottom edge can fail to intersect at all. */}
-            <div ref={sentinelRef} aria-hidden className="h-px" />
 
             {appending && (
               <div className="flex justify-center py-8">
