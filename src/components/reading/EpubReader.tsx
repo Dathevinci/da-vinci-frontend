@@ -131,6 +131,15 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
               },
               a: {
                 color: "#f472b6 !important", // pink-400
+              },
+              img: {
+                "max-width": "100% !important",
+                "height": "auto !important",
+                "object-fit": "contain !important",
+              },
+              svg: {
+                "max-width": "100% !important",
+                "height": "auto !important",
               }
             });
             rendition.themes.select("dark");
