@@ -88,8 +88,14 @@ export function AvatarDecoration({
       {ring && (
         <motion.span
           aria-hidden
-          className="pointer-events-none absolute -inset-[3px] rounded-full z-0"
-          style={{ background: ring.ring, filter: `drop-shadow(0 0 6px ${ring.glow})` }}
+          // A 3px band reads as a thick collar around a 32-40px avatar. Kept
+          // full width on the profile, hairline on dense surfaces — the ring
+          // is the bought cosmetic and must stay visible either way.
+          className={`pointer-events-none absolute rounded-full z-0 ${size === "lg" ? "-inset-[3px]" : "-inset-[2px]"}`}
+          style={{
+            background: ring.ring,
+            filter: `drop-shadow(0 0 ${size === "lg" ? 6 : 2.5}px ${ring.glow})`,
+          }}
           animate={{ rotate: 360 }}
           transition={{ duration: ring.speed, repeat: Infinity, ease: "linear" }}
         />
@@ -152,6 +158,27 @@ const LITE_GLOW: Record<string, string[]> = {
 
 import { BlackHoleEffect } from "./BlackHoleEffect";
 
+/**
+ * A 40px avatar cannot wear a 90px halo.
+ *
+ * These glows were written for the big profile avatar and then reused verbatim
+ * on every dense surface. On a comment composer the spread ended up wider than
+ * the picture itself, bleeding across the text beside it and reading as a
+ * smear rather than a cosmetic. Same colours; blur and spread pulled in
+ * proportionally so the effect stays legible as a ring of light around a small
+ * avatar instead of a cloud over its neighbours.
+ */
+const tighten = (shadow: string) =>
+  shadow.replace(
+    /(\d+)px\s+(\d+)px/,
+    (_m, blur: string, spread: string) =>
+      `${Math.max(3, Math.round(Number(blur) * 0.45))}px ${Math.max(0, Math.round(Number(spread) * 0.3))}px`
+  );
+
+/** Full-size glow on the profile avatar; a proportional one everywhere else. */
+const glowFor = (frames: string[], size: "sm" | "lg") =>
+  size === "lg" ? frames : frames.map(tighten);
+
 function EffectLayer({ effect, size = "sm" }: { effect: string; size?: "sm" | "lg" }) {
   // On any small/dense surface, a heavy effect becomes a single cheap glow —
   // no canvas, no blur, no per-avatar animation loop.
@@ -159,8 +186,8 @@ function EffectLayer({ effect, size = "sm" }: { effect: string; size?: "sm" | "l
     return (
       <motion.span
         aria-hidden
-        className="pointer-events-none absolute -inset-1 rounded-full z-0"
-        animate={{ boxShadow: LITE_GLOW[effect] }}
+        className="pointer-events-none absolute -inset-px rounded-full z-0"
+        animate={{ boxShadow: glowFor(LITE_GLOW[effect] || [], "sm") }}
         transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
       />
     );
@@ -177,13 +204,16 @@ function EffectLayer({ effect, size = "sm" }: { effect: string; size?: "sm" | "l
         aria-hidden
         className="pointer-events-none absolute -inset-1 rounded-full z-0"
         animate={{
-          boxShadow: [
-            "0 0 10px 2px rgba(124,58,237,0.5)",
-            "0 0 30px 9px rgba(216,180,254,0.85)",
-            "0 0 14px 3px rgba(168,85,247,0.6)",
-            "0 0 26px 7px rgba(217,70,239,0.8)",
-            "0 0 10px 2px rgba(124,58,237,0.5)",
-          ],
+          boxShadow: glowFor(
+            [
+              "0 0 10px 2px rgba(124,58,237,0.5)",
+              "0 0 30px 9px rgba(216,180,254,0.85)",
+              "0 0 14px 3px rgba(168,85,247,0.6)",
+              "0 0 26px 7px rgba(217,70,239,0.8)",
+              "0 0 10px 2px rgba(124,58,237,0.5)",
+            ],
+            size
+          ),
         }}
         transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
       />
@@ -297,11 +327,14 @@ function EffectLayer({ effect, size = "sm" }: { effect: string; size?: "sm" | "l
         aria-hidden
         className="pointer-events-none absolute -inset-0.5 rounded-full z-0"
         animate={{
-          boxShadow: [
-            "0 0 10px 2px rgba(168,85,247,0.45)",
-            "0 0 22px 6px rgba(217,70,239,0.65)",
-            "0 0 10px 2px rgba(168,85,247,0.45)",
-          ],
+          boxShadow: glowFor(
+            [
+              "0 0 10px 2px rgba(168,85,247,0.45)",
+              "0 0 22px 6px rgba(217,70,239,0.65)",
+              "0 0 10px 2px rgba(168,85,247,0.45)",
+            ],
+            size
+          ),
         }}
         transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
       />
