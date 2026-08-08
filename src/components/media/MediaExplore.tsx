@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useSearchParams } from "next/navigation";
 import { Search, Filter, Clock, ListFilter, Library } from "lucide-react";
 import ManhwaCard from "@/components/manhwa/ManhwaCard";
@@ -100,27 +101,66 @@ function FiltersPanel({
   onClose: () => void;
 }) {
   const [staged, setStaged] = useState<Filters>(value);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  /** Viewport coordinates for the dropdown form; null = bottom-sheet form. */
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; right: number } | null>(null);
+
+  /**
+   * PORTALED TO <body> — the twin of the anime explore panel, same scars.
+   * Anchored absolute to the button it hung off a phone screen and sliced
+   * every label; rewritten as fixed IN PLACE it pinned itself to the sticky
+   * backdrop-blur control bar instead of the viewport, because backdrop-filter
+   * establishes a containing block for fixed descendants. A portal is the only
+   * placement no ancestor styling can reach.
+   */
+  useEffect(() => {
+    const place = () => {
+      if (window.innerWidth < 640) {
+        setDropdownPos(null);
+        return;
+      }
+      const r = anchorRef.current?.getBoundingClientRect();
+      if (r) setDropdownPos({ top: r.bottom + 8, right: Math.max(8, window.innerWidth - r.right) });
+    };
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [anchorRef]);
 
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
-      // The toggle button lives inside the anchor, so a click on it counts as
-      // inside — otherwise mousedown closes the panel and the click reopens it,
+      const t = e.target as Node;
+      // Portaled, so the panel is NOT inside the anchor's subtree — it needs
+      // its own inside-check or every tap in it closes it. The toggle button
+      // stays an inside too, else mousedown closes and the click reopens,
       // losing every staged change to the remount.
-      if (anchorRef.current && !anchorRef.current.contains(e.target as Node)) onClose();
+      if (anchorRef.current?.contains(t)) return;
+      if (panelRef.current?.contains(t)) return;
+      onClose();
     };
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
   }, [onClose, anchorRef]);
 
-  /**
-   * Bottom sheet on mobile, dropdown from sm up — the twin of the anime
-   * explore panel. Anchored to the BUTTON, a 320px panel hanging left from a
-   * mid-row button ran off the side of a phone and sliced the first characters
-   * off every label. Viewport-anchored, it cannot be clipped. Still a DOM
-   * child of the anchor, so click-outside still works.
-   */
-  return (
-    <div className="fixed inset-x-3 bottom-3 z-[90] flex max-h-[70vh] flex-col gap-2.5 overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#0b0b11] p-3 shadow-2xl sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-full sm:z-40 sm:mt-2 sm:max-h-[min(70vh,640px)] sm:w-[360px]">
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <>
+      {/* Backdrop, mobile only — the scrim makes tap-to-dismiss discoverable. */}
+      <div className="fixed inset-0 z-[95] bg-black/60 sm:hidden" onClick={onClose} aria-hidden />
+      <div
+        ref={panelRef}
+        style={dropdownPos ? { top: dropdownPos.top, right: dropdownPos.right } : undefined}
+        className={
+          dropdownPos
+            ? "fixed z-[96] flex max-h-[min(70vh,640px)] w-[360px] flex-col gap-2.5 overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#0b0b11] p-3 shadow-2xl"
+            : "fixed inset-x-3 bottom-3 z-[96] flex max-h-[72vh] flex-col gap-2.5 overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#0b0b11] p-3 shadow-2xl"
+        }
+      >
       {mode === "manhwa" ? (
         <>
           <Section Icon={Clock} label="Sort By">
@@ -162,7 +202,9 @@ function FiltersPanel({
       >
         Apply Filters
       </button>
-    </div>
+      </div>
+    </>,
+    document.body
   );
 }
 

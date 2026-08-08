@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Search, Filter, EyeOff, Eye, Infinity as InfinityIcon, Star, Loader2,
@@ -367,31 +368,72 @@ function FiltersPanel({
   onClose: () => void;
 }) {
   const [staged, setStaged] = useState<Filters>(value);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  /** Viewport coordinates for the dropdown form; null = bottom-sheet form. */
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; right: number } | null>(null);
+
+  /**
+   * PORTALED TO <body>, POSITIONED FROM THE ANCHOR'S RECT.
+   *
+   * Two failed generations taught this panel its shape. Anchored absolute to
+   * the Filters button, it hung leftward off a phone screen and sliced the
+   * first characters from every label. Rewritten as position:fixed IN PLACE it
+   * broke differently: the control bar it lives in is sticky with
+   * backdrop-blur, and a backdrop-filter establishes a containing block — so
+   * "fixed" pinned the sheet to the blurred BAR, not the viewport, and it
+   * rendered as a broken band scrolling with the page.
+   *
+   * In a portal, no ancestor styling can reach it. From sm up it is placed at
+   * the button's rect (recomputed on scroll and resize); below sm it is a
+   * bottom sheet with a backdrop.
+   */
+  useEffect(() => {
+    const place = () => {
+      if (window.innerWidth < 640) {
+        setDropdownPos(null);
+        return;
+      }
+      const r = anchorRef.current?.getBoundingClientRect();
+      if (r) setDropdownPos({ top: r.bottom + 8, right: Math.max(8, window.innerWidth - r.right) });
+    };
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [anchorRef]);
 
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
-      if (anchorRef.current && !anchorRef.current.contains(e.target as Node)) onClose();
+      const t = e.target as Node;
+      // The panel is portaled, so it is NOT inside the anchor's DOM subtree —
+      // it needs its own inside-check or every tap in it closes it.
+      if (anchorRef.current?.contains(t)) return;
+      if (panelRef.current?.contains(t)) return;
+      onClose();
     };
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
   }, [onClose, anchorRef]);
 
-  /**
-   * A BOTTOM SHEET ON MOBILE, a dropdown from sm up.
-   *
-   * As a dropdown it was anchored to the Filters BUTTON: right-0 puts its right
-   * edge at the button's right edge, and a 320px panel hanging left from a
-   * button sitting mid-row runs straight off a phone screen. Every label lost
-   * its first characters, so "Most Popular" read "lost Popular". No width can
-   * fix that, because the space to the left of the button is simply narrower
-   * than the panel.
-   *
-   * Anchored to the VIEWPORT instead, it cannot be clipped wherever the button
-   * happens to sit. It stays a DOM child of the anchor, so the click-outside
-   * handler still treats taps inside it as inside.
-   */
-  return (
-    <div className="fixed inset-x-3 bottom-3 z-[90] flex max-h-[70vh] flex-col gap-2.5 overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#0b0b11] p-3 shadow-2xl sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-full sm:z-40 sm:mt-2 sm:max-h-[min(70vh,640px)] sm:w-[360px]">
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <>
+      {/* Backdrop, mobile only: on a phone the sheet covers the page anyway,
+          and a visible scrim makes "tap outside to dismiss" discoverable. */}
+      <div className="fixed inset-0 z-[95] bg-black/60 sm:hidden" onClick={onClose} aria-hidden />
+      <div
+        ref={panelRef}
+        style={dropdownPos ? { top: dropdownPos.top, right: dropdownPos.right } : undefined}
+        className={
+          dropdownPos
+            ? "fixed z-[96] flex max-h-[min(70vh,640px)] w-[360px] flex-col gap-2.5 overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#0b0b11] p-3 shadow-2xl"
+            : "fixed inset-x-3 bottom-3 z-[96] flex max-h-[72vh] flex-col gap-2.5 overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#0b0b11] p-3 shadow-2xl"
+        }
+      >
       <Section Icon={Clock} label="Sort By">
         <div className="flex flex-col">
           {SORTS.map((s) => (
@@ -474,6 +516,8 @@ function FiltersPanel({
       >
         Apply Filters
       </button>
-    </div>
+      </div>
+    </>,
+    document.body
   );
 }

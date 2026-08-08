@@ -171,8 +171,10 @@ import { BlackHoleEffect } from "./BlackHoleEffect";
 const tighten = (shadow: string) =>
   shadow.replace(
     /(\d+)px\s+(\d+)px/,
-    (_m, blur: string, spread: string) =>
-      `${Math.max(3, Math.round(Number(blur) * 0.45))}px ${Math.max(0, Math.round(Number(spread) * 0.3))}px`
+    // Blur to ~30% and spread to ZERO. The first pass at this kept a third of
+    // the spread and the halo still read as a smear beside 14px text — on a
+    // 40px avatar any positive spread pushes the glow onto the neighbours.
+    (_m, blur: string) => `${Math.max(2, Math.round(Number(blur) * 0.3))}px 0px`
   );
 
 /** Full-size glow on the profile avatar; a proportional one everywhere else. */
