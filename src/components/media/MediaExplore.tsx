@@ -112,8 +112,15 @@ function FiltersPanel({
     return () => document.removeEventListener("mousedown", onDown);
   }, [onClose, anchorRef]);
 
+  /**
+   * Bottom sheet on mobile, dropdown from sm up — the twin of the anime
+   * explore panel. Anchored to the BUTTON, a 320px panel hanging left from a
+   * mid-row button ran off the side of a phone and sliced the first characters
+   * off every label. Viewport-anchored, it cannot be clipped. Still a DOM
+   * child of the anchor, so click-outside still works.
+   */
   return (
-    <div className="absolute right-0 top-full z-40 mt-2 flex max-h-[min(70vh,640px)] w-[320px] flex-col gap-2.5 overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#0b0b11] p-3 shadow-2xl sm:w-[360px]">
+    <div className="fixed inset-x-3 bottom-3 z-[90] flex max-h-[70vh] flex-col gap-2.5 overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#0b0b11] p-3 shadow-2xl sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-full sm:z-40 sm:mt-2 sm:max-h-[min(70vh,640px)] sm:w-[360px]">
       {mode === "manhwa" ? (
         <>
           <Section Icon={Clock} label="Sort By">

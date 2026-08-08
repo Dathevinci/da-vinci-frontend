@@ -376,10 +376,22 @@ function FiltersPanel({
     return () => document.removeEventListener("mousedown", onDown);
   }, [onClose, anchorRef]);
 
+  /**
+   * A BOTTOM SHEET ON MOBILE, a dropdown from sm up.
+   *
+   * As a dropdown it was anchored to the Filters BUTTON: right-0 puts its right
+   * edge at the button's right edge, and a 320px panel hanging left from a
+   * button sitting mid-row runs straight off a phone screen. Every label lost
+   * its first characters, so "Most Popular" read "lost Popular". No width can
+   * fix that, because the space to the left of the button is simply narrower
+   * than the panel.
+   *
+   * Anchored to the VIEWPORT instead, it cannot be clipped wherever the button
+   * happens to sit. It stays a DOM child of the anchor, so the click-outside
+   * handler still treats taps inside it as inside.
+   */
   return (
-    <div
-      className="absolute right-0 top-full z-40 mt-2 flex max-h-[min(70vh,640px)] w-[320px] flex-col gap-2.5 overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#0b0b11] p-3 shadow-2xl sm:w-[360px]"
-    >
+    <div className="fixed inset-x-3 bottom-3 z-[90] flex max-h-[70vh] flex-col gap-2.5 overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#0b0b11] p-3 shadow-2xl sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-full sm:z-40 sm:mt-2 sm:max-h-[min(70vh,640px)] sm:w-[360px]">
       <Section Icon={Clock} label="Sort By">
         <div className="flex flex-col">
           {SORTS.map((s) => (
