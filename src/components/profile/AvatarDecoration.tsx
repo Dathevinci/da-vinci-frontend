@@ -86,19 +86,37 @@ export function AvatarDecoration({
   return (
     <>
       {ring && (
-        <motion.span
-          aria-hidden
-          // A 3px band reads as a thick collar around a 32-40px avatar. Kept
-          // full width on the profile, hairline on dense surfaces — the ring
-          // is the bought cosmetic and must stay visible either way.
-          className={`pointer-events-none absolute rounded-full z-0 ${size === "lg" ? "-inset-[3px]" : "-inset-[2px]"}`}
-          style={{
-            background: ring.ring,
-            filter: `drop-shadow(0 0 ${size === "lg" ? 6 : 2.5}px ${ring.glow})`,
-          }}
-          animate={{ rotate: 360 }}
-          transition={{ duration: ring.speed, repeat: Infinity, ease: "linear" }}
-        />
+        <>
+          {/* THE GLOW IS STATIC AND CARRIES NO FILTER — this is the fix for
+              the red streak beside avatars on Android.
+
+              It used to be a drop-shadow FILTER on the ROTATING span below,
+              and Android Chrome's compositor smears an animated transform +
+              filter + conic gradient into a diagonal streak the height of the
+              comment header — tilted at whatever angle the rotation held that
+              frame. Desktop renders the same stack fine, which is why every
+              desktop check of this code came back clean while phones showed
+              a red smear where the avatar ring should be.
+
+              A ring's glow is radially symmetric, so it never needed to spin
+              in the first place: box-shadow on a static sibling is the same
+              light with none of the compositor's failure modes. */}
+          <span
+            aria-hidden
+            className={`pointer-events-none absolute rounded-full z-0 ${size === "lg" ? "-inset-[3px]" : "-inset-[2px]"}`}
+            style={{ boxShadow: `0 0 ${size === "lg" ? 6 : 3}px ${ring.glow}` }}
+          />
+          <motion.span
+            aria-hidden
+            // A 3px band reads as a thick collar around a 32-40px avatar. Kept
+            // full width on the profile, hairline on dense surfaces — the ring
+            // is the bought cosmetic and must stay visible either way.
+            className={`pointer-events-none absolute rounded-full z-0 ${size === "lg" ? "-inset-[3px]" : "-inset-[2px]"}`}
+            style={{ background: ring.ring }}
+            animate={{ rotate: 360 }}
+            transition={{ duration: ring.speed, repeat: Infinity, ease: "linear" }}
+          />
+        </>
       )}
       {showEffect && <EffectLayer effect={effect!} size={size} />}
     </>
