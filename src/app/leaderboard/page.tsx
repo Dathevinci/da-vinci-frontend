@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { Trophy, Crown, Medal, Swords, Layers, Gem, Zap, Flame } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
-import { displayShards } from "@/lib/admin";
+import { displayShards, isAdmin, isLeadDev } from "@/lib/admin";
 import PageTransition from "@/components/layout/PageTransition";
 import { calculateLevel } from "@/lib/levels";
 import { Panel, SegBar, notch, ACCENT, ACCENT_LIT } from "@/components/cards/gacha";
@@ -24,6 +24,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 type Row = {
   userId: string; username: string; avatar: string | null; cardTitle: string | null;
+  /** Persistent account role — how staff are told apart from players. */
+  role?: string | null;
   xp: number; shards: number; cards: number;
   rating: number | null; wins: number; losses: number; streak: number;
 };
@@ -51,6 +53,27 @@ export default function LeaderboardPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  /**
+   * STAFF SIT OUTSIDE THE LEVEL LADDER.
+   *
+   * Everywhere else on the site, admins and the lead dev display max level —
+   * the popout, the profile hero, the level badge all say Lv 10. This board
+   * ranked their RAW xp, so the owner appeared at #5, Lv 4, 12,383 XP, flatly
+   * contradicting every other surface. Ranking them by a number the site
+   * treats as ∞ is meaningless in both directions: mid-ladder looks broken,
+   * and pinning them to #1 would eat the podium the actual players compete
+   * for. So the level lens hoists them into their own strip and the numbered
+   * ranks belong to players. Duels, collection and shards stay open to
+   * everyone — those numbers are really earned.
+   */
+  const keepers = useMemo(
+    () =>
+      rows
+        .filter((r) => isAdmin(r))
+        .sort((a, b) => (isLeadDev(b) ? 1 : 0) - (isLeadDev(a) ? 1 : 0) || b.xp - a.xp),
+    [rows]
+  );
+
   // Each lens sorts the SAME fetched rows — no refetch, no flicker.
   const ranked = useMemo(() => {
     const v = (r: Row) =>
@@ -58,10 +81,11 @@ export default function LeaderboardPage() {
       : lens === "duels" ? (r.rating ?? -1)
       : lens === "cards" ? r.cards
       : r.shards;
+    const base = lens === "level" ? rows.filter((r) => !isAdmin(r)) : rows;
     // Players with no duels at all are hidden from the duel lens rather than
     // padded to the bottom — an unranked player isn't "last", they haven't
     // played.
-    const pool = lens === "duels" ? rows.filter((r) => r.rating !== null) : rows;
+    const pool = lens === "duels" ? base.filter((r) => r.rating !== null) : base;
     return [...pool].sort((a, b) => v(b) - v(a));
   }, [rows, lens]);
 
@@ -114,6 +138,36 @@ export default function LeaderboardPage() {
               </button>
             ))}
           </div>
+
+          {/* ── THE KEEPERS ── shown at the max level they wear everywhere
+              else, above the ladder rather than inside it. */}
+          {!loading && lens === "level" && keepers.length > 0 && (
+            <div
+              className="mb-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 px-4 py-3"
+              style={{
+                clipPath: notch(13),
+                background: "rgba(245,158,11,.06)",
+                boxShadow: "inset 0 0 0 1px rgba(245,158,11,.25)",
+              }}
+            >
+              <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-amber-300">
+                <Crown className="h-3.5 w-3.5" /> Keepers · beyond the ladder
+              </span>
+              {keepers.map((k) => (
+                <Link key={k.userId} href={`/user/${k.username}`} className="group inline-flex items-center gap-2">
+                  {k.avatar ? (
+                    <img src={k.avatar} alt="" className="h-8 w-8 rounded-full object-cover ring-1 ring-amber-400/50" />
+                  ) : (
+                    <span className="grid h-8 w-8 place-items-center rounded-full bg-purple-800 text-[10px] font-black">
+                      {k.username?.[0]?.toUpperCase()}
+                    </span>
+                  )}
+                  <span className="text-sm font-black text-white group-hover:underline">{k.username}</span>
+                  <span className="text-xs font-black tabular-nums text-amber-300">Lv 10 · ∞ XP</span>
+                </Link>
+              ))}
+            </div>
+          )}
 
           {loading ? (
             <p className="py-24 text-center text-sm text-slate-500">Reading the ladder…</p>

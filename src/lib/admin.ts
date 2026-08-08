@@ -28,16 +28,19 @@ export function isAdmin(u?: any | null): boolean {
   return false;
 }
 
-// Admins are a fixed, max-level role — they always show a big fixed Arise Points
-// balance everywhere (profile, shop, popout) rather than their raw balance. The
-// Lead Dev shows ∞.
-export const ADMIN_ARISE_POINTS = 40000;
-
-// Pass the user object (preferred) so it can read the role. A bare username
-// still works for the ∞/fixed display, just without the balance.
+// Staff sit outside the economy: the server charges LEAD_DEV and ADMIN alike
+// nothing in the shop (cost 0 on purchase and bundle paths), so a finite
+// balance for either would be a number that never goes down — a lie with a
+// currency symbol. Both display ∞ everywhere.
+//
+// Admins used to show a fixed 40,000 here, which read as a real (and oddly
+// static) balance rather than what it meant.
+//
+// Pass the user object (preferred) so this reads the persistent role; a bare
+// username still works via the fallback list.
 export function displayArisePoints(user?: any): string {
-  if (isLeadDev(user)) return "∞";
-  if (isAdmin(user)) return ADMIN_ARISE_POINTS.toLocaleString();
+  // isAdmin() already includes the lead dev.
+  if (isAdmin(user)) return "∞";
   const arisePoints = typeof user === 'object' ? user?.arisePoints : undefined;
   return (arisePoints || 0).toLocaleString();
 }
