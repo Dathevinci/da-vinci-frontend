@@ -112,7 +112,13 @@ export function AvatarDecoration({
             // full width on the profile, hairline on dense surfaces — the ring
             // is the bought cosmetic and must stay visible either way.
             className={`pointer-events-none absolute rounded-full z-0 ${size === "lg" ? "-inset-[3px]" : "-inset-[2px]"}`}
-            style={{ background: ring.ring }}
+            // will-change promotes the spinning ring onto its own compositor
+            // layer. Weak mobile GPUs (Mali on EMUI phones especially) can
+            // smear a continuously-rotating element that shares a layer with
+            // its siblings — a red/white vertical streak where the avatar
+            // should be, on exactly one device class, invisible everywhere
+            // else. An isolated layer is the standard cure.
+            style={{ background: ring.ring, willChange: "transform" }}
             animate={{ rotate: 360 }}
             transition={{ duration: ring.speed, repeat: Infinity, ease: "linear" }}
           />
