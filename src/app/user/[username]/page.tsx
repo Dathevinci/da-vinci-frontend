@@ -23,6 +23,7 @@ import { resolveActiveEffect } from "@/components/profile/CrimsonRealm";
 import { motion, AnimatePresence } from "framer-motion";
 import { getRankTheme } from "@/lib/ranks";
 import { getHeartRank, heartRankTooltip, isHeartRankName } from "@/lib/heartRanks";
+import { manhwaCoverSrc } from "@/lib/manhwa/coverProxy";
 import { effectNameClass } from "@/lib/effectTheme";
 import { usePreferences } from "@/hooks/usePreferences";
 import { Code2 as IconCode2, ShieldAlert, Sparkles as IconSparkles, Crown as IconCrown, Flame as IconFlame, Zap as IconZap, Compass as IconCompass, Leaf as IconLeaf, ArrowUpRight, Feather as IconFeather, Eye as IconEye } from "lucide-react";
@@ -785,7 +786,11 @@ export default function PublicProfilePage() {
                                 <div className="w-full aspect-[2/3] relative">
                                   {item.coverImage ? (
                                     <img
-                                      src={item.coverImage}
+                                      // Proxied when the host referer-blocks:
+                                      // MangaDex serves its "read this at
+                                      // MangaDex" placeholder to hotlinks, and
+                                      // tracked covers store the raw URL.
+                                      src={manhwaCoverSrc(item.coverImage) || item.coverImage}
                                       alt={item.title}
                                       loading="lazy"
                                       className="w-full h-full object-cover"

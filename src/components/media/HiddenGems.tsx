@@ -266,8 +266,11 @@ export default function HiddenGems({
               ) : (
                 results.map((it) => {
                   const cover = source === "novel" ? it.cover : it.image;
-                  // Only AsuraScans art is hotlink-protected. AniList and
-                  // MangaDex covers are served direct.
+                  // Manhwa art goes through the proxy: MangaDex referer-blocks
+                  // hotlinks outright (it serves a "read this at MangaDex"
+                  // placeholder instead of the cover), and Asura art has been
+                  // hotlink-protected on and off. AniList (novel/anime art) is
+                  // served direct.
                   const needsProxy = source === "manhwa";
                   const picked = myPick?.mediaId === it.id;
                   return (
