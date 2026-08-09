@@ -2,13 +2,58 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, Download, List, Loader2, Settings, X } from "lucide-react";
+import {
+  AlignCenter, AlignLeft, AlignRight, ChevronLeft, Download, List, Loader2, Moon, Settings, Sun, X,
+} from "lucide-react";
 import { encodeLnori, lnoriFileUrl } from "@/lib/novel/lnoriProxy";
 import {
-  useNovelReaderPrefs, themeById, fontById, spacingById, widthById,
-  READER_THEMES, READER_FONTS, READER_SPACING, READER_WIDTHS, SIZE_MIN, SIZE_MAX,
-} from "@/lib/novel/readerPrefs";
+  useEpubPrefs, epubPalette, epubFontById,
+  EPUB_THEMES, EPUB_FONTS, EPUB_SIZE_MIN, EPUB_SIZE_MAX,
+  type EpubAlign,
+} from "@/lib/novel/epubPrefs";
 import EpubJsReader from "@/components/reading/EpubJsReader";
+
+/**
+ * The reference roster's faces, loaded from Google Fonts. React hoists these
+ * link tags into <head>. OpenDyslexic is not on Google Fonts; its face is
+ * declared in the style block below.
+ */
+const FONT_STYLESHEET =
+  "https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Comic+Neue:wght@400;700&family=Lexend:wght@400;700&family=Ubuntu:wght@400;700&display=swap";
+
+/**
+ * Bionic reading: weight the opening of each word so the eye can skip ahead.
+ *
+ * Applied to the RENDERED sections, not the source HTML — we do not own these
+ * books, and a DOM walk is idempotent per section via the data attribute.
+ * Turning it OFF remounts the column instead of trying to unpick the bolding
+ * (see the key on the column div).
+ */
+function applyBionic(root: HTMLElement) {
+  if (root.getAttribute("data-dv-bionic") === "1") return;
+  root.setAttribute("data-dv-bionic", "1");
+
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodes: Text[] = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode as Text);
+
+  nodes.forEach((node) => {
+    const text = node.nodeValue;
+    if (!text || !text.trim()) return;
+    const parent = node.parentElement;
+    if (!parent || parent.closest("b, strong, code, pre, a")) return;
+
+    const html = text.replace(/[\p{L}'’]+/gu, (word) => {
+      const cut = Math.max(1, Math.round(word.length * 0.4));
+      return "<b>" + word.slice(0, cut) + "</b>" + word.slice(cut);
+    });
+    if (html === text) return;
+
+    const span = document.createElement("span");
+    span.innerHTML = html;
+    parent.replaceChild(span, node);
+  });
+}
 
 /**
  * THE BOOK IS THE PAGE, AND IT SCROLLS.
@@ -50,11 +95,22 @@ interface SectionPayload {
 
 
 export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
-  const { prefs, update } = useNovelReaderPrefs();
-  const t = themeById(prefs.theme);
-  const fontCss = fontById(prefs.font).css;
-  const lineHeight = spacingById(prefs.spacing).value;
-  const widthCls = widthById(prefs.width).cls;
+  const { prefs, update } = useEpubPrefs();
+  const pal = epubPalette(prefs);
+  /**
+   * Compatibility shape for the JSX below, which was written against the
+   * novel reader's theme records. Page colours come from the chosen theme's
+   * light/dark palette; chrome stays neutral so six themes need six palettes,
+   * not six full chrome designs.
+   */
+  const t = {
+    bg: pal.bg,
+    text: pal.text,
+    muted: pal.muted,
+    panel: prefs.dark ? "#111114" : "#f1f1f3",
+    border: prefs.dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.12)",
+  };
+  const fontCss = epubFontById(prefs.font).css;
 
   const [sections, setSections] = useState<SectionPayload[]>([]);
   const [count, setCount] = useState(0);
@@ -310,6 +366,19 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
   }, [debug, sections, count]);
 
   /**
+   * Bionic pass. Runs over newly rendered sections whenever the toggle is on;
+   * idempotent per section via the data attribute applyBionic stamps, so
+   * streamed-in sections get the treatment as they arrive without re-walking
+   * the ones already done.
+   */
+  useEffect(() => {
+    if (!prefs.bionic) return;
+    scrollRef.current
+      ?.querySelectorAll<HTMLElement>(".epub-html")
+      .forEach((sec) => applyBionic(sec));
+  }, [prefs.bionic, sections]);
+
+  /**
    * Footnotes and cross-references. The extractor turned their hrefs into data
    * attributes precisely so they can be routed here rather than navigating the
    * whole app to a zip path.
@@ -405,82 +474,134 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
         // off screen — which read as "the reader is broken", not "a panel is
         // open".
         <div
-          className="max-h-[45vh] shrink-0 space-y-3 overflow-y-auto overscroll-contain border-b px-4 py-3"
+          className="max-h-[55vh] shrink-0 space-y-4 overflow-y-auto overscroll-contain border-b px-4 py-4"
           style={{ backgroundColor: t.panel, borderColor: t.border }}
         >
-          <div className="flex flex-wrap gap-2">
-            {READER_THEMES.map((theme) => (
-              <button
-                key={theme.id}
-                onClick={() => update({ theme: theme.id })}
-                className={`rounded-lg border px-3 py-1.5 font-mono text-[11px] font-bold transition ${
-                  prefs.theme === theme.id ? "ring-2 ring-pink-500" : ""
-                }`}
-                style={{ backgroundColor: theme.bg, color: theme.text, borderColor: theme.border }}
-              >
-                {theme.name}
-              </button>
-            ))}
+          {/* Live preview — the reference shows one, and it earns its space:
+              theme, face, size and bionic all read at a glance before they hit
+              a whole page. */}
+          <div
+            className="grid h-20 place-items-center rounded-xl border px-3 text-center"
+            style={{
+              backgroundColor: pal.bg,
+              borderColor: t.border,
+              color: pal.text,
+              fontFamily: fontCss,
+              fontSize: prefs.size,
+            }}
+          >
+            {prefs.bionic ? (
+              <span><b>Lor</b>em <b>ips</b>um <b>dol</b>or</span>
+            ) : (
+              <span>Lorem ipsum dolor</span>
+            )}
           </div>
-          <div className="flex flex-wrap gap-2">
-            {READER_FONTS.map((f) => (
+
+          <button
+            onClick={() => update({ bionic: !prefs.bionic })}
+            className={`w-full rounded-xl border-2 py-2.5 font-mono text-sm font-bold transition ${
+              prefs.bionic
+                ? "border-sky-400 bg-sky-500/15 text-sky-300"
+                : "border-sky-500/60 text-sky-400 hover:bg-sky-500/10"
+            }`}
+          >
+            Bionic Reading
+          </button>
+
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+            <div className="grid grid-cols-3 overflow-hidden rounded-xl border" style={{ borderColor: t.border }}>
+              {([
+                ["left", AlignLeft],
+                ["center", AlignCenter],
+                ["right", AlignRight],
+              ] as [EpubAlign, typeof AlignLeft][]).map(([id, Icon]) => (
+                <button
+                  key={id}
+                  onClick={() => update({ align: id })}
+                  className="grid place-items-center px-4 py-2 transition hover:bg-white/10"
+                  style={{
+                    backgroundColor: prefs.align === id ? "rgba(56,189,248,0.15)" : "transparent",
+                    color: prefs.align === id ? "#38bdf8" : t.muted,
+                  }}
+                >
+                  <Icon className="h-4 w-4" />
+                </button>
+              ))}
+            </div>
+
+            {/* Full-row on a phone: a 7rem slider is unusable under a thumb. */}
+            <label className="flex w-full items-center gap-2 font-mono text-xs sm:w-auto sm:flex-1" style={{ color: t.muted }}>
+              A
+              <input
+                type="range"
+                min={EPUB_SIZE_MIN}
+                max={EPUB_SIZE_MAX}
+                value={prefs.size}
+                onChange={(e) => update({ size: Number(e.target.value) })}
+                className="h-1 min-w-0 flex-1 cursor-pointer accent-sky-400"
+              />
+              <span className="text-base font-bold">A</span>
+              <span className="tabular-nums" style={{ color: t.text }}>{prefs.size}px</span>
+            </label>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            {EPUB_FONTS.map((f) => (
               <button
                 key={f.id}
                 onClick={() => update({ font: f.id })}
-                className="rounded-lg border px-3 py-1.5 font-mono text-[11px] font-bold transition hover:bg-white/10"
+                className="rounded-xl py-2.5 font-mono text-xs font-bold transition"
                 style={{
-                  color: prefs.font === f.id ? t.text : t.muted,
-                  borderColor: prefs.font === f.id ? t.text : t.border,
+                  backgroundColor:
+                    prefs.font === f.id
+                      ? "#38bdf8"
+                      : prefs.dark
+                        ? "rgba(255,255,255,0.06)"
+                        : "rgba(0,0,0,0.05)",
+                  color: prefs.font === f.id ? "#06121c" : t.text,
+                  fontFamily: f.css,
                 }}
               >
                 {f.name}
               </button>
             ))}
           </div>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            {/* Full-row on a phone: a 7rem slider is unusable under a thumb. */}
-            <label className="flex w-full items-center gap-2 font-mono text-xs sm:w-auto" style={{ color: t.muted }}>
-              Size
-              <input
-                type="range"
-                min={SIZE_MIN}
-                max={SIZE_MAX}
-                value={prefs.size}
-                onChange={(e) => update({ size: Number(e.target.value) })}
-                className="h-1 min-w-0 flex-1 cursor-pointer accent-pink-500 sm:w-28 sm:flex-none"
+
+          <div className="flex items-center gap-3">
+            <Sun className="h-4 w-4" style={{ color: prefs.dark ? t.muted : "#f59e0b" }} />
+            <button
+              onClick={() => update({ dark: !prefs.dark })}
+              className={`relative h-6 w-11 rounded-full transition ${prefs.dark ? "bg-sky-400" : "bg-slate-400"}`}
+              title={prefs.dark ? "Switch to light" : "Switch to dark"}
+            >
+              <span
+                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${prefs.dark ? "left-[22px]" : "left-0.5"}`}
               />
-              <span className="tabular-nums" style={{ color: t.text }}>{prefs.size}px</span>
-            </label>
-            <div className="flex gap-1">
-              {READER_SPACING.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => update({ spacing: s.id })}
-                  className="rounded-lg border px-2.5 py-1 font-mono text-[11px] transition hover:bg-white/10"
+            </button>
+            <Moon className="h-4 w-4" style={{ color: prefs.dark ? "#38bdf8" : t.muted }} />
+            <span className="font-mono text-xs" style={{ color: t.muted }}>
+              {prefs.dark ? "Dark" : "Light"}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            {EPUB_THEMES.map((theme) => (
+              <button key={theme.id} onClick={() => update({ theme: theme.id })} className="text-center">
+                <span
+                  className="block h-14 w-full rounded-xl border-2 transition"
                   style={{
-                    color: prefs.spacing === s.id ? t.text : t.muted,
-                    borderColor: prefs.spacing === s.id ? t.text : t.border,
+                    backgroundColor: prefs.dark ? theme.dark.bg : theme.light.bg,
+                    borderColor: prefs.theme === theme.id ? "#38bdf8" : t.border,
                   }}
+                />
+                <span
+                  className="mt-1.5 block font-mono text-[11px] font-bold"
+                  style={{ color: prefs.theme === theme.id ? "#38bdf8" : t.muted }}
                 >
-                  {s.name}
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-1">
-              {READER_WIDTHS.map((w) => (
-                <button
-                  key={w.id}
-                  onClick={() => update({ width: w.id })}
-                  className="rounded-lg border px-2.5 py-1 font-mono text-[11px] transition hover:bg-white/10"
-                  style={{
-                    color: prefs.width === w.id ? t.text : t.muted,
-                    borderColor: prefs.width === w.id ? t.text : t.border,
-                  }}
-                >
-                  {w.name}
-                </button>
-              ))}
-            </div>
+                  {theme.name}
+                </span>
+              </button>
+            ))}
           </div>
         </div>
       )}
@@ -547,12 +668,16 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
         ) : (
           <div
             onClick={onContentClick}
-            className={`mx-auto w-full ${widthCls} px-4 pb-28 pt-6 sm:px-8 sm:pt-8`}
+            // Keyed on bionic so turning it OFF remounts the column with the
+            // clean server HTML — un-bolding a walked DOM in place is far more
+            // fragile than simply re-rendering it.
+            key={prefs.bionic ? "bionic" : "plain"}
+            className="mx-auto w-full max-w-3xl px-4 pb-28 pt-6 sm:px-8 sm:pt-8"
             style={{
               fontFamily: fontCss,
               fontSize: prefs.size,
-              lineHeight,
-              textAlign: prefs.justify ? "justify" : undefined,
+              lineHeight: 1.75,
+              textAlign: prefs.align === "left" ? undefined : prefs.align,
             }}
           >
             {sections.map((s) => (
@@ -585,10 +710,15 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
         </div>
       )}
 
+      {/* React hoists this into <head>; the reference's faces load once. */}
+      <link rel="stylesheet" href={FONT_STYLESHEET} />
+
       {/* The book's markup arrives unstyled, so give its images and tables sane
           behaviour inside our column. Scoped to .epub-html so it cannot leak
-          into the reader's own chrome. */}
+          into the reader's own chrome. OpenDyslexic is declared here because
+          Google Fonts does not carry it. */}
       <style>{`
+        @font-face { font-family: 'OpenDyslexic'; src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/woff/OpenDyslexic-Regular.woff') format('woff'); font-weight: 400; font-display: swap; }
         .epub-html, .epub-html * { touch-action: pan-y !important; position: static !important; }
         .epub-html table, .epub-html table * { touch-action: pan-x pan-y !important; }
         .epub-html img { max-width: 100%; height: auto; display: block; margin: 1.25em auto; touch-action: pan-y; -webkit-user-drag: none; user-select: none; }
