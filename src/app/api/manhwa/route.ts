@@ -8,7 +8,8 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get('page') || '1');
     const status = searchParams.get('status') || undefined;
     const sort = searchParams.get('sort') || undefined;
-    const filters = { status, sort };
+    const genre = searchParams.get('genre') || undefined;
+    const filters = { status, sort, genre };
 
     // Merges AsuraScans + MangaDex (one being down still returns the other).
     const data = query ? await searchManhwa(query, page, filters) : await browseManhwa(page, filters);

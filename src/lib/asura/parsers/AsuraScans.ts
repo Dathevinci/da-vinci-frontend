@@ -11,6 +11,10 @@ import {
 interface MangaFilters {
   status?: string;
   sort?: string;
+  /** A genre SLUG from /genres ("action", "dark-fantasy"). Verified against
+   *  the live API: `genres=<slug>` filters (339 → 317 for action), while
+   *  numeric ids match nothing and `types=` is silently ignored. */
+  genre?: string;
 }
 
 class AsuraScans extends MangaParser {
@@ -122,6 +126,7 @@ class AsuraScans extends MangaParser {
       let path = `series?offset=${offset}`;
       if (filters?.status) path += `&status=${encodeURIComponent(filters.status)}`;
       if (filters?.sort) path += `&sort=${encodeURIComponent(filters.sort)}`;
+      if (filters?.genre) path += `&genres=${encodeURIComponent(filters.genre)}`;
       const data = await this.requestWithFallback<any>(path);
       const items = data.data || [];
       const total = Number(data.meta?.total) || 0;
@@ -158,6 +163,13 @@ class AsuraScans extends MangaParser {
     return this.getLatestUpdates(page, filters);
   }
 
+  /** The API's own genre taxonomy — ids, display names and the slugs the
+   *  `genres=` filter matches on. */
+  async getGenres(): Promise<{ id: number; name: string; slug: string }[]> {
+    const data = await this.requestWithFallback<any>('genres');
+    return Array.isArray(data?.data) ? data.data : [];
+  }
+
   override search = async (query: string, page: number = 1, filters?: MangaFilters): Promise<ISearch<IMangaResult>> => {
     try {
       // AsuraScans filters by ?search= (NOT ?name=, which it silently ignores
@@ -168,6 +180,7 @@ class AsuraScans extends MangaParser {
       let path = `series?offset=${offset}&search=${formattedQuery}`;
       if (filters?.status) path += `&status=${encodeURIComponent(filters.status)}`;
       if (filters?.sort) path += `&sort=${encodeURIComponent(filters.sort)}`;
+      if (filters?.genre) path += `&genres=${encodeURIComponent(filters.genre)}`;
       const data = await this.requestWithFallback<any>(path);
       const items = data.data || [];
       const total = Number(data.meta?.total) || 0;

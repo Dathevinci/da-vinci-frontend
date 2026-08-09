@@ -32,7 +32,30 @@ import LoadingScreen, { LoadingDot } from "@/components/ui/LoadingScreen";
 
 type Mode = "manhwa" | "novel";
 
-type Filters = { status: string; sort: string; list: string };
+type Filters = { status: string; sort: string; list: string; genre: string };
+
+/**
+ * NovelFull's genre pages, slugs VERIFIED against the hrefs their own homepage
+ * emits (the plus signs and casing are literal — "/genre/Martial+Arts").
+ * `sources.ts` already routes any list starting with "genre/" to NovelFull, so
+ * these were reachable end-to-end the whole time; no UI ever offered them.
+ * Curated: their explicit categories and the truncated artifacts in their
+ * markup ("Martial", "Traged", "Supernatur") are left out.
+ */
+const NOVEL_GENRES = [
+  "Action", "Adventure", "Comedy", "Drama", "Eastern", "Fantasy", "Game",
+  "Gender+Bender", "Harem", "Historical", "Horror", "Isekai", "Josei", "Magic",
+  "Magical+Realism", "Martial+Arts", "Mature", "Mecha", "Mystery",
+  "Psychological", "Reincarnation", "Romance", "School+Life", "Sci-fi",
+  "Seinen", "Shoujo", "Shounen", "Slice+of+Life", "Sports", "Supernatural",
+  "System", "Tragedy", "Urban", "Video+Games", "Wuxia", "Xianxia", "Xuanhuan",
+].map((slug) => ({ key: "genre/" + slug, label: slug.replace(/\+/g, " ") }));
+
+/**
+ * Asura's genre taxonomy is fetched from their API (it drifts with their
+ * catalog) and memoised at module level so reopening the panel costs nothing.
+ */
+let asuraGenreCache: { name: string; slug: string }[] | null = null;
 
 const MANHWA_SORTS = [
   { key: "", label: "Latest" },
@@ -104,6 +127,25 @@ function FiltersPanel({
   const panelRef = useRef<HTMLDivElement | null>(null);
   /** Viewport coordinates for the dropdown form; null = bottom-sheet form. */
   const [dropdownPos, setDropdownPos] = useState<{ top: number; right: number } | null>(null);
+
+  const [asuraGenres, setAsuraGenres] = useState<{ name: string; slug: string }[]>(asuraGenreCache || []);
+  useEffect(() => {
+    if (mode !== "manhwa" || asuraGenreCache) return;
+    let alive = true;
+    fetch("/api/manhwa/genres")
+      .then((r) => r.json())
+      .then((d) => {
+        if (!alive || !Array.isArray(d?.genres)) return;
+        asuraGenreCache = d.genres;
+        setAsuraGenres(d.genres);
+      })
+      .catch(() => {
+        /* no list, no section — better than a section that cannot filter */
+      });
+    return () => {
+      alive = false;
+    };
+  }, [mode]);
 
   /**
    * PORTALED TO <body> — the twin of the anime explore panel, same scars.
@@ -180,20 +222,78 @@ function FiltersPanel({
               ))}
             </div>
           </Section>
+
+          {/* Only rendered once the taxonomy has arrived — an empty genre
+              section is a promise the panel can't keep. */}
+          {asuraGenres.length > 0 && (
+            <Section Icon={Library} label="Genre">
+              <div className="grid grid-cols-3 gap-1.5">
+                <button
+                  onClick={() => setStaged({ ...staged, genre: "" })}
+                  className={`rounded-lg border px-2 py-1.5 font-mono text-[11px] font-bold transition ${
+                    staged.genre === ""
+                      ? "border-white bg-white text-black"
+                      : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-white/30"
+                  }`}
+                >
+                  Any
+                </button>
+                {asuraGenres.map((g) => (
+                  <button
+                    key={g.slug}
+                    onClick={() => setStaged({ ...staged, genre: g.slug })}
+                    className={`rounded-lg border px-2 py-1.5 font-mono text-[11px] font-bold transition ${
+                      staged.genre === g.slug
+                        ? "border-white bg-white text-black"
+                        : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-white/30"
+                    }`}
+                  >
+                    {g.name}
+                  </button>
+                ))}
+              </div>
+            </Section>
+          )}
         </>
       ) : (
-        <Section Icon={Library} label="Source List">
-          <div className="flex flex-col">
-            {NOVEL_LISTS.map((l) => (
-              <Choice key={l.key} on={staged.list === l.key} label={l.label}
-                onClick={() => setStaged({ ...staged, list: l.key })} />
-            ))}
-          </div>
-          <p className="mt-3 font-mono text-[11px] leading-relaxed text-slate-600">
-            The novel sources don&rsquo;t publish a status or a sort order, so a list is
-            the filter. It applies when you aren&rsquo;t searching.
-          </p>
-        </Section>
+        <>
+          <Section Icon={Library} label="Source List">
+            <div className="flex flex-col">
+              {NOVEL_LISTS.map((l) => (
+                <Choice key={l.key} on={staged.list === l.key} label={l.label}
+                  onClick={() => setStaged({ ...staged, list: l.key })} />
+              ))}
+            </div>
+            <p className="mt-3 font-mono text-[11px] leading-relaxed text-slate-600">
+              The novel sources don&rsquo;t publish a status or a sort order, so a list is
+              the filter. It applies when you aren&rsquo;t searching.
+            </p>
+          </Section>
+
+          {/* Genres share the `list` slot with the source lists, so picking one
+              naturally deselects the other — a genre IS a list on NovelFull's
+              side, which is also why these run on NovelFull specifically. */}
+          <Section Icon={ListFilter} label="Genre">
+            <div className="grid grid-cols-3 gap-1.5">
+              {NOVEL_GENRES.map((g) => (
+                <button
+                  key={g.key}
+                  onClick={() => setStaged({ ...staged, list: g.key })}
+                  className={`rounded-lg border px-2 py-1.5 font-mono text-[11px] font-bold transition ${
+                    staged.list === g.key
+                      ? "border-white bg-white text-black"
+                      : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-white/30"
+                  }`}
+                >
+                  {g.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-3 font-mono text-[11px] leading-relaxed text-slate-600">
+              Genre browsing runs on the NovelFull library.
+            </p>
+          </Section>
+        </>
       )}
 
       <button
@@ -218,6 +318,7 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
     status: sp.get("status") || "",
     sort: sp.get("sort") || "",
     list: sp.get("list") || "most-popular-novel",
+    genre: sp.get("genre") || "",
   });
   const [filtersOpen, setFiltersOpen] = useState(false);
   // Shared with the panel's outside-click test — see the note in there.
@@ -241,6 +342,7 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
     if (mode === "manhwa") {
       if (filters.status) u.set("status", filters.status);
       if (filters.sort) u.set("sort", filters.sort);
+      if (filters.genre) u.set("genre", filters.genre);
     } else if (!q.trim()) {
       // The novel API treats `list` and `q` as mutually exclusive.
       u.set("list", filters.list);
@@ -282,7 +384,7 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
   }, [hasNext, loading, more, page, load]);
 
   const activeCount = mode === "manhwa"
-    ? [filters.status, filters.sort].filter(Boolean).length
+    ? [filters.status, filters.sort, filters.genre].filter(Boolean).length
     : (filters.list !== "most-popular-novel" ? 1 : 0);
 
   return (

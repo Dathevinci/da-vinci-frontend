@@ -142,11 +142,21 @@ function merge(primary: IMangaResult[], ...secondaries: IMangaResult[][]): IMang
 
 // ── browse / search / home: merge Asura + MangaDex ──────────────────────────
 
+/**
+ * Only Asura understands the filters. When any is active, the other sources
+ * are SKIPPED rather than merged: their rows can't honour the filter, so
+ * mixing them in showed Ongoing titles under a Completed filter and would
+ * have shown romance under Action. A filter that only some results obey is
+ * worse than no filter.
+ */
+const filtersActive = (f?: any) => !!(f && (f.status || f.sort || f.genre));
+
 export async function searchManhwa(query: string, page = 1, filters?: any): Promise<ISearch<IMangaResult>> {
+  const asuraOnly = filtersActive(filters);
   const [a, m, mr] = await Promise.allSettled([
-    asura().search(query, page, filters), 
-    MDX.search(query, page),
-    mrd().search(query, page)
+    asura().search(query, page, filters),
+    asuraOnly ? Promise.resolve({ currentPage: page, hasNextPage: false, results: [] as IMangaResult[] }) : MDX.search(query, page),
+    asuraOnly ? Promise.resolve({ currentPage: page, hasNextPage: false, results: [] as IMangaResult[] }) : mrd().search(query, page)
   ]);
   const av = settled(a, { currentPage: page, hasNextPage: false, results: [] });
   const mv = settled(m, { currentPage: page, hasNextPage: false, results: [] });
@@ -159,7 +169,11 @@ export async function searchManhwa(query: string, page = 1, filters?: any): Prom
 }
 
 export async function browseManhwa(page = 1, filters?: any): Promise<ISearch<IMangaResult>> {
-  const [a, m] = await Promise.allSettled([asura().getSeries(page, filters), MDX.latest(page)]);
+  const asuraOnly = filtersActive(filters);
+  const [a, m] = await Promise.allSettled([
+    asura().getSeries(page, filters),
+    asuraOnly ? Promise.resolve([] as IMangaResult[]) : MDX.latest(page),
+  ]);
   const av = settled(a, { currentPage: page, hasNextPage: false, results: [] });
   const mv = settled(m, [] as IMangaResult[]);
   return {
@@ -167,6 +181,11 @@ export async function browseManhwa(page = 1, filters?: any): Promise<ISearch<IMa
     hasNextPage: av.hasNextPage || mv.length > 0,
     results: merge(av.results, mv),
   };
+}
+
+/** The Asura genre taxonomy, for the explore filter panel. */
+export async function asuraGenres(): Promise<{ id: number; name: string; slug: string }[]> {
+  return asura().getGenres();
 }
 
 export async function manhwaHome(): Promise<{ trending: IMangaResult[]; latestUpdates: IMangaResult[] }> {
