@@ -519,8 +519,13 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] bg-[#050505]"
+          className="fixed inset-0 z-[100] bg-[#070709]"
         >
+          {/* The Lunar top glow — same radial as the hub and updates pages. */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 h-[400px] bg-[radial-gradient(ellipse_50%_80%_at_50%_-20%,rgba(139,92,246,0.22),transparent_70%)]"
+          />
           {/* Full-screen, page-like — the reference's edit view, not a dialog. */}
           <motion.div
             initial={{ scale: 0.98, opacity: 0, y: 12 }}
@@ -540,7 +545,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                    easy to miss whole sections; icons + labels down the side are
                    scannable. Collapses to a horizontal rail on mobile. ── */}
             <aside className="shrink-0 border-b border-white/10 bg-white/[0.02] p-4 md:w-56 md:border-b-0 md:border-r md:p-5">
-              <h2 className="mb-4 pr-10 text-xl font-black tracking-tight text-white md:mb-5">Settings</h2>
+              <h2 className="mb-4 pr-10 font-fell text-2xl text-white md:mb-5">Settings</h2>
               <nav className="flex gap-1.5 overflow-x-auto scrollbar-none md:flex-col md:overflow-visible">
                 {([
                   { key: "profile", label: "Profile", Icon: UserIcon },
@@ -552,10 +557,10 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                   <button
                     key={key}
                     onClick={() => setActiveTab(key)}
-                    className={`flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-xl px-3.5 py-2.5 text-sm font-bold transition-colors md:w-full ${
+                    className={`flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-xl border px-3.5 py-2.5 font-mono text-xs font-bold transition-colors md:w-full ${
                       activeTab === key
-                        ? "bg-purple-600 text-white"
-                        : "text-slate-400 hover:bg-white/5 hover:text-white"
+                        ? "border-violet-400/40 bg-violet-500/15 text-violet-200"
+                        : "border-transparent text-slate-400 hover:bg-white/5 hover:text-white"
                     }`}
                   >
                     <Icon className="h-4 w-4 shrink-0" />
@@ -581,7 +586,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
 
                   {/* Live previews — the old dashed boxes never showed what you
                       currently HAVE, so you couldn't tell if an upload landed. */}
-                  <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
+                  <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0b0b11]">
                     <input type="file" accept="image/*" className="hidden" ref={bannerInputRef} onChange={(e) => handleFileSelect(e, true)} />
                     <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={(e) => handleFileSelect(e, false)} />
 
@@ -599,7 +604,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                           className="h-full w-full object-cover"
                         />
                       ) : (
-                        <div className="h-full w-full bg-gradient-to-br from-purple-600/40 to-fuchsia-600/25" />
+                        <div className="h-full w-full bg-gradient-to-br from-violet-600/40 to-fuchsia-600/25" />
                       )}
                       <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/45 text-sm font-bold text-white opacity-0 transition group-hover:opacity-100">
                         {uploadingBanner ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
@@ -612,12 +617,12 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                         onClick={() => fileInputRef.current?.click()}
                         disabled={uploadingImage}
                         title="Change avatar"
-                        className="group relative -mt-9 h-20 w-20 shrink-0 overflow-hidden rounded-full border-4 border-[#09090b] bg-[#141418] disabled:opacity-60"
+                        className="group relative -mt-9 h-20 w-20 shrink-0 overflow-hidden rounded-full border-4 border-[#0b0b11] bg-[#141418] disabled:opacity-60"
                       >
                         {user?.avatar ? (
                           <img src={user.avatar} alt="" className="h-full w-full object-cover" />
                         ) : (
-                          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-purple-500 to-fuchsia-600 text-2xl font-black text-white">
+                          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-violet-500 to-fuchsia-600 text-2xl font-black text-white">
                             {(user?.username || "U").charAt(0).toUpperCase()}
                           </div>
                         )}
@@ -638,13 +643,13 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                       <div className="flex gap-2">
                         <button
                           onClick={() => saveBannerStyle("full")}
-                          className={`flex-1 px-4 py-3 rounded-xl font-bold text-sm border transition ${bannerStyle !== "cover" ? "bg-purple-600 border-purple-500 text-white" : "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10"}`}
+                          className={`flex-1 px-4 py-3 rounded-xl font-bold text-sm border transition ${bannerStyle !== "cover" ? "border-violet-400/40 bg-violet-500/15 text-violet-200" : "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10"}`}
                         >
                           Full screen
                         </button>
                         <button
                           onClick={() => saveBannerStyle("cover")}
-                          className={`flex-1 px-4 py-3 rounded-xl font-bold text-sm border transition ${bannerStyle === "cover" ? "bg-purple-600 border-purple-500 text-white" : "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10"}`}
+                          className={`flex-1 px-4 py-3 rounded-xl font-bold text-sm border transition ${bannerStyle === "cover" ? "border-violet-400/40 bg-violet-500/15 text-violet-200" : "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10"}`}
                         >
                           Cover header
                         </button>
@@ -675,7 +680,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                         onTouchEnd={() => { updateProfile({ bannerPosition: bannerPos } as any); onUpdate?.({ bannerPosition: bannerPos }); }}
                         onKeyUp={() => { updateProfile({ bannerPosition: bannerPos } as any); onUpdate?.({ bannerPosition: bannerPos }); }}
                         onBlur={() => { updateProfile({ bannerPosition: bannerPos } as any); onUpdate?.({ bannerPosition: bannerPos }); }}
-                        className="w-full accent-purple-500 cursor-pointer"
+                        className="w-full accent-violet-500 cursor-pointer"
                       />
                       <p className="text-xs text-slate-500">Drag to choose which part of the banner shows in the cover.</p>
                     </div>
@@ -683,7 +688,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
 
                   <div className="grid gap-5 md:grid-cols-2">
                     {/* Edit Profile — identity, plus who can see the profile */}
-                    <div className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                    <div className="space-y-4 rounded-2xl border border-white/10 bg-[#0b0b11] p-5">
                       <h3 className="text-base font-bold text-white">Edit Profile</h3>
 
                       <div className="space-y-1.5">
@@ -694,12 +699,12 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                             onChange={e => setNewUsername(e.target.value)}
                             placeholder={user?.username || "username"}
                             maxLength={20}
-                            className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[#030305] px-3 py-2.5 text-sm text-white placeholder:text-slate-600 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                            className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-white placeholder:text-slate-600 focus:border-violet-400/50 focus:outline-none"
                           />
                           <button
                             onClick={handleChangeUsername}
                             disabled={isChangingUsername || !newUsername.trim()}
-                            className="shrink-0 rounded-xl bg-purple-600 px-3 py-2.5 text-xs font-bold text-white transition hover:bg-purple-500 disabled:opacity-50"
+                            className="shrink-0 rounded-xl border border-violet-400/30 bg-violet-500/15 px-3 py-2.5 font-mono text-xs font-bold text-violet-200 transition hover:border-violet-400/60 hover:bg-violet-500/25 disabled:opacity-40"
                           >
                             {isChangingUsername ? "…" : "Save"}
                           </button>
@@ -724,7 +729,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                             {user?.avatar ? (
                               <img src={user.avatar} alt="" className="relative z-10 h-full w-full rounded-full object-cover" />
                             ) : (
-                              <div className="relative z-10 grid h-full w-full place-items-center rounded-full bg-purple-600 text-sm font-black text-white">
+                              <div className="relative z-10 grid h-full w-full place-items-center rounded-full bg-violet-600 text-sm font-black text-white">
                                 {(user?.username || "U").charAt(0).toUpperCase()}
                               </div>
                             )}
@@ -744,7 +749,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                                 <button
                                   onClick={() => equipDecor({ activeFrame: null })}
                                   disabled={equipping}
-                                  className={`flex flex-col items-center gap-1.5 rounded-xl border p-2 transition disabled:opacity-50 ${!user?.activeFrame ? "border-purple-400/60 bg-purple-500/10" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.07]"}`}
+                                  className={`flex flex-col items-center gap-1.5 rounded-xl border p-2 transition disabled:opacity-50 ${!user?.activeFrame ? "border-violet-400/60 bg-violet-500/10" : "border-white/10 bg-[#0b0b11] hover:bg-white/[0.07]"}`}
                                 >
                                   <div className="grid h-11 w-11 place-items-center rounded-full border border-dashed border-white/20 text-slate-500">
                                     <X className="h-4 w-4" />
@@ -757,13 +762,13 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                                     onClick={() => equipDecor({ activeFrame: id })}
                                     disabled={equipping}
                                     title={decorName(id)}
-                                    className={`flex flex-col items-center gap-1.5 rounded-xl border p-2 transition disabled:opacity-50 ${user?.activeFrame === id ? "border-purple-400/60 bg-purple-500/10" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.07]"}`}
+                                    className={`flex flex-col items-center gap-1.5 rounded-xl border p-2 transition disabled:opacity-50 ${user?.activeFrame === id ? "border-violet-400/60 bg-violet-500/10" : "border-white/10 bg-[#0b0b11] hover:bg-white/[0.07]"}`}
                                   >
                                     <div className="relative h-11 w-11">
                                       {user?.avatar ? (
                                         <img src={user.avatar} alt="" className="relative z-10 h-full w-full rounded-full object-cover" />
                                       ) : (
-                                        <div className="relative z-10 grid h-full w-full place-items-center rounded-full bg-purple-600 text-sm font-black text-white">
+                                        <div className="relative z-10 grid h-full w-full place-items-center rounded-full bg-violet-600 text-sm font-black text-white">
                                           {(user?.username || "U").charAt(0).toUpperCase()}
                                         </div>
                                       )}
@@ -781,7 +786,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                                 <button
                                   onClick={() => equipDecor({ activeEffect: null })}
                                   disabled={equipping}
-                                  className={`flex flex-col items-center gap-1.5 rounded-xl border p-2 transition disabled:opacity-50 ${!user?.activeEffect ? "border-purple-400/60 bg-purple-500/10" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.07]"}`}
+                                  className={`flex flex-col items-center gap-1.5 rounded-xl border p-2 transition disabled:opacity-50 ${!user?.activeEffect ? "border-violet-400/60 bg-violet-500/10" : "border-white/10 bg-[#0b0b11] hover:bg-white/[0.07]"}`}
                                 >
                                   <div className="grid h-11 w-11 place-items-center rounded-full border border-dashed border-white/20 text-slate-500">
                                     <X className="h-4 w-4" />
@@ -794,13 +799,13 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                                     onClick={() => equipDecor({ activeEffect: id })}
                                     disabled={equipping}
                                     title={decorName(id)}
-                                    className={`flex flex-col items-center gap-1.5 rounded-xl border p-2 transition disabled:opacity-50 ${user?.activeEffect === id ? "border-purple-400/60 bg-purple-500/10" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.07]"}`}
+                                    className={`flex flex-col items-center gap-1.5 rounded-xl border p-2 transition disabled:opacity-50 ${user?.activeEffect === id ? "border-violet-400/60 bg-violet-500/10" : "border-white/10 bg-[#0b0b11] hover:bg-white/[0.07]"}`}
                                   >
                                     <div className="relative h-11 w-11">
                                       {user?.avatar ? (
                                         <img src={user.avatar} alt="" className="relative z-10 h-full w-full rounded-full object-cover" />
                                       ) : (
-                                        <div className="relative z-10 grid h-full w-full place-items-center rounded-full bg-purple-600 text-sm font-black text-white">
+                                        <div className="relative z-10 grid h-full w-full place-items-center rounded-full bg-violet-600 text-sm font-black text-white">
                                           {(user?.username || "U").charAt(0).toUpperCase()}
                                         </div>
                                       )}
@@ -860,7 +865,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                                         key={title}
                                         onClick={() => toggleTitle(title)}
                                         title={set ? `From completing ${set}` : "Earned"}
-                                        className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider transition ${on ? (at === 0 ? "border-amber-400/50 bg-amber-500/10 text-amber-300" : "border-purple-400/50 bg-purple-500/10 text-purple-200") : "border-white/10 bg-white/[0.03] text-slate-400 hover:bg-white/[0.07]"}`}
+                                        className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider transition ${on ? (at === 0 ? "border-amber-400/50 bg-amber-500/10 text-amber-300" : "border-violet-400/50 bg-violet-500/10 text-violet-200") : "border-white/10 bg-[#0b0b11] text-slate-400 hover:bg-white/[0.07]"}`}
                                       >
                                         {on && <span className="font-mono text-[10px] opacity-80">{at + 1}</span>}
                                         {title}
@@ -872,7 +877,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                                   <button
                                     onClick={saveTitles}
                                     disabled={savingTitles}
-                                    className="flex-1 rounded-lg bg-purple-600 py-2 text-[11px] font-bold text-white transition hover:bg-purple-500 disabled:opacity-50"
+                                    className="flex-1 rounded-lg border border-violet-400/30 bg-violet-500/15 py-2 font-mono text-[11px] font-bold text-violet-200 transition hover:border-violet-400/60 hover:bg-violet-500/25 disabled:opacity-40"
                                   >
                                     {savingTitles ? "Saving…" : "Save Titles"}
                                   </button>
@@ -897,7 +902,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                             <p className="text-[11px] text-slate-500">Hide bio, banner &amp; watchlist from non-mutuals.</p>
                           </div>
                         </div>
-                        <button onClick={() => setIsPrivate(!isPrivate)} className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none ${isPrivate ? "bg-purple-600" : "bg-white/10"}`}>
+                        <button onClick={() => setIsPrivate(!isPrivate)} className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none ${isPrivate ? "bg-violet-500" : "bg-white/10"}`}>
                           <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${isPrivate ? "translate-x-5" : "translate-x-1"}`} />
                         </button>
                       </div>
@@ -906,7 +911,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                         <button
                           onClick={handleSaveProfile}
                           disabled={isSaving}
-                          className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-purple-600 py-2.5 text-sm font-bold text-white transition hover:bg-purple-500 disabled:opacity-50"
+                          className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-violet-400/30 bg-violet-500/15 py-2.5 font-mono text-xs font-bold text-violet-200 transition hover:border-violet-400/60 hover:bg-violet-500/25 disabled:opacity-40"
                         >
                           <Save className="h-4 w-4" />
                           {isSaving ? "Saving…" : "Save"}
@@ -921,13 +926,13 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                     </div>
 
                     {/* Bio — a column of its own, mirroring the reference */}
-                    <div className="flex flex-col space-y-2 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                    <div className="flex flex-col space-y-2 rounded-2xl border border-white/10 bg-[#0b0b11] p-5">
                       <h3 className="text-base font-bold text-white">Bio</h3>
                       <textarea
                         value={bio}
                         onChange={e => setBio(e.target.value)}
                         placeholder="Tell us about yourself…"
-                        className="min-h-[160px] flex-1 resize-none rounded-xl border border-white/10 bg-[#030305] px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                        className="min-h-[160px] flex-1 resize-none rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:border-violet-400/50 focus:outline-none"
                       />
                       <p className="text-[11px] leading-relaxed text-slate-500">
                         Paste a direct image link (gif, png, jpg, webp) on its own line to embed it. Saved with the Save button on the left.
@@ -937,9 +942,9 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
 
                   {/* ── Profile Audio — one track that plays on your profile.
                          Audio only; the server re-checks the host and format. ── */}
-                  <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                  <div className="space-y-3 rounded-2xl border border-white/10 bg-[#0b0b11] p-5">
                     <div className="flex items-center gap-2.5">
-                      <div className="grid h-8 w-8 place-items-center rounded-full bg-purple-500/15 text-purple-300">
+                      <div className="grid h-8 w-8 place-items-center rounded-full bg-violet-500/15 text-violet-300">
                         <Music className="h-4 w-4" />
                       </div>
                       <div>
@@ -955,7 +960,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                       value={profileSong}
                       onChange={e => setProfileSong(e.target.value)}
                       placeholder="https://files.catbox.moe/abc.mp3"
-                      className="w-full rounded-xl border border-white/10 bg-[#030305] px-4 py-3 font-mono text-sm text-white placeholder:text-slate-600 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                      className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 font-mono text-sm text-white placeholder:text-slate-600 focus:border-violet-400/50 focus:outline-none"
                     />
                     {profileSong.trim() !== "" && (
                       songCheck.ok ? (
@@ -968,7 +973,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                       <button
                         onClick={handleSaveSong}
                         disabled={savingSong}
-                        className="flex-1 rounded-xl bg-purple-600 py-2.5 text-sm font-bold text-white transition hover:bg-purple-500 disabled:opacity-50"
+                        className="flex-1 rounded-xl border border-violet-400/30 bg-violet-500/15 py-2.5 font-mono text-xs font-bold text-violet-200 transition hover:border-violet-400/60 hover:bg-violet-500/25 disabled:opacity-40"
                       >
                         {savingSong ? "Saving…" : "Save Audio"}
                       </button>
@@ -988,12 +993,12 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
               {activeTab === 'account' && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
                   {/* Change Username — first change free, then costs Arise Points */}
-                  <div className="bg-white/5 border border-white/10 p-6 rounded-2xl space-y-3">
-                    <h3 className="font-bold flex items-center gap-2 text-white"><UserIcon className="w-5 h-5 text-purple-400" /> Change Username</h3>
+                  <div className="bg-[#0b0b11] border border-white/10 p-6 rounded-2xl space-y-3">
+                    <h3 className="font-bold flex items-center gap-2 text-white"><UserIcon className="w-5 h-5 text-violet-400" /> Change Username</h3>
                     <p className="text-sm text-slate-400">
                       {usernameIsFree
                         ? "Your first username change is free."
-                        : <>Changing again costs <span className="font-bold text-purple-300">{USERNAME_COST} Arise Points</span> — you have <span className="font-semibold text-white">{(user?.arisePoints || 0).toLocaleString()}</span>.</>}
+                        : <>Changing again costs <span className="font-bold text-violet-300">{USERNAME_COST} Arise Points</span> — you have <span className="font-semibold text-white">{(user?.arisePoints || 0).toLocaleString()}</span>.</>}
                     </p>
                     <div className="flex flex-col sm:flex-row gap-3">
                       <input
@@ -1001,12 +1006,12 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                         onChange={e => setNewUsername(e.target.value)}
                         placeholder={user?.username || "New username"}
                         maxLength={20}
-                        className="flex-1 bg-[#030305] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500"
+                        className="flex-1 bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-violet-400/50"
                       />
                       <button
                         onClick={handleChangeUsername}
                         disabled={isChangingUsername || !newUsername.trim()}
-                        className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-xl font-bold transition disabled:opacity-50 whitespace-nowrap"
+                        className="rounded-xl border border-violet-400/30 bg-violet-500/15 px-6 py-3 font-mono text-xs font-bold text-violet-200 transition hover:border-violet-400/60 hover:bg-violet-500/25 disabled:opacity-40 whitespace-nowrap"
                       >
                         {isChangingUsername ? "Saving…" : usernameIsFree ? "Change · Free" : `Change · ${USERNAME_COST} AP`}
                       </button>
@@ -1014,12 +1019,12 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                     <p className="text-xs text-slate-500">3–20 characters — letters, numbers, or underscores.</p>
                   </div>
 
-                  <div className="bg-white/5 border border-white/10 p-6 rounded-2xl space-y-4">
-                    <h3 className="font-bold flex items-center gap-2 text-white"><Key className="w-5 h-5 text-purple-400" /> Change Password</h3>
-                    <input type="password" placeholder="Current Password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="w-full bg-[#030305] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500" />
-                    <input type="password" placeholder="New Password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full bg-[#030305] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500" />
-                    <input type="password" placeholder="Confirm New Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="w-full bg-[#030305] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500" />
-                    <button onClick={handleChangePassword} disabled={isChangingPassword} className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-2.5 rounded-xl font-bold transition w-full disabled:opacity-50 flex items-center justify-center gap-2">
+                  <div className="bg-[#0b0b11] border border-white/10 p-6 rounded-2xl space-y-4">
+                    <h3 className="font-bold flex items-center gap-2 text-white"><Key className="w-5 h-5 text-violet-400" /> Change Password</h3>
+                    <input type="password" placeholder="Current Password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-violet-400/50" />
+                    <input type="password" placeholder="New Password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-violet-400/50" />
+                    <input type="password" placeholder="Confirm New Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-violet-400/50" />
+                    <button onClick={handleChangePassword} disabled={isChangingPassword} className="flex w-full items-center justify-center gap-2 rounded-xl border border-violet-400/30 bg-violet-500/15 px-6 py-2.5 font-mono text-xs font-bold text-violet-200 transition hover:border-violet-400/60 hover:bg-violet-500/25 disabled:opacity-40">
                       {isChangingPassword ? "Updating..." : "Update Password"}
                     </button>
                   </div>
@@ -1036,11 +1041,11 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
 
               {activeTab === 'preferences' && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-                  <div className="bg-white/5 border border-white/5 rounded-2xl divide-y divide-white/5 overflow-hidden">
+                  <div className="bg-[#0b0b11] border border-white/10 rounded-2xl divide-y divide-white/5 overflow-hidden">
                     <div className="flex items-center justify-between p-4 hover:bg-white/[0.02] transition">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
-                          {theme === 'dark' ? <Zap className="w-4 h-4 text-purple-400" /> : <Moon className="w-4 h-4 text-slate-400" />}
+                          {theme === 'dark' ? <Zap className="w-4 h-4 text-violet-400" /> : <Moon className="w-4 h-4 text-slate-400" />}
                         </div>
                         <div>
                           <h3 className="font-bold text-white text-sm">App Theme</h3>
@@ -1055,14 +1060,14 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                     <div className="flex items-center justify-between p-4 hover:bg-white/[0.02] transition">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
-                          <PlayCircle className={`w-4 h-4 ${preferences.autoplayTrailers ? 'text-purple-400' : 'text-slate-400'}`} />
+                          <PlayCircle className={`w-4 h-4 ${preferences.autoplayTrailers ? 'text-violet-400' : 'text-slate-400'}`} />
                         </div>
                         <div>
                           <h3 className="font-bold text-white text-sm">Cinematic Autoplay</h3>
                           <p className="text-[11px] text-slate-500 mt-0.5 max-w-[200px]">Auto-play the background trailer on anime pages.</p>
                         </div>
                       </div>
-                      <button onClick={() => updatePreference('autoplayTrailers', !preferences.autoplayTrailers)} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${preferences.autoplayTrailers ? 'bg-purple-600' : 'bg-white/10'}`}>
+                      <button onClick={() => updatePreference('autoplayTrailers', !preferences.autoplayTrailers)} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${preferences.autoplayTrailers ? 'bg-violet-500' : 'bg-white/10'}`}>
                         <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${preferences.autoplayTrailers ? 'translate-x-5' : 'translate-x-1'}`} />
                       </button>
                     </div>
@@ -1120,7 +1125,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                   {/* MAL killed the public list feed in May 2022, so this can no
                       longer work for anyone. Say so plainly instead of leaving a
                       button that always fails and reads as the user's fault. */}
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
+                  <div className="rounded-2xl border border-white/10 bg-[#0b0b11] p-6">
                     <div className="mb-2 flex flex-wrap items-center gap-2">
                       <h3 className="flex items-center gap-2 font-bold text-white">
                         <Database className="h-5 w-5 text-blue-400" /> MyAnimeList Import
@@ -1156,17 +1161,17 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
 
               {activeTab === 'invites' && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-                  <div className="bg-purple-500/10 border border-purple-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+                  <div className="bg-violet-500/10 border border-violet-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
                     <div>
-                      <h3 className="font-bold text-purple-300">Invite Keys</h3>
-                      <p className="text-xs text-purple-300/70 mt-1">
+                      <h3 className="font-bold text-violet-300">Invite Keys</h3>
+                      <p className="text-xs text-violet-300/70 mt-1">
                         {isAdmin(user) ? "Staff overrides enabled — generate unlimited invite keys." : "Generate your free invite key, or buy more with Arise Points."}
                       </p>
                     </div>
                     <button
                       onClick={generateInvite}
                       disabled={isGeneratingInvite || (!isAdmin(user) && invites.length >= 1)}
-                      className="bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold py-2 px-4 rounded-xl transition flex items-center gap-2 whitespace-nowrap"
+                      className="flex items-center gap-2 whitespace-nowrap rounded-xl border border-violet-400/30 bg-violet-500/15 px-4 py-2 font-mono text-xs font-bold text-violet-200 transition hover:border-violet-400/60 hover:bg-violet-500/25 disabled:opacity-40"
                     >
                       <Key className="w-4 h-4" />
                       {isGeneratingInvite ? "Generating..." : "Generate Key"}
@@ -1174,17 +1179,17 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                   </div>
 
                   {!isAdmin(user) && (
-                    <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+                    <div className="bg-[#0b0b11] border border-white/10 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
                       <div>
                         <h3 className="font-bold text-white">Buy an Extra Invite</h3>
                         <p className="text-xs text-slate-400 mt-1">
-                          Costs <span className="text-purple-300 font-bold">{INVITE_COST.toLocaleString()} AP</span> — you have <span className="text-white font-semibold">{(user?.arisePoints || 0).toLocaleString()}</span>.
+                          Costs <span className="text-violet-300 font-bold">{INVITE_COST.toLocaleString()} AP</span> — you have <span className="text-white font-semibold">{(user?.arisePoints || 0).toLocaleString()}</span>.
                         </p>
                       </div>
                       <button
                         onClick={buyInvite}
                         disabled={buyingInvite || (user?.arisePoints || 0) < INVITE_COST}
-                        className="bg-white/10 hover:bg-white/20 border border-purple-500/40 disabled:opacity-50 text-white font-bold py-2 px-4 rounded-xl transition flex items-center gap-2 whitespace-nowrap"
+                        className="bg-white/10 hover:bg-white/20 border border-violet-500/40 disabled:opacity-50 text-white font-bold py-2 px-4 rounded-xl transition flex items-center gap-2 whitespace-nowrap"
                       >
                         <Key className="w-4 h-4" />
                         {buyingInvite ? "Buying…" : `Buy — ${INVITE_COST.toLocaleString()} AP`}
@@ -1196,7 +1201,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                     <div className="space-y-3 mt-4">
                       <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-2">Your Keys</h4>
                       {invites.map(invite => (
-                        <div key={invite.id} className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between">
+                        <div key={invite.id} className="bg-[#0b0b11] border border-white/10 rounded-xl p-4 flex items-center justify-between">
                           <div>
                             <p className="font-mono font-bold text-emerald-400 tracking-wider text-lg">{invite.code}</p>
                             <p className="text-xs text-slate-500 mt-1">{invite.isUsed ? `Used by ${invite.usedByUser?.username || 'Unknown'}` : 'Unused'}</p>
