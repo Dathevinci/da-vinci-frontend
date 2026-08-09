@@ -708,6 +708,55 @@ export function HollowAvatarMark() {
         }}
         transition={{ duration: 5.2, repeat: Infinity, ease: "easeInOut" }}
       />
+
+      {/* THE COLLISION — Lapse Blue orbits clockwise, Reversal Red counter-
+          clockwise, each a tiny gradient orb riding a rotating ring wrapper.
+          Keep-clear rule: the dots are centred ON the rim circle (inset-0
+          wrapper + edge-anchored child), so they never cross the face. */}
+      <motion.span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-[1] rounded-full"
+        animate={{ rotate: 360 }}
+        transition={{ duration: 7, repeat: Infinity, ease: "linear" }}
+      >
+        <span
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 top-0 block h-[12%] min-h-[7px] w-[12%] min-w-[7px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+          style={{
+            background: "radial-gradient(circle, rgba(255,255,255,0.95) 0%, #3b82f6 32%, rgba(59,130,246,0) 72%)",
+            boxShadow: "0 0 6px 1px rgba(59,130,246,0.65)",
+          }}
+        />
+      </motion.span>
+      <motion.span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-[1] rounded-full"
+        animate={{ rotate: -360 }}
+        transition={{ duration: 4.8, repeat: Infinity, ease: "linear" }}
+      >
+        <span
+          aria-hidden
+          className="pointer-events-none absolute bottom-0 left-1/2 block h-[12%] min-h-[7px] w-[12%] min-w-[7px] -translate-x-1/2 translate-y-1/2 rounded-full"
+          style={{
+            background: "radial-gradient(circle, rgba(255,255,255,0.95) 0%, #ef4444 32%, rgba(239,68,68,0) 72%)",
+            boxShadow: "0 0 6px 1px rgba(239,68,68,0.65)",
+          }}
+        />
+      </motion.span>
+
+      {/* violet spark at the rim top, flashing when the breathing glow above
+          peaks Hollow Purple (keyframe 2 of 4 ⇒ t≈1/3 of the same 5.2s loop) */}
+      <motion.span
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-0 z-[1] block h-[10%] min-h-[6px] w-[10%] min-w-[6px] rounded-full"
+        style={{
+          x: "-50%",
+          y: "-50%",
+          background: "radial-gradient(circle, rgba(255,255,255,0.95) 0%, #c724f0 35%, rgba(199,36,240,0) 72%)",
+        }}
+        animate={{ opacity: [0, 0, 0.95, 0, 0], scale: [0.4, 0.6, 1.25, 0.5, 0.4] }}
+        transition={{ duration: 5.2, times: [0, 0.27, 0.34, 0.42, 1], repeat: Infinity, ease: "easeInOut" }}
+      />
     </>
   );
 }

@@ -452,6 +452,74 @@ export function PortalAvatarMark() {
         }}
         transition={{ duration: 5.2, repeat: Infinity, ease: "easeInOut" }}
       />
+
+      {/* PORTAL LEAK — a crescent of swirling acid orbiting the rim. The conic
+          gradient only carries color through ~120°, and the radial mask carves
+          it to a thin ring, so what survives is a glowing arc segment. */}
+      <motion.span
+        aria-hidden
+        className="pointer-events-none absolute -inset-[8%] z-0 rounded-full"
+        style={{
+          background:
+            "conic-gradient(from 0deg, rgba(57,255,20,0) 0deg, rgba(57,255,20,0.85) 30deg, #d9f99d 64deg, rgba(57,255,20,0.9) 96deg, rgba(217,249,157,0) 120deg, transparent 360deg)",
+          filter: "blur(2px)",
+          // Animated rotate + filter on one layer is the Android-compositor
+          // smear stack (the avatar red-streak incident). will-change pins the
+          // element to its own composited layer — the documented cure.
+          willChange: "transform",
+          WebkitMaskImage: "radial-gradient(circle, transparent 56%, #000 68%)",
+          maskImage: "radial-gradient(circle, transparent 56%, #000 68%)",
+        }}
+        animate={{ rotate: 360 }}
+        transition={{ duration: 6.5, repeat: Infinity, ease: "linear" }}
+      />
+
+      {/* slime droplets that periodically detach from the bottom rim and drip
+          a few percent before fading (invisible for the tail of each cycle) */}
+      {[
+        { left: "32%", delay: 1.4, dur: 5.8 },
+        { left: "58%", delay: 4.3, dur: 7.2 },
+      ].map((d, i) => (
+        <motion.span
+          key={i}
+          aria-hidden
+          className="pointer-events-none absolute z-[1] h-[9%] w-[6%] rounded-full"
+          style={{
+            left: d.left,
+            background: "radial-gradient(circle at 50% 30%, #d9f99d, #39ff14 75%)",
+            boxShadow: "0 0 6px rgba(57,255,20,0.7)",
+          }}
+          initial={{ top: "86%", opacity: 0 }}
+          animate={{
+            top: ["86%", "91%", "103%", "107%"],
+            opacity: [0, 0.95, 0.8, 0],
+            scaleY: [0.5, 1, 1.3, 1.05],
+          }}
+          transition={{
+            duration: d.dur,
+            times: [0, 0.12, 0.5, 0.62],
+            repeat: Infinity,
+            delay: d.delay,
+            ease: "easeIn",
+          }}
+        />
+      ))}
+
+      {/* multiverse debris — one magenta shard slowly tumbling off the
+          top-right rim */}
+      <motion.span
+        aria-hidden
+        className="pointer-events-none absolute right-[-5%] top-[3%] z-[1] block w-[13%]"
+        animate={{ rotate: 360, y: ["0%", "-30%", "0%"] }}
+        transition={{
+          rotate: { duration: 9, repeat: Infinity, ease: "linear" },
+          y: { duration: 4.6, repeat: Infinity, ease: "easeInOut" },
+        }}
+      >
+        <svg viewBox="0 0 10 10" className="h-auto w-full" style={{ filter: "drop-shadow(0 0 3px rgba(232,121,249,0.8))" }}>
+          <polygon points="5,0.5 9.5,9 0.5,9" fill="#e879f9" opacity="0.9" />
+        </svg>
+      </motion.span>
     </>
   );
 }

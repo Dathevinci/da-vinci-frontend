@@ -503,6 +503,29 @@ export function GatewayCardDomain() {
 
 // ── Avatar-level: the mark of the key ───────────────────────────────────────
 
+// The mark's STRUCTURE (size="lg" surfaces — profile, popout, forum — render
+// the full mark; small/dense surfaces still collapse to the cheap glow, so
+// this only ever mounts a handful of times at once): a corrupted-gold
+// tesseract hint — two
+// counter-rotating square outlines with a white-hot core — hovering over the
+// top rim, plus three ultraviolet motes orbiting just outside the rim on a
+// precomputed octagonal path. Percentage units throughout, so the mark scales
+// from ~80px popout avatars to 160px profile avatars.
+const ORBIT_R = 55; // % of the avatar container — just outside the 50% rim
+const ORBIT_STEPS = Array.from({ length: 9 }, (_, i) => (i * Math.PI) / 4);
+const orbitPath = (phaseDeg: number) => {
+  const phase = (phaseDeg * Math.PI) / 180;
+  return {
+    left: ORBIT_STEPS.map((a) => `${(50 + ORBIT_R * Math.cos(a + phase)).toFixed(1)}%`),
+    top: ORBIT_STEPS.map((a) => `${(50 + ORBIT_R * Math.sin(a + phase)).toFixed(1)}%`),
+  };
+};
+const GATE_MOTES = [
+  { path: orbitPath(0), dur: 6.2 },
+  { path: orbitPath(120), dur: 7.4 },
+  { path: orbitPath(240), dur: 8 },
+];
+
 export function GatewayAvatarMark() {
   // Register so the gateway opens on THIS avatar's rim.
   const anchorRef = useRef<HTMLSpanElement>(null);
@@ -532,6 +555,66 @@ export function GatewayAvatarMark() {
         }}
         transition={{ duration: 6.8, repeat: Infinity, ease: "easeInOut" }}
       />
+
+      {/* THE KEY — gold wireframe tesseract hint hovering just above the top
+          rim: outer square + inner 45°-offset square, counter-rotating, white
+          core. z-[1] like the glow (behind the z-10 avatar image) so its lower
+          tip tucks behind the rim; never touches the face. All % units. */}
+      <motion.span
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-[-22%] z-[1] block w-[36%]"
+        style={{ x: "-50%" }}
+        animate={{ y: ["0%", "-12%", "0%"] }}
+        transition={{ duration: 5.6, repeat: Infinity, ease: "easeInOut" }}
+      >
+        <svg viewBox="0 0 40 40" className="h-auto w-full" style={{ filter: "drop-shadow(0 0 4px rgba(255,215,0,0.55))" }}>
+          <motion.rect
+            x="8"
+            y="8"
+            width="24"
+            height="24"
+            fill="none"
+            stroke="#ffd700"
+            strokeWidth="1.8"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+          />
+          <motion.rect
+            x="12.5"
+            y="12.5"
+            width="15"
+            height="15"
+            fill="none"
+            stroke="#ffd700"
+            strokeWidth="1.4"
+            opacity="0.8"
+            initial={{ rotate: 45 }}
+            animate={{ rotate: [45, -315] }}
+            transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+          />
+          <circle cx="20" cy="20" r="2" fill="#fff" opacity="0.95" />
+        </svg>
+      </motion.span>
+
+      {/* three ultraviolet motes orbiting just outside the rim — z-0 behind
+          the avatar image, octagonal % path ≈ circle, phases 120° apart */}
+      {GATE_MOTES.map((m, i) => (
+        <motion.span
+          key={i}
+          aria-hidden
+          className="pointer-events-none absolute z-0 block rounded-full"
+          style={{
+            width: "7%",
+            height: "7%",
+            x: "-50%",
+            y: "-50%",
+            background:
+              "radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(138,43,226,0.8) 38%, rgba(138,43,226,0) 72%)",
+          }}
+          animate={{ left: m.path.left, top: m.path.top, opacity: [0.5, 0.95, 0.5] }}
+          transition={{ duration: m.dur, repeat: Infinity, ease: "linear" }}
+        />
+      ))}
     </>
   );
 }

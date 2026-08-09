@@ -833,6 +833,38 @@ export function OuterGodCardDomain() {
 
 // ── Avatar-level: the mark of the noticed ───────────────────────────────────
 
+// THE ABYSS PEEKS — tapered tentacle-tip silhouettes for the avatar mark.
+// Drawn in a 120×56 viewBox that spans the avatar's bottom edge: the bases sit
+// at the TOP of the viewBox (inside the avatar disc, so the z-10 profile image
+// hides them) and the curled tips reach past the circle's silhouette just
+// below the bottom rim — they read as something peeking out from behind.
+const TENTACLE_TIPS = [
+  // left — the big one, curling out to the lower-left
+  {
+    d: "M24 0 C16 14 13 27 18 38 C21 45 28 51 35 50 C39 49.4 41 46 39.5 43.5 C38.6 42 36.4 41.8 35.4 43.2 C34.6 44.3 35.2 45.8 36.4 46.2 C32 47.6 26.6 43.4 24.8 37 C22.8 30 26 16 33 2 Z",
+    fill: "#052e2b",
+    sway: [-6, 5, -6],
+    dur: 6.5,
+    delay: 0,
+  },
+  // right — medium, curling the other way
+  {
+    d: "M86 4 C93 16 96 28 92 38 C89 45 83 50 77 48.6 C73.6 47.8 72.2 44.6 73.6 42.4 C74.6 40.9 76.8 40.9 77.7 42.4 C78.4 43.6 77.8 45 76.6 45.4 C80.6 46.4 85.2 42 86.8 36 C88.6 29 86 17 79.4 6 Z",
+    fill: "#06423c",
+    sway: [5, -6, 5],
+    dur: 5.6,
+    delay: 0.8,
+  },
+  // center — small, barely breaking the rim
+  {
+    d: "M57 10 C53 20 52 30 55 38 C57.4 43.6 62 47.6 66 46.2 C68.8 45.2 69.8 42.4 68.5 40.6 C67.5 39.2 65.5 39.3 64.8 40.7 C64.3 41.8 64.8 43 65.9 43.3 C62.6 44 59.2 40.4 58.3 35.4 C57.3 29.8 59 20.4 62.6 11 Z",
+    fill: "#052e2b",
+    sway: [-4, 4, -4],
+    dur: 7.2,
+    delay: 1.5,
+  },
+];
+
 export function OuterGodAvatarMark() {
   // Register so the tear in reality opens on THIS avatar's rim.
   const anchorRef = useRef<HTMLSpanElement>(null);
@@ -862,6 +894,73 @@ export function OuterGodAvatarMark() {
         }}
         transition={{ duration: 6.2, repeat: Infinity, ease: "easeInOut" }}
       />
+
+      {/* THE ABYSS PEEKS — three bioluminescent tentacle tips swaying up from
+          BEHIND the bottom rim. z-0 like the glow (under the z-10 avatar
+          image), so the bases vanish behind the disc and only the curled tips
+          break the silhouette. All percentage-sized: hugs the rim at 160px
+          profile avatars and ~80–96px popouts alike. */}
+      <svg
+        aria-hidden
+        viewBox="0 0 120 56"
+        className="pointer-events-none absolute z-0 h-auto"
+        style={{
+          left: "-5%",
+          bottom: "-12%",
+          width: "110%",
+          filter:
+            "blur(0.5px) drop-shadow(0 0 4px rgba(20,184,166,0.7)) drop-shadow(0 2px 3px rgba(0,0,0,0.8))",
+        }}
+      >
+        {TENTACLE_TIPS.map((tip, i) => (
+          <motion.path
+            key={i}
+            d={tip.d}
+            fill={tip.fill}
+            stroke="#14b8a6"
+            strokeWidth="1"
+            strokeLinejoin="round"
+            style={{ transformBox: "fill-box", transformOrigin: "50% 0%" }}
+            animate={{ rotate: tip.sway }}
+            transition={{ duration: tip.dur, repeat: Infinity, delay: tip.delay, ease: "easeInOut" }}
+          />
+        ))}
+      </svg>
+
+      {/* the eye-slit of the noticed — a tiny magenta eye straddling the top
+          rim that cracks open (scaleY 0 → 1) for a beat every few seconds,
+          then seals. Rides at z-20 over the avatar's edge — the same layer
+          TempestAvatarStorm floats its cloud on — and stays rim-hugging,
+          never near the face's center. Closed (scale 0 + opacity 0) for most
+          of every cycle. */}
+      <motion.span
+        aria-hidden
+        className="pointer-events-none absolute z-20 block"
+        style={{
+          left: "26%",
+          top: "0%",
+          width: "17%",
+          height: "6%",
+          borderRadius: "50%",
+          background:
+            "radial-gradient(ellipse at center, #ff9df0 0%, #d81fb4 35%, #7a0f68 70%, rgba(5,2,8,0.95) 100%)",
+          boxShadow: "0 0 7px 2px rgba(216,31,180,0.8), 0 0 2px 1px rgba(2,2,6,0.9)",
+        }}
+        animate={{ scaleY: [0, 0, 1, 0.85, 1, 0, 0], opacity: [0, 0, 1, 1, 1, 0, 0] }}
+        transition={{
+          duration: 7.4,
+          times: [0, 0.6, 0.66, 0.7, 0.76, 0.82, 1],
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      >
+        {/* vertical slit pupil */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute block"
+          style={{ left: "46%", top: "14%", width: "8%", height: "72%", borderRadius: "9999px", background: "#050208" }}
+        />
+      </motion.span>
     </>
   );
 }

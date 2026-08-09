@@ -758,6 +758,58 @@ export function UnblinkingAvatarMark() {
         animate={{ rotate: 360, opacity: [0.25, 0.6, 0.25] }}
         transition={{ rotate: { duration: 22, repeat: Infinity, ease: "linear" }, opacity: { duration: 2.4, repeat: Infinity, ease: "easeInOut" } }}
       />
+
+      {/* IT WATCHES — a small hand-inked eye perched on the top-right rim.
+          Lids snap shut every few seconds; the slit pupil drifts side to side. */}
+      <motion.span
+        aria-hidden
+        className="pointer-events-none absolute right-[-6%] top-[1%] z-20 block w-[32%]"
+        style={{ rotate: "16deg" }}
+        animate={{ scaleY: [1, 1, 0.06, 1, 1] }}
+        transition={{ duration: 5.6, times: [0, 0.9, 0.94, 0.98, 1], repeat: Infinity, ease: "easeInOut" }}
+      >
+        <svg viewBox="0 0 44 26" className="h-auto w-full" style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.65))" }}>
+          {/* manuscript-paper sclera inside a wobbly inked almond */}
+          <path
+            d="M4 13 C 10 5, 17 3.2, 22 3.5 C 28 3, 35 6, 40 12.6 C 35.5 19.8, 28 22.6, 21.8 22.3 C 15.5 22.7, 9 20, 4 13 Z"
+            fill="#f2ead8"
+            fillOpacity="0.94"
+            stroke="#0a0a0c"
+            strokeWidth="1.7"
+            strokeLinejoin="round"
+          />
+          {/* rough re-inked lid line + stray lash ticks — the sketchy double-stroke */}
+          <path
+            d="M5.5 11.6 C 11 5.6, 17.5 4.3, 22.5 4.7 M23.5 4.6 C 29 4.4, 34.5 7, 38.6 11.4 M6 9.5 L2.8 6.9 M38 9 L41.2 6.3 M13.5 4.6 L11.9 1.9 M30.5 4.2 L32 1.6"
+            fill="none"
+            stroke="#0a0a0c"
+            strokeOpacity="0.7"
+            strokeWidth="1"
+            strokeLinecap="round"
+          />
+          {/* dried-blood iris */}
+          <ellipse cx="22" cy="13" rx="5.4" ry="6.2" fill="#8b0000" stroke="#0a0a0c" strokeWidth="0.8" strokeOpacity="0.6" />
+          {/* slit pupil, sliding across the iris */}
+          <motion.path
+            d="M22 6.8 C 23.6 9.5, 23.6 16.5, 22 19.2 C 20.4 16.5, 20.4 9.5, 22 6.8 Z"
+            fill="#0a0a0c"
+            animate={{ x: [0, 2.2, 2.2, -1.8, -1.8, 0] }}
+            transition={{ duration: 7.5, times: [0, 0.18, 0.42, 0.58, 0.84, 1], repeat: Infinity, ease: "easeInOut" }}
+          />
+        </svg>
+      </motion.span>
+
+      {/* two stray ink scratches clawed into the opposite rim */}
+      <motion.svg
+        aria-hidden
+        viewBox="0 0 16 16"
+        className="pointer-events-none absolute bottom-[4%] left-[-5%] z-20 w-[16%]"
+        style={{ filter: "drop-shadow(0 0 1px rgba(242,234,216,0.75))" }}
+        animate={{ opacity: [0.35, 0.75, 0.35] }}
+        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+      >
+        <path d="M3 13.5 L9.6 3.4 M7 14.6 L13.6 4.6" fill="none" stroke="#0a0a0c" strokeWidth="1.4" strokeLinecap="round" />
+      </motion.svg>
     </>
   );
 }

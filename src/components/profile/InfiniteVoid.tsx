@@ -463,6 +463,17 @@ export function VoidCardDomain() {
 
 // ── Avatar-level: the mark of the honored one ────────────────────────────────
 
+// Frozen starlight motes suspended just off the rim. Time inside the mark runs
+// at 5% speed, so the drift is fractions of their own (tiny) size. Positions
+// are % of a wrapper spanning -inset-[10%], each landing just OUTSIDE the
+// avatar circle so they stay visible at z-[1] beneath the z-10 image.
+const VOID_MOTES = [
+  { left: "72%", top: "11%", drift: "-24%", delay: 0, period: 6.5 },
+  { left: "6%", top: "57%", drift: "18%", delay: 1.8, period: 7.4 },
+  { left: "73%", top: "87%", drift: "-16%", delay: 3.1, period: 6.1 },
+  { left: "15%", top: "20%", drift: "22%", delay: 4.4, period: 7.9 },
+];
+
 export function VoidAvatarMark() {
   // Register so the barrier + cosmic eye center on this avatar.
   const anchorRef = useRef<HTMLSpanElement>(null);
@@ -491,6 +502,53 @@ export function VoidAvatarMark() {
         }}
         transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
       />
+
+      {/* THE COSMIC EYE — a thin iris ring of indigo/cyan/starlight segments
+          slowly rotating around the rim (masked to the border band, same
+          technique as TempestAvatarStorm's smoky rings) */}
+      <motion.span
+        aria-hidden
+        className="pointer-events-none absolute -inset-[7%] z-0 rounded-full"
+        style={{
+          background:
+            "conic-gradient(from 20deg, rgba(99,102,241,0) 0%, #6366f1 8%, #67e8f9 16%, rgba(224,242,254,0.95) 21%, rgba(103,232,249,0.35) 30%, rgba(99,102,241,0) 40%, rgba(99,102,241,0.85) 52%, #e0f2fe 58%, rgba(103,232,249,0.7) 64%, rgba(99,102,241,0) 74%, rgba(224,242,254,0.8) 86%, rgba(103,232,249,0.4) 92%, rgba(99,102,241,0) 100%)",
+          opacity: 0.8,
+          filter: "blur(0.5px)",
+          // Animated rotate + filter on one layer is the Android-compositor
+          // smear stack (the avatar red-streak incident). will-change pins the
+          // element to its own composited layer — the documented cure.
+          willChange: "transform",
+          WebkitMaskImage: "radial-gradient(circle, transparent 60%, #000 66%, #000 93%, transparent 99%)",
+          maskImage: "radial-gradient(circle, transparent 60%, #000 66%, #000 93%, transparent 99%)",
+        }}
+        animate={{ rotate: 360 }}
+        transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+      />
+
+      {/* frozen starlight motes hanging just off the rim — 95% time-stop */}
+      <span aria-hidden className="pointer-events-none absolute -inset-[10%] z-[1]">
+        {VOID_MOTES.map((m, i) => (
+          <motion.span
+            key={i}
+            className="pointer-events-none absolute block rounded-full"
+            style={{
+              left: m.left,
+              top: m.top,
+              width: "4.5%",
+              height: "4.5%",
+              minWidth: 3,
+              minHeight: 3,
+              maxWidth: 6,
+              maxHeight: 6,
+              background:
+                "radial-gradient(circle, #e0f2fe 30%, rgba(103,232,249,0.9) 55%, rgba(99,102,241,0) 100%)",
+              boxShadow: "0 0 6px 1px rgba(103,232,249,0.8), 0 0 12px 3px rgba(99,102,241,0.35)",
+            }}
+            animate={{ y: ["0%", m.drift, "0%"], opacity: [0.6, 1, 0.6] }}
+            transition={{ duration: m.period, repeat: Infinity, delay: m.delay, ease: "easeInOut" }}
+          />
+        ))}
+      </span>
     </>
   );
 }

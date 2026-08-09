@@ -454,6 +454,24 @@ export function DejavuCardEcho() {
 
 // ── Avatar-level: the mark of the one who remembers ──────────────────────────
 
+// Ghost afterimage rings that periodically split off the avatar rim — one
+// quantum-cyan, one blood-crimson — staggered so they alternate, a memory
+// repeating. They start AT the rim (scale 1, hidden behind the z-10 avatar
+// image) and only become visible as they expand past it, so the face is
+// never covered. Percentage/inset units only: scales 160px → 80px avatars.
+const ECHO_RINGS = [
+  { color: "rgba(0,255,255,0.7)", glow: "0 0 6px 1px rgba(0,255,255,0.45)", delay: 0 },
+  { color: "rgba(139,0,0,0.8)", glow: "0 0 6px 1px rgba(139,0,0,0.55)", delay: 3.2 },
+];
+
+// The void ashes — tiny ash-grey motes that fall the WRONG way (upward),
+// hugging the left/right edges so they drift past the rim, never the face.
+const ECHO_MOTES = [
+  { left: "2%", delay: 0, duration: 6.8 },
+  { left: "88%", delay: 2.4, duration: 5.6 },
+  { left: "-4%", delay: 4.6, duration: 7.9 },
+];
+
 export function DejavuAvatarMark() {
   // Register so the quantum field + ghosts center on this avatar.
   const anchorRef = useRef<HTMLSpanElement>(null);
@@ -483,6 +501,38 @@ export function DejavuAvatarMark() {
         }}
         transition={{ duration: 4.6, repeat: Infinity, ease: "easeInOut" }}
       />
+
+      {/* temporal echo rings — afterimages splitting outward from the rim */}
+      {ECHO_RINGS.map((r, i) => (
+        <motion.span
+          key={i}
+          aria-hidden
+          className="pointer-events-none absolute inset-0 z-0 rounded-full border-2"
+          style={{ borderColor: r.color, boxShadow: r.glow }}
+          animate={{
+            scale: [1, 1, 1.26, 1.26],
+            opacity: [0, 0.85, 0, 0],
+          }}
+          transition={{ duration: 6.4, times: [0, 0.08, 0.58, 1], repeat: Infinity, delay: r.delay, ease: "easeOut" }}
+        />
+      ))}
+
+      {/* void ashes — three grey motes drifting the wrong way (upward) */}
+      <span aria-hidden className="pointer-events-none absolute -inset-1 z-[1]">
+        {ECHO_MOTES.map((m, i) => (
+          <motion.span
+            key={i}
+            className="absolute block h-[5%] max-h-[6px] min-h-[3px] w-[5%] min-w-[3px] max-w-[6px] rounded-full"
+            style={{ left: m.left, background: "#9ca3af", boxShadow: "0 0 4px rgba(156,163,175,0.7)" }}
+            animate={{
+              top: ["84%", "62%", "8%", "-10%"],
+              x: ["0%", "60%", "-40%", "20%"],
+              opacity: [0, 0.75, 0.65, 0],
+            }}
+            transition={{ duration: m.duration, times: [0, 0.18, 0.78, 1], repeat: Infinity, delay: m.delay, ease: "linear" }}
+          />
+        ))}
+      </span>
     </>
   );
 }

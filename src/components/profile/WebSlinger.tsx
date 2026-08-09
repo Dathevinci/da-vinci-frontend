@@ -440,6 +440,56 @@ export function WebSlingerAvatarMark() {
         }}
         transition={{ duration: 5.8, repeat: Infinity, ease: "easeInOut" }}
       />
+
+      {/* THE ANCHOR WEB — a corner of spun web clinging to the top-left rim:
+          3 radial threads + 2 sagging arc chords (titanium white over a
+          blurred cyan under-glow), and one tiny crimson spider that
+          occasionally slides a few px down the vertical thread and back.
+          Layered like Tempest's thundercloud: the visible structure rides
+          z-20 above the avatar image so it reads as clinging to the rim.
+          All geometry lives in viewBox units inside a %-sized wrapper, so it
+          scales from 160px profiles down to 80px popouts untouched. */}
+      <motion.span
+        aria-hidden
+        className="pointer-events-none absolute left-[-7%] top-[-7%] z-20 block w-[46%]"
+        animate={{ opacity: [0.7, 1, 0.7], y: [0, 1, 0] }}
+        transition={{ duration: 6.4, repeat: Infinity, ease: "easeInOut" }}
+      >
+        <svg viewBox="0 0 40 40" className="h-auto w-full" fill="none">
+          {/* cyan under-glow: same path, wider + blurred, drawn first */}
+          <path
+            d="M3 3 L3 34 M3 3 L34 3 M3 3 L25 25 M3 16 Q7.5 7.5 16 3 M3 30 Q13 13 30 3"
+            stroke="#22d3ee"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            opacity="0.5"
+            style={{ filter: "blur(1.4px)" }}
+          />
+          {/* the threads: 3 radials from the corner + 2 arc chords sagging
+              toward the anchor point */}
+          <path
+            d="M3 3 L3 34 M3 3 L34 3 M3 3 L25 25 M3 16 Q7.5 7.5 16 3 M3 30 Q13 13 30 3"
+            stroke="#f8fafc"
+            strokeWidth="0.5"
+            strokeLinecap="round"
+            opacity="0.9"
+          />
+          {/* the spider — one crimson ember dot; mostly at rest, then a slow
+              slide down the vertical thread and back up */}
+          <motion.g
+            animate={{ y: [0, 0, 6, 6, 0, 0] }}
+            transition={{ duration: 7.5, times: [0, 0.5, 0.6, 0.72, 0.84, 1], repeat: Infinity, ease: "easeInOut" }}
+          >
+            <circle
+              cx="3"
+              cy="9.5"
+              r="1.4"
+              fill="#ef4444"
+              style={{ filter: "drop-shadow(0 0 2px rgba(239,68,68,0.9))" }}
+            />
+          </motion.g>
+        </svg>
+      </motion.span>
     </>
   );
 }
