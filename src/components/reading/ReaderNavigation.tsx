@@ -1,9 +1,11 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, ArrowLeft, Settings, RefreshCw, Pin, Plus, Check, Camera, List, ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowLeft, Home, Settings, RefreshCw, Pin, Plus, Check, Camera, List, ChevronDown, ChevronUp } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { IMangaInfo } from "@/lib/asura/models";
 import { chapterNo } from "./ChapterSelectorModal";
+import { browseAnchorHref } from "@/lib/browseAnchor";
 
 export default function ReaderNavigation({
   manhwa,
@@ -38,6 +40,7 @@ export default function ReaderNavigation({
   onOpenChapterSelector: () => void;
   onCapture: () => void;
 }) {
+  const router = useRouter();
   const currentChapter = manhwa?.chapters?.find(c => c.id === chapterId);
   const title = manhwa?.title || 'Details';
   /**
@@ -77,7 +80,26 @@ export default function ReaderNavigation({
   return (
     <>
       {/* Top Floating Pill - iOS Glass Style */}
-      <div className={`fixed top-5 left-1/2 -translate-x-1/2 z-50 flex items-center h-[42px] bg-black/40 backdrop-blur-2xl border border-white/10 rounded-full text-white text-[13px] font-bold select-none overflow-hidden shadow-2xl transform transition-all duration-300 ease-in-out ${isVisible ? 'translate-y-0 opacity-100 pointer-events-auto' : '-translate-y-16 opacity-0 pointer-events-none'}`}>
+      {/* Tighter padding below sm and a scrollable overflow, because this pill
+          now carries NINE controls. It is centred with a fixed height and was
+          `overflow-hidden`, so on a narrow phone the extra control would have
+          been clipped away rather than wrapped — silently unreachable. */}
+      <div className={`fixed top-5 left-1/2 -translate-x-1/2 z-50 flex items-center h-[42px] max-w-[calc(100vw-1rem)] overflow-x-auto hide-scrollbar bg-black/40 backdrop-blur-2xl border border-white/10 rounded-full text-white text-[13px] font-bold select-none shadow-2xl transform transition-all duration-300 ease-in-out ${isVisible ? 'translate-y-0 opacity-100 pointer-events-auto' : '-translate-y-16 opacity-0 pointer-events-none'}`}>
+        {/* THE WAY OUT.
+            A reader is a dead end — the mobile nav hides itself on every
+            /chapter/ route — so leaving a series you have decided against meant
+            tapping back through the chapter, then the series, then wherever
+            else you had wandered. This returns to the grid you were browsing,
+            filters and all, in one tap. Pushes rather than replaces so a
+            misfire is one back press from the page you were reading. */}
+        <button
+          onClick={() => router.push(browseAnchorHref("/manhwa"))}
+          className="flex shrink-0 items-center justify-center px-3 sm:px-4 h-full hover:bg-white/20 transition"
+          title="Back to browsing"
+        >
+          <Home className="w-4 h-4" />
+        </button>
+
         {/* `replace`, not a push. This arrow LOOKS like back but was adding a
             history entry, so the stack became [feed, series, chapter, series]:
             pressing the real back button from here returned you to the chapter
@@ -88,50 +110,50 @@ export default function ReaderNavigation({
         <Link
           href={`/manhwa/${encodeURIComponent(manhwa?.id || '')}`}
           replace
-          className="flex items-center justify-center px-4 h-full hover:bg-white/20 transition"
+          className="flex shrink-0 items-center justify-center px-3 sm:px-4 h-full hover:bg-white/20 transition"
           title={`Back to ${title}`}
         >
           <ArrowLeft className="w-4 h-4" />
         </Link>
 
-        <span className="h-5 w-[1px] bg-white/20 my-auto" />
-        
-        <div className="flex items-center px-4 h-full font-bold tabular-nums">
+        <span className="h-5 w-[1px] shrink-0 bg-white/20 my-auto" />
+
+        <div className="flex shrink-0 items-center px-3 sm:px-4 h-full font-bold tabular-nums">
           {currentPageIndex} / {totalPages}
         </div>
 
-        <span className="h-5 w-[1px] bg-white/20 my-auto" />
+        <span className="h-5 w-[1px] shrink-0 bg-white/20 my-auto" />
 
-        <button onClick={onLibraryAdd} className="flex items-center justify-center px-3.5 h-full hover:bg-white/20 transition" title="Add to Library">
+        <button onClick={onLibraryAdd} className="flex shrink-0 items-center justify-center px-2.5 sm:px-3.5 h-full hover:bg-white/20 transition" title="Add to Library">
           <Plus className="w-4 h-4" />
         </button>
-        
-        <button onClick={onMarkRead} className="flex items-center justify-center px-3.5 h-full hover:bg-white/20 transition" title="Mark as Read">
+
+        <button onClick={onMarkRead} className="flex shrink-0 items-center justify-center px-2.5 sm:px-3.5 h-full hover:bg-white/20 transition" title="Mark as Read">
           <Check className="w-4 h-4" />
         </button>
 
         {/* Camera icon gets full height background on hover, matching Screenshot 2 */}
-        <button 
+        <button
           onClick={onCapture}
-          className="flex items-center justify-center px-4 h-full bg-white/10 hover:bg-white/20 transition text-white group relative" 
+          className="flex shrink-0 items-center justify-center px-3 sm:px-4 h-full bg-white/10 hover:bg-white/20 transition text-white group relative"
           title="Capture visible panels for comment"
         >
           <Camera className="w-4 h-4" />
         </button>
 
-        <button onClick={onTogglePin} className={`flex items-center justify-center px-3.5 h-full transition ${isPinned ? 'bg-white/20' : 'hover:bg-white/20'}`} title={isPinned ? "Unpin Toolbar" : "Pin Toolbar"}>
+        <button onClick={onTogglePin} className={`flex shrink-0 items-center justify-center px-2.5 sm:px-3.5 h-full transition ${isPinned ? 'bg-white/20' : 'hover:bg-white/20'}`} title={isPinned ? "Unpin Toolbar" : "Pin Toolbar"}>
           <Pin className={`w-4 h-4 ${isPinned ? 'fill-white' : ''}`} />
         </button>
 
-        <button onClick={() => window.location.reload()} className="flex items-center justify-center px-3.5 h-full hover:bg-white/20 transition" title="Refresh">
+        <button onClick={() => window.location.reload()} className="flex shrink-0 items-center justify-center px-2.5 sm:px-3.5 h-full hover:bg-white/20 transition" title="Refresh">
           <RefreshCw className="w-4 h-4" />
         </button>
 
-        <span className="h-5 w-[1px] bg-white/20 my-auto" />
+        <span className="h-5 w-[1px] shrink-0 bg-white/20 my-auto" />
 
-        <button 
+        <button
           onClick={onOpenSettings}
-          className="flex items-center justify-center px-4 h-full hover:bg-white/20 transition" 
+          className="flex shrink-0 items-center justify-center px-3 sm:px-4 h-full hover:bg-white/20 transition"
           title="Settings"
         >
           <Settings className="w-4 h-4" />

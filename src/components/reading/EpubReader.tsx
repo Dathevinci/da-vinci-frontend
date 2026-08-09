@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
-  AlignCenter, AlignLeft, AlignRight, ChevronLeft, Download, List, Loader2, Moon, Settings, Sun, X,
+  AlignCenter, AlignLeft, AlignRight, ChevronLeft, Download, Home, List, Loader2, Moon, Settings, Sun, X,
 } from "lucide-react";
 import { encodeLnori, lnoriFileUrl } from "@/lib/novel/lnoriProxy";
+import { browseAnchorHref } from "@/lib/browseAnchor";
 import {
   useEpubPrefs, epubPalette, epubFontById,
   EPUB_THEMES, EPUB_FONTS, EPUB_SIZE_MIN, EPUB_SIZE_MAX,
@@ -95,6 +97,7 @@ interface SectionPayload {
 
 
 export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
+  const router = useRouter();
   const { prefs, update } = useEpubPrefs();
   const pal = epubPalette(prefs);
   /**
@@ -424,6 +427,17 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
         <div className="flex min-w-0 items-center gap-2">
           <button onClick={() => setTocOpen((v) => !v)} className={chipBtn} style={{ color: t.text }} title="Contents">
             <List className="h-5 w-5" />
+          </button>
+          {/* The way out. A reader has no persistent nav, so abandoning a book
+              meant unwinding the stack a tap at a time — returns to the grid
+              you were browsing, filters and all. */}
+          <button
+            onClick={() => router.push(browseAnchorHref("/novel"))}
+            className={chipBtn}
+            style={{ color: t.text }}
+            title="Back to browsing"
+          >
+            <Home className="h-5 w-5" />
           </button>
           <Link
             href={`/novel/${encodeURIComponent(novelId)}`}

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Search, Filter, Clock, ListFilter, Library } from "lucide-react";
 import ManhwaCard from "@/components/manhwa/ManhwaCard";
 import NovelCard from "@/components/novel/NovelCard";
@@ -311,6 +311,7 @@ function FiltersPanel({
 export default function MediaExplore({ mode }: { mode: Mode }) {
   // Params seed the initial state only; filtering after that is local.
   const sp = useSearchParams();
+  const router = useRouter();
   const cfg = CFG[mode];
 
   const [q, setQ] = useState(sp.get("q") || "");
@@ -372,6 +373,29 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
     const t = setTimeout(() => load(1, false), 350);
     return () => clearTimeout(t);
   }, [load]);
+
+  /**
+   * Mirror the active search + filters into the URL (replace, so browsing
+   * doesn't pile history entries). Params used to seed initial state only,
+   * which meant the URL always showed the bare grid: refreshing lost your
+   * filters, the URL wasn't shareable, and the readers' Home button — which
+   * remembers the last browse URL — returned you to explore with your genre
+   * filter wiped. The anime explore page has always done this; this brings
+   * the shared manhwa/novel page level with it.
+   */
+  useEffect(() => {
+    const u = new URLSearchParams();
+    if (q.trim()) u.set("q", q.trim());
+    if (mode === "manhwa") {
+      if (filters.status) u.set("status", filters.status);
+      if (filters.sort) u.set("sort", filters.sort);
+      if (filters.genre) u.set("genre", filters.genre);
+    } else if (filters.list !== "most-popular-novel") {
+      u.set("list", filters.list);
+    }
+    const qs = u.toString();
+    router.replace(qs ? `${window.location.pathname}?${qs}` : window.location.pathname, { scroll: false });
+  }, [q, filters, mode, router]);
 
   useEffect(() => {
     const el = sentinel.current;

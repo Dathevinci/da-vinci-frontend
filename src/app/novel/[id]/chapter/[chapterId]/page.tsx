@@ -3,12 +3,13 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, ChevronLeft, ChevronRight, List, ArrowLeft, X, Server } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight, List, ArrowLeft, Home, X, Server } from "lucide-react";
 import type { NovelInfo, ChapterContent } from "@/lib/novel/ReadNovelFull";
 import { useUser } from "@/hooks/useUser";
 import { earnPoints } from "@/lib/earn";
 import { recordReading } from "@/lib/readingHistory";
 import { useNovelReaderPrefs, themeById, fontById, spacingById, widthById } from "@/lib/novel/readerPrefs";
+import { browseAnchorHref } from "@/lib/browseAnchor";
 import ReaderSettings from "@/components/novel/ReaderSettings";
 import CommunityFeed from "@/components/community/CommunityFeed";
 import EpubReader from "@/components/reading/EpubReader";
@@ -145,12 +146,26 @@ export default function NovelReaderPage() {
       {/* Top bar */}
       <div className="sticky top-0 z-30 backdrop-blur-md border-b" style={{ backgroundColor: t.panel + "e6", borderColor: t.border }}>
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
-          {/* `replace` for the same reason as the manhwa reader: this arrow was
-              pushing the novel page on top of the chapter, so the back button
-              landed you right back in the chapter you had just left. */}
-          <Link href={`/novel/${encodeURIComponent(id)}`} replace className="flex items-center gap-2 hover:text-pink-400 transition text-sm font-bold min-w-0" style={{ color: t.muted }}>
-            <ArrowLeft className="w-4 h-4 shrink-0" /> <span className="hidden sm:inline line-clamp-1">{novel?.title || "Back"}</span>
-          </Link>
+          <div className="flex items-center gap-1 min-w-0">
+            {/* The way out — a reader has no persistent nav, so leaving a novel
+                you have decided against meant unwinding the stack a tap at a
+                time. Returns to the grid you were browsing, filters and all. */}
+            <button
+              onClick={() => router.push(browseAnchorHref("/novel"))}
+              className="flex items-center justify-center h-9 w-9 shrink-0 rounded-lg hover:bg-pink-500/10 hover:text-pink-400 transition"
+              style={{ color: t.muted }}
+              title="Back to browsing"
+            >
+              <Home className="w-4 h-4" />
+            </button>
+
+            {/* `replace` for the same reason as the manhwa reader: this arrow was
+                pushing the novel page on top of the chapter, so the back button
+                landed you right back in the chapter you had just left. */}
+            <Link href={`/novel/${encodeURIComponent(id)}`} replace className="flex items-center gap-2 hover:text-pink-400 transition text-sm font-bold min-w-0" style={{ color: t.muted }}>
+              <ArrowLeft className="w-4 h-4 shrink-0" /> <span className="hidden sm:inline line-clamp-1">{novel?.title || "Back"}</span>
+            </Link>
+          </div>
           <div className="flex items-center gap-1">
             {novel?.alternativeServers && novel.alternativeServers.length > 1 && (
               <div className="relative group mr-2">

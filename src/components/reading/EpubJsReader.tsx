@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ReactReader, ReactReaderStyle, IReactReaderStyle } from "react-reader";
-import { ArrowLeft, BookOpen, Download, Minus, Palette, Plus, Scroll } from "lucide-react";
+import { ArrowLeft, BookOpen, Download, Home, Minus, Palette, Plus, Scroll } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { lnoriFileUrl } from "@/lib/novel/lnoriProxy";
+import { browseAnchorHref } from "@/lib/browseAnchor";
 
 /**
  * THE FALLBACK READER — epub.js via react-reader.
@@ -204,6 +206,7 @@ export default function EpubJsReader({ file, title, novelId }: EpubJsReaderProps
    * said dark. A new name each time guarantees the newest node is last.
    */
   const themeSeq = useRef(0);
+  const router = useRouter();
 
   const url = lnoriFileUrl(file);
   const locKey = "epub-loc:" + file;
@@ -351,7 +354,17 @@ export default function EpubJsReader({ file, title, novelId }: EpubJsReaderProps
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-[#070709]">
       <div className="flex items-center justify-between gap-2 border-b border-white/10 bg-[#0b0b11] px-3 py-2.5 shadow-md sm:px-4">
-        <div className="flex min-w-0 items-center gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          {/* The escape hatch exists on THIS reader too. This is the fallback
+              for books the extractor can't parse — the reader most likely to
+              disappoint is the one that most needs a way out. */}
+          <button
+            onClick={() => router.push(browseAnchorHref("/novel"))}
+            className="rounded-full bg-white/5 p-2 text-white transition hover:bg-white/20"
+            title="Back to browsing"
+          >
+            <Home className="h-5 w-5" />
+          </button>
           <Link
             href={`/novel/${encodeURIComponent(novelId)}`}
             replace

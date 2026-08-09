@@ -58,6 +58,7 @@ const lexend = Lexend({ weight: ["400", "700"], subsets: ["latin"], variable: "-
 
 import Navbar from "@/components/layout/Navbar";
 import ScrollReset from "@/components/layout/ScrollReset";
+import BrowseAnchor from "@/components/layout/BrowseAnchor";
 import ModeTransition from "@/components/layout/ModeTransition";
 import Footer from "@/components/layout/Footer";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
@@ -129,6 +130,10 @@ export default function RootLayout({
                     {/* Opens every page at the top of it — see the component
                         for why the router's own reset misses. Renders nothing. */}
                     <ScrollReset />
+                    {/* Remembers the last browse page so the readers — which
+                        have no persistent nav of their own — can offer one tap
+                        back to it. Renders nothing. */}
+                    <BrowseAnchor />
                     <main className="flex-1 pb-20 md:pb-0">{children}</main>
                     <Footer />
                     <MobileBottomNav />
