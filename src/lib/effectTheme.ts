@@ -48,6 +48,11 @@ export function effectNameClass(effect?: string | null): string {
       // letters (web-shimmer keyframes live in globals.css). Every surface
       // that calls effectNameClass gets the moving name for free.
       return "text-transparent bg-clip-text bg-[linear-gradient(to_right,#f8fafc,#22d3ee,#ef4444,#22d3ee,#f8fafc)] bg-[length:200%_100%] animate-[web-shimmer_3.5s_linear_infinite] drop-shadow-[0_0_10px_rgba(34,211,238,0.6)]";
+    case "effect_portal":
+      // SSS living name — acid light sliding through the letters. Same
+      // web-shimmer keyframes (it's a generic background-position slide);
+      // gradient ends match so the 200% wrap is seamless.
+      return "text-transparent bg-clip-text bg-[linear-gradient(to_right,#d9f99d,#39ff14,#22d3ee,#e879f9,#d9f99d)] bg-[length:200%_100%] animate-[web-shimmer_3.5s_linear_infinite] drop-shadow-[0_0_10px_rgba(57,255,20,0.55)]";
     default:
       return "";
   }
@@ -76,6 +81,7 @@ export function effectCardBorderClass(effect?: string | null): string {
     case "effect_outergod": return "!border-teal-500/50 shadow-[0_0_50px_rgba(13,148,136,0.4),0_0_24px_rgba(216,31,180,0.25)]";
     case "effect_gateway": return "!border-violet-500/50 shadow-[0_0_50px_rgba(138,43,226,0.4),0_0_24px_rgba(255,215,0,0.25)]";
     case "effect_webslinger": return "!border-cyan-400/50 shadow-[0_0_45px_rgba(34,211,238,0.35),0_0_24px_rgba(220,38,38,0.2)]";
+    case "effect_portal": return "!border-lime-400/50 shadow-[0_0_50px_rgba(57,255,20,0.3),0_0_24px_rgba(232,121,249,0.22)]";
     default: return "!border-white/10";
   }
 }

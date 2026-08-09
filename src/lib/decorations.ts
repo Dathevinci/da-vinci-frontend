@@ -42,6 +42,7 @@ export const DECOR_NAMES: Record<string, string> = {
   effect_gateway: "The Gate & The Key",
   effect_dejavu: "Dejavu: Temporal Echo",
   effect_outergod: "Outer God: Abyssal Gaze",
+  effect_portal: "Dimension C-137",
 };
 
 // The full catalogs, for staff (who may equip anything) and future listings.
