@@ -4,6 +4,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Moon, Sun, Lock, Unlock, Save, PlayCircle, EyeOff, Zap, Wifi, Key, User as UserIcon, Link as LinkIcon, Image as ImageIcon, Copy, Camera, UploadCloud, AlertCircle, RefreshCw, Database, Trash2, ShieldCheck, SlidersHorizontal, Music } from "lucide-react";
 import { validateProfileAudio } from "@/lib/profileAudio";
 import { useRouter } from "next/navigation";
+import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
+import { authHeaders } from "@/lib/authToken";
+import { decorName, ALL_FRAME_IDS, ALL_EFFECT_IDS } from "@/lib/decorations";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { useToast } from "@/components/ui/Toast";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
@@ -50,14 +53,86 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
   const [savingSong, setSavingSong] = useState(false);
   const songCheck = validateProfileAudio(profileSong);
 
-  // Decoration & title are equipped elsewhere (the shop / the profile's title
-  // rack); the Edit Profile card just shows the current one and links out.
+  // ── Decoration & Title pickers — equip IN settings, like the reference.
+  // The server stays the authority: non-staff equips of unowned items are
+  // silently dropped there, and titles are re-derived from claimedSets.
   const router = useRouter();
-  const activeFrameName = user?.activeFrame
-    ? String(user.activeFrame).replace(/^frame_/, "").replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())
-    : "None";
+  const staffUser = isAdmin(user) || isLeadDev(user);
+  const ownedFrames: string[] = staffUser ? ALL_FRAME_IDS : (user?.purchasedFrames || []);
+  const ownedEffects: string[] = staffUser ? ALL_EFFECT_IDS : (user?.purchasedEffects || []);
+  const activeDecorLabel =
+    [user?.activeFrame ? decorName(user.activeFrame) : null, user?.activeEffect ? decorName(user.activeEffect) : null]
+      .filter(Boolean).join("  ·  ") || "None";
+  const [showDecorPicker, setShowDecorPicker] = useState(false);
+  const [equipping, setEquipping] = useState(false);
+
   const wornTitles: string[] = (user as any)?.equippedTitles || [];
   const currentTitle = wornTitles[0] || (user as any)?.cardTitle || "None";
+  const MAX_WORN_TITLES = 3;
+  const [showTitlePicker, setShowTitlePicker] = useState(false);
+  const [titlesOwned, setTitlesOwned] = useState<{ set: string; title: string }[]>([]);
+  const [titlesSel, setTitlesSel] = useState<string[]>([]);
+  const [titlesLoaded, setTitlesLoaded] = useState(false);
+  const [savingTitles, setSavingTitles] = useState(false);
+
+  const equipDecor = async (patch: { activeFrame?: string | null; activeEffect?: string | null }) => {
+    setEquipping(true);
+    try {
+      const result: any = await updateProfile(patch as any);
+      if (result && result.success === false) {
+        toast(result.message || "Couldn't equip that.", "error");
+        return;
+      }
+      onUpdate?.(patch);
+      toast("Equipped.", "success");
+    } finally {
+      setEquipping(false);
+    }
+  };
+
+  const toggleTitlePicker = () => {
+    setShowTitlePicker(v => !v);
+    if (!titlesLoaded && user?.id) {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      fetch(`${API_URL}/api/cards/titles/${user.id}`)
+        .then(r => r.json())
+        .then(d => {
+          if (d?.success) {
+            setTitlesOwned(d.data.owned || []);
+            setTitlesSel(d.data.equipped || []);
+          }
+          setTitlesLoaded(true);
+        })
+        .catch(() => setTitlesLoaded(true));
+    }
+  };
+
+  const toggleTitle = (t: string) =>
+    setTitlesSel(p => (p.includes(t) ? p.filter(x => x !== t) : p.length < MAX_WORN_TITLES ? [...p, t] : p));
+
+  const saveTitles = async () => {
+    setSavingTitles(true);
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      const r = await fetch(`${API_URL}/api/cards/titles`, {
+        method: "PUT",
+        headers: authHeaders(),
+        body: JSON.stringify({ userId: user?.id, titles: titlesSel }),
+      });
+      const d = await r.json();
+      if (d?.success) {
+        onUpdate?.({ equippedTitles: d.data.equipped || [] });
+        toast("Titles updated.", "success");
+        setShowTitlePicker(false);
+      } else {
+        toast(d?.message || "Couldn't save titles.", "error");
+      }
+    } catch {
+      toast("Couldn't save titles.", "error");
+    } finally {
+      setSavingTitles(false);
+    }
+  };
 
   const saveBannerStyle = (style: string) => {
     setBannerStyle(style);
@@ -444,15 +519,15 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-          onClick={onClose}
+          className="fixed inset-0 z-[100] bg-[#050505]"
         >
+          {/* Full-screen, page-like — the reference's edit view, not a dialog. */}
           <motion.div
-            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+            initial={{ scale: 0.98, opacity: 0, y: 12 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+            exit={{ scale: 0.98, opacity: 0, y: 12 }}
             onClick={e => e.stopPropagation()}
-            className="relative flex h-[86vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#09090b] shadow-2xl md:h-[80vh] md:flex-row"
+            className="relative mx-auto flex h-full w-full max-w-6xl flex-col overflow-hidden md:flex-row"
           >
             <button
               onClick={onClose}
@@ -635,43 +710,183 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Decoration</label>
-                        <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/30 p-3">
-                          {user?.avatar ? (
-                            <img src={user.avatar} alt="" className={`h-10 w-10 shrink-0 rounded-full object-cover ${user?.activeFrame ? "ring-2 ring-purple-400/60" : ""}`} />
-                          ) : (
-                            <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-full bg-purple-600 text-sm font-black text-white ${user?.activeFrame ? "ring-2 ring-purple-400/60" : ""}`}>
-                              {(user?.username || "U").charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-xs text-white">{activeFrameName}</p>
-                            <p className="text-[11px] text-slate-500">Rings &amp; effects live in the shop.</p>
-                          </div>
+                        <div className="flex items-center justify-between">
+                          <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Decoration</label>
                           <button
-                            onClick={() => { onClose(); router.push("/shop"); }}
-                            className="shrink-0 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-bold text-slate-200 transition hover:bg-white/10"
+                            onClick={() => setShowDecorPicker(v => !v)}
+                            className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-bold text-slate-200 transition hover:bg-white/10"
                           >
-                            Change
+                            {showDecorPicker ? "Close" : "Change Decoration"}
                           </button>
                         </div>
+                        <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/30 p-3">
+                          <div className="relative h-11 w-11 shrink-0">
+                            {user?.avatar ? (
+                              <img src={user.avatar} alt="" className="relative z-10 h-full w-full rounded-full object-cover" />
+                            ) : (
+                              <div className="relative z-10 grid h-full w-full place-items-center rounded-full bg-purple-600 text-sm font-black text-white">
+                                {(user?.username || "U").charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                            <AvatarDecoration frame={user?.activeFrame} effect={user?.activeEffect} size="sm" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-xs text-white">Current: {activeDecorLabel}</p>
+                            <p className="text-[11px] text-slate-500">{showDecorPicker ? "Tap one below to wear it." : "Click the button to change."}</p>
+                          </div>
+                        </div>
+
+                        {showDecorPicker && (
+                          <div className="space-y-3 rounded-xl border border-white/10 bg-black/30 p-3">
+                            <div>
+                              <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Frames</p>
+                              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                                <button
+                                  onClick={() => equipDecor({ activeFrame: null })}
+                                  disabled={equipping}
+                                  className={`flex flex-col items-center gap-1.5 rounded-xl border p-2 transition disabled:opacity-50 ${!user?.activeFrame ? "border-purple-400/60 bg-purple-500/10" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.07]"}`}
+                                >
+                                  <div className="grid h-11 w-11 place-items-center rounded-full border border-dashed border-white/20 text-slate-500">
+                                    <X className="h-4 w-4" />
+                                  </div>
+                                  <span className="w-full truncate text-center text-[10px] text-slate-300">None</span>
+                                </button>
+                                {ownedFrames.map(id => (
+                                  <button
+                                    key={id}
+                                    onClick={() => equipDecor({ activeFrame: id })}
+                                    disabled={equipping}
+                                    title={decorName(id)}
+                                    className={`flex flex-col items-center gap-1.5 rounded-xl border p-2 transition disabled:opacity-50 ${user?.activeFrame === id ? "border-purple-400/60 bg-purple-500/10" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.07]"}`}
+                                  >
+                                    <div className="relative h-11 w-11">
+                                      {user?.avatar ? (
+                                        <img src={user.avatar} alt="" className="relative z-10 h-full w-full rounded-full object-cover" />
+                                      ) : (
+                                        <div className="relative z-10 grid h-full w-full place-items-center rounded-full bg-purple-600 text-sm font-black text-white">
+                                          {(user?.username || "U").charAt(0).toUpperCase()}
+                                        </div>
+                                      )}
+                                      <AvatarDecoration frame={id} size="sm" />
+                                    </div>
+                                    <span className="w-full truncate text-center text-[10px] text-slate-300">{decorName(id)}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div>
+                              <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Profile Effects</p>
+                              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                                <button
+                                  onClick={() => equipDecor({ activeEffect: null })}
+                                  disabled={equipping}
+                                  className={`flex flex-col items-center gap-1.5 rounded-xl border p-2 transition disabled:opacity-50 ${!user?.activeEffect ? "border-purple-400/60 bg-purple-500/10" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.07]"}`}
+                                >
+                                  <div className="grid h-11 w-11 place-items-center rounded-full border border-dashed border-white/20 text-slate-500">
+                                    <X className="h-4 w-4" />
+                                  </div>
+                                  <span className="w-full truncate text-center text-[10px] text-slate-300">None</span>
+                                </button>
+                                {ownedEffects.map(id => (
+                                  <button
+                                    key={id}
+                                    onClick={() => equipDecor({ activeEffect: id })}
+                                    disabled={equipping}
+                                    title={decorName(id)}
+                                    className={`flex flex-col items-center gap-1.5 rounded-xl border p-2 transition disabled:opacity-50 ${user?.activeEffect === id ? "border-purple-400/60 bg-purple-500/10" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.07]"}`}
+                                  >
+                                    <div className="relative h-11 w-11">
+                                      {user?.avatar ? (
+                                        <img src={user.avatar} alt="" className="relative z-10 h-full w-full rounded-full object-cover" />
+                                      ) : (
+                                        <div className="relative z-10 grid h-full w-full place-items-center rounded-full bg-purple-600 text-sm font-black text-white">
+                                          {(user?.username || "U").charAt(0).toUpperCase()}
+                                        </div>
+                                      )}
+                                      <AvatarDecoration effect={id} size="sm" />
+                                    </div>
+                                    <span className="w-full truncate text-center text-[10px] text-slate-300">{decorName(id)}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            <button
+                              onClick={() => { onClose(); router.push("/shop"); }}
+                              className="w-full rounded-lg border border-white/10 bg-white/5 py-2 text-[11px] font-bold text-slate-300 transition hover:bg-white/10"
+                            >
+                              Get more in the Shop →
+                            </button>
+                          </div>
+                        )}
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Title</label>
-                        <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/30 p-3">
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-xs text-white">{currentTitle}</p>
-                            <p className="text-[11px] text-slate-500">Earned by completing card sets.</p>
-                          </div>
+                        <div className="flex items-center justify-between">
+                          <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Title</label>
                           <button
-                            onClick={onClose}
-                            title="Close settings to manage titles on your profile"
-                            className="shrink-0 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-bold text-slate-200 transition hover:bg-white/10"
+                            onClick={toggleTitlePicker}
+                            className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-bold text-slate-200 transition hover:bg-white/10"
                           >
-                            Change
+                            {showTitlePicker ? "Close" : "Change Title"}
                           </button>
                         </div>
+                        <div className="rounded-xl border border-white/10 bg-black/30 p-3">
+                          <p className="text-[11px] text-slate-500">Current Title:</p>
+                          <p className="truncate text-sm font-bold text-white">{currentTitle}</p>
+                          <p className="mt-0.5 text-[11px] text-slate-500">
+                            {wornTitles.length > 1 ? `+ ${wornTitles.length - 1} more worn` : "Earned by completing card sets."}
+                          </p>
+                        </div>
+
+                        {showTitlePicker && (
+                          <div className="space-y-3 rounded-xl border border-white/10 bg-black/30 p-3">
+                            {!titlesLoaded ? (
+                              <p className="text-[11px] text-slate-500">Loading your titles…</p>
+                            ) : titlesOwned.length === 0 ? (
+                              <p className="text-[11px] text-slate-500">Nothing earned yet — complete a card set to earn its title.</p>
+                            ) : (
+                              <>
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                                  Tap up to {MAX_WORN_TITLES} — tap order is wear order
+                                </p>
+                                <div className="flex flex-wrap gap-2">
+                                  {titlesOwned.map(({ set, title }) => {
+                                    const at = titlesSel.indexOf(title);
+                                    const on = at >= 0;
+                                    return (
+                                      <button
+                                        key={title}
+                                        onClick={() => toggleTitle(title)}
+                                        title={set ? `From completing ${set}` : "Earned"}
+                                        className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider transition ${on ? (at === 0 ? "border-amber-400/50 bg-amber-500/10 text-amber-300" : "border-purple-400/50 bg-purple-500/10 text-purple-200") : "border-white/10 bg-white/[0.03] text-slate-400 hover:bg-white/[0.07]"}`}
+                                      >
+                                        {on && <span className="font-mono text-[10px] opacity-80">{at + 1}</span>}
+                                        {title}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={saveTitles}
+                                    disabled={savingTitles}
+                                    className="flex-1 rounded-lg bg-purple-600 py-2 text-[11px] font-bold text-white transition hover:bg-purple-500 disabled:opacity-50"
+                                  >
+                                    {savingTitles ? "Saving…" : "Save Titles"}
+                                  </button>
+                                  <button
+                                    onClick={() => setShowTitlePicker(false)}
+                                    className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-bold text-slate-300 transition hover:bg-white/10"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex items-center justify-between rounded-xl border border-white/10 bg-black/30 p-3">

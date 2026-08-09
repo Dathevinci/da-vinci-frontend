@@ -19,9 +19,11 @@ const MAX_WORN = 3;
  * page's edit stays a single line. The server re-derives ownership from
  * claimedSets on every save, so this picker is a convenience, not the check.
  */
-export default function TitleRack({ userId, isMine, onChange }: {
+export default function TitleRack({ userId, isMine, onChange, version }: {
   userId: string;
   isMine: boolean;
+  /** Bump to make the rack refetch — settings can now equip titles too. */
+  version?: number;
   /**
    * Fires whenever the worn set changes — on load and after a save.
    *
@@ -50,7 +52,7 @@ export default function TitleRack({ userId, isMine, onChange }: {
         onChange?.(d.data.equipped || []);
       })
       .catch(() => { /* offline — the section simply isn't there */ });
-  }, [userId]);
+  }, [userId, version]);
 
   // A visitor sees the stack or nothing; the owner also sees the rack when
   // there is anything to hang on it.

@@ -59,6 +59,8 @@ export default function PublicProfilePage() {
    *  falls back to the profile payload in the meantime rather than flashing
    *  an empty strip on every load. */
   const [wornTitles, setWornTitles] = useState<string[] | null>(null);
+  /** Bumped when settings equips titles, so the rack below refetches too. */
+  const [titleVersion, setTitleVersion] = useState(0);
   const [watchlist, setWatchlist] = useState<any[]>([]);
   const [manhwaWatchlist, setManhwaWatchlist] = useState<any[]>([]);
   const [novelWatchlist, setNovelWatchlist] = useState<any[]>([]);
@@ -565,7 +567,7 @@ export default function PublicProfilePage() {
                   onClick={() => setShowSettings(true)}
                   className="flex items-center justify-center gap-2 rounded-full bg-purple-600 px-6 py-2.5 font-bold text-white shadow-xl transition hover:bg-purple-500"
                 >
-                  <Settings className="h-4 w-4" /> Settings
+                  <Settings className="h-4 w-4" /> Edit Profile
                 </button>
               ) : currentUser ? (
                 <button
@@ -604,7 +606,7 @@ export default function PublicProfilePage() {
           {/* onChange keeps the hero strip and this rack in agreement. The
               rack is the one that actually knows — it fetches the titles
               endpoint — so it feeds the page rather than the other way round. */}
-          <TitleRack userId={profileUser.id} isMine={isSelf} onChange={setWornTitles} />
+          <TitleRack userId={profileUser.id} isMine={isSelf} onChange={setWornTitles} version={titleVersion} />
           <ShowcaseCards
             userId={profileUser.id}
             isMine={isSelf}
@@ -1009,7 +1011,15 @@ export default function PublicProfilePage() {
         <SettingsModal
           user={profileUser}
           onClose={() => setShowSettings(false)}
-          onUpdate={(data: any) => setProfileUser(prev => (prev ? { ...prev, ...data } : prev))}
+          onUpdate={(data: any) => {
+            // Titles equipped from settings: update the hero strip immediately
+            // and nudge the rack below to refetch, so all three views agree.
+            if (Array.isArray(data.equippedTitles)) {
+              setWornTitles(data.equippedTitles);
+              setTitleVersion(v => v + 1);
+            }
+            setProfileUser(prev => (prev ? { ...prev, ...data } : prev));
+          }}
         />
       )}
 
