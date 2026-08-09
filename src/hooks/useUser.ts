@@ -12,6 +12,7 @@ export interface User {
   bannerPosition?: number;
   bannerStyle?: string;
   bio?: string;
+  profileSong?: string;
   arisePoints?: number;
   xp?: number;
   usernameChanges?: number;

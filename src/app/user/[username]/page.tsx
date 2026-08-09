@@ -426,13 +426,20 @@ export default function PublicProfilePage() {
                   <LevelBadge xp={isProfileLeadDev ? Infinity : (isProfileAdmin ? 511000 : (profileUser.xp || 0))} size="lg" className="border-[#0b0b12] shadow-[0_4px_20px_rgba(0,0,0,0.8)]" />
                 </div>
               )}
-              {/* The lead dev's profile has a soundtrack. Keyed off the ROLE
-                  via isLeadDev, never the username — names change hands. */}
-              {isProfileLeadDev && (
-                <div className="absolute -bottom-1 -left-1 z-20">
-                  <ProfileSong src="/audio/heartbreaker.mp3" />
-                </div>
-              )}
+              {/* A profile can carry a soundtrack. Anyone may set their own in
+                  Settings → Profile (host/format-gated audio). The lead dev keeps
+                  the built-in track as a fallback — keyed off the ROLE via
+                  isLeadDev, never the username, because names change hands. */}
+              {(() => {
+                const songSrc =
+                  (profileUser as any).profileSong ||
+                  (isProfileLeadDev ? "/audio/heartbreaker.mp3" : null);
+                return songSrc ? (
+                  <div className="absolute -bottom-1 -left-1 z-20">
+                    <ProfileSong src={songSrc} />
+                  </div>
+                ) : null;
+              })()}
             </div>
 
             <h1 className={`max-w-[92vw] break-words pb-1 text-4xl font-black leading-tight tracking-tight drop-shadow-lg md:text-5xl
@@ -1002,7 +1009,7 @@ export default function PublicProfilePage() {
         <SettingsModal
           user={profileUser}
           onClose={() => setShowSettings(false)}
-          onUpdate={(data: any) => setProfileUser({ ...profileUser, ...data })}
+          onUpdate={(data: any) => setProfileUser(prev => (prev ? { ...prev, ...data } : prev))}
         />
       )}
 

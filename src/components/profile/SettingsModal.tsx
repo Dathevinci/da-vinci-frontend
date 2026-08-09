@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Moon, Sun, Lock, Unlock, Save, PlayCircle, EyeOff, Zap, Wifi, Key, User as UserIcon, Link as LinkIcon, Image as ImageIcon, Copy, Camera, UploadCloud, AlertCircle, RefreshCw, Database, Trash2, ShieldCheck, SlidersHorizontal } from "lucide-react";
+import { X, Moon, Sun, Lock, Unlock, Save, PlayCircle, EyeOff, Zap, Wifi, Key, User as UserIcon, Link as LinkIcon, Image as ImageIcon, Copy, Camera, UploadCloud, AlertCircle, RefreshCw, Database, Trash2, ShieldCheck, SlidersHorizontal, Music } from "lucide-react";
+import { validateProfileAudio } from "@/lib/profileAudio";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { useToast } from "@/components/ui/Toast";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
@@ -42,10 +43,49 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
   const [bannerPos, setBannerPos] = useState<number>(user?.bannerPosition ?? 50);
   const [bannerStyle, setBannerStyle] = useState<string>(user?.bannerStyle || "full");
 
+  // Profile audio — one track that plays on the profile. Saved on its own
+  // (like the banner style) so it's independent of the Save Profile button.
+  const [profileSong, setProfileSong] = useState<string>(user?.profileSong || "");
+  const [savingSong, setSavingSong] = useState(false);
+  const songCheck = validateProfileAudio(profileSong);
+
   const saveBannerStyle = (style: string) => {
     setBannerStyle(style);
     updateProfile({ bannerStyle: style } as any);
     if (onUpdate) onUpdate({ bannerStyle: style });
+  };
+
+  const handleSaveSong = async () => {
+    const check = validateProfileAudio(profileSong);
+    if (!check.ok) return toast(check.message, "error");
+    setSavingSong(true);
+    try {
+      const result: any = await updateProfile({ profileSong: check.value } as any);
+      if (result && result.success === false) {
+        toast(result.message || "Couldn't save your audio.", "error");
+        return;
+      }
+      onUpdate?.({ profileSong: check.value });
+      toast("Profile audio saved — it plays on your profile now.", "success");
+    } finally {
+      setSavingSong(false);
+    }
+  };
+
+  const handleRemoveSong = async () => {
+    setSavingSong(true);
+    try {
+      const result: any = await updateProfile({ profileSong: "" } as any);
+      if (result && result.success === false) {
+        toast(result.message || "Couldn't remove your audio.", "error");
+        return;
+      }
+      setProfileSong("");
+      onUpdate?.({ profileSong: null });
+      toast("Profile audio removed.", "success");
+    } finally {
+      setSavingSong(false);
+    }
   };
 
   // Security State
@@ -560,7 +600,54 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Bio</label>
                     <textarea value={bio} onChange={e => setBio(e.target.value)} rows={3} placeholder="Tell us about yourself..." className="w-full bg-[#030305] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition resize-none" />
                   </div>
-                  
+
+                  {/* ── Profile Audio — one track that plays on your profile.
+                         Audio only; the server re-checks the host and format. ── */}
+                  <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                    <div className="flex items-center gap-2.5">
+                      <div className="grid h-8 w-8 place-items-center rounded-full bg-purple-500/15 text-purple-300">
+                        <Music className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-white">Profile Audio</h3>
+                        <p className="text-[11px] text-slate-500">One track that plays on your profile.</p>
+                      </div>
+                    </div>
+                    <p className="text-xs leading-relaxed text-slate-500">
+                      Upload your track to <span className="text-slate-300">catbox.moe</span> and paste the direct
+                      {" "}<span className="text-slate-300">files.catbox.moe</span> link. Formats: mp3, wav, ogg, m4a, flac, opus.
+                    </p>
+                    <input
+                      value={profileSong}
+                      onChange={e => setProfileSong(e.target.value)}
+                      placeholder="https://files.catbox.moe/abc.mp3"
+                      className="w-full rounded-xl border border-white/10 bg-[#030305] px-4 py-3 font-mono text-sm text-white placeholder:text-slate-600 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                    />
+                    {profileSong.trim() !== "" && (
+                      songCheck.ok ? (
+                        <audio controls preload="none" src={songCheck.value} className="w-full" />
+                      ) : (
+                        <p className="text-[11px] text-red-400">{songCheck.message}</p>
+                      )
+                    )}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleSaveSong}
+                        disabled={savingSong}
+                        className="flex-1 rounded-xl bg-purple-600 py-2.5 text-sm font-bold text-white transition hover:bg-purple-500 disabled:opacity-50"
+                      >
+                        {savingSong ? "Saving…" : "Save Audio"}
+                      </button>
+                      <button
+                        onClick={handleRemoveSong}
+                        disabled={savingSong || !user?.profileSong}
+                        className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-bold text-slate-300 transition hover:bg-white/10 disabled:opacity-40"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="bg-white/5 border border-white/5 rounded-2xl overflow-hidden">
                     <div className="flex items-center justify-between p-4 hover:bg-white/[0.02] transition">
                       <div className="flex items-center gap-3">
