@@ -8,7 +8,8 @@ import { useUser } from "@/hooks/useUser";
 import { displayShards, isAdmin, isLeadDev } from "@/lib/admin";
 import PageTransition from "@/components/layout/PageTransition";
 import { calculateLevel } from "@/lib/levels";
-import { Panel, SegBar, notch, ACCENT, ACCENT_LIT } from "@/components/cards/gacha";
+import { SegBar, ACCENT, ACCENT_LIT } from "@/components/cards/gacha";
+import VideoTitle from "@/components/ui/VideoTitle";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -106,34 +107,30 @@ export default function LeaderboardPage() {
 
   return (
     <PageTransition>
-      <div className="relative min-h-screen px-4 pb-24 pt-24 text-white"
-        style={{
-          background:
-            "radial-gradient(80% 45% at 50% -5%, rgba(120,86,196,.22), transparent 62%)," +
-            "linear-gradient(#0b0716, #070410 60%, #05030c)",
-        }}>
-        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.05]"
-          style={{ backgroundImage: "repeating-linear-gradient(115deg, transparent 0 7px, rgba(255,255,255,.9) 7px 8px)" }} />
+      <div className="relative min-h-screen bg-[#070709] px-4 pb-24 pt-14 font-mono text-white">
+        {/* The Lunar top glow — same radial as the hub and updates pages. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-[500px] bg-[radial-gradient(ellipse_50%_80%_at_50%_-20%,rgba(139,92,246,0.22),transparent_70%)]"
+        />
 
         <div className="relative mx-auto max-w-4xl">
           <div className="mb-7 text-center">
-            <h1 className="text-4xl font-black uppercase tracking-[0.08em] md:text-5xl" style={{ color: ACCENT_LIT }}>
-              Leaderboard
-            </h1>
-            <p className="mt-2 text-sm text-slate-400">{active.blurb}</p>
+            {/* The block-face title, with the site's clip playing inside the
+                letters — the same treatment as the landing wordmark. */}
+            <VideoTitle text="Leaderboard" className="mx-auto w-full max-w-3xl" />
+            <p className="mt-3 text-sm text-slate-400">{active.blurb}</p>
           </div>
 
           {/* ── LENS TABS ── same data, four ways of being good at this place */}
           <div className="mb-8 flex flex-wrap justify-center gap-2">
             {LENSES.map(({ key, label, Icon }) => (
               <button key={key} onClick={() => setLens(key)}
-                className={`inline-flex items-center gap-2 px-5 py-2 text-[11px] font-black uppercase tracking-[0.18em] transition ${
-                  lens === key ? "text-white" : "text-slate-500 hover:text-slate-300"}`}
-                style={{
-                  clipPath: "polygon(9px 0, 100% 0, calc(100% - 9px) 100%, 0 100%)",
-                  background: lens === key ? "rgba(162,116,255,.22)" : "rgba(255,255,255,.04)",
-                  boxShadow: `inset 0 0 0 1px ${lens === key ? "rgba(162,116,255,.6)" : "rgba(255,255,255,.08)"}`,
-                }}>
+                className={`inline-flex items-center gap-2 rounded-xl border px-5 py-2 text-[11px] font-black uppercase tracking-[0.18em] transition ${
+                  lens === key
+                    ? "border-violet-400/40 bg-violet-500/15 text-violet-200"
+                    : "border-white/10 bg-white/[0.04] text-slate-500 hover:bg-white/[0.08] hover:text-slate-300"
+                }`}>
                 <Icon className="h-3.5 w-3.5" /> {label}
               </button>
             ))}
@@ -142,14 +139,7 @@ export default function LeaderboardPage() {
           {/* ── THE KEEPERS ── shown at the max level they wear everywhere
               else, above the ladder rather than inside it. */}
           {!loading && lens === "level" && keepers.length > 0 && (
-            <div
-              className="mb-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 px-4 py-3"
-              style={{
-                clipPath: notch(13),
-                background: "rgba(245,158,11,.06)",
-                boxShadow: "inset 0 0 0 1px rgba(245,158,11,.25)",
-              }}
-            >
+            <div className="mb-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 rounded-2xl border border-amber-400/25 bg-amber-500/[0.06] px-4 py-3">
               <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-amber-300">
                 <Crown className="h-3.5 w-3.5" /> Keepers · beyond the ladder
               </span>
@@ -158,7 +148,7 @@ export default function LeaderboardPage() {
                   {k.avatar ? (
                     <img src={k.avatar} alt="" className="h-8 w-8 rounded-full object-cover ring-1 ring-amber-400/50" />
                   ) : (
-                    <span className="grid h-8 w-8 place-items-center rounded-full bg-purple-800 text-[10px] font-black">
+                    <span className="grid h-8 w-8 place-items-center rounded-full bg-violet-700 text-[10px] font-black">
                       {k.username?.[0]?.toUpperCase()}
                     </span>
                   )}
@@ -172,7 +162,7 @@ export default function LeaderboardPage() {
           {loading ? (
             <p className="py-24 text-center text-sm text-slate-500">Reading the ladder…</p>
           ) : ranked.length === 0 ? (
-            <Panel className="py-20"><p className="text-center text-sm text-slate-500">Nobody has ranked here yet.</p></Panel>
+            <div className="rounded-3xl border border-white/10 bg-[#0b0b11] py-20"><p className="text-center text-sm text-slate-500">Nobody has ranked here yet.</p></div>
           ) : (
             <>
               {/* ── PODIUM ── 2nd, 1st, 3rd, with the winner raised */}
@@ -195,18 +185,18 @@ export default function LeaderboardPage() {
                           <img src={r.avatar} alt="" className="rounded-full object-cover ring-2 transition group-hover:brightness-110"
                             style={{ width: size, height: size, boxShadow: `0 0 0 2px ${tint}` }} />
                         ) : (
-                          <span className="grid place-items-center rounded-full bg-purple-800 text-2xl font-black"
+                          <span className="grid place-items-center rounded-full bg-violet-700 text-2xl font-black"
                             style={{ width: size, height: size, boxShadow: `0 0 0 2px ${tint}` }}>
                             {r.username?.[0]?.toUpperCase()}
                           </span>
                         )}
-                        <span className="absolute -right-1 -top-1 grid h-8 w-8 place-items-center rounded-full border-2 border-[#0b0716]"
+                        <span className="absolute -right-1 -top-1 grid h-8 w-8 place-items-center rounded-full border-2 border-[#070709]"
                           style={{ background: tint }}>
                           <PIcon className="h-4 w-4 text-[#160b2b]" />
                         </span>
                       </Link>
-                      <span className="mt-3 px-3 py-0.5 text-[10px] font-black uppercase tracking-[0.2em]"
-                        style={{ clipPath: notch(6), background: `${tint}22`, boxShadow: `inset 0 0 0 1px ${tint}66`, color: tint }}>
+                      <span className="mt-3 rounded-full border px-3 py-0.5 text-[10px] font-black uppercase tracking-[0.2em]"
+                        style={{ background: `${tint}22`, borderColor: `${tint}66`, color: tint }}>
                         {place === 1 ? "1st" : place === 2 ? "2nd" : "3rd"}
                       </span>
                       <Link href={`/user/${r.username}`}
@@ -228,12 +218,9 @@ export default function LeaderboardPage() {
                   return (
                     <motion.div key={r.userId} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: Math.min(i * 0.015, 0.3) }}
-                      className="flex items-center gap-3 px-3 py-2.5"
-                      style={{
-                        clipPath: notch(13),
-                        background: me ? "rgba(162,116,255,.14)" : "rgba(255,255,255,.028)",
-                        boxShadow: `inset 0 0 0 1px ${me ? "rgba(162,116,255,.5)" : "rgba(255,255,255,.06)"}`,
-                      }}>
+                      className={`flex items-center gap-3 rounded-2xl border px-3 py-2.5 ${
+                        me ? "border-violet-400/40 bg-violet-500/10" : "border-white/10 bg-[#0b0b11]"
+                      }`}>
                       <span className="w-9 shrink-0 text-center text-sm font-black tabular-nums text-slate-600">
                         #{i + 4}
                       </span>
@@ -241,7 +228,7 @@ export default function LeaderboardPage() {
                         {r.avatar ? (
                           <img src={r.avatar} alt="" className="h-10 w-10 rounded-full object-cover ring-1 ring-white/15" />
                         ) : (
-                          <span className="grid h-10 w-10 place-items-center rounded-full bg-purple-800 text-xs font-black">
+                          <span className="grid h-10 w-10 place-items-center rounded-full bg-violet-700 text-xs font-black">
                             {r.username?.[0]?.toUpperCase()}
                           </span>
                         )}

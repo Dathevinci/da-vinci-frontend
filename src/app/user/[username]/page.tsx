@@ -423,7 +423,7 @@ export default function PublicProfilePage() {
               ) : (
                 <motion.div
                   layoutId="profile-avatar"
-                  className={`relative z-10 grid h-32 w-32 place-items-center rounded-full border-4 bg-purple-600 text-4xl font-black transition-all duration-300 md:h-40 md:w-40 ${avatarBorderClass}`}
+                  className={`relative z-10 grid h-32 w-32 place-items-center rounded-full border-4 bg-violet-700 text-4xl font-black transition-all duration-300 md:h-40 md:w-40 ${avatarBorderClass}`}
                 >
                   {profileUser.username.charAt(0).toUpperCase()}
                 </motion.div>
@@ -555,7 +555,7 @@ export default function PublicProfilePage() {
             <div className="w-full max-w-sm">
               <div className="relative h-2 w-full overflow-hidden rounded-full border border-white/10 bg-black/40">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-purple-600 to-fuchsia-500 shadow-[0_0_10px_rgba(168,85,247,0.5)] transition-all duration-1000 ease-out"
+                  className="h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-400 shadow-[0_0_10px_rgba(139,92,246,0.5)] transition-all duration-1000 ease-out"
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
@@ -571,14 +571,14 @@ export default function PublicProfilePage() {
               {isSelf ? (
                 <button
                   onClick={() => setShowSettings(true)}
-                  className="flex items-center justify-center gap-2 rounded-full bg-purple-600 px-6 py-2.5 font-bold text-white shadow-xl transition hover:bg-purple-500"
+                  className="flex items-center justify-center gap-2 rounded-full border border-violet-400/30 bg-violet-500/15 px-6 py-2.5 font-bold text-violet-200 shadow-xl transition hover:border-violet-400/60 hover:bg-violet-500/25"
                 >
                   <Settings className="h-4 w-4" /> Edit Profile
                 </button>
               ) : currentUser ? (
                 <button
                   onClick={handleFollowToggle}
-                  className={`flex items-center justify-center gap-2 rounded-full px-6 py-2.5 font-bold shadow-xl transition ${isFollowing ? "bg-white/10 text-white hover:bg-red-500/20 hover:text-red-400" : "bg-purple-600 text-white hover:bg-purple-500"}`}
+                  className={`flex items-center justify-center gap-2 rounded-full px-6 py-2.5 font-bold shadow-xl transition ${isFollowing ? "bg-white/10 text-white hover:bg-red-500/20 hover:text-red-400" : "border border-violet-400/30 bg-violet-500/15 text-violet-200 hover:border-violet-400/60 hover:bg-violet-500/25"}`}
                 >
                   {isFollowing ? (
                     <><UserMinus className="h-4 w-4" /> Unfollow</>
@@ -594,7 +594,7 @@ export default function PublicProfilePage() {
                 <button
                   onClick={() => setShowcaseOpen(true)}
                   title="View this profile effect full screen"
-                  className="flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-5 py-2.5 font-bold text-slate-200 backdrop-blur transition hover:border-fuchsia-500/40 hover:bg-white/[0.1] hover:text-white"
+                  className="flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-5 py-2.5 font-bold text-slate-200 backdrop-blur transition hover:border-violet-400/40 hover:bg-white/[0.1] hover:text-white"
                 >
                   <Maximize2 className="h-4 w-4" /> Showcase
                 </button>
@@ -638,12 +638,12 @@ export default function PublicProfilePage() {
                 onClick={() => setActiveTab(t.key)}
                 className={`shrink-0 border-b-2 px-5 py-3.5 text-sm font-bold transition ${
                   activeTab === t.key
-                    ? "border-fuchsia-500 text-white"
+                    ? "border-violet-400 text-white"
                     : "border-transparent text-slate-400 hover:text-white"
                 }`}
               >
                 {t.label}
-                <span className={`ml-1.5 text-[11px] font-black ${activeTab === t.key ? "text-fuchsia-300" : "text-slate-600"}`}>
+                <span className={`ml-1.5 text-[11px] font-black ${activeTab === t.key ? "text-violet-300" : "text-slate-600"}`}>
                   {t.count}
                 </span>
               </button>
