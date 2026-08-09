@@ -307,8 +307,8 @@ export default function ShopPage() {
             ? "border-purple-500/35 bg-gradient-to-b from-purple-500/[0.09] to-black/40 hover:shadow-[0_0_26px_rgba(168,85,247,0.3)]"
             : isUnique
             ? "border-emerald-500/30 bg-gradient-to-b from-emerald-500/[0.08] to-black/40 hover:shadow-[0_0_22px_rgba(52,211,153,0.25)]"
-            : "border-white/10 bg-white/[0.03] hover:border-purple-500/40 hover:shadow-[0_10px_30px_rgba(168,85,247,0.15)]"}
-          ${isActive ? "ring-1 ring-fuchsia-400/60" : ""}`}
+            : "border-white/10 bg-[#0b0b11] hover:border-violet-400/40 hover:shadow-[0_10px_30px_rgba(139,92,246,0.15)]"}
+          ${isActive ? "ring-1 ring-violet-400/60" : ""}`}
       >
         {/* Preview tile — your avatar wearing the item; tap for the full live preview */}
         <button onClick={() => setPreviewItem(item)} title={`Preview ${item.name}`} className="relative block aspect-[5/4] w-full cursor-pointer overflow-hidden">
@@ -338,7 +338,7 @@ export default function ShopPage() {
           )}
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="relative h-20 w-20">
-              <div className="relative z-10 flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-white/20 bg-gradient-to-br from-purple-500 to-fuchsia-600 text-2xl font-black text-white">
+              <div className="relative z-10 flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-white/20 bg-violet-700 text-2xl font-black text-white">
                 {user.avatar ? <img src={user.avatar} alt="" className="h-full w-full object-cover" /> : (user.username?.[0]?.toUpperCase() || "?")}
               </div>
               {isPreviewable && (
@@ -394,14 +394,14 @@ export default function ShopPage() {
                 <button
                   onClick={() => handlePurchase(item)}
                   disabled={buyingId === item.id}
-                  className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 text-xs font-black text-white transition hover:from-purple-500 hover:to-fuchsia-500"
+                  className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl border border-violet-400/40 bg-violet-500/15 text-xs font-black text-violet-200 transition hover:border-violet-400/60 hover:bg-violet-500/25"
                 >
                   {buyingId === item.id ? (
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                   ) : (
                     <>
                       <Diamond className="h-3.5 w-3.5" />
-                      {off ? <s className="mr-0.5 text-[10px] font-bold text-white/50">{item.price.toLocaleString()}</s> : null}
+                      {off ? <s className="mr-0.5 text-[10px] font-bold text-violet-200/50">{item.price.toLocaleString()}</s> : null}
                       {salePrice.toLocaleString()}
                     </>
                   )}
@@ -421,7 +421,7 @@ export default function ShopPage() {
                 className={`flex h-9 flex-1 items-center justify-center rounded-xl border text-xs font-black transition ${
                   isActive
                     ? "border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20"
-                    : "border-white/10 bg-white/5 text-white hover:bg-white/10"
+                    : "border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08]"
                 }`}
               >
                 {isActive ? "Unequip" : "Equip"}
@@ -434,7 +434,7 @@ export default function ShopPage() {
               className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition ${
                 isExpired
                   ? "cursor-not-allowed border-white/5 bg-black/30 text-slate-700"
-                  : "border-white/10 bg-white/5 text-slate-300 hover:border-fuchsia-500/40 hover:text-white"
+                  : "border-white/10 bg-white/[0.04] text-slate-300 hover:border-violet-400/40 hover:text-white"
               }`}
             >
               <Gift className="h-4 w-4" />
@@ -659,15 +659,15 @@ export default function ShopPage() {
 
   return (
     <PageTransition>
-      {/* overflow-clip (not hidden) contains the glow blobs WITHOUT creating a
+      {/* overflow-clip (not hidden) contains the top glow WITHOUT creating a
           scroll container, so the sticky shop toolbar below keeps working. */}
-      <div className="min-h-screen bg-[#050505] pt-24 pb-24 text-white relative overflow-clip">
-        {/* Background ambient glows — radial gradients, NOT filter:blur().
-            The old 600-1000px blur-[120-150px] layers made the compositor
-            re-blur enormous surfaces on scroll; a gradient is a flat paint
-            that looks the same and costs nothing. Two are plenty. */}
-        <div className="absolute top-0 right-0 h-[700px] w-[700px] pointer-events-none bg-[radial-gradient(closest-side,rgba(192,38,211,0.07),transparent_70%)]" />
-        <div className="absolute bottom-0 left-0 h-[800px] w-[800px] pointer-events-none bg-[radial-gradient(closest-side,rgba(147,51,234,0.07),transparent_70%)]" />
+      <div className="relative min-h-screen overflow-clip bg-[#070709] pt-24 pb-24 font-mono text-white">
+        {/* The Lunar top glow — the same single radial wash the hub, updates
+            and leaderboard pages use. One flat paint, no filter:blur(). */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-[500px] bg-[radial-gradient(ellipse_50%_80%_at_50%_-20%,rgba(139,92,246,0.22),transparent_70%)]"
+        />
 
         <div className="max-w-7xl mx-auto px-4 relative z-10">
           <motion.div
@@ -676,22 +676,22 @@ export default function ShopPage() {
             className="mb-6 flex flex-wrap items-center justify-between gap-4"
           >
             <div>
-              <h1 className="flex items-center gap-2.5 text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-fuchsia-400 to-pink-500 md:text-4xl">
-                <ShoppingBag className="h-7 w-7 text-fuchsia-500 md:h-9 md:w-9" />
-                Arise Shop
+              <h1 className="flex items-center gap-2.5 font-fell text-3xl text-white md:text-5xl">
+                <ShoppingBag className="h-7 w-7 text-violet-300 md:h-9 md:w-9" />
+                <span>Arise <em className="italic text-violet-300">Shop</em></span>
               </h1>
               <p className="mt-1 text-xs text-slate-500 md:text-sm">Frames &amp; effects that follow you across Da Vinci.</p>
             </div>
             <div className="flex items-center gap-2">
-              <div className="flex h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3.5">
-                <Diamond className="h-4 w-4 text-fuchsia-400" />
+              <div className="flex h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3.5">
+                <Diamond className="h-4 w-4 text-violet-300" />
                 <p className="text-sm font-black text-white">
-                  {isLeadDev(user) ? <span className="text-fuchsia-400">∞ AP</span> : `${displayArisePoints(user)} AP`}
+                  {isLeadDev(user) ? <span className="text-violet-300">∞ AP</span> : `${displayArisePoints(user)} AP`}
                 </p>
               </div>
               <button
                 onClick={() => setShowBuyPoints(true)}
-                className="inline-flex h-11 items-center gap-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 px-4 text-sm font-black text-white transition hover:brightness-110"
+                className="inline-flex h-11 items-center gap-1.5 rounded-xl border border-violet-400/40 bg-violet-500/15 px-4 text-sm font-black text-violet-200 transition hover:border-violet-400/60 hover:bg-violet-500/25"
               >
                 <Diamond className="h-4 w-4" /> Buy Points
               </button>
@@ -715,7 +715,7 @@ export default function ShopPage() {
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.05 }}
-                className="relative mb-8 overflow-hidden rounded-3xl border border-teal-500/30 bg-gradient-to-br from-[#02110f] via-[#040208] to-[#12030f] shadow-[0_0_60px_rgba(13,148,136,0.18)]"
+                className="relative mb-8 overflow-hidden rounded-3xl border border-white/10 bg-[#0b0b11] bg-gradient-to-br from-[#02110f] via-[#040208] to-[#12030f]"
               >
                 <ProfileEffect effect={hero.id} />
 
@@ -752,7 +752,7 @@ export default function ShopPage() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => setPreviewItem(hero)}
-                        className="inline-flex h-11 items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-4 text-xs font-black text-white backdrop-blur transition hover:bg-white/10"
+                        className="inline-flex h-11 items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-xs font-black text-white backdrop-blur transition hover:bg-white/[0.08]"
                       >
                         <Eye className="h-4 w-4" /> Preview
                       </button>
@@ -796,11 +796,11 @@ export default function ShopPage() {
               animate={{ opacity: 1 }}
               className="mb-5 flex flex-wrap items-center gap-2"
             >
-              <span className="text-[11px] uppercase tracking-[0.2em] text-slate-500 font-black">Equipped now</span>
+              <span className="font-mono text-[10px] font-black uppercase tracking-wide text-slate-500">Equipped now</span>
               {equippedItems.map((it) => (
                 <span
                   key={it.id}
-                  className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-bold text-white backdrop-blur"
+                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-bold text-white backdrop-blur"
                 >
                   <span className={`h-2 w-2 rounded-full bg-gradient-to-r ${it.gradient}`} />
                   {it.name}
@@ -870,7 +870,7 @@ export default function ShopPage() {
               behind it. It pins to the top edge instead, and carries a solid
               backdrop so cards pass cleanly underneath. ── */}
           <div className="z-30 mb-6 md:sticky md:top-3">
-            <div className="flex flex-col gap-2.5 rounded-2xl border border-white/10 bg-[#0b0b10]/95 backdrop-blur-xl p-3 shadow-[0_8px_30px_rgba(0,0,0,0.45)]">
+            <div className="flex flex-col gap-2.5 rounded-2xl border border-white/10 bg-[#0b0b11]/95 backdrop-blur-xl p-3 shadow-[0_8px_30px_rgba(0,0,0,0.45)]">
               <div className="flex flex-col gap-3 md:flex-row md:items-center">
                 {/* search */}
                 <div className="relative min-w-0 flex-1">
@@ -879,7 +879,7 @@ export default function ShopPage() {
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Search frames, effects…"
-                    className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-9 text-sm transition placeholder:text-slate-500 focus:border-purple-500/60 focus:outline-none"
+                    className="w-full rounded-xl border border-white/10 bg-white/[0.04] py-2.5 pl-10 pr-9 text-sm transition placeholder:text-slate-500 focus:border-violet-400/50 focus:outline-none"
                   />
                   {query && (
                     <button
@@ -892,7 +892,7 @@ export default function ShopPage() {
                   )}
                 </div>
                 {/* ownership segmented control */}
-                <div className="flex items-center gap-1 self-start rounded-xl border border-white/10 bg-white/5 p-1 md:self-auto">
+                <div className="flex items-center gap-1 self-start rounded-xl border border-white/10 bg-white/[0.04] p-1 md:self-auto">
                   {(
                     [
                       { key: "all", label: "Everything" },
@@ -903,8 +903,10 @@ export default function ShopPage() {
                     <button
                       key={o.key}
                       onClick={() => setOwned(o.key)}
-                      className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
-                        owned === o.key ? "bg-purple-600 text-white shadow" : "text-slate-400 hover:text-white"
+                      className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition ${
+                        owned === o.key
+                          ? "border-violet-400/40 bg-violet-500/15 text-violet-200"
+                          : "border-transparent text-slate-500 hover:bg-white/[0.08] hover:text-slate-300"
                       }`}
                     >
                       {o.label}
@@ -925,13 +927,13 @@ export default function ShopPage() {
                       onClick={() => setCategory(t.key)}
                       className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-bold transition ${
                         active
-                          ? "border-transparent bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white"
-                          : "border-white/10 bg-white/5 text-slate-400 hover:border-purple-500/40 hover:text-white"
+                          ? "border-violet-400/40 bg-violet-500/15 text-violet-200 hover:border-violet-400/60 hover:bg-violet-500/25"
+                          : "border-white/10 bg-white/[0.04] text-slate-500 hover:bg-white/[0.08] hover:text-slate-300"
                       }`}
                     >
                       <TabIcon className="h-3.5 w-3.5" />
                       {t.label}
-                      {active && <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] font-black text-white">{t.count}</span>}
+                      {active && <span className="rounded-full bg-violet-400/20 px-1.5 py-0.5 text-[10px] font-black text-violet-100">{t.count}</span>}
                     </button>
                   );
                 })}
@@ -947,7 +949,7 @@ export default function ShopPage() {
               </span>
               <button
                 onClick={resetFilters}
-                className="font-bold text-purple-300 underline-offset-2 transition hover:text-white hover:underline"
+                className="font-bold text-violet-300 underline-offset-2 transition hover:text-white hover:underline"
               >
                 Reset filters
               </button>
@@ -956,7 +958,7 @@ export default function ShopPage() {
 
           {/* ── Nothing matches ── */}
           {shownCount === 0 && (
-            <div className="flex flex-col items-center gap-4 rounded-3xl border border-white/10 bg-white/[0.02] px-6 py-16 text-center">
+            <div className="flex flex-col items-center gap-4 rounded-3xl border border-white/10 bg-[#0b0b11] px-6 py-16 text-center">
               <Sparkles className="h-10 w-10 text-slate-600" />
               <p className="text-lg font-bold text-slate-300">Nothing matches those filters.</p>
               <p className="max-w-sm text-sm text-slate-500">
@@ -964,7 +966,7 @@ export default function ShopPage() {
               </p>
               <button
                 onClick={resetFilters}
-                className="rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 px-6 py-2.5 font-bold text-white transition hover:scale-[1.03]"
+                className="rounded-xl border border-violet-400/40 bg-violet-500/15 px-6 py-2.5 font-bold text-violet-200 transition hover:border-violet-400/60 hover:bg-violet-500/25"
               >
                 Show everything
               </button>
@@ -980,16 +982,16 @@ export default function ShopPage() {
               <div key={section.key} className="mb-12">
                 <div className="mb-4 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className={`h-5 w-1 rounded-full ${isSSSSection ? "bg-gradient-to-b from-white to-slate-500" : isRare ? "bg-gradient-to-b from-fuchsia-300 to-purple-600" : "bg-gradient-to-b from-purple-400 to-fuchsia-500"}`} />
+                    <div className={`h-5 w-1 rounded-full ${isSSSSection ? "bg-gradient-to-b from-white to-slate-500" : isRare ? "bg-gradient-to-b from-violet-300 to-violet-600" : "bg-gradient-to-b from-violet-400 to-violet-600"}`} />
                     <div className="flex items-baseline gap-2">
-                      <h2 className="text-lg md:text-xl font-black text-white leading-tight">{section.title}</h2>
+                      <h2 className="font-fell text-xl leading-tight text-white md:text-2xl">{section.title}</h2>
                       <span className="text-xs font-bold text-slate-500">{items.length}</span>
                     </div>
                   </div>
                   {category === "all" && (
                     <button
                       onClick={() => setCategory(section.key as typeof category)}
-                      className="hidden shrink-0 items-center gap-1 rounded-full px-2 py-1 text-xs font-bold text-slate-400 transition hover:text-white sm:inline-flex"
+                      className="hidden shrink-0 items-center gap-1 rounded-full px-2 py-1 text-xs font-bold text-slate-500 transition hover:text-violet-200 sm:inline-flex"
                     >
                       Shop all <ArrowRight className="h-3.5 w-3.5" />
                     </button>
@@ -1011,7 +1013,7 @@ export default function ShopPage() {
                       return (
                         <span
                           title={`You need ${b.short.toLocaleString()} more Arise Points`}
-                          className="shrink-0 cursor-not-allowed rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold text-slate-400"
+                          className="shrink-0 cursor-not-allowed rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-bold text-slate-400"
                         >
                           Set costs {b.price.toLocaleString()} AP · need {b.short.toLocaleString()} more
                         </span>
@@ -1021,7 +1023,7 @@ export default function ShopPage() {
                       <button
                         onClick={() => buyBundle(b.bundleId, b.name)}
                         disabled={bundleBusy === b.bundleId}
-                        className="shrink-0 rounded-full bg-gradient-to-r from-purple-600 to-fuchsia-600 px-4 py-2 text-sm font-black text-white shadow-lg transition hover:brightness-110 disabled:opacity-50"
+                        className="shrink-0 rounded-full border border-violet-400/40 bg-violet-500/15 px-4 py-2 text-sm font-black text-violet-200 transition hover:border-violet-400/60 hover:bg-violet-500/25 disabled:opacity-50"
                       >
                         {bundleBusy === b.bundleId
                           ? "Buying…"
@@ -1029,7 +1031,7 @@ export default function ShopPage() {
                           ? "Claim the set · Free"
                           : `Buy the set · ${b.price.toLocaleString()} AP`}
                         {b.price > 0 && (
-                          <span className="ml-1.5 text-[11px] font-bold text-white/70 line-through">
+                          <span className="ml-1.5 text-[11px] font-bold text-violet-200/60 line-through">
                             {b.full.toLocaleString()}
                           </span>
                         )}
@@ -1090,17 +1092,17 @@ export default function ShopPage() {
                     initial={{ opacity: 0, scale: 0.96, y: 12 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     transition={{ type: "spring", damping: 26, stiffness: 300 }}
-                    className="relative flex w-full max-w-4xl max-h-[92dvh] flex-col overflow-hidden rounded-3xl border border-white/15 bg-[#0b0b12] shadow-[0_40px_100px_rgba(0,0,0,0.7)] md:h-[560px] md:max-h-[88dvh] md:flex-row"
+                    className="relative flex w-full max-w-4xl max-h-[92dvh] flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#0b0b11] shadow-[0_40px_100px_rgba(0,0,0,0.7)] md:h-[560px] md:max-h-[88dvh] md:flex-row"
                   >
                     {/* ── LEFT · the mock profile, effect playing over the card ── */}
-                    <div className="relative h-[300px] shrink-0 overflow-hidden bg-gradient-to-b from-[#15151d] to-[#0b0b12] sm:h-[340px] md:h-full md:w-[56%]">
+                    <div className="relative h-[300px] shrink-0 overflow-hidden bg-gradient-to-b from-[#15151d] to-[#0b0b11] sm:h-[340px] md:h-full md:w-[56%]">
                       {pv.type === "effect" && <ProfileEffect effect={pv.id} />}
 
                       <div className={`relative z-[2] h-24 bg-gradient-to-br ${pv.gradient} opacity-80`} />
 
                       <div className="relative z-[10] -mt-12 px-6">
                         <div className="relative h-24 w-24">
-                          <div className="relative z-10 flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-4 border-[#0b0b12] bg-gradient-to-br from-purple-500 to-fuchsia-600 text-3xl font-black text-white">
+                          <div className="relative z-10 flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-4 border-[#0b0b11] bg-violet-700 text-3xl font-black text-white">
                             {user.avatar ? <img src={user.avatar} alt="" className="h-full w-full object-cover" /> : user.username?.[0]?.toUpperCase() || "?"}
                           </div>
                           <AvatarDecoration frame={pv.type === "frame" ? pv.id : null} effect={pv.type === "effect" ? pv.id : null} size="lg" />
@@ -1123,7 +1125,7 @@ export default function ShopPage() {
                     </div>
 
                     {/* ── RIGHT · details + actions ── */}
-                    <div className="flex min-h-0 flex-1 flex-col bg-[#0b0b12] p-5 sm:p-6">
+                    <div className="flex min-h-0 flex-1 flex-col bg-[#0b0b11] p-5 sm:p-6">
                       <div className="mb-3 flex flex-wrap items-center gap-2">
                         <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${pChip.cls}`}>{pChip.label}</span>
                         {(pv as any).limited && (
@@ -1174,14 +1176,14 @@ export default function ShopPage() {
                           <button
                             onClick={() => handlePurchase(pv)}
                             disabled={buyingId === pv.id}
-                            className="flex flex-1 items-center justify-center gap-2 rounded-xl py-3 font-bold transition bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:from-purple-500 hover:to-fuchsia-500"
+                            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-violet-400/40 bg-violet-500/15 py-3 font-bold text-violet-200 transition hover:border-violet-400/60 hover:bg-violet-500/25"
                           >
                             {buyingId === pv.id ? (
                               <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                             ) : (
                               <>
                                 <Diamond className="h-4 w-4" />
-                                {pOff ? <s className="text-xs font-bold text-white/50">{pv.price.toLocaleString()}</s> : null}
+                                {pOff ? <s className="text-xs font-bold text-violet-200/50">{pv.price.toLocaleString()}</s> : null}
                                 {finalPrice(pv).toLocaleString()} <span className="opacity-50">·</span> Acquire
                               </>
                             )}
@@ -1191,7 +1193,7 @@ export default function ShopPage() {
                         <button
                           onClick={() => handleToggle(pv, !pActive)}
                           className={`flex flex-1 items-center justify-center rounded-xl border py-3 font-black transition ${
-                            pActive ? "border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20" : "border-white/10 bg-white/5 text-white hover:bg-white/10"
+                            pActive ? "border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20" : "border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08]"
                           }`}
                         >
                           {pActive ? "Unequip" : "Equip"}
@@ -1208,7 +1210,7 @@ export default function ShopPage() {
                         className={`flex items-center justify-center rounded-xl border px-5 py-3 font-bold transition ${
                           pExpired
                             ? "cursor-not-allowed border-white/5 bg-black/30 text-slate-700"
-                            : "border-white/10 bg-white/5 text-slate-300 hover:text-white"
+                            : "border-white/10 bg-white/[0.04] text-slate-300 hover:border-violet-400/40 hover:text-white"
                         }`}
                       >
                         <Gift className="h-4 w-4" />
@@ -1218,7 +1220,7 @@ export default function ShopPage() {
                     {/* close */}
                     <button
                       onClick={() => setPreviewItem(null)}
-                      className="absolute right-3 top-3 z-[40] grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-black/50 text-white backdrop-blur transition hover:bg-white/15"
+                      className="absolute right-3 top-3 z-[40] grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-black/50 text-white backdrop-blur transition hover:bg-white/15"
                     >
                       <X className="h-5 w-5" />
                     </button>
