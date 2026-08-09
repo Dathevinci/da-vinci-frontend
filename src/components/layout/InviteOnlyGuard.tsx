@@ -4,6 +4,7 @@ import { useUser } from "@/hooks/useUser";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
+import { DISCORD_INVITE } from "@/lib/links";
 import {
   Lock, Play, ArrowRight, Tv, BookMarked, BookOpen,
   Library, Users, Zap, MonitorPlay, Layers, Swords, Gem, Palette, MonitorSmartphone,
@@ -271,7 +272,7 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
               Start Watching
             </button>
             <a
-              href="https://discord.gg/dSPPjPUQbM"
+              href={DISCORD_INVITE}
               target="_blank"
               rel="noopener noreferrer"
               className="group inline-flex items-center gap-2.5 rounded-2xl border border-white/12 bg-white/[0.06] px-7 py-3.5 font-mono text-sm font-bold text-slate-100 backdrop-blur transition hover:bg-white/10"

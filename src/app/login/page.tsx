@@ -11,6 +11,7 @@ import {
 import { useUser } from "@/hooks/useUser";
 import { useToast } from "@/components/ui/Toast";
 import { isAdmin, isLeadDev } from "@/lib/admin";
+import { DISCORD_INVITE } from "@/lib/links";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 
 /**
@@ -358,7 +359,7 @@ function LoginPageInner() {
             <p className="mt-6 text-center font-mono text-xs text-slate-500">
               Lost your password? Ask a staff member on{" "}
               <a
-                href="https://discord.gg/dSPPjPUQbM"
+                href={DISCORD_INVITE}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-bold text-slate-300 underline decoration-white/20 underline-offset-2 transition hover:text-white"

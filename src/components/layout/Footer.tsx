@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DISCORD_INVITE } from "@/lib/links";
 
 /**
  * THE FOOTER — the reference's clean board: centred brand + tagline,
@@ -19,7 +20,7 @@ const COLUMNS: { title: string; links: { name: string; href: string; external?: 
   {
     title: "Community",
     links: [
-      { name: "Discord Server", href: "https://discord.gg/dSPPjPUQbM", external: true },
+      { name: "Discord Server", href: DISCORD_INVITE, external: true },
       { name: "Forums", href: "/community" },
       { name: "Support", href: "/support" },
       { name: "Updates", href: "/updates" },
