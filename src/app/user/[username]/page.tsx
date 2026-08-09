@@ -342,9 +342,9 @@ export default function PublicProfilePage() {
   return (
     <PageTransition>
       {/* overflow-CLIP, not hidden: `hidden` makes this a scroll container,
-          which silently kills the profile card's `lg:sticky` below. `clip`
-          contains the glow blobs without that side effect (same fix the shop
-          toolbar needed). */}
+          which silently kills the STICKY TABS BAR below (the anime/manhwa/
+          novel tabs). `clip` contains the glow blobs without that side
+          effect (same fix the shop toolbar needed). */}
       <div className="relative min-h-screen pt-24 pb-12 text-white overflow-clip">
 
       {/* Full-screen banner background (only in "full" mode) */}
@@ -372,7 +372,10 @@ export default function PublicProfilePage() {
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="relative z-10 max-w-7xl mx-auto px-4 md:px-8"
+        // FULL-BLEED, not a centered box: the hero/banner spans the whole
+        // viewport (the guild pages set the reference) and every section
+        // below carries its own max-width + centering instead.
+        className="relative z-10 w-full"
       >
         {/* Channel layout: a full-bleed hero the effect actually fits in, then
             sticky tabs, then the collection at full width. The old two-column
@@ -602,7 +605,7 @@ export default function PublicProfilePage() {
             render nothing when there is nothing worth showing, so a quiet
             profile does not grow empty boxes and a failed fetch degrades to an
             absent section rather than a broken page. */}
-        <div className="px-1 pt-6">
+        <div className="mx-auto w-full max-w-[1500px] px-4 pt-6 md:px-8">
           {/* onChange keeps the hero strip and this rack in agreement. The
               rack is the one that actually knows — it fetches the titles
               endpoint — so it feeds the page rather than the other way round. */}
