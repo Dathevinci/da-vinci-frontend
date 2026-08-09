@@ -14,6 +14,7 @@ import SettingsModal from "@/components/profile/SettingsModal";
 import LevelBadge from "@/components/profile/LevelBadge";
 import { AvatarDecoration, hasFrameRing } from "@/components/profile/AvatarDecoration";
 import ProfileSong from "@/components/profile/ProfileSong";
+import { cloudinaryFit } from "@/lib/cloudinary";
 import { ProfileEffect } from "@/components/profile/ProfileEffect";
 import ProfileShowcase from "@/components/profile/ProfileShowcase";
 import { calculateLevel, calculateProgressPercent, xpForNextLevel } from "@/lib/levels";
@@ -358,8 +359,9 @@ export default function PublicProfilePage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.9 }}
               transition={{ duration: 1.2, ease: "easeOut" }}
-              src={profileUser.bannerUrl}
+              src={cloudinaryFit(profileUser.bannerUrl, 1920)}
               alt="Background Banner"
+              decoding="async"
               style={{ objectPosition: `center ${(profileUser as any).bannerPosition ?? 50}%` }}
               className="w-full h-full object-cover"
             />
@@ -391,9 +393,12 @@ export default function PublicProfilePage() {
         <div className="relative overflow-hidden border-b border-white/10">
           <div className="absolute inset-0 z-[1]">
             {profileUser.bannerUrl ? (
+              /* Same transformed src as the fixed layer above, deliberately:
+                 one identical url = one fetch and one shared decode. */
               <img
-                src={profileUser.bannerUrl}
+                src={cloudinaryFit(profileUser.bannerUrl, 1920)}
                 alt=""
+                decoding="async"
                 style={{ objectPosition: `center ${(profileUser as any).bannerPosition ?? 50}%` }}
                 className="h-full w-full object-cover opacity-70"
               />
@@ -414,19 +419,22 @@ export default function PublicProfilePage() {
               onClick={() => profileUser.avatar && setPreviewImage(profileUser.avatar)}
             >
               {profileUser.avatar ? (
-                <motion.img
-                  layoutId="profile-avatar"
-                  src={profileUser.avatar}
+                /* No layoutId: it had no counterpart anywhere, so it animated
+                   nothing — but framer still mounted the layout feature, and
+                   that walks the whole projection tree on EVERY render of this
+                   1000-line page. Plain elements now. */
+                <img
+                  src={cloudinaryFit(profileUser.avatar, 400)}
                   alt="Avatar"
+                  decoding="async"
                   className={`relative z-10 h-32 w-32 rounded-full border-4 bg-[#141414] object-cover shadow-[0_12px_50px_rgba(0,0,0,0.75)] transition-all duration-300 md:h-40 md:w-40 ${avatarBorderClass}`}
                 />
               ) : (
-                <motion.div
-                  layoutId="profile-avatar"
+                <div
                   className={`relative z-10 grid h-32 w-32 place-items-center rounded-full border-4 bg-violet-700 text-4xl font-black transition-all duration-300 md:h-40 md:w-40 ${avatarBorderClass}`}
                 >
                   {profileUser.username.charAt(0).toUpperCase()}
-                </motion.div>
+                </div>
               )}
               <AvatarDecoration frame={(profileUser as any).activeFrame} effect={effectiveEffect} size="lg" />
               {profileUser.arisePoints !== undefined && (
@@ -626,7 +634,13 @@ export default function PublicProfilePage() {
             bottom, and profiles are signed-in-only), so the old 64px mobile
             offset just left the stuck tabs floating with content scrolling
             through the gap above them. */}
-        <div className="sticky top-0 z-40 border-b border-white/10 bg-[#09090b]/95 backdrop-blur-xl">
+        {/* OPAQUE, no backdrop-blur. A backdrop-filter on a sticky strip is
+            re-blurred every scroll frame (it can't be cached — the backdrop
+            moves), and going full-bleed made that region ~50% wider. The base
+            layer behind it is the same #09090b, so 95% over that colour was
+            already this exact colour: opaque costs nothing to look at and
+            skips the per-frame readback entirely. */}
+        <div className="sticky top-0 z-40 border-b border-white/10 bg-[#09090b]">
           <div className="mx-auto flex max-w-[1500px] items-center justify-center gap-1 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {([
               { key: "anime", label: "Anime", count: watchlist.length },
