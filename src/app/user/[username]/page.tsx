@@ -345,7 +345,10 @@ export default function PublicProfilePage() {
           which silently kills the STICKY TABS BAR below (the anime/manhwa/
           novel tabs). `clip` contains the glow blobs without that side
           effect (same fix the shop toolbar needed). */}
-      <div className="relative min-h-screen pt-24 pb-12 text-white overflow-clip">
+      {/* No top padding: the pt-24 reserved space for a top navbar that
+          signed-in users no longer have (the dock lives at the bottom).
+          The hero starts at the viewport's very first pixel, guild-style. */}
+      <div className="relative min-h-screen pb-12 text-white overflow-clip">
 
       {/* Full-screen banner background (only in "full" mode) */}
       <div className="fixed inset-0 z-0 bg-[#09090b] overflow-hidden">
@@ -618,11 +621,12 @@ export default function PublicProfilePage() {
           <RecentComments userId={profileUser.id} />
         </div>
 
-        {/* ═══ TABS — sticky under the navbar ═══ */}
-        {/* Sticks under the MOBILE bar, flush to the top on desktop — the
-            desktop nav is docked to the bottom now, so a 64px offset there was
-            reserving space for a bar that isn't above it any more. */}
-        <div className="sticky top-[64px] z-40 border-b border-white/10 bg-[#09090b]/95 backdrop-blur-xl lg:top-0">
+        {/* ═══ TABS — stick flush to the viewport top at every width ═══
+            Signed-in users have no top bar anywhere (the dock is at the
+            bottom, and profiles are signed-in-only), so the old 64px mobile
+            offset just left the stuck tabs floating with content scrolling
+            through the gap above them. */}
+        <div className="sticky top-0 z-40 border-b border-white/10 bg-[#09090b]/95 backdrop-blur-xl">
           <div className="mx-auto flex max-w-[1500px] items-center justify-center gap-1 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {([
               { key: "anime", label: "Anime", count: watchlist.length },
