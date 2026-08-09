@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Moon, Sun, Lock, Unlock, Save, PlayCircle, EyeOff, Zap, Wifi, Key, User as UserIcon, Link as LinkIcon, Image as ImageIcon, Copy, Camera, UploadCloud, AlertCircle, RefreshCw, Database, Trash2, ShieldCheck, SlidersHorizontal, Music } from "lucide-react";
 import { validateProfileAudio } from "@/lib/profileAudio";
+import { useRouter } from "next/navigation";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { useToast } from "@/components/ui/Toast";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
@@ -48,6 +49,15 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
   const [profileSong, setProfileSong] = useState<string>(user?.profileSong || "");
   const [savingSong, setSavingSong] = useState(false);
   const songCheck = validateProfileAudio(profileSong);
+
+  // Decoration & title are equipped elsewhere (the shop / the profile's title
+  // rack); the Edit Profile card just shows the current one and links out.
+  const router = useRouter();
+  const activeFrameName = user?.activeFrame
+    ? String(user.activeFrame).replace(/^frame_/, "").replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())
+    : "None";
+  const wornTitles: string[] = (user as any)?.equippedTitles || [];
+  const currentTitle = wornTitles[0] || (user as any)?.cardTitle || "None";
 
   const saveBannerStyle = (style: string) => {
     setBannerStyle(style);
@@ -484,7 +494,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
             <div className="min-w-0 flex-1 space-y-6 overflow-y-auto p-5 scrollbar-thin scrollbar-thumb-white/10 sm:p-6">
               
               {activeTab === 'profile' && (
-                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+                <div className="space-y-5 font-mono animate-in fade-in slide-in-from-bottom-2">
                   {!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME && (
                     <div className="bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 p-4 rounded-xl mb-4 flex items-start gap-3">
                       <AlertCircle className="w-6 h-6 flex-shrink-0" />
@@ -596,9 +606,118 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                     </div>
                   )}
 
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Bio</label>
-                    <textarea value={bio} onChange={e => setBio(e.target.value)} rows={3} placeholder="Tell us about yourself..." className="w-full bg-[#030305] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition resize-none" />
+                  <div className="grid gap-5 md:grid-cols-2">
+                    {/* Edit Profile — identity, plus who can see the profile */}
+                    <div className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                      <h3 className="text-base font-bold text-white">Edit Profile</h3>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Username</label>
+                        <div className="flex gap-2">
+                          <input
+                            value={newUsername}
+                            onChange={e => setNewUsername(e.target.value)}
+                            placeholder={user?.username || "username"}
+                            maxLength={20}
+                            className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[#030305] px-3 py-2.5 text-sm text-white placeholder:text-slate-600 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                          />
+                          <button
+                            onClick={handleChangeUsername}
+                            disabled={isChangingUsername || !newUsername.trim()}
+                            className="shrink-0 rounded-xl bg-purple-600 px-3 py-2.5 text-xs font-bold text-white transition hover:bg-purple-500 disabled:opacity-50"
+                          >
+                            {isChangingUsername ? "…" : "Save"}
+                          </button>
+                        </div>
+                        <p className="text-[11px] text-slate-500">
+                          {usernameIsFree ? "Your first change is free." : `Changing again costs ${USERNAME_COST} AP.`}
+                        </p>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Decoration</label>
+                        <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/30 p-3">
+                          {user?.avatar ? (
+                            <img src={user.avatar} alt="" className={`h-10 w-10 shrink-0 rounded-full object-cover ${user?.activeFrame ? "ring-2 ring-purple-400/60" : ""}`} />
+                          ) : (
+                            <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-full bg-purple-600 text-sm font-black text-white ${user?.activeFrame ? "ring-2 ring-purple-400/60" : ""}`}>
+                              {(user?.username || "U").charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-xs text-white">{activeFrameName}</p>
+                            <p className="text-[11px] text-slate-500">Rings &amp; effects live in the shop.</p>
+                          </div>
+                          <button
+                            onClick={() => { onClose(); router.push("/shop"); }}
+                            className="shrink-0 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-bold text-slate-200 transition hover:bg-white/10"
+                          >
+                            Change
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Title</label>
+                        <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/30 p-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-xs text-white">{currentTitle}</p>
+                            <p className="text-[11px] text-slate-500">Earned by completing card sets.</p>
+                          </div>
+                          <button
+                            onClick={onClose}
+                            title="Close settings to manage titles on your profile"
+                            className="shrink-0 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-bold text-slate-200 transition hover:bg-white/10"
+                          >
+                            Change
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between rounded-xl border border-white/10 bg-black/30 p-3">
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          {isPrivate ? <Lock className="h-4 w-4 shrink-0 text-red-400" /> : <Unlock className="h-4 w-4 shrink-0 text-green-400" />}
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-white">Private Profile</p>
+                            <p className="text-[11px] text-slate-500">Hide bio, banner &amp; watchlist from non-mutuals.</p>
+                          </div>
+                        </div>
+                        <button onClick={() => setIsPrivate(!isPrivate)} className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none ${isPrivate ? "bg-purple-600" : "bg-white/10"}`}>
+                          <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${isPrivate ? "translate-x-5" : "translate-x-1"}`} />
+                        </button>
+                      </div>
+
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          onClick={handleSaveProfile}
+                          disabled={isSaving}
+                          className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-purple-600 py-2.5 text-sm font-bold text-white transition hover:bg-purple-500 disabled:opacity-50"
+                        >
+                          <Save className="h-4 w-4" />
+                          {isSaving ? "Saving…" : "Save"}
+                        </button>
+                        <button
+                          onClick={onClose}
+                          className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-bold text-slate-300 transition hover:bg-white/10"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Bio — a column of its own, mirroring the reference */}
+                    <div className="flex flex-col space-y-2 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                      <h3 className="text-base font-bold text-white">Bio</h3>
+                      <textarea
+                        value={bio}
+                        onChange={e => setBio(e.target.value)}
+                        placeholder="Tell us about yourself…"
+                        className="min-h-[160px] flex-1 resize-none rounded-xl border border-white/10 bg-[#030305] px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                      />
+                      <p className="text-[11px] leading-relaxed text-slate-500">
+                        Paste a direct image link (gif, png, jpg, webp) on its own line to embed it. Saved with the Save button on the left.
+                      </p>
+                    </div>
                   </div>
 
                   {/* ── Profile Audio — one track that plays on your profile.
@@ -648,31 +767,6 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                     </div>
                   </div>
 
-                  <div className="bg-white/5 border border-white/5 rounded-2xl overflow-hidden">
-                    <div className="flex items-center justify-between p-4 hover:bg-white/[0.02] transition">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
-                          {isPrivate ? <Lock className="w-4 h-4 text-red-400" /> : <Unlock className="w-4 h-4 text-green-400" />}
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-white text-sm">Private Profile</h3>
-                          <p className="text-[11px] text-slate-500 mt-0.5 max-w-[200px]">Hide watchlist and bio from non-followers.</p>
-                        </div>
-                      </div>
-                      <button onClick={() => setIsPrivate(!isPrivate)} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${isPrivate ? 'bg-purple-600' : 'bg-white/10'}`}>
-                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${isPrivate ? 'translate-x-5' : 'translate-x-1'}`} />
-                      </button>
-                    </div>
-                  </div>
-
-                  <button 
-                    onClick={handleSaveProfile}
-                    disabled={isSaving}
-                    className="w-full bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(79,70,229,0.3)]"
-                  >
-                    <Save className="w-5 h-5" />
-                    {isSaving ? "Saving..." : "Save Profile"}
-                  </button>
                 </div>
               )}
 
