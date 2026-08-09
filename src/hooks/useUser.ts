@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { authHeaders, setAuthToken } from "@/lib/authToken";
 
 export interface User {
@@ -45,11 +45,31 @@ export function useUser() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
+  /**
+   * The raw JSON this instance last applied.
+   *
+   * `davinci_user_updated` is a broadcast: EVERY mounted useUser answers it.
+   * A profile page can have dozens of them (each tracked card carries one via
+   * its tracker button), and the handler used to JSON.parse the whole user
+   * blob — followers, following, purchased* arrays and all — then setUser with
+   * a brand-new object identity every time. New identity means a re-render,
+   * and it means any effect keyed on `user` tears down and re-registers. So a
+   * single routine background sync, which usually changes nothing at all, cost
+   * dozens of parses and re-renders. Comparing the raw string first makes the
+   * no-op case free.
+   */
+  const lastRawRef = useRef<string | null>(null);
+
   const broadcastUpdate = (newUser: User | null) => {
     if (newUser) {
-      localStorage.setItem("davinci_user", JSON.stringify(newUser));
+      const raw = JSON.stringify(newUser);
+      localStorage.setItem("davinci_user", raw);
+      // Record it here too, or this instance re-parses its own write when the
+      // event it just fired comes back around.
+      lastRawRef.current = raw;
     } else {
       localStorage.removeItem("davinci_user");
+      lastRawRef.current = null;
     }
     setUser(newUser);
     window.dispatchEvent(new Event("davinci_user_updated"));
@@ -60,8 +80,9 @@ export function useUser() {
     if (stored) {
       try {
         const parsedUser = JSON.parse(stored);
+        lastRawRef.current = stored;
         setUser(parsedUser);
-        
+
         // Background sync to ensure relations and points are fresh
         if (!isSyncing && parsedUser?.id) {
           isSyncing = true;
@@ -89,23 +110,39 @@ export function useUser() {
 
     const handleSync = () => {
       const currentStored = localStorage.getItem("davinci_user");
+      // Nothing actually changed for this instance — skip the parse and the
+      // re-render entirely. This is the common case on every page load.
+      if (currentStored === lastRawRef.current) return;
       if (currentStored) {
         try {
-          setUser(JSON.parse(currentStored));
+          const parsed = JSON.parse(currentStored);
+          // Record only AFTER a successful parse. Marking it applied first
+          // would mean corrupted JSON permanently poisons this instance: the
+          // ref would hold a string we never applied, so if that same value
+          // ever became valid again we'd skip it as "unchanged".
+          lastRawRef.current = currentStored;
+          setUser(parsed);
         } catch (e) {}
       } else {
+        lastRawRef.current = null;
         setUser(null);
       }
     };
 
-    window.addEventListener("davinci_user_updated", handleSync);
-    window.addEventListener("storage", (e) => {
+    // The storage handler must be a NAMED reference: it used to be registered
+    // as an inline arrow and removed by `handleSync`, which is a different
+    // function object — so removeEventListener matched nothing and every mount
+    // left a listener behind for the life of the tab.
+    const handleStorage = (e: StorageEvent) => {
       if (e.key === "davinci_user") handleSync();
-    });
+    };
+
+    window.addEventListener("davinci_user_updated", handleSync);
+    window.addEventListener("storage", handleStorage);
 
     return () => {
       window.removeEventListener("davinci_user_updated", handleSync);
-      window.removeEventListener("storage", handleSync);
+      window.removeEventListener("storage", handleStorage);
     };
   }, []);
 

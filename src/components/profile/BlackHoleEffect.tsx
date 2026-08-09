@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { RefObject } from "react";
 import { motion } from "framer-motion";
+import { attachVisibilityPause } from "@/components/profile/pauseWhenUnseen";
 
 /**
  * "Event Horizon" — the black hole / deep-space galaxy effect.
@@ -98,6 +99,7 @@ function useBlackHoleCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
     };
 
     let raf = 0;
+    let paused = false;
     let last = performance.now();
 
     const frame = (now: number) => {
@@ -131,7 +133,7 @@ function useBlackHoleCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       });
       if (!target) {
         ctx.globalCompositeOperation = "source-over";
-        raf = requestAnimationFrame(frame);
+        if (!paused) raf = requestAnimationFrame(frame);
         return;
       }
       const { x: cx, y: cy, r } = target;
@@ -191,11 +193,27 @@ function useBlackHoleCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       }
 
       ctx.globalCompositeOperation = "source-over";
-      raf = requestAnimationFrame(frame);
+      if (!paused) raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
 
+    // Stop repainting the card-sized canvas while the hero is scrolled out of
+    // view or the tab is hidden. `last` is re-based on resume so the first
+    // frame back doesn't advance the galaxy by the whole parked duration.
+    const detach = attachVisibilityPause(canvas, {
+      onPause: () => {
+        paused = true;
+        cancelAnimationFrame(raf);
+      },
+      onResume: () => {
+        paused = false;
+        last = performance.now();
+        raf = requestAnimationFrame(frame);
+      },
+    });
+
     return () => {
+      detach();
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
       ro?.disconnect();

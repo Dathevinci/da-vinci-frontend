@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { RefObject } from "react";
 import { motion } from "framer-motion";
+import { attachVisibilityPause } from "@/components/profile/pauseWhenUnseen";
 
 /**
  * "The Sacred Lotus Pond" — Extreme Rare. A tranquil, high-definition lotus
@@ -230,6 +231,7 @@ function useLotusCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
 
     // timing — declared before resize() runs, since resize()→spawnDrop() reads t
     let raf = 0;
+    let paused = false;
     let last = performance.now();
     let t = 0;
     let dropTimer = 1.2;
@@ -272,7 +274,9 @@ function useLotusCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
           console.error("[lotus] frame error:", err);
         }
       }
-      raf = requestAnimationFrame(frame);
+      // guarded outside the try/catch, so a thrown frame can't resurrect a
+      // parked loop either
+      if (!paused) raf = requestAnimationFrame(frame);
     };
 
     const frameBody = (now: number) => {
@@ -427,7 +431,23 @@ function useLotusCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
     };
     raf = requestAnimationFrame(frame);
 
+    // Stop painting a hero-sized canvas 60x/s once the card scrolls away or the
+    // tab is hidden. `last` is re-based on resume so the parked duration doesn't
+    // arrive as one giant dt and lurch the pond forward.
+    const detach = attachVisibilityPause(canvas, {
+      onPause: () => {
+        paused = true;
+        cancelAnimationFrame(raf);
+      },
+      onResume: () => {
+        paused = false;
+        last = performance.now();
+        raf = requestAnimationFrame(frame);
+      },
+    });
+
     return () => {
+      detach();
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
       ro?.disconnect();

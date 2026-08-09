@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { RefObject } from "react";
 import { motion } from "framer-motion";
+import { attachVisibilityPause } from "@/components/profile/pauseWhenUnseen";
 
 /**
  * "The Ancient Jungle" — Extreme Rare. A dark, overgrown, deep-jungle takeover.
@@ -449,6 +450,7 @@ function useJungleCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
     ro?.observe(canvas);
 
     let raf = 0;
+    let paused = false;
     let last = performance.now();
     let t = 0;
     let fallTimer = 1.5;
@@ -695,7 +697,7 @@ function useJungleCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
         ctx.restore();
       }
 
-      raf = requestAnimationFrame(frame);
+      if (!paused) raf = requestAnimationFrame(frame);
     };
 
     let warned = false;
@@ -707,12 +709,25 @@ function useJungleCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
           warned = true;
           console.error("[jungle] frame error:", err);
         }
-        raf = requestAnimationFrame(frame);
+        if (!paused) raf = requestAnimationFrame(frame);
       }
     };
     raf = requestAnimationFrame(frame);
 
+    const detach = attachVisibilityPause(canvas, {
+      onPause: () => {
+        paused = true;
+        cancelAnimationFrame(raf);
+      },
+      onResume: () => {
+        paused = false;
+        last = performance.now();
+        raf = requestAnimationFrame(frame);
+      },
+    });
+
     return () => {
+      detach();
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
       ro?.disconnect();

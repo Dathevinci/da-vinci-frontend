@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { RefObject } from "react";
 import { motion } from "framer-motion";
+import { attachVisibilityPause } from "@/components/profile/pauseWhenUnseen";
 
 /**
  * "The Ghost Samurai" — extreme-rare katana / sakura-storm effect.
@@ -237,6 +238,7 @@ function useSamuraiCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
     const trail: TrailPoint[] = [];
 
     let raf = 0;
+    let paused = false;
     let last = performance.now();
     let t = 0; // scene clock (s)
 
@@ -315,7 +317,7 @@ function useSamuraiCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       ctx.globalAlpha = 1;
 
       if (!target) {
-        raf = requestAnimationFrame(frame);
+        if (!paused) raf = requestAnimationFrame(frame);
         return;
       }
       const { x: cx, y: cy, r } = target;
@@ -398,12 +400,26 @@ function useSamuraiCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       ctx.globalCompositeOperation = "source-over";
       drawKatana(ctx, pose.x, pose.y, pose.ang, L, glow);
 
-      raf = requestAnimationFrame(frame);
+      if (!paused) raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
 
+    // Park the loop while the card is scrolled off-screen or the tab is hidden.
+    const detach = attachVisibilityPause(canvas, {
+      onPause: () => {
+        paused = true;
+        cancelAnimationFrame(raf);
+      },
+      onResume: () => {
+        paused = false;
+        last = performance.now(); // don't let the parked time land in one dt
+        raf = requestAnimationFrame(frame);
+      },
+    });
+
     return () => {
       cancelAnimationFrame(raf);
+      detach();
       window.removeEventListener("resize", resize);
       ro?.disconnect();
     };

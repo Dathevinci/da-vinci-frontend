@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { RefObject } from "react";
 import { motion } from "framer-motion";
+import { attachVisibilityPause } from "@/components/profile/pauseWhenUnseen";
 
 /**
  * "The Silent Himalayas" — SSS grade. A serene night on the roof of the world:
@@ -193,6 +194,7 @@ function useSnowCanvas(
     const maxCard = 10;
 
     let raf = 0;
+    let paused = false;
     let last = performance.now();
     let t = 0;
 
@@ -377,11 +379,26 @@ function useSnowCanvas(
       // NEAR snow — large, soft, fast, in front of everything
       drawFlakeLayer(2);
 
-      raf = requestAnimationFrame(frame);
+      if (!paused) raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
 
+    // Park the whole snowfall while the card is scrolled off-screen or the tab
+    // is hidden — nothing about how it looks changes, it just stops repainting.
+    const detach = attachVisibilityPause(canvas, {
+      onPause: () => {
+        paused = true;
+        cancelAnimationFrame(raf);
+      },
+      onResume: () => {
+        paused = false;
+        last = performance.now(); // don't let the parked time jump the dt
+        raf = requestAnimationFrame(frame);
+      },
+    });
+
     return () => {
+      detach();
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
       ro?.disconnect();

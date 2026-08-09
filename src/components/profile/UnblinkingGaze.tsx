@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { RefObject } from "react";
 import { motion } from "framer-motion";
+import { attachVisibilityPause } from "@/components/profile/pauseWhenUnseen";
 
 /**
  * "The Unblinking" — SSS grade. Hand-drawn cosmic horror in the style of a
@@ -166,6 +167,7 @@ function useUnblinkingCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
     };
 
     let raf = 0;
+    let paused = false;
     let last = performance.now();
     let t = 0;
 
@@ -639,7 +641,7 @@ function useUnblinkingCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
         if (scratch.shake === 0) canvas.style.transform = "";
       }
 
-      raf = requestAnimationFrame(frame);
+      if (!paused) raf = requestAnimationFrame(frame);
     };
 
     let warned = false;
@@ -651,12 +653,25 @@ function useUnblinkingCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
           warned = true;
           console.error("[unblinking] frame error:", err);
         }
-        raf = requestAnimationFrame(frame);
+        if (!paused) raf = requestAnimationFrame(frame);
       }
     };
     raf = requestAnimationFrame(frame);
 
+    const detach = attachVisibilityPause(canvas, {
+      onPause: () => {
+        paused = true;
+        cancelAnimationFrame(raf);
+      },
+      onResume: () => {
+        paused = false;
+        last = performance.now();
+        raf = requestAnimationFrame(frame);
+      },
+    });
+
     return () => {
+      detach();
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
       window.removeEventListener("pointermove", onPointer);

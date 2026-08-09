@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { RefObject } from "react";
 import { motion } from "framer-motion";
+import { attachVisibilityPause } from "@/components/profile/pauseWhenUnseen";
 
 /**
  * "Mango Loco" — Extreme Rare. A completely unhinged Día de los Muertos /
@@ -260,6 +261,7 @@ function useMangoCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
     ro?.observe(canvas);
 
     let raf = 0;
+    let paused = false;
     let last = performance.now();
     let t = 0;
     let nextStrike = 2.2; // first strike shortly after the profile opens
@@ -453,7 +455,7 @@ function useMangoCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
         }
       }
 
-      raf = requestAnimationFrame(frame);
+      if (!paused) raf = requestAnimationFrame(frame);
     };
 
     // Resilient loop — one bad frame logs once and is skipped, never a silent halt.
@@ -466,12 +468,28 @@ function useMangoCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
           warned = true;
           console.error("[mango] frame error:", err);
         }
-        raf = requestAnimationFrame(frame);
+        if (!paused) raf = requestAnimationFrame(frame);
       }
     };
     raf = requestAnimationFrame(frame);
 
+    // Stop clearing/repainting a hero-sized canvas once the card scrolls away
+    // or the tab is hidden. Purely a "don't draw when unseen" gate — no visual
+    // change: `last` is rebased on resume so dt doesn't jump the parked span.
+    const detach = attachVisibilityPause(canvas, {
+      onPause: () => {
+        paused = true;
+        cancelAnimationFrame(raf);
+      },
+      onResume: () => {
+        paused = false;
+        last = performance.now();
+        raf = requestAnimationFrame(frame);
+      },
+    });
+
     return () => {
+      detach();
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
       ro?.disconnect();

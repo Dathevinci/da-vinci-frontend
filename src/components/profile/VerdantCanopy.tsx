@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { RefObject } from "react";
 import { motion } from "framer-motion";
+import { attachVisibilityPause } from "@/components/profile/pauseWhenUnseen";
 
 /**
  * "Heart of the Forest" — a lush, overgrown magical forest (unique tier).
@@ -202,6 +203,7 @@ function useCanopyCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
     let nextGust = performance.now() + 4000 + Math.random() * 5000;
 
     let raf = 0;
+    let paused = false;
     let last = performance.now();
     let t = 0;
 
@@ -378,11 +380,30 @@ function useCanopyCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
         }
       }
 
-      raf = requestAnimationFrame(frame);
+      if (!paused) raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
 
+    // Park the loop while the card is scrolled off-screen or the tab is hidden.
+    const detach = attachVisibilityPause(canvas, {
+      onPause: () => {
+        paused = true;
+        cancelAnimationFrame(raf);
+      },
+      onResume: () => {
+        paused = false;
+        // `nextGust` is an absolute timestamp, so a park longer than the
+        // 5-11s gust cadence would send a gust through every leaf the instant
+        // the card came back. Push the schedule forward by the dead time.
+        const now = performance.now();
+        nextGust += now - last;
+        last = now;
+        raf = requestAnimationFrame(frame);
+      },
+    });
+
     return () => {
+      detach();
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
       ro?.disconnect();

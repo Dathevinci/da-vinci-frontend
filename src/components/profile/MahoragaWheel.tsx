@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { RefObject } from "react";
 import { motion } from "framer-motion";
+import { attachVisibilityPause } from "@/components/profile/pauseWhenUnseen";
 
 /**
  * "Wheel of Adaptation" — the Divine General's Eight-Handled Sword Divergent
@@ -126,6 +127,7 @@ function useMahoragaCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
     const shockwaves: Shockwave[] = [];
 
     let raf = 0;
+    let paused = false;
     let last = performance.now();
     let t = 0;
 
@@ -332,11 +334,34 @@ function useMahoragaCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
       }
       flash = Math.max(0, flash - dt * 3.4);
 
-      raf = requestAnimationFrame(frame);
+      if (!paused) raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
 
+    // Park the ritual while the card is scrolled off-screen or the tab is
+    // hidden — nothing about how it looks changes, it just stops repainting.
+    const detach = attachVisibilityPause(canvas, {
+      onPause: () => {
+        paused = true;
+        cancelAnimationFrame(raf);
+      },
+      onResume: () => {
+        paused = false;
+        // Same two-clock problem as the ritual: `nextSnap` is an absolute
+        // timestamp, so without this the Adaptation Click — full-canvas flash
+        // and shockwave — fires the moment the card returns to view. Only
+        // rebase snapStart if a snap was actually mid-flight when we parked.
+        const now = performance.now();
+        const parked = now - last;
+        nextSnap += parked;
+        if (snapping) snapStart += parked;
+        last = now;
+        raf = requestAnimationFrame(frame);
+      },
+    });
+
     return () => {
+      detach();
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
       ro?.disconnect();

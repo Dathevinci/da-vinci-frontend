@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { RefObject } from "react";
 import { motion } from "framer-motion";
+import { attachVisibilityPause } from "@/components/profile/pauseWhenUnseen";
 
 /**
  * "With This Treasure…" — the complete Mahoraga summoning ritual (JJK).
@@ -207,6 +208,7 @@ function useRitualCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
     };
 
     let raf = 0;
+    let paused = false;
     let last = performance.now();
     let t = 0;
 
@@ -500,11 +502,38 @@ function useRitualCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
         if (shakeT === 0) canvas.style.transform = "";
       }
 
-      raf = requestAnimationFrame(frame);
+      if (!paused) raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
 
+    // Park the ritual while the card is scrolled off-screen or the tab is
+    // hidden — nothing about how it LOOKS changes, it just stops repainting
+    // for nobody. `last` is re-based on resume so the dt-driven physics don't
+    // lurch forward by the whole parked duration on the first frame back.
+    const detach = attachVisibilityPause(canvas, {
+      onPause: () => {
+        paused = true;
+        cancelAnimationFrame(raf);
+      },
+      onResume: () => {
+        paused = false;
+        // Two clocks, and BOTH must skip the parked span. `last` only drives
+        // dt; the ritual schedules itself against absolute timestamps, so a
+        // park longer than the ~5-7s cadence leaves `now >= nextClick` already
+        // true — the summon (and its 0.2s camera shake) would fire the instant
+        // the card scrolled back. Shift the schedule instead, so the remaining
+        // wait is exactly what it was.
+        const now = performance.now();
+        const parked = now - last;
+        nextClick += parked;
+        modeStart += parked;
+        last = now;
+        raf = requestAnimationFrame(frame);
+      },
+    });
+
     return () => {
+      detach();
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
       ro?.disconnect();

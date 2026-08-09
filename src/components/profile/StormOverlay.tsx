@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { CSSProperties, RefObject } from "react";
 import { motion } from "framer-motion";
+import { attachVisibilityPause } from "@/components/profile/pauseWhenUnseen";
 
 /**
  * "Monarch's Tempest" — a cinematic dark-fantasy weather system (Solo Leveling
@@ -192,6 +193,7 @@ function useStormCanvas(
     };
 
     let raf = 0;
+    let paused = false;
     let last = performance.now();
     const frame = (now: number) => {
       const dt = Math.min((now - last) / 1000, 0.05);
@@ -315,11 +317,32 @@ function useStormCanvas(
       // one CSS variable drives the page-wide color grade + cloud backlight
       if (wrapper) wrapper.style.setProperty("--flash", flash.toFixed(3));
 
-      raf = requestAnimationFrame(frame);
+      if (!paused) raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
 
+    // Stop clearing/repainting a card-sized canvas at 60fps once the profile has
+    // scrolled off-screen or the tab is hidden. Purely a "don't draw for nobody"
+    // gate — nothing about the storm's look or cadence changes.
+    const detach = attachVisibilityPause(canvas, {
+      onPause: () => {
+        paused = true;
+        cancelAnimationFrame(raf);
+      },
+      onResume: () => {
+        paused = false;
+        const now = performance.now();
+        // Push the pending strike forward by however long we were parked, so the
+        // remaining wait is unchanged instead of firing a bolt the instant the
+        // card scrolls back into view.
+        nextStrike += now - last;
+        last = now;
+        raf = requestAnimationFrame(frame);
+      },
+    });
+
     return () => {
+      detach();
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
       ro?.disconnect();
