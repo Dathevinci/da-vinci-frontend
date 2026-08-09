@@ -97,11 +97,11 @@ function ChangelogBody({ content }: { content: string }) {
       const m = header.match(/^(NEW|FIX|FIXED|IMPROVED|CHANGED|REMOVED)\s*[—–-]\s*(.*)$/i);
       const kind = m ? m[1].toUpperCase() : "";
       blocks.push(
-        <div key={key++} className="flex items-center gap-2.5 pt-6 first:pt-0">
-          <h3 className="flex flex-wrap items-center gap-2 text-base font-black text-white sm:text-lg">
+        <div key={key++} className="flex items-center gap-2.5 pt-7 first:pt-0">
+          <h3 className="flex flex-wrap items-center gap-2 text-base font-bold text-white sm:text-lg">
             {m ? (
               <>
-                <span className={`rounded-md border px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${KIND_CHIP[kind] || "border-white/15 bg-white/10 text-slate-300"}`}>
+                <span className={`rounded-md border px-1.5 py-0.5 font-mono text-[10px] font-black uppercase tracking-wider ${KIND_CHIP[kind] || "border-white/15 bg-white/[0.06] text-slate-300"}`}>
                   {m[1]}
                 </span>
                 {m[2]}
@@ -131,10 +131,10 @@ function ChangelogBody({ content }: { content: string }) {
         i++;
       }
       blocks.push(
-        <ul key={key++} className="space-y-1.5 pl-1">
+        <ul key={key++} className="space-y-2 pl-1">
           {items.map((it, n) => (
-            <li key={n} className="flex gap-2.5 text-[14px] leading-relaxed text-slate-400">
-              <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-purple-400/70" />
+            <li key={n} className="flex gap-2.5 font-mono text-[13px] leading-relaxed text-slate-400">
+              <span className="mt-[8px] h-1 w-1 shrink-0 rounded-full bg-violet-400/80" />
               <span>{renderMentions(it)}</span>
             </li>
           ))}
@@ -144,7 +144,7 @@ function ChangelogBody({ content }: { content: string }) {
     }
 
     blocks.push(
-      <p key={key++} className="text-[14px] leading-relaxed text-slate-400">
+      <p key={key++} className="font-mono text-[13px] leading-relaxed text-slate-400">
         {renderMentions(line)}
       </p>
     );
@@ -333,35 +333,40 @@ export default function UpdatePost({ post, onDelete }: UpdatePostProps) {
   const authorRank = post.author ? getRankTheme((post.author as any).xp || 0, post.author.username) : null;
 
   return (
-    <article className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-[#141418] to-[#0d0d11] shadow-[0_10px_40px_rgba(0,0,0,0.4)]">
-      {/* accent bar */}
-      <div className="h-1 w-full bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-500" />
+    <article className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#0b0b11] transition-colors duration-300 hover:border-white/20">
+      {/* A wash from the top edge instead of the old rainbow rule — the same
+          light the page hero uses, so a card reads as part of the surface
+          rather than a striped box sitting on it. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(ellipse_60%_100%_at_50%_0%,rgba(139,92,246,0.12),transparent_70%)]"
+      />
 
       {post.image && (
-        <img src={post.image} alt="" className="max-h-[420px] w-full object-cover" />
+        <img src={post.image} alt="" className="relative max-h-[420px] w-full object-cover" />
       )}
 
-      <div className="p-6 md:p-8">
+      <div className="relative p-6 md:p-8">
         {/* meta row */}
         <div className="mb-4 flex flex-wrap items-center gap-2.5">
           {version && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-purple-600 to-fuchsia-600 px-3 py-1 text-sm font-black text-white shadow-[0_0_16px_rgba(168,85,247,0.4)]">
-              <Sparkles className="h-3.5 w-3.5" /> v{version}
+            <span className="inline-flex items-center gap-1.5 rounded-lg border border-violet-400/30 bg-violet-500/15 px-2.5 py-1 font-mono text-xs font-black text-violet-200">
+              <Sparkles className="h-3 w-3" /> v{version}
             </span>
           )}
           {tags.map((t) => (
-            <span key={t} className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-bold text-slate-300">
-              <TagIcon className="h-3 w-3 text-fuchsia-400" /> {t}
+            <span key={t} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1 font-mono text-[11px] font-bold text-slate-300">
+              <TagIcon className="h-3 w-3 text-violet-300" /> {t}
             </span>
           ))}
-          <span className="text-xs font-medium text-slate-500">{dateLabel}</span>
+          <span className="font-mono text-[11px] text-slate-500">{dateLabel}</span>
 
           {canModifyPost && (
             <div className="ml-auto flex gap-2">
-              <button onClick={() => setIsEditingPost(!isEditingPost)} className="rounded-lg bg-purple-500/10 px-2.5 py-1 text-xs font-bold text-slate-400 transition hover:text-purple-300">
+              <button onClick={() => setIsEditingPost(!isEditingPost)} className="rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1 font-mono text-[11px] font-bold text-slate-400 transition hover:border-violet-400/40 hover:text-violet-200">
                 {isEditingPost ? "Cancel" : "Edit"}
               </button>
-              <button onClick={() => setShowDeleteModal(true)} className="rounded-lg bg-red-500/10 px-2.5 py-1 text-xs font-bold text-slate-400 transition hover:text-red-400">
+              <button onClick={() => setShowDeleteModal(true)} className="rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1 font-mono text-[11px] font-bold text-slate-400 transition hover:border-red-400/40 hover:text-red-300">
                 Delete
               </button>
             </div>
@@ -369,40 +374,47 @@ export default function UpdatePost({ post, onDelete }: UpdatePostProps) {
         </div>
 
         {isEditingPost ? (
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             <input
               value={editPostTitle}
               onChange={(e) => setEditPostTitle(e.target.value)}
-              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-purple-500 focus:outline-none"
+              /* 16px on mobile so iOS Safari doesn't zoom the page on focus
+                 and leave it zoomed — the same rule the explore inputs follow. */
+              className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5 font-mono text-base text-white focus:border-violet-400/50 focus:outline-none sm:text-sm"
             />
             <textarea
               value={editPostContent}
               onChange={(e) => setEditPostContent(e.target.value)}
-              className="min-h-[180px] w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-purple-500 focus:outline-none"
+              className="min-h-[220px] w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5 font-mono text-base leading-relaxed text-white focus:border-violet-400/50 focus:outline-none sm:text-sm"
             />
             <div className="flex justify-end">
-              <button onClick={handleSavePostEdit} className="rounded-lg bg-gradient-to-r from-purple-600 to-fuchsia-600 px-4 py-1.5 text-xs font-bold text-white transition hover:scale-[1.02]">
+              <button onClick={handleSavePostEdit} className="rounded-xl border border-violet-400/30 bg-violet-500/15 px-4 py-2 font-mono text-xs font-bold text-violet-200 transition hover:border-violet-400/60 hover:bg-violet-500/25">
                 Save
               </button>
             </div>
           </div>
         ) : (
           <>
-            <h2 className="mb-5 text-2xl font-black leading-tight tracking-tight md:text-3xl">{displayTitle}</h2>
+            {/* font-fell, matching the hub and the page hero — the display
+                serif is what makes this feel like the redesigned site rather
+                than a bold sans heading on a dark box. */}
+            <h2 className="mb-5 font-fell text-3xl leading-tight text-white md:text-4xl">{displayTitle}</h2>
             {/* Long posts collapse behind a fade. Every changelog rendered in
                 full meant the page opened as one continuous wall of text and you
                 couldn't see what releases even existed without scrolling past
                 all of them. Short posts are never clipped. */}
             <div className={`relative ${isLong && !expanded ? "max-h-[22rem] overflow-hidden" : ""}`}>
               <ChangelogBody content={post.content} />
+              {/* Fades to the card's own colour — #141418 was the old gradient
+                  card and left a visible seam against #0b0b11. */}
               {isLong && !expanded && (
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#141418] to-transparent" />
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#0b0b11] to-transparent" />
               )}
             </div>
             {isLong && (
               <button
                 onClick={() => setExpanded((v) => !v)}
-                className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-bold text-slate-300 transition hover:border-purple-500/40 hover:text-white"
+                className="mt-4 inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 font-mono text-[11px] font-bold text-slate-300 transition hover:border-violet-400/40 hover:text-white"
               >
                 {expanded ? "Show less" : "Read full changelog"}
                 <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expanded ? "rotate-180" : ""}`} />
@@ -412,11 +424,11 @@ export default function UpdatePost({ post, onDelete }: UpdatePostProps) {
         )}
 
         {/* footer: author + discuss */}
-        <div className="mt-7 flex items-center justify-between border-t border-white/10 pt-4">
+        <div className="mt-8 flex items-center justify-between border-t border-white/[0.07] pt-5">
           <UserLink username={post.author.username} className="group flex items-center gap-2.5">
             <div className="relative shrink-0">
               {post.author.avatar ? (
-                <img src={post.author.avatar} alt="" className={`relative z-10 h-8 w-8 rounded-full object-cover border-2 ${hasFrameRing(post.author.activeFrame, post.author.activeEffect) ? "border-[#141418]" : authorRank?.borderClass}`} />
+                <img src={post.author.avatar} alt="" className={`relative z-10 h-8 w-8 rounded-full object-cover border-2 ${hasFrameRing(post.author.activeFrame, post.author.activeEffect) ? "border-[#0b0b11]" : authorRank?.borderClass}`} />
               ) : (
                 <div className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-black ${authorRank?.borderClass} ${authorRank?.bgCardClass}`}>
                   {(post.author.username || "U").charAt(0).toUpperCase()}
@@ -426,7 +438,7 @@ export default function UpdatePost({ post, onDelete }: UpdatePostProps) {
             </div>
             <div className="leading-tight">
               <div className={`text-sm font-bold group-hover:underline ${authorRank?.textColorClass}`}>{post.author.username}</div>
-              <div className="text-[11px] text-slate-500">{timeAgo(post.createdAt)} ago</div>
+              <div className="font-mono text-[11px] text-slate-500">{timeAgo(post.createdAt)} ago</div>
             </div>
           </UserLink>
 
@@ -441,13 +453,13 @@ export default function UpdatePost({ post, onDelete }: UpdatePostProps) {
       <AnimatePresence>
         {showDeleteModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-white/10 bg-[#0f0f13] p-6 shadow-2xl">
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative w-full max-w-sm overflow-hidden rounded-3xl border border-white/10 bg-[#0b0b11] p-6 shadow-2xl">
               <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-red-500/50 to-transparent" />
-              <h3 className="mb-2 text-xl font-bold">Delete update</h3>
-              <p className="mb-6 text-sm text-slate-400">Are you sure? This can't be undone.</p>
+              <h3 className="mb-2 font-fell text-2xl text-white">Delete update</h3>
+              <p className="mb-6 font-mono text-[13px] leading-relaxed text-slate-400">Are you sure? This can&rsquo;t be undone.</p>
               <div className="flex justify-end gap-3">
-                <button onClick={() => setShowDeleteModal(false)} className="rounded-xl px-4 py-2 text-sm font-bold text-slate-300 transition hover:bg-white/5">Cancel</button>
-                <button onClick={confirmDelete} className="rounded-xl bg-red-500/10 px-4 py-2 text-sm font-bold text-red-500 transition hover:bg-red-500 hover:text-white">Delete</button>
+                <button onClick={() => setShowDeleteModal(false)} className="rounded-xl border border-white/10 px-4 py-2 font-mono text-xs font-bold text-slate-300 transition hover:bg-white/5">Cancel</button>
+                <button onClick={confirmDelete} className="rounded-xl border border-red-400/30 bg-red-500/15 px-4 py-2 font-mono text-xs font-bold text-red-300 transition hover:bg-red-500 hover:text-white">Delete</button>
               </div>
             </motion.div>
           </motion.div>
