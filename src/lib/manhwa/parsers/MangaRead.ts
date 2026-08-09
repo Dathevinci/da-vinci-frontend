@@ -1,5 +1,16 @@
 import { MangaParser, ISearch, IMangaInfo, IMangaResult, MediaStatus, IMangaChapterPage, IMangaChapter } from '@/lib/asura/models';
 
+/**
+ * Hand-built title aliases: series MangaRead hosts under a DIFFERENT name
+ * (e.g. a DMCA'd title living on under its alternate translation). search()
+ * rewrites the query with these — and the rescue matcher in
+ * src/lib/manhwa/sources.ts must accept the alias target too, or its strict
+ * title verification rejects the very result the alias exists to find.
+ */
+export const TITLE_ALIASES: { phrases: string[]; target: string }[] = [
+  { phrases: ["spark in your eyes", "spark in my eyes"], target: "blinded by the setting sun" },
+];
+
 export default class MangaRead extends MangaParser {
   override readonly name = 'MangaRead';
   protected override readonly baseUrl = 'https://www.mangaread.org';
@@ -29,9 +40,8 @@ export default class MangaRead extends MangaParser {
   override async search(query: string, page: number = 1): Promise<ISearch<IMangaResult>> {
     let searchQuery = query;
     const normalized = query.toLowerCase().trim();
-    if (normalized.includes("spark in your eyes") || normalized.includes("spark in my eyes")) {
-      searchQuery = "blinded by the setting sun";
-    }
+    const alias = TITLE_ALIASES.find((a) => a.phrases.some((p) => normalized.includes(p)));
+    if (alias) searchQuery = alias.target;
 
     const url = `${this.baseUrl}/page/${page}/?s=${encodeURIComponent(searchQuery)}&post_type=wp-manga`;
     

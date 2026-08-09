@@ -7,7 +7,7 @@
 import { AsuraScans } from "@/lib/asura";
 import { IMangaResult, IMangaInfo, IMangaChapterPage, ISearch } from "@/lib/asura/models";
 import * as MDX from "./MangaDex";
-import MangaRead from "./parsers/MangaRead";
+import MangaRead, { TITLE_ALIASES } from "./parsers/MangaRead";
 
 const asura = () => new AsuraScans();
 const mrd = () => new MangaRead();
@@ -22,14 +22,49 @@ export async function getManhwaInfo(id: string): Promise<IMangaInfo> {
   else info = await asura().fetchMangaInfo(id);
 
   // Rescue: If a title (like MangaDex DMCA'd licensed titles) returns 0 chapters, rescue chapters from MangaRead!
-  if (!info.chapters || info.chapters.length === 0) {
+  //
+  // TWO GUARDS, both born of the same owner report — "some series show fewer
+  // chapters than they really have":
+  //
+  // 1. NEVER rescue a TRANSIENT failure. `chaptersFailed` means Asura HAS the
+  //    chapters and one request didn't land (the flag exists so the UI can say
+  //    so and offer a retry). Substituting MangaRead here replaced a complete
+  //    list with one that lags Asura — or, worse, with a different series (see
+  //    guard 2) — intermittently, since the very next reload showed the full
+  //    list again. The rescue is for lists that are GENUINELY empty.
+  //
+  // 2. VERIFY THE MATCH. `results[0]` of a WordPress fuzzy search is not "this
+  //    series on MangaRead" — for any title MangaRead doesn't host, it is some
+  //    loosely-related series with its own, usually far shorter, chapter list
+  //    (verified live: a 126-chapter series rescued a 26-chapter stranger).
+  //    Same philosophy as findChapterBySlugAndNumber: the wrong series is far
+  //    worse than none, so only a normalised exact/prefix title match counts.
+  if ((!info.chapters || info.chapters.length === 0) && !(info as any).chaptersFailed) {
     try {
       const searchRes = await mrd().search(info.title);
-      if (searchRes.results.length > 0) {
-        const rescueInfo = await mrd().fetchMangaInfo(searchRes.results[0].id);
+      // A hand-built alias means MangaRead hosts this series under ANOTHER
+      // name (search() already rewrote the query with it) — the verification
+      // must accept that name too, or the alias-based rescue this feature was
+      // originally built for can never fire again.
+      const lower = info.title.toLowerCase();
+      const alias = TITLE_ALIASES.find((a) => a.phrases.some((p) => lower.includes(p)));
+      const wants = [normTitle(info.title), alias ? normTitle(alias.target) : ""].filter(Boolean);
+      const hit = wants.length
+        ? searchRes.results.find((r) => {
+            const got = normTitle(r.title);
+            if (!got) return false;
+            // want-startsWith-got needs a length floor, or a stray short
+            // result ("solo") would claim any long title it prefixes.
+            return wants.some(
+              (w) => got === w || got.startsWith(w) || (w.startsWith(got) && got.length >= Math.min(w.length, 8))
+            );
+          })
+        : undefined;
+      if (hit) {
+        const rescueInfo = await mrd().fetchMangaInfo(hit.id);
         if (rescueInfo.chapters && rescueInfo.chapters.length > 0) {
           info.chapters = rescueInfo.chapters;
-          console.log(`[manhwa] Rescued ${rescueInfo.chapters.length} chapters from MangaRead for "${info.title}"`);
+          console.log(`[manhwa] Rescued ${rescueInfo.chapters.length} chapters from MangaRead ("${hit.title}") for "${info.title}"`);
         }
       }
     } catch (e) {
