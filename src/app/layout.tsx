@@ -32,6 +32,16 @@ const fellEnglish = IM_Fell_English_SC({
   variable: "--font-fell",
 });
 
+// The landing wordmark's face — the heavy condensed grotesque of the Lunar
+// reference. Anton ships one weight; it is inherently black.
+import { Anton } from "next/font/google";
+const anton = Anton({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-anton",
+  display: "swap",
+});
+
 // Classic Renaissance book serif for elegant, da Vinci-era typography.
 const ebGaramond = EB_Garamond({
   weight: ["400", "500"],
@@ -106,7 +116,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className="dark">
-      <body className={`${geistSans.variable} ${geistMono.variable} ${permanentMarker.variable} ${cinzel.variable} ${ebGaramond.variable} ${fellEnglish.variable} ${pressStart.variable} ${lora.variable} ${merriweather.variable} ${literata.variable} ${lexend.variable} bg-[#050505] text-white antialiased min-h-screen flex flex-col transition-colors duration-300 overflow-x-hidden`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} ${permanentMarker.variable} ${cinzel.variable} ${ebGaramond.variable} ${fellEnglish.variable} ${anton.variable} ${pressStart.variable} ${lora.variable} ${merriweather.variable} ${literata.variable} ${lexend.variable} bg-[#050505] text-white antialiased min-h-screen flex flex-col transition-colors duration-300 overflow-x-hidden`}>
         <ThemeProvider>
           <AppMotionConfig>
           <AppModeProvider>

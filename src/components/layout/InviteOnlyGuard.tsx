@@ -82,25 +82,32 @@ function useStaffProfiles(enabled: boolean): Record<string, StaffProfile> {
 const LANDING_BG = "/landing-bg.jpg";
 
 /**
- * The wordmark is a WINDOW onto the background rather than a painted colour.
- *
- * `background-attachment: fixed` is what makes it work: the image is anchored
- * to the viewport, not to the letters, so the art inside the text lines up
- * exactly with the art behind the page. Without it the fill would be a second,
- * differently-cropped copy and the illusion collapses.
+ * The optional TITLE VIDEO — drop `public/title-font.webm` (or `.mp4`) on the
+ * repo and the wordmark letters fill with the playing video, like the
+ * reference site's iridescent title. No file, no change: the art fill below
+ * carries the letters instead.
  */
-const WORDMARK_WINDOW: React.CSSProperties = {
-  // TWO layers, and the order matters. The artwork sits on top; the amethyst
-  // gradient sits under it as a floor. background-clip:text makes the letters
-  // transparent, so if the image ever fails to load a single-layer version
-  // renders NOTHING — the title simply disappears, which is exactly what
-  // happened when the file wasn't deployed. The gradient guarantees letters.
+const TITLE_VIDEO_WEBM = "/title-font.webm";
+const TITLE_VIDEO_MP4 = "/title-font.mp4";
+
+/** The wordmark's letter face — the reference's heavy condensed grotesque. */
+const TITLE_FONT = "var(--font-anton), Impact, 'Arial Black', sans-serif";
+
+/**
+ * The wordmark's fill when there is no title video: the landing art,
+ * cover-cropped to the letters.
+ *
+ * This used to be a viewport-FIXED "window" onto the page background — that
+ * trick only read because the page copy of the art was blurred and the letters
+ * were sharp. The page art is crisp now, and a window onto identical pixels
+ * renders an invisible title, so the letters get their own crop instead. The
+ * amethyst gradient underneath guarantees letters even if the image never
+ * loads (background-clip:text on a missing single layer renders NOTHING).
+ */
+const WORDMARK_FILL: React.CSSProperties = {
   backgroundImage: `url(${LANDING_BG}), linear-gradient(100deg, #6d28d9 0%, #a78bfa 18%, #f5f3ff 32%, #c4b5fd 46%, #8b5cf6 62%, #a78bfa 82%, #6d28d9 100%)`,
   backgroundSize: "cover, 200% 100%",
-  backgroundPosition: "center, center",
-  // The page background is blurred; this one is NOT. Sharp art inside the
-  // letters against a soft field is what makes the wordmark read as a window.
-  backgroundAttachment: "fixed, scroll",
+  backgroundPosition: "center 30%, center",
   WebkitBackgroundClip: "text",
   backgroundClip: "text",
   color: "transparent",
@@ -111,6 +118,9 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const router = useRouter();
   const staffProfiles = useStaffProfiles(isLoaded && !user);
+  /** True once the optional title video's metadata loads — flips the wordmark
+   *  from the art-filled text to letters with the video playing inside. */
+  const [titleVideo, setTitleVideo] = useState(false);
 
   /**
    * /login is the ONE route a signed-out visitor is allowed through to.
@@ -149,13 +159,10 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
             backgroundImage: `url(${LANDING_BG})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
-            // Blur pushes the art back so the copy sits in front of it rather
-            // than fighting it — but 14px erased the artwork entirely, leaving
-            // a coloured haze. Six keeps it soft enough to read text over and
-            // still recognisable as a picture. Scaled up because a blur samples
-            // past its own edges and would otherwise leave a soft border.
-            filter: "blur(6px) saturate(1.1)",
-            transform: "scale(1.04)",
+            // Crisp, like the reference — the art IS the show. The scrim pair
+            // below (flat darkener + bottom-heavy gradient) is what keeps the
+            // copy readable over any crop; the blur never needed to.
+            filter: "saturate(1.1)",
           }}
         />
         {/* Scrims. Two of them: a flat darkener so text is legible over any
@@ -232,16 +239,77 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
             </span>
           </motion.div>
 
-          {/* The wordmark — a window onto the art behind it */}
-          <motion.h1
-            initial={{ y: 18, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.9, delay: 0.1, ease: easeCine }}
-            className="font-fell text-6xl font-bold uppercase leading-none tracking-[0.16em] pl-[0.16em] drop-shadow-[0_6px_40px_rgba(0,0,0,0.9)] sm:text-8xl md:text-[9rem]"
-            style={WORDMARK_WINDOW}
-          >
-            Da Vinci
-          </motion.h1>
+          {/* Probe for the optional title video. display:none + metadata
+              preload costs a header fetch; if neither file exists the error
+              lands silently and the art-filled title below simply stays. */}
+          {!titleVideo && (
+            <video
+              className="hidden"
+              muted
+              playsInline
+              preload="metadata"
+              onLoadedMetadata={() => setTitleVideo(true)}
+            >
+              <source src={TITLE_VIDEO_WEBM} type="video/webm" />
+              <source src={TITLE_VIDEO_MP4} type="video/mp4" />
+            </video>
+          )}
+
+          {/* The wordmark — the reference's blocky face. With a title video
+              present, the letters are a clipPath over the playing video;
+              without one they fill with the landing art. */}
+          {titleVideo ? (
+            <motion.div
+              initial={{ y: 18, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.9, delay: 0.1, ease: easeCine }}
+              // 54rem, not 5xl: scales the 168-unit SVG text to ~145px on
+              // desktop — the same size the fallback h1 renders at, so the
+              // art→video swap doesn't visibly grow the wordmark.
+              className="w-full max-w-[54rem] drop-shadow-[0_6px_40px_rgba(0,0,0,0.9)]"
+            >
+              <svg viewBox="0 0 1000 180" className="h-auto w-full" role="img" aria-label="Da Vinci">
+                <defs>
+                  <clipPath id="dv-title-clip">
+                    <text
+                      x="500"
+                      y="150"
+                      textAnchor="middle"
+                      fontSize="168"
+                      letterSpacing="0.04em"
+                      style={{ fontFamily: TITLE_FONT }}
+                    >
+                      DA VINCI
+                    </text>
+                  </clipPath>
+                </defs>
+                <g clipPath="url(#dv-title-clip)">
+                  <foreignObject x="0" y="0" width="1000" height="180">
+                    <video
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    >
+                      <source src={TITLE_VIDEO_WEBM} type="video/webm" />
+                      <source src={TITLE_VIDEO_MP4} type="video/mp4" />
+                    </video>
+                  </foreignObject>
+                </g>
+              </svg>
+            </motion.div>
+          ) : (
+            <motion.h1
+              initial={{ y: 18, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.9, delay: 0.1, ease: easeCine }}
+              className="text-6xl uppercase leading-none tracking-[0.05em] pl-[0.05em] drop-shadow-[0_6px_40px_rgba(0,0,0,0.9)] sm:text-8xl md:text-[9rem]"
+              style={{ ...WORDMARK_FILL, fontFamily: TITLE_FONT }}
+            >
+              Da Vinci
+            </motion.h1>
+          )}
 
           <motion.p
             initial={{ y: 16, opacity: 0 }}
