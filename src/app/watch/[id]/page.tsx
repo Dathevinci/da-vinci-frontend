@@ -102,6 +102,11 @@ function WatchInner() {
   useEffect(() => {
     setWatched(loadWatched(malId));
     setPrefs(loadPrefs());
+    // The Control Center can flip watch prefs from anywhere on the site —
+    // re-read on its signal so an open player honors the change immediately.
+    const sync = () => setPrefs(loadPrefs());
+    window.addEventListener("davinci_watch_prefs_updated", sync);
+    return () => window.removeEventListener("davinci_watch_prefs_updated", sync);
   }, [malId]);
 
   // The URL is the source of truth for the episode — a fresh push to the
