@@ -76,9 +76,13 @@ function pickTitle(at: any): string {
   return (first as string) || "Untitled";
 }
 
-function coverUrl(mangaId: string, rels: any[], size: 256 | 512 = 512): string | undefined {
+function coverUrl(mangaId: string, rels: any[], size?: 256 | 512): string | undefined {
   const c = (rels || []).find((r) => r.type === "cover_art" && r.attributes?.fileName);
   if (!c) return undefined;
+  // If no size is specified, return the original uncompressed HD cover.
+  if (!size) {
+    return `${UPLOADS}/covers/${mangaId}/${c.attributes.fileName}`;
+  }
   // MangaDex cover thumbnails: /covers/<id>/<file>.<size>.jpg (file already ends .jpg)
   return `${UPLOADS}/covers/${mangaId}/${c.attributes.fileName}.${size}.jpg`;
 }
@@ -88,7 +92,7 @@ function mapResult(m: any): IMangaResult {
   return {
     id: MDX_PREFIX + m.id,
     title: pickTitle(at),
-    image: coverUrl(m.id, m.relationships || [], 512),
+    image: coverUrl(m.id, m.relationships || []),
     status: STATUS[at.status] || MediaStatus.UNKNOWN,
     latestChapter: at.lastChapter ? `Chapter ${at.lastChapter}` : undefined,
     /**
@@ -168,7 +172,7 @@ export async function fetchInfo(id: string): Promise<IMangaInfo> {
   return {
     id: MDX_PREFIX + mid,
     title: pickTitle(at),
-    image: coverUrl(mid, rels, 512),
+    image: coverUrl(mid, rels),
     status: STATUS[at.status] || MediaStatus.UNKNOWN,
     description: description || undefined,
     authors: authors.length ? authors : undefined,
