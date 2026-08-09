@@ -110,11 +110,16 @@ function DockBtn({
 export default function BottomDock({
   onSearch,
   onSettings,
+  pin,
 }: {
   /** Opens the real search modal (owned by the nav that mounts us). */
   onSearch?: () => void;
-  /** Opens the Control Center — quick settings, performance mode. */
+  /** Toggles the Control Center — quick settings, performance mode. */
   onSettings?: () => void;
+  /** True while something anchored to the bar (the Control Center) is
+   *  open — keeps the scroll auto-hide from sliding the bar out from
+   *  under its own panel. */
+  pin?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -146,7 +151,7 @@ export default function BottomDock({
    */
   useEffect(() => {
     // Never hide while something anchored to the bar is open.
-    if (open || notifOpen) { setHidden(false); return; }
+    if (open || notifOpen || pin) { setHidden(false); return; }
 
     let lastY = window.scrollY;
     const onScroll = () => {
@@ -160,7 +165,7 @@ export default function BottomDock({
 
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, [open, notifOpen]);
+  }, [open, notifOpen, pin]);
 
   // A route change always restores it — otherwise you could land on a new
   // page with no navigation until you happened to scroll up.
@@ -215,8 +220,12 @@ export default function BottomDock({
           <DockBtn {...btn("reload")} onClick={() => window.location.reload()} label="Reload"><RotateCw className="h-[17px] w-[17px]" /></DockBtn>
           <DockBtn {...btn("nav")} onClick={() => setOpen(true)} label="Navigation"><Home className="h-[18px] w-[18px]" /></DockBtn>
           {/* Control Center, ON the bar — it was buried behind the sheet's
-              Quick actions, two taps deep for the panel you reach for most. */}
-          <DockBtn {...btn("cc")} onClick={() => { if (onSettings) onSettings(); }} label="Control Center"><SlidersHorizontal className="h-[17px] w-[17px]" /></DockBtn>
+              Quick actions, two taps deep for the panel you reach for most.
+              data-cc-trigger (display:contents, no layout box) lets the
+              panel's click-outside ignore this button so it can TOGGLE. */}
+          <span data-cc-trigger className="contents">
+            <DockBtn {...btn("cc")} onClick={() => { if (onSettings) onSettings(); }} label="Control Center"><SlidersHorizontal className="h-[17px] w-[17px]" /></DockBtn>
+          </span>
           {/* the REAL notifications panel, unread badge and all — this bell
               used to just route to /updates, which is a page, not your
               notifications. Updates still lives in the sheet's page list. */}

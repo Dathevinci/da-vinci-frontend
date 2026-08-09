@@ -76,6 +76,11 @@ export default function ControlCenter({ isOpen, onClose }: ControlCenterProps) {
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
+      // The dock trigger TOGGLES us. If its mousedown also counted as
+      // "outside", close-then-click-reopen made the button unable to shut
+      // the panel it visually belongs to.
+      const el = e.target instanceof Element ? e.target : null;
+      if (el && el.closest("[data-cc-trigger]")) return;
       if (ref.current && !ref.current.contains(e.target as Node)) onClose();
     };
     if (isOpen) document.addEventListener("mousedown", handleClickOutside);
@@ -85,14 +90,24 @@ export default function ControlCenter({ isOpen, onClose }: ControlCenterProps) {
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
-          ref={ref}
-          initial={{ opacity: 0, scale: 0.96, y: -10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.96, y: -10, transition: { duration: 0.15 } }}
-          transition={{ type: "spring", stiffness: 400, damping: 30 }}
-          className="fixed top-20 right-4 z-[100] flex max-h-[85dvh] w-[calc(100vw-32px)] flex-col gap-4 overflow-hidden overflow-y-auto rounded-3xl border border-white/10 bg-[#0b0b11]/90 p-4 font-mono text-white shadow-[0_30px_60px_rgba(0,0,0,0.8)] backdrop-blur-2xl sm:w-[400px] md:right-8"
+        /* Anchored ABOVE THE DOCK, centered — the button that opens this
+           lives on the bottom pill now, so the panel rises from it instead
+           of teleporting to the top-right corner. Same wrapper pattern as
+           the dock itself: a full-width fixed strip that only centers
+           (pointer-events-none so it doesn't eat clicks beside the panel),
+           with the motion.div free to animate transforms inside it. */
+        <div
+          className="pointer-events-none fixed inset-x-0 z-[100] flex justify-center px-4"
+          style={{ bottom: "calc(max(0.9rem, env(safe-area-inset-bottom)) + 4.4rem)" }}
         >
+          <motion.div
+            ref={ref}
+            initial={{ opacity: 0, scale: 0.96, y: 14 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: 14, transition: { duration: 0.15 } }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            className="pointer-events-auto flex max-h-[72dvh] w-full max-w-[400px] origin-bottom flex-col gap-4 overflow-x-hidden overflow-y-auto rounded-3xl border border-white/10 bg-[#0b0b11]/90 p-4 font-mono text-white shadow-[0_30px_60px_rgba(0,0,0,0.8)] backdrop-blur-2xl"
+          >
           {/* ── Header: title + live mode chip ── */}
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
@@ -207,7 +222,8 @@ export default function ControlCenter({ isOpen, onClose }: ControlCenterProps) {
               />
             </div>
           </div>
-        </motion.div>
+          </motion.div>
+        </div>
       )}
     </AnimatePresence>
   );

@@ -459,7 +459,7 @@ export default function Navbar() {
       {/* The phone-thumb dock + its Navigation sheet. Mobile only — the
           desktop island already owns the bottom of big screens. It absorbs
           the old top bar's real jobs: the search modal and Control Center. */}
-      {user && <BottomDock onSearch={() => setShowSearchModal(true)} onSettings={() => setShowControlCenter(true)} />}
+      {user && <BottomDock onSearch={() => setShowSearchModal(true)} onSettings={() => setShowControlCenter(v => !v)} pin={showControlCenter} />}
     </>
   );
 }
