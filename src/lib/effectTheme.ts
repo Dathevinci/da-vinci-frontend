@@ -44,7 +44,10 @@ export function effectNameClass(effect?: string | null): string {
     case "effect_gateway":
       return "text-transparent bg-clip-text bg-[linear-gradient(to_right,#e2beff,#8a2be2,#ffffff,#ffd700,#e2beff)] drop-shadow-[0_0_10px_rgba(138,43,226,0.65)]";
     case "effect_webslinger":
-      return "text-transparent bg-clip-text bg-[linear-gradient(to_right,#f8fafc,#22d3ee,#ef4444,#22d3ee,#f8fafc)] drop-shadow-[0_0_10px_rgba(34,211,238,0.6)]";
+      // SSS: the name is ALIVE — the silk-light gradient slides through the
+      // letters (web-shimmer keyframes live in globals.css). Every surface
+      // that calls effectNameClass gets the moving name for free.
+      return "text-transparent bg-clip-text bg-[linear-gradient(to_right,#f8fafc,#22d3ee,#ef4444,#22d3ee,#f8fafc)] bg-[length:200%_100%] animate-[web-shimmer_3.5s_linear_infinite] drop-shadow-[0_0_10px_rgba(34,211,238,0.6)]";
     default:
       return "";
   }

@@ -239,3 +239,15 @@ body.theme-crimson::after {
     padding-top: 2rem;
   }
 }
+
+/* ── The Web-Slinger's living name ──────────────────────────────────────
+   SSS names ANIMATE: the text-clip gradient slides through the letters like
+   light running down a silk strand. Both gradient ends are the same white,
+   so the 200% background wraps seamlessly. Referenced by the arbitrary
+   animate-[web-shimmer_…] classes in effectTheme.ts and the profile hero.
+   Performance Mode freezes it for free — the .reduced-motion body class
+   already zeroes CSS animations globally. */
+@keyframes web-shimmer {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}

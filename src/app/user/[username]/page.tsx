@@ -331,9 +331,11 @@ export default function PublicProfilePage() {
   // The unique Gate & Key burns it in ultraviolet, white and corrupted gold.
   const isGateway = effectiveEffect === "effect_gateway";
   const gatewayName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#e2beff,#8a2be2,#ffffff,#ffd700,#e2beff)] drop-shadow-[0_0_10px_rgba(138,43,226,0.65)]";
-  // The extreme-rare Web-Slinger nets it in titanium white, cyan and crimson.
+  // The SSS Web-Slinger nets it in titanium white, cyan and crimson.
   const isWebSlinger = effectiveEffect === "effect_webslinger";
-  const webSlingerName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#f8fafc,#22d3ee,#ef4444,#22d3ee,#f8fafc)] drop-shadow-[0_0_10px_rgba(34,211,238,0.6)]";
+  // Keep in step with effectTheme.ts's effect_webslinger case — the shimmer
+  // animation is what makes the SSS name read as part of the effect.
+  const webSlingerName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#f8fafc,#22d3ee,#ef4444,#22d3ee,#f8fafc)] bg-[length:200%_100%] animate-[web-shimmer_3.5s_linear_infinite] drop-shadow-[0_0_10px_rgba(34,211,238,0.6)]";
   // When a bought frame (or the Voltaic ring) is equipped, drop the rank/role
   // border + glow so it doesn't override the frame the user chose.
   const ringOverridesRank = hasFrameRing((profileUser as any).activeFrame, effectiveEffect);

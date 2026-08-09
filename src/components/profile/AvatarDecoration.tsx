@@ -343,7 +343,7 @@ function EffectLayer({ effect, size = "sm" }: { effect: string; size?: "sm" | "l
   }
 
   if (effect === "effect_webslinger") {
-    // Extreme Rare: white→cyan→crimson breathing glow + the web anchor. WebSlinger.tsx.
+    // SSS: white→cyan→crimson breathing glow + the web anchor. WebSlinger.tsx.
     return <WebSlingerAvatarMark />;
   }
 
