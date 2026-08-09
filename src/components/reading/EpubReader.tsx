@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  AlignCenter, AlignLeft, AlignRight, ChevronLeft, Download, Home, List, Loader2, Moon, Settings, Sun, X,
+  AlignCenter, AlignLeft, AlignRight, BookX, ChevronLeft, Download, Home, List, Loader2, Moon, Settings, Sun, X,
 } from "lucide-react";
 import { encodeLnori, lnoriFileUrl } from "@/lib/novel/lnoriProxy";
 import { browseAnchorHref } from "@/lib/browseAnchor";
@@ -122,6 +122,10 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
   const [booting, setBooting] = useState(true);
   const [appending, setAppending] = useState(false);
   const [fallback, setFallback] = useState(false);
+  /** The source (Lnori) is unreachable — a distinct state from "this one book
+   *  wouldn't parse", which falls back to epub.js. Handing an unreachable
+   *  source to the fallback just fails again against the same dead host. */
+  const [sourceDown, setSourceDown] = useState(false);
   const [tocOpen, setTocOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -141,7 +145,7 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
   const secKey = "epub-sec:" + file;
 
   const fetchSection = useCallback(
-    async (index: number): Promise<SectionPayload | null> => {
+    async (index: number): Promise<SectionPayload | "source-down" | null> => {
       /**
        * v=2 is a cache-bust, and it matters more than it looks. Sections are
        * served immutable with a day of browser cache — so a phone that opened
@@ -153,6 +157,9 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
       const res = await fetch(
         "/api/proxy/lnori/section?b=" + encodeURIComponent(b) + "&sec=" + index + "&v=2"
       ).catch(() => null);
+      // 503 is the source refusing us wholesale (Cloudflare challenge / down).
+      // Flag it so the caller shows "unavailable" rather than a doomed fallback.
+      if (res?.status === 503) return "source-down" as const;
       if (!res || !res.ok) return null;
       return res.json().catch(() => null);
     },
@@ -168,6 +175,12 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
       loadTokenRef.current++;
       pendingFragRef.current = fragment || null;
       const payload = await fetchSection(index);
+      if (payload === "source-down") {
+        // The whole source is unreachable — the fallback fetches the same dead
+        // host, so show the message instead of failing twice.
+        setSourceDown(true);
+        return;
+      }
       if (!payload) {
         // The extractor could not parse this book — hand over to epub.js
         // rather than show an error for a book the old reader can open.
@@ -230,6 +243,10 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
       while (!cancelled && token === loadTokenRef.current && next < count) {
         const payload = await fetchSection(next);
         if (cancelled || token !== loadTokenRef.current) return;
+        // The source dropped mid-stream. The reader already has the sections
+        // loaded so far; stop quietly rather than push the sentinel as a
+        // section or hammer a dead host.
+        if (payload === "source-down") break;
         if (payload) {
           failures = 0;
           setSections((prev) =>
@@ -406,6 +423,39 @@ export default function EpubReader({ file, title, novelId }: EpubReaderProps) {
     }
     jumpTo(idx, frag);
   };
+
+  if (sourceDown) {
+    // The whole EPUB source is offline (Lnori went behind a Cloudflare
+    // challenge). Say so plainly and get the reader out, rather than spin or
+    // hand off to a fallback that hits the same dead host.
+    return (
+      <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-5 px-6 text-center" style={{ backgroundColor: t.bg, color: t.text }}>
+        <BookX className="h-12 w-12" style={{ color: t.muted }} />
+        <div>
+          <p className="font-fell text-2xl">This book is temporarily unavailable</p>
+          <p className="mx-auto mt-2 max-w-sm font-mono text-sm" style={{ color: t.muted }}>
+            The library it comes from is offline right now. Your place is saved — try again later.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <Link
+            href={`/novel/${encodeURIComponent(novelId)}`}
+            replace
+            className="rounded-xl border px-4 py-2 font-mono text-sm font-bold transition hover:bg-white/10"
+            style={{ borderColor: t.border, color: t.text }}
+          >
+            Back to series
+          </Link>
+          <button
+            onClick={() => router.push(browseAnchorHref("/novel"))}
+            className="rounded-xl bg-pink-500 px-4 py-2 font-mono text-sm font-bold text-white transition hover:bg-pink-600"
+          >
+            Browse novels
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (fallback) {
     // Loud on purpose: a "scrolling is broken" report means nothing until we

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { decodeLnoriTarget } from "@/lib/novel/lnoriProxy";
-import { getSection } from "@/lib/novel/epubExtract";
+import { getSection, SourceUnreachableError } from "@/lib/novel/epubExtract";
 
 export const runtime = "nodejs";
 
@@ -17,9 +17,26 @@ export async function GET(req: NextRequest) {
   const index = Number(req.nextUrl.searchParams.get("sec")) || 0;
   const b = req.nextUrl.searchParams.get("b") as string;
 
-  const section = await getSection(url, index, (zipPath) => {
-    return "/api/proxy/lnori/asset?b=" + encodeURIComponent(b) + "&p=" + encodeURIComponent(zipPath);
-  });
+  let section;
+  try {
+    section = await getSection(url, index, (zipPath) => {
+      return "/api/proxy/lnori/asset?b=" + encodeURIComponent(b) + "&p=" + encodeURIComponent(zipPath);
+    });
+  } catch (e) {
+    // 503, not 422: the source is unreachable (Lnori is behind a Cloudflare
+    // challenge as of 2026-08-09). Uncached, and the reader shows "temporarily
+    // unavailable" instead of a fallback that would hit the same dead source.
+    if (e instanceof SourceUnreachableError) {
+      return new NextResponse("Source unreachable", {
+        status: 503,
+        headers: { "Cache-Control": "no-store" },
+      });
+    }
+    throw e;
+  }
+
+  // 422 = downloaded but could not be parsed. The reader falls back to epub.js
+  // for these, which can sometimes open a book the extractor cannot.
   if (!section) return new NextResponse("Extraction failed", { status: 422 });
 
   return NextResponse.json(section, {

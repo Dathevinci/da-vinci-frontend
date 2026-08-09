@@ -86,9 +86,23 @@ function spineIndexFor(spinePaths: string[], href: string): number {
   return idx;
 }
 
+/** Thrown when the SOURCE could not be reached at all — distinct from a book
+ *  that downloaded fine but could not be parsed. The source going behind a
+ *  Cloudflare challenge (as Lnori did) is transient and must not be cached, and
+ *  the reader shows "temporarily unavailable" rather than a doomed fallback. */
+export class SourceUnreachableError extends Error {
+  constructor() {
+    super("SOURCE_UNREACHABLE");
+    this.name = "SourceUnreachableError";
+  }
+}
+
 async function parseBook(url: string): Promise<ParsedBook | null> {
   const res = await fetch(url).catch(() => null);
-  if (!res || !res.ok) return null;
+  // A non-OK response is the SOURCE refusing us (403 Cloudflare challenge, 5xx,
+  // a rename): unreachable, not unparseable. Throw so it is neither cached nor
+  // mistaken for a book epub.js could open if only we tried harder.
+  if (!res || !res.ok) throw new SourceUnreachableError();
   const len = Number(res.headers.get("content-length") || 0);
   if (len > MAX_BYTES) return null;
   const buf = Buffer.from(await res.arrayBuffer());
@@ -190,12 +204,20 @@ export async function loadBook(url: string): Promise<ParsedBook | null> {
       const oldest = BOOKS.keys().next().value;
       if (oldest) BOOKS.delete(oldest);
     }
-    p = parseBook(url).catch(() => null);
+    p = parseBook(url);
     BOOKS.set(url, p);
-    // A failed parse must not poison the cache for the next visitor.
-    p.then((v) => {
-      if (!v) BOOKS.delete(url);
-    });
+    // Neither a parse failure (null) nor a source-unreachable REJECTION may
+    // poison the cache — a transient 403 must retry on the next visit, not
+    // stick for the life of the process. The rejection is re-observed here so
+    // it does not become an unhandledRejection, then rethrown to callers below.
+    p.then(
+      (v) => {
+        if (!v) BOOKS.delete(url);
+      },
+      () => {
+        BOOKS.delete(url);
+      }
+    );
   }
   return p;
 }
