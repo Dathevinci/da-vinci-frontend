@@ -56,7 +56,13 @@ export default function AnimeDetailView({
   const [recommendations, setRecommendations] = useState<Anime[]>([]);
   const [relations, setRelations] = useState<AnimeRelation[]>([]);
   const [activeTab, setActiveTab] = useState<Tab>(
-    options?.startTab === "discussions" ? "discussions" : options?.autoPlay ? "episodes" : "overview"
+    options?.startTab === "discussions"
+      ? "discussions"
+      : options?.startTab === "morelike"
+        ? "morelike"
+        : options?.autoPlay
+          ? "episodes"
+          : "overview"
   );
   // Watch Now arms EpisodeList's autoplay — the same prop ContinueWatching
   // has always driven; the button just flips it on after mount too.

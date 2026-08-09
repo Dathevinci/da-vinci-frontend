@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X } from "lucide-react";
+import { ArrowLeft, X } from "lucide-react";
 import { Anime } from "@tutkli/jikan-ts";
 
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
@@ -14,6 +14,9 @@ interface QuickViewModalProps {
   anime: Anime | null;
   options?: AnimeModalOptions;
   onClose: () => void;
+  /** Present when this show was opened from another's "More Like This" —
+   *  steps back to that one instead of dumping to the feed. */
+  onBack?: () => void;
   /** Kept for callers that still pass it; the detail screen plays the
    *  trailer in its own tab rather than handing off to a second modal. */
   onPlayTrailer?: (youtubeId?: string | null) => void;
@@ -24,7 +27,7 @@ interface QuickViewModalProps {
  * the identical body the /anime/[id] route renders — so a show looks the
  * same whether you tapped a card or followed a comment link.
  */
-export default function QuickViewModal({ anime, options, onClose }: QuickViewModalProps) {
+export default function QuickViewModal({ anime, options, onClose, onBack }: QuickViewModalProps) {
   const [mounted, setMounted] = useState(false);
 
   useLockBodyScroll();
@@ -63,6 +66,20 @@ export default function QuickViewModal({ anime, options, onClose }: QuickViewMod
           >
             <X className="h-5 w-5" />
           </button>
+
+          {/* Back — the X's mirror, shown only when there is a trail. Returns
+              to the show whose More Like This grid opened this one, restored
+              onto that tab; without it, checking two recommendations meant
+              re-finding the first show from scratch. */}
+          {onBack && (
+            <button
+              onClick={onBack}
+              aria-label="Back to previous anime"
+              className="fixed left-4 top-4 z-50 grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-black/60 text-white backdrop-blur transition hover:bg-black/80"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+          )}
 
           <AnimeDetailView anime={anime} options={options} />
         </motion.div>

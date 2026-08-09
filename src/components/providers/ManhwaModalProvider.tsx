@@ -12,11 +12,16 @@ export interface ManhwaModalOptions {
 interface ManhwaModalContextValue {
   openManhwa: (manhwa: IMangaResult | { id: string }, options?: ManhwaModalOptions) => void;
   closeManhwa: () => void;
+  /** Step back to the series this one was opened FROM, if any. */
+  backManhwa: () => void;
+  canGoBack: boolean;
 }
 
 const ManhwaModalContext = createContext<ManhwaModalContextValue>({
   openManhwa: () => {},
   closeManhwa: () => {},
+  backManhwa: () => {},
+  canGoBack: false,
 });
 
 export const useManhwaModal = () => useContext(ManhwaModalContext);
@@ -56,19 +61,45 @@ function ManhwaModalUrlWatcher({ onOpen }: { onOpen: (m: IMangaResult | { id: st
 export default function ManhwaModalProvider({ children }: { children: React.ReactNode }) {
   const [manhwa, setManhwa] = useState<IMangaResult | { id: string } | null>(null);
   const [options, setOptions] = useState<ManhwaModalOptions | undefined>();
+  /**
+   * The trail of in-modal hops (a recommendation opening another series), so
+   * back returns to the series you were browsing instead of the feed — the
+   * twin of the stack in AnimeModalProvider, same reasoning.
+   */
+  const [stack, setStack] = useState<{ manhwa: IMangaResult | { id: string }; options?: ManhwaModalOptions }[]>([]);
+
+  const manhwaRef = useRef<IMangaResult | { id: string } | null>(null);
+  const optionsRef = useRef<ManhwaModalOptions | undefined>(undefined);
+  manhwaRef.current = manhwa;
+  optionsRef.current = options;
 
   const openManhwa = useCallback((m: IMangaResult | { id: string }, opts?: ManhwaModalOptions) => {
+    const prev = manhwaRef.current;
+    if (prev && prev.id !== m.id) {
+      setStack((s) => [...s, { manhwa: prev, options: optionsRef.current }].slice(-10));
+    }
     setManhwa(m);
     setOptions(opts);
   }, []);
-  
+
   const closeManhwa = useCallback(() => {
     setManhwa(null);
     setOptions(undefined);
+    setStack([]);
+  }, []);
+
+  const backManhwa = useCallback(() => {
+    setStack((s) => {
+      if (!s.length) return s;
+      const last = s[s.length - 1];
+      setManhwa(last.manhwa);
+      setOptions(last.options);
+      return s.slice(0, -1);
+    });
   }, []);
 
   return (
-    <ManhwaModalContext.Provider value={{ openManhwa, closeManhwa }}>
+    <ManhwaModalContext.Provider value={{ openManhwa, closeManhwa, backManhwa, canGoBack: stack.length > 0 }}>
       {children}
 
       <Suspense fallback={null}>
@@ -81,6 +112,7 @@ export default function ManhwaModalProvider({ children }: { children: React.Reac
           manhwa={manhwa}
           options={options}
           onClose={closeManhwa}
+          onBack={stack.length > 0 ? backManhwa : undefined}
         />
       )}
     </ManhwaModalContext.Provider>

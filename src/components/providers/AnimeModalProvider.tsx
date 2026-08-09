@@ -14,7 +14,7 @@ import { getYouTubeId, getAnimeDetailsAniList } from "@/lib/jikan";
 export interface AnimeModalOptions {
   startEpisode?: number;
   autoPlay?: boolean;
-  startTab?: "episodes" | "discussions";
+  startTab?: "episodes" | "discussions" | "morelike";
   /** Seconds to resume from — the Netflix-style "pick up where you left off". */
   startSeconds?: number;
   /** When true, auto-select the davinci torrent server for 4K playback. */
@@ -23,11 +23,16 @@ export interface AnimeModalOptions {
 interface AnimeModalContextValue {
   openAnime: (anime: Anime, options?: AnimeModalOptions) => void;
   closeAnime: () => void;
+  /** Step back to the anime this one was opened FROM, if any. */
+  backAnime: () => void;
+  canGoBack: boolean;
 }
 
 const AnimeModalContext = createContext<AnimeModalContextValue>({
   openAnime: () => {},
   closeAnime: () => {},
+  backAnime: () => {},
+  canGoBack: false,
 });
 
 export const useAnimeModal = () => useContext(AnimeModalContext);
@@ -76,15 +81,52 @@ export default function AnimeModalProvider({ children }: { children: React.React
   const [anime, setAnime] = useState<Anime | null>(null);
   const [options, setOptions] = useState<AnimeModalOptions | undefined>();
   const [trailerId, setTrailerId] = useState<string | null>(null);
+  /**
+   * THE TRAIL OF HOW YOU GOT HERE.
+   *
+   * The modal used to be a single slot: opening a show from "More Like This"
+   * REPLACED the one you were browsing, so closing dumped you back at the feed
+   * and re-checking that list meant re-finding the first show and starting
+   * over. Each in-modal hop now pushes the current show here, and the back
+   * arrow pops it — restored onto its More Like This tab, because a hop is
+   * the only way an in-modal open happens, so that tab is where you were.
+   *
+   * Capped so a long wander can't grow it forever; losing the far end of a
+   * ten-hop trail is nothing.
+   */
+  const [stack, setStack] = useState<{ anime: Anime; options?: AnimeModalOptions }[]>([]);
   const routePath = usePathname();
 
+  // openAnime stays identity-stable (deps: []), so the current show is read
+  // through refs rather than closure.
+  const animeRef = useRef<Anime | null>(null);
+  const optionsRef = useRef<AnimeModalOptions | undefined>(undefined);
+  animeRef.current = anime;
+  optionsRef.current = options;
+
   const openAnime = useCallback((a: Anime, opts?: AnimeModalOptions) => {
+    const prev = animeRef.current;
+    if (prev && prev.mal_id !== a.mal_id) {
+      setStack((s) =>
+        [...s, { anime: prev, options: { ...optionsRef.current, startTab: "morelike" as const } }].slice(-10)
+      );
+    }
     setAnime(a);
     setOptions(opts);
   }, []);
   const closeAnime = useCallback(() => {
     setAnime(null);
     setOptions(undefined);
+    setStack([]);
+  }, []);
+  const backAnime = useCallback(() => {
+    setStack((s) => {
+      if (!s.length) return s;
+      const last = s[s.length - 1];
+      setAnime(last.anime);
+      setOptions(last.options);
+      return s.slice(0, -1);
+    });
   }, []);
 
   /**
@@ -102,10 +144,11 @@ export default function AnimeModalProvider({ children }: { children: React.React
     setAnime(null);
     setOptions(undefined);
     setTrailerId(null);
+    setStack([]);
   }, [routePath]);
 
   return (
-    <AnimeModalContext.Provider value={{ openAnime, closeAnime }}>
+    <AnimeModalContext.Provider value={{ openAnime, closeAnime, backAnime, canGoBack: stack.length > 0 }}>
       {children}
 
       <Suspense fallback={null}>
@@ -120,6 +163,7 @@ export default function AnimeModalProvider({ children }: { children: React.React
           anime={anime}
           options={options}
           onClose={closeAnime}
+          onBack={stack.length > 0 ? backAnime : undefined}
           // The modal fetches full details (the card's anime may be a minimal
           // record from the Tracker/Liked list with no trailer), so it passes
           // back the resolved trailer id. Fall back to the card's own trailer.

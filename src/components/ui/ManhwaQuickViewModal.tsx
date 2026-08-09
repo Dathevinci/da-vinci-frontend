@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Play, BookOpen } from "lucide-react";
+import { ArrowLeft, X, Play, BookOpen } from "lucide-react";
 import Link from "next/link";
 import { IMangaInfo, IMangaResult } from "@/lib/asura/models";
 
@@ -16,6 +16,9 @@ interface ManhwaQuickViewModalProps {
   manhwa: IMangaResult | { id: string } | null;
   options?: ManhwaModalOptions;
   onClose: () => void;
+  /** Present when this series was opened from another's recommendations —
+   *  steps back to that one instead of dumping to the feed. */
+  onBack?: () => void;
 }
 
 // Cascade the header content in like the anime modal — a small stagger reads as
@@ -33,7 +36,7 @@ const formatChapterDate = (raw?: string) => {
   return isNaN(d.getTime()) ? raw : d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 };
 
-export default function ManhwaQuickViewModal({ manhwa, options, onClose }: ManhwaQuickViewModalProps) {
+export default function ManhwaQuickViewModal({ manhwa, options, onClose, onBack }: ManhwaQuickViewModalProps) {
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(true);
   const [fullManhwa, setFullManhwa] = useState<IMangaInfo | null>(null);
@@ -124,6 +127,19 @@ export default function ManhwaQuickViewModal({ manhwa, options, onClose }: Manhw
             >
               <X className="w-6 h-6" />
             </button>
+
+            {/* Back — the X's mirror, shown only when a recommendation hop got
+                us here. Without it, checking two recs meant re-finding the
+                first series from scratch. */}
+            {onBack && (
+              <button
+                onClick={onBack}
+                aria-label="Back to previous series"
+                className="absolute top-4 left-4 z-50 p-2 bg-[#181818]/70 hover:bg-[#181818] text-white rounded-full transition-colors border border-white/10 shadow-lg"
+              >
+                <ArrowLeft className="w-6 h-6" />
+              </button>
+            )}
 
             {/* One scroll container so the whole modal — cover, info, synopsis,
                 chapters — scrolls together, instead of a cramped fixed header. */}
