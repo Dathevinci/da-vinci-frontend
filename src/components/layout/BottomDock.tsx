@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
-  ArrowLeft, ArrowRight, RotateCw, Home, X, Search, Settings, LogOut,
+  ArrowLeft, ArrowRight, RotateCw, Home, X, Search, LogOut, SlidersHorizontal,
   Tv, BookOpen, Feather, Layers, Swords,
   Store, Gavel, Users, Trophy, ShoppingBag, Megaphone,
   Compass, Activity, Calendar, Clock, HelpCircle, Heart, Terminal, LayoutGrid,
@@ -214,6 +214,9 @@ export default function BottomDock({
           <DockBtn {...btn("fwd")} onClick={() => router.forward()} label="Forward"><ArrowRight className="h-[18px] w-[18px]" /></DockBtn>
           <DockBtn {...btn("reload")} onClick={() => window.location.reload()} label="Reload"><RotateCw className="h-[17px] w-[17px]" /></DockBtn>
           <DockBtn {...btn("nav")} onClick={() => setOpen(true)} label="Navigation"><Home className="h-[18px] w-[18px]" /></DockBtn>
+          {/* Control Center, ON the bar — it was buried behind the sheet's
+              Quick actions, two taps deep for the panel you reach for most. */}
+          <DockBtn {...btn("cc")} onClick={() => { if (onSettings) onSettings(); }} label="Control Center"><SlidersHorizontal className="h-[17px] w-[17px]" /></DockBtn>
           {/* the REAL notifications panel, unread badge and all — this bell
               used to just route to /updates, which is a page, not your
               notifications. Updates still lives in the sheet's page list. */}
@@ -263,10 +266,10 @@ export default function BottomDock({
               </div>
 
               <p className="mt-5 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Quick actions</p>
-              <div className="mt-2 grid grid-cols-3 gap-2">
+              {/* Settings moved OUT of here onto the dock pill itself. */}
+              <div className="mt-2 grid grid-cols-2 gap-2">
                 {([
                   ["Search", Search, () => { setOpen(false); if (onSearch) onSearch(); else router.push("/explore"); }],
-                  ["Settings", Settings, () => { setOpen(false); if (onSettings) onSettings(); }],
                   ["Reload", RotateCw, () => window.location.reload()],
                 ] as const).map(([label, Icon, fn]) => (
                   <button key={label as string} onClick={fn as () => void}
