@@ -719,6 +719,16 @@ export default function CommunityFeed({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * Episode scope, watch page only. "episode" shows this episode's thread —
+   * the default, since that is what a watch page is about — and "all" is the
+   * old series-wide view, kept one tap away because every comment made before
+   * episode stamping existed has no episodeNo and would otherwise be
+   * unreachable from here.
+   */
+  const hasEpisodeScope = typeof episodeNo === "number" && episodeNo > 0;
+  const [epScope, setEpScope] = useState<'episode' | 'all'>('episode');
+
   // Filters and Pagination State
   const [sortBy, setSortBy] = useState<'newest' | 'top' | 'oldest'>('newest');
   const [searchQuery, setSearchQuery] = useState("");
@@ -875,6 +885,7 @@ export default function CommunityFeed({
       const effectiveSearch = searchOverride !== undefined ? searchOverride : searchQuery;
       const url = new URL(`${API_URL}/api/comments`);
       if (animeId) url.searchParams.set('animeId', animeId.toString());
+      if (animeId && hasEpisodeScope && epScope === 'episode') url.searchParams.set('episodeNo', String(episodeNo));
       if (mangaId) url.searchParams.set('mangaId', mangaId);
       if (chapterId) url.searchParams.set('chapterId', chapterId);
       if (novelId) url.searchParams.set('novelId', novelId);
@@ -907,8 +918,11 @@ export default function CommunityFeed({
   useEffect(() => {
     setPage(1);
     fetchComments(1, false);
+    // episodeNo and epScope are dependencies for a reason: the watch page
+    // switches episodes client-side without remounting this feed, so the
+    // thread must follow the episode.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [animeId, mangaId, chapterId, novelId, postId, user?.id, sortBy, mediaOnly]);
+  }, [animeId, mangaId, chapterId, novelId, postId, user?.id, sortBy, mediaOnly, episodeNo, epScope]);
 
   const handlePin = async (commentId: string) => {
     if (!user) return;
@@ -1217,6 +1231,25 @@ export default function CommunityFeed({
           ))}
         </div>
 
+        {hasEpisodeScope && (
+          <div className="flex items-center gap-0.5 rounded-xl border border-white/10 bg-white/[0.04] p-1">
+            {([
+              { key: "episode", label: `Ep ${episodeNo}` },
+              { key: "all", label: "All eps" },
+            ] as const).map((opt) => (
+              <button
+                key={opt.key}
+                onClick={() => setEpScope(opt.key)}
+                className={`rounded-lg px-3.5 py-2 font-mono text-xs font-bold transition-colors ${
+                  epScope === opt.key ? "bg-white/10 text-white" : "text-slate-500 hover:text-slate-300"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {rating.average != null && (
           <span
             className="flex items-center gap-1.5 rounded-xl px-3 py-2 font-mono text-sm font-black text-amber-300"
@@ -1499,14 +1532,22 @@ export default function CommunityFeed({
                   <MessageSquare className="h-7 w-7 text-purple-400" />
                 </div>
                 <h3 className="mb-1.5 text-lg font-black text-white">
-                  {postId ? "No replies yet" : searchQuery || mediaOnly ? "Nothing matches that" : "No views yet"}
+                  {postId
+                    ? "No replies yet"
+                    : searchQuery || mediaOnly
+                      ? "Nothing matches that"
+                      : hasEpisodeScope && epScope === "episode"
+                        ? `No views on episode ${episodeNo} yet`
+                        : "No views yet"}
                 </h3>
                 <p className="max-w-xs text-sm text-slate-500">
                   {postId
                     ? "Be the first to reply to this one."
                     : searchQuery || mediaOnly
                       ? "Try a different search, or clear the filters to see the whole feed."
-                      : "Be the first to share what you're watching or reading."}
+                      : hasEpisodeScope && epScope === "episode"
+                        ? "Start this episode's thread, or switch to All eps for the series talk."
+                        : "Be the first to share what you're watching or reading."}
                 </p>
                 {/* the filter controls don't exist on a single thread, so
                     neither should an offer to clear them */}

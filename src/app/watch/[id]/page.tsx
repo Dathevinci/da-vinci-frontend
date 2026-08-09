@@ -341,11 +341,12 @@ function WatchInner() {
           {/* ── DISCUSSION ── */}
           {anime && (
             <div className="mt-8">
-              {/* episodeNo stamps NEW comments with the episode they were left
-                  on, so Global Comments can link back to this exact episode.
-                  It is deliberately NOT a fetch filter — the discussion stays
-                  series-wide, or every episode would open an empty thread and
-                  every existing comment would vanish from the watch page. */}
+              {/* episodeNo both stamps NEW comments and scopes the thread: the
+                  feed defaults to THIS episode's comments, with an "All eps"
+                  toggle for the series-wide view. The toggle is what makes the
+                  scoping safe — every comment from before episode stamping has
+                  no episodeNo, and without a way back to the wide view that
+                  history would be unreachable from here. */}
               <CommunityFeed animeId={malId} animeTitle={title} episodeNo={epNo} />
             </div>
           )}
