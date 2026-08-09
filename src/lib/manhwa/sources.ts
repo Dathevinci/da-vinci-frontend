@@ -198,7 +198,7 @@ function isStub(r: IMangaResult): boolean {
  * catalogue at the tail instead of displacing it.
  */
 function merge(primary: IMangaResult[], ...secondaries: IMangaResult[][]): IMangaResult[] {
-  const seen = new Set<string>();
+  const seen = new Map<string, { result: IMangaResult; index: number }>();
   const out: IMangaResult[] = [];
   
   const allSecondary = secondaries.flat().filter((x) => !isStub(x));
@@ -206,8 +206,21 @@ function merge(primary: IMangaResult[], ...secondaries: IMangaResult[][]): IMang
   for (const r of [...primary, ...allSecondary]) {
     if (!r) continue;
     const k = normTitle(r.title);
-    if (k && seen.has(k)) continue;
-    if (k) seen.add(k);
+    if (k) {
+      const existing = seen.get(k);
+      if (existing) {
+        // If the existing one is a MangaDex licensed stub, but the new one is not,
+        // replace the existing one with the new one!
+        const existingIsStub = String(existing.result.id).startsWith("mdx:") && !!existing.result.officialUrl;
+        const newIsStub = String(r.id).startsWith("mdx:") && !!r.officialUrl;
+        if (existingIsStub && !newIsStub) {
+          out[existing.index] = r;
+          seen.set(k, { result: r, index: existing.index });
+        }
+        continue;
+      }
+      seen.set(k, { result: r, index: out.length });
+    }
     out.push(r);
   }
   return out;
