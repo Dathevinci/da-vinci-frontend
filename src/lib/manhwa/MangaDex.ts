@@ -175,6 +175,9 @@ export async function fetchInfo(id: string): Promise<IMangaInfo> {
     artist,
     genres,
     updatedOn: at.updatedAt,
+    // The manga metadata's own claim of the final chapter — the router uses
+    // it to spot licensed stubs (3 readable rows under a declared 271).
+    lastChapter: at.lastChapter ? Number(at.lastChapter) || undefined : undefined,
     chapters: await fetchChapters(mid),
   };
 }

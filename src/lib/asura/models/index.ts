@@ -72,6 +72,10 @@ export interface IMangaInfo {
   updatedOn?: string;
   chapters?: IMangaChapter[];
   recommendations?: IMangaResult[];
+  /** The source's own claim of the final chapter number (MangaDex manga
+   *  metadata). Lets the router detect licensed STUBS: a 3-row readable list
+   *  under a declared span of 271 is a stub, not the series. */
+  lastChapter?: number;
 }
 
 export interface ISearch<T> {

@@ -42,24 +42,7 @@ export async function getManhwaInfo(id: string): Promise<IMangaInfo> {
   if ((!info.chapters || info.chapters.length === 0) && !(info as any).chaptersFailed) {
     try {
       const searchRes = await mrd().search(info.title);
-      // A hand-built alias means MangaRead hosts this series under ANOTHER
-      // name (search() already rewrote the query with it) — the verification
-      // must accept that name too, or the alias-based rescue this feature was
-      // originally built for can never fire again.
-      const lower = info.title.toLowerCase();
-      const alias = TITLE_ALIASES.find((a) => a.phrases.some((p) => lower.includes(p)));
-      const wants = [normTitle(info.title), alias ? normTitle(alias.target) : ""].filter(Boolean);
-      const hit = wants.length
-        ? searchRes.results.find((r) => {
-            const got = normTitle(r.title);
-            if (!got) return false;
-            // want-startsWith-got needs a length floor, or a stray short
-            // result ("solo") would claim any long title it prefixes.
-            return wants.some(
-              (w) => got === w || got.startsWith(w) || (w.startsWith(got) && got.length >= Math.min(w.length, 8))
-            );
-          })
-        : undefined;
+      const hit = pickByTitle(searchRes.results, info.title);
       if (hit) {
         const rescueInfo = await mrd().fetchMangaInfo(hit.id);
         if (rescueInfo.chapters && rescueInfo.chapters.length > 0) {
@@ -69,6 +52,34 @@ export async function getManhwaInfo(id: string): Promise<IMangaInfo> {
       }
     } catch (e) {
       console.error(`[manhwa] Failed MangaRead rescue for "${info.title}":`, e);
+    }
+  }
+
+  // LICENSED-STUB rescue (MangaDex): licensed hits keep only a handful of
+  // publisher-link rows on MDX while the manga metadata declares the real
+  // span — Jujutsu Kaisen shows 3 rows under lastChapter 271. When the list
+  // is that kind of stub, borrow the full run from MangaRead — same
+  // title-verified pick, and only adopted when it is actually LONGER than
+  // what we have. Chapter ids in the adopted list carry the mrd: prefix,
+  // which the chapter-pages router already dispatches on.
+  if (MDX.isMdx(id) && (info.chapters?.length || 0) > 0) {
+    const declared = info.lastChapter || 0;
+    const have = info.chapters!.length;
+    const isStub = declared > 10 && have < declared * 0.5 && declared - have > 10;
+    if (isStub) {
+      try {
+        const searchRes = await mrd().search(info.title);
+        const hit = pickByTitle(searchRes.results, info.title);
+        if (hit) {
+          const rescueInfo = await mrd().fetchMangaInfo(hit.id);
+          if ((rescueInfo.chapters?.length || 0) > have) {
+            info.chapters = rescueInfo.chapters;
+            console.log(`[manhwa] Stub-rescued ${rescueInfo.chapters!.length} chapters (had ${have}/${declared}) from MangaRead ("${hit.title}") for "${info.title}"`);
+          }
+        }
+      } catch (e) {
+        console.error(`[manhwa] Failed stub rescue for "${info.title}":`, e);
+      }
     }
   }
 
@@ -130,6 +141,33 @@ const settled = <T>(r: PromiseSettledResult<T>, fallback: T): T =>
   r.status === "fulfilled" ? r.value : fallback;
 
 const normTitle = (t: string) => (t || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+
+/**
+ * Pick the MangaRead search result that VERIFIABLY is this series — shared by
+ * both rescue paths (zero-chapter and licensed-stub). WordPress fuzzy search
+ * returns loosely-related strangers for any title MangaRead doesn't host, and
+ * the wrong series is far worse than none.
+ *
+ * Accepts a normalised exact or prefix match, and honours TITLE_ALIASES — a
+ * hand-built alias means MangaRead hosts the series under ANOTHER name
+ * (search() already rewrites the query with it), so the verification must
+ * accept that name too or the alias rescue can never fire. The
+ * want-startsWith-got direction carries a length floor so a stray short
+ * result ("solo") can't claim any long title it happens to prefix.
+ */
+function pickByTitle<T extends { title: string | undefined }>(results: T[], wantTitle: string): T | undefined {
+  const lower = (wantTitle || "").toLowerCase();
+  const alias = TITLE_ALIASES.find((a) => a.phrases.some((p) => lower.includes(p)));
+  const wants = [normTitle(wantTitle), alias ? normTitle(alias.target) : ""].filter(Boolean);
+  if (!wants.length) return undefined;
+  return results.find((r) => {
+    const got = normTitle(String(r.title || ""));
+    if (!got) return false;
+    return wants.some(
+      (w) => got === w || got.startsWith(w) || (w.startsWith(got) && got.length >= Math.min(w.length, 8))
+    );
+  });
+}
 
 /**
  * A MangaDex row with nothing to read behind it. Since `ja` was added to the
