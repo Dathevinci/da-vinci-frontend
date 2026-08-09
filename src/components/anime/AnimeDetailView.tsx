@@ -173,7 +173,11 @@ export default function AnimeDetailView({
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, delay: 0.16, ease: [0.16, 1, 0.3, 1] }}
-            className="mt-5 max-w-3xl font-mono text-3xl font-black uppercase tracking-wider text-white sm:text-4xl md:text-5xl"
+            // Each mode wears its own face: anime titles take the atelier's
+            // Fell serif (the wordmark family — IM Fell is small-caps by
+            // nature, so the uppercase class goes), novels Garamond, manhwa
+            // an Anton masthead.
+            className="mt-5 max-w-3xl font-fell text-3xl leading-tight tracking-wide text-white sm:text-4xl md:text-5xl"
           >
             {title}
           </motion.h1>

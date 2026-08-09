@@ -98,11 +98,16 @@ export default function NovelDetailPage() {
         <HeroBackdrop src={cover} wide={false} />
 
         <div className="relative mx-auto flex max-w-4xl flex-col items-center px-4 pb-10 pt-20 text-center sm:pt-24">
+          {/* ambient bloom behind the poster — the reference's themed halo */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-6 h-[460px] bg-[radial-gradient(ellipse_45%_60%_at_50%_40%,rgba(251,191,36,0.14),transparent_70%)]"
+          />
           <motion.div
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="w-44 shrink-0 overflow-hidden rounded-xl sm:w-56"
+            className="relative w-44 shrink-0 overflow-hidden rounded-xl sm:w-56"
             style={{ boxShadow: "0 0 0 1px rgba(255,255,255,.14), 0 30px 80px rgba(0,0,0,.8)" }}
           >
             {cover ? (
@@ -126,14 +131,32 @@ export default function NovelDetailPage() {
             )}
           </div>
 
-          <h1 className="mt-5 max-w-3xl font-mono text-3xl font-black uppercase tracking-wider text-white sm:text-4xl md:text-5xl">
-            {novel.title}
+          {/* THE TITLE — a book spine, not a terminal. Each mode wears its own
+              face now: novels in literary Garamond with the last word lit in
+              amber italic (the reference treatment), manhwa in an Anton
+              masthead, anime in the atelier's Fell serif. */}
+          <h1
+            className="mt-5 max-w-3xl text-4xl leading-tight text-white sm:text-5xl md:text-6xl"
+            style={{ fontFamily: "var(--font-garamond), Georgia, serif" }}
+          >
+            {(() => {
+              const words = novel.title.trim().split(/\s+/);
+              const tail = words[words.length - 1];
+              const head = words.slice(0, -1).join(" ");
+              return head ? (
+                <>
+                  {head} <em className="italic text-amber-300">{tail}</em>
+                </>
+              ) : (
+                <em className="italic text-amber-300">{tail}</em>
+              );
+            })()}
           </h1>
 
           {novel.genres.length > 0 && (
             <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
               {novel.genres.slice(0, 6).map((g) => (
-                <span key={g} className="rounded-lg border border-white/10 bg-white/[0.05] px-3 py-1 font-mono text-xs font-bold text-slate-200">
+                <span key={g} className="rounded-lg border border-amber-400/25 bg-amber-400/[0.06] px-3 py-1 font-mono text-xs font-bold text-amber-100/90">
                   {g}
                 </span>
               ))}
