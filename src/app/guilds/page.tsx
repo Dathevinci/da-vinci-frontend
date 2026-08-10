@@ -173,10 +173,17 @@ export default function GuildsPage() {
                 const full = g.memberCount >= MEMBER_CAP;
                 return (
                   <div key={g.id}
-                    className={`group relative rounded-3xl border p-5 transition ${
+                    className={`group relative overflow-hidden rounded-3xl border p-5 transition ${
                       mine ? "border-emerald-400/40 bg-emerald-500/[0.06]" : "border-white/10 bg-[#0b0b11] hover:border-white/20"
                     }`}>
-                    <div className="flex items-start gap-4">
+                    {/* the guild's banner as a quiet card-top strip, fading into the card */}
+                    {g.banner && (
+                      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-24">
+                        <img src={g.banner} alt="" loading="lazy" className="h-full w-full object-cover opacity-40" />
+                        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-[#0b0b11]/70 to-[#0b0b11]" />
+                      </div>
+                    )}
+                    <div className="relative flex items-start gap-4">
                       {g.avatar ? (
                         <img src={g.avatar} alt="" className="h-14 w-14 shrink-0 rounded-2xl object-cover ring-1 ring-white/15" />
                       ) : (
@@ -217,7 +224,7 @@ export default function GuildsPage() {
                       </div>
                     </div>
 
-                    <div className="mt-4 flex items-center justify-between gap-2">
+                    <div className="relative mt-4 flex items-center justify-between gap-2">
                       <Link href={`/guild/${encodeURIComponent(g.id)}`}
                         className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500 transition hover:text-white">
                         Visit <ArrowUpRight className="h-3 w-3" />

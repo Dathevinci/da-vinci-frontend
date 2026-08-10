@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
-  Users, Shield, Crown, X, Sparkles, Pencil, Trash2, Send, Heart,
+  Users, Shield, Crown, X, Sparkles, Pencil, Trash2, Send, Lock,
   MessageSquare, Diamond, Layers, Clock, Check, RefreshCw, Camera,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
@@ -15,23 +15,25 @@ import { loadCatalog } from "@/lib/catalogCache";
 import PageTransition from "@/components/layout/PageTransition";
 import CardFace, { CardDef, RARITY_META, CardRarity } from "@/components/cards/CardFace";
 import UserLink from "@/components/profile/UserLink";
-import { UserBadgesCompact } from "@/components/profile/UserBadges";
 import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
 import { effectNameClass } from "@/lib/effectTheme";
+import { nameColorClass } from "@/lib/cosmetics";
 import MediaPicker from "@/components/community/MediaPicker";
+import EmojiPicker from "@/components/community/EmojiPicker";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 /**
  * THE GUILD HOME — one guild's whole world on a page, in the Lunar kit:
- * a full-bleed-feel hero (avatar, name in font-fell, the chips), the BOARD
- * (the existing comment machinery scoped by guildId — guild posts never
- * leak into the forum and vice versa), the MEMBERS strip with the leader's
- * controls, and CARD SHARING (7-day loans between guildmates, capped 3 a
- * side, all enforced server-side).
+ * a full-bleed-feel hero (the guild's banner when it has one, our gradient
+ * when it doesn't), the CHAT (a Discord-style members-only room on
+ * /api/guilds/:id/messages — grouped messages, day dividers, an 8-second
+ * poll that goes quiet while the tab is hidden), the MEMBERS strip with the
+ * leader's controls, and CARD SHARING (7-day loans between guildmates,
+ * capped 3 a side, all enforced server-side).
  *
- * Every rule lives in guild.controller.ts / comment.controller.ts — this
- * page relays the server's answers and never invents its own.
+ * Every rule lives in guild.controller.ts — this page relays the server's
+ * answers and never invents its own.
  */
 
 type Member = {
@@ -44,7 +46,8 @@ type Member = {
 
 type GuildDetail = {
   id: string; name: string; tag: string; description: string;
-  avatar: string | null; leaderId: string; coLeaderId: string | null;
+  avatar: string | null; banner: string | null;
+  leaderId: string; coLeaderId: string | null;
   coins: number; xp: number;
   level: number; createdAt: string; memberCap: number; memberCount: number;
   members: Member[];
@@ -52,26 +55,18 @@ type GuildDetail = {
   activeLoanCount: number;
 };
 
-type BoardAuthor = {
-  id: string; username: string; avatar?: string | null;
-  activeRole?: string | null; activeTag?: string | null;
-  activeEffect?: string | null; activeFrame?: string | null;
-  role?: string | null; xp?: number | null;
-  equippedTitles?: string[] | null; cardTitle?: string | null;
+type ChatAuthor = {
+  id: string; username: string; avatar: string | null; role: string | null;
+  activeEffect: string | null; activeColor: string | null; activeFont: string | null;
 };
 
-type BoardPost = {
+type ChatMessage = {
   id: string;
-  parentId?: string | null;
-  content: string;
-  mediaUrl?: string | null;
+  userId: string;
+  content: string | null;
+  mediaUrl: string | null;
   createdAt: string;
-  score?: number;
-  upvotes?: number;
-  downvotes?: number;
-  userVote?: number;
-  blessed?: boolean;
-  user?: BoardAuthor;
+  author: ChatAuthor | null;
 };
 
 type Loan = {
@@ -99,6 +94,25 @@ const ago = (iso: string) => {
   return `${Math.floor(d / 30)}mo ago`;
 };
 
+/** "Today" / "Yesterday" / "Mar 4" — the chat's Discord-style day divider. */
+const dayLabel = (iso: string) => {
+  const d = new Date(iso);
+  const now = new Date();
+  const startOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const days = Math.round((startOf(now) - startOf(d)) / 86400000);
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  return d.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    ...(d.getFullYear() !== now.getFullYear() ? { year: "numeric" as const } : {}),
+  });
+};
+
+/** "14:07" — the group-header timestamp. */
+const hhmm = (iso: string) =>
+  new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
 export default function GuildHomePage() {
   const params = useParams<{ id: string }>();
   const id = String(params?.id || "");
@@ -116,7 +130,7 @@ export default function GuildHomePage() {
   const isMember = !!guild?.myMembership;
   const isLeader = !!user && !!guild && guild.leaderId === user.id;
   const isCoLeader = !!user && !!guild && guild.coLeaderId === user.id;
-  // Day-to-day powers (edit profile, kick, board moderation) are shared with
+  // Day-to-day powers (edit profile, kick, chat moderation) are shared with
   // the co-leader; transfer and co-leader appointment stay leader-only.
   const isOfficer = isLeader || isCoLeader;
 
@@ -316,13 +330,23 @@ export default function GuildHomePage() {
             <>
               {/* ── THE HERO — the Deep Sea Vibes reference, in our kit ── */}
               <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#0b0b11]">
-                <div aria-hidden className="absolute inset-0"
-                  style={{
-                    background:
-                      "radial-gradient(85% 90% at 82% 0%, rgba(16,185,129,.16), transparent 60%)," +
-                      "radial-gradient(70% 85% at 8% 100%, rgba(139,92,246,.14), transparent 65%)," +
-                      "linear-gradient(180deg, #0a1210, #0b0b11)",
-                  }} />
+                {guild.banner ? (
+                  <>
+                    {/* the guild's own banner carries the hero; the dark
+                        gradient keeps name/tag/description legible on any art */}
+                    <img src={guild.banner} alt="" aria-hidden
+                      className="absolute inset-0 h-full w-full object-cover" />
+                    <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/30" />
+                  </>
+                ) : (
+                  <div aria-hidden className="absolute inset-0"
+                    style={{
+                      background:
+                        "radial-gradient(85% 90% at 82% 0%, rgba(16,185,129,.16), transparent 60%)," +
+                        "radial-gradient(70% 85% at 8% 100%, rgba(139,92,246,.14), transparent 65%)," +
+                        "linear-gradient(180deg, #0a1210, #0b0b11)",
+                    }} />
+                )}
                 <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-[#0b0b11] via-transparent to-transparent" />
 
                 <div className="relative p-6 sm:p-10">
@@ -564,8 +588,8 @@ export default function GuildHomePage() {
                 )}
               </div>
 
-              {/* ── THE GUILD BOARD ── */}
-              <GuildBoard guildId={guild.id} isMember={isMember} canModerate={isOfficer} />
+              {/* ── THE GUILD CHAT ── */}
+              <GuildChat key={guild.id} guildId={guild.id} isMember={isMember} canModerate={isOfficer} />
             </>
           )}
         </div>
@@ -591,324 +615,329 @@ export default function GuildHomePage() {
   );
 }
 
-/* ═══════════════════ THE BOARD — comment machinery, guild-scoped ═══════════════════ */
+/* ═══════════════════ THE GUILD CHAT — Discord-style, members only ═══════════════════ */
 
-function GuildBoard({ guildId, isMember, canModerate }: { guildId: string; isMember: boolean; canModerate: boolean }) {
+function GuildChat({ guildId, isMember, canModerate }: { guildId: string; isMember: boolean; canModerate: boolean }) {
   const { user } = useUser();
   const { toast } = useToast();
-  const [posts, setPosts] = useState<BoardPost[]>([]);
-  const [replies, setReplies] = useState<Record<string, BoardPost[]>>({});
-  const [openThread, setOpenThread] = useState<string | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
-  const [text, setText] = useState("");
+  const [draft, setDraft] = useState("");
   const [mediaUrl, setMediaUrl] = useState("");
-  const [posting, setPosting] = useState(false);
-  const anchoredRef = useRef(false);
+  const [sending, setSending] = useState(false);
+  const taRef = useRef<HTMLTextAreaElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  // Stick-to-bottom: true while the reader sits within ~80px of the newest
+  // message. New arrivals only pull the scroll down when this is true, so
+  // reading history is never interrupted.
+  const stickRef = useRef(true);
+  const firstScrollRef = useRef(true);
+  // The newest id the SERVER has confirmed — polls ask for strictly newer
+  // rows. Optimistic sends deliberately do NOT advance it, so a message that
+  // landed between the last poll and our own send is never skipped; our own
+  // copy simply comes back once more and is deduped.
+  const lastIdRef = useRef<string | null>(null);
 
-  const load = useCallback(async () => {
+  const fetchNew = useCallback(async (initial: boolean) => {
     try {
-      const url = new URL(`${API_URL}/api/comments`);
-      url.searchParams.set("guildId", guildId);
-      url.searchParams.set("sort", "newest");
-      url.searchParams.set("limit", "50");
-      if (user?.id) url.searchParams.set("userId", user.id);
-      const r = await fetch(url.toString());
-      const d = await r.json();
-      const list = Array.isArray(d?.data) ? d.data : d?.data?.comments;
-      const all: BoardPost[] = Array.isArray(list) ? list : [];
-      setPosts(all.filter((p) => !p.parentId));
-      const map: Record<string, BoardPost[]> = {};
-      for (const c of all) {
-        if (!c.parentId) continue;
-        (map[c.parentId] ||= []).push(c);
-      }
-      for (const k of Object.keys(map)) {
-        map[k].sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
-      }
-      setReplies(map);
+      const base = `${API_URL}/api/guilds/${encodeURIComponent(guildId)}/messages`;
+      const after = initial ? null : lastIdRef.current;
+      const url = after ? `${base}?after=${encodeURIComponent(after)}&limit=60` : `${base}?limit=60`;
+      const r = await fetch(url, { headers: authHeaders() });
+      const d = await r.json().catch(() => null);
+      if (!r.ok || !d?.success) return;
+      // The array rides at data's root — there is no { messages } wrapper.
+      const rows: ChatMessage[] = Array.isArray(d.data) ? d.data : [];
+      if (rows.length > 0) lastIdRef.current = rows[rows.length - 1].id;
+      if (rows.length === 0 && !initial) return;
+      setMessages((cur) => {
+        // after-poll: append what's genuinely new; full window: refresh over
+        // whatever optimistic rows the window missed. Sorted either way.
+        const merged = after
+          ? [...cur, ...rows.filter((m) => !cur.some((x) => x.id === m.id))]
+          : [...rows, ...cur.filter((m) => !rows.some((x) => x.id === m.id))];
+        merged.sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt) || a.id.localeCompare(b.id));
+        return merged;
+      });
     } catch {
-      /* offline */
+      /* offline — the next tick tries again */
     } finally {
-      setLoading(false);
+      if (initial) setLoading(false);
     }
-  }, [guildId, user?.id]);
+  }, [guildId]);
 
-  useEffect(() => { load(); }, [load]);
-
-  // Notification deep links land as /guilds/:id?comment=<id> — scroll to it
-  // once the posts exist. window.location, not useSearchParams: this page
-  // must never need a Suspense boundary just to read one optional param.
+  // Initial fetch + the 8-second poll — which ONLY runs while the tab is
+  // visible (the backend's rate budget assumes hidden tabs go quiet).
   useEffect(() => {
-    if (anchoredRef.current || posts.length === 0) return;
-    let target = "";
-    try {
-      target = new URLSearchParams(window.location.search).get("comment") || "";
-    } catch {
+    if (!isMember) return;
+    let timer: ReturnType<typeof setInterval> | null = null;
+    const start = () => { if (timer === null) timer = setInterval(() => fetchNew(false), 8000); };
+    const stop = () => { if (timer !== null) { clearInterval(timer); timer = null; } };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") { fetchNew(false); start(); }
+      else stop();
+    };
+    fetchNew(true);
+    if (document.visibilityState === "visible") start();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => { stop(); document.removeEventListener("visibilitychange", onVisibility); };
+  }, [isMember, fetchNew]);
+
+  const onScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  };
+
+  // Bottom on first load; afterwards only when the reader was already there.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || messages.length === 0) return;
+    if (firstScrollRef.current) {
+      firstScrollRef.current = false;
+      el.scrollTop = el.scrollHeight;
       return;
     }
-    if (!target) return;
-    anchoredRef.current = true;
-    const el = document.getElementById(`guild-comment-${target}`);
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [posts]);
+    if (stickRef.current) el.scrollTop = el.scrollHeight;
+  }, [messages]);
 
-  const submit = async () => {
-    if (!user) return toast("Sign in to post.", "error");
-    if ((!text.trim() && !mediaUrl.trim()) || posting) return;
-    setPosting(true);
+  const insertEmoji = (emoji: string) => {
+    const el = taRef.current;
+    const at = el?.selectionStart ?? draft.length;
+    const to = el?.selectionEnd ?? at;
+    const next = (draft.slice(0, at) + emoji + draft.slice(to)).slice(0, 500);
+    setDraft(next);
+    requestAnimationFrame(() => {
+      if (!el) return;
+      el.focus();
+      const pos = Math.min(at + emoji.length, next.length);
+      el.setSelectionRange(pos, pos);
+    });
+  };
+
+  const autoGrow = () => {
+    const el = taRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+  };
+
+  const send = async () => {
+    if (!user) return toast("Sign in to chat.", "error");
+    const content = draft.trim();
+    const media = mediaUrl.trim();
+    if ((!content && !media) || sending) return;
+    setSending(true);
     try {
-      const r = await fetch(`${API_URL}/api/comments`, {
+      const r = await fetch(`${API_URL}/api/guilds/${encodeURIComponent(guildId)}/messages`, {
         method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify({
-          userId: user.id,
-          guildId,
-          content: text.trim(),
-          mediaUrl: mediaUrl.trim() || undefined,
-        }),
+        body: JSON.stringify({ content: content || undefined, mediaUrl: media || undefined }),
       });
       const d = await r.json().catch(() => null);
-      if (!r.ok || !d?.success) return toast(d?.message || "Couldn't post.", "error");
-      setText("");
+      if (!r.ok || !d?.success) {
+        if (r.status === 429) toast("Easy — one message every couple of seconds.", "error");
+        else toast(d?.message || "Couldn't send that.", "error");
+        return;
+      }
+      const msg: ChatMessage = d.data;
+      stickRef.current = true; // your own message always brings you to it
+      setMessages((cur) => (cur.some((m) => m.id === msg.id) ? cur : [...cur, msg]));
+      setDraft("");
       setMediaUrl("");
-      load();
+      const el = taRef.current;
+      if (el) el.style.height = "auto";
     } catch {
-      toast("Couldn't post.", "error");
+      toast("Couldn't reach the server.", "error");
     } finally {
-      setPosting(false);
+      setSending(false);
     }
   };
 
-  const reply = async (postId: string, body: string) => {
-    if (!user) { toast("Sign in to reply.", "error"); return false; }
+  const removeMessage = async (m: ChatMessage) => {
+    if (!window.confirm("Delete this message?")) return;
     try {
-      const r = await fetch(`${API_URL}/api/comments`, {
-        method: "POST",
-        headers: authHeaders(),
-        body: JSON.stringify({ userId: user.id, guildId, content: body, parentId: postId }),
-      });
-      const d = await r.json().catch(() => null);
-      if (!r.ok || !d?.success) { toast(d?.message || "Couldn't reply.", "error"); return false; }
-      load();
-      return true;
-    } catch {
-      toast("Couldn't reply.", "error");
-      return false;
-    }
-  };
-
-  const love = async (p: BoardPost) => {
-    if (!user) return toast("Sign in to react.", "error");
-    const next = p.userVote === 1 ? 0 : 1;
-    setPosts((list) => list.map((x) => {
-      if (x.id !== p.id) return x;
-      const was = x.userVote || 0;
-      return {
-        ...x,
-        userVote: next,
-        upvotes: Math.max(0, (x.upvotes || 0) + (next === 1 ? 1 : 0) - (was === 1 ? 1 : 0)),
-      };
-    }));
-    try {
-      const r = await fetch(`${API_URL}/api/comments/${p.id}/vote`, {
-        method: "POST",
-        headers: authHeaders(),
-        body: JSON.stringify({ userId: user.id, value: next }),
-      });
-      const d = await r.json().catch(() => null);
-      if (!r.ok || !d?.success) { toast(d?.message || "That didn't save.", "error"); load(); }
-    } catch {
-      toast("That didn't save.", "error");
-      load();
-    }
-  };
-
-  const remove = async (p: BoardPost) => {
-    if (!user) return;
-    const count = replies[p.id]?.length || 0;
-    const warn = count > 0
-      ? `Delete this post and its ${count} ${count === 1 ? "reply" : "replies"}?`
-      : "Delete this post?";
-    if (!window.confirm(warn)) return;
-    try {
-      const r = await fetch(`${API_URL}/api/comments/${p.id}`, {
-        method: "DELETE", headers: authHeaders(),
-      });
+      const r = await fetch(
+        `${API_URL}/api/guilds/${encodeURIComponent(guildId)}/messages/${encodeURIComponent(m.id)}`,
+        { method: "DELETE", headers: authHeaders() },
+      );
       const d = await r.json().catch(() => null);
       if (!r.ok || !d?.success) return toast(d?.message || "Couldn't delete that.", "error");
-      toast("Deleted.", "success");
-      load();
+      // If the poll cursor pointed at the deleted row, drop it — the next
+      // poll refetches the last window and the dedupe merge absorbs it.
+      if (lastIdRef.current === m.id) lastIdRef.current = null;
+      setMessages((cur) => cur.filter((x) => x.id !== m.id));
     } catch {
       toast("Couldn't delete that.", "error");
     }
   };
 
-  // Own posts always; the leader and co-leader moderate their own board.
-  const canManage = (p: BoardPost) => !!user && (p.user?.id === user.id || canModerate);
+  // Own messages always; the leader and co-leader moderate the whole room.
+  const canDelete = (m: ChatMessage) => !!user && (m.userId === user.id || canModerate);
+
+  // Discord grouping: same author within 5 minutes stacks under one header;
+  // a day boundary always breaks the run and plants a divider.
+  const chatRows = useMemo(() => {
+    type Group = { kind: "group"; key: string; author: ChatAuthor | null; userId: string; firstAt: string; items: ChatMessage[] };
+    type Row = { kind: "day"; key: string; label: string } | Group;
+    const out: Row[] = [];
+    let group: Group | null = null;
+    let prev: ChatMessage | null = null;
+    for (const m of messages) {
+      const label = dayLabel(m.createdAt);
+      if (!prev || dayLabel(prev.createdAt) !== label) {
+        out.push({ kind: "day", key: `day-${m.id}`, label });
+        group = null;
+      }
+      const sameAuthor = !!prev && prev.userId === m.userId;
+      const close = !!prev && +new Date(m.createdAt) - +new Date(prev.createdAt) < 5 * 60 * 1000;
+      if (group && sameAuthor && close) {
+        group.items.push(m);
+      } else {
+        group = { kind: "group", key: `grp-${m.id}`, author: m.author, userId: m.userId, firstAt: m.createdAt, items: [m] };
+        out.push(group);
+      }
+      prev = m;
+    }
+    return out;
+  }, [messages]);
+
+  // The living-username treatment the board used: effect gradient first,
+  // then the shop color, then plain white — plus the font cosmetics.
+  const chatNameClass = (a: ChatAuthor | null) => {
+    const font =
+      a?.activeFont === "font_cyber" ? "tracking-widest " :
+      a?.activeFont === "font_pixel" ? "font-serif tracking-tight " : "";
+    return font + (effectNameClass(a?.activeEffect) || nameColorClass(a?.activeColor) || "text-white");
+  };
 
   return (
     <div className="mt-6 rounded-3xl border border-white/10 bg-[#0b0b11] p-5 sm:p-6">
       <div className="flex items-center gap-2">
         <MessageSquare className="h-4 w-4 text-emerald-300" />
-        <p className="text-sm font-black text-white">Guild board</p>
+        <p className="text-sm font-black text-white">Guild chat</p>
         <span className="rounded-full border border-emerald-400/25 bg-emerald-500/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-emerald-200">
-          Members post
+          Members only
         </span>
       </div>
 
-      {isMember ? (
-        <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.02] p-3">
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value.slice(0, 1500))}
-            rows={2}
-            placeholder="Say something to the guild…"
-            className="w-full resize-y rounded-xl border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm leading-relaxed text-white placeholder:text-slate-600 outline-none focus:border-emerald-400/40"
-          />
-          <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-            <MediaPicker value={mediaUrl} onChange={setMediaUrl} userId={user?.id} />
-            <button type="button" disabled={(!text.trim() && !mediaUrl.trim()) || posting} onClick={submit}
-              className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/40 bg-emerald-500/15 px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-200 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-40">
-              <Send className="h-3 w-3" /> {posting ? "Posting…" : "Post"}
-            </button>
-          </div>
+      {!isMember ? (
+        <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.02] px-6 py-14 text-center">
+          <Lock className="mx-auto h-6 w-6 text-slate-600" />
+          <p className="mt-3 text-xs text-slate-500">Join the guild to enter the chat.</p>
         </div>
       ) : (
-        <p className="mt-4 text-[11px] text-slate-600">Join the guild to post on its board.</p>
-      )}
-
-      {loading ? (
-        <p className="py-10 text-center text-xs text-slate-600">Reading the board…</p>
-      ) : posts.length === 0 ? (
-        <p className="py-10 text-center text-xs text-slate-600">Nothing on the board yet. First word is free.</p>
-      ) : (
-        <div className="mt-4 space-y-3">
-          {posts.map((p) => (
-            <article key={p.id} id={`guild-comment-${p.id}`}
-              className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-              <div className="flex items-start gap-3">
-                <div className="relative h-9 w-9 shrink-0">
-                  {p.user?.avatar ? (
-                    <img src={p.user.avatar} alt="" className="relative z-10 h-9 w-9 rounded-full object-cover ring-1 ring-black/60" />
-                  ) : (
-                    <span className="relative z-10 grid h-9 w-9 place-items-center rounded-full bg-emerald-800 text-xs font-black ring-1 ring-black/60">
-                      {(p.user?.username || "?")[0]?.toUpperCase()}
-                    </span>
-                  )}
-                  <AvatarDecoration frame={p.user?.activeFrame} effect={p.user?.activeEffect} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {p.user?.username ? (
-                      <UserLink username={p.user.username}
-                        className={`text-sm font-black hover:underline ${effectNameClass(p.user?.activeEffect) || "text-white"}`}>
-                        {p.user.username}
-                      </UserLink>
-                    ) : (
-                      <span className="text-sm font-black text-slate-400">someone</span>
-                    )}
-                    <UserBadgesCompact user={p.user} blessed={p.blessed} />
-                    <span className="text-[10px] font-bold text-slate-600">{ago(p.createdAt)}</span>
-                    {canManage(p) && (
-                      <button type="button" onClick={() => remove(p)} aria-label="Delete post"
-                        className="ml-auto grid h-7 w-7 place-items-center rounded-full text-slate-600 transition hover:bg-red-500/10 hover:text-red-300">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    )}
+        <>
+          <div
+            ref={scrollRef}
+            onScroll={onScroll}
+            className="mt-4 h-[28rem] overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-black/30 px-4 py-3"
+          >
+            {loading ? (
+              <p className="py-10 text-center text-xs text-slate-600">Opening the chat…</p>
+            ) : messages.length === 0 ? (
+              <p className="py-10 text-center text-xs text-slate-600">Nothing said yet. First word is free.</p>
+            ) : (
+              chatRows.map((row) =>
+                row.kind === "day" ? (
+                  <div key={row.key} className="my-4 flex items-center gap-3 first:mt-1">
+                    <span className="h-px flex-1 bg-white/10" />
+                    <span className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-600">{row.label}</span>
+                    <span className="h-px flex-1 bg-white/10" />
                   </div>
-                  {p.content && (
-                    <p className="mt-1.5 whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-300">{p.content}</p>
-                  )}
-                  {p.mediaUrl && (
-                    <img src={p.mediaUrl} alt="" loading="lazy"
-                      className="mt-3 max-h-80 w-auto max-w-full rounded-xl object-contain" />
-                  )}
-                  <div className="mt-3 flex flex-wrap items-center gap-4">
-                    <button type="button" onClick={() => love(p)}
-                      className={`inline-flex items-center gap-1.5 text-[11px] font-black transition ${
-                        p.userVote === 1 ? "text-rose-400" : "text-slate-500 hover:text-rose-300"
-                      }`}>
-                      <Heart className="h-3.5 w-3.5" fill={p.userVote === 1 ? "currentColor" : "none"} />
-                      {p.upvotes || 0}
-                    </button>
-                    {isMember && (
-                      <button type="button" onClick={() => setOpenThread(openThread === p.id ? null : p.id)}
-                        className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500 transition hover:text-white">
-                        <MessageSquare className="h-3 w-3" />
-                        {(replies[p.id]?.length || 0) === 0 ? "Reply" : `${replies[p.id].length} ${replies[p.id].length === 1 ? "reply" : "replies"}`}
-                      </button>
-                    )}
-                  </div>
-
-                  {openThread === p.id && (
-                    <div className="mt-3 space-y-2.5 border-l border-emerald-400/25 pl-3">
-                      {(replies[p.id] || []).map((r) => (
-                        <div key={r.id} id={`guild-comment-${r.id}`} className="flex items-start gap-2.5">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              {r.user?.username ? (
-                                <UserLink username={r.user.username} className="text-xs font-black text-white hover:underline">
-                                  {r.user.username}
-                                </UserLink>
-                              ) : (
-                                <span className="text-xs font-black text-slate-400">someone</span>
-                              )}
-                              <span className="text-[9px] font-bold text-slate-600">{ago(r.createdAt)}</span>
-                              {canManage(r) && (
-                                <button type="button" onClick={() => remove(r)} aria-label="Delete reply"
-                                  className="ml-auto grid h-6 w-6 place-items-center rounded-full text-slate-600 transition hover:bg-red-500/10 hover:text-red-300">
-                                  <Trash2 className="h-3 w-3" />
-                                </button>
-                              )}
-                            </div>
-                            <p className="mt-0.5 whitespace-pre-wrap break-words text-xs leading-relaxed text-slate-300">{r.content}</p>
-                          </div>
-                        </div>
-                      ))}
-                      <BoardReplyBox onSend={(body) => reply(p.id, body)} />
+                ) : (
+                  <div key={row.key} className="mt-3 flex items-start gap-3 first:mt-0">
+                    <div className="relative mt-0.5 h-9 w-9 shrink-0">
+                      {row.author?.avatar ? (
+                        <img src={row.author.avatar} alt="" className="relative z-10 h-9 w-9 rounded-full object-cover ring-1 ring-black/60" />
+                      ) : (
+                        <span className="relative z-10 grid h-9 w-9 place-items-center rounded-full bg-emerald-800 text-xs font-black ring-1 ring-black/60">
+                          {(row.author?.username || "?")[0]?.toUpperCase()}
+                        </span>
+                      )}
+                      <AvatarDecoration effect={row.author?.activeEffect} />
                     </div>
-                  )}
-                </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-baseline gap-2">
+                        {row.author?.username ? (
+                          <UserLink username={row.author.username}
+                            className={`text-sm font-black hover:underline ${chatNameClass(row.author)}`}>
+                            {row.author.username}
+                          </UserLink>
+                        ) : (
+                          <span className="text-sm font-black text-slate-400">someone</span>
+                        )}
+                        <span className="text-[10px] font-bold tabular-nums text-slate-600">{hhmm(row.firstAt)}</span>
+                      </div>
+                      <div className="space-y-0.5">
+                        {row.items.map((m) => (
+                          <div key={m.id} className="group/msg relative -mx-1.5 rounded-md px-1.5 py-px transition hover:bg-white/[0.03]">
+                            {m.content && (
+                              <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-300">{m.content}</p>
+                            )}
+                            {m.mediaUrl && (
+                              <img src={m.mediaUrl} alt="" loading="lazy"
+                                className="my-1 max-h-64 w-auto max-w-full rounded-xl object-contain" />
+                            )}
+                            {canDelete(m) && (
+                              <button type="button" onClick={() => removeMessage(m)} aria-label="Delete message"
+                                className="absolute -top-1.5 right-0 hidden h-6 w-6 place-items-center rounded-md border border-white/10 bg-[#101018] text-slate-500 shadow transition hover:text-red-300 group-hover/msg:grid">
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )
+              )
+            )}
+          </div>
+
+          <div className="mt-3">
+            {mediaUrl && (
+              <div className="mb-2 inline-flex items-start gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-1.5">
+                <img src={mediaUrl} alt="" className="h-16 w-24 rounded-lg object-cover" />
+                <button type="button" onClick={() => setMediaUrl("")} aria-label="Remove attachment"
+                  className="grid h-6 w-6 place-items-center rounded-md text-slate-500 transition hover:bg-white/10 hover:text-white">
+                  <X className="h-3.5 w-3.5" />
+                </button>
               </div>
-            </article>
-          ))}
-        </div>
+            )}
+            <div className="flex items-end gap-2">
+              <textarea
+                ref={taRef}
+                value={draft}
+                rows={1}
+                onChange={(e) => setDraft(e.target.value.slice(0, 500))}
+                onInput={autoGrow}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+                }}
+                placeholder="Message the guild…"
+                className="max-h-[120px] min-w-0 flex-1 resize-none rounded-xl border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm leading-relaxed text-white placeholder:text-slate-600 outline-none focus:border-emerald-400/40"
+              />
+              <button type="button" onClick={send} aria-label="Send message"
+                disabled={sending || (!draft.trim() && !mediaUrl.trim())}
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-emerald-400/40 bg-emerald-500/15 text-emerald-200 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-30">
+                <Send className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <EmojiPicker onPick={insertEmoji} />
+              <MediaPicker value={mediaUrl} onChange={setMediaUrl} userId={user?.id} />
+              <span className="ml-auto text-[10px] font-bold tabular-nums text-slate-600">{draft.length}/500</span>
+            </div>
+            <p className="mt-1.5 text-[9px] text-slate-600">Enter sends · Shift+Enter for a new line</p>
+          </div>
+        </>
       )}
     </div>
   );
 }
 
-function BoardReplyBox({ onSend }: { onSend: (body: string) => Promise<boolean> }) {
-  const [text, setText] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  const send = async () => {
-    const body = text.trim();
-    if (!body || busy) return;
-    setBusy(true);
-    const ok = await onSend(body);
-    if (ok) setText("");
-    setBusy(false);
-  };
-
-  return (
-    <div className="flex items-center gap-2 pt-1">
-      <input
-        value={text}
-        onChange={(e) => setText(e.target.value.slice(0, 800))}
-        onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-        placeholder="Write a reply…"
-        className="min-w-0 flex-1 rounded-lg border border-white/10 bg-black/45 px-3 py-2 text-xs text-white placeholder:text-slate-600 outline-none focus:border-emerald-400/40"
-      />
-      <button type="button" onClick={send} disabled={!text.trim() || busy} aria-label="Send reply"
-        className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-emerald-400/40 bg-emerald-500/15 text-emerald-200 transition hover:bg-emerald-500/25 disabled:opacity-30">
-        <Send className="h-3 w-3" />
-      </button>
-    </div>
-  );
-}
-
-/* ═══════════════════ LEADER'S EDIT SHEET — description + avatar ═══════════════════ */
+/* ═══════════════ LEADER'S EDIT SHEET — description + crest + banner ═══════════════ */
 
 function EditGuildSheet({ guild, onClose, onSaved }: {
   guild: GuildDetail;
@@ -917,15 +946,23 @@ function EditGuildSheet({ guild, onClose, onSaved }: {
 }) {
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
+  const bannerFileRef = useRef<HTMLInputElement>(null);
   const [desc, setDesc] = useState(guild.description || "");
   const [avatar, setAvatar] = useState<string | null>(guild.avatar);
+  const [banner, setBanner] = useState<string | null>(guild.banner);
   const [uploading, setUploading] = useState(false);
+  const [bannerUploading, setBannerUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // The SettingsModal flow: unsigned upload straight to Cloudinary, only the
   // returned secure_url travels to our backend — which allow-lists exactly
-  // that host (res.cloudinary.com) for guild avatars.
-  const upload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // that host (res.cloudinary.com) for guild art. One uploader serves both
+  // the crest and the banner; only the target setter differs.
+  const uploadImage = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    apply: (url: string) => void,
+    setBusy: (busy: boolean) => void,
+  ) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
@@ -933,7 +970,7 @@ function EditGuildSheet({ guild, onClose, onSaved }: {
     const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
     if (!CLOUD_NAME || !UPLOAD_PRESET) return toast("Image uploads aren't configured yet.", "error");
     if (file.size > 10 * 1024 * 1024) return toast("That image is over 10MB — pick a smaller one.", "error");
-    setUploading(true);
+    setBusy(true);
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -943,12 +980,12 @@ function EditGuildSheet({ guild, onClose, onSaved }: {
         body: formData,
       });
       const data = await res.json();
-      if (data.secure_url) setAvatar(data.secure_url);
+      if (data.secure_url) apply(data.secure_url);
       else toast("Upload failed — try again.", "error");
     } catch {
       toast("Upload failed — try again.", "error");
     } finally {
-      setUploading(false);
+      setBusy(false);
     }
   };
 
@@ -959,7 +996,7 @@ function EditGuildSheet({ guild, onClose, onSaved }: {
       const r = await fetch(`${API_URL}/api/guilds/${encodeURIComponent(guild.id)}`, {
         method: "PATCH",
         headers: authHeaders(),
-        body: JSON.stringify({ description: desc.trim(), avatar: avatar }),
+        body: JSON.stringify({ description: desc.trim(), avatar: avatar, banner: banner || "" }),
       });
       const d = await r.json().catch(() => null);
       if (!r.ok || !d?.success) return toast(d?.message || "Couldn't save that.", "error");
@@ -980,7 +1017,7 @@ function EditGuildSheet({ guild, onClose, onSaved }: {
         <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
           <div className="min-w-0">
             <p className="font-fell text-lg text-white">Edit {guild.name}</p>
-            <p className="text-[11px] text-slate-500">Name and tag are permanent — description and crest are yours</p>
+            <p className="text-[11px] text-slate-500">Name and tag are permanent — description, crest and banner are yours</p>
           </div>
           <button type="button" onClick={onClose} aria-label="Close"
             className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-white/10 hover:text-white">
@@ -1012,7 +1049,33 @@ function EditGuildSheet({ guild, onClose, onSaved }: {
                   </button>
                 )}
               </div>
-              <input ref={fileRef} type="file" accept="image/*" onChange={upload} className="hidden" />
+              <input ref={fileRef} type="file" accept="image/*" onChange={(e) => uploadImage(e, setAvatar, setUploading)} className="hidden" />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-black text-white">Banner</label>
+            <p className="mt-1 text-[10px] text-slate-600">Drapes behind the guild hall hero — wide images sit best.</p>
+            {banner ? (
+              <img src={banner} alt="" className="mt-2 h-24 w-full rounded-xl object-cover ring-1 ring-emerald-400/30" />
+            ) : (
+              <div className="mt-2 grid h-24 w-full place-items-center rounded-xl border border-dashed border-white/15 bg-white/[0.02] text-[10px] font-black uppercase tracking-[0.2em] text-slate-600">
+                No banner yet
+              </div>
+            )}
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <button type="button" disabled={bannerUploading} onClick={() => bannerFileRef.current?.click()}
+                className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.05] px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-200 transition hover:bg-white/[0.1] disabled:opacity-50">
+                {bannerUploading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+                {bannerUploading ? "Uploading…" : banner ? "Change banner" : "Upload a banner"}
+              </button>
+              {banner && (
+                <button type="button" onClick={() => setBanner(null)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-red-400/25 bg-red-500/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-red-300 transition hover:bg-red-500/20">
+                  <Trash2 className="h-3.5 w-3.5" /> Remove
+                </button>
+              )}
+              <input ref={bannerFileRef} type="file" accept="image/*" onChange={(e) => uploadImage(e, setBanner, setBannerUploading)} className="hidden" />
             </div>
           </div>
 
@@ -1032,7 +1095,7 @@ function EditGuildSheet({ guild, onClose, onSaved }: {
             className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400 transition hover:bg-white/[0.08] hover:text-slate-200">
             Cancel
           </button>
-          <button type="button" disabled={saving || uploading} onClick={save}
+          <button type="button" disabled={saving || uploading || bannerUploading} onClick={save}
             className="rounded-xl border border-emerald-400/40 bg-emerald-500/15 px-5 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-200 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-40">
             {saving ? "Saving…" : "Save"}
           </button>
