@@ -10,19 +10,12 @@ let catalogCache: { title: string; slug: string; id: string }[] | null = null;
 let catalogTime = 0;
 
 const FALLBACK_CATALOG = [
-  { title: "Solo Leveling", slug: "solo-leveling", id: "lnori:solo-leveling" },
+  { title: "Solo Leveling", slug: "i-alone-level-up", id: "lnori:i-alone-level-up" },
   { title: "Overlord", slug: "overlord-ln", id: "lnori:overlord-ln" },
-  { title: "Classroom of the Elite", slug: "classroom-of-the-elite", id: "lnori:classroom-of-the-elite" },
   { title: "Omniscient Reader's Viewpoint", slug: "omniscient-readers-viewpoint", id: "lnori:omniscient-readers-viewpoint" },
-  { title: "That Time I Got Reincarnated as a Slime", slug: "tensei-shitara-slime-datta-ken", id: "lnori:tensei-shitara-slime-datta-ken" },
-  { title: "Re:Zero - Starting Life in Another World", slug: "rezero-kara-hajimeru-isekai-seikatsu", id: "lnori:rezero-kara-hajimeru-isekai-seikatsu" },
-  { title: "Sword Art Online", slug: "sword-art-online", id: "lnori:sword-art-online" },
-  { title: "Mushoku Tensei: Jobless Reincarnation", slug: "mushoku-tensei-isekai-ittara-honki-dasu", id: "lnori:mushoku-tensei-isekai-ittara-honki-dasu" },
   { title: "The Beginning After the End", slug: "the-beginning-after-the-end", id: "lnori:the-beginning-after-the-end" },
-  { title: "The Rising of the Shield Hero", slug: "tate-no-yuusha-no-nariagari", id: "lnori:tate-no-yuusha-no-nariagari" },
-  { title: "No Game No Life", slug: "no-game-no-life", id: "lnori:no-game-no-life" },
-  { title: "86 - Eighty Six", slug: "86", id: "lnori:86" },
   { title: "Lord of the Mysteries", slug: "lord-of-the-mysteries", id: "lnori:lord-of-the-mysteries" },
+  { title: "Re:Zero - Starting Life in Another World", slug: "rezero-kara-hajimeru-isekai-seikatsu", id: "lnori:rezero-kara-hajimeru-isekai-seikatsu" },
 ];
 
 export async function getCatalog() {
@@ -173,47 +166,33 @@ export async function getNovelInfo(slug: string): Promise<NovelInfo> {
     genres: ["Official EPUB"],
     synopsis: "Light Novel EPUB collection.",
     chapters: Array.from({ length: 10 }, (_, i) => ({
-      id: `vol-${i + 1}`,
-      title: `Volume ${i + 1}`,
+      id: `chapter-${i + 1}`,
+      title: `Chapter ${i + 1}`,
       number: i + 1,
     })),
   };
 }
 
-/**
- * There is no chapter text to fetch — the volume IS the file, and the reader
- * swaps itself for the EPUB view. What this still owes the caller is a NAME.
- *
- * It used to answer "EPUB File", and since the reader picks
- * `chapter?.title || novel?.title`, that placeholder won every time: every
- * volume of every series was titled "EPUB File" in the reader header. The
- * filename is right there in the id, so use it.
- */
 export async function getChapterContent(slug: string, chapterId: string): Promise<ChapterContent> {
-  if (!chapterId.startsWith("vol-")) {
-    const nfContent = await NF.getChapterContent(slug, chapterId).catch(() => null);
-    if (nfContent) return nfContent;
+  let targetChapterId = chapterId;
+  if (chapterId.startsWith("vol-")) {
+    const volNum = parseInt(chapterId.replace("vol-", ""), 10) || 1;
+    targetChapterId = `chapter-${volNum}`;
   }
 
-  let title = "EPUB Volume";
+  const nfContent = await NF.getChapterContent(slug, targetChapterId).catch(() => null);
+  if (nfContent) return nfContent;
 
-  const volNo = chapterId.match(/^vol-(\d+)$/i);
-  if (volNo) {
-    title = `Volume ${volNo[1]}`;
-  } else {
-    try {
-      const file = decodeURIComponent(new URL(chapterId).pathname.split("/").pop() || "");
-      const name = file.replace(/\.epub$/i, "").replace(/[_+]/g, " ").trim();
-      if (name) title = name;
-    } catch {
-      const name = chapterId.replace(/\.epub$/i, "").trim();
-      if (name) title = name;
-    }
-  }
+  const rnfContent = await RNF.getChapterContent(slug, targetChapterId).catch(() => null);
+  if (rnfContent) return rnfContent;
+
+  let title = "Volume";
+  const volNo = chapterId.match(/^(?:vol|chapter)-(\d+)$/i);
+  if (volNo) title = `Chapter ${volNo[1]}`;
 
   return {
     title,
-    content: ["This volume opens in the EPUB reader."],
+    content: ["Content loading or temporarily unavailable. Please try another chapter."],
     prev: null,
     next: null,
   };
