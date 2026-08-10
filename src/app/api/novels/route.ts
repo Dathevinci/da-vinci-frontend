@@ -15,8 +15,14 @@ export async function GET(request: Request) {
     // a filter over the cached listing, which is why it does not go through
     // searchAll with the scraping sources.
     if (source === 'lnori') {
-      const data = query ? await Lnori.searchNovels(query, page) : await Lnori.browseNovels(page);
-      return NextResponse.json(data);
+      try {
+        const data = query ? await Lnori.searchNovels(query, page) : await Lnori.browseNovels(page);
+        return NextResponse.json(data);
+      } catch (err: any) {
+        console.warn("[LNori] Cloudflare blocked, falling back to general novel sources:", err.message);
+        const fallbackData = query ? await searchAll(query, page) : await browseNovels(page, list);
+        return NextResponse.json(fallbackData);
+      }
     }
 
     const data = query ? await searchAll(query, page) : await browseNovels(page, list);

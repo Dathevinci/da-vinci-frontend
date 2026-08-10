@@ -26,17 +26,24 @@ const UA =
 const MAX_CHAPTER_PAGES = 30;
 
 async function fetchHtml(path: string): Promise<string> {
-  const res = await fetch(path.startsWith("http") ? path : `${BASE}${path}`, {
-    headers: {
-      "User-Agent": UA,
-      Referer: `${BASE}/`,
-      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      "Accept-Language": "en-US,en;q=0.9",
-    },
-    signal: AbortSignal.timeout(15000),
-  });
-  if (!res.ok) throw new Error(`NovelFull ${res.status} for ${path}`);
-  return res.text();
+  const url = path.startsWith("http") ? path : `${BASE}${path}`;
+  const headers = {
+    "User-Agent": UA,
+    Referer: `${BASE}/`,
+    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+  };
+
+  try {
+    const res = await fetch(url, { headers, signal: AbortSignal.timeout(12000) });
+    if (res.ok) return res.text();
+    throw new Error(`NovelFull ${res.status} for ${path}`);
+  } catch (err: any) {
+    const proxyUrl = `https://goodproxy.goodproxy.workers.dev/fetch?url=${encodeURIComponent(url)}`;
+    const proxyRes = await fetch(proxyUrl, { headers: { "User-Agent": UA }, signal: AbortSignal.timeout(15000) });
+    if (!proxyRes.ok) throw err;
+    return proxyRes.text();
+  }
 }
 
 function decodeEntities(s: string): string {
