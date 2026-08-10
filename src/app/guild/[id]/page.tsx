@@ -311,8 +311,20 @@ export default function GuildHomePage() {
   return (
     <PageTransition>
       <div className="relative min-h-screen bg-[#070709] px-4 pb-32 pt-14 font-mono text-white">
-        {/* the Lunar top glow — emerald, the guilds' colour */}
-        <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[500px] bg-[radial-gradient(ellipse_50%_80%_at_50%_-20%,rgba(16,185,129,0.16),transparent_70%)]" />
+        {guild?.banner ? (
+          /* FULL-SCREEN banner: fixed, so the art holds the entire viewport
+             while the hall scrolls over it. The veil + fade to the page black
+             keep every card legible on any art; the emerald glow is skipped —
+             it would tint the image green. */
+          <div aria-hidden className="pointer-events-none fixed inset-0">
+            <img src={guild.banner} alt="" className="h-full w-full object-cover" />
+            <div className="absolute inset-0 bg-black/55" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-[#070709]/40 to-[#070709]" />
+          </div>
+        ) : (
+          /* the Lunar top glow — emerald, the guilds' colour */
+          <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[500px] bg-[radial-gradient(ellipse_50%_80%_at_50%_-20%,rgba(16,185,129,0.16),transparent_70%)]" />
+        )}
 
         <div className="relative mx-auto max-w-4xl">
           {!loaded ? (
@@ -328,26 +340,26 @@ export default function GuildHomePage() {
             </div>
           ) : (
             <>
-              {/* ── THE HERO — the Deep Sea Vibes reference, in our kit ── */}
-              <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#0b0b11]">
-                {guild.banner ? (
+              {/* ── THE HERO — the Deep Sea Vibes reference, in our kit ──
+                  With a banner, the ART is the hero: the page-level fixed
+                  layer carries it, so the card chrome disappears and the
+                  crest/name float straight on the image. Without one, the
+                  boxed gradient card stands as before. */}
+              <div className={guild.banner
+                ? "relative"
+                : "relative overflow-hidden rounded-3xl border border-white/10 bg-[#0b0b11]"}>
+                {!guild.banner && (
                   <>
-                    {/* the guild's own banner carries the hero; the dark
-                        gradient keeps name/tag/description legible on any art */}
-                    <img src={guild.banner} alt="" aria-hidden
-                      className="absolute inset-0 h-full w-full object-cover" />
-                    <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/30" />
+                    <div aria-hidden className="absolute inset-0"
+                      style={{
+                        background:
+                          "radial-gradient(85% 90% at 82% 0%, rgba(16,185,129,.16), transparent 60%)," +
+                          "radial-gradient(70% 85% at 8% 100%, rgba(139,92,246,.14), transparent 65%)," +
+                          "linear-gradient(180deg, #0a1210, #0b0b11)",
+                      }} />
+                    <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-[#0b0b11] via-transparent to-transparent" />
                   </>
-                ) : (
-                  <div aria-hidden className="absolute inset-0"
-                    style={{
-                      background:
-                        "radial-gradient(85% 90% at 82% 0%, rgba(16,185,129,.16), transparent 60%)," +
-                        "radial-gradient(70% 85% at 8% 100%, rgba(139,92,246,.14), transparent 65%)," +
-                        "linear-gradient(180deg, #0a1210, #0b0b11)",
-                    }} />
                 )}
-                <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-[#0b0b11] via-transparent to-transparent" />
 
                 <div className="relative p-6 sm:p-10">
                   <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
