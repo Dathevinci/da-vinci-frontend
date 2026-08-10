@@ -1,6 +1,7 @@
 import * as cheerio from "cheerio";
 import type { NovelResult, NovelInfo, ChapterContent } from "./ReadNovelFull";
 import { getNovelCover } from "../anilist";
+import { getKitsuNovelCover } from "../kitsu";
 
 import * as NF from "./NovelFull";
 
@@ -59,6 +60,11 @@ async function coverFor(title: string): Promise<string> {
         .trim();
       if (clean && clean !== title) cover = await getNovelCover(clean);
     }
+    // AniList refuses English-original webnovels outright (TBATE et al), so a
+    // miss there is not "no art exists" — ask Kitsu before giving up. With
+    // files.lnori.com behind Cloudflare, the EPUB's own cover can't back this
+    // up any more, so an empty string here means a permanently blank card.
+    if (!cover) cover = (await getKitsuNovelCover(title)) || "";
     return cover || "";
   } catch {
     return "";

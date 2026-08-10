@@ -157,6 +157,31 @@ export async function getAnimeDetailsKitsu(malId: number): Promise<Anime> {
   return kitsuToAnime(item, malId);
 }
 
+/**
+ * Novel/manga cover lookup — the fallback for titles AniList doesn't index.
+ *
+ * AniList's guidelines exclude English-original webnovels (verified live:
+ * "The Beginning After the End" 404s on both the format:NOVEL and the plain
+ * MANGA query), so shelves that lean on AniList for art render those titles
+ * coverless. Kitsu DOES carry them, so it's asked second — only when AniList
+ * already came up empty.
+ *
+ * NOTE: Kitsu serves posters from media.kitsu.app — that host must stay in
+ * novelCover()'s direct-passthrough list and the /api/novel-image allowlist,
+ * or every cover returned here 403s at render time.
+ */
+export async function getKitsuNovelCover(title: string): Promise<string | null> {
+  try {
+    const json = await kitsuFetch(
+      `/manga?filter[text]=${encodeURIComponent(title)}&page[limit]=1&fields[manga]=posterImage`
+    );
+    const img = json?.data?.[0]?.attributes?.posterImage;
+    return img?.original || img?.large || null;
+  } catch {
+    return null;
+  }
+}
+
 export async function searchAnimeKitsu(variables: any) {
   const params: string[] = [];
   if (variables.search) params.push(`filter[text]=${encodeURIComponent(variables.search)}`);

@@ -55,19 +55,58 @@ const BASE = "https://lightnovelworld.org";
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";
 
+/**
+ * This site bot-gates datacenter IPs with a SOFT block: HTTP 200 plus a slim
+ * landing page instead of the page asked for — og:title "Light Novel World -
+ * Discover Epic Stories", og-default.png, zero cards. From Vercel that meant
+ * every shelf parsed to 0 rows (no error anywhere) and detail pages returned
+ * the landing page's own og tags as the "novel". Status checks can't see it;
+ * only the content can. The full og:title meta is the fingerprint — it has to
+ * be the EXACT tag, because "Discover Epic Stories" alone also appears in the
+ * twitter:title default on every real page (verified across home, browse,
+ * detail, chapter and search: their og:titles all name their own content).
+ */
+const looksBotGated = (html: string) =>
+  html.includes('property="og:title" content="Light Novel World - Discover Epic Stories"');
+
+// Same Cloudflare-Worker relay NovelFull/ReadNovelFull fall back to. Verified
+// live: direct-from-datacenter gets the gate page, the relay gets the real
+// 24-card listing.
+const RELAY = "https://goodproxy.goodproxy.workers.dev/fetch?url=";
+
 async function fetchHtml(path: string, revalidate = 300): Promise<string> {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: {
-      "User-Agent": UA,
-      Referer: `${BASE}/`,
-      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      "Accept-Language": "en-US,en;q=0.9",
-    },
+  const url = `${BASE}${path}`;
+  const headers = {
+    "User-Agent": UA,
+    Referer: `${BASE}/`,
+    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+  };
+
+  let direct: Error | null = null;
+  try {
+    const res = await fetch(url, { headers, next: { revalidate }, signal: AbortSignal.timeout(15000) } as any);
+    if (res.ok) {
+      const html = await res.text();
+      if (!looksBotGated(html)) return html;
+      direct = new Error(`LightNovelWorld bot-gated for ${path}`);
+    } else {
+      direct = new Error(`LightNovelWorld ${res.status} for ${path}`);
+    }
+  } catch (err: any) {
+    direct = err;
+  }
+
+  const proxyRes = await fetch(`${RELAY}${encodeURIComponent(url)}`, {
+    headers: { "User-Agent": UA },
     next: { revalidate },
     signal: AbortSignal.timeout(15000),
-  } as any);
-  if (!res.ok) throw new Error(`LightNovelWorld ${res.status} for ${path}`);
-  return res.text();
+  } as any).catch(() => null);
+  if (proxyRes && proxyRes.ok) {
+    const html = await proxyRes.text();
+    if (!looksBotGated(html)) return html;
+  }
+  throw direct;
 }
 
 const decode = (s: string) =>

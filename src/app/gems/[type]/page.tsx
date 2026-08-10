@@ -12,6 +12,7 @@ import { useUser } from "@/hooks/useUser";
 import { useToast } from "@/components/ui/Toast";
 import { LoadingDot } from "@/components/ui/LoadingScreen";
 import PageTransition from "@/components/layout/PageTransition";
+import { novelCover } from "@/lib/novelImage";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -197,6 +198,12 @@ export default function GemsPage() {
   const week = serverWeek || isoWeekKey();
   const daysLeft = daysUntilMonday();
 
+  // Stored gem covers are RAW source URLs. Novel art lives on scraper hosts
+  // that referer-gate hotlinks on and off, so it renders through
+  // /api/novel-image like every other novel surface; AniList/Kitsu URLs pass
+  // through novelCover() unchanged, and anime/manhwa covers stay as before.
+  const displayCover = (c: string) => (source === "novel" ? novelCover(c) || c : c);
+
   return (
     <PageTransition>
       <div className="relative min-h-screen bg-[#070709] px-4 pb-24 pt-14 font-mono text-white">
@@ -289,7 +296,7 @@ export default function GemsPage() {
                         }`}>
                         <span className="w-9 shrink-0 text-center text-sm font-black tabular-nums text-slate-600">#{i + 1}</span>
                         {g.cover ? (
-                          <img src={g.cover} alt="" loading="lazy" className="h-16 w-11 shrink-0 rounded-md object-cover" />
+                          <img src={displayCover(g.cover)} alt="" loading="lazy" className="h-16 w-11 shrink-0 rounded-md object-cover" />
                         ) : (
                           <span className="h-16 w-11 shrink-0 rounded-md bg-white/5" />
                         )}
@@ -332,7 +339,7 @@ export default function GemsPage() {
                 <Link href={`/${source}/${encodeURIComponent(lastWinner.mediaId)}`}
                   className="group relative flex min-h-[260px] items-end overflow-hidden rounded-3xl border border-white/10">
                   {lastWinner.cover && (
-                    <img src={lastWinner.cover} alt="" loading="lazy"
+                    <img src={displayCover(lastWinner.cover)} alt="" loading="lazy"
                       className="absolute inset-0 h-full w-full object-cover opacity-45 transition duration-500 group-hover:scale-105 group-hover:opacity-60" />
                   )}
                   <span className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent" />
@@ -432,7 +439,7 @@ export default function GemsPage() {
                           isSel ? "border-violet-400/40 bg-violet-500/10" : "border-transparent hover:bg-white/[0.05]"
                         }`}>
                         {cover ? (
-                          <img src={needsProxy ? `/api/manhwa-image?url=${encodeURIComponent(cover)}` : cover}
+                          <img src={needsProxy ? `/api/manhwa-image?url=${encodeURIComponent(cover)}` : displayCover(cover)}
                             alt="" loading="lazy" className="h-14 w-10 shrink-0 rounded-md object-cover" />
                         ) : (
                           <span className="h-14 w-10 shrink-0 rounded-md bg-white/5" />

@@ -27,6 +27,7 @@ export function resolveSource(id: string): { source: "nf" | "fmtl" | "rnf" | "ln
 }
 
 import { getNovelCover } from '../anilist';
+import { getKitsuNovelCover } from '../kitsu';
 
 export async function getNovelInfo(id: string): Promise<NovelInfo> {
   const { source, slug } = resolveSource(id);
@@ -48,6 +49,16 @@ export async function getNovelInfo(id: string): Promise<NovelInfo> {
 
   if (anilistCover.status === "fulfilled" && anilistCover.value) {
     info.cover = anilistCover.value;
+  }
+
+  // Still nothing? The source page had no parseable cover AND AniList doesn't
+  // know the title (it excludes English-original webnovels like The Beginning
+  // After the End). Kitsu indexes those, so ask it before shipping a blank
+  // detail hero. Only runs on the doubly-missed case, so it costs nothing on
+  // the normal path.
+  if (!info.cover) {
+    const kitsu = await getKitsuNovelCover(info.title).catch(() => null);
+    if (kitsu) info.cover = kitsu;
   }
 
   const alternatives: { source: string; id: string; name: string }[] = [];

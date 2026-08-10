@@ -7,6 +7,7 @@ import { authHeaders } from "@/lib/authToken";
 import { useUser } from "@/hooks/useUser";
 import { useToast } from "@/components/ui/Toast";
 import { LoadingDot } from "@/components/ui/LoadingScreen";
+import { novelCover } from "@/lib/novelImage";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -114,6 +115,14 @@ export default function HiddenGems({
     }
   };
 
+  // Stored gem covers are RAW source URLs (same convention as the trackers).
+  // Novel art lives on scraper hosts that referer-gate hotlinks on and off
+  // (img.readnovelfull.com, lightnovelworld.org), so it must render through
+  // /api/novel-image like every other novel surface — bare <img> here was the
+  // one place novel covers were hotlinked. AniList/Kitsu URLs pass through
+  // novelCover() unchanged, and anime/manhwa covers are left exactly as before.
+  const displayCover = (c: string) => (source === "novel" ? novelCover(c) || c : c);
+
   // Nothing voted yet and nothing to show: stay off the page entirely rather
   // than advertising an empty leaderboard.
   if (loaded && standings.length === 0 && !lastWinner && !user) return null;
@@ -155,7 +164,7 @@ export default function HiddenGems({
             >
               {lastWinner.cover && (
                 <img
-                  src={lastWinner.cover}
+                  src={displayCover(lastWinner.cover)}
                   alt=""
                   loading="lazy"
                   className="absolute inset-0 h-full w-full object-cover opacity-45 transition duration-500 group-hover:scale-105 group-hover:opacity-60"
@@ -203,7 +212,7 @@ export default function HiddenGems({
                 >
                   <span className="w-7 shrink-0 text-center font-mono text-xs font-black text-slate-500">#{i + 1}</span>
                   {g.cover ? (
-                    <img src={g.cover} alt="" loading="lazy" className="hq-image h-14 w-10 shrink-0 rounded-md object-cover" />
+                    <img src={displayCover(g.cover)} alt="" loading="lazy" className="hq-image h-14 w-10 shrink-0 rounded-md object-cover" />
                   ) : (
                     <span className="h-14 w-10 shrink-0 rounded-md bg-white/5" />
                   )}
@@ -283,7 +292,7 @@ export default function HiddenGems({
                     >
                       {cover ? (
                         <img
-                          src={needsProxy ? `/api/manhwa-image?url=${encodeURIComponent(cover)}` : cover}
+                          src={needsProxy ? `/api/manhwa-image?url=${encodeURIComponent(cover)}` : displayCover(cover)}
                           alt=""
                           loading="lazy"
                           className="hq-image h-14 w-10 shrink-0 rounded-md object-cover"

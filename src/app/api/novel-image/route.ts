@@ -20,7 +20,13 @@ export async function GET(req: NextRequest) {
     host === "img.readnovelfull.com" || host.endsWith(".readnovelfull.com") ||
     host === "www.fanmtl.com" || host.endsWith(".fanmtl.com") ||
     host === "lightnovelworld.org" || host.endsWith(".lightnovelworld.org") ||
-    host.endsWith("anilist.co") || host.endsWith("kitsu.io");
+    // DOT BOUNDARIES matter on suffix checks: a bare endsWith("kitsu.app")
+    // also matches "evilkitsu.app" — any attacker-registered domain ending in
+    // the string would ride the proxy.
+    host === "anilist.co" || host.endsWith(".anilist.co") ||
+    host === "kitsu.io" || host.endsWith(".kitsu.io") ||
+    // Kitsu's current image CDN — posters moved off media.kitsu.io.
+    host === "kitsu.app" || host.endsWith(".kitsu.app");
   if (!allowed) {
     return new NextResponse("Domain not allowed", { status: 403 });
   }
