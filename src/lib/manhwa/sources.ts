@@ -214,8 +214,12 @@ function merge(primary: IMangaResult[], ...secondaries: IMangaResult[][]): IMang
         const existingIsStub = String(existing.result.id).startsWith("mdx:") && !!existing.result.officialUrl;
         const newIsStub = String(r.id).startsWith("mdx:") && !!r.officialUrl;
         if (existingIsStub && !newIsStub) {
-          out[existing.index] = r;
-          seen.set(k, { result: r, index: existing.index });
+          const mergedResult: IMangaResult = {
+            ...r,
+            image: existing.result.image || r.image
+          };
+          out[existing.index] = mergedResult;
+          seen.set(k, { result: mergedResult, index: existing.index });
         }
         continue;
       }

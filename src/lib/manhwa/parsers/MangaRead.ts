@@ -62,7 +62,10 @@ export default class MangaRead extends MangaParser {
           const href = titleMatch[1];
           const title = titleMatch[2].trim();
           const slug = this.extractMangaSlug(href);
-          const image = imgMatch ? imgMatch[1].trim() : undefined;
+          let image = imgMatch ? imgMatch[1].trim() : undefined;
+          if (image) {
+            image = image.replace(/-\d+x\d+(\.[a-z0-9]+)$/i, '$1');
+          }
           const latestChapter = chapMatch ? chapMatch[1].trim() : undefined;
           
           if (slug) {
@@ -100,7 +103,10 @@ export default class MangaRead extends MangaParser {
       const title = titleMatch ? titleMatch[1].trim() : slug;
       
       const imgMatch = /<div class="summary_image">[\s\S]*?<img[^>]+src="([^"]+)"/i.exec(html);
-      const image = imgMatch ? imgMatch[1].trim() : undefined;
+      let image = imgMatch ? imgMatch[1].trim() : undefined;
+      if (image) {
+        image = image.replace(/-\d+x\d+(\.[a-z0-9]+)$/i, '$1');
+      }
       
       const descMatch = /class="description-summary">[\s\S]*?<div class="summary__content[^"]*">([\s\S]*?)<\/div>/i.exec(html);
       let description = descMatch ? descMatch[1].replace(/<[^>]+>/g, '').trim() : '';
