@@ -42,6 +42,7 @@ const PAGES: { href: string; label: string; Icon: any; tint: string }[] = [
   { href: "/calendar",    label: "Schedule",         Icon: Calendar,     tint: "#f472b6" },
   { href: "/cards",       label: "Arise Cards",      Icon: Layers,       tint: "#c084fc" },
   { href: "/duels",       label: "Card Duels",       Icon: Swords,       tint: "#f43f5e" },
+  { href: "/raid",        label: "World Raid",       Icon: Swords,       tint: "#f87171" },
   { href: "/marketplace", label: "Marketplace",      Icon: Store,        tint: "#22d3ee" },
   { href: "/auctions",    label: "Auction House",    Icon: Gavel,        tint: "#f59e0b" },
   { href: "/community",   label: "Community",        Icon: Users,        tint: "#34d399" },
