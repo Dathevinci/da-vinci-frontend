@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
   Users, Shield, Crown, X, Sparkles, Pencil, Trash2, Send, Lock,
-  MessageSquare, Diamond, Layers, Clock, Check, RefreshCw, Camera,
+  MessageSquare, Gem, Layers, Clock, Check, RefreshCw, Camera,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { useToast } from "@/components/ui/Toast";
@@ -48,7 +48,7 @@ type GuildDetail = {
   id: string; name: string; tag: string; description: string;
   avatar: string | null; banner: string | null;
   leaderId: string; coLeaderId: string | null;
-  coins: number; xp: number;
+  shards: number; xp: number;
   level: number; createdAt: string; memberCap: number; memberCount: number;
   members: Member[];
   myMembership: { role: string; joinedAt: string } | null;
@@ -389,8 +389,10 @@ export default function GuildHomePage() {
                         <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/25 bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-200">
                           <Sparkles className="h-3 w-3" /> Level {guild.level}
                         </span>
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/25 bg-amber-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-amber-200">
-                          <Diamond className="h-3 w-3" /> {guild.coins.toLocaleString()} coins
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/25 bg-cyan-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-200">
+                          {/* ?? 0 rides out deploy skew — a backend still
+                              sending `coins` must not crash the hero */}
+                          <Gem className="h-3 w-3" /> {(guild.shards ?? 0).toLocaleString()} shards
                         </span>
                         <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/40 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-300">
                           <Users className="h-3 w-3" /> {guild.memberCount}/{guild.memberCap} members

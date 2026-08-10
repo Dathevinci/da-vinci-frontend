@@ -33,7 +33,7 @@ export type GuildSummary = {
   banner: string | null;
   leaderId: string;
   coLeaderId: string | null;
-  coins: number;
+  shards: number;
   xp: number;
   level: number;
   memberCount: number;
@@ -68,7 +68,7 @@ export async function guildIfMember(id: string): Promise<GuildSummary | null> {
     return {
       id: g.id, name: g.name, tag: g.tag, description: g.description,
       avatar: g.avatar ?? null, banner: g.banner ?? null, leaderId: g.leaderId,
-      coLeaderId: g.coLeaderId ?? null, coins: g.coins ?? 0,
+      coLeaderId: g.coLeaderId ?? null, shards: g.shards ?? 0,
       xp: g.xp ?? 0, level: g.level ?? 1, memberCount: g.memberCount ?? 0,
     };
   } catch {

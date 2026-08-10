@@ -48,6 +48,7 @@ import ShowcaseCards from "@/components/profile/ShowcaseCards";
 import TitleRack from "@/components/profile/TitleRack";
 import { TitleChips } from "@/components/profile/UserBadges";
 import RecentComments from "@/components/profile/RecentComments";
+import GuildCard from "@/components/profile/GuildCard";
 
 export default function PublicProfilePage() {
   const { username } = useParams();
@@ -614,6 +615,12 @@ export default function PublicProfilePage() {
               )}
             </div>
           </div>
+
+          {/* THE GUILD PLAQUE — floats in the hero's empty right shoulder on
+              desktop, above the effect layers (they're pointer-events-none,
+              z ≤ 20) and clear of the centered max-w-4xl column. It renders
+              nothing for guildless profiles, so no reserved space either. */}
+          <GuildCard userId={profileUser.id} className="absolute right-4 top-4 z-[31] hidden w-72 lg:block" />
         </div>
 
         {/* ═══ SHOWCASE + RECENT COMMENTS ═══
@@ -622,6 +629,10 @@ export default function PublicProfilePage() {
             profile does not grow empty boxes and a failed fetch degrades to an
             absent section rather than a broken page. */}
         <div className="mx-auto w-full max-w-[1500px] px-4 pt-6 md:px-8">
+          {/* Below lg the hero has no spare shoulder, so the guild plaque
+              files in here as a normal block instead — margin rides on the
+              card itself, so a guildless profile leaves no stray gap. */}
+          <GuildCard userId={profileUser.id} className="mb-6 lg:hidden" />
           {/* onChange keeps the hero strip and this rack in agreement. The
               rack is the one that actually knows — it fetches the titles
               endpoint — so it feeds the page rather than the other way round. */}
