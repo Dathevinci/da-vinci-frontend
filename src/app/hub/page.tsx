@@ -37,6 +37,7 @@ const SECTIONS: Section[] = [
   { href: "/cards",       label: "Arise Cards",      desc: "Your collection. Pulls are closed during the rework.", Icon: Layers,       tint: "#c084fc" },
   { href: "/duels",       label: "Card Duels",       desc: "Stake your cards and fight.",                      Icon: Swords,       tint: "#f43f5e" },
   { href: "/raid",        label: "Raid",             desc: "This week's world boss — everyone's damage counts.", Icon: Swords,       tint: "#f87171" },
+  { href: "/guilds",      label: "Guilds",           desc: "Found one, raid together — board, lending, banner.", Icon: Users,        tint: "#10b981" },
   { href: "/marketplace", label: "Marketplace",      desc: "Trade cards, serials and wears.",                  Icon: Store,        tint: "#22d3ee" },
   { href: "/auctions",    label: "Auction House",    desc: "Bid on the rarest prints.",                        Icon: Gavel,        tint: "#f59e0b" },
   { href: "/quests",      label: "Daily Quests",     desc: "Earn Arise Points every day.",                     Icon: Trophy,       tint: "#fb923c" },

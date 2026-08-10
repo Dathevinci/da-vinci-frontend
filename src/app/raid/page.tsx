@@ -1,16 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useUser } from "@/hooks/useUser";
 import { useToast } from "@/components/ui/Toast";
 import { authHeaders } from "@/lib/authToken";
 import { loadCatalog } from "@/lib/catalogCache";
+import { findMyGuild, type GuildSummary } from "@/lib/guild";
 import PageTransition from "@/components/layout/PageTransition";
 import CardFace, { CardDef, RARITY_META, CardRarity } from "@/components/cards/CardFace";
 import {
   Swords, Skull, X, CalendarDays, Trophy, Flame, ShieldAlert, History, Sparkles,
-  ChevronDown, ChevronUp,
+  ChevronDown, ChevronUp, Users,
 } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -137,6 +139,13 @@ export default function RaidPage() {
   const [levels, setLevels] = useState<Record<string, number>>({});
   const [rests, setRests] = useState<Record<string, string>>({});
 
+  // GUILD: the chip to your hall, and cards guildmates lent you. The
+  // collection fetch can't know about loans (they're the OWNER's rows), so
+  // active borrowed entries merge into the picker as usable cards — the
+  // server fields them at the owner's stats and injures the owner's copy.
+  const [myGuild, setMyGuild] = useState<GuildSummary | null>(null);
+  const [borrowedFrom, setBorrowedFrom] = useState<Record<string, string>>({});
+
   // Boss art is owner-supplied and 404s until phase 4 — the gradient
   // underneath is the real background, the img is a bonus when it exists.
   const [artOk, setArtOk] = useState(true);
@@ -197,10 +206,33 @@ export default function RaidPage() {
     }
   }, [user?.id]);
 
+  const loadLoans = useCallback(async () => {
+    if (!user?.id) { setBorrowedFrom({}); return; }
+    try {
+      const r = await fetch(`${API_URL}/api/guilds/mine/loans`, { headers: authHeaders() });
+      const d = await r.json();
+      if (!d?.success) return;
+      const map: Record<string, string> = {};
+      for (const l of d.data?.borrowed || []) {
+        if (l?.active && l.cardId) map[l.cardId] = l.counterpartyName || "a guildmate";
+      }
+      setBorrowedFrom(map);
+    } catch {
+      /* no loans shown — owned cards still fight */
+    }
+  }, [user?.id]);
+
   useEffect(() => { loadRaid(); }, [loadRaid, user?.id]);
   useEffect(() => { loadHistory(); }, [loadHistory]);
   useEffect(() => { loadCollection(); }, [loadCollection]);
+  useEffect(() => { loadLoans(); }, [loadLoans]);
   useEffect(() => { loadCatalog(API_URL, (data: Catalog) => setCatalog(data)); }, []);
+
+  useEffect(() => {
+    let alive = true;
+    findMyGuild(user?.id).then((g) => { if (alive) setMyGuild(g); });
+    return () => { alive = false; };
+  }, [user?.id]);
 
   // The sheet/modal scrolls; the page behind it must not (cards-page rule).
   useEffect(() => {
@@ -233,11 +265,13 @@ export default function RaidPage() {
     [usedToday, rests]
   );
 
-  // Owned cards for the picker — healthy first, then rarity, then name.
+  // Owned OR borrowed cards for the picker — healthy first, then rarity,
+  // then name. A borrowed card is usable exactly like an owned one; the
+  // server resolves it to the owner's copy when the squad lands.
   const roster = useMemo(() => {
     if (!catalog) return [];
     return catalog.cards
-      .filter((c) => (owned[c.id] || 0) > 0)
+      .filter((c) => (owned[c.id] || 0) > 0 || !!borrowedFrom[c.id])
       .sort((a, b) => {
         const da = disabledReason(a.id) ? 1 : 0;
         const db = disabledReason(b.id) ? 1 : 0;
@@ -246,7 +280,7 @@ export default function RaidPage() {
         const rb = RARITY_META[b.rarity as CardRarity]?.order ?? 0;
         return rb - ra || a.name.localeCompare(b.name);
       });
-  }, [catalog, owned, disabledReason]);
+  }, [catalog, owned, borrowedFrom, disabledReason]);
 
   const toggle = (cardId: string) => {
     if (disabledReason(cardId)) return;
@@ -384,6 +418,12 @@ export default function RaidPage() {
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-400/25 bg-violet-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-violet-200">
                       <CalendarDays className="h-3 w-3" /> Resets Monday · {daysLeft} day{daysLeft === 1 ? "" : "s"} left
                     </span>
+                    {myGuild && (
+                      <Link href={`/guild/${encodeURIComponent(myGuild.id)}`}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-200 transition hover:bg-emerald-500/20">
+                        <Users className="h-3 w-3" /> [{myGuild.tag}] {myGuild.name}
+                      </Link>
+                    )}
                     {fallen && (
                       <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/40 bg-emerald-500/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-300">
                         <Skull className="h-3 w-3" /> Slain
@@ -704,6 +744,7 @@ export default function RaidPage() {
                     {roster.map((c) => {
                       const reason = disabledReason(c.id);
                       const selIdx = squad.indexOf(c.id);
+                      const lender = !(owned[c.id] > 0) ? borrowedFrom[c.id] : undefined;
                       return (
                         <button key={c.id} type="button" onClick={() => toggle(c.id)} disabled={!!reason}
                           className={`relative transition ${reason ? "cursor-not-allowed opacity-40 grayscale" : "hover:-translate-y-0.5"}`}>
@@ -713,9 +754,14 @@ export default function RaidPage() {
                             </span>
                           )}
                           <span className={`block rounded-xl ${selIdx > -1 ? "ring-2 ring-violet-400" : ""}`}>
-                            <CardFace card={c} owned count={owned[c.id]} foil={!!foils[c.id]} level={levels[c.id]}
+                            <CardFace card={c} owned count={owned[c.id] || 1} foil={!!foils[c.id]} level={levels[c.id]}
                               stats={catalog?.cardStats} statsById={catalog?.cardStatsById} size={110} ratio="5 / 9" />
                           </span>
+                          {lender && !reason && (
+                            <span className="absolute inset-x-0 top-1.5 z-20 mx-auto w-fit max-w-[95%] truncate whitespace-nowrap rounded-full border border-emerald-400/40 bg-black/85 px-2 py-0.5 text-[8px] font-black uppercase tracking-widest text-emerald-300">
+                              borrowed · {lender}
+                            </span>
+                          )}
                           {reason && (
                             <span className="absolute inset-x-0 bottom-1.5 z-20 mx-auto w-fit whitespace-nowrap rounded-full bg-black/85 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-red-300">
                               {reason}
