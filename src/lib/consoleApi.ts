@@ -67,6 +67,9 @@ export const consoleApi = {
   createInvites: (body: any) => request("/ops/invites", { method: "POST", body }),
   revokeInvite: (id: string) => request(`/ops/invites/${id}`, { method: "DELETE" }),
   publishAnnouncement: (body: any) => request("/ops/announcements", { method: "POST", body }),
+  // Raid drill — both act on the LEAD DEV'S OWN guild encounter.
+  raidSetHp: (body: { hpLeft: number }) => request("/ops/raid-hp", { method: "POST", body }),
+  raidSettleNow: () => request("/ops/raid-settle", { method: "POST" }),
 
   // Moderation + insights + audit
   listComments: (qs: string) => request(`/moderation/comments${qs}`),

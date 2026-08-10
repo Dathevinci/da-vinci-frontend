@@ -5,7 +5,7 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Users as UsersIcon, Diamond, ServerCog, BarChart3, Search, RefreshCw, ShieldAlert,
-  Ticket, Trash2, Plus, Send, Megaphone, Activity, ScrollText, X, Copy,
+  Ticket, Trash2, Plus, Send, Megaphone, Activity, ScrollText, X, Copy, Swords,
 } from "lucide-react";
 import PageTransition from "@/components/layout/PageTransition";
 import { useUser } from "@/hooks/useUser";
@@ -572,6 +572,45 @@ function OpsTab({ toast }: { toast: any }) {
   const [busy, setBusy] = useState(false);
   const [post, setPost] = useState({ title: "", content: "", tag: "Dev Blog" });
 
+  // Raid drill: readouts live under their buttons, not in a toast, so the
+  // result of each call stays visible while you flip to /raid and back.
+  const [drillHp, setDrillHp] = useState("1");
+  const [drillBusy, setDrillBusy] = useState(false);
+  const [hpNote, setHpNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const [settleNote, setSettleNote] = useState<{ ok: boolean; text: string } | null>(null);
+
+  async function drillSetHp() {
+    const n = Number(drillHp);
+    if (!Number.isInteger(n) || n < 1) {
+      setHpNote({ ok: false, text: "HP must be a whole number of 1 or more." });
+      return;
+    }
+    setDrillBusy(true);
+    setHpNote(null);
+    const r = await consoleApi.raidSetHp({ hpLeft: n });
+    setDrillBusy(false);
+    // Echo the SERVER's number — it clamps to hpMax, so the request value
+    // can be one the boss never actually got.
+    const setTo = Number(r.data?.hpLeft ?? n);
+    setHpNote(
+      r.success
+        ? { ok: true, text: `Boss HP set to ${setTo.toLocaleString()} on your guild's encounter.` }
+        : { ok: false, text: r.message || "Couldn't set the boss HP." }
+    );
+  }
+
+  async function drillSettle() {
+    setDrillBusy(true);
+    setSettleNote(null);
+    const r = await consoleApi.raidSettleNow();
+    setDrillBusy(false);
+    setSettleNote(
+      r.success
+        ? { ok: true, text: "Settled — this week's rewards are paid out." }
+        : { ok: false, text: r.message || "Couldn't settle the week." }
+    );
+  }
+
   const load = useCallback(async () => {
     const [s, i] = await Promise.all([consoleApi.opsStatus(), consoleApi.listInvites("?perPage=25")]);
     if (s.success) setStatus(s.data);
@@ -648,6 +687,32 @@ function OpsTab({ toast }: { toast: any }) {
             ))}
           </div>
         )}
+      </div>
+
+      <div className={CARD}>
+        <h4 className="flex items-center gap-2 text-sm font-black text-white"><Swords className="h-4 w-4 text-fuchsia-400" /> Raid Drill</h4>
+        <p className="mt-1 text-[11px] text-slate-500">
+          Rehearses a full raid week on your own guild&rsquo;s encounter: set the boss HP low, land a real
+          killing blow from <Link href="/raid" className="font-bold text-fuchsia-300 hover:underline">/raid</Link>, then settle to pay out.
+        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <input
+            value={drillHp}
+            onChange={(e) => setDrillHp(e.target.value)}
+            inputMode="numeric"
+            className={INPUT + " w-28 py-1.5 text-center text-xs"}
+          />
+          <button onClick={drillSetHp} disabled={drillBusy} className={BTN}>Set boss HP</button>
+        </div>
+        {hpNote && (
+          <p className={`mt-1.5 text-[11px] ${hpNote.ok ? "text-emerald-400" : "text-red-400"}`}>{hpNote.text}</p>
+        )}
+        <div className="mt-3 border-t border-white/5 pt-3">
+          <button onClick={drillSettle} disabled={drillBusy} className={BTN_PRIMARY}>Settle this week now</button>
+          {settleNote && (
+            <p className={`mt-1.5 text-[11px] ${settleNote.ok ? "text-emerald-400" : "text-red-400"}`}>{settleNote.text}</p>
+          )}
+        </div>
       </div>
 
       <div className={CARD}>

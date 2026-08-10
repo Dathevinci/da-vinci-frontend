@@ -7,7 +7,6 @@ import { useUser } from "@/hooks/useUser";
 import { useToast } from "@/components/ui/Toast";
 import { authHeaders } from "@/lib/authToken";
 import { loadCatalog } from "@/lib/catalogCache";
-import { findMyGuild, type GuildSummary } from "@/lib/guild";
 import PageTransition from "@/components/layout/PageTransition";
 import CardFace, { CardDef, RARITY_META, CardRarity } from "@/components/cards/CardFace";
 import {
@@ -47,6 +46,9 @@ type LastWeek = {
 type RaidData = {
   week: string;
   boss: { slug: string; name: string; series: string; art: string; flavor: string; gimmickText: string };
+  // The caller's own guild encounter when set; null = the realm-wide fight.
+  // hp/standings/mine/lastWeek are already scoped to it by the server.
+  guild: { id: string; name: string; tag: string } | null;
   hpMax: number; hpLeft: number; killedAt: string | null;
   freeAttacksPerDay: number; maxAttacksPerDay: number; rallyCost: number; squadSize: number;
   mine: { attacksToday: number; usedCardIds: string[]; myDamage: number; myAttacks: number };
@@ -139,11 +141,11 @@ export default function RaidPage() {
   const [levels, setLevels] = useState<Record<string, number>>({});
   const [rests, setRests] = useState<Record<string, string>>({});
 
-  // GUILD: the chip to your hall, and cards guildmates lent you. The
-  // collection fetch can't know about loans (they're the OWNER's rows), so
-  // active borrowed entries merge into the picker as usable cards — the
-  // server fields them at the owner's stats and injures the owner's copy.
-  const [myGuild, setMyGuild] = useState<GuildSummary | null>(null);
+  // GUILD: cards guildmates lent you. The collection fetch can't know about
+  // loans (they're the OWNER's rows), so active borrowed entries merge into
+  // the picker as usable cards — the server fields them at the owner's stats
+  // and injures the owner's copy. (Which guild YOU are in now arrives on the
+  // raid payload itself — data.guild — so no findMyGuild lookup here.)
   const [borrowedFrom, setBorrowedFrom] = useState<Record<string, string>>({});
 
   // Boss art is owner-supplied and 404s until phase 4 — the gradient
@@ -176,7 +178,9 @@ export default function RaidPage() {
 
   const loadHistory = useCallback(async () => {
     try {
-      const r = await fetch(`${API_URL}/api/raid/history`);
+      // authHeaders: history is caller-scoped now — without the token a
+      // guild member gets the REALM record, the wrong win/loss story.
+      const r = await fetch(`${API_URL}/api/raid/history`, { headers: authHeaders() });
       const d = await r.json();
       if (d?.success && Array.isArray(d.data)) setHistory(d.data);
     } catch {
@@ -223,16 +227,11 @@ export default function RaidPage() {
   }, [user?.id]);
 
   useEffect(() => { loadRaid(); }, [loadRaid, user?.id]);
-  useEffect(() => { loadHistory(); }, [loadHistory]);
+  // Re-run on sign-in/out: the token rescopes the record to the caller's guild.
+  useEffect(() => { loadHistory(); }, [loadHistory, user?.id]);
   useEffect(() => { loadCollection(); }, [loadCollection]);
   useEffect(() => { loadLoans(); }, [loadLoans]);
   useEffect(() => { loadCatalog(API_URL, (data: Catalog) => setCatalog(data)); }, []);
-
-  useEffect(() => {
-    let alive = true;
-    findMyGuild(user?.id).then((g) => { if (alive) setMyGuild(g); });
-    return () => { alive = false; };
-  }, [user?.id]);
 
   // The sheet/modal scrolls; the page behind it must not (cards-page rule).
   useEffect(() => {
@@ -299,7 +298,10 @@ export default function RaidPage() {
     if (!opening || ladder !== null || ladderLoading) return;
     setLadderLoading(true);
     try {
-      const r = await fetch(`${API_URL}/api/raid/leaderboard`);
+      // authHeaders: the ladder is scoped to the caller's own encounter —
+      // unauthenticated it would show the realm ladder under a header that
+      // says "Guild standings".
+      const r = await fetch(`${API_URL}/api/raid/leaderboard`, { headers: authHeaders() });
       const d = await r.json();
       if (Array.isArray(d?.data?.rows)) setLadder(d.data.rows);
       else toast("The ladder didn't answer — try again in a moment.", "error");
@@ -413,15 +415,15 @@ export default function RaidPage() {
                 <div className="relative p-6 sm:p-10">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/40 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-300">
-                      <Swords className="h-3 w-3 text-red-300" /> World Raid · {raid.week}
+                      <Swords className="h-3 w-3 text-red-300" /> {raid.guild ? "Guild Raid" : "World Raid"} · {raid.week}
                     </span>
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-400/25 bg-violet-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-violet-200">
                       <CalendarDays className="h-3 w-3" /> Resets Monday · {daysLeft} day{daysLeft === 1 ? "" : "s"} left
                     </span>
-                    {myGuild && (
-                      <Link href={`/guild/${encodeURIComponent(myGuild.id)}`}
+                    {raid.guild && (
+                      <Link href={`/guild/${encodeURIComponent(raid.guild.id)}`}
                         className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-200 transition hover:bg-emerald-500/20">
-                        <Users className="h-3 w-3" /> [{myGuild.tag}] {myGuild.name}
+                        <Users className="h-3 w-3" /> [{raid.guild.tag}] {raid.guild.name} — your guild faces the boss
                       </Link>
                     )}
                     {fallen && (
@@ -596,7 +598,9 @@ export default function RaidPage() {
               <div className="mt-6 rounded-3xl border border-white/10 bg-[#0b0b11] p-5 sm:p-6">
                 <div className="flex items-center gap-2">
                   <Trophy className="h-4 w-4 text-violet-300" />
-                  <p className="text-sm font-black text-white">This week&rsquo;s vanguard</p>
+                  <p className="text-sm font-black text-white">
+                    {raid.guild ? "Guild standings" : "This week’s vanguard"}
+                  </p>
                 </div>
                 {raid.standings.length === 0 ? (
                   <p className="py-10 text-center text-xs text-slate-600">Nobody has struck yet. First blood is waiting.</p>

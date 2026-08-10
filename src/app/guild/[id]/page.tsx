@@ -44,7 +44,8 @@ type Member = {
 
 type GuildDetail = {
   id: string; name: string; tag: string; description: string;
-  avatar: string | null; leaderId: string; coins: number; xp: number;
+  avatar: string | null; leaderId: string; coLeaderId: string | null;
+  coins: number; xp: number;
   level: number; createdAt: string; memberCap: number; memberCount: number;
   members: Member[];
   myMembership: { role: string; joinedAt: string } | null;
@@ -114,6 +115,10 @@ export default function GuildHomePage() {
 
   const isMember = !!guild?.myMembership;
   const isLeader = !!user && !!guild && guild.leaderId === user.id;
+  const isCoLeader = !!user && !!guild && guild.coLeaderId === user.id;
+  // Day-to-day powers (edit profile, kick, board moderation) are shared with
+  // the co-leader; transfer and co-leader appointment stay leader-only.
+  const isOfficer = isLeader || isCoLeader;
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -243,6 +248,33 @@ export default function GuildHomePage() {
     }
   };
 
+  // Leader-only: appoint (userId) or dismiss (null) the co-leader. The server
+  // re-checks both the caller and the target — this button is convenience.
+  const setCoLeader = async (m: Member, appoint: boolean) => {
+    if (!guild || busy) return;
+    const warn = appoint
+      ? `Make ${m.username} co-leader of ${guild.name}? They can edit the guild, kick members, and moderate the board.${
+          guild.coLeaderId ? " This replaces the current co-leader." : ""
+        }`
+      : `Remove ${m.username} as co-leader?`;
+    if (!window.confirm(warn)) return;
+    setBusy(true);
+    try {
+      const r = await fetch(`${API_URL}/api/guilds/${encodeURIComponent(id)}/co-leader`, {
+        method: "POST", headers: authHeaders(),
+        body: JSON.stringify({ userId: appoint ? m.userId : null }),
+      });
+      const d = await r.json().catch(() => null);
+      if (!r.ok || !d?.success) return toast(d?.message || "Couldn't change the co-leader.", "error");
+      toast(appoint ? `${m.username} is now co-leader.` : `${m.username} is no longer co-leader.`, "success");
+      load();
+    } catch {
+      toast("Couldn't reach the server.", "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const endLoan = async (loan: Loan, verb: string) => {
     try {
       const r = await fetch(`${API_URL}/api/guilds/loans/${encodeURIComponent(loan.id)}`, {
@@ -340,7 +372,7 @@ export default function GuildHomePage() {
                         {guild.memberCount >= guild.memberCap ? "Guild is full" : busy ? "Joining…" : "Join this guild"}
                       </button>
                     )}
-                    {isMember && isLeader && (
+                    {isMember && isOfficer && (
                       <button type="button" onClick={() => setEditOpen(true)}
                         className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/[0.05] px-5 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-slate-200 transition hover:bg-white/[0.1]">
                         <Pencil className="h-3.5 w-3.5" /> Edit guild
@@ -370,7 +402,8 @@ export default function GuildHomePage() {
                 </div>
                 <div className="mt-4 space-y-2">
                   {guild.members.map((m) => {
-                    const lead = m.role === "leader";
+                    const lead = m.userId === guild.leaderId;
+                    const coLead = m.userId === guild.coLeaderId;
                     const me = user?.id === m.userId;
                     return (
                       <div key={m.userId}
@@ -394,24 +427,49 @@ export default function GuildHomePage() {
                                 <Crown className="h-2.5 w-2.5" /> Leader
                               </span>
                             )}
+                            {coLead && (
+                              <span className="inline-flex items-center gap-1 rounded-full border border-violet-400/40 bg-violet-500/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-violet-300">
+                                <Shield className="h-2.5 w-2.5" /> Co-leader
+                              </span>
+                            )}
                             {me && !lead && (
                               <span className="text-[9px] font-black uppercase tracking-widest text-emerald-300">You</span>
                             )}
                           </div>
                           <p className="text-[10px] text-slate-600">joined {ago(m.joinedAt)}</p>
                         </div>
-                        {isLeader && !me && (
-                          <div className="flex shrink-0 items-center gap-1.5">
-                            <button type="button" disabled={busy} onClick={() => transfer(m)}
-                              title="Transfer leadership"
-                              className="inline-flex items-center gap-1 rounded-lg border border-amber-400/30 bg-amber-500/10 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-amber-200 transition hover:bg-amber-500/20 disabled:opacity-40">
-                              <Crown className="h-3 w-3" /> Transfer
-                            </button>
-                            <button type="button" disabled={busy} onClick={() => kick(m)}
-                              title="Kick from the guild"
-                              className="inline-flex items-center gap-1 rounded-lg border border-red-400/30 bg-red-500/10 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-red-300 transition hover:bg-red-500/20 disabled:opacity-40">
-                              <X className="h-3 w-3" /> Kick
-                            </button>
+                        {isOfficer && !me && (
+                          <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+                            {/* Transfer + co-leader appointment stay leader-only. */}
+                            {isLeader && (
+                              <button type="button" disabled={busy} onClick={() => transfer(m)}
+                                title="Transfer leadership"
+                                className="inline-flex items-center gap-1 rounded-lg border border-amber-400/30 bg-amber-500/10 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-amber-200 transition hover:bg-amber-500/20 disabled:opacity-40">
+                                <Crown className="h-3 w-3" /> Transfer
+                              </button>
+                            )}
+                            {isLeader && (coLead ? (
+                              <button type="button" disabled={busy} onClick={() => setCoLeader(m, false)}
+                                title="Remove co-leader"
+                                className="inline-flex items-center gap-1 rounded-lg border border-violet-400/30 bg-violet-500/10 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-violet-200 transition hover:bg-violet-500/20 disabled:opacity-40">
+                                <Shield className="h-3 w-3" /> Remove co-leader
+                              </button>
+                            ) : (
+                              <button type="button" disabled={busy} onClick={() => setCoLeader(m, true)}
+                                title="Appoint co-leader"
+                                className="inline-flex items-center gap-1 rounded-lg border border-violet-400/30 bg-violet-500/10 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-violet-200 transition hover:bg-violet-500/20 disabled:opacity-40">
+                                <Shield className="h-3 w-3" /> Appoint co-leader
+                              </button>
+                            ))}
+                            {/* A co-leader can kick members, never the leader
+                                (and never themselves — that row is `me`). */}
+                            {(isLeader || !lead) && (
+                              <button type="button" disabled={busy} onClick={() => kick(m)}
+                                title="Kick from the guild"
+                                className="inline-flex items-center gap-1 rounded-lg border border-red-400/30 bg-red-500/10 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-red-300 transition hover:bg-red-500/20 disabled:opacity-40">
+                                <X className="h-3 w-3" /> Kick
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
@@ -507,7 +565,7 @@ export default function GuildHomePage() {
               </div>
 
               {/* ── THE GUILD BOARD ── */}
-              <GuildBoard guildId={guild.id} isMember={isMember} isLeader={isLeader} />
+              <GuildBoard guildId={guild.id} isMember={isMember} canModerate={isOfficer} />
             </>
           )}
         </div>
@@ -535,7 +593,7 @@ export default function GuildHomePage() {
 
 /* ═══════════════════ THE BOARD — comment machinery, guild-scoped ═══════════════════ */
 
-function GuildBoard({ guildId, isMember, isLeader }: { guildId: string; isMember: boolean; isLeader: boolean }) {
+function GuildBoard({ guildId, isMember, canModerate }: { guildId: string; isMember: boolean; canModerate: boolean }) {
   const { user } = useUser();
   const { toast } = useToast();
   const [posts, setPosts] = useState<BoardPost[]>([]);
@@ -685,8 +743,8 @@ function GuildBoard({ guildId, isMember, isLeader }: { guildId: string; isMember
     }
   };
 
-  // Own posts always; the guild leader moderates their own board.
-  const canManage = (p: BoardPost) => !!user && (p.user?.id === user.id || isLeader);
+  // Own posts always; the leader and co-leader moderate their own board.
+  const canManage = (p: BoardPost) => !!user && (p.user?.id === user.id || canModerate);
 
   return (
     <div className="mt-6 rounded-3xl border border-white/10 bg-[#0b0b11] p-5 sm:p-6">
