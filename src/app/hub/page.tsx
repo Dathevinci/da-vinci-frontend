@@ -1,11 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   Tv, BookOpen, Feather, Compass, Users, Layers, Swords,
   Store, Gavel, Trophy, ShoppingBag, Crown, Megaphone,
-  Terminal, ArrowUpRight, Sparkles, Diamond, Zap,
+  Terminal, ArrowUpRight, Sparkles, Diamond, Zap, Gem, X,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { isAdmin, isLeadDev, displayArisePoints } from "@/lib/admin";
@@ -40,6 +41,9 @@ const SECTIONS: Section[] = [
   { href: "/quests",      label: "Daily Quests",     desc: "Earn Arise Points every day.",                     Icon: Trophy,       tint: "#fb923c" },
   { href: "/shop",        label: "Shop",             desc: "Frames, effects and flair for your profile.",      Icon: ShoppingBag,  tint: "#e879f9" },
   { href: "/leaderboard", label: "Leaderboard",      desc: "See who tops the community rankings.",             Icon: Crown,        tint: "#7dd3fc" },
+  // "#gems" is a sentinel, not a route — the map renders this one tile as a
+  // button that opens the mode-picker modal instead of navigating.
+  { href: "#gems",        label: "Gems",             desc: "Vote the community's weekly hidden gems.",         Icon: Gem,          tint: "#a78bfa" },
   { href: "/updates",     label: "Updates",          desc: "What changed, and what's coming.",                 Icon: Megaphone,    tint: "#94a3b8" },
 ];
 
@@ -47,6 +51,9 @@ const easeCine: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
 export default function HubPage() {
   const { user } = useUser();
+  // The Gems tile opens a mode picker instead of navigating — /gems needs a
+  // mediaType, and choosing here beats landing on a "pick a mode" page.
+  const [gemsOpen, setGemsOpen] = useState(false);
   // The InviteOnlyGuard walls this route for guests, so `user` is only
   // briefly null while the session hydrates.
   if (!user) return <div className="min-h-screen bg-[#070709]" />;
@@ -169,19 +176,11 @@ export default function HubPage() {
           variants={{ show: { transition: { staggerChildren: 0.045, delayChildren: 0.15 } } }}
           className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
         >
-          {sections.map(({ href, label, desc, Icon, tint }) => (
-            <motion.div
-              key={href}
-              variants={{
-                hide: { opacity: 0, y: 16 },
-                show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: easeCine } },
-              }}
-            >
-              <Link
-                href={href}
-                className="group relative flex h-full flex-col rounded-2xl border border-white/10 bg-[#0b0b11] p-5 transition-all duration-300 hover:-translate-y-1 hover:bg-[#0e0e15]"
-                style={{ boxShadow: "0 0 0 0 transparent" }}
-              >
+          {sections.map(({ href, label, desc, Icon, tint }) => {
+            // The tile face is IDENTICAL either way — only the wrapper differs
+            // (a Link that navigates, or a button that opens the gems picker).
+            const face = (
+              <>
                 {/* tinted border bloom on hover, without repainting layout */}
                 <span
                   aria-hidden
@@ -199,11 +198,91 @@ export default function HubPage() {
                 </div>
                 <p className="mt-5 font-mono text-base font-black text-white">{label}</p>
                 <p className="mt-1.5 font-mono text-xs leading-relaxed text-slate-500">{desc}</p>
-              </Link>
-            </motion.div>
-          ))}
+              </>
+            );
+            const tileClass =
+              "group relative flex h-full w-full flex-col rounded-2xl border border-white/10 bg-[#0b0b11] p-5 text-left transition-all duration-300 hover:-translate-y-1 hover:bg-[#0e0e15]";
+            return (
+              <motion.div
+                key={href}
+                variants={{
+                  hide: { opacity: 0, y: 16 },
+                  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: easeCine } },
+                }}
+              >
+                {href === "#gems" ? (
+                  <button
+                    type="button"
+                    onClick={() => setGemsOpen(true)}
+                    className={tileClass}
+                    style={{ boxShadow: "0 0 0 0 transparent" }}
+                  >
+                    {face}
+                  </button>
+                ) : (
+                  <Link href={href} className={tileClass} style={{ boxShadow: "0 0 0 0 transparent" }}>
+                    {face}
+                  </Link>
+                )}
+              </motion.div>
+            );
+          })}
         </motion.div>
       </div>
+
+      {/* ── GEMS MODE PICKER ── the Gems tile lands here instead of a route:
+          /gems needs a mediaType, so choose one before leaving the hub. */}
+      {gemsOpen && (
+        <div className="fixed inset-0 z-[120] grid place-items-center p-4">
+          <div className="absolute inset-0 bg-black/70" onClick={() => setGemsOpen(false)} />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Select gems type"
+            className="relative w-full max-w-sm rounded-3xl border border-white/10 bg-[#0b0b11] p-6"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="font-fell text-2xl text-white">Select gems type</h3>
+                <p className="mt-1 font-mono text-[11px] text-slate-500">
+                  Weekly community picks — one board per mode.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setGemsOpen(false)}
+                aria-label="Close"
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-white/10 hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="mt-5 space-y-2">
+              {[
+                { href: "/gems/anime",  label: "Anime gems",  Icon: Tv,       tint: "#a274ff" },
+                { href: "/gems/manhwa", label: "Manhwa gems", Icon: BookOpen, tint: "#38bdf8" },
+                { href: "/gems/novel",  label: "Novel gems",  Icon: Feather,  tint: "#fbbf24" },
+              ].map(({ href, label, Icon, tint }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={() => setGemsOpen(false)}
+                  className="group flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3.5 transition hover:border-violet-400/40 hover:bg-violet-500/10"
+                >
+                  <span
+                    className="grid h-9 w-9 shrink-0 place-items-center rounded-xl"
+                    style={{ background: `${tint}14`, boxShadow: `inset 0 0 0 1px ${tint}33` }}
+                  >
+                    <Icon className="h-4 w-4" style={{ color: tint }} />
+                  </span>
+                  <span className="flex-1 font-mono text-sm font-black text-white">{label}</span>
+                  <ArrowUpRight className="h-4 w-4 text-slate-600 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-violet-200" />
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
