@@ -190,13 +190,17 @@ export async function getNovelInfo(slug: string): Promise<NovelInfo> {
  * filename is right there in the id, so use it.
  */
 export async function getChapterContent(slug: string, chapterId: string): Promise<ChapterContent> {
+  if (!chapterId.startsWith("vol-")) {
+    const nfContent = await NF.getChapterContent(slug, chapterId).catch(() => null);
+    if (nfContent) return nfContent;
+  }
+
   let title = "EPUB Volume";
 
   const volNo = chapterId.match(/^vol-(\d+)$/i);
   if (volNo) {
     title = `Volume ${volNo[1]}`;
   } else {
-    // An older bookmark, from when the id was the file URL itself.
     try {
       const file = decodeURIComponent(new URL(chapterId).pathname.split("/").pop() || "");
       const name = file.replace(/\.epub$/i, "").replace(/[_+]/g, " ").trim();

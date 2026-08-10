@@ -108,30 +108,10 @@ export default function NovelReaderPage() {
    * as-is so those keep opening.
    */
   const legacyFile = chapterId.includes("files.lnori.com") ? chapterId : null;
-  if (id.startsWith("lnori:") || legacyFile) {
-    const vol = chapters.find((c) => c.id === chapterId) as any;
-    const file: string | null = legacyFile || vol?.file || null;
+  const vol = chapters.find((c) => c.id === chapterId) as any;
+  const file: string | null = legacyFile || vol?.file || null;
 
-    if (!file) {
-      // The volume list arrives with the novel, so until that lands there is
-      // nothing to open yet — and if it landed without this volume, say so
-      // rather than spinning forever.
-      return (
-        <div className="grid min-h-screen place-items-center px-6 text-center" style={{ backgroundColor: t.bg }}>
-          {novel ? (
-            <div style={{ color: t.muted }}>
-              <p className="font-mono text-sm">That volume is no longer listed.</p>
-              <Link href={`/novel/${encodeURIComponent(id)}`} replace className="mt-3 inline-block font-mono text-sm text-pink-400 hover:underline">
-                Back to the series
-              </Link>
-            </div>
-          ) : (
-            <Loader2 className="h-6 w-6 animate-spin" style={{ color: t.muted }} />
-          )}
-        </div>
-      );
-    }
-
+  if (file) {
     return (
       <EpubReader
         file={file}
