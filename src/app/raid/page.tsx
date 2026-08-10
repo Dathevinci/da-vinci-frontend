@@ -10,12 +10,13 @@ import PageTransition from "@/components/layout/PageTransition";
 import CardFace, { CardDef, RARITY_META, CardRarity } from "@/components/cards/CardFace";
 import {
   Swords, Skull, X, CalendarDays, Trophy, Flame, ShieldAlert, History, Sparkles,
+  ChevronDown, ChevronUp,
 } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 /**
- * GUILD RAID BOSS — /raid, phase 2 of the raid spec.
+ * GUILD RAID BOSS — /raid, phases 2–3 of the raid spec.
  *
  * One boss per ISO week, everyone's damage counts. This page is a WINDOW onto
  * the server: every multiplier, the variance roll, injuries and the kill claim
@@ -34,6 +35,13 @@ type RaidLine = {
   line: number; injured: boolean;
 };
 
+/** Last week's settled (or settling) outcome — every number here is the server's. */
+type LastWeek = {
+  week: string; name: string; slug: string;
+  killed: boolean; dealtRatio: number; settled: boolean;
+  mine: { attacks: number; damage: number; rank: number | null; eligible: boolean; ap: number; shards: number } | null;
+};
+
 type RaidData = {
   week: string;
   boss: { slug: string; name: string; series: string; art: string; flavor: string; gimmickText: string };
@@ -41,9 +49,12 @@ type RaidData = {
   freeAttacksPerDay: number; maxAttacksPerDay: number; rallyCost: number; squadSize: number;
   mine: { attacksToday: number; usedCardIds: string[]; myDamage: number; myAttacks: number };
   standings: { username: string; avatar: string | null; damage: number }[];
+  lastWeek?: LastWeek | null;
 };
 
 type HistoryRow = { week: string; name: string; series: string; art: string; killed: boolean; dealtRatio: number };
+
+type LadderRow = { username: string; avatar: string | null; damage: number; attacks: number };
 
 type Report = {
   damage: number; isRally: boolean; variance?: number;
@@ -135,6 +146,12 @@ export default function RaidPage() {
   const [attacking, setAttacking] = useState(false);
   const [report, setReport] = useState<Report | null>(null);
 
+  // The full ladder: fetched once on first expand, cached after (null = never
+  // fetched, so a failed attempt simply retries on the next expand).
+  const [ladderOpen, setLadderOpen] = useState(false);
+  const [ladder, setLadder] = useState<LadderRow[] | null>(null);
+  const [ladderLoading, setLadderLoading] = useState(false);
+
   const loadRaid = useCallback(async () => {
     try {
       // authHeaders so `mine` fills in for the signed-in viewer.
@@ -202,6 +219,8 @@ export default function RaidPage() {
   const usedToday = useMemo(() => new Set(raid?.mine.usedCardIds || []), [raid?.mine.usedCardIds]);
   const hpPct = raid && raid.hpMax > 0 ? (raid.hpLeft / raid.hpMax) * 100 : 0;
   const daysLeft = daysUntilMonday();
+  // Absent on the very first week ever — the card simply doesn't render.
+  const lastWeek = raid?.lastWeek ?? null;
 
   /** Why a card can't fight right now — or null if it can. */
   const disabledReason = useCallback(
@@ -238,6 +257,23 @@ export default function RaidPage() {
       return toast(`A squad is ${raid?.squadSize ?? 3} cards — drop one first.`, "error");
     }
     setSquad([...squad, cardId]);
+  };
+
+  const toggleLadder = async () => {
+    const opening = !ladderOpen;
+    setLadderOpen(opening);
+    if (!opening || ladder !== null || ladderLoading) return;
+    setLadderLoading(true);
+    try {
+      const r = await fetch(`${API_URL}/api/raid/leaderboard`);
+      const d = await r.json();
+      if (Array.isArray(d?.data?.rows)) setLadder(d.data.rows);
+      else toast("The ladder didn't answer — try again in a moment.", "error");
+    } catch {
+      toast("Couldn't reach the server.", "error");
+    } finally {
+      setLadderLoading(false);
+    }
   };
 
   const openPicker = () => {
@@ -463,6 +499,59 @@ export default function RaidPage() {
                 )}
               </div>
 
+              {/* ── LAST WEEK — the settlement, straight from the server ── */}
+              {lastWeek && (
+                <div className="mt-6 rounded-3xl border border-white/10 bg-[#0b0b11] p-5 sm:p-6">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <History className="h-4 w-4 text-slate-400" />
+                    <p className="text-sm font-black text-white">Last week</p>
+                    {!lastWeek.settled && (
+                      <span className="text-[10px] text-slate-500">settling…</span>
+                    )}
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                    <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-600">{lastWeek.week}</span>
+                    <span className="min-w-0 flex-1 truncate text-sm font-black text-white">{lastWeek.name}</span>
+                    {lastWeek.killed ? (
+                      <span className="rounded-full border border-emerald-400/40 bg-emerald-500/15 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-emerald-300">
+                        Slain
+                      </span>
+                    ) : (
+                      <span className="rounded-full border border-red-400/40 bg-red-500/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-red-300">
+                        Escaped at {Math.round(lastWeek.dealtRatio * 100)}%
+                      </span>
+                    )}
+                  </div>
+
+                  {lastWeek.mine && (
+                    <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3">
+                      <p className="text-[11px] text-slate-400">
+                        Your week: <b className="tabular-nums text-violet-300">{lastWeek.mine.attacks}</b> attack{lastWeek.mine.attacks === 1 ? "" : "s"}
+                        {" · "}<b className="tabular-nums text-violet-300">{lastWeek.mine.damage.toLocaleString()}</b> damage
+                        {lastWeek.mine.rank !== null && (
+                          <> · rank <b className="tabular-nums text-violet-300">#{lastWeek.mine.rank}</b></>
+                        )}
+                      </p>
+                      {lastWeek.mine.eligible ? (
+                        <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                          <span className="rounded-full border border-amber-400/40 bg-amber-500/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-amber-200">
+                            +{lastWeek.mine.ap} AP
+                          </span>
+                          <span className="rounded-full border border-violet-400/40 bg-violet-500/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-violet-200">
+                            +{lastWeek.mine.shards} shards
+                          </span>
+                        </div>
+                      ) : (
+                        <p className="mt-2 text-[11px] text-slate-500">
+                          Not enough attacks to qualify ({lastWeek.mine.attacks}/3)
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* ── STANDINGS ── */}
               <div className="mt-6 rounded-3xl border border-white/10 bg-[#0b0b11] p-5 sm:p-6">
                 <div className="flex items-center gap-2">
@@ -472,31 +561,84 @@ export default function RaidPage() {
                 {raid.standings.length === 0 ? (
                   <p className="py-10 text-center text-xs text-slate-600">Nobody has struck yet. First blood is waiting.</p>
                 ) : (
-                  <div className="mt-4 space-y-2">
-                    {raid.standings.slice(0, 10).map((s, i) => {
-                      const me = !!user && s.username === user.username;
-                      return (
-                        <div key={`${s.username}-${i}`}
-                          className={`flex items-center gap-3 rounded-2xl border px-3 py-2 ${
-                            me ? "border-violet-400/40 bg-violet-500/10" : "border-white/10 bg-white/[0.02]"
-                          }`}>
-                          <span className="w-7 shrink-0 text-center text-sm font-black tabular-nums text-slate-600">{i + 1}</span>
-                          {s.avatar ? (
-                            <img src={s.avatar} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-white/15" />
-                          ) : (
-                            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-violet-700 text-[10px] font-black">
-                              {s.username?.[0]?.toUpperCase()}
-                            </span>
-                          )}
-                          <span className="min-w-0 flex-1 truncate text-sm font-black text-white">
-                            {s.username}
-                            {me && <span className="ml-2 text-[9px] font-black uppercase tracking-widest text-violet-300">You</span>}
-                          </span>
-                          <span className="shrink-0 text-sm font-black tabular-nums text-red-300">{s.damage.toLocaleString()}</span>
+                  <>
+                    {ladderOpen ? (
+                      ladderLoading ? (
+                        <p className="py-10 text-center text-xs text-slate-600">Climbing the ladder…</p>
+                      ) : ladder === null ? (
+                        <p className="py-10 text-center text-xs text-slate-600">
+                          The ladder didn&rsquo;t answer — close it and try again.
+                        </p>
+                      ) : ladder.length === 0 ? (
+                        <p className="py-10 text-center text-xs text-slate-600">Nobody on the ladder yet.</p>
+                      ) : (
+                        <div className="mt-4 space-y-2">
+                          {ladder.slice(0, 25).map((s, i) => {
+                            const me = !!user && s.username === user.username;
+                            return (
+                              <div key={`${s.username}-${i}`}
+                                className={`flex items-center gap-3 rounded-2xl border px-3 py-2 ${
+                                  me ? "border-violet-400/40 bg-violet-500/10" : "border-white/10 bg-white/[0.02]"
+                                }`}>
+                                <span className="w-7 shrink-0 text-center text-sm font-black tabular-nums text-slate-600">{i + 1}</span>
+                                {s.avatar ? (
+                                  <img src={s.avatar} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-white/15" />
+                                ) : (
+                                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-violet-700 text-[10px] font-black">
+                                    {s.username?.[0]?.toUpperCase()}
+                                  </span>
+                                )}
+                                <span className="min-w-0 flex-1 truncate text-sm font-black text-white">
+                                  {s.username}
+                                  {me && <span className="ml-2 text-[9px] font-black uppercase tracking-widest text-violet-300">You</span>}
+                                </span>
+                                <span className="shrink-0 text-[10px] font-bold tabular-nums text-slate-500">{s.attacks} atk</span>
+                                <span className="shrink-0 text-sm font-black tabular-nums text-red-300">{s.damage.toLocaleString()}</span>
+                              </div>
+                            );
+                          })}
                         </div>
-                      );
-                    })}
-                  </div>
+                      )
+                    ) : (
+                      <div className="mt-4 space-y-2">
+                        {raid.standings.slice(0, 10).map((s, i) => {
+                          const me = !!user && s.username === user.username;
+                          return (
+                            <div key={`${s.username}-${i}`}
+                              className={`flex items-center gap-3 rounded-2xl border px-3 py-2 ${
+                                me ? "border-violet-400/40 bg-violet-500/10" : "border-white/10 bg-white/[0.02]"
+                              }`}>
+                              <span className="w-7 shrink-0 text-center text-sm font-black tabular-nums text-slate-600">{i + 1}</span>
+                              {s.avatar ? (
+                                <img src={s.avatar} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-white/15" />
+                              ) : (
+                                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-violet-700 text-[10px] font-black">
+                                  {s.username?.[0]?.toUpperCase()}
+                                </span>
+                              )}
+                              <span className="min-w-0 flex-1 truncate text-sm font-black text-white">
+                                {s.username}
+                                {me && <span className="ml-2 text-[9px] font-black uppercase tracking-widest text-violet-300">You</span>}
+                              </span>
+                              <span className="shrink-0 text-sm font-black tabular-nums text-red-300">{s.damage.toLocaleString()}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <button type="button" onClick={toggleLadder}
+                      className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] py-2.5 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400 transition hover:bg-white/[0.08] hover:text-white">
+                      {ladderOpen ? (
+                        <>
+                          <ChevronUp className="h-3.5 w-3.5" /> Back to the top ten
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="h-3.5 w-3.5" /> Full ladder
+                        </>
+                      )}
+                    </button>
+                  </>
                 )}
               </div>
 
