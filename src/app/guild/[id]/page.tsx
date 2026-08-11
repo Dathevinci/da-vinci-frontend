@@ -509,7 +509,9 @@ export default function GuildHomePage() {
           <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[500px] bg-[radial-gradient(ellipse_50%_80%_at_50%_-20%,rgba(16,185,129,0.16),transparent_70%)]" />
         )}
 
-        <div className="relative mx-auto max-w-4xl">
+        {/* lg widens for the rail: 4xl split into two columns left the hero
+            squeezed and a hollow middle — the "messy" report. */}
+        <div className="relative mx-auto max-w-4xl lg:max-w-6xl">
           {!loaded ? (
             <p className="py-24 text-center text-sm text-slate-500">Opening the hall…</p>
           ) : !guild ? (
@@ -534,7 +536,10 @@ export default function GuildHomePage() {
                   crest/name float straight on the image. Without one, the
                   boxed gradient card stands as before. */}
               <div className={guild.banner
-                ? "relative"
+                // A soft scrim card even in banner mode: content floating
+                // bare on the full-screen art read as scattered. bg tint
+                // only — backdrop-filter is banned on large elements.
+                ? "relative overflow-hidden rounded-3xl border border-white/10 bg-black/35"
                 : "relative overflow-hidden rounded-3xl border border-white/10 bg-[#0b0b11]"}>
                 {!guild.banner && (
                   <>
