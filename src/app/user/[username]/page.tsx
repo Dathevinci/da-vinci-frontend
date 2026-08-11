@@ -17,7 +17,7 @@ import ProfileSong from "@/components/profile/ProfileSong";
 import { cloudinaryFit } from "@/lib/cloudinary";
 import { ProfileEffect } from "@/components/profile/ProfileEffect";
 import ProfileShowcase from "@/components/profile/ProfileShowcase";
-import { calculateLevel, calculateProgressPercent, xpForNextLevel } from "@/lib/levels";
+import { calculateLevel, calculateProgressPercent, xpIntoLevel, xpToNextLevel, levelCost, MAX_LEVEL, MAX_LEVEL_XP } from "@/lib/levels";
 import { isAdmin, isLeadDev, displayArisePoints } from "@/lib/admin";
 import { nameColorClass } from "@/lib/cosmetics";
 import { resolveActiveEffect } from "@/components/profile/CrimsonRealm";
@@ -261,13 +261,20 @@ export default function PublicProfilePage() {
   const { cleanBio, backgroundUrl } = profileUser ? parseBio(profileUser.bio || "", profileUser.arisePoints || 0, profileUser.username) : { cleanBio: "", backgroundUrl: null };
 
   // Level is driven by XP (separate from the Arise Points currency).
-  // Lead Dev and Admins are pinned to the max level (10).
+  // Lead Dev and Admins are pinned to the cap — MAX_LEVEL, never a literal, so
+  // this strip cannot drift from lib/levels.ts the way "10" did when the cap
+  // moved to 100. Every number below comes from that one module: a second copy
+  // of the curve living in this file is exactly how the old bar went wrong.
   const currentXp = profileUser.xp || 0;
   const isProfileAdmin = isAdmin(profileUser);
   const isProfileLeadDev = isLeadDev(profileUser);
-  const currentLevel = (isProfileLeadDev || isProfileAdmin) ? 10 : calculateLevel(currentXp);
-  const nextXp = xpForNextLevel(currentLevel);
-  const progressPercent = (isProfileLeadDev || isProfileAdmin) ? 100 : calculateProgressPercent(currentXp);
+  const isStaffLevel = isProfileLeadDev || isProfileAdmin;
+  const currentLevel = isStaffLevel ? MAX_LEVEL : calculateLevel(currentXp);
+  const atMaxLevel = currentLevel >= MAX_LEVEL;
+  const progressPercent = isStaffLevel ? 100 : calculateProgressPercent(currentXp);
+  // XP banked into the current level, and what's left to the next one.
+  const intoLevel = isStaffLevel ? 0 : xpIntoLevel(currentXp);
+  const toNextLevel = isStaffLevel ? 0 : xpToNextLevel(currentXp);
 
   // Banner style: "cover" = a header strip on the card (Twitter-style);
   // anything else = the full-screen background image. Chosen by the profile owner.
@@ -446,7 +453,10 @@ export default function PublicProfilePage() {
               <AvatarDecoration frame={(profileUser as any).activeFrame} effect={effectiveEffect} size="lg" />
               {profileUser.arisePoints !== undefined && (
                 <div className="absolute -bottom-1 -right-1 z-20">
-                  <LevelBadge xp={isProfileLeadDev ? Infinity : (isProfileAdmin ? 511000 : (profileUser.xp || 0))} size="lg" className="border-[#0b0b12] shadow-[0_4px_20px_rgba(0,0,0,0.8)]" />
+                  {/* MAX_LEVEL_XP, not the old hardcoded 511000 — that number
+                      was the level-10 total under the exponential curve and now
+                      just means "somewhere past the cap". */}
+                  <LevelBadge xp={isProfileLeadDev ? Infinity : (isProfileAdmin ? MAX_LEVEL_XP : (profileUser.xp || 0))} size="lg" className="border-[#0b0b12] shadow-[0_4px_20px_rgba(0,0,0,0.8)]" />
                 </div>
               )}
               {/* A profile can carry a soundtrack. Anyone may set their own in
@@ -575,16 +585,40 @@ export default function PublicProfilePage() {
               </button>
             </div>
 
+            {/* THE LEVEL STRIP.
+                Reads levels.ts and nothing else. It shows the level you are on,
+                the band title you wear at it, and how far along the CURRENT
+                level you are — a bar filled by (xp into level / cost of level)
+                rather than by raw lifetime XP against a cumulative total, which
+                is what made it look frozen at the bottom for everybody.
+                Only a level-100 account says MAX.
+                min-w-0 + truncate on the title so a long band name shrinks
+                instead of pushing the level chip off a 360px screen. */}
             <div className="w-full max-w-sm">
+              <div className="mb-1 flex items-center gap-2">
+                <span className="shrink-0 rounded-full border border-violet-400/30 bg-violet-500/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-violet-200 tabular-nums">
+                  Lv {currentLevel}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  {getHeartRank(currentLevel).name}
+                </span>
+                <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-slate-500 tabular-nums">
+                  {atMaxLevel ? "MAX" : `Lv ${currentLevel + 1}`}
+                </span>
+              </div>
               <div className="relative h-2 w-full overflow-hidden rounded-full border border-white/10 bg-black/40">
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-400 shadow-[0_0_10px_rgba(139,92,246,0.5)] transition-all duration-1000 ease-out"
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
-              <div className="mt-1 flex justify-between px-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                <span>{(isProfileLeadDev || isProfileAdmin) ? "MAX LEVEL" : `${currentXp.toLocaleString()} XP`}</span>
-                <span>{currentLevel >= 10 ? "LVL 10 (MAX)" : `${nextXp.toLocaleString()} XP (Next)`}</span>
+              <div className="mt-1 flex justify-between gap-2 px-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                <span className="min-w-0 truncate tabular-nums">{isStaffLevel ? "MAX LEVEL" : `${currentXp.toLocaleString()} XP`}</span>
+                <span className="shrink-0 tabular-nums">
+                  {atMaxLevel
+                    ? `Lv ${MAX_LEVEL} (MAX)`
+                    : `${intoLevel.toLocaleString()} / ${levelCost(currentLevel).toLocaleString()} · ${toNextLevel.toLocaleString()} to go`}
+                </span>
               </div>
             </div>
 

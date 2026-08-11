@@ -2,8 +2,8 @@
 
 import { Crown, Shield, Star, Zap, Sparkles, Heart } from "lucide-react";
 import { isLeadDev, isAdmin } from "@/lib/admin";
-import { calculateLevel } from "@/lib/levels";
-import { getHeartRank } from "@/lib/heartRanks";
+import { calculateLevel, MAX_LEVEL } from "@/lib/levels";
+import { getHeartRank, heartRankTint } from "@/lib/heartRanks";
 
 /**
  * WHO SOMEBODY IS, in one strip, in one place.
@@ -145,7 +145,7 @@ export function UserBadgesCompact({
   if (!user) return null;
   const lead = isLeadDev(user);
   const admin = !lead && isAdmin(user);
-  const level = lead || admin ? 10 : calculateLevel(user.xp || 0);
+  const level = lead || admin ? MAX_LEVEL : calculateLevel(user.xp || 0);
   const heart = getHeartRank(level);
   const titles = wornTitles(user).slice(0, Math.max(0, maxTitles));
 
@@ -158,21 +158,17 @@ export function UserBadgesCompact({
       {user.activeTag === "tag_og" && <IconBadge icon={Zap} tint="#f87171" label="OG" />}
       {user.activeTag === "tag_weeb" && <IconBadge icon={Sparkles} tint="#f472b6" label="Weeb Lord" />}
       {blessed && <IconBadge icon={Sparkles} tint="#fcd34d" label="Blessed" />}
-      {/* The rank keeps its own hue so ten tiers stay distinguishable at a
-          glance — that is the one thing a shared tint would destroy. */}
-      <IconBadge icon={Heart} tint={HEART_TINT[level] || "#94a3b8"} label={`${heart.name} · ${heart.numeral}`} />
+      {/* The rank keeps its own hue so the tiers stay distinguishable at a
+          glance — that is the one thing a shared tint would destroy. The tint
+          table lives in heartRanks.ts beside the names, so a band added there
+          can never arrive here as untinted slate. */}
+      <IconBadge icon={Heart} tint={heartRankTint(level)} label={`${heart.name} · ${heart.numeral}`} />
       {titles.map((t) => (
         <IconBadge key={t} icon={Crown} tint="#fbbf24" label={t} />
       ))}
     </>
   );
 }
-
-/** One colour per Heart tier, mirroring the badgeClass gradients in heartRanks. */
-const HEART_TINT: Record<number, string> = {
-  1: "#94a3b8", 2: "#7dd3fc", 3: "#38bdf8", 4: "#34d399", 5: "#a3e635",
-  6: "#facc15", 7: "#fb923c", 8: "#f87171", 9: "#2dd4bf", 10: "#fb7185",
-};
 
 export default function UserBadges({
   user,
@@ -207,8 +203,9 @@ export default function UserBadges({
   const admin = !lead && isAdmin(user);
 
   // Staff sit at the top of the rank ladder regardless of XP, matching how the
-  // profile hero and the popout already compute it.
-  const level = lead || admin ? 10 : calculateLevel(user.xp || 0);
+  // profile hero and the popout already compute it. MAX_LEVEL, not a literal:
+  // the cap moved from 10 to 100 with the new XP curve (lib/levels.ts).
+  const level = lead || admin ? MAX_LEVEL : calculateLevel(user.xp || 0);
   const heart = getHeartRank(level);
   const titles = showTitles ? wornTitles(user).slice(0, Math.max(0, maxTitles)) : [];
 

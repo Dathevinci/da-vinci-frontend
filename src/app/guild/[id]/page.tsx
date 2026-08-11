@@ -11,7 +11,7 @@ import {
 import { useUser } from "@/hooks/useUser";
 import { useToast } from "@/components/ui/Toast";
 import { authHeaders } from "@/lib/authToken";
-import { cacheGuildId, cachedGuildId, loanTimeLeft } from "@/lib/guild";
+import { cacheGuildId, cachedGuildId, loanTimeLeft, GUILD_CREATE } from "@/lib/guild";
 import { loadCatalog } from "@/lib/catalogCache";
 import PageTransition from "@/components/layout/PageTransition";
 import CardFace, { CardDef, RARITY_META, CardRarity } from "@/components/cards/CardFace";
@@ -2350,8 +2350,13 @@ function EditGuildSheet({ guild, onClose, onSaved }: {
           banner: banner || "",
           isPublic,
           // Clamped here too so a blanked field posts 1 rather than NaN; the
-          // server clamps 1..10 regardless.
-          minLevel: Math.max(1, Math.min(10, Math.floor(Number(minLevel) || 1))),
+          // server clamps 1..MIN_LEVEL_MAX regardless. The ceiling is IMPORTED,
+          // never restated — a literal 10 here silently rewrote a guild's bar
+          // down to 10 every time a leader saved an unrelated field.
+          minLevel: Math.max(
+            GUILD_CREATE.MIN_LEVEL_MIN,
+            Math.min(GUILD_CREATE.MIN_LEVEL_MAX, Math.floor(Number(minLevel) || 1)),
+          ),
         }),
       });
       const d = await r.json().catch(() => null);
@@ -2473,11 +2478,15 @@ function EditGuildSheet({ guild, onClose, onSaved }: {
           <div className="space-y-2">
             <label className="text-xs font-black text-white">Minimum level</label>
             <div className="flex items-center gap-2">
-              <input type="number" min={1} max={10} inputMode="numeric" value={minLevel}
+              <input type="number" min={GUILD_CREATE.MIN_LEVEL_MIN} max={GUILD_CREATE.MIN_LEVEL_MAX}
+                inputMode="numeric" value={minLevel}
                 onChange={(e) => setMinLevel(e.target.value)}
                 className="min-h-[44px] w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5 text-sm text-white outline-none focus:border-emerald-400/40" />
               <span className="shrink-0 rounded-lg border border-amber-400/30 bg-amber-500/10 px-2.5 py-2 text-[10px] font-black tracking-wider text-amber-200">
-                Level {Math.max(1, Math.min(10, Math.floor(Number(minLevel) || 1)))}+
+                Level {Math.max(
+                  GUILD_CREATE.MIN_LEVEL_MIN,
+                  Math.min(GUILD_CREATE.MIN_LEVEL_MAX, Math.floor(Number(minLevel) || 1)),
+                )}+
               </span>
             </div>
             <p className="text-[10px] text-slate-600">Only members at this level or higher can join.</p>

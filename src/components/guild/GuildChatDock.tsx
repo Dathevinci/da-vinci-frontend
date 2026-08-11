@@ -44,6 +44,14 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
  * NO backdrop-filter anywhere in here: it is banned on large elements in this
  * app (it re-blurs every scroll frame) and a full-height sheet is as large as
  * elements get.
+ *
+ * THE SOFT KEYBOARD
+ * A phone's keyboard does not shrink the layout viewport, so a `fixed inset-0`
+ * sheet keeps its full height and quietly parks its composer — and the room's
+ * reply bar and inline edit box — behind the keys. Only visualViewport knows
+ * the difference, so we measure the overlap ourselves and pay it as bottom
+ * padding, which shrinks the scroller instead of hiding the controls. With no
+ * keyboard up the overlap is zero and the safe-area inset takes over again.
  */
 
 /** The summary GET /api/guilds/of/:userId answers with — no members, no roles. */
@@ -105,6 +113,8 @@ export default function GuildChatDock({
   // sm and up gets a right rail; below sm a bottom sheet. One transform each,
   // picked here rather than guessed, because framer animates values not classes.
   const [wide, setWide] = useState(false);
+  // How much of the panel the soft keyboard is currently eating, in px.
+  const [keyboardInset, setKeyboardInset] = useState(0);
   const lastSeenRef = useRef<string | null>(null);
   // Mirrors `open` for the route-change effect, which must not re-run (and so
   // must not depend on) the open state itself.
@@ -219,6 +229,30 @@ export default function GuildChatDock({
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = prev; };
+  }, [open]);
+
+  /* ── THE KEYBOARD OVERLAP — measured, not guessed ──
+        `innerHeight` is the layout viewport (unchanged by the keyboard);
+        visualViewport is what the user can actually see. The difference, once
+        it is big enough to be keys rather than a collapsing URL bar, is the
+        padding the panel owes its composer. iOS also SCROLLS the visual
+        viewport, hence offsetTop in the sum. ── */
+  useEffect(() => {
+    if (!open) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const sync = () => {
+      const overlap = window.innerHeight - (vv.height + vv.offsetTop);
+      setKeyboardInset(overlap > 80 ? Math.round(overlap) : 0);
+    };
+    sync();
+    vv.addEventListener("resize", sync);
+    vv.addEventListener("scroll", sync);
+    return () => {
+      vv.removeEventListener("resize", sync);
+      vv.removeEventListener("scroll", sync);
+      setKeyboardInset(0);
+    };
   }, [open]);
 
   /* ── Escape closes, exactly like every other sheet here ── */
@@ -362,12 +396,16 @@ export default function GuildChatDock({
               </button>
             </div>
 
-            {/* The composer must clear the phone's home indicator. Safe-area
-                insets only exist as an env() value, so they travel in a style
-                object — Tailwind cannot spell them. */}
+            {/* The composer must clear the phone's home indicator — and, when
+                it is up, the keyboard, which covers the home indicator anyway
+                so the two never need adding together. Safe-area insets only
+                exist as an env() value, so they travel in a style object —
+                Tailwind cannot spell them. */}
             <div
               className="flex min-h-0 flex-1 flex-col font-mono text-white"
-              style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+              style={{
+                paddingBottom: keyboardInset > 0 ? `${keyboardInset}px` : "env(safe-area-inset-bottom)",
+              }}
             >
               <GuildChatRoom
                 key={guildId}

@@ -13,7 +13,7 @@ import { resolveActiveEffect } from "@/components/profile/CrimsonRealm";
 import { effectNameClass, effectCardBorderClass } from "@/lib/effectTheme";
 import { getRankTheme } from "@/lib/ranks";
 import { getHeartRank, heartRankTooltip, isHeartRankName } from "@/lib/heartRanks";
-import { calculateLevel } from "@/lib/levels";
+import { calculateLevel, MAX_LEVEL, MAX_LEVEL_XP } from "@/lib/levels";
 import { isAdmin, isLeadDev, displayArisePoints } from "@/lib/admin";
 import { parseBio } from "@/lib/bioUtils";
 import BioRenderer from "@/components/profile/BioRenderer";
@@ -137,7 +137,8 @@ function PopoutCard({
   const rankTheme = getRankTheme(profileUser.xp || 0, profileUser.username);
   const isProfileAdmin = isAdmin(profileUser);
   const isProfileLeadDev = isLeadDev(profileUser);
-  const level = (isProfileLeadDev || isProfileAdmin) ? 10 : calculateLevel(profileUser.xp || 0);
+  // MAX_LEVEL, not a literal 10 — staff sit at the cap wherever the cap is.
+  const level = (isProfileLeadDev || isProfileAdmin) ? MAX_LEVEL : calculateLevel(profileUser.xp || 0);
   const heart = getHeartRank(level);
   const nameClass = effectNameClass(effectiveEffect) || rankTheme.textGradient;
   const { cleanBio } = parseBio(profileUser.bio || "", profileUser.arisePoints || 0, profileUser.username);
@@ -174,7 +175,9 @@ function PopoutCard({
           )}
           <AvatarDecoration frame={profileUser.activeFrame} effect={effectiveEffect} size="lg" />
           <div className="absolute -bottom-1 -right-1 z-20">
-            <LevelBadge xp={isProfileLeadDev ? Infinity : (isProfileAdmin ? 511000 : (profileUser.xp || 0))} size="md" className="border-[#0e0d16]" />
+            {/* MAX_LEVEL_XP: the banked total of a capped account. The old
+                511000 was the level-10 cost under the exponential curve. */}
+            <LevelBadge xp={isProfileLeadDev ? Infinity : (isProfileAdmin ? MAX_LEVEL_XP : (profileUser.xp || 0))} size="md" className="border-[#0e0d16]" />
           </div>
         </div>
 

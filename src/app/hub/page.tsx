@@ -11,6 +11,7 @@ import {
 import { useUser } from "@/hooks/useUser";
 import { isAdmin, isLeadDev, displayArisePoints } from "@/lib/admin";
 import { calculateLevel, calculateProgressPercent, MAX_LEVEL } from "@/lib/levels";
+import { getHeartRank } from "@/lib/heartRanks";
 import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
 
 /**
@@ -65,7 +66,7 @@ export default function HubPage() {
     : SECTIONS;
 
   // The SAME level maths as the profile, leaderboard and LevelBadge —
-  // src/lib/levels.ts is the one source of truth (max 10, exponential),
+  // src/lib/levels.ts is the one source of truth (max 100, quadratic),
   // and staff show maxed exactly like the profile page shows them.
   const xp = (user as any).xp ?? 0;
   const staff = isLeadDev(user) || isAdmin(user);
@@ -133,7 +134,12 @@ export default function HubPage() {
                   <p className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-wide text-slate-500">
                     <Sparkles className="h-3 w-3" /> Level
                   </p>
-                  <p className="mt-1 text-xl font-black text-white">{level}</p>
+                  <p className="mt-1 text-xl font-black text-white tabular-nums">{level}</p>
+                  {/* The band title, truncated: "The Undying Compassion" is
+                      wider than this tile at 360px. */}
+                  <p className="truncate font-mono text-[10px] font-bold text-slate-500">
+                    {getHeartRank(level).name}
+                  </p>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-3">
                   <p className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-wide text-slate-500">

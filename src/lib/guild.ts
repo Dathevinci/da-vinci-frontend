@@ -1,3 +1,4 @@
+import { MAX_LEVEL } from "@/lib/levels";
 import { authHeaders } from "@/lib/authToken";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -79,7 +80,7 @@ export type GuildRow = {
    */
   memberCap: number | null;
   isPublic: boolean;
-  /** 1..10 — user levels cap at 10 on this site. */
+  /** 1..MAX_LEVEL — follows the profile level curve. */
   minLevel: number;
   createdAt: string | null;
   /**
@@ -131,7 +132,10 @@ export const GUILD_CREATE = {
   TAG_MAX: 5,
   DESC_MAX: 500,
   MIN_LEVEL_MIN: 1,
-  MIN_LEVEL_MAX: 10,
+  // Imported, never restated: the join gate follows the level curve, and a
+  // second copy of "10" here is exactly what made the server accept a bar the
+  // UI could neither set nor display.
+  MIN_LEVEL_MAX: MAX_LEVEL,
 } as const;
 
 const num = (v: unknown, fallback = 0): number => {
