@@ -61,6 +61,31 @@ type HistoryRow = { week: string; name: string; series: string; art: string; kil
 
 type LadderRow = { username: string; avatar: string | null; damage: number; attacks: number };
 
+/** Realm-wide top 25 this week — guild is whose boss they mainly fought. */
+type GlobalLadderRow = {
+  username: string; avatar: string | null; damage: number; attacks: number;
+  guild: { id: string; name: string; tag: string } | null;
+};
+
+/** One guild's own encounter this week, damage desc. */
+type GuildLadderRow = {
+  id: string; name: string; tag: string;
+  damage: number; attackers: number; killed: boolean; dealtRatio: number;
+};
+
+/** The whole leaderboard response. `global`/`guilds` may be ABSENT from an
+ *  old backend (deploy skew) — they default to [] here, and hasGuilds
+ *  remembers whether the field arrived at all: absent hides the Guilds tab,
+ *  present-but-empty shows its "no blood drawn" empty state. */
+type Ladder = {
+  rows: LadderRow[];
+  global: GlobalLadderRow[];
+  guilds: GuildLadderRow[];
+  hasGuilds: boolean;
+};
+
+type LadderTab = "mine" | "global" | "guilds";
+
 type Report = {
   damage: number; isRally: boolean; variance?: number;
   lines: RaidLine[]; injuredCount: number; restUntil: string | null;
@@ -456,9 +481,11 @@ export default function RaidPage() {
   }, []);
 
   // The full ladder: fetched once on first expand, cached after (null = never
-  // fetched, so a failed attempt simply retries on the next expand).
+  // fetched, so a failed attempt simply retries on the next expand). One fetch
+  // now carries all three tabs — my fight, the realm's top 25, the guild race.
   const [ladderOpen, setLadderOpen] = useState(false);
-  const [ladder, setLadder] = useState<LadderRow[] | null>(null);
+  const [ladder, setLadder] = useState<Ladder | null>(null);
+  const [ladderTab, setLadderTab] = useState<LadderTab>("mine");
   const [ladderLoading, setLadderLoading] = useState(false);
 
   const loadRaid = useCallback(async () => {
@@ -552,6 +579,20 @@ export default function RaidPage() {
   // Absent on the very first week ever — the card simply doesn't render.
   const lastWeek = raid?.lastWeek ?? null;
 
+  // Ladder tabs: Global hides when it has nothing to show; Guilds hides only
+  // when the deploy never sent the field (old backend). If neither extra tab
+  // exists the bar itself stays hidden and the ladder reads as it always did.
+  const showGlobalTab = !!ladder && ladder.global.length > 0;
+  const showGuildsTab = !!ladder && ladder.hasGuilds;
+  const showLadderTabs = showGlobalTab || showGuildsTab;
+  const activeLadderTab: LadderTab =
+    (ladderTab === "global" && !showGlobalTab) || (ladderTab === "guilds" && !showGuildsTab)
+      ? "mine"
+      : ladderTab;
+  const ladderTabs: [LadderTab, string][] = [["mine", "My fight"]];
+  if (showGlobalTab) ladderTabs.push(["global", "Global"]);
+  if (showGuildsTab) ladderTabs.push(["guilds", "Guilds"]);
+
   /** Why a card can't fight right now — or null if it can. */
   const disabledReason = useCallback(
     (cardId: string): string | null => {
@@ -602,7 +643,14 @@ export default function RaidPage() {
       // says "Guild standings".
       const r = await fetch(`${API_URL}/api/raid/leaderboard`, { headers: authHeaders() });
       const d = await r.json();
-      if (Array.isArray(d?.data?.rows)) setLadder(d.data.rows);
+      if (Array.isArray(d?.data?.rows)) {
+        setLadder({
+          rows: d.data.rows,
+          global: d.data.global ?? [],
+          guilds: d.data.guilds ?? [],
+          hasGuilds: Array.isArray(d.data.guilds),
+        });
+      }
       else toast("The ladder didn't answer — try again in a moment.", "error");
     } catch {
       toast("Couldn't reach the server.", "error");
@@ -929,35 +977,115 @@ export default function RaidPage() {
                         <p className="py-10 text-center text-xs text-slate-600">
                           The ladder didn&rsquo;t answer — close it and try again.
                         </p>
-                      ) : ladder.length === 0 ? (
-                        <p className="py-10 text-center text-xs text-slate-600">Nobody on the ladder yet.</p>
                       ) : (
-                        <div className="mt-4 space-y-2">
-                          {ladder.slice(0, 25).map((s, i) => {
-                            const me = !!user && s.username === user.username;
-                            return (
-                              <div key={`${s.username}-${i}`}
-                                className={`flex items-center gap-3 rounded-2xl border px-3 py-2 ${
-                                  me ? "border-violet-400/40 bg-violet-500/10" : "border-white/10 bg-white/[0.02]"
-                                }`}>
-                                <span className="w-7 shrink-0 text-center text-sm font-black tabular-nums text-slate-600">{i + 1}</span>
-                                {s.avatar ? (
-                                  <img src={s.avatar} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-white/15" />
-                                ) : (
-                                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-violet-700 text-[10px] font-black">
-                                    {s.username?.[0]?.toUpperCase()}
+                        <>
+                          {showLadderTabs && (
+                            <div className="mt-4 flex flex-wrap items-center gap-2">
+                              {ladderTabs.map(([key, label]) => {
+                                const active = activeLadderTab === key;
+                                return (
+                                  <button key={key} type="button" onClick={() => setLadderTab(key)}
+                                    className={`rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] transition ${
+                                      active
+                                        ? key === "guilds"
+                                          ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-200"
+                                          : "border-violet-400/40 bg-violet-500/15 text-violet-200"
+                                        : "border-white/10 bg-white/[0.03] text-slate-500 hover:bg-white/[0.06] hover:text-slate-300"
+                                    }`}>
+                                    {label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                          {activeLadderTab === "global" ? (
+                            <div className="mt-4 space-y-2">
+                              {ladder.global.map((g, i) => (
+                                <div key={`${g.username}-${i}`}
+                                  className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.02] px-3 py-2">
+                                  <span className="w-7 shrink-0 text-center text-sm font-black tabular-nums text-slate-600">{i + 1}</span>
+                                  {g.avatar ? (
+                                    <img src={g.avatar} alt="" className="h-5 w-5 shrink-0 rounded-full object-cover ring-1 ring-white/15" />
+                                  ) : (
+                                    <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-violet-700 text-[9px] font-black">
+                                      {g.username?.[0]?.toUpperCase()}
+                                    </span>
+                                  )}
+                                  <span className="flex min-w-0 flex-1 items-center gap-2">
+                                    <span className="truncate text-sm font-black text-white">{g.username}</span>
+                                    {g.guild ? (
+                                      <Link href={`/guild/${encodeURIComponent(g.guild.id)}`}
+                                        className="shrink-0 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-emerald-300 transition hover:bg-emerald-500/20">
+                                        [{g.guild.tag}]
+                                      </Link>
+                                    ) : (
+                                      <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-slate-500">
+                                        realm
+                                      </span>
+                                    )}
                                   </span>
-                                )}
-                                <span className="min-w-0 flex-1 truncate text-sm font-black text-white">
-                                  {s.username}
-                                  {me && <span className="ml-2 text-[9px] font-black uppercase tracking-widest text-violet-300">You</span>}
-                                </span>
-                                <span className="shrink-0 text-[10px] font-bold tabular-nums text-slate-500">{s.attacks} atk</span>
-                                <span className="shrink-0 text-sm font-black tabular-nums text-red-300">{s.damage.toLocaleString()}</span>
+                                  <span className="shrink-0 text-[10px] font-bold tabular-nums text-slate-500">{g.attacks} atk</span>
+                                  <span className="shrink-0 text-sm font-black tabular-nums text-red-300">{g.damage.toLocaleString()}</span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : activeLadderTab === "guilds" ? (
+                            ladder.guilds.length === 0 ? (
+                              <p className="py-10 text-center text-xs text-slate-600">No guild has drawn blood this week.</p>
+                            ) : (
+                              <div className="mt-4 space-y-2">
+                                {ladder.guilds.map((g, i) => (
+                                  <div key={g.id}
+                                    className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.02] px-3 py-2">
+                                    <span className="w-7 shrink-0 text-center text-sm font-black tabular-nums text-slate-600">{i + 1}</span>
+                                    <Link href={`/guild/${encodeURIComponent(g.id)}`}
+                                      className="min-w-0 flex-1 truncate text-sm font-black text-white transition hover:text-emerald-200">
+                                      <span className="text-emerald-300">[{g.tag}]</span> {g.name}
+                                    </Link>
+                                    <span className="shrink-0 text-sm font-black tabular-nums text-red-300">{g.damage.toLocaleString()}</span>
+                                    <span className="shrink-0 text-[10px] font-bold tabular-nums text-slate-500">{g.attackers} raiders</span>
+                                    {g.killed ? (
+                                      <span className="shrink-0 rounded-full border border-red-400/40 bg-red-500/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-red-300">
+                                        Slain
+                                      </span>
+                                    ) : (
+                                      <span className="shrink-0 text-[10px] font-bold tabular-nums text-slate-600">{Math.round(g.dealtRatio * 100)}%</span>
+                                    )}
+                                  </div>
+                                ))}
                               </div>
-                            );
-                          })}
-                        </div>
+                            )
+                          ) : ladder.rows.length === 0 ? (
+                            <p className="py-10 text-center text-xs text-slate-600">Nobody on the ladder yet.</p>
+                          ) : (
+                            <div className="mt-4 space-y-2">
+                              {ladder.rows.slice(0, 25).map((s, i) => {
+                                const me = !!user && s.username === user.username;
+                                return (
+                                  <div key={`${s.username}-${i}`}
+                                    className={`flex items-center gap-3 rounded-2xl border px-3 py-2 ${
+                                      me ? "border-violet-400/40 bg-violet-500/10" : "border-white/10 bg-white/[0.02]"
+                                    }`}>
+                                    <span className="w-7 shrink-0 text-center text-sm font-black tabular-nums text-slate-600">{i + 1}</span>
+                                    {s.avatar ? (
+                                      <img src={s.avatar} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-white/15" />
+                                    ) : (
+                                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-violet-700 text-[10px] font-black">
+                                        {s.username?.[0]?.toUpperCase()}
+                                      </span>
+                                    )}
+                                    <span className="min-w-0 flex-1 truncate text-sm font-black text-white">
+                                      {s.username}
+                                      {me && <span className="ml-2 text-[9px] font-black uppercase tracking-widest text-violet-300">You</span>}
+                                    </span>
+                                    <span className="shrink-0 text-[10px] font-bold tabular-nums text-slate-500">{s.attacks} atk</span>
+                                    <span className="shrink-0 text-sm font-black tabular-nums text-red-300">{s.damage.toLocaleString()}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </>
                       )
                     ) : (
                       <div className="mt-4 space-y-2">
