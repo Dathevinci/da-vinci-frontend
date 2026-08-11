@@ -48,6 +48,7 @@ import ShowcaseCards from "@/components/profile/ShowcaseCards";
 import TitleRack from "@/components/profile/TitleRack";
 import { TitleChips } from "@/components/profile/UserBadges";
 import RecentComments from "@/components/profile/RecentComments";
+import ActivityHistory from "@/components/profile/ActivityHistory";
 import GuildCard from "@/components/profile/GuildCard";
 import GuildTag from "@/components/guild/GuildTag";
 
@@ -680,6 +681,11 @@ export default function PublicProfilePage() {
             isMine={isSelf}
             initial={(profileUser as any).showcaseCards || []}
           />
+          {/* What they've been doing, between what they show off and what they
+              say. Self-contained like its neighbours — it fetches its own data
+              and renders its own card, so it carries the same mb-6 rhythm and
+              simply isn't there when there's nothing to show. */}
+          <ActivityHistory userId={profileUser.id} className="mb-6" />
           <RecentComments userId={profileUser.id} />
         </div>
 
@@ -744,8 +750,12 @@ export default function PublicProfilePage() {
                   </div>
 
                   {/* Uniform poster grid (all cards are 2:3, so a real grid
-                      animates far more smoothly than CSS multi-column). */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+                      animates far more smoothly than CSS multi-column).
+                      MONOTONIC ladder — the count only ever climbs. The old
+                      one went 2/3/4 then DROPPED to 3 at lg, so a laptop drew
+                      bigger covers than a tablet. Keep all three tracker
+                      grids on this exact ladder. */}
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-3">
                     <AnimatePresence>
                       {displayedItems.map((item, i) => {
                         // On expand, only the newly-revealed cards cascade in;
@@ -770,7 +780,14 @@ export default function PublicProfilePage() {
                             />
                             
                             {/* Status: editable picker on your own profile, read-only badge otherwise */}
-                            <div className="absolute top-2 left-2 z-20" onClick={(e) => e.stopPropagation()}>
+                            {/* The chip is scaled, not restyled: the tracker
+                                button and the status badge are shared
+                                components used at full size elsewhere, so the
+                                card shrinks them locally. origin-top-left
+                                keeps it pinned to the corner, and the widest
+                                label ("Interested") still clears the card at
+                                360px, where three columns leaves ~95px. */}
+                            <div className="absolute top-1.5 left-1.5 z-20 origin-top-left scale-[0.85] sm:scale-[0.9] md:scale-90" onClick={(e) => e.stopPropagation()}>
                               {isSelf ? (
                                 <TrackerButton
                                   anime={{
@@ -786,9 +803,12 @@ export default function PublicProfilePage() {
                               )}
                             </div>
 
-                            {/* Hover Overlay */}
-                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
-                              <h3 className="text-white font-bold text-sm md:text-base drop-shadow-md line-clamp-2">
+                            {/* Hover Overlay. Padding and type both drop a
+                                step for the denser grid — break-words so a
+                                single long unspaced title can't push past the
+                                card edge before line-clamp-2 cuts it. */}
+                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-2">
+                              <h3 className="text-white font-bold text-[11px] sm:text-xs leading-snug break-words drop-shadow-md line-clamp-2">
                                 {item.title || "Unknown Anime"}
                               </h3>
                             </div>
@@ -796,12 +816,12 @@ export default function PublicProfilePage() {
                             {/* Quick View Button */}
                             <button
                               onClick={(e) => { e.stopPropagation(); handleOpenQuickView(e, item.anilistId); }}
-                              className="absolute top-2 right-2 w-8 h-8 bg-black/60 backdrop-blur-sm border border-white/20 text-white flex items-center justify-center rounded-full hover:bg-white hover:text-black transition-colors z-20 opacity-0 group-hover:opacity-100"
+                              className="absolute top-1.5 right-1.5 w-7 h-7 bg-black/60 backdrop-blur-sm border border-white/20 text-white flex items-center justify-center rounded-full hover:bg-white hover:text-black transition-colors z-20 opacity-0 group-hover:opacity-100"
                             >
                               {loadingAnimeId === item.anilistId ? (
-                                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
                               ) : (
-                                <ChevronDown className="w-4 h-4" />
+                                <ChevronDown className="w-3.5 h-3.5" />
                               )}
                             </button>
                           </div>
@@ -853,7 +873,11 @@ export default function PublicProfilePage() {
                         <span className="text-xs font-bold bg-white/10 text-slate-300 px-2 py-0.5 rounded-full">{items.length}</span>
                       </div>
 
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+                      {/* MONOTONIC ladder — the count only ever climbs. The
+                          old one went 2/3/4 then DROPPED to 3 at lg, so a
+                          laptop drew bigger covers than a tablet. Keep all
+                          three tracker grids on this exact ladder. */}
+                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-3">
                         <AnimatePresence>
                           {displayedItems.map((item, i) => {
                             const revealIndex = isExpanded ? Math.max(0, i - 6) : i;
@@ -885,22 +909,30 @@ export default function PublicProfilePage() {
                                     </div>
                                   )}
 
-                                  {/* Status Tracker */}
-                                  <div className="absolute top-2 left-2 z-20" onClick={(e) => e.stopPropagation()}>
+                                  {/* Status Tracker — scaled, not restyled,
+                                      exactly as in the anime grid above: the
+                                      tracker button is a shared component used
+                                      at full size elsewhere, so the card
+                                      shrinks it locally. */}
+                                  <div className="absolute top-1.5 left-1.5 z-20 origin-top-left scale-[0.85] sm:scale-[0.9] md:scale-90" onClick={(e) => e.stopPropagation()}>
                                     {isSelf ? (
                                       <ManhwaTrackerButton
                                         manhwa={{ id: item.mangaId, title: item.title, image: item.coverImage }}
                                         variant="compact"
                                       />
                                     ) : (
-                                      <span className="px-2 py-1 text-xs font-bold rounded shadow-md border border-white/10 bg-white/10 text-white">
+                                      <span className="px-1.5 py-0.5 text-[10px] font-bold tracking-wider rounded shadow-md border border-white/10 bg-white/10 text-white">
                                         {String(item.status || "Reading").charAt(0).toUpperCase() + String(item.status || "Reading").slice(1).toLowerCase()}
                                       </span>
                                     )}
                                   </div>
 
-                                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-4">
-                                    <h3 className="text-white font-bold text-sm md:text-base drop-shadow-md line-clamp-2">
+                                  {/* Padding and type both drop a step for the
+                                      denser grid — break-words so a single
+                                      long unspaced title can't push past the
+                                      card edge before line-clamp-2 cuts it. */}
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-2">
+                                    <h3 className="text-white font-bold text-[11px] sm:text-xs leading-snug break-words drop-shadow-md line-clamp-2">
                                       {item.title}
                                     </h3>
                                   </div>
@@ -952,7 +984,11 @@ export default function PublicProfilePage() {
                         <span className="text-xs font-bold bg-white/10 text-slate-300 px-2 py-0.5 rounded-full">{items.length}</span>
                       </div>
 
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+                      {/* MONOTONIC ladder — the count only ever climbs. The
+                          old one went 2/3/4 then DROPPED to 3 at lg, so a
+                          laptop drew bigger covers than a tablet. Keep all
+                          three tracker grids on this exact ladder. */}
+                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-3">
                         <AnimatePresence>
                           {displayedItems.map((item, i) => {
                             const revealIndex = isExpanded ? Math.max(0, i - 6) : i;
@@ -981,22 +1017,30 @@ export default function PublicProfilePage() {
                                     </div>
                                   )}
 
-                                  {/* Status Tracker */}
-                                  <div className="absolute top-2 left-2 z-20" onClick={(e) => e.stopPropagation()}>
+                                  {/* Status Tracker — scaled, not restyled,
+                                      exactly as in the anime grid above: the
+                                      tracker button is a shared component used
+                                      at full size elsewhere, so the card
+                                      shrinks it locally. */}
+                                  <div className="absolute top-1.5 left-1.5 z-20 origin-top-left scale-[0.85] sm:scale-[0.9] md:scale-90" onClick={(e) => e.stopPropagation()}>
                                     {isSelf ? (
                                       <NovelTrackerButton
                                         novel={{ id: item.novelId, title: item.title, coverImage: item.coverImage }}
                                         variant="compact"
                                       />
                                     ) : (
-                                      <span className="px-2 py-1 text-xs font-bold rounded shadow-md border border-white/10 bg-white/10 text-white">
+                                      <span className="px-1.5 py-0.5 text-[10px] font-bold tracking-wider rounded shadow-md border border-white/10 bg-white/10 text-white">
                                         {String(item.status || "Reading").charAt(0).toUpperCase() + String(item.status || "Reading").slice(1).toLowerCase()}
                                       </span>
                                     )}
                                   </div>
 
-                                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-4">
-                                    <h3 className="text-white font-bold text-sm md:text-base drop-shadow-md line-clamp-2">
+                                  {/* Padding and type both drop a step for the
+                                      denser grid — break-words so a single
+                                      long unspaced title can't push past the
+                                      card edge before line-clamp-2 cuts it. */}
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-2">
+                                    <h3 className="text-white font-bold text-[11px] sm:text-xs leading-snug break-words drop-shadow-md line-clamp-2">
                                       {item.title}
                                     </h3>
                                   </div>
