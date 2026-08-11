@@ -530,6 +530,9 @@ export default function GuildHomePage() {
                   it — stacking below the hero on smaller screens. Everything
                   under this row stays the single stacked column. */}
               <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-6">
+              {/* Left column: hero + members, so the rail's boss/XP cards run
+                  beside the member list instead of over a hollow gap. */}
+              <div className="min-w-0">
               {/* ── THE HERO — the Deep Sea Vibes reference, in our kit ──
                   With a banner, the ART is the hero: the page-level fixed
                   layer carries it, so the card chrome disappears and the
@@ -622,9 +625,6 @@ export default function GuildHomePage() {
                     </p>
                   )}
                 </div>
-              </div>
-
-              <GuildSideRail guild={guild} isMember={isMember} />
               </div>
 
               {/* ── MEMBERS ── */}
@@ -728,6 +728,10 @@ export default function GuildHomePage() {
                     );
                   })}
                 </div>
+              </div>
+              </div>
+
+              <GuildSideRail guild={guild} isMember={isMember} />
               </div>
 
               {/* ── ROLES & PERMISSIONS — Discord-style, officer-managed ── */}
