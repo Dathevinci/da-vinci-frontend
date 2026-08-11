@@ -12,6 +12,7 @@ import { Code2 as IconCode2, ShieldAlert, Sparkles as IconSparkles, Crown as Ico
 const ICON_MAP: Record<string, any> = { Code2: IconCode2, ShieldAlert, Sparkles: IconSparkles, Crown: IconCrown, Flame: IconFlame, Zap: IconZap, Compass: IconCompass, Leaf: IconLeaf, ArrowUpRight, Feather: IconFeather, Eye: IconEye };
 import { AvatarDecoration, hasFrameRing } from "@/components/profile/AvatarDecoration";
 import UserLink from "@/components/profile/UserLink";
+import GuildTag from "@/components/guild/GuildTag";
 import { authHeaders } from "@/lib/authToken";
 
 interface Comment {
@@ -436,8 +437,13 @@ export default function UpdatePost({ post, onDelete }: UpdatePostProps) {
               )}
               <AvatarDecoration frame={post.author.activeFrame} effect={post.author.activeEffect} />
             </div>
-            <div className="leading-tight">
-              <div className={`text-sm font-bold group-hover:underline ${authorRank?.textColorClass}`}>{post.author.username}</div>
+            <div className="min-w-0 leading-tight">
+              {/* Name truncates, chip doesn't — the chip is shrink-0, so this
+                  is what keeps the footer inside a phone's width. */}
+              <div className="flex min-w-0 items-center gap-1.5">
+                <div className={`min-w-0 truncate text-sm font-bold group-hover:underline ${authorRank?.textColorClass}`}>{post.author.username}</div>
+                <GuildTag userId={post.author.id} size="sm" asLink={false} />
+              </div>
               <div className="font-mono text-[11px] text-slate-500">{timeAgo(post.createdAt)} ago</div>
             </div>
           </UserLink>

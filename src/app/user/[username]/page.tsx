@@ -49,6 +49,7 @@ import TitleRack from "@/components/profile/TitleRack";
 import { TitleChips } from "@/components/profile/UserBadges";
 import RecentComments from "@/components/profile/RecentComments";
 import GuildCard from "@/components/profile/GuildCard";
+import GuildTag from "@/components/guild/GuildTag";
 
 export default function PublicProfilePage() {
   const { username } = useParams();
@@ -464,12 +465,20 @@ export default function PublicProfilePage() {
               })()}
             </div>
 
-            <h1 className={`max-w-[92vw] break-words pb-1 text-4xl font-black leading-tight tracking-tight drop-shadow-lg md:text-5xl
+            {/* The hero name, with a quiet guild chip beside it. The full
+                plaque still lives further down (GuildCard) — this is only the
+                "who do they stand with" glance you get from the name itself.
+                min-w-0 lets the name wrap rather than push the chip off a
+                phone: the chip is shrink-0 and never wraps. */}
+            <div className="flex max-w-[92vw] flex-wrap items-center justify-center gap-1.5">
+            <h1 className={`min-w-0 break-words pb-1 text-4xl font-black leading-tight tracking-tight drop-shadow-lg md:text-5xl
               ${profileUser.activeFont === 'font_cyber' ? 'font-mono tracking-widest' : ''}
               ${profileUser.activeFont === 'font_pixel' ? 'font-serif tracking-tight' : ''}
               ${isCrimson ? crimsonName : isDejaVu ? dejaVuName : isTempest ? tempestName : isFool ? foolName : isEvernight ? evernightName : isMahoraga ? mahoragaName : isRitual ? ritualName : isCanopy ? canopyName : isSamurai ? samuraiName : isHimalaya ? himalayaName : isLotus ? lotusName : isMango ? mangoName : isJungle ? jungleName : isUnblinking ? unblinkingName : isVoid ? voidName : isDejavuEcho ? dejavuEchoName : isHollow ? hollowName : isOuterGod ? outerGodName : isGateway ? gatewayName : isWebSlinger ? webSlingerName : isPortal ? portalName : (nameColorClass(profileUser.activeColor) || rankTheme.textGradient)}`}>
               {profileUser.username}
             </h1>
+            <GuildTag userId={profileUser.id} size="sm" />
+            </div>
 
             <div className="flex flex-wrap items-center justify-center gap-2">
               {/* Set membership, not equality against this level's rank: the

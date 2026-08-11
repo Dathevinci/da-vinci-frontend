@@ -13,6 +13,7 @@ import DeckBuilder, { loadSavedDeck, saveDeck } from "@/components/cards/DeckBui
 import Arena, { duelPayout } from "@/components/cards/Arena";
 import { notch, ACCENT } from "@/components/cards/gacha";
 import { loadCatalog } from "@/lib/catalogCache";
+import GuildTag from "@/components/guild/GuildTag";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 const DECK_SIZE = 5;
@@ -473,7 +474,12 @@ export default function DuelsPage() {
               ) : board.map((r, i) => (
                 <div key={r.userId} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 ${r.userId === user?.id ? "bg-rose-500/10" : i % 2 ? "bg-white/[0.02]" : ""}`}>
                   <span className={`w-7 text-center text-sm font-black ${i === 0 ? "text-amber-300" : i === 1 ? "text-slate-300" : i === 2 ? "text-orange-400" : "text-slate-600"}`}>{i + 1}</span>
-                  <span className="flex-1 truncate font-bold">{r.username}</span>
+                  {/* The name keeps flex-1 + truncate so the shrink-0 guild
+                      chip beside it can't widen the row on a phone. */}
+                  <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                    <span className="min-w-0 truncate font-bold">{r.username}</span>
+                    <GuildTag userId={r.userId} size="sm" />
+                  </span>
                   {r.streak >= 3 && <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/15 px-2 py-0.5 text-[10px] font-black text-orange-300"><Flame className="h-3 w-3" />{r.streak}</span>}
                   <span className="text-xs text-slate-500">{r.wins}W {r.losses}L</span>
                   <span className="w-14 text-right font-black text-rose-300">{r.rating}</span>

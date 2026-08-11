@@ -2,6 +2,7 @@
 
 import { X } from 'lucide-react';
 import UserLink from "@/components/profile/UserLink";
+import GuildTag from "@/components/guild/GuildTag";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
 
@@ -54,8 +55,12 @@ export default function FollowListModal({ title, users, onClose }: FollowListMod
                   )}
                   <AvatarDecoration frame={user.activeFrame} effect={user.activeEffect} />
                 </div>
-                <div>
-                  <h3 className="text-white font-bold">{user.username}</h3>
+                <div className="min-w-0 flex items-center gap-1.5">
+                  {/* The chip is shrink-0, so the name is the part allowed to
+                      truncate — otherwise a long username pushes the row wider
+                      than the modal on a phone. */}
+                  <h3 className="min-w-0 truncate text-white font-bold">{user.username}</h3>
+                  <GuildTag userId={user.id} size="sm" asLink={false} />
                 </div>
               </UserLink>
             ))

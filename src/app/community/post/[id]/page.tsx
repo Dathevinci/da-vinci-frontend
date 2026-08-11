@@ -10,6 +10,7 @@ import { useUser } from "@/hooks/useUser";
 import { useToast } from "@/components/ui/Toast";
 import { authHeaders } from "@/lib/authToken";
 import UserLink from "@/components/profile/UserLink";
+import GuildTag from "@/components/guild/GuildTag";
 import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
 import CommunityFeed from "@/components/community/CommunityFeed";
 import { PollCard, type PollData } from "@/components/community/Poll";
@@ -180,13 +181,18 @@ export default function PostPage() {
                 <AvatarDecoration frame={post.user?.activeFrame} effect={post.user?.activeEffect} />
               </span>
               <div className="min-w-0 flex-1">
-                {post.user ? (
-                  <UserLink username={post.user.username} className="font-mono text-sm font-black text-white hover:text-violet-300">
-                    {post.user.username}
-                  </UserLink>
-                ) : (
-                  <span className="font-mono text-sm font-black text-white">someone</span>
-                )}
+                {/* The name truncates so the shrink-0 guild chip beside it can
+                    never widen this column past the card on a phone. */}
+                <div className="flex min-w-0 items-center gap-1.5">
+                  {post.user ? (
+                    <UserLink username={post.user.username} className="min-w-0 truncate font-mono text-sm font-black text-white hover:text-violet-300">
+                      {post.user.username}
+                    </UserLink>
+                  ) : (
+                    <span className="font-mono text-sm font-black text-white">someone</span>
+                  )}
+                  {post.user ? <GuildTag userId={post.user.id} size="sm" /> : null}
+                </div>
                 <div className="mt-1 flex flex-wrap items-center gap-2">
                   {post.isPinned && (
                     <span className="inline-flex items-center gap-1 rounded border border-amber-400/50 bg-amber-400/10 px-1.5 py-0.5 font-mono text-[9px] font-black uppercase tracking-wide text-amber-300">

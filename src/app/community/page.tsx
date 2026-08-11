@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { User, useUser } from "@/hooks/useUser";
 import { Users, UserPlus, UserMinus, Search, Globe, MessagesSquare } from "lucide-react";
 import UserLink from "@/components/profile/UserLink";
+import GuildTag from "@/components/guild/GuildTag";
 import { useToast } from "@/components/ui/Toast";
 import CommunityForum from "@/components/community/CommunityForum";
 import GlobalComments from "@/components/community/GlobalComments";
@@ -62,8 +63,13 @@ function UserCard({ user, currentUser, handleFollowToggle }: { user: User, curre
             )}
             <AvatarDecoration frame={(user as any).activeFrame} effect={user.activeEffect} />
           </div>
-          <div className="flex-1 mt-2">
-            <h3 className="font-bold text-lg text-white group-hover:text-purple-400 transition">{user.username || 'Unknown User'}</h3>
+          <div className="flex-1 min-w-0 mt-2">
+            {/* min-w-0 + truncate: the guild chip holds its width (shrink-0),
+                so a long username is what gives way inside the tile. */}
+            <div className="flex items-center gap-1.5">
+              <h3 className="min-w-0 truncate font-bold text-lg text-white group-hover:text-purple-400 transition">{user.username || 'Unknown User'}</h3>
+              <GuildTag userId={user.id} size="sm" asLink={false} />
+            </div>
             <p className="text-xs text-slate-400 font-medium">{(user.followers || []).length} Followers</p>
           </div>
         </UserLink>

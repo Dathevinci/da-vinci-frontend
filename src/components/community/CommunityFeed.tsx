@@ -11,6 +11,7 @@ import { nameColorClass } from "@/lib/cosmetics";
 import { AvatarDecoration, hasFrameRing } from "@/components/profile/AvatarDecoration";
 import UserLink from "@/components/profile/UserLink";
 import { TitleChips } from "@/components/profile/UserBadges";
+import GuildTag from "@/components/guild/GuildTag";
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import HeartExplosion from '@/components/ui/HeartExplosion';
 import MediaPicker from '@/components/community/MediaPicker';
@@ -267,15 +268,22 @@ const CommentThread = ({
               <img src={node.user?.avatar || 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=100&q=80'} className={`relative z-10 w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover ${isDejavuh && !nodeHasRing ? 'ring-2 ring-fuchsia-500 ring-offset-1 ring-offset-[#0f0f11] shadow-[0_0_15px_rgba(217,70,239,0.5)]' : ''}`} />
               <AvatarDecoration frame={(node.user as any)?.activeFrame} effect={node.user?.activeEffect} />
             </div>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <span className={`font-bold text-sm sm:text-base transition 
-                  ${node.user?.activeFont === 'font_cyber' ? 'font-mono tracking-widest' : ''} 
-                  ${node.user?.activeFont === 'font_pixel' ? 'font-serif tracking-tight' : ''} 
+            <div className="flex flex-col min-w-0">
+              <div className="flex items-center gap-2 min-w-0">
+                {/* min-w-0 + truncate: the guild chip that follows is shrink-0,
+                    so on a phone the NAME is what has to give way — otherwise
+                    the header row pushes the card sideways. */}
+                <span className={`min-w-0 truncate font-bold text-sm sm:text-base transition
+                  ${node.user?.activeFont === 'font_cyber' ? 'font-mono tracking-widest' : ''}
+                  ${node.user?.activeFont === 'font_pixel' ? 'font-serif tracking-tight' : ''}
                   ${nameColorClass(node.user?.activeColor) || (isDejavuh ? 'text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-fuchsia-400 drop-shadow-[0_0_8px_rgba(192,132,252,0.8)]' : 'text-purple-300 group-hover:text-purple-400')}`}>
                   {node.user?.username || 'Unknown User'}
                 </span>
-                
+
+                {/* Guild identity leads the chip group; roles, ranks and worn
+                    titles are decoration and follow it. */}
+                <GuildTag userId={node.user?.id} size="sm" />
+
                 {isDejavuh ? (
                   <div className="hidden sm:flex px-2 py-0.5 rounded-full items-center gap-1 bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.6)]">
                     <Crown className="w-3 h-3" />

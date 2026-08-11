@@ -10,6 +10,7 @@ import PageTransition from "@/components/layout/PageTransition";
 import { calculateLevel } from "@/lib/levels";
 import { SegBar, ACCENT, ACCENT_LIT } from "@/components/cards/gacha";
 import VideoTitle from "@/components/ui/VideoTitle";
+import GuildTag from "@/components/guild/GuildTag";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -143,18 +144,24 @@ export default function LeaderboardPage() {
               <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-amber-300">
                 <Crown className="h-3.5 w-3.5" /> Keepers · beyond the ladder
               </span>
+              {/* The guild chip is its own link, so it sits BESIDE the profile
+                  link rather than inside it — an anchor nested in an anchor is
+                  re-parented by the HTML parser and breaks hydration. */}
               {keepers.map((k) => (
-                <Link key={k.userId} href={`/user/${k.username}`} className="group inline-flex items-center gap-2">
-                  {k.avatar ? (
-                    <img src={k.avatar} alt="" className="h-8 w-8 rounded-full object-cover ring-1 ring-amber-400/50" />
-                  ) : (
-                    <span className="grid h-8 w-8 place-items-center rounded-full bg-violet-700 text-[10px] font-black">
-                      {k.username?.[0]?.toUpperCase()}
-                    </span>
-                  )}
-                  <span className="text-sm font-black text-white group-hover:underline">{k.username}</span>
-                  <span className="text-xs font-black tabular-nums text-amber-300">Lv 10 · ∞ XP</span>
-                </Link>
+                <span key={k.userId} className="inline-flex min-w-0 items-center gap-1.5">
+                  <Link href={`/user/${k.username}`} className="group inline-flex min-w-0 items-center gap-2">
+                    {k.avatar ? (
+                      <img src={k.avatar} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-amber-400/50" />
+                    ) : (
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-violet-700 text-[10px] font-black">
+                        {k.username?.[0]?.toUpperCase()}
+                      </span>
+                    )}
+                    <span className="min-w-0 truncate text-sm font-black text-white group-hover:underline">{k.username}</span>
+                  </Link>
+                  <GuildTag userId={k.userId} size="sm" />
+                  <span className="shrink-0 text-xs font-black tabular-nums text-amber-300">Lv 10 · ∞ XP</span>
+                </span>
               ))}
             </div>
           )}
@@ -199,10 +206,13 @@ export default function LeaderboardPage() {
                         style={{ background: `${tint}22`, borderColor: `${tint}66`, color: tint }}>
                         {place === 1 ? "1st" : place === 2 ? "2nd" : "3rd"}
                       </span>
-                      <Link href={`/user/${r.username}`}
-                        className="mt-2 max-w-full truncate text-sm font-black hover:underline" style={{ color: tint }}>
-                        {r.username}
-                      </Link>
+                      <span className="mt-2 flex max-w-full items-center justify-center gap-1.5">
+                        <Link href={`/user/${r.username}`}
+                          className="min-w-0 truncate text-sm font-black hover:underline" style={{ color: tint }}>
+                          {r.username}
+                        </Link>
+                        <GuildTag userId={r.userId} />
+                      </span>
                       <span className="text-lg font-black tabular-nums text-white">{m.big}</span>
                       <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{m.small}</span>
                     </motion.div>
@@ -234,10 +244,11 @@ export default function LeaderboardPage() {
                         )}
                       </Link>
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <Link href={`/user/${r.username}`} className="truncate text-sm font-black text-white hover:underline">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <Link href={`/user/${r.username}`} className="min-w-0 truncate text-sm font-black text-white hover:underline">
                             {r.username}
                           </Link>
+                          <GuildTag userId={r.userId} size="sm" />
                           {me && <span className="shrink-0 text-[9px] font-black uppercase tracking-widest" style={{ color: ACCENT }}>You</span>}
                           {lens === "duels" && r.streak >= 3 && (
                             <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-orange-500/15 px-1.5 text-[9px] font-black text-orange-300">

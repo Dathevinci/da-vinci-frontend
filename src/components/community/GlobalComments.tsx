@@ -7,6 +7,7 @@ import { Globe, Tv, BookMarked, BookOpen, ArrowRight, Loader2, MessagesSquare, I
 import { useUser } from "@/hooks/useUser";
 import UserLink from "@/components/profile/UserLink";
 import UserBadges from "@/components/profile/UserBadges";
+import GuildTag from "@/components/guild/GuildTag";
 import { ACCENT, ACCENT_LIT, notch } from "@/components/cards/gacha";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -291,9 +292,15 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         {c.user?.username ? (
-                          <UserLink username={c.user.username} className="text-sm font-black text-white hover:underline">
-                            {c.user.username}
-                          </UserLink>
+                          // min-w-0 + truncate on the NAME: the guild chip is
+                          // shrink-0, so a long username is what has to give
+                          // way on a phone rather than the row overflowing.
+                          <span className="flex min-w-0 items-center gap-1.5">
+                            <UserLink username={c.user.username} className="min-w-0 truncate text-sm font-black text-white hover:underline">
+                              {c.user.username}
+                            </UserLink>
+                            <GuildTag userId={c.user.id} size="sm" />
+                          </span>
                         ) : (
                           <span className="text-sm font-black text-slate-400">someone</span>
                         )}

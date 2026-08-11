@@ -18,6 +18,7 @@ import { isAdmin, isLeadDev, displayArisePoints } from "@/lib/admin";
 import { parseBio } from "@/lib/bioUtils";
 import BioRenderer from "@/components/profile/BioRenderer";
 import LevelBadge from "@/components/profile/LevelBadge";
+import GuildTag from "@/components/guild/GuildTag";
 
 /**
  * Discord-style profile POPOUT. Clicking a user's avatar/name anywhere opens
@@ -177,10 +178,15 @@ function PopoutCard({
           </div>
         </div>
 
-        {/* name */}
-        <h2 className={`text-2xl font-black leading-tight break-words drop-shadow ${nameClass}`}>
-          {profileUser.username}
-        </h2>
+        {/* name — the guild chip rides beside it, and min-w-0 keeps the name
+            the thing that wraps: the chip is shrink-0, so without it a long
+            username would push the card's content past its 360px. */}
+        <div className="flex items-center gap-1.5">
+          <h2 className={`min-w-0 text-2xl font-black leading-tight break-words drop-shadow ${nameClass}`}>
+            {profileUser.username}
+          </h2>
+          <GuildTag userId={profileUser.id} size="sm" />
+        </div>
 
         {/* badges */}
         <div className="mt-2 flex flex-wrap items-center gap-1.5">

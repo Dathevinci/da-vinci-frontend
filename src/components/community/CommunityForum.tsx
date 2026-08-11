@@ -15,6 +15,7 @@ import { isAdmin, isLeadDev } from "@/lib/admin";
 import UserLink from "@/components/profile/UserLink";
 import { UserBadgesCompact } from "@/components/profile/UserBadges";
 import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
+import GuildTag from "@/components/guild/GuildTag";
 import MediaPicker from "@/components/community/MediaPicker";
 import { PollBuilder, PollCard, EMPTY_POLL, pollIsValid, type PollDraft, type PollData } from "@/components/community/Poll";
 import { effectNameClass } from "@/lib/effectTheme";
@@ -135,10 +136,17 @@ function AuthorLine({ user, blessed }: { user?: Author; blessed?: boolean }) {
         )}
         <AvatarDecoration frame={user.activeFrame} effect={user.activeEffect} size="lg" />
       </div>
-      <UserLink username={user.username}
-        className={`text-[15px] font-black hover:underline ${effectNameClass(user.activeEffect) || "text-white"}`}>
-        {user.username}
-      </UserLink>
+      {/* Guild first, decorations after: the tag says who someone stands with,
+          which reads before the things they've equipped. min-w-0 + truncate on
+          the name because the chip is shrink-0 — the name is what yields when
+          the row runs out of width. */}
+      <span className="flex min-w-0 items-center gap-1.5">
+        <UserLink username={user.username}
+          className={`min-w-0 truncate text-[15px] font-black hover:underline ${effectNameClass(user.activeEffect) || "text-white"}`}>
+          {user.username}
+        </UserLink>
+        <GuildTag userId={user.id} size="sm" />
+      </span>
       {/* Role, rank and worn titles as icon squares. The full wording lives in
           each badge's tooltip — spelled out, "KEEPER OF THE FOUNDATION" beside
           every post pushed the timestamp onto its own line and made the badge

@@ -13,6 +13,7 @@ import {
 import { useUser } from "@/hooks/useUser";
 import { isLeadDev } from "@/lib/admin";
 import NotificationsMenu from "./NotificationsMenu";
+import GuildChatDock from "@/components/guild/GuildChatDock";
 
 /**
  * THE DOCK — a floating pill of the six controls a thumb actually wants,
@@ -228,6 +229,14 @@ export default function BottomDock({
           <span data-cc-trigger className="contents">
             <DockBtn {...btn("cc")} onClick={() => { if (onSettings) onSettings(); }} label="Control Center"><SlidersHorizontal className="h-[17px] w-[17px]" /></DockBtn>
           </span>
+          {/* GUILD CHAT — the same room the guild hall renders, reachable from
+              anywhere. Renders NOTHING (button and pollers alike) for anyone
+              without a guild, so the pill is unchanged for everyone else. It
+              takes the pill's hover state so the lit backdrop slides onto it
+              like any other button; its panel portals to the body, because a
+              mid-animation transform on this pill would otherwise become the
+              containing block for a full-screen fixed sheet. */}
+          <GuildChatDock hovered={hovered} setHovered={setHovered} reduce={!!reduce} />
           {/* the REAL notifications panel, unread badge and all — this bell
               used to just route to /updates, which is a page, not your
               notifications. Updates still lives in the sheet's page list. */}
