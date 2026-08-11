@@ -44,11 +44,14 @@ export default function MediaPicker({
   value,
   onChange,
   userId,
+  hideUpload = false,
 }: {
   value: string;
   onChange: (url: string) => void;
   /** Stable id for KLIPY's customer_id — keeps their recents/ranking sane. */
   userId?: string | number;
+  /** Drop the device-upload path entirely (guild chat: emoji + GIF only). */
+  hideUpload?: boolean;
 }) {
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -96,15 +99,17 @@ export default function MediaPicker({
   return (
     <div className="relative" ref={rootRef}>
       <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={() => fileRef.current?.click()}
-          disabled={uploading}
-          className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.05] px-3 py-1.5 font-mono text-[11px] font-bold text-slate-300 transition hover:bg-white/10 hover:text-white disabled:opacity-50"
-        >
-          {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" />}
-          {uploading ? "Uploading…" : "Upload"}
-        </button>
+        {!hideUpload && (
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.05] px-3 py-1.5 font-mono text-[11px] font-bold text-slate-300 transition hover:bg-white/10 hover:text-white disabled:opacity-50"
+          >
+            {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" />}
+            {uploading ? "Uploading…" : "Upload"}
+          </button>
+        )}
         <button
           type="button"
           onClick={() => {
@@ -129,7 +134,9 @@ export default function MediaPicker({
             </button>
           </span>
         )}
-        <input ref={fileRef} type="file" accept="image/*" onChange={upload} className="hidden" />
+        {!hideUpload && (
+          <input ref={fileRef} type="file" accept="image/*" onChange={upload} className="hidden" />
+        )}
       </div>
 
       {gifOpen && (
