@@ -127,6 +127,19 @@ type Catalog = {
   cardStatsById?: Record<string, { hp: number; atk: number }>;
 };
 
+/* The public raid snapshot — GET /api/raid/guild/:guildId, no auth. */
+type RaidTopDamage = { username: string; avatar: string | null; damage: number };
+type RaidPanel = {
+  week: string; // ISO week key, e.g. "2026-W33"
+  guild: { id: string; name: string; tag: string };
+  boss: { slug: string; name: string; series: string; art: string | null; gimmickText: string | null };
+  hpMax: number;
+  hpLeft: number;
+  killedAt: string | null;
+  attackers: number;
+  topDamage: RaidTopDamage[];
+};
+
 const ago = (iso: string) => {
   const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
   if (s < 60) return "just now";
@@ -510,6 +523,11 @@ export default function GuildHomePage() {
             </div>
           ) : (
             <>
+              {/* The top row only: the hero keeps the wide lane, and on lg a
+                  320px rail (this week's raid boss + guild XP) rides beside
+                  it — stacking below the hero on smaller screens. Everything
+                  under this row stays the single stacked column. */}
+              <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-6">
               {/* ── THE HERO — the Deep Sea Vibes reference, in our kit ──
                   With a banner, the ART is the hero: the page-level fixed
                   layer carries it, so the card chrome disappears and the
@@ -599,6 +617,9 @@ export default function GuildHomePage() {
                     </p>
                   )}
                 </div>
+              </div>
+
+              <GuildSideRail guild={guild} isMember={isMember} />
               </div>
 
               {/* ── MEMBERS ── */}
@@ -946,6 +967,142 @@ function RoleChip({ guild, userId }: { guild: GuildDetail; userId: string }) {
     <span className="inline-flex items-center rounded-full border border-slate-400/20 bg-slate-500/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">
       Member
     </span>
+  );
+}
+
+/* ═══════════ THE RIGHT RAIL — this week's boss + the guild's XP ladder ═══════════
+   Two cards beside the hero on lg, stacked under it below. The chrome is
+   slightly translucent so it sits on the full-screen banner without
+   backdrop-filter (banned on large elements). The boss card is fed by the
+   public raid snapshot and simply doesn't render when that fetch fails; the
+   XP card reads the already-loaded guild detail — no extra request. */
+
+function GuildSideRail({ guild, isMember }: { guild: GuildDetail; isMember: boolean }) {
+  const [raid, setRaid] = useState<RaidPanel | null>(null);
+  const [artHidden, setArtHidden] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const r = await fetch(`${API_URL}/api/raid/guild/${encodeURIComponent(guild.id)}`);
+        if (!r.ok) return;
+        const d = await r.json().catch(() => null);
+        if (alive && d?.success && d.data) setRaid(d.data);
+      } catch {
+        /* offline or 404 — the boss card just doesn't render */
+      }
+    })();
+    return () => { alive = false; };
+  }, [guild.id]);
+
+  // Clamp before dividing — a skewed backend must never draw a 300% bar.
+  const hpMax = Math.max(1, raid?.hpMax ?? 1);
+  const hpLeft = Math.max(0, Math.min(raid?.hpLeft ?? 0, hpMax));
+  const slain = !!raid?.killedAt;
+  const pct = slain ? 0 : (hpLeft / hpMax) * 100;
+  const lowHp = slain || pct < 25;
+
+  const xp = Math.max(0, guild.xp ?? 0);
+  const level = guild.level ?? Math.floor(xp / 1000) + 1;
+  const intoLevel = xp % 1000;
+
+  return (
+    <div className="mt-6 space-y-6 lg:mt-0">
+      {raid && (
+        <div className="overflow-hidden rounded-3xl border border-white/10 bg-[#0b0b11]/85">
+          {raid.boss?.art && !artHidden && (
+            <div className="relative">
+              <img
+                src={raid.boss.art}
+                alt=""
+                onError={() => setArtHidden(true)}
+                className="h-24 w-full object-cover opacity-60"
+              />
+              <div aria-hidden className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0b0b11]" />
+            </div>
+          )}
+          <div className="p-5">
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-emerald-300" />
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">This week&rsquo;s boss</p>
+            </div>
+            <p className="mt-2 font-fell text-2xl leading-tight text-white">{raid.boss?.name}</p>
+            <p className="mt-0.5 text-[10px] text-slate-500">{raid.boss?.series} · {raid.week}</p>
+            {raid.boss?.gimmickText && (
+              <p className="mt-2 text-[10px] leading-relaxed text-slate-400">{raid.boss.gimmickText}</p>
+            )}
+
+            <div className="mt-4">
+              <div className="h-2.5 w-full overflow-hidden rounded-full bg-white/10">
+                <div
+                  className={`h-full rounded-full transition-all ${lowHp ? "bg-red-500" : "bg-emerald-400"}`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              {slain ? (
+                <span className="mt-2 inline-flex items-center rounded-md border border-red-400/40 bg-red-500/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.24em] text-red-300">
+                  Slain this week
+                </span>
+              ) : (
+                <p className="mt-1.5 font-mono text-[11px] tabular-nums text-slate-400">
+                  {hpLeft.toLocaleString()} / {hpMax.toLocaleString()}
+                </p>
+              )}
+            </div>
+
+            <p className="mt-3 text-[10px] text-slate-500">
+              {raid.attackers ?? 0} {(raid.attackers ?? 0) === 1 ? "raider" : "raiders"} this week
+            </p>
+            {(raid.topDamage || []).length > 0 && (
+              <div className="mt-2 space-y-1.5">
+                {(raid.topDamage || []).map((t, i) => (
+                  <div key={`${t.username}-${i}`} className="flex items-center gap-2">
+                    <span className="w-4 shrink-0 text-center font-mono text-[10px] font-black tabular-nums text-slate-500">{i + 1}</span>
+                    {t.avatar ? (
+                      <img src={t.avatar} alt="" className="h-5 w-5 shrink-0 rounded-full object-cover ring-1 ring-white/15" />
+                    ) : (
+                      <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-emerald-800 text-[8px] font-black">
+                        {(t.username || "?")[0]?.toUpperCase()}
+                      </span>
+                    )}
+                    <span className="min-w-0 flex-1 truncate text-[11px] font-black text-white">{t.username}</span>
+                    <span className="shrink-0 font-mono text-[10px] tabular-nums text-slate-400">{(t.damage ?? 0).toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {isMember && (
+              <Link href="/raid"
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-400/40 bg-emerald-500/15 px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-200 transition hover:bg-emerald-500/25">
+                Fight this boss
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="rounded-3xl border border-white/10 bg-[#0b0b11]/85 p-5">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-emerald-300" />
+          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">Guild XP</p>
+        </div>
+        <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          <p className="font-fell text-3xl leading-none text-white">Level {level}</p>
+          <p className="font-mono text-[11px] tabular-nums text-slate-400">{xp.toLocaleString()} XP</p>
+        </div>
+        <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-white/10">
+          <div className="h-full rounded-full bg-emerald-400" style={{ width: `${(intoLevel / 1000) * 100}%` }} />
+        </div>
+        <p className="mt-1.5 text-[10px] tabular-nums text-slate-500">
+          {1000 - intoLevel} XP to Lv {level + 1}
+        </p>
+        <p className="mt-3 text-[10px] leading-relaxed text-slate-600">
+          Raids feed the guild — +25 XP per attack, +500 per kill.
+        </p>
+      </div>
+    </div>
   );
 }
 
