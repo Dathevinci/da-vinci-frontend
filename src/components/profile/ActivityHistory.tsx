@@ -23,17 +23,39 @@ const STAGGER_TOTAL_MS = 600;
  *  exists after a client fetch, but the hook call itself is in the SSR'd body. */
 const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
-const PERIODS: { label: string; days: number }[] = [
-  { label: "Last year", days: 365 },
-  { label: "6 months", days: 180 },
-  { label: "3 months", days: 90 },
-  { label: "Last month", days: 30 },
+/**
+ * The four ranges the owner asked for. Anything at or under STRIP_MAX days is
+ * too few squares to be a heatmap and renders as a day strip instead.
+ */
+const PERIODS: { label: string; short: string; days: number }[] = [
+  { label: "Today", short: "Today", days: 1 },
+  { label: "3 days", short: "3d", days: 3 },
+  { label: "This week", short: "Week", days: 7 },
+  { label: "This year", short: "Year", days: 365 },
 ];
+
+const STRIP_MAX = 7;
 
 /** Empty slate → bright violet. Index is the intensity step (0..4). */
 const LEVEL_BG = ["#14141b", "#2e2350", "#4c3596", "#7c4ddb", "#a78bfa"];
 
 const WEEKDAY_LABELS = ["", "Mon", "", "Wed", "", "Fri", ""];
+
+/* Grid geometry. The weekday label column is a fixed box so the cell-size
+ * formula and the absolutely-placed month captions agree on where column 0
+ * starts — GUTTER is the single number both of them use. */
+const GUTTER_W = 22;
+const GUTTER_MR = 6;
+const GUTTER = GUTTER_W + GUTTER_MR;
+const CELL_MIN = 11;
+const CELL_MAX = 26;
+/** Head room above row 0 for the month captions and the hover tooltip. The
+ *  tooltip is ~24px tall and hangs above its square, so at 28 a Sunday's
+ *  tooltip clipped against the scroller's now-explicit overflow-y: hidden. */
+const GRID_PAD_TOP = 34;
+/** Must clear the .ah-hit ::after bleed (-5px) or the bled box becomes
+ *  scrollable overflow — see the note on .ah-scroller. */
+const GRID_PAD_BOTTOM = 8;
 
 type DayRow = { date: string; episodes: number; chapters: number; total: number };
 
@@ -101,11 +123,57 @@ function prettyDate(s: string): string {
   });
 }
 
+/** "Aug 4" — the strip card is already stamped with the year by context. */
+function shortDate(s: string): string {
+  const d = parseYmd(s);
+  if (Number.isNaN(d.getTime())) return s;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+}
+
+/** "Mon" */
+function weekdayName(s: string): string {
+  const d = parseYmd(s);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" });
+}
+
 const TYPE_LABEL: Record<string, string> = {
   anime: "Anime",
   manhwa: "Manhwa",
   novel: "Novel",
 };
+
+/**
+ * THE CELL-SIZING FORMULA — the fix for the dead third of the card.
+ *
+ *   cell = clamp(CELL_MIN, floor((width - GUTTER - totalGaps) / weeks), CELL_MAX)
+ *
+ * The gap is proportional rather than fixed: a first pass assumes 3px, and if
+ * that lands the cell under 14px the pass is redone at 2px, which buys back a
+ * pixel or two of cell on narrow cards. Everything is derived — nothing about
+ * the square is hardcoded any more, so the grid is exactly as wide as whatever
+ * box it was handed.
+ */
+function measureCell(width: number, weeks: number): { cell: number; gap: number } {
+  if (!width || weeks <= 0) return { cell: 13, gap: 3 };
+  const fit = (gap: number) =>
+    Math.floor((width - GUTTER - gap * Math.max(0, weeks - 1)) / weeks);
+  let gap = 3;
+  let cell = fit(gap);
+  if (cell < 14) {
+    gap = 2;
+    cell = fit(gap);
+  }
+  cell = Math.max(CELL_MIN, Math.min(CELL_MAX, cell));
+  return { cell, gap };
+}
+
+/** Corner softens as the square grows — a 2px radius on a 23px tile reads sharp. */
+function cellRadius(cell: number): number {
+  if (cell >= 18) return 4;
+  if (cell >= 14) return 3;
+  return 2;
+}
 
 /**
  * Intensity steps picked off the data, not off hardcoded counts: quartiles of
@@ -181,6 +249,8 @@ function Roll({
   return <span className={className}>{text}</span>;
 }
 
+/** Compact tile. The strip that holds these is width-capped by the parent, so
+ *  a two-digit number is never marooned in 430px of nothing. */
 function StatTile({
   value,
   label,
@@ -199,15 +269,15 @@ function StatTile({
   delay: number;
 }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3 text-center sm:px-4">
+    <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-center">
       <div
-        className="font-fell text-2xl font-bold leading-none sm:text-3xl"
+        className="font-fell text-2xl font-bold leading-none sm:text-[26px]"
         style={{ color }}
       >
         <Roll to={value} decimals={decimals} delay={delay} reduce={reduce} />
-        {suffix ? <span className="text-base sm:text-lg">{suffix}</span> : null}
+        {suffix ? <span className="text-base">{suffix}</span> : null}
       </div>
-      <div className="mt-1.5 text-[10px] uppercase tracking-[0.14em] text-white/40 sm:text-[11px]">
+      <div className="mt-1 text-[10px] uppercase tracking-[0.14em] text-white/40">
         {label}
       </div>
     </div>
@@ -239,6 +309,125 @@ function Thumb({ cover, title }: { cover: string | null; title: string }) {
 }
 
 /**
+ * One day of the short-range strip. Below sm these stack, so the card is
+ * written column-first and simply gets wider when the row goes horizontal.
+ */
+function DayCard({
+  date,
+  total,
+  detail,
+  loading,
+  maxItems,
+  isToday,
+  reduce,
+  delay,
+  onMore,
+}: {
+  date: string;
+  total: number;
+  detail: DayDetail | null;
+  loading: boolean;
+  maxItems: number;
+  isToday: boolean;
+  reduce: boolean;
+  delay: number;
+  onMore: () => void;
+}) {
+  const items = detail?.items || [];
+  const extra = Math.max(0, items.length - maxItems);
+  const shownItems = items.slice(0, maxItems);
+
+  return (
+    <div
+      className={`ah-card-in flex min-w-0 flex-1 flex-col rounded-xl border p-3 ${
+        total > 0
+          ? "border-violet-400/20 bg-violet-500/[0.05]"
+          : "border-white/10 bg-white/[0.02]"
+      }`}
+      style={{ animationDelay: reduce ? undefined : `${delay}ms` }}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="text-[10px] uppercase tracking-[0.16em] text-white/40">
+            {weekdayName(date)}
+          </div>
+          <div className="mt-0.5 truncate text-xs font-bold text-white/70">
+            {shortDate(date)}
+          </div>
+        </div>
+        <div
+          className="font-fell text-3xl font-bold leading-none"
+          style={{ color: total > 0 ? "#a78bfa" : "rgba(255,255,255,0.18)" }}
+        >
+          {total}
+        </div>
+      </div>
+
+      {isToday ? (
+        <span className="mt-2 self-start rounded-full border border-violet-400/30 bg-violet-500/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.16em] text-violet-200/85">
+          Today
+        </span>
+      ) : null}
+
+      <div className="mt-2.5 min-w-0 border-t border-white/5 pt-2.5">
+        {loading ? (
+          <div className="ah-pulse space-y-1.5">
+            <div className="h-2.5 w-4/5 rounded bg-white/[0.06]" />
+            <div className="h-2.5 w-3/5 rounded bg-white/[0.05]" />
+          </div>
+        ) : shownItems.length === 0 ? (
+          <p className="text-[11px] italic text-white/25">nothing yet</p>
+        ) : (
+          <ul className="-mx-1 space-y-0.5">
+            {shownItems.map((it, i) => {
+              const inner = (
+                <>
+                  <span className="min-w-0 flex-1 truncate text-[11px] leading-snug text-white/75">
+                    {it.title}
+                  </span>
+                  <span className="shrink-0 text-[10px] leading-snug text-white/35">
+                    {it.label}
+                  </span>
+                </>
+              );
+              return (
+                <li key={`${it.type}-${it.label}-${i}`} className="min-w-0">
+                  {it.href ? (
+                    <a
+                      href={it.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={`${TYPE_LABEL[it.type] || "Item"} · ${it.title}`}
+                      className="ah-tap flex items-center gap-2 rounded-md px-1 py-1 transition hover:bg-white/[0.06]"
+                    >
+                      {inner}
+                    </a>
+                  ) : (
+                    <div className="flex items-center gap-2 rounded-md px-1 py-1">
+                      {inner}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        {extra > 0 ? (
+          <button
+            type="button"
+            onClick={onMore}
+            className="ah-tap mt-1 w-full rounded-md px-1 py-1 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-violet-300/70 transition hover:text-violet-200"
+          >
+            +{extra} more
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+/**
  * The day sheet — one node, so framer is affordable here. Bottom sheet below
  * sm, centred dialog above it. Mounted conditionally by the parent so
  * useLockBodyScroll (which locks unconditionally on mount) is correct.
@@ -247,15 +436,19 @@ function DayModal({
   userId,
   date,
   reduce,
+  seed,
+  onLoaded,
   onClose,
 }: {
   userId: string;
   date: string;
   reduce: boolean;
+  seed: DayDetail | null;
+  onLoaded: (detail: DayDetail) => void;
   onClose: () => void;
 }) {
-  const [detail, setDetail] = useState<DayDetail | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [detail, setDetail] = useState<DayDetail | null>(seed);
+  const [loading, setLoading] = useState(!seed);
   const [failed, setFailed] = useState(false);
 
   useLockBodyScroll();
@@ -269,6 +462,11 @@ function DayModal({
   }, [onClose]);
 
   useEffect(() => {
+    if (seed) {
+      setDetail(seed);
+      setLoading(false);
+      return;
+    }
     const ctrl = new AbortController();
     setLoading(true);
     setFailed(false);
@@ -280,12 +478,14 @@ function DayModal({
         );
         const json = await res.json();
         if (json?.success && json.data) {
-          setDetail({
+          const next: DayDetail = {
             date: json.data.date || date,
             episodes: Number(json.data.episodes) || 0,
             chapters: Number(json.data.chapters) || 0,
             items: Array.isArray(json.data.items) ? json.data.items : [],
-          });
+          };
+          setDetail(next);
+          onLoaded(next);
         } else {
           setFailed(true);
         }
@@ -296,7 +496,10 @@ function DayModal({
       }
     })();
     return () => ctrl.abort();
-  }, [userId, date]);
+    // onLoaded is a stable useCallback on the parent; listing it would not
+    // change when this runs, and the fetch must key off the date alone.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, date, seed]);
 
   const eps = detail?.episodes ?? 0;
   const chs = detail?.chapters ?? 0;
@@ -310,7 +513,7 @@ function DayModal({
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-end justify-center bg-black/80 backdrop-blur-sm sm:items-center sm:p-4"
+      className="fixed inset-0 z-[200] flex items-end justify-center bg-black/85 sm:items-center sm:p-4"
       onClick={onClose}
     >
       <motion.div
@@ -407,8 +610,9 @@ function DayModal({
 
 /**
  * ACTIVITY HISTORY — a GitHub-style contribution grid over the user's watch /
- * read ledger. Reads two public endpoints; renders counts only (the ledger's
- * Arise Point amounts never come down the wire and are never shown).
+ * read ledger for the year, and a day strip for the short ranges where a grid
+ * of three squares would be a joke. Reads two public endpoints; renders counts
+ * only (the ledger's Arise Point amounts never come down the wire).
  */
 export default function ActivityHistory({
   userId,
@@ -422,10 +626,24 @@ export default function ActivityHistory({
   const [loading, setLoading] = useState(true);
   const [refetching, setRefetching] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [everHad, setEverHad] = useState(false);
   const [openDate, setOpenDate] = useState<string | null>(null);
   const [tip, setTip] = useState<{ left: number; top: number; text: string } | null>(null);
 
+  /* Derived cell geometry — see measureCell. Seeded with the old hardcoded
+   * 13px so the very first paint (before the observer fires) is sane. */
+  const [box, setBox] = useState(0);
+  const [dayDetails, setDayDetails] = useState<Record<string, DayDetail | null>>({});
+  const [stripLoading, setStripLoading] = useState(false);
+
   const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const measureRef = useRef<HTMLDivElement | null>(null);
+
+  /* Day details survive period switches: flipping Today → 3 days → Today does
+   * not refetch anything already in this map. inflight dedupes the overlap so
+   * a fast double-toggle fires one request per date, not two. */
+  const dayCache = useRef<Map<string, DayDetail>>(new Map());
+  const inflight = useRef<Map<string, Promise<DayDetail | null>>>(new Map());
 
   const osReduce = useReducedMotion();
   const { preferences, isLoaded: prefsLoaded } = usePreferences();
@@ -434,6 +652,15 @@ export default function ActivityHistory({
    * OS setting nor Performance Mode objects. If prefs have not loaded yet we
    * bias to "no animation", which is the safe direction to be wrong in. */
   const reduce = !prefsLoaded || !!osReduce || !!preferences.reducedMotion;
+
+  const isStrip = days <= STRIP_MAX;
+
+  /* A different account is a different ledger — never serve its cached days. */
+  useEffect(() => {
+    dayCache.current.clear();
+    inflight.current.clear();
+    setDayDetails({});
+  }, [userId]);
 
   useEffect(() => {
     if (!userId) return;
@@ -453,18 +680,20 @@ export default function ActivityHistory({
           const d = json.data;
           const to = d?.range?.to || ymd(new Date());
           const from = d?.range?.from || ymd(addDays(parseYmd(to), -(days - 1)));
+          const totals = {
+            items: Number(d?.totals?.items) || 0,
+            episodes: Number(d?.totals?.episodes) || 0,
+            chapters: Number(d?.totals?.chapters) || 0,
+            dailyAverage: Number(d?.totals?.dailyAverage) || 0,
+            currentStreak: Number(d?.totals?.currentStreak) || 0,
+            bestStreak: Number(d?.totals?.bestStreak) || 0,
+          };
           setData({
             days: Array.isArray(d.days) ? d.days : [],
-            totals: {
-              items: Number(d?.totals?.items) || 0,
-              episodes: Number(d?.totals?.episodes) || 0,
-              chapters: Number(d?.totals?.chapters) || 0,
-              dailyAverage: Number(d?.totals?.dailyAverage) || 0,
-              currentStreak: Number(d?.totals?.currentStreak) || 0,
-              bestStreak: Number(d?.totals?.bestStreak) || 0,
-            },
+            totals,
             range: { from, to },
           });
+          if (totals.items > 0) setEverHad(true);
         } else {
           setFailed(true);
         }
@@ -485,6 +714,25 @@ export default function ActivityHistory({
 
   const levelOf = useMemo(() => makeLevelFn(data?.days || []), [data]);
 
+  const dayMap = useMemo(() => {
+    const m = new Map<string, DayRow>();
+    for (const row of data?.days || []) {
+      if (row && typeof row.date === "string") m.set(row.date, row);
+    }
+    return m;
+  }, [data]);
+
+  /** How many days the loaded payload actually covers — used to tell a fresh
+   *  render from one still showing the previous period's numbers. */
+  const stale = useMemo(() => {
+    if (!data) return true;
+    const from = parseYmd(data.range.from);
+    const to = parseYmd(data.range.to);
+    if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return true;
+    const span = Math.round((to.getTime() - from.getTime()) / 86400000) + 1;
+    return span !== days;
+  }, [data, days]);
+
   /** Week columns, Sunday-first rows, oldest week on the left. Cells outside
    *  the range are kept as invisible spacers so the weekday rows stay true. */
   const columns = useMemo<Cell[][]>(() => {
@@ -497,18 +745,13 @@ export default function ActivityHistory({
     const total = Math.round((end.getTime() - start.getTime()) / 86400000) + 1;
     if (total <= 0 || total > 500) return [];
 
-    const map = new Map<string, DayRow>();
-    for (const row of data.days) {
-      if (row && typeof row.date === "string") map.set(row.date, row);
-    }
-
     const cols: Cell[][] = [];
     for (let i = 0; i < total; i++) {
       const d = addDays(start, i);
       const key = ymd(d);
       const t = d.getTime();
       const inRange = t >= from.getTime() && t <= to.getTime();
-      const row = inRange ? map.get(key) : undefined;
+      const row = inRange ? dayMap.get(key) : undefined;
       const col = Math.floor(i / 7);
       if (!cols[col]) cols[col] = [];
       cols[col].push({
@@ -524,15 +767,159 @@ export default function ActivityHistory({
       });
     }
     return cols;
-  }, [data]);
+  }, [data, dayMap]);
+
+  const weekCount = columns.length || Math.ceil(days / 7) + 1;
+  const { cell: cellPx, gap: gapPx } = useMemo(
+    () => measureCell(box, weekCount),
+    [box, weekCount]
+  );
+  const radius = cellRadius(cellPx);
+
+  /* The grid is measured off its own wrapper, which never scrolls, so the
+   * width read back is the space available rather than the space consumed —
+   * no feedback loop between a wider cell and a wider container.
+   *
+   * LAYOUT effect, not a passive one: `box` starts at 0, and measureCell(0)
+   * falls back to the old 13px cell. In a passive effect the browser paints
+   * that fallback first and the grid visibly snaps ~470px wider (and 63px
+   * taller, shoving the sections below it down) one frame later — a jump on
+   * the very card whose sizing was the complaint. Reading clientWidth here
+   * forces the re-render before paint, so the first painted frame is right. */
+  useIsoLayoutEffect(() => {
+    if (isStrip) return;
+    const el = measureRef.current;
+    if (!el) return;
+    const apply = (w: number) => {
+      const next = Math.round(w);
+      setBox((prev) => (Math.abs(prev - next) < 1 ? prev : next));
+    };
+    apply(el.clientWidth);
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) apply(entry.contentRect.width);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [isStrip]);
+
+  /** Month captions ride in the head room above row 0, so the band that used
+   *  to be pure padding now says something. Skipped when two months would
+   *  collide at small cell sizes. */
+  const monthMarks = useMemo(() => {
+    const out: { ci: number; label: string }[] = [];
+    if (columns.length < 8) return out;
+    let last = -1;
+    for (let ci = 0; ci < columns.length - 1; ci++) {
+      const col = columns[ci];
+      const first = col.find((c) => c.inRange) || col[0];
+      if (!first) continue;
+      const d = parseYmd(first.key);
+      const m = d.getUTCMonth();
+      if (m === last) continue;
+      last = m;
+      const prev = out[out.length - 1];
+      const minGap = cellPx >= 16 ? 2 : 3;
+      if (prev && ci - prev.ci < minGap) continue;
+      out.push({
+        ci,
+        label: d.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" }),
+      });
+    }
+    return out;
+  }, [columns, cellPx]);
 
   /* Today lives at the right edge, and that is the part anyone actually cares
-   * about — so the scroller starts there instead of a year ago. */
+   * about — so the scroller starts there instead of a year ago. Re-runs on
+   * cell size too, because a resize changes what "the right edge" means. */
   useIsoLayoutEffect(() => {
     const el = scrollerRef.current;
-    if (!el || columns.length === 0) return;
+    if (!el || isStrip || columns.length === 0) return;
     el.scrollLeft = el.scrollWidth;
-  }, [columns]);
+  }, [columns, cellPx, gapPx, isStrip]);
+
+  /** One fetch per date, ever. Resolves from the map when it is already there,
+   *  and joins the in-flight promise when two callers race. */
+  const loadDay = useCallback(
+    (date: string): Promise<DayDetail | null> => {
+      const cached = dayCache.current.get(date);
+      if (cached) return Promise.resolve(cached);
+      const running = inflight.current.get(date);
+      if (running) return running;
+      const p = (async () => {
+        try {
+          const res = await fetch(
+            `${API_URL}/api/users/${encodeURIComponent(userId)}/activity/${encodeURIComponent(date)}`
+          );
+          const json = await res.json();
+          if (json?.success && json.data) {
+            const detail: DayDetail = {
+              date: json.data.date || date,
+              episodes: Number(json.data.episodes) || 0,
+              chapters: Number(json.data.chapters) || 0,
+              items: Array.isArray(json.data.items) ? json.data.items : [],
+            };
+            dayCache.current.set(date, detail);
+            return detail;
+          }
+          return null;
+        } catch (err) {
+          return null;
+        } finally {
+          inflight.current.delete(date);
+        }
+      })();
+      inflight.current.set(date, p);
+      return p;
+    },
+    [userId]
+  );
+
+  const rememberDay = useCallback((detail: DayDetail) => {
+    dayCache.current.set(detail.date, detail);
+  }, []);
+
+  /** Exactly `days` dates ending at the payload's last day, oldest first so
+   *  the newest card sits on the right like the grid's newest column. Built
+   *  from range.to alone, so a stale payload still yields the right dates. */
+  const stripDates = useMemo(() => {
+    if (!isStrip || !data) return [] as string[];
+    const to = parseYmd(data.range.to);
+    if (Number.isNaN(to.getTime())) return [] as string[];
+    const out: string[] = [];
+    for (let i = days - 1; i >= 0; i--) out.push(ymd(addDays(to, -i)));
+    return out;
+  }, [isStrip, data, days]);
+
+  const stripKey = stripDates.join(",");
+
+  useEffect(() => {
+    if (!isStrip || stripDates.length === 0) return;
+    let cancelled = false;
+    const snapshot = () => {
+      const out: Record<string, DayDetail | null> = {};
+      for (const d of stripDates) out[d] = dayCache.current.get(d) || null;
+      return out;
+    };
+    const missing = stripDates.filter((d) => !dayCache.current.has(d));
+    setDayDetails(snapshot());
+    if (missing.length === 0) {
+      setStripLoading(false);
+      return;
+    }
+    setStripLoading(true);
+    Promise.all(stripDates.map((d) => loadDay(d))).then(() => {
+      if (cancelled) return;
+      setDayDetails(snapshot());
+      setStripLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // stripKey is the value identity of stripDates; depending on the array
+    // itself would rerun this on every render that rebuilt it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isStrip, stripKey, loadDay]);
 
   const showTip = useCallback(
     (el: HTMLElement, cell: Cell) => {
@@ -552,6 +939,13 @@ export default function ActivityHistory({
   const totals = data?.totals;
   const hasAny = !!totals && totals.items > 0;
 
+  const period = PERIODS.find((p) => p.days === days) || PERIODS[3];
+  const subtitle = isStrip
+    ? days === 1
+      ? "Everything you watched and read today"
+      : `Episodes watched and chapters read — the last ${days} days`
+    : "Episodes watched and chapters read per day — tap a square for the day";
+
   /**
    * Vanish rather than sit there empty — the rule every other self-contained
    * profile section follows (GuildCard, TitleRack, ShowcaseCards,
@@ -559,48 +953,77 @@ export default function ActivityHistory({
    * permanent card of four zeroes over a 371-square blank grid, and a failed
    * fetch renders that same card while asserting "No activity yet", which is a
    * claim about the user that the request never actually established.
+   *
+   * `everHad` is what keeps the new filters usable: once real activity has
+   * been seen, picking Today on a day with nothing must show an empty Today,
+   * not yank the whole card (and with it the pills) out from under the tap.
    */
-  if (!loading && (failed || !hasAny)) return null;
+  if (!loading && !everHad && (failed || !hasAny)) return null;
+
+  const gridPending = loading || (refetching && stale);
+  const skeletonWeeks = Math.min(53, Math.max(1, Math.ceil(days / 7) + 1));
+  const maxStripItems = days <= 3 ? 6 : 3;
 
   return (
     <section
-      className={`rounded-2xl border border-white/10 bg-[#0b0b11] p-4 font-mono sm:rounded-3xl sm:p-6 ${className || ""}`}
+      className={`rounded-2xl border border-white/10 bg-[#0b0b11] p-3 font-mono sm:rounded-3xl sm:p-5 lg:p-6 ${
+        reduce ? "ah-static" : ""
+      } ${className || ""}`}
     >
       {/* header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="min-w-0">
           <h2 className="flex items-center gap-2.5 font-fell text-xl font-bold uppercase tracking-[0.08em] text-white sm:text-2xl">
             <Calendar className="h-5 w-5 shrink-0 text-violet-400" />
             Activity History
           </h2>
           <p className="mt-1 text-[11px] leading-relaxed text-white/40 sm:text-xs">
-            Episodes watched and chapters read per day — tap a square for the day
+            {subtitle}
           </p>
         </div>
-        <label className="shrink-0">
-          <span className="sr-only">Period</span>
-          <select
-            value={days}
-            onChange={(e) => setDays(Number(e.target.value))}
-            className="w-full cursor-pointer rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-white/80 outline-none transition hover:border-violet-400/30 focus:border-violet-400/50 sm:w-auto"
+
+        {/* Segmented pills. Native selects opened an OS-blue dropdown that had
+            nothing to do with this theme; this is ours end to end. */}
+        <div className="ah-pillbar -mx-1 max-w-full overflow-x-auto px-1 sm:mx-0 sm:shrink-0 sm:overflow-visible sm:px-0">
+          <div
+            role="group"
+            aria-label="Activity period"
+            className="inline-flex w-max items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] p-1"
           >
-            {PERIODS.map((p) => (
-              <option key={p.days} value={p.days} className="bg-[#0b0b11]">
-                {p.label}
-              </option>
-            ))}
-          </select>
-        </label>
+            {PERIODS.map((p) => {
+              const active = p.days === days;
+              return (
+                <button
+                  key={p.days}
+                  type="button"
+                  onClick={() => setDays(p.days)}
+                  aria-pressed={active}
+                  className={`ah-pill whitespace-nowrap rounded-full border px-3.5 py-1.5 text-[11px] font-bold tracking-wide transition sm:text-xs ${
+                    active
+                      ? "border-violet-400/40 bg-violet-500/15 text-violet-200"
+                      : "border-transparent text-white/45 hover:bg-white/[0.06] hover:text-white/80"
+                  }`}
+                >
+                  {/* Short labels below sm: the four full labels total ~342px
+                      against ~304px usable at 360px, and the pill that got cut
+                      was "This year" — the mount default. */}
+                  <span className="sm:hidden">{p.short}</span>
+                  <span className="hidden sm:inline">{p.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
-      {/* stats */}
-      <div className="mt-4 grid grid-cols-2 gap-2 sm:mt-5 sm:grid-cols-4 sm:gap-3">
+      {/* stats — capped so a 66 is not marooned in the middle of 430px */}
+      <div className="mt-3 grid max-w-[760px] grid-cols-2 gap-2 sm:mt-4 sm:grid-cols-4 sm:gap-2.5">
         {loading || !totals ? (
           <>
             {[0, 1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-[74px] rounded-xl border border-white/10 bg-white/[0.03]"
+                className="h-[64px] rounded-xl border border-white/10 bg-white/[0.03]"
               />
             ))}
           </>
@@ -641,129 +1064,224 @@ export default function ActivityHistory({
         )}
       </div>
 
-      {/* heatmap — the ONLY horizontally scrolling thing on the page */}
-      <div
-        ref={scrollerRef}
-        className="ah-scroller mt-4 overflow-x-auto overscroll-x-contain sm:mt-5"
-      >
+      {isStrip ? (
+        /* DAY STRIP — one to seven days deserve their contents, not a row of
+           squares. Horizontal on sm and up, stacked below it. */
         <div
-          className={`relative inline-flex gap-[3px] pb-1 pt-9 sm:gap-[3px] ${
-            reduce ? "ah-static" : ""
-          }`}
+          className={`mt-3 flex flex-col gap-2 sm:mt-4 sm:flex-row sm:gap-2.5 ${
+            /* Capped like the stat tiles. On Today a single flex-1 card would
+               otherwise stretch across the whole 1388px with a date in one
+               corner and a number in the other — the same lonely-number-in-a-
+               wide-box shape this redesign exists to remove. */
+            days <= 3 ? "sm:max-w-[760px]" : ""
+          } ${reduce ? "" : "transition-opacity duration-200"}`}
+          style={{ opacity: refetching && stale ? 0.35 : 1 }}
         >
-          <div className="mr-1 flex flex-col gap-[3px] sm:gap-[3px]">
-            {WEEKDAY_LABELS.map((w, i) => (
+          {stripDates.length === 0 ? (
+            <>
+              {Array.from({ length: Math.min(days, STRIP_MAX) }).map((_, i) => (
+                <div
+                  key={i}
+                  className="ah-pulse h-[132px] flex-1 rounded-xl border border-white/10 bg-white/[0.03]"
+                />
+              ))}
+            </>
+          ) : (
+            stripDates.map((date, i) => {
+              const detail = dayDetails[date] || dayCache.current.get(date) || null;
+              const row = dayMap.get(date);
+              const total = detail
+                ? detail.episodes + detail.chapters
+                : row
+                ? row.total
+                : 0;
+              return (
+                <DayCard
+                  key={date}
+                  date={date}
+                  total={total}
+                  detail={detail}
+                  loading={stripLoading && !detail}
+                  maxItems={maxStripItems}
+                  isToday={date === data?.range.to}
+                  reduce={reduce}
+                  delay={Math.round(
+                    (i / Math.max(1, stripDates.length)) * STAGGER_TOTAL_MS
+                  )}
+                  onMore={() => setOpenDate(date)}
+                />
+              );
+            })
+          )}
+        </div>
+      ) : (
+        /* YEAR GRID — the wrapper is what gets measured; the scroller inside it
+           is the ONLY horizontally scrolling thing on the page. */
+        <div ref={measureRef} className="mt-3 sm:mt-4">
+          <div ref={scrollerRef} className="ah-scroller overscroll-x-contain">
+            <div
+              className="relative inline-flex"
+              style={{
+                gap: gapPx,
+                paddingTop: GRID_PAD_TOP,
+                paddingBottom: GRID_PAD_BOTTOM,
+              }}
+            >
               <div
-                key={i}
-                className="flex h-[13px] items-center pr-1 text-[8px] leading-none text-white/30 sm:h-[11px] sm:text-[9px]"
+                className="flex flex-col"
+                style={{ gap: gapPx, width: GUTTER_W, marginRight: GUTTER_MR }}
               >
-                {w}
+                {WEEKDAY_LABELS.map((w, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-end text-[9px] leading-none text-white/30"
+                    style={{ height: cellPx }}
+                  >
+                    {w}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          {loading ? (
-            <div className="ah-pulse flex gap-[3px] sm:gap-[3px]">
-              {Array.from({ length: 53 }).map((_, c) => (
-                <div key={c} className="flex flex-col gap-[3px] sm:gap-[3px]">
-                  {Array.from({ length: 7 }).map((__, r) => (
-                    <div
-                      key={r}
-                      className="h-[13px] w-[13px] rounded-[2px] bg-white/[0.05] sm:h-[11px] sm:w-[11px]"
-                    />
+              {gridPending ? (
+                <div className="ah-pulse flex" style={{ gap: gapPx }}>
+                  {Array.from({ length: skeletonWeeks }).map((_, c) => (
+                    <div key={c} className="flex flex-col" style={{ gap: gapPx }}>
+                      {Array.from({ length: 7 }).map((__, r) => (
+                        <div
+                          key={r}
+                          className="bg-white/[0.05]"
+                          style={{
+                            width: cellPx,
+                            height: cellPx,
+                            borderRadius: radius,
+                          }}
+                        />
+                      ))}
+                    </div>
                   ))}
                 </div>
-              ))}
-            </div>
-          ) : columns.length === 0 ? (
-            <div className="flex h-[80px] items-center px-2 text-xs text-white/35">
-              No activity yet
-            </div>
-          ) : (
-            <div
-              key={days}
-              className={`ah-grid-in flex gap-[3px] sm:gap-[3px] ${reduce ? "" : "transition-opacity duration-200"}`}
-              style={{ opacity: refetching ? 0.35 : 1 }}
-            >
-              {columns.map((col, ci) => (
-                <div key={ci} className="flex flex-col gap-[3px] sm:gap-[3px]">
-                  {col.map((cell) => {
-                    if (!cell.inRange) {
-                      return (
-                        <div
-                          key={cell.key}
-                          className="h-[13px] w-[13px] sm:h-[11px] sm:w-[11px]"
-                        />
-                      );
-                    }
-                    const lvl = levelOf(cell.count);
-                    const style = {
-                      backgroundColor: LEVEL_BG[lvl],
-                      animationDelay: reduce ? undefined : `${cell.delay}ms`,
-                    };
-                    if (cell.count === 0) {
-                      return (
-                        <div
-                          key={cell.key}
-                          className="ah-sq h-[13px] w-[13px] rounded-[2px] sm:h-[11px] sm:w-[11px]"
-                          style={style}
-                          onMouseEnter={(e) => showTip(e.currentTarget, cell)}
-                          onMouseLeave={hideTip}
-                        />
-                      );
-                    }
-                    const n = cell.count;
-                    return (
-                      <button
-                        key={cell.key}
-                        type="button"
-                        aria-label={`${prettyDate(cell.date as string)}: ${n} ${
-                          n === 1 ? "item" : "items"
-                        }`}
-                        className="ah-sq ah-hit h-[13px] w-[13px] cursor-pointer rounded-[2px] sm:h-[11px] sm:w-[11px]"
-                        style={style}
-                        onClick={() => setOpenDate(cell.date)}
-                        onMouseEnter={(e) => showTip(e.currentTarget, cell)}
-                        onMouseLeave={hideTip}
-                        onFocus={(e) => showTip(e.currentTarget, cell)}
-                        onBlur={hideTip}
-                      />
-                    );
-                  })}
+              ) : columns.length === 0 ? (
+                <div className="flex h-[80px] items-center px-2 text-xs text-white/35">
+                  No activity yet
                 </div>
-              ))}
-            </div>
-          )}
+              ) : (
+                <div
+                  key={days}
+                  className={`ah-grid-in flex ${
+                    reduce ? "" : "transition-opacity duration-200"
+                  }`}
+                  style={{ gap: gapPx, opacity: refetching ? 0.35 : 1 }}
+                >
+                  {columns.map((col, ci) => (
+                    <div key={ci} className="flex flex-col" style={{ gap: gapPx }}>
+                      {col.map((cell) => {
+                        if (!cell.inRange) {
+                          return (
+                            <div
+                              key={cell.key}
+                              style={{ width: cellPx, height: cellPx }}
+                            />
+                          );
+                        }
+                        const lvl = levelOf(cell.count);
+                        const style = {
+                          width: cellPx,
+                          height: cellPx,
+                          borderRadius: radius,
+                          backgroundColor: LEVEL_BG[lvl],
+                          animationDelay: reduce ? undefined : `${cell.delay}ms`,
+                        };
+                        if (cell.count === 0) {
+                          return (
+                            <div
+                              key={cell.key}
+                              className="ah-sq"
+                              style={style}
+                              onMouseEnter={(e) => showTip(e.currentTarget, cell)}
+                              onMouseLeave={hideTip}
+                            />
+                          );
+                        }
+                        const n = cell.count;
+                        return (
+                          <button
+                            key={cell.key}
+                            type="button"
+                            aria-label={`${prettyDate(cell.date as string)}: ${n} ${
+                              n === 1 ? "item" : "items"
+                            }`}
+                            className="ah-sq ah-hit cursor-pointer"
+                            style={style}
+                            onClick={() => setOpenDate(cell.date)}
+                            onMouseEnter={(e) => showTip(e.currentTarget, cell)}
+                            onMouseLeave={hideTip}
+                            onFocus={(e) => showTip(e.currentTarget, cell)}
+                            onBlur={hideTip}
+                          />
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              )}
 
-          {tip ? (
-            <div
-              role="tooltip"
-              className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-md border border-white/10 bg-[#15151d] px-2 py-1 text-[10px] text-white/85 shadow-lg"
-              style={{ left: tip.left, top: tip.top - 6 }}
-            >
-              {tip.text}
+              {!gridPending && columns.length > 0
+                ? monthMarks.map((m) => (
+                    <span
+                      key={`${m.ci}-${m.label}`}
+                      aria-hidden
+                      className="pointer-events-none absolute top-0 text-[9px] leading-none text-white/25"
+                      style={{ left: GUTTER + m.ci * (cellPx + gapPx) }}
+                    >
+                      {m.label}
+                    </span>
+                  ))
+                : null}
+
+              {tip ? (
+                <div
+                  role="tooltip"
+                  className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-md border border-white/10 bg-[#15151d] px-2 py-1 text-[10px] text-white/85 shadow-lg"
+                  style={{ left: tip.left, top: tip.top - 6 }}
+                >
+                  {tip.text}
+                </div>
+              ) : null}
             </div>
-          ) : null}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* legend + empty note, outside the scroller */}
-      <div className="mt-3 flex items-center justify-between gap-3">
-        <p className="text-[10px] text-white/30 sm:text-[11px]">
-          {!loading && !hasAny ? "No activity yet" : "UTC days"}
+      {/* legend + UTC note — one line, legend right. Year view only: a Less→More
+          ramp under a three-day strip explains nothing. */}
+      {isStrip ? null : (
+        <div className="mt-2.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+          <p className="text-[10px] text-white/30 sm:text-[11px]">
+            {!loading && !hasAny ? "No activity yet" : "UTC days"}
+          </p>
+          <div className="ml-auto flex items-center gap-1.5 text-[10px] text-white/35 sm:text-[11px]">
+            <span>Less</span>
+            {LEVEL_BG.map((bg, i) => (
+              <span
+                key={i}
+                style={{
+                  width: Math.min(cellPx, 14),
+                  height: Math.min(cellPx, 14),
+                  borderRadius: radius,
+                  backgroundColor: bg,
+                }}
+              />
+            ))}
+            <span>More</span>
+          </div>
+        </div>
+      )}
+
+      {isStrip && !loading ? (
+        <p className="mt-2.5 text-[10px] text-white/30 sm:text-[11px]">
+          {hasAny ? `${period.label} · UTC days` : "No activity in this range · UTC days"}
         </p>
-        <div className="flex items-center gap-1.5 text-[10px] text-white/35 sm:text-[11px]">
-          <span>Less</span>
-          {LEVEL_BG.map((bg, i) => (
-            <span
-              key={i}
-              className="h-[13px] w-[13px] rounded-[2px] sm:h-[11px] sm:w-[11px]"
-              style={{ backgroundColor: bg }}
-            />
-          ))}
-          <span>More</span>
-        </div>
-      </div>
+      ) : null}
 
       {failed && !loading ? (
         <p className="mt-2 text-[10px] text-white/25">Activity could not be loaded.</p>
@@ -776,6 +1294,8 @@ export default function ActivityHistory({
             userId={userId}
             date={openDate}
             reduce={reduce}
+            seed={dayCache.current.get(openDate) || null}
+            onLoaded={rememberDay}
             onClose={() => setOpenDate(null)}
           />
         ) : null}
@@ -783,6 +1303,13 @@ export default function ActivityHistory({
 
       <style jsx global>{`
         .ah-scroller {
+          overflow-x: auto;
+          /* overflow-y must be stated. With only overflow-x set, the y axis
+             computes from visible to auto, and then the .ah-hit ::after hit
+             bleed on the bottom row (inset -5px) counts as scrollable overflow
+             — which is where the stray vertical scrollbar beside the grid came
+             from. Seven weekday rows never scroll. */
+          overflow-y: hidden;
           scrollbar-width: thin;
           scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
         }
@@ -792,6 +1319,13 @@ export default function ActivityHistory({
         .ah-scroller::-webkit-scrollbar-thumb {
           background: rgba(255, 255, 255, 0.15);
           border-radius: 999px;
+        }
+        .ah-pillbar {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .ah-pillbar::-webkit-scrollbar {
+          display: none;
         }
         .ah-sq {
           animation: ahPop 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -803,10 +1337,11 @@ export default function ActivityHistory({
           transition: box-shadow 120ms ease, filter 120ms ease;
           position: relative;
         }
-        /* The square is ~13px, but a FINGER is not. This bleeds the hit area
-           out past the paint without touching the grid's layout, so tapping a
-           day works on a phone — and tapping IS the only way to open the day
-           sheet, since hover doesn't exist there. */
+        /* The square can be as small as 11px, but a FINGER is not. This bleeds
+           the hit area out past the paint without touching the grid's layout,
+           so tapping a day works on a phone — and tapping IS the only way to
+           open the day sheet, since hover doesn't exist there. The scroller's
+           padding-bottom is sized to swallow the bleed. */
         .ah-hit::after {
           content: "";
           position: absolute;
@@ -826,8 +1361,22 @@ export default function ActivityHistory({
              fill bought nothing anyway. */
           animation: ahFade 220ms ease-out;
         }
+        .ah-card-in {
+          animation: ahRise 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
         .ah-pulse {
           animation: ahPulse 1.6s ease-in-out infinite;
+        }
+        /* Fingers need 44px; a mouse does not, so the desktop pills stay tight. */
+        @media (pointer: coarse) {
+          .ah-pill,
+          .ah-tap {
+            min-height: 44px;
+          }
+          .ah-pill {
+            display: inline-flex;
+            align-items: center;
+          }
         }
         @keyframes ahPop {
           from {
@@ -837,6 +1386,16 @@ export default function ActivityHistory({
           to {
             opacity: 1;
             transform: scale(1);
+          }
+        }
+        @keyframes ahRise {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
           }
         }
         @keyframes ahFade {
@@ -857,19 +1416,25 @@ export default function ActivityHistory({
           }
         }
         /* Two switches, one result: the OS setting and the app's Performance
-           Mode (which stamps .ah-static) both hard-stop every animation. */
-        .ah-static .ah-sq,
-        .ah-static .ah-grid-in,
-        .ah-static .ah-pulse {
+           Mode (which stamps .ah-static on the section) both hard-stop every
+           animation AND every transition inside this card. */
+        .ah-static,
+        .ah-static *,
+        .ah-static *::before,
+        .ah-static *::after {
           animation: none !important;
+          transition: none !important;
         }
         @media (prefers-reduced-motion: reduce) {
           .ah-sq,
           .ah-grid-in,
+          .ah-card-in,
           .ah-pulse {
             animation: none !important;
           }
-          .ah-hit {
+          .ah-hit,
+          .ah-pill,
+          .ah-tap {
             transition: none;
           }
         }
