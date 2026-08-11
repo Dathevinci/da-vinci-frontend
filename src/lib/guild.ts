@@ -37,7 +37,181 @@ export type GuildSummary = {
   xp: number;
   level: number;
   memberCount: number;
+  // Sent by the detail route once the joining rules shipped. Optional because
+  // an older backend simply omits them and nothing here may crash on that.
+  memberCap?: number | null;
+  isPublic?: boolean;
+  minLevel?: number;
+  createdAt?: string | null;
 };
+
+/**
+ * A row of the browse hall, exactly as `GET /api/guilds` returns it.
+ *
+ * Everything numeric here is COMPUTED BY THE SERVER and merely rendered by the
+ * client: `level` comes from the guild's XP curve and `memberCap` from
+ * `min(100, 10 + floor((level-1)*0.8) + purchasedSlots)`. Neither formula is
+ * mirrored on this side on purpose — two copies of a levelling curve drift,
+ * and the one the player sees must be the one the server enforces.
+ */
+export type GuildRow = {
+  id: string;
+  name: string;
+  tag: string;
+  description: string;
+  avatar: string | null;
+  banner: string | null;
+  level: number;
+  xp: number;
+  /**
+   * The guild TREASURY, in shards (never "coins").
+   *
+   * A closed loop: the treasury fills from guild XP and from members donating
+   * personal shards in, and it empties ONLY into guild purchases. No path
+   * moves a treasury shard back into anyone's personal balance, so nothing in
+   * this file — or any UI reading it — should ever present it as claimable.
+   */
+  shards: number;
+  memberCount: number;
+  /**
+   * Seats, server-computed. `null` when the backend omitted it; the UI then
+   * shows the member count alone instead of inventing a cap.
+   */
+  memberCap: number | null;
+  isPublic: boolean;
+  /** 1..10 — user levels cap at 10 on this site. */
+  minLevel: number;
+  createdAt: string | null;
+  /**
+   * NOT part of the browse contract — the list route may omit it entirely.
+   * Only the guild detail carries it reliably, so nothing may depend on its
+   * presence here. See the note in `findMyGuild`.
+   */
+  leaderId?: string | null;
+};
+
+/** The `meta` block beside the rows. */
+export type GuildListMeta = {
+  /** Rows matching the current search — what the pager divides. */
+  total: number;
+  page: number;
+  perPage: number;
+  /** Guilds on the whole site, search or no search. */
+  totalGuilds: number;
+  /** Members summed across the rows on this page. */
+  membersShown: number;
+  highestLevel: number;
+};
+
+export type GuildSort = "level" | "members" | "xp" | "new";
+
+export const GUILD_SORTS: ReadonlyArray<{ value: GuildSort; label: string }> = [
+  { value: "level", label: "Level" },
+  { value: "members", label: "Members" },
+  { value: "xp", label: "XP" },
+  { value: "new", label: "Newest" },
+];
+
+export const GUILD_PER_PAGE = 12;
+
+/**
+ * Founding limits, mirrored for the FORM ONLY.
+ *
+ * The server is the gate for every one of these — the account-age rule, the AP
+ * charge, one-guild-per-person, the name and tag uniqueness. These copies exist
+ * so a typo can be caught before a round trip, never to decide who may found a
+ * guild. When the two disagree, the server wins and its message is shown.
+ */
+export const GUILD_CREATE = {
+  COST_AP: 2000,
+  MIN_ACCOUNT_AGE_DAYS: 3,
+  NAME_MIN: 3,
+  NAME_MAX: 24,
+  TAG_MIN: 2,
+  TAG_MAX: 5,
+  DESC_MAX: 500,
+  MIN_LEVEL_MIN: 1,
+  MIN_LEVEL_MAX: 10,
+} as const;
+
+const num = (v: unknown, fallback = 0): number => {
+  const n = typeof v === "string" ? Number(v) : (v as number);
+  return typeof n === "number" && Number.isFinite(n) ? n : fallback;
+};
+
+function normalizeRow(raw: any): GuildRow {
+  const cap = num(raw?.memberCap, -1);
+  return {
+    id: String(raw?.id ?? ""),
+    name: String(raw?.name ?? ""),
+    tag: String(raw?.tag ?? ""),
+    description: String(raw?.description ?? ""),
+    avatar: raw?.avatar ?? null,
+    banner: raw?.banner ?? null,
+    level: num(raw?.level, 1),
+    xp: num(raw?.xp),
+    shards: num(raw?.shards),
+    memberCount: num(raw?.memberCount),
+    memberCap: cap > 0 ? cap : null,
+    // Absent means public: `isPublic` defaults true server-side, and a guild
+    // wrongly drawn as invite-only would turn people away from an open door.
+    isPublic: raw?.isPublic !== false,
+    minLevel: Math.min(
+      GUILD_CREATE.MIN_LEVEL_MAX,
+      Math.max(GUILD_CREATE.MIN_LEVEL_MIN, num(raw?.minLevel, 1)),
+    ),
+    createdAt: raw?.createdAt ? String(raw.createdAt) : null,
+    leaderId: raw?.leaderId ?? null,
+  };
+}
+
+/**
+ * Fill in a `meta` block the backend didn't send, from the rows themselves.
+ * Derived numbers describe THIS PAGE only, which is exactly what the stat strip
+ * claims ("On This Page", "Members Shown") — no site-wide total is invented
+ * beyond the rows actually in hand.
+ */
+function normalizeMeta(raw: any, rows: GuildRow[], page: number, perPage: number): GuildListMeta {
+  const membersShown = rows.reduce((sum, g) => sum + g.memberCount, 0);
+  const highest = rows.reduce((top, g) => Math.max(top, g.level), 0);
+  return {
+    total: num(raw?.total, rows.length),
+    page: num(raw?.page, page),
+    perPage: num(raw?.perPage, perPage),
+    totalGuilds: num(raw?.totalGuilds, rows.length),
+    membersShown: num(raw?.membersShown, membersShown),
+    highestLevel: num(raw?.highestLevel, highest),
+  };
+}
+
+export type GuildListResult = { rows: GuildRow[]; meta: GuildListMeta };
+
+/** One page of the browse hall. Throws on a failed/garbled response. */
+export async function fetchGuilds(opts: {
+  search?: string;
+  sort?: GuildSort;
+  page?: number;
+  perPage?: number;
+  signal?: AbortSignal;
+} = {}): Promise<GuildListResult> {
+  const page = Math.max(1, Math.floor(opts.page || 1));
+  const perPage = Math.max(1, Math.floor(opts.perPage || GUILD_PER_PAGE));
+
+  const qs = new URLSearchParams();
+  const search = (opts.search || "").trim();
+  if (search) qs.set("search", search);
+  if (opts.sort) qs.set("sort", opts.sort);
+  qs.set("page", String(page));
+  qs.set("perPage", String(perPage));
+
+  const r = await fetch(`${API_URL}/api/guilds?${qs.toString()}`, { signal: opts.signal });
+  const d = await r.json();
+  if (!d?.success || !Array.isArray(d.data)) {
+    throw new Error(d?.message || "Couldn't read the guild registry.");
+  }
+  const rows = d.data.map(normalizeRow);
+  return { rows, meta: normalizeMeta(d.meta, rows, page, perPage) };
+}
 
 export function cachedGuildId(): string | null {
   try {
@@ -70,6 +244,8 @@ export async function guildIfMember(id: string): Promise<GuildSummary | null> {
       avatar: g.avatar ?? null, banner: g.banner ?? null, leaderId: g.leaderId,
       coLeaderId: g.coLeaderId ?? null, shards: g.shards ?? 0,
       xp: g.xp ?? 0, level: g.level ?? 1, memberCount: g.memberCount ?? 0,
+      memberCap: g.memberCap ?? null, isPublic: g.isPublic !== false,
+      minLevel: g.minLevel ?? 1, createdAt: g.createdAt ?? null,
     };
   } catch {
     return null;
@@ -87,15 +263,23 @@ export async function findMyGuild(userId?: string | null): Promise<GuildSummary 
     cacheGuildId(null); // kicked, left elsewhere, or disbanded
   }
 
-  // 2 — leaders are public in the list
+  // 2 — ASK THE SERVER. /of/:userId answers for ANY member (not just leaders)
+  // in one request.
+  //
+  // This used to scan the browse list for a matching leaderId. That tier died
+  // the moment the list became paginated and server-capped: it could only ever
+  // see the first page, so the leader of a lower-ranked guild came back
+  // guildless on any device without a cached id.
   try {
-    const r = await fetch(`${API_URL}/api/guilds`);
+    const r = await fetch(`${API_URL}/api/guilds/of/${encodeURIComponent(userId)}`);
     const d = await r.json();
-    const rows: GuildSummary[] = Array.isArray(d?.data) ? d.data : [];
-    const led = rows.find((g) => g.leaderId === userId);
-    if (led) {
-      cacheGuildId(led.id);
-      return led;
+    const gid = d?.success && d.data?.id ? String(d.data.id) : null;
+    if (gid) {
+      const g = await guildIfMember(gid);
+      if (g) {
+        cacheGuildId(g.id);
+        return g;
+      }
     }
   } catch {
     /* offline — fall through */

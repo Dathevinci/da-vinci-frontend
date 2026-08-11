@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import {
   Users, Shield, Crown, X, Sparkles, Pencil, Trash2,
   Gem, Layers, Clock, Check, RefreshCw, Camera, Plus,
+  Lock, Zap, Trophy, Activity, Globe, UserPlus, Calendar, Send,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { useToast } from "@/components/ui/Toast";
@@ -24,11 +25,26 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 /**
  * THE GUILD HOME — one guild's whole world on a page, in the Lunar kit:
  * a full-bleed-feel hero (the guild's banner when it has one, our gradient
- * when it doesn't), the CHAT (a Discord-style members-only room on
- * /api/guilds/:id/messages — grouped messages, day dividers, an 8-second
- * poll that goes quiet while the tab is hidden), the MEMBERS strip with the
- * leader's controls, and CARD SHARING (7-day loans between guildmates,
- * capped 3 a side, all enforced server-side).
+ * when it doesn't), the four STAT TILES and the LEVEL bar under it, the
+ * MEMBERS strip with the leader's controls, the CHAT (a Discord-style
+ * members-only room on /api/guilds/:id/messages — grouped messages, day
+ * dividers, an 8-second poll that goes quiet while the tab is hidden), CARD
+ * SHARING (7-day loans between guildmates, capped 3 a side), and a right rail
+ * carrying the raid boss, the XP ladder, the top contributor, the guild's
+ * statistics, the custom-roles unlock, the leader's management panel and the
+ * guild's vitals.
+ *
+ * THE DIVISION OF LABOUR, and it is absolute:
+ *  · The LEVEL LADDER is the server's. levelCost/totalXpFor/guildLevel live in
+ *    guild.controller.ts; this page draws `level`, `xpIntoLevel`,
+ *    `xpForNextLevel`, `progressPct` and `isMax` and never derives a level
+ *    from XP. At the top of the ladder the bar reads MAX, never a negative
+ *    remainder.
+ *  · The TREASURY is a closed loop. Shards flow in (the guild's cut of member
+ *    XP, plus member donations) and out only through the guild purchases —
+ *    nothing on this page, or behind it, pays treasury shards to a person.
+ *  · "ACTIVE" is a 10-minute last-write recency proxy, not presence. The copy
+ *    says "Active", never "Online", because that is all the data supports.
  *
  * Every rule lives in guild.controller.ts — this page relays the server's
  * answers and never invents its own.
@@ -42,6 +58,12 @@ type Member = {
   joinedAt: string;
   // `?` rides out deploy skew — a backend without roles yet must not crash us.
   customRoleId?: string | null;
+  // How much guild XP this member has fed the ladder (half of everything they
+  // earn anywhere on the site), and our ONE presence signal: the server says
+  // their user row was written in the last 10 minutes. That is a RECENCY
+  // proxy, not a socket — the UI says "Active", never "Online".
+  xpContributed?: number;
+  activeRecently?: boolean;
 };
 
 type GuildRolePermissions = {
@@ -57,16 +79,67 @@ type GuildRole = {
   permissions: GuildRolePermissions;
 };
 
+/** The guild's headline numbers, computed server-side on every detail read. */
+type TopContributor = {
+  userId: string;
+  username: string;
+  avatar: string | null;
+  xpContributed: number;
+};
+
+type GuildStats = {
+  memberCount: number;
+  activeCount: number;
+  /** round(activeMembers / memberCount * 100) — a 10-minute recency rate. */
+  onlineRate: number;
+  avgXp: number;
+  topContributor: TopContributor | null;
+};
+
+/** A pending invite — the officers' outbox row and the viewer's inbox row. */
+type GuildInvite = {
+  id: string;
+  guildId: string;
+  userId: string;
+  username?: string;
+  avatar?: string | null;
+  guildName?: string;
+  guildTag?: string;
+  invitedByName?: string | null;
+  createdAt?: string;
+};
+
 type GuildDetail = {
   id: string; name: string; tag: string; description: string;
   avatar: string | null; banner: string | null;
   leaderId: string; coLeaderId: string | null;
+  // TREASURY — a CLOSED LOOP. Shards flow IN (the guild's cut of what members
+  // earn, plus donations) and only ever back OUT through the guild purchases
+  // below. There is no path, anywhere, that moves treasury shards into a
+  // personal balance: donating is one-way and disbanding burns the rest.
   shards: number; xp: number;
   level: number; createdAt: string; memberCap: number; memberCount: number;
   members: Member[];
   myMembership: { role: string; joinedAt: string } | null;
   activeLoanCount: number;
   roles?: GuildRole[];
+  // ── THE SERVER'S LEVEL BLOCK ──
+  // levelCost/totalXpFor/guildLevel live in guild.controller.ts and NOWHERE
+  // else. This page draws these numbers and never derives a level from xp.
+  // Every field is optional so a backend mid-deploy degrades instead of
+  // throwing.
+  xpIntoLevel?: number;
+  xpForNextLevel?: number;
+  progressPct?: number;
+  maxLevel?: number;
+  isMax?: boolean;
+  purchasedSlots?: number;
+  isPublic?: boolean;
+  minLevel?: number;
+  rolesUnlocked?: boolean;
+  xpBoostUntil?: string | null;
+  xpBoostActive?: boolean;
+  stats?: GuildStats;
 };
 
 /** What the themed confirm asks — replaces every window.confirm on this page. */
@@ -77,6 +150,56 @@ type ConfirmSpec = {
   danger?: boolean;
   onConfirm: () => void | Promise<void>;
 };
+
+/**
+ * TREASURY PRICES — a MIRROR of the server's one exported price object, kept
+ * here for labels only. The server owns the debit (a compare-and-set against
+ * the treasury, so it can never go negative) and re-prices every purchase; if
+ * these ever drift, the server wins and its message lands in the toast.
+ */
+const GUILD_PRICES = {
+  ROLES_UNLOCK: 15000,
+  XP_BOOST: 5000,
+  MEMBER_SLOTS: 4000,
+};
+const SLOTS_PER_PURCHASE = 5;
+const MAX_MEMBER_CAP = 100;
+const MAX_ROLES = 10;
+const BOOST_DAYS = 7;
+/** How stale a member's last write may be and still read as "Active". */
+const ACTIVE_WINDOW_MINUTES = 10;
+
+/** Whole numbers with separators — every count on this page goes through it. */
+const nf = (n: number | null | undefined) =>
+  Math.max(0, Math.round(Number(n) || 0)).toLocaleString();
+
+/** "4 Mar 2026" — created date, boost expiry. Bad input reads as a dash. */
+const dateLabel = (iso?: string | null) => {
+  if (!iso) return "—";
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return "—";
+  return new Date(t).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+};
+
+/**
+ * The server's level block, clamped for DRAWING only.
+ *
+ * Nothing here recomputes a level: `level`, `xpIntoLevel`, `xpForNextLevel`
+ * and `isMax` all arrive from GET /api/guilds/:id. The clamps exist so a
+ * skewed payload can never paint a 300% bar or a negative "to next level" —
+ * at max the bar is full and the copy reads MAX.
+ */
+function levelView(guild: GuildDetail) {
+  const level = Math.max(1, Math.round(guild.level ?? 1));
+  const maxLevel = Math.max(1, Math.round(guild.maxLevel ?? 100));
+  const isMax = guild.isMax ?? (level >= maxLevel);
+  const intoLevel = Math.max(0, Math.round(guild.xpIntoLevel ?? 0));
+  const nextCost = Math.max(0, Math.round(guild.xpForNextLevel ?? 0));
+  const toNext = isMax ? 0 : Math.max(0, nextCost - intoLevel);
+  const raw = guild.progressPct ?? (nextCost > 0 ? (intoLevel / nextCost) * 100 : 0);
+  const pct = isMax ? 100 : Math.max(0, Math.min(100, Number(raw) || 0));
+  return { level, maxLevel, isMax, intoLevel, nextCost, toNext, pct, xp: Math.max(0, guild.xp ?? 0) };
+}
 
 // The server enforces this exact palette on role create/update — the picker
 // simply offers the same twelve.
@@ -153,6 +276,14 @@ export default function GuildHomePage() {
   // The themed stand-in for window.confirm — one at a time is plenty.
   const [confirmSpec, setConfirmSpec] = useState<ConfirmSpec | null>(null);
   const [loans, setLoans] = useState<{ lent: Loan[]; borrowed: Loan[] }>({ lent: [], borrowed: [] });
+  // The two new sheets: recruiting (send + revoke invites) and donating.
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [donateOpen, setDonateOpen] = useState(false);
+  // Pending invites INTO this guild (officers' view) and MY invite to it, if
+  // one exists — that second one turns Join into "Accept invite".
+  const [invites, setInvites] = useState<GuildInvite[]>([]);
+  const [invitesLoaded, setInvitesLoaded] = useState(false);
+  const [myInvite, setMyInvite] = useState<GuildInvite | null>(null);
 
   const askConfirm = useCallback((spec: ConfirmSpec) => setConfirmSpec(spec), []);
 
@@ -172,6 +303,26 @@ export default function GuildHomePage() {
     kickMembers: isOfficer || !!myCustomRole?.permissions?.kickMembers,
     moderateChat: isOfficer || !!myCustomRole?.permissions?.moderateChat,
   };
+
+  // Custom roles are a treasury purchase now. `!== false` is deliberate: a
+  // backend that predates the flag (or the boot backfill for guilds already
+  // using roles) leaves it undefined, and those guilds stay unlocked.
+  const rolesUnlocked = !!guild && guild.rolesUnlocked !== false;
+  // Public by default — same default the schema carries.
+  const isPublic = !guild || guild.isPublic !== false;
+  const minLevel = Math.max(1, Math.round(guild?.minLevel ?? 1));
+
+  // Leader first, then whoever has fed the guild the most XP. The API sends
+  // xpContributed per row; ties fall back to the name so the order is stable.
+  const sortedMembers = useMemo(() => {
+    if (!guild) return [] as Member[];
+    return [...guild.members].sort((a, b) => {
+      if (a.userId === guild.leaderId) return -1;
+      if (b.userId === guild.leaderId) return 1;
+      return (b.xpContributed ?? 0) - (a.xpContributed ?? 0)
+        || (a.username || "").localeCompare(b.username || "");
+    });
+  }, [guild]);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -207,17 +358,48 @@ export default function GuildHomePage() {
     }
   }, [user?.id]);
 
+  // Officers' outbox: who is still sitting on an invite. Loaded lazily when
+  // the sheet opens — nobody needs it on first paint.
+  const loadInvites = useCallback(async () => {
+    if (!id) return;
+    try {
+      const r = await fetch(`${API_URL}/api/guilds/${encodeURIComponent(id)}/invites`, { headers: authHeaders() });
+      const d = await r.json().catch(() => null);
+      if (r.ok && d?.success) setInvites(Array.isArray(d.data) ? d.data : []);
+    } catch {
+      /* offline — the sheet shows its empty line */
+    } finally {
+      setInvitesLoaded(true);
+    }
+  }, [id]);
+
+  // My inbox, filtered to THIS guild: without it a private guild would only
+  // ever offer a Join button that 403s.
+  const loadMyInvites = useCallback(async () => {
+    if (!user?.id) { setMyInvite(null); return; }
+    try {
+      const r = await fetch(`${API_URL}/api/guilds/mine/invites`, { headers: authHeaders() });
+      const d = await r.json().catch(() => null);
+      const rows: GuildInvite[] = r.ok && d?.success && Array.isArray(d.data) ? d.data : [];
+      setMyInvite(rows.find((v) => v.guildId === id) || null);
+    } catch {
+      setMyInvite(null);
+    }
+  }, [id, user?.id]);
+
   useEffect(() => { load(); }, [load, user?.id]);
   useEffect(() => { loadLoans(); }, [loadLoans]);
+  useEffect(() => { loadMyInvites(); }, [loadMyInvites]);
+  useEffect(() => { if (inviteOpen) loadInvites(); }, [inviteOpen, loadInvites]);
 
   // The sheets scroll; the page behind them must not (cards-page rule).
   // The confirm dialog joins the chain — same lock, same restore.
   useEffect(() => {
-    if (!editOpen && !lendOpen && !roleSheet && !confirmSpec) return;
+    if (!editOpen && !lendOpen && !roleSheet && !confirmSpec && !inviteOpen && !donateOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = prev; };
-  }, [editOpen, lendOpen, roleSheet, confirmSpec]);
+  }, [editOpen, lendOpen, roleSheet, confirmSpec, inviteOpen, donateOpen]);
 
   const join = async () => {
     if (!user) return toast("Sign in to join a guild.", "error");
@@ -237,6 +419,222 @@ export default function GuildHomePage() {
     } finally {
       setBusy(false);
     }
+  };
+
+  /* ── INVITES — the private door. A pending invite is REQUIRED to join a
+     private guild, and it is consumed the moment it is accepted. ── */
+
+  const acceptInvite = async () => {
+    if (!myInvite || busy) return;
+    setBusy(true);
+    try {
+      const r = await fetch(`${API_URL}/api/guilds/invites/${encodeURIComponent(myInvite.id)}/accept`, {
+        method: "POST", headers: authHeaders(),
+      });
+      const d = await r.json().catch(() => null);
+      if (!r.ok || !d?.success) return toast(d?.message || "Couldn't accept that invite.", "error");
+      cacheGuildId(id);
+      toast(`Welcome to ${guild?.name || "the guild"}.`, "success");
+      setMyInvite(null);
+      load();
+    } catch {
+      toast("Couldn't reach the server.", "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const declineInvite = () => {
+    if (!myInvite || busy) return;
+    const inv = myInvite;
+    askConfirm({
+      title: "Decline this invitation?",
+      body: `${guild?.name || "The guild"} would have to invite you again.`,
+      confirmLabel: "Decline",
+      danger: true,
+      onConfirm: async () => {
+        setBusy(true);
+        try {
+          const r = await fetch(`${API_URL}/api/guilds/invites/${encodeURIComponent(inv.id)}/decline`, {
+            method: "POST", headers: authHeaders(),
+          });
+          const d = await r.json().catch(() => null);
+          if (!r.ok || !d?.success) return toast(d?.message || "Couldn't decline that.", "error");
+          setMyInvite(null);
+          toast("Invitation declined.", "success");
+        } catch {
+          toast("Couldn't reach the server.", "error");
+        } finally {
+          setBusy(false);
+        }
+      },
+    });
+  };
+
+  // The sheet takes a NAME because that's what people know; the endpoint takes
+  // a userId, so we resolve it through the same public lookup every other
+  // page uses. Returns true so the sheet can clear its input.
+  const sendInvite = async (username: string): Promise<boolean> => {
+    const name = username.trim().replace(/^@/, "");
+    if (!name || busy) return false;
+    setBusy(true);
+    try {
+      const ur = await fetch(`${API_URL}/api/users/username/${encodeURIComponent(name)}`);
+      const ud = await ur.json().catch(() => null);
+      const targetId = ud?.data?.id ? String(ud.data.id) : "";
+      if (!targetId) {
+        toast(`No one here is called ${name}.`, "error");
+        return false;
+      }
+      const r = await fetch(`${API_URL}/api/guilds/${encodeURIComponent(id)}/invites`, {
+        method: "POST", headers: authHeaders(),
+        body: JSON.stringify({ userId: targetId }),
+      });
+      const d = await r.json().catch(() => null);
+      if (!r.ok || !d?.success) {
+        toast(d?.message || "Couldn't send that invite.", "error");
+        return false;
+      }
+      toast(`Invite sent to ${ud?.data?.username || name}.`, "success");
+      loadInvites();
+      return true;
+    } catch {
+      toast("Couldn't reach the server.", "error");
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const revokeInvite = (inv: GuildInvite) => {
+    if (busy) return;
+    askConfirm({
+      title: `Revoke the invite to ${inv.username || "this player"}?`,
+      body: "They lose the way in until someone invites them again.",
+      confirmLabel: "Revoke",
+      danger: true,
+      onConfirm: async () => {
+        setBusy(true);
+        try {
+          const r = await fetch(
+            `${API_URL}/api/guilds/${encodeURIComponent(id)}/invites/${encodeURIComponent(inv.id)}`,
+            { method: "DELETE", headers: authHeaders() },
+          );
+          const d = await r.json().catch(() => null);
+          if (!r.ok || !d?.success) return toast(d?.message || "Couldn't revoke that invite.", "error");
+          setInvites((prev) => prev.filter((x) => x.id !== inv.id));
+          toast("Invite revoked.", "success");
+        } catch {
+          toast("Couldn't reach the server.", "error");
+        } finally {
+          setBusy(false);
+        }
+      },
+    });
+  };
+
+  /* ── THE TREASURY — one way in from a member's own shards, and one way out:
+     the guild purchases. Nothing here ever pays shards back to a person. ── */
+
+  const donate = async (amount: number): Promise<boolean> => {
+    const shards = Math.floor(Number(amount) || 0);
+    if (shards <= 0 || busy) return false;
+    setBusy(true);
+    try {
+      const r = await fetch(`${API_URL}/api/guilds/${encodeURIComponent(id)}/donate`, {
+        method: "POST", headers: authHeaders(),
+        body: JSON.stringify({ shards }),
+      });
+      const d = await r.json().catch(() => null);
+      if (!r.ok || !d?.success) {
+        toast(d?.message || "Couldn't donate that.", "error");
+        return false;
+      }
+      // ONE WAY. Those shards belong to the guild from here on — there is no
+      // withdraw endpoint and there never will be.
+      if (d.data?.members) setGuild(d.data); else load();
+      toast(`${nf(shards)} shards donated — they're the guild's now.`, "success");
+      return true;
+    } catch {
+      toast("Couldn't reach the server.", "error");
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const purchase = (item: "roles" | "xpBoost" | "slots") => {
+    if (!guild || busy) return;
+    const price = item === "roles" ? GUILD_PRICES.ROLES_UNLOCK
+      : item === "xpBoost" ? GUILD_PRICES.XP_BOOST
+      : GUILD_PRICES.MEMBER_SLOTS;
+    const title = item === "roles" ? "Unlock custom roles?"
+      : item === "xpBoost" ? `Buy a ${BOOST_DAYS}-day XP boost?`
+      : `Buy ${SLOTS_PER_PURCHASE} member slots?`;
+    const what = item === "roles"
+      ? "Custom roles stay unlocked forever — a one-time spend."
+      : item === "xpBoost"
+      ? (guild.xpBoostActive
+        ? `The running boost is extended by ${BOOST_DAYS} more days.`
+        : `For ${BOOST_DAYS} days the guild keeps 1.25x of what members feed it. Their own XP is untouched.`)
+      : `The cap rises by ${SLOTS_PER_PURCHASE}, up to the hard ceiling of ${MAX_MEMBER_CAP} members.`;
+    askConfirm({
+      title,
+      body: `${what} ${nf(price)} shards leave the treasury — treasury shards only ever buy guild upgrades, they can never be paid back out to anyone.`,
+      confirmLabel: `Spend ${nf(price)}`,
+      onConfirm: async () => {
+        setBusy(true);
+        try {
+          const r = await fetch(`${API_URL}/api/guilds/${encodeURIComponent(id)}/purchase`, {
+            method: "POST", headers: authHeaders(),
+            body: JSON.stringify({ item }),
+          });
+          const d = await r.json().catch(() => null);
+          // The server debits with a compare-and-set, so a short treasury (or
+          // a guild already at the 100 cap) answers here instead of going
+          // negative or eating the shards.
+          if (!r.ok || !d?.success) return toast(d?.message || "The treasury couldn't cover that.", "error");
+          if (d.data?.members) setGuild(d.data); else load();
+          toast(
+            item === "roles" ? "Custom roles unlocked."
+              : item === "xpBoost" ? `XP boost running for ${BOOST_DAYS} days.`
+              : `Member cap raised by ${SLOTS_PER_PURCHASE}.`,
+            "success",
+          );
+        } catch {
+          toast("Couldn't reach the server.", "error");
+        } finally {
+          setBusy(false);
+        }
+      },
+    });
+  };
+
+  const disband = () => {
+    if (!guild || busy) return;
+    askConfirm({
+      title: `Delete ${guild.name}?`,
+      body: `Every member is removed, the chat and its history go, active card loans end, and the treasury's ${nf(guild.shards)} shards are burned — nothing is refunded to anyone. The name and the [${guild.tag}] tag are freed. This can't be undone.`,
+      confirmLabel: "Delete guild",
+      danger: true,
+      onConfirm: async () => {
+        setBusy(true);
+        try {
+          const r = await fetch(`${API_URL}/api/guilds/${encodeURIComponent(id)}`, {
+            method: "DELETE", headers: authHeaders(),
+          });
+          const d = await r.json().catch(() => null);
+          if (!r.ok || !d?.success) return toast(d?.message || "Couldn't delete the guild.", "error");
+          cacheGuildId(null);
+          toast("The guild is gone.", "success");
+          router.push("/guilds");
+        } catch {
+          toast("Couldn't reach the server.", "error");
+        } finally {
+          setBusy(false);
+        }
+      },
+    });
   };
 
   const leave = () => {
@@ -491,12 +889,15 @@ export default function GuildHomePage() {
           ) : (
             <>
               {/* The top row only: the hero keeps the wide lane, and on lg a
-                  320px rail (this week's raid boss + guild XP) rides beside
-                  it — stacking below the hero on smaller screens. Everything
+                  320px rail (boss, XP, contributor, statistics, roles,
+                  management, information) rides beside it. Below lg the rail
+                  drops UNDER the left column, which puts a phone's order at
+                  hero → stats → members → boss → XP → the rest. Everything
                   under this row stays the single stacked column. */}
               <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-6">
-              {/* Left column: hero + members, so the rail's boss/XP cards run
-                  beside the member list instead of over a hollow gap. */}
+              {/* Left column: hero, the four stat tiles, the level bar and the
+                  member list, so the rail's cards run beside them instead of
+                  over a hollow gap. */}
               <div className="min-w-0">
               {/* ── THE HERO — the Deep Sea Vibes reference, in our kit ──
                   With a banner, the ART is the hero: the page-level fixed
@@ -534,11 +935,22 @@ export default function GuildHomePage() {
                     )}
 
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                         <h1 className="font-fell text-4xl leading-tight text-white sm:text-5xl">{guild.name}</h1>
                         <span className="rounded-md border border-emerald-400/30 bg-emerald-500/10 px-2 py-1 text-xs font-black tracking-[0.2em] text-emerald-300">
                           [{guild.tag}]
                         </span>
+                        {/* The door's own sign — public halls take anyone over
+                            the minimum level; private ones need an invite. */}
+                        {isPublic ? (
+                          <span className="inline-flex items-center gap-1.5 rounded-md border border-sky-400/30 bg-sky-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-sky-300">
+                            <Globe className="h-3 w-3" /> Public
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-400/30 bg-amber-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-amber-300">
+                            <Lock className="h-3 w-3" /> Invite only
+                          </span>
+                        )}
                       </div>
                       {guild.description ? (
                         <p className="mt-3 max-w-xl text-sm leading-relaxed text-slate-400">{guild.description}</p>
@@ -546,44 +958,89 @@ export default function GuildHomePage() {
                         <p className="mt-3 text-sm italic text-slate-600">No words over the door yet.</p>
                       )}
 
+                      {/* The counts moved down into the stat grid; these chips
+                          carry only what the grid can't say. */}
                       <div className="mt-5 flex flex-wrap items-center gap-2">
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/25 bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-200">
-                          <Sparkles className="h-3 w-3" /> Level {guild.level}
-                        </span>
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/25 bg-cyan-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-200">
-                          {/* ?? 0 rides out deploy skew — a backend still
-                              sending `coins` must not crash the hero */}
-                          <Gem className="h-3 w-3" /> {(guild.shards ?? 0).toLocaleString()} shards
-                        </span>
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/40 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-300">
-                          <Users className="h-3 w-3" /> {guild.memberCount}/{guild.memberCap} members
-                        </span>
+                        {guild.xpBoostActive && (
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-400/30 bg-violet-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-violet-200">
+                            <Zap className="h-3 w-3" /> XP boost · until {dateLabel(guild.xpBoostUntil)}
+                          </span>
+                        )}
+                        {minLevel > 1 && (
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/40 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-300">
+                            <Sparkles className="h-3 w-3" /> Level {minLevel}+ to join
+                          </span>
+                        )}
+                        {guild.stats && (
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/25 bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-200">
+                            <Activity className="h-3 w-3" /> {nf(guild.stats.activeCount)} recently active
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  {/* the door: join, leave, or (leader) edit */}
+                  {/* THE DOOR — wraps rather than overflowing at 360px, and
+                      every control clears 44px of touch height. */}
                   <div className="mt-6 flex flex-wrap items-center gap-2">
-                    {!isMember && (
-                      <button type="button" disabled={busy || guild.memberCount >= guild.memberCap} onClick={join}
-                        className="inline-flex items-center gap-2 rounded-2xl border border-emerald-400/40 bg-emerald-500/15 px-6 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-200 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-40">
+                    {!isMember && myInvite && (
+                      <>
+                        <button type="button" disabled={busy} onClick={acceptInvite}
+                          className="inline-flex min-h-[44px] items-center gap-2 rounded-2xl border border-emerald-400/40 bg-emerald-500/15 px-6 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-200 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-40">
+                          <Check className="h-4 w-4" /> {busy ? "Joining…" : "Accept invite"}
+                        </button>
+                        <button type="button" disabled={busy} onClick={declineInvite}
+                          className="inline-flex min-h-[44px] items-center gap-2 rounded-2xl border border-white/15 bg-white/[0.05] px-5 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-slate-300 transition hover:bg-white/[0.1] disabled:opacity-40">
+                          Decline
+                        </button>
+                      </>
+                    )}
+                    {!isMember && !myInvite && (
+                      <button type="button"
+                        disabled={busy || !isPublic || guild.memberCount >= guild.memberCap}
+                        onClick={join}
+                        className="inline-flex min-h-[44px] items-center gap-2 rounded-2xl border border-emerald-400/40 bg-emerald-500/15 px-6 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-200 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-40">
                         <Users className="h-4 w-4" />
-                        {guild.memberCount >= guild.memberCap ? "Guild is full" : busy ? "Joining…" : "Join this guild"}
+                        {!isPublic ? "Invite only"
+                          : guild.memberCount >= guild.memberCap ? "Guild is full"
+                          : busy ? "Joining…" : "Join this guild"}
+                      </button>
+                    )}
+                    {isMember && isOfficer && (
+                      <button type="button" onClick={() => setInviteOpen(true)}
+                        className="inline-flex min-h-[44px] items-center gap-2 rounded-2xl border border-sky-400/30 bg-sky-500/10 px-5 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-sky-200 transition hover:bg-sky-500/20">
+                        <UserPlus className="h-3.5 w-3.5" /> Invite
+                      </button>
+                    )}
+                    {isMember && (
+                      <button type="button" onClick={() => setDonateOpen(true)}
+                        className="inline-flex min-h-[44px] items-center gap-2 rounded-2xl border border-cyan-400/30 bg-cyan-500/10 px-5 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-cyan-200 transition hover:bg-cyan-500/20">
+                        <Gem className="h-3.5 w-3.5" /> Donate shards
                       </button>
                     )}
                     {isMember && myPerms.editGuild && (
                       <button type="button" onClick={() => setEditOpen(true)}
-                        className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/[0.05] px-5 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-slate-200 transition hover:bg-white/[0.1]">
+                        className="inline-flex min-h-[44px] items-center gap-2 rounded-2xl border border-white/15 bg-white/[0.05] px-5 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-slate-200 transition hover:bg-white/[0.1]">
                         <Pencil className="h-3.5 w-3.5" /> Edit guild
                       </button>
                     )}
                     {isMember && (
                       <button type="button" disabled={busy} onClick={leave}
-                        className="inline-flex items-center gap-2 rounded-2xl border border-red-400/30 bg-red-500/10 px-5 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-red-300 transition hover:bg-red-500/20 disabled:opacity-40">
+                        className="inline-flex min-h-[44px] items-center gap-2 rounded-2xl border border-red-400/30 bg-red-500/10 px-5 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-red-300 transition hover:bg-red-500/20 disabled:opacity-40">
                         Leave
                       </button>
                     )}
                   </div>
+                  {!isMember && !isPublic && !myInvite && (
+                    <p className="mt-2 text-[10px] text-slate-500">
+                      This guild is invite-only — an officer has to send you an invitation.
+                    </p>
+                  )}
+                  {!isMember && isPublic && minLevel > 1 && (
+                    <p className="mt-2 text-[10px] text-slate-500">
+                      Level {minLevel} and up may join.
+                    </p>
+                  )}
                   {isLeader && guild.memberCount > 1 && (
                     <p className="mt-2 text-[10px] text-slate-600">
                       A leader leaves last — transfer leadership below before leaving.
@@ -592,15 +1049,20 @@ export default function GuildHomePage() {
                 </div>
               </div>
 
+              {/* ── THE STAT GRID + LEVEL PROGRESS — 2x2 at 360px ── */}
+              <StatGrid guild={guild} />
+              <LevelProgress guild={guild} />
+
               {/* ── MEMBERS ── */}
               <div className="mt-6 rounded-3xl border border-white/10 bg-[#0b0b11] p-5 sm:p-6">
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-emerald-300" />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Users className="h-4 w-4 shrink-0 text-emerald-300" />
                   <p className="text-sm font-black text-white">Members</p>
                   <span className="text-[10px] font-bold tabular-nums text-slate-600">{guild.memberCount}/{guild.memberCap}</span>
+                  <span className="text-[10px] text-slate-600">· sorted by XP contributed</span>
                 </div>
                 <div className="mt-4 space-y-2">
-                  {guild.members.map((m) => {
+                  {sortedMembers.map((m) => {
                     const lead = m.userId === guild.leaderId;
                     const coLead = m.userId === guild.coLeaderId;
                     const me = user?.id === m.userId;
@@ -638,10 +1100,29 @@ export default function GuildHomePage() {
                               <span className="text-[9px] font-black uppercase tracking-widest text-emerald-300">You</span>
                             )}
                           </div>
-                          <p className="text-[10px] text-slate-600">joined {ago(m.joinedAt)}</p>
+                          {/* Contribution, then our ONLY activity signal: the
+                              server saw their user row written inside the last
+                              10 minutes. It says "Active", never "Online" —
+                              there is no presence system behind it. */}
+                          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-slate-600">
+                            <span className="inline-flex items-center gap-1">
+                              <span aria-hidden
+                                className={`h-1.5 w-1.5 shrink-0 rounded-full ${m.activeRecently ? "bg-emerald-400" : "bg-slate-600"}`} />
+                              <span className={m.activeRecently ? "font-black text-emerald-300" : "text-slate-500"}>
+                                {m.activeRecently ? "Active" : "Offline"}
+                              </span>
+                            </span>
+                            <span aria-hidden>·</span>
+                            <span className="tabular-nums text-slate-500">{nf(m.xpContributed ?? 0)} XP contributed</span>
+                            <span aria-hidden>·</span>
+                            <span>joined {ago(m.joinedAt)}</span>
+                          </div>
                         </div>
                         {!me && (isOfficer || canKickThis) && (
-                          <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+                          // w-full on a phone: a leader's four controls at
+                          // max-content would push the row wider than 360px,
+                          // so they take their own line and wrap inside it.
+                          <div className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto sm:shrink-0">
                             {/* Transfer + co-leader appointment stay leader-only. */}
                             {isLeader && (
                               <button type="button" disabled={busy} onClick={() => transfer(m)}
@@ -696,10 +1177,23 @@ export default function GuildHomePage() {
               </div>
               </div>
 
-              <GuildSideRail guild={guild} isMember={isMember} />
+              <GuildSideRail
+                guild={guild}
+                isMember={isMember}
+                isLeader={isLeader}
+                isOfficer={isOfficer}
+                busy={busy}
+                onOpenInvites={() => setInviteOpen(true)}
+                onNewRole={() => setRoleSheet({ role: null })}
+                onPurchase={purchase}
+                onDisband={disband}
+              />
               </div>
 
-              {/* ── ROLES & PERMISSIONS — Discord-style, officer-managed ── */}
+              {/* ── ROLES & PERMISSIONS — Discord-style, officer-managed.
+                  The section only exists once the treasury has bought the
+                  feature; while it's locked the rail carries the pitch. ── */}
+              {rolesUnlocked && (
               <div className="mt-6 rounded-3xl border border-white/10 bg-[#0b0b11] p-5 sm:p-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
@@ -772,6 +1266,7 @@ export default function GuildHomePage() {
                   </p>
                 )}
               </div>
+              )}
 
               {/* ── CARD SHARING ── */}
               <div className="mt-6 rounded-3xl border border-white/10 bg-[#0b0b11] p-5 sm:p-6">
@@ -894,6 +1389,27 @@ export default function GuildHomePage() {
           />
         )}
 
+        {inviteOpen && guild && (
+          <InviteSheet
+            guild={guild}
+            invites={invites}
+            loaded={invitesLoaded}
+            busy={busy}
+            onClose={() => setInviteOpen(false)}
+            onInvite={sendInvite}
+            onRevoke={revokeInvite}
+          />
+        )}
+
+        {donateOpen && guild && (
+          <DonateSheet
+            guild={guild}
+            busy={busy}
+            onClose={() => setDonateOpen(false)}
+            onDonate={donate}
+          />
+        )}
+
         {confirmSpec && (
           <GuildConfirm spec={confirmSpec} onClose={() => setConfirmSpec(null)} />
         )}
@@ -902,14 +1418,131 @@ export default function GuildHomePage() {
   );
 }
 
-/* ═══════════ THE RIGHT RAIL — this week's boss + the guild's XP ladder ═══════════
-   Two cards beside the hero on lg, stacked under it below. The chrome is
+/* ═══════════ THE STAT GRID — four tiles under the hero ═══════════
+   2x2 at 360px, one row from sm up. Every number is the API's; the tiles
+   only format. Long values truncate rather than pushing the grid wide. */
+
+const TILE_TONES: Record<string, { ring: string; text: string }> = {
+  emerald: { ring: "border-emerald-400/25 bg-emerald-500/[0.06]", text: "text-emerald-300" },
+  cyan: { ring: "border-cyan-400/25 bg-cyan-500/[0.06]", text: "text-cyan-300" },
+  violet: { ring: "border-violet-400/25 bg-violet-500/[0.06]", text: "text-violet-300" },
+  amber: { ring: "border-amber-400/25 bg-amber-500/[0.06]", text: "text-amber-300" },
+  slate: { ring: "border-white/10 bg-white/[0.03]", text: "text-slate-300" },
+};
+
+function StatTile({ icon, label, value, sub, tone = "slate" }: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  sub?: string;
+  tone?: keyof typeof TILE_TONES | string;
+}) {
+  const t = TILE_TONES[tone] || TILE_TONES.slate;
+  return (
+    <div className={`min-w-0 rounded-2xl border p-3.5 sm:p-4 ${t.ring}`}>
+      <div className={`flex items-center gap-1.5 ${t.text}`}>
+        <span className="shrink-0">{icon}</span>
+        <p className="min-w-0 truncate text-[9px] font-black uppercase tracking-[0.18em]">{label}</p>
+      </div>
+      <p className="mt-1.5 truncate font-fell text-2xl leading-none text-white">{value}</p>
+      {sub && <p className="mt-1 truncate text-[10px] text-slate-500">{sub}</p>}
+    </div>
+  );
+}
+
+function StatGrid({ guild }: { guild: GuildDetail }) {
+  const lv = levelView(guild);
+  return (
+    <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <StatTile
+        icon={<Sparkles className="h-3.5 w-3.5" />}
+        label="Guild level"
+        value={`Level ${lv.level}`}
+        sub={lv.isMax ? "Maxed out" : `of ${lv.maxLevel}`}
+        tone="emerald"
+      />
+      <StatTile
+        icon={<Users className="h-3.5 w-3.5" />}
+        label="Members"
+        value={`${nf(guild.memberCount)} / ${nf(guild.memberCap)}`}
+        sub={(guild.purchasedSlots ?? 0) > 0 ? `+${nf(guild.purchasedSlots)} bought` : "cap grows with level"}
+        tone="slate"
+      />
+      <StatTile
+        icon={<Zap className="h-3.5 w-3.5" />}
+        label="Total XP"
+        value={nf(lv.xp)}
+        sub={guild.xpBoostActive ? "1.25x boost running" : "half of what members earn"}
+        tone="violet"
+      />
+      <StatTile
+        icon={<Gem className="h-3.5 w-3.5" />}
+        label="Treasury"
+        value={nf(guild.shards)}
+        sub="shards · guild-only"
+        tone="cyan"
+      />
+    </div>
+  );
+}
+
+/* ═══════════ LEVEL PROGRESS — the API's block, drawn ═══════════
+   At level 100 the bar is full and the copy reads MAX; there is no path
+   here that can print a negative "to next level". */
+
+function LevelProgress({ guild }: { guild: GuildDetail }) {
+  const lv = levelView(guild);
+  return (
+    <div className="mt-3 rounded-3xl border border-white/10 bg-[#0b0b11] p-5 sm:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">Level progress</p>
+        <span className="shrink-0 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-black tabular-nums tracking-[0.14em] text-emerald-200">
+          {lv.isMax ? "MAX" : `${Math.round(lv.pct)}%`}
+        </span>
+      </div>
+      <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <p className="font-mono text-sm font-black tabular-nums text-white">
+          {lv.isMax ? `${nf(lv.xp)} XP` : `${nf(lv.intoLevel)} / ${nf(lv.nextCost)} XP`}
+        </p>
+        <p className="font-mono text-[11px] tabular-nums text-slate-500">
+          {lv.isMax
+            ? `Level ${lv.maxLevel} — the ladder ends here`
+            : `${nf(lv.toNext)} XP to level ${lv.level + 1}`}
+        </p>
+      </div>
+      <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-white/10">
+        <div
+          className={`h-full rounded-full transition-all ${lv.isMax ? "bg-amber-300" : "bg-emerald-400"}`}
+          style={{ width: `${lv.pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════ THE RIGHT RAIL ═══════════
+   Beside the hero on lg, stacked under the LEFT COLUMN below it — which
+   puts the order on a phone at: hero, stats, members, then boss → XP →
+   contributor → statistics → roles → management → information. The chrome is
    slightly translucent so it sits on the full-screen banner without
    backdrop-filter (banned on large elements). The boss card is fed by the
-   public raid snapshot and simply doesn't render when that fetch fails; the
-   XP card reads the already-loaded guild detail — no extra request. */
+   public raid snapshot and simply doesn't render when that fetch fails;
+   everything else reads the already-loaded guild detail — no extra request. */
 
-function GuildSideRail({ guild, isMember }: { guild: GuildDetail; isMember: boolean }) {
+function GuildSideRail({
+  guild, isMember, isLeader, isOfficer, busy,
+  onOpenInvites, onNewRole, onPurchase, onDisband,
+}: {
+  guild: GuildDetail;
+  isMember: boolean;
+  isLeader: boolean;
+  isOfficer: boolean;
+  busy: boolean;
+  onOpenInvites: () => void;
+  onNewRole: () => void;
+  onPurchase: (item: "roles" | "xpBoost" | "slots") => void;
+  onDisband: () => void;
+}) {
   const [raid, setRaid] = useState<RaidPanel | null>(null);
   const [artHidden, setArtHidden] = useState(false);
 
@@ -935,9 +1568,17 @@ function GuildSideRail({ guild, isMember }: { guild: GuildDetail; isMember: bool
   const pct = slain ? 0 : (hpLeft / hpMax) * 100;
   const lowHp = slain || pct < 25;
 
-  const xp = Math.max(0, guild.xp ?? 0);
-  const level = guild.level ?? Math.floor(xp / 1000) + 1;
-  const intoLevel = xp % 1000;
+  // The level ladder, straight from the API (see levelView) — no client math.
+  const lv = levelView(guild);
+  const stats = guild.stats || null;
+  const top = stats?.topContributor || null;
+  const treasury = Math.max(0, guild.shards ?? 0);
+  const rolesUnlocked = guild.rolesUnlocked !== false;
+  const roleCount = (guild.roles || []).length;
+  const atMemberCeiling = (guild.memberCap ?? 0) >= MAX_MEMBER_CAP;
+  const canAffordRoles = treasury >= GUILD_PRICES.ROLES_UNLOCK;
+  const canAffordBoost = treasury >= GUILD_PRICES.XP_BOOST;
+  const canAffordSlots = treasury >= GUILD_PRICES.MEMBER_SLOTS;
 
   return (
     <div className="mt-6 space-y-6 lg:mt-0">
@@ -1015,24 +1656,256 @@ function GuildSideRail({ guild, isMember }: { guild: GuildDetail; isMember: bool
         </div>
       )}
 
+      {/* ── GUILD XP — the same server block the hero's bar draws ── */}
       <div className="rounded-3xl border border-white/10 bg-[#0b0b11]/85 p-5">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-emerald-300" />
+          <Sparkles className="h-4 w-4 shrink-0 text-emerald-300" />
           <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">Guild XP</p>
         </div>
         <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <p className="font-fell text-3xl leading-none text-white">Level {level}</p>
-          <p className="font-mono text-[11px] tabular-nums text-slate-400">{xp.toLocaleString()} XP</p>
+          <p className="font-fell text-3xl leading-none text-white">Level {lv.level}</p>
+          <p className="font-mono text-[11px] tabular-nums text-slate-400">{nf(lv.xp)} XP</p>
         </div>
         <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-white/10">
-          <div className="h-full rounded-full bg-emerald-400" style={{ width: `${(intoLevel / 1000) * 100}%` }} />
+          <div
+            className={`h-full rounded-full transition-all ${lv.isMax ? "bg-amber-300" : "bg-emerald-400"}`}
+            style={{ width: `${lv.pct}%` }}
+          />
         </div>
         <p className="mt-1.5 text-[10px] tabular-nums text-slate-500">
-          {1000 - intoLevel} XP to Lv {level + 1}
+          {lv.isMax
+            ? `MAX · level ${lv.maxLevel}`
+            : `${nf(lv.toNext)} XP to Lv ${lv.level + 1} · ${nf(lv.intoLevel)}/${nf(lv.nextCost)}`}
         </p>
         <p className="mt-3 text-[10px] leading-relaxed text-slate-600">
-          Raids feed the guild — +25 XP per attack, +500 per kill.
+          Members feed the guild half of every XP they earn anywhere on the site, and the treasury takes
+          1 shard per 5 of that XP. Raids pay on top — +25 XP per attack, +500 per kill.
         </p>
+        {guild.xpBoostActive && (
+          <p className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-violet-400/30 bg-violet-500/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-violet-200">
+            <Zap className="h-3 w-3" /> 1.25x until {dateLabel(guild.xpBoostUntil)}
+          </p>
+        )}
+      </div>
+
+      {/* ── TOP CONTRIBUTOR — hidden entirely when the API sends null ── */}
+      {top && (
+        <div className="rounded-3xl border border-amber-400/25 bg-amber-500/[0.06] p-5">
+          <div className="flex items-center gap-2">
+            <Trophy className="h-4 w-4 shrink-0 text-amber-300" />
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-amber-200/80">Top contributor</p>
+          </div>
+          <div className="mt-3 flex items-center gap-3">
+            {top.avatar ? (
+              <img src={top.avatar} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover ring-1 ring-amber-400/40" />
+            ) : (
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-amber-900/60 text-sm font-black text-amber-100 ring-1 ring-amber-400/30">
+                {(top.username || "?")[0]?.toUpperCase()}
+              </span>
+            )}
+            <div className="min-w-0 flex-1">
+              <UserLink username={top.username} className="block truncate text-sm font-black text-white hover:underline">
+                {top.username}
+              </UserLink>
+              <p className="mt-0.5 font-mono text-[11px] tabular-nums text-amber-200">
+                {nf(top.xpContributed)} XP contributed
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── GUILD STATISTICS ── */}
+      {stats && (
+        <div className="rounded-3xl border border-white/10 bg-[#0b0b11]/85 p-5">
+          <div className="flex items-center gap-2">
+            <Activity className="h-4 w-4 shrink-0 text-emerald-300" />
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">Guild statistics</p>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="min-w-0 rounded-2xl border border-emerald-400/20 bg-emerald-500/[0.06] p-3">
+              <p className="font-fell text-2xl leading-none text-white">{nf(stats.onlineRate)}%</p>
+              <p className="mt-1 text-[9px] font-black uppercase tracking-[0.16em] text-emerald-300">Active rate</p>
+              <p className="mt-1 truncate text-[10px] text-slate-500">
+                {nf(stats.activeCount)} of {nf(stats.memberCount)}
+              </p>
+            </div>
+            <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+              <p className="font-fell text-2xl leading-none text-white">{nf(stats.avgXp)}</p>
+              <p className="mt-1 text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">Avg XP</p>
+              <p className="mt-1 truncate text-[10px] text-slate-500">per member</p>
+            </div>
+          </div>
+          {/* Say what the number IS. We have no presence system — this is a
+              last-write recency window, and the copy must not imply more. */}
+          <p className="mt-3 text-[10px] leading-relaxed text-slate-600">
+            &ldquo;Active&rdquo; means seen doing something in the last {ACTIVE_WINDOW_MINUTES} minutes — we don&rsquo;t
+            track live presence.
+          </p>
+        </div>
+      )}
+
+      {/* ── CUSTOM ROLES — locked pitch, or the unlocked summary ── */}
+      <div className={`rounded-3xl border p-5 ${rolesUnlocked ? "border-white/10 bg-[#0b0b11]/85" : "border-amber-400/20 bg-[#0b0b11]/85"}`}>
+        <div className="flex items-center gap-2">
+          {rolesUnlocked ? (
+            <Shield className="h-4 w-4 shrink-0 text-emerald-300" />
+          ) : (
+            <Lock className="h-4 w-4 shrink-0 text-amber-300" />
+          )}
+          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">Custom roles</p>
+        </div>
+
+        {rolesUnlocked ? (
+          <>
+            <p className="mt-3 font-fell text-2xl leading-none text-white">
+              {nf(roleCount)} <span className="text-base text-slate-500">/ {MAX_ROLES}</span>
+            </p>
+            <p className="mt-1.5 text-[10px] leading-relaxed text-slate-500">
+              Unlocked for good. Create and hand them out in the Roles section further down the hall.
+            </p>
+            {isOfficer && roleCount < MAX_ROLES && (
+              <button type="button" onClick={onNewRole}
+                className="mt-3 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-emerald-400/40 bg-emerald-500/15 px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-200 transition hover:bg-emerald-500/25">
+                <Plus className="h-3.5 w-3.5" /> New role
+              </button>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="mt-4 grid place-items-center rounded-2xl border border-dashed border-white/15 bg-white/[0.02] px-4 py-6 text-center">
+              <Lock className="h-6 w-6 text-slate-600" />
+              <p className="mt-3 text-[11px] leading-relaxed text-slate-400">
+                Unlock custom roles to create up to {MAX_ROLES} roles with custom permissions.
+              </p>
+              <p className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-500/10 px-3 py-1 font-mono text-[11px] font-black tabular-nums text-amber-200">
+                <Gem className="h-3 w-3" /> {nf(GUILD_PRICES.ROLES_UNLOCK)} shards
+              </p>
+              <p className="mt-2 text-[10px] text-slate-600">Paid from the guild treasury.</p>
+            </div>
+            {isLeader && (
+              <>
+                <button type="button" disabled={busy || !canAffordRoles}
+                  onClick={() => onPurchase("roles")}
+                  className="mt-3 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-amber-400/40 bg-amber-500/15 px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.18em] text-amber-200 transition hover:bg-amber-500/25 disabled:cursor-not-allowed disabled:opacity-40">
+                  <Lock className="h-3.5 w-3.5" /> Unlock ({nf(GUILD_PRICES.ROLES_UNLOCK)})
+                </button>
+                {!canAffordRoles && (
+                  <p className="mt-2 text-center text-[10px] text-red-300">Not enough shards in the treasury.</p>
+                )}
+              </>
+            )}
+            {!isLeader && (
+              <p className="mt-3 text-center text-[10px] text-slate-600">Only the leader can spend the treasury.</p>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* ── GUILD MANAGEMENT — leader only. Every debit here is one-way: the
+          treasury pays out to the guild, never back to a person. ── */}
+      {isLeader && (
+        <div className="rounded-3xl border border-white/10 bg-[#0b0b11]/85 p-5">
+          <div className="flex items-center gap-2">
+            <Crown className="h-4 w-4 shrink-0 text-amber-300" />
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">Guild management</p>
+          </div>
+
+          <button type="button" onClick={onOpenInvites}
+            className="mt-3 flex min-h-[44px] w-full items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-left transition hover:bg-white/[0.08]">
+            <span className="flex min-w-0 items-center gap-2">
+              <UserPlus className="h-3.5 w-3.5 shrink-0 text-sky-300" />
+              <span className="truncate text-[11px] font-black uppercase tracking-[0.16em] text-slate-200">
+                Pending invitations
+              </span>
+            </span>
+            <span className="shrink-0 text-[10px] font-black tabular-nums text-slate-500">Open</span>
+          </button>
+
+          <button type="button" disabled={busy || !canAffordBoost}
+            onClick={() => onPurchase("xpBoost")}
+            className="mt-2 flex min-h-[44px] w-full items-center justify-between gap-2 rounded-xl border border-violet-400/30 bg-violet-500/10 px-4 py-2.5 text-left transition hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:opacity-40">
+            <span className="flex min-w-0 items-center gap-2">
+              <Zap className="h-3.5 w-3.5 shrink-0 text-violet-300" />
+              <span className="min-w-0">
+                <span className="block truncate text-[11px] font-black uppercase tracking-[0.16em] text-violet-100">
+                  {guild.xpBoostActive ? `Extend XP boost (+${BOOST_DAYS}d)` : `Buy XP boost (${BOOST_DAYS}d)`}
+                </span>
+                <span className="mt-0.5 block truncate text-[10px] text-slate-400">
+                  {guild.xpBoostActive ? `Active until ${dateLabel(guild.xpBoostUntil)}` : "1.25x of what members feed the guild"}
+                </span>
+              </span>
+            </span>
+            <span className="shrink-0 font-mono text-[10px] font-black tabular-nums text-violet-200">
+              {nf(GUILD_PRICES.XP_BOOST)}
+            </span>
+          </button>
+
+          <button type="button" disabled={busy || !canAffordSlots || atMemberCeiling}
+            onClick={() => onPurchase("slots")}
+            className="mt-2 flex min-h-[44px] w-full items-center justify-between gap-2 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-2.5 text-left transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-40">
+            <span className="flex min-w-0 items-center gap-2">
+              <Users className="h-3.5 w-3.5 shrink-0 text-emerald-300" />
+              <span className="min-w-0">
+                <span className="block truncate text-[11px] font-black uppercase tracking-[0.16em] text-emerald-100">
+                  Buy member slots (+{SLOTS_PER_PURCHASE})
+                </span>
+                <span className="mt-0.5 block truncate text-[10px] text-slate-400">
+                  {atMemberCeiling ? `Already at the ${MAX_MEMBER_CAP} ceiling` : `Cap ${nf(guild.memberCap)} · ceiling ${MAX_MEMBER_CAP}`}
+                </span>
+              </span>
+            </span>
+            <span className="shrink-0 font-mono text-[10px] font-black tabular-nums text-emerald-200">
+              {nf(GUILD_PRICES.MEMBER_SLOTS)}
+            </span>
+          </button>
+
+          {(!canAffordBoost || !canAffordSlots) && (
+            <p className="mt-2 text-[10px] text-slate-600">
+              Treasury: {nf(treasury)} shards. Members can donate to top it up — donations are one-way.
+            </p>
+          )}
+
+          <button type="button" disabled={busy} onClick={onDisband}
+            className="mt-4 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.18em] text-red-300 transition hover:bg-red-500/20 disabled:opacity-40">
+            <Trash2 className="h-3.5 w-3.5" /> Delete guild
+          </button>
+          <p className="mt-1.5 text-center text-[10px] text-slate-600">
+            Members, chat, loans and the treasury go with it.
+          </p>
+        </div>
+      )}
+
+      {/* ── GUILD INFORMATION ── */}
+      <div className="rounded-3xl border border-white/10 bg-[#0b0b11]/85 p-5">
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 shrink-0 text-emerald-300" />
+          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">Guild information</p>
+        </div>
+        <dl className="mt-3 space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <dt className="shrink-0 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">Created</dt>
+            <dd className="min-w-0 truncate font-mono text-[11px] text-slate-300">{dateLabel(guild.createdAt)}</dd>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <dt className="shrink-0 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">Type</dt>
+            <dd className="min-w-0 truncate font-mono text-[11px] text-slate-300">
+              {guild.isPublic === false ? "Private · invite only" : "Public"}
+            </dd>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <dt className="shrink-0 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">Min level</dt>
+            <dd className="min-w-0 truncate font-mono text-[11px] tabular-nums text-slate-300">
+              Level {Math.max(1, Math.round(guild.minLevel ?? 1))}
+            </dd>
+          </div>
+        </dl>
+        {isMember && (
+          <p className="mt-3 text-[10px] leading-relaxed text-slate-600">
+            Treasury shards are the guild&rsquo;s alone — they buy the upgrades above and can never be paid
+            back out to a member.
+          </p>
+        )}
       </div>
     </div>
   );
@@ -1077,6 +1950,212 @@ function GuildConfirm({ spec, onClose }: { spec: ConfirmSpec; onClose: () => voi
   );
 }
 
+/* ═══════════ THE INVITE SHEET — recruit by name, revoke by row ═══════════
+   A bottom sheet on phones, a centred card from sm up. The input takes a
+   USERNAME because that's what people know; the page resolves it to an id
+   before POSTing, and the server re-checks everything (cap, membership, a
+   duplicate invite) on its side. */
+
+function InviteSheet({ guild, invites, loaded, busy, onClose, onInvite, onRevoke }: {
+  guild: GuildDetail;
+  invites: GuildInvite[];
+  loaded: boolean;
+  busy: boolean;
+  onClose: () => void;
+  onInvite: (username: string) => Promise<boolean>;
+  onRevoke: (invite: GuildInvite) => void;
+}) {
+  const [name, setName] = useState("");
+  const trimmed = name.trim().replace(/^@/, "");
+  const full = guild.memberCount >= guild.memberCap;
+
+  const submit = async () => {
+    if (!trimmed || busy) return;
+    const ok = await onInvite(trimmed);
+    if (ok) setName("");
+  };
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-end justify-center sm:items-center">
+      <div className="absolute inset-0 bg-black/70" onClick={onClose} />
+      <div role="dialog" aria-modal="true" aria-label="Invite a player"
+        className="relative flex max-h-[85dvh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-[#0b0b11] sm:rounded-2xl">
+        <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+          <div className="min-w-0">
+            <p className="font-fell text-lg text-white">Invite a player</p>
+            <p className="text-[11px] text-slate-500">
+              {guild.isPublic === false
+                ? "This guild is invite-only — an invitation is the only way in"
+                : "An invitation lets them join even before they find the guild"}
+            </p>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Close"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-white/10 hover:text-white">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4">
+          <div>
+            <label htmlFor="guild-invite-name" className="text-xs font-black text-white">Username</label>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <input
+                id="guild-invite-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+                placeholder="Their exact username"
+                autoComplete="off"
+                className="min-h-[44px] min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5 text-sm text-white placeholder:text-slate-600 outline-none focus:border-emerald-400/40"
+              />
+              <button type="button" disabled={!trimmed || busy || full} onClick={submit}
+                className="inline-flex min-h-[44px] shrink-0 items-center gap-2 rounded-xl border border-emerald-400/40 bg-emerald-500/15 px-5 py-2.5 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-200 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-40">
+                <Send className="h-3.5 w-3.5" /> {busy ? "Sending…" : "Invite"}
+              </button>
+            </div>
+            <p className="mt-1.5 text-[10px] text-slate-600">
+              {full
+                ? `The guild is full at ${nf(guild.memberCap)} — free a seat or buy more slots first.`
+                : "Case-sensitive, exactly as they wrote it."}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">
+              Pending · {invites.length}
+            </p>
+            {!loaded ? (
+              <p className="py-6 text-center text-xs text-slate-600">Reading the outbox…</p>
+            ) : invites.length === 0 ? (
+              <p className="py-6 text-center text-xs text-slate-600">Nobody is waiting on an answer.</p>
+            ) : (
+              <div className="mt-2 space-y-2">
+                {invites.map((inv) => (
+                  <div key={inv.id}
+                    className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.02] px-3 py-2.5">
+                    {inv.avatar ? (
+                      <img src={inv.avatar} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-white/15" />
+                    ) : (
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-emerald-800 text-xs font-black">
+                        {(inv.username || "?")[0]?.toUpperCase()}
+                      </span>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-black text-white">{inv.username || "Someone"}</p>
+                      <p className="text-[10px] text-slate-600">
+                        {inv.createdAt ? `invited ${ago(inv.createdAt)}` : "invitation pending"}
+                      </p>
+                    </div>
+                    <button type="button" disabled={busy} onClick={() => onRevoke(inv)}
+                      className="inline-flex min-h-[44px] shrink-0 items-center gap-1 rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-red-300 transition hover:bg-red-500/20 disabled:opacity-40">
+                      <X className="h-3 w-3" /> Revoke
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 border-t border-white/10 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <button type="button" onClick={onClose}
+            className="min-h-[44px] rounded-xl border border-white/10 bg-white/[0.04] px-5 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400 transition hover:bg-white/[0.08] hover:text-slate-200">
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════ THE DONATE SHEET — shards in, never out ═══════════
+   The warning is not decoration: donated shards join the treasury, and the
+   treasury only ever spends on guild upgrades. There is no withdraw. */
+
+function DonateSheet({ guild, busy, onClose, onDonate }: {
+  guild: GuildDetail;
+  busy: boolean;
+  onClose: () => void;
+  onDonate: (amount: number) => Promise<boolean>;
+}) {
+  const [amount, setAmount] = useState("");
+  const value = Math.floor(Number(amount) || 0);
+  const valid = value > 0;
+
+  const submit = async () => {
+    if (!valid || busy) return;
+    const ok = await onDonate(value);
+    if (ok) { setAmount(""); onClose(); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-end justify-center sm:items-center">
+      <div className="absolute inset-0 bg-black/70" onClick={onClose} />
+      <div role="dialog" aria-modal="true" aria-label="Donate shards"
+        className="relative flex max-h-[85dvh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-[#0b0b11] sm:rounded-2xl">
+        <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+          <div className="min-w-0">
+            <p className="font-fell text-lg text-white">Donate shards</p>
+            <p className="text-[11px] text-slate-500">Feed {guild.name}&rsquo;s treasury</p>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Close"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-white/10 hover:text-white">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
+          <div className="rounded-2xl border border-amber-400/30 bg-amber-500/[0.08] p-3.5">
+            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-amber-200">One way only</p>
+            <p className="mt-1.5 text-[11px] leading-relaxed text-amber-100/80">
+              Donated shards become the guild&rsquo;s. They can only ever be spent on guild upgrades — nothing
+              pays them back to you, not leaving, not disbanding, not the leader.
+            </p>
+          </div>
+
+          <div>
+            <div className="mb-1 flex items-baseline justify-between gap-2">
+              <label htmlFor="guild-donate-amount" className="text-xs font-black text-white">Amount</label>
+              <span className="text-[10px] tabular-nums text-slate-600">Treasury {nf(guild.shards)}</span>
+            </div>
+            <input
+              id="guild-donate-amount"
+              value={amount}
+              inputMode="numeric"
+              onChange={(e) => setAmount(e.target.value.replace(/[^0-9]/g, "").slice(0, 9))}
+              onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+              placeholder="250"
+              className="min-h-[44px] w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5 font-mono text-sm tabular-nums text-white placeholder:text-slate-600 outline-none focus:border-emerald-400/40"
+            />
+            <div className="mt-2 flex flex-wrap gap-2">
+              {[100, 500, 1000, 5000].map((v) => (
+                <button key={v} type="button" onClick={() => setAmount(String(v))}
+                  className="min-h-[36px] rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 font-mono text-[11px] font-black tabular-nums text-slate-300 transition hover:bg-white/[0.1] hover:text-white">
+                  {nf(v)}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-[10px] text-slate-600">
+              The server checks your balance — if you&rsquo;re short, nothing moves.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 border-t border-white/10 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <button type="button" onClick={onClose}
+            className="min-h-[44px] rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400 transition hover:bg-white/[0.08] hover:text-slate-200">
+            Cancel
+          </button>
+          <button type="button" disabled={!valid || busy} onClick={submit}
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-cyan-400/40 bg-cyan-500/15 px-5 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-cyan-200 transition hover:bg-cyan-500/25 disabled:cursor-not-allowed disabled:opacity-40">
+            <Gem className="h-3.5 w-3.5" /> {busy ? "Donating…" : valid ? `Donate ${nf(value)}` : "Donate"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ═══════════ THE ROLE SHEET — name it, colour it, arm it ═══════════ */
 
 function RoleSheet({ initial, saving, onClose, onSave }: {
@@ -1099,7 +2178,7 @@ function RoleSheet({ initial, saving, onClose, onSave }: {
     <div className="fixed inset-0 z-[120] flex items-end justify-center sm:items-center">
       <div className="absolute inset-0 bg-black/70" onClick={onClose} />
       <div role="dialog" aria-modal="true" aria-label={initial ? "Edit role" : "New role"}
-        className="relative flex max-h-[85dvh] w-full max-w-md flex-col overflow-hidden border border-white/10 bg-[#0b0b11] sm:rounded-2xl">
+        className="relative flex max-h-[85dvh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-[#0b0b11] sm:rounded-2xl">
         <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
           <div className="min-w-0">
             <p className="font-fell text-lg text-white">{initial ? `Edit ${initial.name}` : "New role"}</p>
@@ -1181,14 +2260,14 @@ function RoleSheet({ initial, saving, onClose, onSave }: {
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 border-t border-white/10 px-4 py-3">
+        <div className="flex items-center justify-end gap-2 border-t border-white/10 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <button type="button" onClick={onClose}
-            className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400 transition hover:bg-white/[0.08] hover:text-slate-200">
+            className="min-h-[44px] rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400 transition hover:bg-white/[0.08] hover:text-slate-200">
             Cancel
           </button>
           <button type="button" disabled={!nameOk || saving}
             onClick={() => onSave({ name: trimmed, color, permissions: perms })}
-            className="rounded-xl border border-emerald-400/40 bg-emerald-500/15 px-5 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-200 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-40">
+            className="min-h-[44px] rounded-xl border border-emerald-400/40 bg-emerald-500/15 px-5 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-200 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-40">
             {saving ? "Saving…" : initial ? "Save changes" : "Create role"}
           </button>
         </div>
@@ -1213,6 +2292,11 @@ function EditGuildSheet({ guild, onClose, onSaved }: {
   const [uploading, setUploading] = useState(false);
   const [bannerUploading, setBannerUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Both are set at founding and were unreachable afterwards — a guild that
+  // opened private could never open its doors. The backend has accepted them
+  // on PATCH all along.
+  const [isPublic, setIsPublic] = useState(guild.isPublic !== false);
+  const [minLevel, setMinLevel] = useState(String(guild.minLevel ?? 1));
 
   // The SettingsModal flow: unsigned upload straight to Cloudinary, only the
   // returned secure_url travels to our backend — which allow-lists exactly
@@ -1256,7 +2340,15 @@ function EditGuildSheet({ guild, onClose, onSaved }: {
       const r = await fetch(`${API_URL}/api/guilds/${encodeURIComponent(guild.id)}`, {
         method: "PATCH",
         headers: authHeaders(),
-        body: JSON.stringify({ description: desc.trim(), avatar: avatar, banner: banner || "" }),
+        body: JSON.stringify({
+          description: desc.trim(),
+          avatar: avatar,
+          banner: banner || "",
+          isPublic,
+          // Clamped here too so a blanked field posts 1 rather than NaN; the
+          // server clamps 1..10 regardless.
+          minLevel: Math.max(1, Math.min(10, Math.floor(Number(minLevel) || 1))),
+        }),
       });
       const d = await r.json().catch(() => null);
       if (!r.ok || !d?.success) return toast(d?.message || "Couldn't save that.", "error");
@@ -1273,7 +2365,7 @@ function EditGuildSheet({ guild, onClose, onSaved }: {
     <div className="fixed inset-0 z-[120] flex items-end justify-center sm:items-center">
       <div className="absolute inset-0 bg-black/70" onClick={onClose} />
       <div role="dialog" aria-modal="true" aria-label="Edit guild"
-        className="relative flex max-h-[85dvh] w-full max-w-lg flex-col overflow-hidden border border-white/10 bg-[#0b0b11] sm:rounded-2xl">
+        className="relative flex max-h-[85dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-[#0b0b11] sm:rounded-2xl">
         <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
           <div className="min-w-0">
             <p className="font-fell text-lg text-white">Edit {guild.name}</p>
@@ -1348,15 +2440,53 @@ function EditGuildSheet({ guild, onClose, onSaved }: {
               rows={4} placeholder="What is this guild about?"
               className="w-full resize-y rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5 text-sm leading-relaxed text-white placeholder:text-slate-600 outline-none focus:border-emerald-400/40" />
           </div>
+
+          {/* WHO MAY JOIN — chosen at founding, editable ever after. */}
+          <div className="space-y-2">
+            <label className="text-xs font-black text-white">Who can join</label>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => setIsPublic(true)}
+                className={`min-h-[44px] flex-1 rounded-xl border px-3 py-2 text-left text-[11px] font-bold transition ${
+                  isPublic
+                    ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-200"
+                    : "border-white/10 bg-white/[0.04] text-slate-400 hover:bg-white/[0.08]"
+                }`}>
+                Public
+                <span className="mt-0.5 block text-[10px] font-normal opacity-70">Anyone can join freely</span>
+              </button>
+              <button type="button" onClick={() => setIsPublic(false)}
+                className={`min-h-[44px] flex-1 rounded-xl border px-3 py-2 text-left text-[11px] font-bold transition ${
+                  !isPublic
+                    ? "border-amber-400/40 bg-amber-500/15 text-amber-200"
+                    : "border-white/10 bg-white/[0.04] text-slate-400 hover:bg-white/[0.08]"
+                }`}>
+                Private
+                <span className="mt-0.5 block text-[10px] font-normal opacity-70">Invite only</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-xs font-black text-white">Minimum level</label>
+            <div className="flex items-center gap-2">
+              <input type="number" min={1} max={10} inputMode="numeric" value={minLevel}
+                onChange={(e) => setMinLevel(e.target.value)}
+                className="min-h-[44px] w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5 text-sm text-white outline-none focus:border-emerald-400/40" />
+              <span className="shrink-0 rounded-lg border border-amber-400/30 bg-amber-500/10 px-2.5 py-2 text-[10px] font-black tracking-wider text-amber-200">
+                Level {Math.max(1, Math.min(10, Math.floor(Number(minLevel) || 1)))}+
+              </span>
+            </div>
+            <p className="text-[10px] text-slate-600">Only members at this level or higher can join.</p>
+          </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 border-t border-white/10 px-4 py-3">
+        <div className="flex items-center justify-end gap-2 border-t border-white/10 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <button type="button" onClick={onClose}
-            className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400 transition hover:bg-white/[0.08] hover:text-slate-200">
+            className="min-h-[44px] rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400 transition hover:bg-white/[0.08] hover:text-slate-200">
             Cancel
           </button>
           <button type="button" disabled={saving || uploading || bannerUploading} onClick={save}
-            className="rounded-xl border border-emerald-400/40 bg-emerald-500/15 px-5 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-200 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-40">
+            className="min-h-[44px] rounded-xl border border-emerald-400/40 bg-emerald-500/15 px-5 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-200 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-40">
             {saving ? "Saving…" : "Save"}
           </button>
         </div>
@@ -1449,7 +2579,7 @@ function LendSheet({ guild, userId, onClose, onLent }: {
     <div className="fixed inset-0 z-[120] flex items-end justify-center sm:items-center">
       <div className="absolute inset-0 bg-black/70" onClick={onClose} />
       <div role="dialog" aria-modal="true" aria-label="Lend a card"
-        className="relative flex max-h-[85dvh] w-full max-w-lg flex-col overflow-hidden border border-white/10 bg-[#0b0b11] sm:rounded-2xl">
+        className="relative flex max-h-[85dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-[#0b0b11] sm:rounded-2xl">
         <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
           <div className="min-w-0">
             <p className="font-fell text-lg text-white">Lend a card</p>
@@ -1516,7 +2646,7 @@ function LendSheet({ guild, userId, onClose, onLent }: {
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-3 border-t border-white/10 bg-[#0b0b11] px-4 py-3">
+        <div className="flex items-center justify-between gap-3 border-t border-white/10 bg-[#0b0b11] px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <p className="min-w-0 truncate text-[11px] text-slate-500">
             {pickedCard && pickedMate
               ? `${pickedCard.name} → ${pickedMate.username}`
