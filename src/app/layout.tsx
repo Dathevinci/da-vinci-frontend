@@ -54,7 +54,12 @@ const ebGaramond = EB_Garamond({
 // SELF-HOSTS these at build time (no runtime Google CDN / CSP issue). preload
 // is off so they only download when a reader actually picks them — zero cost to
 // every other page.
-import { Lora, Merriweather, Literata, Lexend } from "next/font/google";
+import { Lora, Merriweather, Literata } from "next/font/google";
+// Lexend is SELF-HOSTED (src/app/fonts/): Google's serving of this one family
+// flaked on 2026-08-11 and killed two consecutive Vercel builds at the
+// build-time font download. A local variable woff2 (latin subset) removes the
+// network dependency; the CSS variable and classes are unchanged.
+import localFont from "next/font/local";
 
 // Dungeon Dispatch's arcade face. preload off, same as the reader fonts —
 // it costs nothing until someone actually walks into the dungeon.
@@ -64,7 +69,7 @@ const pressStart = Press_Start_2P({ weight: "400", subsets: ["latin"], variable:
 const lora = Lora({ weight: ["400", "700"], style: ["normal", "italic"], subsets: ["latin"], variable: "--font-lora", display: "swap", preload: false });
 const merriweather = Merriweather({ weight: ["400", "700"], style: ["normal", "italic"], subsets: ["latin"], variable: "--font-merriweather", display: "swap", preload: false });
 const literata = Literata({ weight: ["400", "700"], style: ["normal", "italic"], subsets: ["latin"], variable: "--font-literata", display: "swap", preload: false });
-const lexend = Lexend({ weight: ["400", "700"], subsets: ["latin"], variable: "--font-lexend", display: "swap", preload: false });
+const lexend = localFont({ src: "./fonts/lexend-latin-var.woff2", weight: "100 900", variable: "--font-lexend", display: "swap", preload: false });
 
 import Navbar from "@/components/layout/Navbar";
 import ScrollReset from "@/components/layout/ScrollReset";
