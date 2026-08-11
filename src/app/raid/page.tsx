@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useUser } from "@/hooks/useUser";
+import { usePreferences } from "@/hooks/usePreferences";
 import { useToast } from "@/components/ui/Toast";
 import { authHeaders } from "@/lib/authToken";
 import { loadCatalog } from "@/lib/catalogCache";
@@ -73,6 +74,19 @@ type Catalog = {
   cardStatsById?: Record<string, { hp: number; atk: number }>;
 };
 
+/** The cinematic's script — a projection of the report; every number is the
+ *  server's. Held separately from `report` so the ledger only opens once the
+ *  theatre has finished (or been skipped). */
+type Cine = {
+  lines: RaidLine[];
+  hpBefore: number;
+  hpLeft: number;
+  hpMax: number;
+  killed: boolean;
+  killingBlow: boolean;
+  damage: number;
+};
+
 /** Whole days until the next ISO Monday — the gems countdown, same math. */
 function daysUntilMonday(d: Date = new Date()): number {
   const dayNum = d.getUTCDay() || 7;
@@ -125,10 +139,282 @@ function MultChip({ label, color }: { label: string; color: string }) {
   );
 }
 
+/**
+ * THE ATTACK CINEMATIC — the beat between the server's verdict and the ledger.
+ *
+ * Pure theatre over settled numbers: each squad card lunges at the boss, an
+ * impact flashes, a damage number floats off, and the HP bar drains one hit
+ * at a time. The intermediate bar widths are interpolation for the eye only —
+ * the LAST step lands on the exact hpLeft/hpMax the server returned, never a
+ * client recomputation. Every timeout id lives in one ref array so Skip (or
+ * unmount) silences the whole choreography at once: no stray timer can fire
+ * into (or past) the report.
+ */
+function RaidCinematic({
+  cine,
+  bossName,
+  art,
+  catalog,
+  onDone,
+}: {
+  cine: Cine;
+  bossName: string;
+  art: string;
+  catalog: Catalog | null;
+  onDone: () => void;
+}) {
+  const n = Math.max(1, cine.lines.length);
+  const [hits, setHits] = useState(0);        // blows landed so far, 0..n
+  const [lunging, setLunging] = useState(-1); // which card is mid-lunge
+  const [flash, setFlash] = useState(-1);     // impact index; n = the kill flash
+  const [shaking, setShaking] = useState(false);
+  const [slain, setSlain] = useState(false);
+  const [artFail, setArtFail] = useState(!art);
+  const timers = useRef<number[]>([]);
+  const doneRef = useRef(false);
+
+  // The parent recreates onDone every render (loadRaid refreshes state behind
+  // this overlay), so the mount-once effect reads it through a ref, not a dep.
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
+
+  const finish = useCallback(() => {
+    if (doneRef.current) return;
+    doneRef.current = true;
+    timers.current.forEach((t) => window.clearTimeout(t));
+    timers.current = [];
+    onDoneRef.current();
+  }, []);
+
+  useEffect(() => {
+    const at = (ms: number, fn: () => void) => {
+      timers.current.push(window.setTimeout(fn, ms));
+    };
+    // One lunge per squad line, ~750ms apart: lunge starts, the blow lands
+    // mid-flight (flash + shake + the bar steps down), the shake settles.
+    for (let i = 0; i < n; i++) {
+      const t0 = 450 + i * 750;
+      at(t0, () => setLunging(i));
+      at(t0 + 260, () => {
+        setFlash(i);
+        setShaking(true);
+        setHits(i + 1);
+      });
+      at(t0 + 610, () => setShaking(false));
+    }
+    const lastImpact = 450 + (n - 1) * 750 + 260;
+    if (cine.killed) {
+      at(lastImpact + 300, () => setFlash(n)); // the bigger, final flash
+      at(lastImpact + 380, () => setSlain(true));
+      at(lastImpact + 1900, finish);           // the drop (700ms) + a beat
+    } else {
+      at(lastImpact + 1250, finish);           // bar settles (400ms) + a beat
+    }
+    return () => {
+      timers.current.forEach((t) => window.clearTimeout(t));
+      timers.current = [];
+    };
+    // Mount-once by design: `cine` never changes while the overlay lives.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Per-hit HP: interpolated between hits for the eye, EXACT on the last.
+  const drop = Math.max(0, cine.hpBefore - cine.hpLeft);
+  const hpNow =
+    hits <= 0 ? cine.hpBefore : hits >= n ? cine.hpLeft : cine.hpBefore - (drop * hits) / n;
+  const pct = cine.hpMax > 0 ? Math.max(0, Math.min(100, (hpNow / cine.hpMax) * 100)) : 0;
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="The attack lands"
+      className="fixed inset-0 z-[95] flex flex-col items-center justify-center overflow-hidden bg-black/85 font-mono"
+    >
+      {/* Skip — always clickable, above every layer of the stage */}
+      <button
+        type="button"
+        onClick={finish}
+        className="absolute right-4 top-4 z-40 rounded-full border border-white/15 bg-white/[0.06] px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-300 transition hover:bg-white/[0.12] hover:text-white"
+      >
+        Skip
+      </button>
+
+      {/* ── the boss, centre stage ── */}
+      <div
+        className="relative flex h-[38vh] w-full max-w-2xl items-center justify-center px-4"
+        style={{ animation: shaking ? "raid-shake 300ms linear" : undefined }}
+      >
+        {!artFail ? (
+          <img
+            src={art}
+            alt=""
+            onError={() => setArtFail(true)}
+            className={`max-h-full w-auto max-w-[82vw] rounded-2xl object-contain transition-all duration-700 ${
+              slain ? "translate-y-12 opacity-20 grayscale" : "opacity-95"
+            }`}
+          />
+        ) : (
+          /* the hero's gradient bedrock, worn as the whole portrait */
+          <div
+            className={`flex h-full w-full max-w-md items-center justify-center rounded-3xl border border-white/10 transition-all duration-700 ${
+              slain ? "translate-y-12 opacity-20 grayscale" : ""
+            }`}
+            style={{
+              background:
+                "radial-gradient(85% 90% at 82% 0%, rgba(248,113,113,.2), transparent 60%)," +
+                "radial-gradient(70% 85% at 8% 100%, rgba(139,92,246,.25), transparent 65%)," +
+                "linear-gradient(180deg, #150a10, #0b0b11)",
+            }}
+          >
+            <p className="px-6 text-center font-fell text-3xl text-white/80">{bossName}</p>
+          </div>
+        )}
+
+        {/* impact flash — keyed so every hit replays it; index n is the kill */}
+        {flash > -1 && (
+          <span
+            key={flash}
+            aria-hidden
+            className={`pointer-events-none absolute left-1/2 top-1/2 z-10 rounded-full ${
+              flash >= n ? "h-80 w-80" : "h-44 w-44"
+            }`}
+            style={{
+              background:
+                "radial-gradient(circle, rgba(255,255,255,.95) 0%, rgba(167,139,250,.55) 40%, transparent 70%)",
+              animation: `raid-impact ${flash >= n ? 500 : 250}ms ease-out forwards`,
+            }}
+          />
+        )}
+
+        {/* damage numbers — one per landed blow, floating up and away */}
+        {cine.lines.slice(0, hits).map((l, i) => (
+          <span
+            key={`${l.cardId}-${i}`}
+            className="pointer-events-none absolute left-1/2 top-2 z-20 text-3xl font-black tabular-nums text-violet-300"
+            style={{
+              marginLeft: `${((i % 3) - 1) * 3.5}rem`,
+              animation: "raid-pop 900ms ease-out forwards",
+              textShadow: "0 0 18px rgba(139,92,246,.8)",
+            }}
+          >
+            {l.line.toLocaleString()}
+          </span>
+        ))}
+
+        {/* the stamp, when it falls */}
+        {slain && (
+          <div
+            className="absolute inset-0 z-30 flex flex-col items-center justify-center"
+            style={{ animation: "raid-stamp 500ms ease-out forwards" }}
+          >
+            <p
+              className="font-fell text-5xl tracking-[0.18em] text-red-400"
+              style={{ textShadow: "0 0 28px rgba(248,113,113,.65)" }}
+            >
+              SLAIN
+            </p>
+            {cine.killingBlow && (
+              <p className="mt-2 text-xs font-black uppercase tracking-[0.22em] text-violet-300">
+                your killing blow
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── name + the draining bar (the hero bar's dress, borrowed whole) ── */}
+      <div className="mt-4 w-full max-w-md px-6">
+        <p className="text-center font-fell text-2xl text-white sm:text-3xl">{bossName}</p>
+        <div className="mb-1.5 mt-3 flex items-end justify-between">
+          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Boss HP</span>
+          <span className="text-xs font-black tabular-nums text-white">
+            {Math.round(hpNow).toLocaleString()} <span className="text-slate-500">/ {cine.hpMax.toLocaleString()}</span>
+          </span>
+        </div>
+        <div className="h-5 overflow-hidden rounded-full border border-white/10 bg-black/50">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-red-500"
+            style={{
+              width: `${pct}%`,
+              transition: "width 400ms cubic-bezier(0.22, 1, 0.36, 1)",
+              boxShadow: "0 0 18px rgba(248,113,113,.45)",
+            }}
+          />
+        </div>
+        {hits >= n && (
+          <p className="mt-2 text-center text-xs font-black tabular-nums text-violet-300">
+            −{cine.damage.toLocaleString()} total
+          </p>
+        )}
+      </div>
+
+      {/* ── the squad, waiting at the bottom to leap ── */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-6 z-20 flex items-end justify-center gap-3 sm:gap-5">
+        {cine.lines.map((l, i) => {
+          const face = catalog?.cards.find((c) => c.id === l.cardId);
+          return (
+            <div
+              key={`${l.cardId}-${i}`}
+              className={`transition-opacity duration-300 ${hits > i && lunging !== i ? "opacity-50" : "opacity-100"}`}
+              style={{
+                animation: lunging === i ? "raid-lunge 350ms cubic-bezier(0.22, 1, 0.36, 1)" : undefined,
+                willChange: "transform",
+              }}
+            >
+              {face ? (
+                <div className="w-24">
+                  <CardFace card={face} owned size={96} ratio="5 / 9" showStats={false} />
+                </div>
+              ) : (
+                <span className="inline-block rounded-full border border-white/15 bg-black/70 px-3 py-1.5 text-[10px] font-black text-white">
+                  {l.name}
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <style jsx global>{`
+        @keyframes raid-lunge {
+          0% { transform: translateY(0) scale(1); }
+          55% { transform: translateY(-46vh) scale(1.07); }
+          100% { transform: translateY(0) scale(1); }
+        }
+        @keyframes raid-impact {
+          0% { transform: translate(-50%, -50%) scale(0.35); opacity: 0.95; }
+          100% { transform: translate(-50%, -50%) scale(2.1); opacity: 0; }
+        }
+        @keyframes raid-shake {
+          0%, 100% { transform: translate(0, 0); }
+          20% { transform: translate(-7px, 3px); }
+          40% { transform: translate(6px, -4px); }
+          60% { transform: translate(-5px, -2px); }
+          80% { transform: translate(4px, 3px); }
+        }
+        @keyframes raid-pop {
+          0% { transform: translate(-50%, 14px) scale(0.7); opacity: 0; }
+          18% { transform: translate(-50%, 0) scale(1.12); opacity: 1; }
+          100% { transform: translate(-50%, -64px) scale(1); opacity: 0; }
+        }
+        @keyframes raid-stamp {
+          0% { opacity: 0; transform: scale(1.35); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 export default function RaidPage() {
   const { user } = useUser();
   const { toast } = useToast();
   const reduce = useReducedMotion();
+  // Performance Mode lives in app preferences, not the OS media query — the
+  // cinematic is raw CSS + timeouts (no framer), so AppMotionConfig can't
+  // gate it and this page must consult the preference itself (CountUp-style).
+  const { preferences } = usePreferences();
 
   const [raid, setRaid] = useState<RaidData | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -156,6 +442,18 @@ export default function RaidPage() {
   const [squad, setSquad] = useState<string[]>([]);
   const [attacking, setAttacking] = useState(false);
   const [report, setReport] = useState<Report | null>(null);
+
+  // The cinematic between the strike and the report. While it plays, the
+  // full report waits in the ref; finish/skip hands it to setReport intact.
+  const [cine, setCine] = useState<Cine | null>(null);
+  const pendingReport = useRef<Report | null>(null);
+
+  const finishCine = useCallback(() => {
+    const rep = pendingReport.current;
+    pendingReport.current = null;
+    setCine(null);
+    if (rep) setReport(rep);
+  }, []);
 
   // The full ladder: fetched once on first expand, cached after (null = never
   // fetched, so a failed attempt simply retries on the next expand).
@@ -234,12 +532,13 @@ export default function RaidPage() {
   useEffect(() => { loadCatalog(API_URL, (data: Catalog) => setCatalog(data)); }, []);
 
   // The sheet/modal scrolls; the page behind it must not (cards-page rule).
+  // The cinematic counts too — it hands off to the report without a gap.
   useEffect(() => {
-    if (!pickerOpen && !report) return;
+    if (!pickerOpen && !report && !cine) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = prev; };
-  }, [pickerOpen, report]);
+  }, [pickerOpen, report, cine]);
 
   const fallen = !!raid?.killedAt;
   const attacksToday = raid?.mine.attacksToday ?? 0;
@@ -338,7 +637,7 @@ export default function RaidPage() {
       const data = d.data || {};
       setPickerOpen(false);
       setSquad([]);
-      setReport({
+      const rep: Report = {
         damage: data.damage || 0,
         isRally: !!data.isRally,
         variance: typeof data.variance === "number" ? data.variance : undefined,
@@ -353,8 +652,25 @@ export default function RaidPage() {
         killed: !!data.killed,
         killingBlow: !!data.killingBlow,
         replay: !!d.replay,
-      });
-      // Refresh behind the modal: attacks used, fatigue, standings, injuries.
+      };
+      // The cinematic needs fresh HP movement to stage; a replayed nonce
+      // carries none, and a still-motion viewer (OS setting or Performance
+      // Mode) asked for none — both go straight to the ledger, as before.
+      if (d.replay || reduce || preferences.reducedMotion) {
+        setReport(rep);
+      } else {
+        pendingReport.current = rep;
+        setCine({
+          lines: rep.lines,
+          hpBefore: rep.hpBefore,
+          hpLeft: rep.hpLeft,
+          hpMax: rep.hpMax,
+          killed: rep.killed,
+          killingBlow: rep.killingBlow,
+          damage: rep.damage,
+        });
+      }
+      // Refresh behind the overlay: attacks used, fatigue, standings, injuries.
       loadRaid();
       loadCollection();
     } catch {
@@ -800,6 +1116,17 @@ export default function RaidPage() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* ── ATTACK CINEMATIC — plays between the strike and the report ── */}
+        {cine && raid && (
+          <RaidCinematic
+            cine={cine}
+            bossName={raid.boss.name}
+            art={artOk && raid.boss.art ? raid.boss.art : ""}
+            catalog={catalog}
+            onDone={finishCine}
+          />
         )}
 
         {/* ── BATTLE REPORT ── */}
