@@ -322,8 +322,20 @@ export function useGuildEmojis(guildId?: string | null): GuildEmojiCatalog {
 
     // Cached catalogs are stored by reference, so re-setting an unchanged
     // answer is a no-op re-render React bails out of on identity.
+    //
+    // SELF-HEALING on a miss. invalidateGuildEmojis() clears the cache and
+    // broadcasts, but a broadcast is only a cache READ — so without this an
+    // upload wiped the catalog and nothing ever refetched it: adding an emoji
+    // made every existing one vanish until a remount, the exact opposite of
+    // the point. Refetching here fixes it for every caller at once rather
+    // than making each one remember to re-ask.
+    //
+    // Loop-safe: fetchGuildEmojis only broadcasts on a REAL answer, and that
+    // answer populates the cache, so the next sync hits and stops.
     const sync = () => {
-      setCatalog(cache.get(guildId) ?? EMPTY_EMOJI_CATALOG);
+      const hit = cache.get(guildId);
+      if (!hit) void fetchGuildEmojis(guildId);
+      setCatalog(hit ?? EMPTY_EMOJI_CATALOG);
     };
 
     sync();

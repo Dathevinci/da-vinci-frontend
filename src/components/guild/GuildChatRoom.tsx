@@ -13,6 +13,9 @@ import MediaPicker from "@/components/community/MediaPicker";
 import EmojiPicker from "@/components/community/EmojiPicker";
 import MentionsTextarea from "@/components/ui/MentionsTextarea";
 import MentionText from "@/components/ui/MentionText";
+import { emojiNodes } from "@/components/ui/EmojiText";
+import { useGuildEmojis } from "@/lib/guildEmoji";
+import { usePreferences } from "@/hooks/usePreferences";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -65,6 +68,25 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
  *  3. THE ROWS. `rows` is not in the contract, so the box arrives at the HTML
  *     default of two lines; autoGrow measures from 0px, which makes the height
  *     content-driven and opens the composer on one line as rows={1} did.
+ *
+ * ═══════════════════ CUSTOM EMOJI — ONE CATALOG, ONE PREFERENCE ═══════════════════
+ * `:shortcode:` emoji belong to the guild, and the room is the only place they
+ * resolve. TWO things are therefore resolved HERE, once, and threaded down:
+ *
+ *   THE CATALOG — `useGuildEmojis(guildId)`. It is module-cached and collapses
+ *     in-flight requests, so the two mounts this component has (the hall and
+ *     the dock's slide-over) share ONE fetch rather than each asking. It needs
+ *     nothing but the guildId, which is why the dock — whose summary endpoint
+ *     gives it no guild detail at all — still gets emoji.
+ *   PERFORMANCE MODE — `usePreferences()`. A room holds 60+ messages; a hook
+ *     per line would be hundreds of localStorage reads and hundreds of window
+ *     listeners on every paint. Read once, passed as `stillEmoji`, and both
+ *     renderers below take it as a plain prop/argument.
+ *
+ * Bodies render through MentionText, which now runs the SAME shortcode pass on
+ * the text between mentions, so one line can carry both a link and an image.
+ * The quoted-parent snippet calls `emojiNodes` directly instead: it lives
+ * inside a <button>, and a mention there would nest an <a> in a button.
  */
 
 export type GuildChatRolePermissions = {
@@ -282,6 +304,25 @@ export default function GuildChatRoom({
 }) {
   const { user } = useUser();
   const { toast } = useToast();
+  /* Both of these are resolved ONCE for the whole room — see the header note.
+     The catalog is keyed on the guildId alone, so a dock mount with no guild
+     detail still gets its emoji; a mount before the fetch lands simply renders
+     the shortcodes as the literal text they already are. */
+  /**
+   * Only ASK once the viewer is allowed an answer.
+   *
+   * The room mounts for outsiders too (it draws the members-only lock), and
+   * the catalog endpoint answers 403 for them — which the lib caches as an
+   * empty catalog for the tab, since "not a member" is normally a stable
+   * fact. It stops being stable the moment they JOIN: the cached empty would
+   * survive, so a brand-new member saw "no emoji" on a guild with a dozen and
+   * every :shortcode: stayed literal until a hard reload. Passing null while
+   * they are outside means no request at all, and the null -> guildId flip on
+   * joining is what triggers the one real fetch.
+   */
+  const emojiCatalog = useGuildEmojis(isMember ? guildId : null);
+  const { preferences } = usePreferences();
+  const stillEmoji = preferences.reducedMotion === true;
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState("");
@@ -888,7 +929,15 @@ export default function GuildChatRoom({
                                     ) : (
                                       <span className="italic text-slate-600">message deleted</span>
                                     )}
-                                    {m.replyTo && <span className="ml-1.5">{snippetOf(m.replyTo)}</span>}
+                                    {/* Emoji only, no mentions: this sits in a
+                                        <button>, and MentionText would nest an
+                                        <a> inside it. Same tokeniser either
+                                        way, so a quote reads like its parent. */}
+                                    {m.replyTo && (
+                                      <span className="ml-1.5">
+                                        {emojiNodes(snippetOf(m.replyTo), emojiCatalog.byName, stillEmoji, `q-${m.id}`)}
+                                      </span>
+                                    )}
                                   </span>
                                 </button>
                               )}
@@ -930,11 +979,19 @@ export default function GuildChatRoom({
                               ) : (
                                 m.content && (
                                   <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-300">
-                                    {/* @names become links; the <p> keeps the
-                                        typography and the pre-wrap, so line
-                                        breaks and the marker below still sit
-                                        where they always did. */}
-                                    <MentionText text={m.content} />
+                                    {/* @names become links and :shortcodes:
+                                        become images, from ONE pass over the
+                                        string; the <p> keeps the typography and
+                                        the pre-wrap, so line breaks and the
+                                        marker below still sit where they always
+                                        did. `break-words` on the <p> is what
+                                        lets a long run of emoji wrap on a phone
+                                        instead of pushing the line wide. */}
+                                    <MentionText
+                                      text={m.content}
+                                      emojis={emojiCatalog.byName}
+                                      stillEmoji={stillEmoji}
+                                    />
                                     {m.editedAt && (
                                       <span
                                         title={`Edited ${new Date(m.editedAt).toLocaleString()}`}
@@ -979,7 +1036,9 @@ export default function GuildChatRoom({
                 <p className="min-w-0 flex-1 truncate text-[11px] leading-tight text-slate-400">
                   <span className="text-[9px] font-black uppercase tracking-[0.16em] text-slate-600">Replying to</span>
                   <span className="ml-1.5 font-black text-slate-200">{replyTarget.author?.username || "someone"}</span>
-                  <span className="ml-1.5 text-slate-500">{snippetOf(previewOf(replyTarget))}</span>
+                  <span className="ml-1.5 text-slate-500">
+                    {emojiNodes(snippetOf(previewOf(replyTarget)), emojiCatalog.byName, stillEmoji, "reply-bar")}
+                  </span>
                 </p>
                 <button type="button" onClick={() => setReplyTarget(null)} aria-label="Cancel reply"
                   className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-slate-500 transition hover:bg-white/10 hover:text-white">
@@ -1023,7 +1082,11 @@ export default function GuildChatRoom({
               </button>
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <EmojiPicker onPick={insertEmoji} />
+              {/* The guild's own emoji ride the same picker: a pick emits
+                  ":name:" through the SAME onPick(string) a unicode emoji uses,
+                  so insertEmoji drops it at the caret with no special case. An
+                  empty catalog draws exactly the panel that shipped before. */}
+              <EmojiPicker onPick={insertEmoji} customEmojis={emojiCatalog.emojis} />
               {/* Chat is emoji + GIF only — no device uploads in the hall. */}
               <MediaPicker value={mediaUrl} onChange={setMediaUrl} userId={user?.id} hideUpload />
               <span className="ml-auto text-[10px] font-bold tabular-nums text-slate-600">{draft.length}/500</span>

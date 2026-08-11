@@ -6,11 +6,19 @@ import { useParams, useRouter } from "next/navigation";
 import {
   Users, Shield, Crown, X, Sparkles, Pencil, Trash2,
   Gem, Layers, Clock, Check, RefreshCw, Camera, Plus,
-  Lock, Zap, Trophy, Activity, Globe, UserPlus, Calendar, Send,
+  Lock, Zap, Trophy, Activity, Globe, UserPlus, Calendar, Send, Smile,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
-import { useToast } from "@/components/ui/Toast";
+import { useToast, ToastType } from "@/components/ui/Toast";
 import { authHeaders } from "@/lib/authToken";
+// CUSTOM EMOJI — the catalog, its module cache and the rules the server
+// enforces, all mirrored in one place. Nothing here re-derives a shortcode
+// rule or a slot count by hand; this page draws what the lib says.
+import {
+  useGuildEmojis, invalidateGuildEmojis, isValidEmojiName, normalizeEmojiName,
+  emojiSlots, GuildEmoji, EMOJI_NAME_MIN, EMOJI_NAME_MAX,
+  EMOJI_SLOTS_BASE, EMOJI_SLOTS_MAX, EMOJI_LEVELS_PER_SLOT,
+} from "@/lib/guildEmoji";
 import { cacheGuildId, cachedGuildId, loanTimeLeft, GUILD_CREATE } from "@/lib/guild";
 import { loadCatalog } from "@/lib/catalogCache";
 import PageTransition from "@/components/layout/PageTransition";
@@ -166,8 +174,64 @@ const SLOTS_PER_PURCHASE = 5;
 const MAX_MEMBER_CAP = 100;
 const MAX_ROLES = 10;
 const BOOST_DAYS = 7;
+
+/**
+ * THE EMOJI SIZE CAP — a CLIENT courtesy, not a rule. The crest and the banner
+ * are drawn once each; an emoji is drawn on EVERY chat line that uses it, on
+ * phones, forever. A 10MB GIF there is a phone-killer, so the picker refuses
+ * one before it ever reaches Cloudinary.
+ */
+const EMOJI_MAX_MB = 2;
+const EMOJI_MAX_BYTES = EMOJI_MAX_MB * 1024 * 1024;
+const EMOJI_TOO_BIG =
+  `Over ${EMOJI_MAX_MB}MB. An emoji loads on every chat line that uses it, so it has to stay small.`;
+/** What the picker offers. GIF and animated WebP are the point of this cap. */
+const EMOJI_ACCEPT = "image/png,image/jpeg,image/gif,image/webp";
 /** How stale a member's last write may be and still read as "Active". */
 const ACTIVE_WINDOW_MINUTES = 10;
+
+/**
+ * THE ONE UPLOADER — the SettingsModal flow, shared.
+ *
+ * An unsigned upload straight to Cloudinary; only the returned `secure_url`
+ * ever travels to our backend, which allow-lists exactly that host
+ * (res.cloudinary.com) for guild art AND for guild emoji. The crest, the
+ * banner and every emoji come through here, so there is ONE place where the
+ * preset, the failure copy and the size wall live.
+ *
+ * Returns the url, or null — and it has already toasted the reason by then.
+ */
+async function uploadToCloudinary(
+  file: File,
+  opts: { maxBytes: number; tooLarge: string; toast: (message: string, type?: ToastType) => void },
+): Promise<string | null> {
+  const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+  const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+  if (!CLOUD_NAME || !UPLOAD_PRESET) {
+    opts.toast("Image uploads aren't configured yet.", "error");
+    return null;
+  }
+  if (file.size > opts.maxBytes) {
+    opts.toast(opts.tooLarge, "error");
+    return null;
+  }
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", UPLOAD_PRESET);
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+      method: "POST",
+      body: formData,
+    });
+    const data = await res.json();
+    if (data?.secure_url) return String(data.secure_url);
+    opts.toast("Upload failed — try again.", "error");
+    return null;
+  } catch {
+    opts.toast("Upload failed — try again.", "error");
+    return null;
+  }
+}
 
 /** Whole numbers with separators — every count on this page goes through it. */
 const nf = (n: number | null | undefined) =>
@@ -279,6 +343,8 @@ export default function GuildHomePage() {
   // The two new sheets: recruiting (send + revoke invites) and donating.
   const [inviteOpen, setInviteOpen] = useState(false);
   const [donateOpen, setDonateOpen] = useState(false);
+  // The emoji uploader — officers only, opened from the rail's Guild emoji card.
+  const [emojiOpen, setEmojiOpen] = useState(false);
   // Pending invites INTO this guild (officers' view) and MY invite to it, if
   // one exists — that second one turns Join into "Accept invite".
   const [invites, setInvites] = useState<GuildInvite[]>([]);
@@ -395,11 +461,11 @@ export default function GuildHomePage() {
   // The sheets scroll; the page behind them must not (cards-page rule).
   // The confirm dialog joins the chain — same lock, same restore.
   useEffect(() => {
-    if (!editOpen && !lendOpen && !roleSheet && !confirmSpec && !inviteOpen && !donateOpen) return;
+    if (!editOpen && !lendOpen && !roleSheet && !confirmSpec && !inviteOpen && !donateOpen && !emojiOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = prev; };
-  }, [editOpen, lendOpen, roleSheet, confirmSpec, inviteOpen, donateOpen]);
+  }, [editOpen, lendOpen, roleSheet, confirmSpec, inviteOpen, donateOpen, emojiOpen]);
 
   const join = async () => {
     if (!user) return toast("Sign in to join a guild.", "error");
@@ -833,6 +899,71 @@ export default function GuildHomePage() {
     } finally {
       setBusy(false);
     }
+  };
+
+  /* ── CUSTOM EMOJI — the other guild-level unlock the officers curate.
+     The catalog itself lives in the module cache in @/lib/guildEmoji, shared
+     with the chat room and the composer's picker. NOTHING polls it, so every
+     write here ends in invalidateGuildEmojis() — that call, and only that
+     call, is what makes a new emoji appear without a reload. ── */
+
+  const addEmoji = async (
+    payload: { name: string; url: string; animated: boolean },
+  ): Promise<string | null> => {
+    if (!guild || busy) return "Try that again in a moment.";
+    setBusy(true);
+    try {
+      const r = await fetch(`${API_URL}/api/guilds/${encodeURIComponent(id)}/emojis`, {
+        method: "POST", headers: authHeaders(),
+        body: JSON.stringify(payload),
+      });
+      const d = await r.json().catch(() => null);
+      if (!r.ok || !d?.success) {
+        // What a real person actually hits: 409 for BOTH a full slot list and
+        // a name already taken, 400 for a refused name or host. The
+        // SERVER'S OWN WORDS go straight through — a generic "couldn't save"
+        // would hide which of the three it was, and they need different fixes.
+        const message = d?.message || "Couldn't add that emoji.";
+        toast(message, "error");
+        return message;
+      }
+      invalidateGuildEmojis(guild.id);
+      toast(`:${payload.name}: is ready to type.`, "success");
+      return null;
+    } catch {
+      const message = "Couldn't reach the server.";
+      toast(message, "error");
+      return message;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const deleteEmoji = (emoji: GuildEmoji) => {
+    if (!guild || busy) return;
+    askConfirm({
+      title: `Delete :${emoji.name}:?`,
+      body: `The slot comes back straight away, but every message that already uses it will read as the plain text :${emoji.name}: from now on. This can't be undone.`,
+      confirmLabel: "Delete emoji",
+      danger: true,
+      onConfirm: async () => {
+        setBusy(true);
+        try {
+          const r = await fetch(
+            `${API_URL}/api/guilds/${encodeURIComponent(id)}/emojis/${encodeURIComponent(emoji.id)}`,
+            { method: "DELETE", headers: authHeaders() },
+          );
+          const d = await r.json().catch(() => null);
+          if (!r.ok || !d?.success) return toast(d?.message || "Couldn't delete that emoji.", "error");
+          invalidateGuildEmojis(guild.id);
+          toast(`:${emoji.name}: is gone.`, "success");
+        } catch {
+          toast("Couldn't reach the server.", "error");
+        } finally {
+          setBusy(false);
+        }
+      },
+    });
   };
 
   const endLoan = async (loan: Loan, verb: string) => {
@@ -1381,6 +1512,9 @@ export default function GuildHomePage() {
                 onNewRole={() => setRoleSheet({ role: null })}
                 onPurchase={purchase}
                 onDisband={disband}
+                canManageEmoji={myPerms.editGuild}
+                onAddEmoji={() => setEmojiOpen(true)}
+                onDeleteEmoji={deleteEmoji}
               />
               </div>
             </>
@@ -1431,6 +1565,15 @@ export default function GuildHomePage() {
             busy={busy}
             onClose={() => setDonateOpen(false)}
             onDonate={donate}
+          />
+        )}
+
+        {emojiOpen && guild && (
+          <EmojiSheet
+            guild={guild}
+            busy={busy}
+            onClose={() => setEmojiOpen(false)}
+            onAdd={addEmoji}
           />
         )}
 
@@ -1556,6 +1699,7 @@ function LevelProgress({ guild }: { guild: GuildDetail }) {
 function GuildSideRail({
   guild, isMember, isLeader, isOfficer, busy,
   onOpenInvites, onNewRole, onPurchase, onDisband,
+  canManageEmoji, onAddEmoji, onDeleteEmoji,
 }: {
   guild: GuildDetail;
   isMember: boolean;
@@ -1566,6 +1710,10 @@ function GuildSideRail({
   onNewRole: () => void;
   onPurchase: (item: "roles" | "xpBoost" | "slots") => void;
   onDisband: () => void;
+  /** Officer, or a custom role carrying editGuild — the page computes it once. */
+  canManageEmoji: boolean;
+  onAddEmoji: () => void;
+  onDeleteEmoji: (emoji: GuildEmoji) => void;
 }) {
   const [raid, setRaid] = useState<RaidPanel | null>(null);
   const [artHidden, setArtHidden] = useState(false);
@@ -1826,6 +1974,19 @@ function GuildSideRail({
         )}
       </div>
 
+      {/* ── GUILD EMOJI — the other guild-level unlock, so it sits beside the
+          roles card. MEMBERS ONLY: the catalog read is members-only server
+          side, and an outsider has nowhere to type a :shortcode: anyway. ── */}
+      {isMember && (
+        <GuildEmojiCard
+          guild={guild}
+          canManage={canManageEmoji}
+          busy={busy}
+          onAdd={onAddEmoji}
+          onDelete={onDeleteEmoji}
+        />
+      )}
+
       {/* ── GUILD MANAGEMENT — leader only. Every debit here is one-way: the
           treasury pays out to the guild, never back to a person. ── */}
       {isLeader && (
@@ -1930,6 +2091,304 @@ function GuildSideRail({
             back out to a member.
           </p>
         )}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════ GUILD EMOJI — the rail card ═══════════
+   The catalog comes from the module cache in @/lib/guildEmoji, so this card,
+   the chat room and the composer's picker all read ONE fetch per guild per
+   session — mounting this costs nothing extra.
+
+   The meter is for DRAWING only. The server recomputes the slot ceiling on
+   every upload and is the wall; these numbers exist so the card can say
+   "3 / 11" and name the level reward without a round trip. */
+
+function GuildEmojiCard({ guild, canManage, busy, onAdd, onDelete }: {
+  guild: GuildDetail;
+  canManage: boolean;
+  busy: boolean;
+  onAdd: () => void;
+  onDelete: (emoji: GuildEmoji) => void;
+}) {
+  const catalog = useGuildEmojis(guild.id);
+
+  // The mirrored curve fills the total in before the catalog lands (and if the
+  // read fails outright), so a level-40 guild never flashes the level-1 five.
+  const levelTotal = emojiSlots(guild.level ?? 1);
+  const total = Math.max(1, levelTotal, Math.round(catalog.slots?.total ?? 0));
+  // A row the catalog DROPPED — a name or a host it refuses to point a hundred
+  // chat lines at — still costs the guild its slot server-side, so the meter
+  // trusts whichever count is larger rather than quietly under-reporting.
+  const used = Math.min(total, Math.max(catalog.emojis.length, Math.round(catalog.slots?.used ?? 0)));
+  const pct = Math.max(0, Math.min(100, (used / total) * 100));
+  const full = used >= total;
+  // Where the curve tops out, derived — never a literal that can drift.
+  const cappedAtLevel = (EMOJI_SLOTS_MAX - EMOJI_SLOTS_BASE) * EMOJI_LEVELS_PER_SLOT;
+
+  return (
+    <div className="rounded-3xl border border-white/10 bg-[#0b0b11]/85 p-5">
+      <div className="flex items-center gap-2">
+        <Smile className="h-4 w-4 shrink-0 text-emerald-300" />
+        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">Guild emoji</p>
+      </div>
+
+      <p className="mt-3 font-fell text-2xl leading-none text-white">
+        {nf(used)} <span className="text-base text-slate-500">/ {nf(total)}</span>
+      </p>
+      <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/10">
+        <div
+          className={`h-full rounded-full transition-all ${full ? "bg-amber-300" : "bg-emerald-400"}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      {/* Say the reward out loud — nobody levels a guild for a number they
+          were never told about. */}
+      <p className="mt-1.5 text-[10px] leading-relaxed text-slate-500">
+        Slots are a level reward: {EMOJI_SLOTS_BASE} at level 1, +1 every {EMOJI_LEVELS_PER_SLOT} levels,
+        {" "}{EMOJI_SLOTS_MAX} by level {cappedAtLevel}.
+      </p>
+
+      {catalog.emojis.length === 0 ? (
+        <p className="mt-4 py-5 text-center text-xs leading-relaxed text-slate-600">
+          {canManage
+            ? "No emoji yet — add the first one and the whole guild can type it."
+            : "No emoji yet. An officer can add some."}
+        </p>
+      ) : (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {catalog.emojis.map((e) => (
+            <div key={e.id} className="relative w-16 min-w-0">
+              <div className="grid h-12 w-16 place-items-center rounded-xl border border-white/10 bg-white/[0.03]">
+                <img
+                  src={e.url}
+                  alt={`:${e.name}:`}
+                  title={`:${e.name}:`}
+                  loading="lazy"
+                  className="h-8 w-8 object-contain"
+                />
+              </div>
+              <p className="mt-1 truncate text-center font-mono text-[9px] text-slate-500" title={`:${e.name}:`}>
+                :{e.name}:
+              </p>
+              {canManage && (
+                <button type="button" disabled={busy} onClick={() => onDelete(e)}
+                  aria-label={`Delete :${e.name}:`} title={`Delete :${e.name}:`}
+                  className="absolute -right-1.5 -top-1.5 grid h-7 w-7 place-items-center rounded-full border border-red-400/40 bg-[#0b0b11] text-red-300 transition hover:bg-red-500/25 disabled:cursor-not-allowed disabled:opacity-40">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {catalog.emojis.length > 0 && (
+        <p className="mt-3 text-[10px] leading-relaxed text-slate-600">
+          Type <span className="font-mono font-black text-slate-400">:{catalog.emojis[0].name}:</span> in the guild
+          chat — every member can use them, and they only work in here.
+        </p>
+      )}
+
+      {canManage && (
+        <>
+          <button type="button" disabled={busy || full} onClick={onAdd}
+            className="mt-3 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-emerald-400/40 bg-emerald-500/15 px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-200 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-40">
+            <Plus className="h-3.5 w-3.5" /> {full ? "Slots full" : "Add emoji"}
+          </button>
+          {full && (
+            <p className="mt-2 text-center text-[10px] text-slate-600">
+              Delete one to make room, or level the guild up for another slot.
+            </p>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════ THE EMOJI SHEET — a picture, a name, a slot ═══════════
+   A bottom sheet on phones, a centred card from sm up, same as every other
+   sheet in the hall. The image goes to Cloudinary through the SAME uploader
+   the crest and the banner use; only the returned secure_url reaches our
+   backend, which accepts that host and no other. */
+
+function EmojiSheet({ guild, busy, onClose, onAdd }: {
+  guild: GuildDetail;
+  busy: boolean;
+  onClose: () => void;
+  onAdd: (payload: { name: string; url: string; animated: boolean }) => Promise<string | null>;
+}) {
+  const { toast } = useToast();
+  const catalog = useGuildEmojis(guild.id);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [url, setUrl] = useState<string | null>(null);
+  const [animated, setAnimated] = useState(false);
+  const [name, setName] = useState("");
+  const [uploading, setUploading] = useState(false);
+  // The server's own words, kept on screen. The toast says the same thing and
+  // then leaves; a form needs the reason to still be there while you fix it.
+  const [error, setError] = useState<string | null>(null);
+
+  // The lib normalises and validates — this sheet never restates either rule.
+  const clean = normalizeEmojiName(name);
+  const nameOk = isValidEmojiName(clean);
+  const duplicate = !!clean && !!catalog.byName[clean];
+  // Same reading as the rail card, and the same disclaimer: this warns, it
+  // does not decide. The server re-counts on every POST and answers 402.
+  const slotTotal = Math.max(1, emojiSlots(guild.level ?? 1), Math.round(catalog.slots?.total ?? 0));
+  const slotsFull = Math.max(catalog.emojis.length, Math.round(catalog.slots?.used ?? 0)) >= slotTotal;
+  const ready = !!url && nameOk && !duplicate && !uploading && !busy;
+
+  const pick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setError(null);
+    if (file.size > EMOJI_MAX_BYTES) {
+      setError(EMOJI_TOO_BIG);
+      toast(EMOJI_TOO_BIG, "error");
+      return;
+    }
+    // GIF and WebP carry the frames; the flag is a HINT the server stores so
+    // the render path knows whether this one moves.
+    const kind = (file.type || "").toLowerCase();
+    const moves = kind === "image/gif" || kind === "image/webp" || /\.(gif|webp)$/i.test(file.name || "");
+    setUploading(true);
+    const secureUrl = await uploadToCloudinary(file, {
+      maxBytes: EMOJI_MAX_BYTES,
+      tooLarge: EMOJI_TOO_BIG,
+      toast,
+    });
+    setUploading(false);
+    if (!secureUrl) return;
+    setUrl(secureUrl);
+    setAnimated(moves);
+  };
+
+  const submit = async () => {
+    if (!ready || !url) return;
+    setError(null);
+    const message = await onAdd({ name: clean, url, animated });
+    if (message) return setError(message);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-end justify-center sm:items-center">
+      <div className="absolute inset-0 bg-black/70" onClick={onClose} />
+      <div role="dialog" aria-modal="true" aria-label="Add a guild emoji"
+        className="relative flex max-h-[85dvh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-[#0b0b11] sm:rounded-2xl">
+        <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+          <div className="min-w-0">
+            <p className="font-fell text-lg text-white">Add an emoji</p>
+            <p className="text-[11px] text-slate-500">
+              A picture and a name — anyone in {guild.name} can then type it in the guild chat
+            </p>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Close"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-white/10 hover:text-white">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4">
+          {slotsFull && (
+            <div className="rounded-2xl border border-amber-400/30 bg-amber-500/[0.08] p-3.5">
+              <p className="text-[11px] font-black uppercase tracking-[0.16em] text-amber-200">Slots look full</p>
+              <p className="mt-1.5 text-[11px] leading-relaxed text-amber-100/80">
+                {nf(catalog.emojis.length)} of {nf(slotTotal)} used. Delete one, or level the guild up — the
+                server has the final say either way.
+              </p>
+            </div>
+          )}
+
+          {/* THE PREVIEW — the image and the shortcode side by side, exactly
+              as a chat line will read it. */}
+          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-3">
+            {url ? (
+              <img src={url} alt="" className="h-12 w-12 shrink-0 rounded-lg object-contain" />
+            ) : (
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-lg border border-dashed border-white/15 text-slate-600">
+                <Smile className="h-5 w-5" />
+              </span>
+            )}
+            <div className="min-w-0">
+              <p className="truncate font-mono text-sm font-black text-white">
+                {clean ? `:${clean}:` : ":name:"}
+              </p>
+              <p className="mt-0.5 truncate text-[10px] text-slate-500">
+                {!url ? "No image yet" : animated ? "Animated — it will move in chat" : "Still image"}
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-black text-white">The image</label>
+            <p className="mt-1 text-[10px] leading-relaxed text-slate-600">
+              PNG, JPG, GIF or WebP, up to {EMOJI_MAX_MB}MB. Animated GIFs and WebPs keep their frames. Square
+              art around 128px reads best on a chat line.
+            </p>
+            <button type="button" disabled={uploading || busy} onClick={() => fileRef.current?.click()}
+              className="mt-2 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.05] px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-slate-200 transition hover:bg-white/[0.1] disabled:cursor-not-allowed disabled:opacity-50">
+              {uploading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+              {uploading ? "Uploading…" : url ? "Choose a different image" : "Choose an image"}
+            </button>
+            <input ref={fileRef} type="file" accept={EMOJI_ACCEPT} onChange={pick} className="hidden" />
+          </div>
+
+          <div>
+            <div className="mb-1 flex items-baseline justify-between gap-2">
+              <label htmlFor="guild-emoji-name" className="text-xs font-black text-white">The name</label>
+              <span className="text-[10px] tabular-nums text-slate-600">{clean.length}/{EMOJI_NAME_MAX}</span>
+            </div>
+            <input
+              id="guild-emoji-name"
+              value={name}
+              maxLength={EMOJI_NAME_MAX}
+              autoComplete="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              onChange={(e) => setName(normalizeEmojiName(e.target.value).slice(0, EMOJI_NAME_MAX))}
+              onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+              placeholder="party_slime"
+              className="min-h-[44px] w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5 font-mono text-sm text-white placeholder:text-slate-600 outline-none focus:border-emerald-400/40"
+            />
+            <p className="mt-1.5 text-[10px] leading-relaxed text-slate-600">
+              Lowercase letters, numbers and underscores, {EMOJI_NAME_MIN}–{EMOJI_NAME_MAX} characters — no
+              spaces, no colons. Typed in chat as <span className="font-mono text-slate-400">:name:</span>, and
+              that is exactly what it reads as anywhere the picture can&rsquo;t load.
+            </p>
+            {clean && !nameOk && (
+              <p className="mt-1.5 text-[10px] font-black text-red-300">
+                That name won&rsquo;t do — check the rule above.
+              </p>
+            )}
+            {duplicate && (
+              <p className="mt-1.5 text-[10px] font-black text-red-300">
+                :{clean}: is already taken in this guild.
+              </p>
+            )}
+          </div>
+
+          {error && (
+            <div className="rounded-2xl border border-red-400/30 bg-red-500/[0.08] p-3.5">
+              <p className="text-[11px] leading-relaxed text-red-200">{error}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-end gap-2 border-t border-white/10 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <button type="button" onClick={onClose}
+            className="min-h-[44px] rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400 transition hover:bg-white/[0.08] hover:text-slate-200">
+            Cancel
+          </button>
+          <button type="button" disabled={!ready} onClick={submit}
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-emerald-400/40 bg-emerald-500/15 px-5 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-200 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-40">
+            <Plus className="h-3.5 w-3.5" /> {busy ? "Adding…" : "Add emoji"}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -2322,10 +2781,9 @@ function EditGuildSheet({ guild, onClose, onSaved }: {
   const [isPublic, setIsPublic] = useState(guild.isPublic !== false);
   const [minLevel, setMinLevel] = useState(String(guild.minLevel ?? 1));
 
-  // The SettingsModal flow: unsigned upload straight to Cloudinary, only the
-  // returned secure_url travels to our backend — which allow-lists exactly
-  // that host (res.cloudinary.com) for guild art. One uploader serves both
-  // the crest and the banner; only the target setter differs.
+  // The shared `uploadToCloudinary` above does the actual upload — the crest,
+  // the banner and the guild emoji all go through it. This wrapper only wires
+  // it to a file input and a setter; only the target differs.
   const uploadImage = async (
     e: React.ChangeEvent<HTMLInputElement>,
     apply: (url: string) => void,
@@ -2334,27 +2792,14 @@ function EditGuildSheet({ guild, onClose, onSaved }: {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-    const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
-    if (!CLOUD_NAME || !UPLOAD_PRESET) return toast("Image uploads aren't configured yet.", "error");
-    if (file.size > 10 * 1024 * 1024) return toast("That image is over 10MB — pick a smaller one.", "error");
     setBusy(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("upload_preset", UPLOAD_PRESET);
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      if (data.secure_url) apply(data.secure_url);
-      else toast("Upload failed — try again.", "error");
-    } catch {
-      toast("Upload failed — try again.", "error");
-    } finally {
-      setBusy(false);
-    }
+    const url = await uploadToCloudinary(file, {
+      maxBytes: 10 * 1024 * 1024,
+      tooLarge: "That image is over 10MB — pick a smaller one.",
+      toast,
+    });
+    setBusy(false);
+    if (url) apply(url);
   };
 
   const save = async () => {

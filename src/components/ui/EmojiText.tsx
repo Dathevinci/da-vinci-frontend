@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { usePreferences } from "@/hooks/usePreferences";
 
 /**
@@ -30,6 +30,19 @@ import { usePreferences } from "@/hooks/usePreferences";
  * mid-timestamp; that is inherent to `:shortcode:` (Discord behaves the same
  * way) and is a naming choice, not something to solve by narrowing the token
  * rule away from the `[a-z0-9_]{2,24}` the server enforces.
+ *
+ * ═════════════ WHY THE TOKENISER IS EXPORTED, NOT JUST USED ═════════════
+ * A chat body has to render BOTH `@names` and `:shortcodes:`, and those were
+ * two components each taking a raw string — so neither could run on the other's
+ * output (React nodes are not text). `emojiNodes` below is the shortcode pass
+ * lifted OUT of this component so MentionText can call it on the plain-text
+ * runs BETWEEN its mentions: one tokenising pass, two renderers, ONE definition
+ * of what a shortcode is. Duplicating the regex instead would let the two drift
+ * — the day one accepts `:A_b:` and the other doesn't, a message renders
+ * differently depending on whether it happens to contain a mention.
+ *
+ * Splitting on mentions FIRST is safe by construction: `@` is not in the
+ * shortcode class, so a mention boundary can never fall inside a `:name:`.
  */
 
 /** The catalog entry this component actually needs. `GuildEmoji` satisfies it. */
@@ -46,6 +59,59 @@ export type EmojiSource = { url: string; animated?: boolean };
  * unknown token.
  */
 const TOKEN = /:([A-Za-z0-9_]{2,24}):/;
+
+/**
+ * THE shortcode pass: a string in, text-and-images out.
+ *
+ * Returns the ORIGINAL STRING — not an array, not a fragment — whenever there
+ * is nothing to do (no catalog, Performance Mode on, no token in the text).
+ * That identity matters: it is what lets MentionText adopt this without
+ * changing a single character of what its existing callers render.
+ *
+ * `still` is passed IN rather than read from a hook, because this runs once per
+ * plain-text run and a chat room holds 60+ messages. A `usePreferences()` in
+ * here would be hundreds of localStorage reads and hundreds of window
+ * listeners per paint; the room resolves it once and threads it down, the same
+ * reason the catalog itself is hoisted to the room.
+ *
+ * `keyPrefix` keeps the emitted keys unique when several runs of one message
+ * are rendered side by side (MentionText emits one run per gap between
+ * mentions, and both would otherwise start counting from the same index).
+ */
+export function emojiNodes(
+  raw: string,
+  emojis: Record<string, EmojiSource> | null | undefined,
+  still: boolean,
+  keyPrefix: string = "emoji"
+): React.ReactNode {
+  if (!raw || !emojis || still) return raw;
+
+  // split with ONE capture group alternates [text, name, text, name, ...] —
+  // every odd index is a shortcode body, every even index is plain text.
+  const parts = raw.split(TOKEN);
+  if (parts.length < 2) return raw;
+
+  const nodes: React.ReactNode[] = [];
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    if (i % 2 === 0) {
+      if (part) nodes.push(part);
+      continue;
+    }
+    const literal = `:${part}:`;
+    // A shortcode is allowed to spell `constructor` or `toString`, so the hit
+    // is checked for a real url rather than trusted for being truthy — the
+    // catalog's map is null-prototype, but a caller's need not be.
+    const found = emojis[part.toLowerCase()];
+    if (!found || typeof found.url !== "string" || !found.url) {
+      nodes.push(literal);
+      continue;
+    }
+    nodes.push(<EmojiImage key={`${keyPrefix}-${i}`} url={found.url} literal={literal} />);
+  }
+
+  return nodes;
+}
 
 export default function EmojiText({
   text,
@@ -73,37 +139,14 @@ export default function EmojiText({
    * `usePreferences` reads localStorage in an effect, so the first paint uses
    * the default (off) on both server and client — hydration-safe — and flips
    * after mount for anyone who has the preference on.
+   *
+   * This component OWNS that hook for one-off callers (a single body, a card
+   * blurb). Anything rendering a LIST resolves the preference once itself and
+   * calls `emojiNodes` directly — see MentionText and GuildChatRoom.
    */
   const stillOnly = preferences.reducedMotion === true;
 
-  if (!raw || !emojis || stillOnly) {
-    return <span className={className}>{raw}</span>;
-  }
-
-  // split with ONE capture group alternates [text, name, text, name, ...] —
-  // every odd index is a shortcode body, every even index is plain text.
-  const parts = raw.split(TOKEN);
-  if (parts.length < 2) {
-    return <span className={className}>{raw}</span>;
-  }
-
-  const nodes: React.ReactNode[] = [];
-  for (let i = 0; i < parts.length; i++) {
-    const part = parts[i];
-    if (i % 2 === 0) {
-      if (part) nodes.push(part);
-      continue;
-    }
-    const literal = `:${part}:`;
-    const found = emojis[part.toLowerCase()];
-    if (!found || typeof found.url !== "string" || !found.url) {
-      nodes.push(literal);
-      continue;
-    }
-    nodes.push(<EmojiImage key={`emoji-${i}`} url={found.url} literal={literal} />);
-  }
-
-  return <span className={className}>{nodes}</span>;
+  return <span className={className}>{emojiNodes(raw, emojis, stillOnly)}</span>;
 }
 
 /**
@@ -115,6 +158,12 @@ export default function EmojiText({
  *
  * `alt` is the shortcode too, so a screen reader reads what was typed and a
  * copy-paste of the message carries the emoji across as text.
+ *
+ * SIZED IN em, CAPPED IN %. 1.35em keeps the glyph a hair taller than the text
+ * it sits in without dragging the line height around, and `maxWidth: 100%`
+ * stops a wide (or mis-uploaded banner-shaped) emoji from pushing a chat line
+ * past the edge of a 360px phone. A run of many of them wraps between images
+ * rather than overflowing, because each one is its own inline box.
  */
 function EmojiImage({ url, literal }: { url: string; literal: string }) {
   const [broken, setBroken] = useState(false);
@@ -133,6 +182,7 @@ function EmojiImage({ url, literal }: { url: string; literal: string }) {
       style={{
         height: "1.35em",
         width: "auto",
+        maxWidth: "100%",
         display: "inline-block",
         verticalAlign: "middle",
         objectFit: "contain",
