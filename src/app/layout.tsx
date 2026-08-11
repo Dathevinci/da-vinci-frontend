@@ -1,74 +1,63 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+/**
+ * EVERY font face is SELF-HOSTED from src/app/fonts — latin-subset woff2,
+ * the variable file wherever the family has one. This replaced
+ * next/font/google on 2026-08-11: that pipeline re-downloads every family
+ * on every Vercel build, and a builder-side breakage (Module not found:
+ * '@vercel/turbopack-next/internal/font/google/font', surfacing first as a
+ * Lexend fetch failure, then EB Garamond) killed consecutive deploys with
+ * zero code at fault. Local files build deterministically, offline.
+ * The CSS variables are IDENTICAL to before — nothing downstream moved.
+ */
+import localFont from "next/font/local";
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-import { Permanent_Marker, Cinzel, EB_Garamond, IM_Fell_English_SC } from "next/font/google";
-
-const permanentMarker = Permanent_Marker({
-  weight: "400",
-  subsets: ["latin"],
-  variable: "--font-graffiti",
-});
-
-const cinzel = Cinzel({
-  weight: ["400", "700", "900"],
-  subsets: ["latin"],
-  variable: "--font-cinzel",
-});
-
-const fellEnglish = IM_Fell_English_SC({
-  weight: "400",
-  subsets: ["latin"],
-  variable: "--font-fell",
-});
+const geistSans = localFont({ src: "./fonts/geist-latin.woff2", weight: "100 900", variable: "--font-geist-sans" });
+const geistMono = localFont({ src: "./fonts/geist-mono-latin.woff2", weight: "100 900", variable: "--font-geist-mono" });
+const permanentMarker = localFont({ src: "./fonts/permanent-marker-latin.woff2", weight: "400", variable: "--font-graffiti" });
+const cinzel = localFont({ src: "./fonts/cinzel-latin.woff2", weight: "400 900", variable: "--font-cinzel" });
+const fellEnglish = localFont({ src: "./fonts/im-fell-english-sc-latin.woff2", weight: "400", variable: "--font-fell" });
 
 // The landing wordmark's face — the heavy condensed grotesque of the Lunar
 // reference. Anton ships one weight; it is inherently black.
-import { Anton } from "next/font/google";
-const anton = Anton({
-  weight: "400",
-  subsets: ["latin"],
-  variable: "--font-anton",
-  display: "swap",
-});
+const anton = localFont({ src: "./fonts/anton-latin.woff2", weight: "400", variable: "--font-anton", display: "swap" });
 
 // Classic Renaissance book serif for elegant, da Vinci-era typography.
-const ebGaramond = EB_Garamond({
-  weight: ["400", "500"],
-  style: ["normal", "italic"],
-  subsets: ["latin"],
+const ebGaramond = localFont({
+  src: [
+    { path: "./fonts/eb-garamond-latin.woff2", style: "normal" },
+    { path: "./fonts/eb-garamond-latin-italic.woff2", style: "italic" },
+  ],
+  weight: "400 800",
   variable: "--font-garamond",
 });
 
-// Extra reading faces for the novel chapter reader's font picker. next/font
-// SELF-HOSTS these at build time (no runtime Google CDN / CSP issue). preload
-// is off so they only download when a reader actually picks them — zero cost to
-// every other page.
-import { Lora, Merriweather, Literata } from "next/font/google";
-// Lexend is SELF-HOSTED (src/app/fonts/): Google's serving of this one family
-// flaked on 2026-08-11 and killed two consecutive Vercel builds at the
-// build-time font download. A local variable woff2 (latin subset) removes the
-// network dependency; the CSS variable and classes are unchanged.
-import localFont from "next/font/local";
-
-// Dungeon Dispatch's arcade face. preload off, same as the reader fonts —
-// it costs nothing until someone actually walks into the dungeon.
-import { Press_Start_2P } from "next/font/google";
-const pressStart = Press_Start_2P({ weight: "400", subsets: ["latin"], variable: "--font-pixel", display: "swap", preload: false });
-
-const lora = Lora({ weight: ["400", "700"], style: ["normal", "italic"], subsets: ["latin"], variable: "--font-lora", display: "swap", preload: false });
-const merriweather = Merriweather({ weight: ["400", "700"], style: ["normal", "italic"], subsets: ["latin"], variable: "--font-merriweather", display: "swap", preload: false });
-const literata = Literata({ weight: ["400", "700"], style: ["normal", "italic"], subsets: ["latin"], variable: "--font-literata", display: "swap", preload: false });
+// Reading faces for the novel chapter reader's font picker, plus Dungeon
+// Dispatch's arcade face. preload off — they only download when a reader
+// actually picks them; zero cost to every other page.
+const pressStart = localFont({ src: "./fonts/press-start-2p-latin.woff2", weight: "400", variable: "--font-pixel", display: "swap", preload: false });
+const lora = localFont({
+  src: [
+    { path: "./fonts/lora-latin.woff2", style: "normal" },
+    { path: "./fonts/lora-latin-italic.woff2", style: "italic" },
+  ],
+  weight: "400 700", variable: "--font-lora", display: "swap", preload: false,
+});
+const merriweather = localFont({
+  src: [
+    { path: "./fonts/merriweather-latin.woff2", style: "normal" },
+    { path: "./fonts/merriweather-latin-italic.woff2", style: "italic" },
+  ],
+  weight: "400 700", variable: "--font-merriweather", display: "swap", preload: false,
+});
+const literata = localFont({
+  src: [
+    { path: "./fonts/literata-latin.woff2", style: "normal" },
+    { path: "./fonts/literata-latin-italic.woff2", style: "italic" },
+  ],
+  weight: "400 700", variable: "--font-literata", display: "swap", preload: false,
+});
 const lexend = localFont({ src: "./fonts/lexend-latin-var.woff2", weight: "100 900", variable: "--font-lexend", display: "swap", preload: false });
 
 import Navbar from "@/components/layout/Navbar";
