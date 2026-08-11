@@ -17,6 +17,9 @@ import { UserBadgesCompact } from "@/components/profile/UserBadges";
 import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
 import GuildTag from "@/components/guild/GuildTag";
 import MediaPicker from "@/components/community/MediaPicker";
+import MentionsTextarea from "@/components/ui/MentionsTextarea";
+import MentionsInput from "@/components/ui/MentionsInput";
+import MentionText from "@/components/ui/MentionText";
 import { PollBuilder, PollCard, EMPTY_POLL, pollIsValid, type PollDraft, type PollData } from "@/components/community/Poll";
 import { effectNameClass } from "@/lib/effectTheme";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -728,7 +731,7 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                             className="w-full bg-black/50 px-3.5 py-2 text-sm font-black text-white outline-none placeholder:text-slate-600"
                             style={{ borderRadius: 9, boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }}
                           />
-                          <textarea
+                          <MentionsTextarea
                             value={draftBody}
                             onChange={(e) => setDraftBody(e.target.value.slice(0, 1500))}
                             rows={4}
@@ -775,7 +778,7 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                           )}
                           {p.content && (
                             <p className="mt-2 whitespace-pre-wrap break-words text-[15px] leading-[1.65] text-slate-200">
-                              {p.content}
+                              <MentionText text={p.content} />
                             </p>
                           )}
                         </>
@@ -861,7 +864,7 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                                       carry no title or topic of their own. */}
                                   {editing === r.id ? (
                                     <div className="mt-1.5 space-y-2">
-                                      <textarea
+                                      <MentionsTextarea
                                         value={draftBody}
                                         onChange={(e) => setDraftBody(e.target.value.slice(0, 800))}
                                         rows={3}
@@ -883,7 +886,7 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                                     </div>
                                   ) : (
                                     <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-300">
-                                      {r.content}
+                                      <MentionText text={r.content} />
                                     </p>
                                   )}
                                 </div>
@@ -977,12 +980,14 @@ function ReplyBox({ postId, onDone }: { postId: string; onDone: () => void }) {
 
   return (
     <div className="flex items-center gap-2 pt-1">
-      <input
+      {/* Enter still sends — MentionsInput only intercepts it while the
+          suggestion list is open, where it picks the highlighted name. */}
+      <MentionsInput
         value={text}
-        onChange={(e) => setText(e.target.value.slice(0, 800))}
-        onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+        onChange={(v) => setText(v.slice(0, 800))}
+        onSubmit={send}
         placeholder="Write a reply…"
-        className="min-w-0 flex-1 bg-black/45 px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600"
+        className="w-full min-w-0 bg-black/45 px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600"
         style={{ borderRadius: 8, boxShadow: "inset 0 0 0 1px rgba(255,255,255,.11)" }}
       />
       <button onClick={send} disabled={!text.trim() || busy} aria-label="Send reply"
@@ -1073,8 +1078,8 @@ function Composer({ onClose, onPosted }: { onClose: () => void; onPosted: () => 
             <label className="text-sm font-black">Content</label>
             <span className="text-[11px] tabular-nums text-slate-600">{content.length}/1500</span>
           </div>
-          <textarea value={content} onChange={(e) => setContent(e.target.value.slice(0, 1500))}
-            placeholder="What's on your mind?" rows={6}
+          <MentionsTextarea value={content} onChange={(e) => setContent(e.target.value.slice(0, 1500))}
+            placeholder="What's on your mind? @mention someone…" rows={6}
             className="mb-3 w-full resize-y bg-black/50 px-3.5 py-2.5 text-sm leading-relaxed text-white outline-none placeholder:text-slate-600"
             style={{ borderRadius: 10, boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }} />
 

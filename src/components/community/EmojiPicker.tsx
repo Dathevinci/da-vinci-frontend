@@ -11,7 +11,21 @@ import { Smile, X } from "lucide-react";
  *
  * No emoji library: a curated set covers what people actually reach for
  * in an anime comment section, and it costs zero kilobytes.
+ *
+ * GUILD CUSTOM EMOJI are an OPTIONAL extra section, not a second picker.
+ * `customEmojis` is undefined for every caller outside a guild room, and an
+ * absent (or empty) list renders exactly the panel that shipped before this
+ * existed. `onPick` still hands back a plain string — a custom emoji emits its
+ * `:shortcode:`, which is what gets stored and what `EmojiText` renders — so no
+ * caller has to learn a new signature.
  */
+
+export type PickerCustomEmoji = {
+  id: string;
+  name: string;
+  url: string;
+  animated?: boolean;
+};
 
 const GROUPS: { label: string; emoji: string[] }[] = [
   {
@@ -35,10 +49,17 @@ const GROUPS: { label: string; emoji: string[] }[] = [
 export default function EmojiPicker({
   onPick,
   label = "Emoji",
+  customEmojis,
 }: {
   onPick: (emoji: string) => void;
   label?: string;
+  /** This guild's custom emoji. Omitted everywhere but a guild room. */
+  customEmojis?: PickerCustomEmoji[];
 }) {
+  // Normalised once so the render path never has to care about undefined,
+  // and so "prop absent" and "prop empty" behave identically.
+  const custom = Array.isArray(customEmojis) ? customEmojis : [];
+
   const [open, setOpen] = useState(false);
   const [rect, setRect] = useState<DOMRect | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -108,6 +129,34 @@ export default function EmojiPicker({
             </button>
           </div>
           <div className="max-h-64 overflow-y-auto overscroll-contain p-2">
+            {custom.length > 0 && (
+              <div className="mb-3">
+                <p className="px-1 pb-1 font-mono text-[9px] font-black uppercase tracking-[0.2em] text-amber-500/70">
+                  Guild
+                </p>
+                <div className="grid grid-cols-6 gap-1">
+                  {custom.map((e, i) => (
+                    <button
+                      key={e.id || `${e.name}-${i}`}
+                      type="button"
+                      onClick={() => { onPick(`:${e.name}:`); setOpen(false); }}
+                      title={`:${e.name}:`}
+                      aria-label={`:${e.name}:`}
+                      className="grid h-11 w-full place-items-center rounded-lg transition hover:bg-white/10"
+                    >
+                      <img
+                        src={e.url}
+                        alt={`:${e.name}:`}
+                        loading="lazy"
+                        decoding="async"
+                        draggable={false}
+                        className="h-7 w-7 object-contain"
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {GROUPS.map((g) => (
               <div key={g.label} className="mb-2 last:mb-0">
                 <p className="px-1 pb-1 font-mono text-[9px] font-black uppercase tracking-[0.2em] text-slate-600">{g.label}</p>

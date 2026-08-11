@@ -13,6 +13,7 @@ import UserLink from "@/components/profile/UserLink";
 import GuildTag from "@/components/guild/GuildTag";
 import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
 import CommunityFeed from "@/components/community/CommunityFeed";
+import MentionText from "@/components/ui/MentionText";
 import { PollCard, type PollData } from "@/components/community/Poll";
 
 /**
@@ -207,7 +208,7 @@ export default function PostPage() {
             {post.title && <h1 className="mt-4 text-2xl font-black leading-tight text-white">{post.title}</h1>}
             {post.content && (
               <p className="mt-3 whitespace-pre-wrap break-words font-mono text-sm leading-relaxed text-slate-200">
-                {post.content}
+                <MentionText text={post.content} />
               </p>
             )}
             {post.mediaUrl && (

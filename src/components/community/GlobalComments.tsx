@@ -8,6 +8,7 @@ import { useUser } from "@/hooks/useUser";
 import UserLink from "@/components/profile/UserLink";
 import UserBadges from "@/components/profile/UserBadges";
 import GuildTag from "@/components/guild/GuildTag";
+import MentionText from "@/components/ui/MentionText";
 import { ACCENT, ACCENT_LIT, notch } from "@/components/cards/gacha";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -327,7 +328,7 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
                       </div>
                       {c.content && (
                         <p className="mt-1.5 whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-300">
-                          {c.content}
+                          <MentionText text={c.content} />
                         </p>
                       )}
                       {c.mediaUrl && (

@@ -12,16 +12,17 @@ import { useToast } from "@/components/ui/Toast";
  *    Cloudinary with the same unsigned preset the avatar/update flows
  *    already use. Only the returned URL travels to our backend, so the
  *    existing mediaUrl pipe needs no changes.
- *  · GIF — a searchable KLIPY panel. Per KLIPY's integration terms the
- *    requests go directly from the browser (no proxy), results render in
- *    their returned order in a dedicated grid, media loads from their
- *    URLs untouched, and the panel carries KLIPY branding.
+ *  · GIF / STICKERS — a searchable KLIPY panel. Per KLIPY's integration
+ *    terms the requests go directly from the browser (no proxy), results
+ *    render in their returned order in a dedicated grid, media loads from
+ *    their URLs untouched, and the panel carries KLIPY branding.
  *
  * Both end the same way: onChange(url).
  */
 
 type KlipyFileVariant = { url?: string; width?: number; height?: number };
 type KlipyFormats = { gif?: KlipyFileVariant; webp?: KlipyFileVariant; jpg?: KlipyFileVariant };
+/** Stickers come back in this exact shape too — same envelope, same variants. */
 type KlipyGif = {
   id: number | string;
   title?: string;
@@ -29,10 +30,18 @@ type KlipyGif = {
   file?: { hd?: KlipyFormats; md?: KlipyFormats; sm?: KlipyFormats; xs?: KlipyFormats };
 };
 
+/** The two KLIPY collections this panel reads. Also the URL segment. */
+type KlipyKind = "gifs" | "stickers";
+
 const KLIPY_KEY = process.env.NEXT_PUBLIC_KLIPY_APP_KEY;
 
-function pickUrl(g: KlipyGif): string | null {
+function pickUrl(g: KlipyGif, kind: KlipyKind = "gifs"): string | null {
   const f = g.file;
+  // Stickers are transparent art — webp first, because a gif flattens the
+  // alpha onto a matte and the cut-out edge is the whole point of a sticker.
+  if (kind === "stickers") {
+    return f?.md?.webp?.url || f?.hd?.webp?.url || f?.sm?.webp?.url || f?.md?.gif?.url || null;
+  }
   return f?.md?.gif?.url || f?.hd?.gif?.url || f?.sm?.gif?.url || f?.md?.webp?.url || null;
 }
 function thumbUrl(g: KlipyGif): string | null {
@@ -170,6 +179,10 @@ function GifPanel({
   const [page, setPage] = useState(1);
   const [hasNext, setHasNext] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [kind, setKind] = useState<KlipyKind>("gifs");
+  // Starts from whatever a previous open already proved this session, so the
+  // tab row doesn't flicker in on every reopen.
+  const [stickerTab, setStickerTab] = useState(stickersOk === true);
   const panelRef = useRef<HTMLDivElement>(null);
   // Every fetch belongs to a generation; a response from a superseded
   // generation is discarded. Without this, a slow Load More landing after
@@ -198,14 +211,31 @@ function GifPanel({
     };
   }, [onClose, anchorRef]);
 
-  // Trending on open; search debounced. Fresh query resets to page 1.
+  // Does this key serve stickers? Asked on open, answered once per session.
+  // Failure just leaves the tab hidden — nothing else on the panel notices.
+  useEffect(() => {
+    if (!KLIPY_KEY) return;
+    if (stickersOk !== null) {
+      setStickerTab(stickersOk);
+      return;
+    }
+    let alive = true;
+    void probeStickers(userId).then((okay) => {
+      if (alive) setStickerTab(okay);
+    });
+    return () => { alive = false; };
+  }, [userId]);
+
+  // Trending on open; search debounced. A fresh query — or a tab switch —
+  // resets to page 1, and the generation bump discards anything still in the
+  // air from the collection we just left.
   useEffect(() => {
     if (!KLIPY_KEY) return;
     const gen = ++genRef.current;
     const t = setTimeout(async () => {
       setBusy(true);
       try {
-        const data = await fetchKlipy(q, 1, userId);
+        const data = await fetchKlipy(kind, q, 1, userId);
         if (genRef.current !== gen) return;
         setGifs(data.items);
         setHasNext(data.hasNext);
@@ -215,7 +245,7 @@ function GifPanel({
       }
     }, q ? 350 : 0);
     return () => clearTimeout(t);
-  }, [q, userId]);
+  }, [q, userId, kind]);
 
   const loadMore = async () => {
     if (!KLIPY_KEY || busy) return;
@@ -223,14 +253,25 @@ function GifPanel({
     setBusy(true);
     try {
       const next = page + 1;
-      const data = await fetchKlipy(q, next, userId);
-      if (genRef.current !== gen) return; // the query moved on
+      const data = await fetchKlipy(kind, q, next, userId);
+      if (genRef.current !== gen) return; // the query or the tab moved on
       setGifs((g) => [...g, ...data.items]);
       setHasNext(data.hasNext);
       setPage(next);
     } finally {
       if (genRef.current === gen) setBusy(false);
     }
+  };
+
+  // Clear the grid on the way out of a tab so stickers are never briefly drawn
+  // under a "GIFs" heading while the new page is still loading.
+  const switchKind = (next: KlipyKind) => {
+    if (next === kind) return;
+    genRef.current++;
+    setGifs([]);
+    setHasNext(false);
+    setPage(1);
+    setKind(next);
   };
 
   // Viewport-fixed placement: composers scroll and clip, so the panel
@@ -265,15 +306,42 @@ function GifPanel({
             autoFocus
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search GIFs..."
+            placeholder={kind === "stickers" ? "Search stickers..." : "Search GIFs..."}
             className="w-full rounded-lg border border-white/10 bg-white/[0.05] py-2 pl-8 pr-3 font-mono text-xs text-white placeholder:text-slate-600 focus:border-white/25 focus:outline-none"
           />
         </div>
-        <button type="button" onClick={onClose} aria-label="Close GIF search"
+        <button type="button" onClick={onClose} aria-label="Close media search"
           className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-slate-500 transition hover:bg-white/10 hover:text-white">
           <X className="h-4 w-4" />
         </button>
       </div>
+
+      {stickerTab && KLIPY_KEY && (
+        <div className="flex gap-1 border-b border-white/10 px-2 py-1.5">
+          <button
+            type="button"
+            onClick={() => switchKind("gifs")}
+            className={`flex-1 rounded-lg py-1.5 font-mono text-[11px] font-black uppercase tracking-wider transition ${
+              kind === "gifs"
+                ? "bg-violet-500/15 text-violet-200"
+                : "text-slate-500 hover:bg-white/5 hover:text-white"
+            }`}
+          >
+            GIFs
+          </button>
+          <button
+            type="button"
+            onClick={() => switchKind("stickers")}
+            className={`flex-1 rounded-lg py-1.5 font-mono text-[11px] font-black uppercase tracking-wider transition ${
+              kind === "stickers"
+                ? "bg-violet-500/15 text-violet-200"
+                : "text-slate-500 hover:bg-white/5 hover:text-white"
+            }`}
+          >
+            Stickers
+          </button>
+        </div>
+      )}
 
       {!KLIPY_KEY ? (
         <p className="p-4 font-mono text-xs leading-relaxed text-slate-500">
@@ -285,14 +353,14 @@ function GifPanel({
           <div className="grid max-h-72 grid-cols-3 gap-1.5 overflow-y-auto overscroll-contain p-2">
             {gifs.map((g) => {
               const thumb = thumbUrl(g);
-              const full = pickUrl(g);
+              const full = pickUrl(g, kind);
               if (!thumb || !full) return null;
               return (
                 <button
                   key={g.id}
                   type="button"
                   onClick={() => onPick(full)}
-                  title={g.title || "GIF"}
+                  title={g.title || (kind === "stickers" ? "Sticker" : "GIF")}
                   className="aspect-square overflow-hidden rounded-lg border border-white/5 bg-black/40 transition hover:border-white/30"
                 >
                   <img src={thumb} alt={g.title || ""} loading="lazy" className="h-full w-full object-cover" />
@@ -306,7 +374,9 @@ function GifPanel({
             </div>
           )}
           {!busy && gifs.length === 0 && (
-            <p className="p-4 text-center font-mono text-xs text-slate-500">No GIFs found.</p>
+            <p className="p-4 text-center font-mono text-xs text-slate-500">
+              {kind === "stickers" ? "No stickers found." : "No GIFs found."}
+            </p>
           )}
           {!busy && hasNext && (
             <button type="button" onClick={loadMore}
@@ -324,7 +394,18 @@ function GifPanel({
   );
 }
 
-async function fetchKlipy(q: string, page: number, userId?: string | number) {
+/**
+ * One KLIPY page. `ok` is the honest "did this endpoint actually answer" bit —
+ * the sticker probe below turns on a whole tab from it, so a non-2xx, a thrown
+ * request or an envelope that isn't `{ data: { data: [...] } }` all read false
+ * rather than being flattened into an empty-but-fine result.
+ *
+ * This never throws. GIF search behaves exactly as it did: an unhappy response
+ * still yields an empty list, so the failure surface for the existing path is
+ * unchanged.
+ */
+async function fetchKlipy(kind: KlipyKind, q: string, page: number, userId?: string | number) {
+  const empty = { ok: false, items: [] as KlipyGif[], hasNext: false };
   const base = `https://api.klipy.com/api/v1/${KLIPY_KEY}`;
   const params = new URLSearchParams({
     page: String(page),
@@ -334,13 +415,53 @@ async function fetchKlipy(q: string, page: number, userId?: string | number) {
   });
   if (userId !== undefined) params.set("customer_id", String(userId));
   if (q.trim()) params.set("q", q.trim());
-  const path = q.trim() ? "gifs/search" : "gifs/trending";
+  const path = q.trim() ? `${kind}/search` : `${kind}/trending`;
   try {
     const res = await fetch(`${base}/${path}?${params}`);
+    if (!res.ok) return empty;
     const json = await res.json();
-    const items: KlipyGif[] = json?.data?.data || [];
-    return { items, hasNext: !!json?.data?.has_next };
+    const rows = json?.data?.data;
+    if (!Array.isArray(rows)) return empty;
+    return { ok: true, items: rows as KlipyGif[], hasNext: !!json?.data?.has_next };
   } catch {
-    return { items: [], hasNext: false };
+    return empty;
   }
+}
+
+/**
+ * STICKERS ARE EARNED, NOT ASSUMED.
+ *
+ * KLIPY documents a Sticker API beside the GIF one, and the live router agrees
+ * — `stickers/trending` and `stickers/search` answer with the same key-check
+ * error the working `gifs/*` routes do, while a made-up path answers "Route
+ * not found". What could NOT be verified from here is whether THIS app key
+ * carries the sticker entitlement, since the key only exists in the deployed
+ * environment.
+ *
+ * So the tab is decided by evidence at runtime: one trending call, once per
+ * session. Anything short of a well-formed, non-empty page hides the tab
+ * outright — a tab that opens onto a dead panel is worse than no tab. The
+ * probe is fire-and-forget and cannot throw, so neither GIF search nor upload
+ * can be taken down by it.
+ */
+let stickersOk: boolean | null = null;
+let stickerProbe: Promise<boolean> | null = null;
+
+function probeStickers(userId?: string | number): Promise<boolean> {
+  if (stickersOk !== null) return Promise.resolve(stickersOk);
+  if (!stickerProbe) {
+    stickerProbe = fetchKlipy("stickers", "", 1, userId)
+      .then((r) => {
+        stickersOk = r.ok && r.items.length > 0;
+        return stickersOk;
+      })
+      .catch(() => {
+        stickersOk = false;
+        return false;
+      })
+      .finally(() => {
+        stickerProbe = null;
+      });
+  }
+  return stickerProbe;
 }

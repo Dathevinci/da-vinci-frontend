@@ -11,6 +11,8 @@ import { effectNameClass } from "@/lib/effectTheme";
 import { nameColorClass } from "@/lib/cosmetics";
 import MediaPicker from "@/components/community/MediaPicker";
 import EmojiPicker from "@/components/community/EmojiPicker";
+import MentionsTextarea from "@/components/ui/MentionsTextarea";
+import MentionText from "@/components/ui/MentionText";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -38,6 +40,31 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
  *   Edit   — THE AUTHOR ONLY. Not officers, not the leader. Rewriting someone
  *            else's words is a power nobody in this app has, so the button is
  *            not even drawn for them (and the server answers 403 regardless).
+ *
+ * ═══════════════════ MENTIONS, AND THE ENTER KEY ═══════════════════
+ * Both composers — the message box and the inline edit box — are
+ * MentionsTextarea, so @ opens the same autocomplete the community feed uses,
+ * and message bodies render through MentionText so a name becomes a link.
+ *
+ * MentionsTextarea renders the real <textarea> ITSELF and its prop contract is
+ * { value, onChange, placeholder, className, disabled } — no ref, no onKeyDown,
+ * no rows. Three consequences, each answered here rather than by changing that
+ * component (another surface owns it):
+ *
+ *  1. THE NODE. Every composer sits inside a box we DO hold a ref to, and the
+ *     live <textarea> is read out of that box after each commit. Emoji
+ *     insert-at-caret, auto-grow, focus-on-reply and the edit box's
+ *     caret-to-end all go on working through it.
+ *  2. THE KEYS. Our handlers ride the BOX, one bubble up from the textarea, so
+ *     the component's own keydown runs FIRST. While its dropdown is open it
+ *     answers Enter/Tab/the arrows with preventDefault(); we therefore treat a
+ *     defaultPrevented Enter as "the list took it" and DO NOT SEND. Enter only
+ *     sends when it arrives here untouched — i.e. when no dropdown is open.
+ *     Erring this way is deliberate: a swallowed Enter costs one more keypress,
+ *     the opposite mistake posts "@dej" to the whole guild.
+ *  3. THE ROWS. `rows` is not in the contract, so the box arrives at the HTML
+ *     default of two lines; autoGrow measures from 0px, which makes the height
+ *     content-driven and opens the composer on one line as rows={1} did.
  */
 
 export type GuildChatRolePermissions = {
@@ -246,7 +273,11 @@ export default function GuildChatRoom({
   askConfirm: (spec: ChatConfirmSpec) => void;
   /** The shell. Defaults to the guild hall's card; the dock hands its own. */
   className?: string;
-  /** The scroller's height. Defaults to the hall's fixed 28rem. */
+  /**
+   * The scroller's height, as classes. Every consumer hands its own: the hall
+   * a viewport-relative room, the dock `min-h-0 flex-1` so the panel's own
+   * flex column decides. The 28rem default is only what an unset caller gets.
+   */
   heightClass?: string;
 }) {
   const { user } = useUser();
@@ -270,8 +301,12 @@ export default function GuildChatRoom({
   // hover-only action row is an action row that does not exist. Resolved once
   // from the media query rather than sniffed off the user agent.
   const [coarse, setCoarse] = useState(false);
-  const taRef = useRef<HTMLTextAreaElement>(null);
-  const editRef = useRef<HTMLTextAreaElement>(null);
+  // The two live <textarea> nodes. MentionsTextarea renders them and takes no
+  // ref, so these are READ OUT of the boxes below rather than handed to us.
+  const taRef = useRef<HTMLTextAreaElement | null>(null);
+  const editRef = useRef<HTMLTextAreaElement | null>(null);
+  const composerBoxRef = useRef<HTMLDivElement>(null);
+  const editBoxRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   // Every rendered message row, by id — the jump-to-parent lookup. A parent
   // that is not in here simply is not loaded, and we refuse to guess.
@@ -344,6 +379,17 @@ export default function GuildChatRoom({
     return () => mq.removeEventListener("change", sync);
   }, []);
 
+  /* Re-read both live textareas after EVERY commit — the edit box comes and
+     goes with editingId, and the composer's node survives but costs nothing to
+     look up again. No dependency array on purpose.
+     DECLARED HERE, ABOVE the auto-grow and edit-focus effects, deliberately:
+     effects run in declaration order within a commit, so by the time those
+     reach for editRef/taRef the node is already the one just mounted. */
+  useEffect(() => {
+    taRef.current = composerBoxRef.current?.querySelector("textarea") ?? null;
+    editRef.current = editBoxRef.current?.querySelector("textarea") ?? null;
+  });
+
   useEffect(() => () => {
     if (highlightTimer.current) clearTimeout(highlightTimer.current);
   }, []);
@@ -380,19 +426,32 @@ export default function GuildChatRoom({
     });
   };
 
-  const autoGrow = () => {
+  /* AUTO-GROW. Measured from 0px, not "auto": without a rows={1} we can no
+     longer pass, "auto" would floor the box at the HTML default of two lines.
+     From zero the natural height is the CONTENT's — an empty textarea still
+     reserves one line for its caret — so the composer opens on one line and
+     climbs to the 120px ceiling exactly as it always did. */
+  const autoGrow = useCallback(() => {
     const el = taRef.current;
     if (!el) return;
-    el.style.height = "auto";
+    el.style.height = "0px";
     el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
-  };
+  }, []);
 
-  const growEdit = () => {
+  // The edit box keeps "auto": it was rows={2} before and the default is 2, so
+  // measuring from auto preserves the two-line box the author is used to.
+  const growEdit = useCallback(() => {
     const el = editRef.current;
     if (!el) return;
     el.style.height = "auto";
     el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
-  };
+  }, []);
+
+  /* Height follows the VALUE, not the keystroke. An input event is not enough
+     any more: a name picked off the mention dropdown and an emoji dropped at
+     the caret both rewrite the draft without the textarea ever seeing one. */
+  useEffect(() => { autoGrow(); }, [draft, autoGrow]);
+  useEffect(() => { if (editingId) growEdit(); }, [editDraft, editingId, growEdit]);
 
   const send = async () => {
     if (!user) return toast("Sign in to chat.", "error");
@@ -429,8 +488,12 @@ export default function GuildChatRoom({
       setDraft("");
       setMediaUrl("");
       setReplyTarget(null);
+      // Shrink NOW rather than a frame later: the [draft] effect would do it
+      // after the next paint, and clearing the node first makes the
+      // measurement agree with the state we have just set (they never diverge,
+      // so React has nothing to reconcile against).
       const el = taRef.current;
-      if (el) el.style.height = "auto";
+      if (el) { el.value = ""; autoGrow(); }
     } catch {
       toast("Couldn't reach the server.", "error");
     } finally {
@@ -531,8 +594,14 @@ export default function GuildChatRoom({
     }
   };
 
-  const onEditKey = (e: React.KeyboardEvent<HTMLTextAreaElement>, m: ChatMessage) => {
+  /* Rides the BOX around the edit textarea, so MentionsTextarea's own handler
+     has already run and told us, through defaultPrevented, whether its
+     dropdown claimed the key. */
+  const onEditKey = (e: React.KeyboardEvent<HTMLDivElement>, m: ChatMessage) => {
     if (e.key === "Enter" && !e.shiftKey) {
+      // The mention list used this Enter to insert a name. Saving now would
+      // commit "@dej" over the author's own words.
+      if (e.defaultPrevented) return;
       e.preventDefault();
       saveEdit(m);
       return;
@@ -540,10 +609,49 @@ export default function GuildChatRoom({
     if (e.key === "Escape") {
       // The dock closes the entire panel on Escape (a window listener). While
       // an edit is open the key belongs to the edit — stop it getting there.
+      // If the dropdown just ate the Escape to close itself, the edit stays
+      // open, but the dock must STILL not see the key.
+      if (e.defaultPrevented) { e.stopPropagation(); return; }
       e.preventDefault();
       e.stopPropagation();
       cancelEdit();
     }
+  };
+
+  /* ═══════════ THE COMPOSER'S KEYS — send, or pick a name? ═══════════
+     Same bubble trick, same rule: an Enter that arrives here ALREADY
+     defaultPrevented was consumed by the mention dropdown, and the only
+     correct thing to do with it is nothing. Enter sends only when it reaches
+     us untouched — which is precisely when no dropdown is open. */
+  const onComposerKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      if (e.defaultPrevented) return;
+      e.preventDefault();
+      send();
+      return;
+    }
+    if (e.key === "Escape") {
+      // Dropdown first (it closed itself; keep the dock out of it), then the
+      // reply. Only with nothing left to cancel does the key belong to the
+      // dock's close listener.
+      if (e.defaultPrevented) { e.stopPropagation(); return; }
+      if (replyTarget) {
+        e.preventDefault();
+        e.stopPropagation();
+        setReplyTarget(null);
+      }
+    }
+  };
+
+  /* A phone's keyboard opens AFTER the focus and can leave the composer — and
+     the mention dropdown, which hangs directly ABOVE it — behind the keys. The
+     dock already pays its measured visualViewport overlap as bottom padding,
+     which lifts this whole block clear; on the guild page there is no such
+     panel, so we ask for the same second look the edit box asks for once the
+     viewport has settled. "nearest" is a no-op when it is already in view. */
+  const onComposerFocus = () => {
+    if (!coarse) return;
+    setTimeout(() => composerBoxRef.current?.scrollIntoView({ block: "nearest" }), 320);
   };
 
   /* ─────────────────────────── REPLY ─────────────────────────── */
@@ -573,6 +681,25 @@ export default function GuildChatRoom({
 
   // Own messages always; moderators (officers + moderateChat roles) sweep the room.
   const canDelete = (m: ChatMessage) => !!user && (m.userId === user.id || canModerate);
+
+  /**
+   * The @-autocomplete's candidate set: THIS guild's roster, nobody else.
+   *
+   * postMessage/editMessage hand processMentions an allow-list built from
+   * GuildMember and drop everyone outside it, so a site-wide search here would
+   * offer names the server has already decided not to notify — a dropdown
+   * promising a ping into a room the target cannot even read. Already in hand
+   * from the detail payload, so it costs no request.
+   */
+  const mentionCandidates = useMemo(
+    () =>
+      (guild?.members || []).map((m) => ({
+        id: m.userId,
+        username: m.username,
+        avatar: m.avatar ?? null,
+      })),
+    [guild?.members]
+  );
   // Editing is the author's alone — no officer override, at any rank. A row
   // with no text has nothing to edit (the PATCH carries content and refuses
   // an empty one), so a GIF-only message offers no pencil.
@@ -768,17 +895,23 @@ export default function GuildChatRoom({
 
                               {editing ? (
                                 <div className="my-1">
-                                  <textarea
-                                    ref={editRef}
-                                    value={editDraft}
-                                    rows={2}
-                                    onChange={(e) => setEditDraft(e.target.value.slice(0, 500))}
-                                    onInput={growEdit}
+                                  {/* The box, not the textarea, carries the ref
+                                      and the keys — see the header note. The
+                                      click-stop rides it too, so tapping into
+                                      the edit never toggles the action row. */}
+                                  <div
+                                    ref={editBoxRef}
                                     onKeyDown={(e) => onEditKey(e, m)}
                                     onClick={(e) => e.stopPropagation()}
-                                    aria-label="Edit message"
-                                    className="max-h-40 w-full resize-none rounded-xl border border-sky-400/40 bg-black/50 px-3 py-2 text-sm leading-relaxed text-white outline-none focus:border-sky-400/70"
-                                  />
+                                  >
+                                    <MentionsTextarea
+                                      candidates={mentionCandidates}
+                                      value={editDraft}
+                                      onChange={(e) => setEditDraft(e.target.value.slice(0, 500))}
+                                      placeholder="Edit your message…"
+                                      className="max-h-40 w-full resize-none rounded-xl border border-sky-400/40 bg-black/50 px-3 py-2 text-sm leading-relaxed text-white placeholder:text-slate-600 outline-none focus:border-sky-400/70"
+                                    />
+                                  </div>
                                   <div className="mt-1.5 flex flex-wrap items-center gap-2">
                                     <button type="button" disabled={savingEdit || !editDraft.trim()}
                                       onClick={(e) => { e.stopPropagation(); saveEdit(m); }}
@@ -797,7 +930,11 @@ export default function GuildChatRoom({
                               ) : (
                                 m.content && (
                                   <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-300">
-                                    {m.content}
+                                    {/* @names become links; the <p> keeps the
+                                        typography and the pre-wrap, so line
+                                        breaks and the marker below still sit
+                                        where they always did. */}
+                                    <MentionText text={m.content} />
                                     {m.editedAt && (
                                       <span
                                         title={`Edited ${new Date(m.editedAt).toLocaleString()}`}
@@ -860,25 +997,25 @@ export default function GuildChatRoom({
               </div>
             )}
             <div className="flex items-end gap-2">
-              <textarea
-                ref={taRef}
-                value={draft}
-                rows={1}
-                onChange={(e) => setDraft(e.target.value.slice(0, 500))}
-                onInput={autoGrow}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); return; }
-                  // Escape drops the reply first; only once there is nothing
-                  // left to cancel does it belong to the dock's close listener.
-                  if (e.key === "Escape" && replyTarget) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setReplyTarget(null);
-                  }
-                }}
-                placeholder={replyTarget ? `Reply to ${replyTarget.author?.username || "someone"}…` : "Message the guild…"}
-                className="max-h-[120px] min-w-0 flex-1 resize-none rounded-xl border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm leading-relaxed text-white placeholder:text-slate-600 outline-none focus:border-emerald-400/40"
-              />
+              {/* The box holds the flex slot (min-w-0 flex-1) and the keys; the
+                  textarea inside it goes full width. h-11 is the FIRST-PAINT
+                  height only — autoGrow owns an inline height from the first
+                  effect onwards — and it keeps the untouched box on one line
+                  instead of the two the missing rows={1} would otherwise give. */}
+              <div
+                ref={composerBoxRef}
+                onKeyDown={onComposerKey}
+                onFocusCapture={onComposerFocus}
+                className="min-w-0 flex-1"
+              >
+                <MentionsTextarea
+                  candidates={mentionCandidates}
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value.slice(0, 500))}
+                  placeholder={replyTarget ? `Reply to ${replyTarget.author?.username || "someone"}…` : "Message the guild…"}
+                  className="h-11 max-h-[120px] w-full resize-none rounded-xl border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm leading-relaxed text-white placeholder:text-slate-600 outline-none focus:border-emerald-400/40"
+                />
+              </div>
               <button type="button" onClick={send} aria-label="Send message"
                 disabled={sending || (!draft.trim() && !mediaUrl.trim())}
                 className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-emerald-400/40 bg-emerald-500/15 text-emerald-200 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-30">
@@ -892,7 +1029,9 @@ export default function GuildChatRoom({
               <span className="ml-auto text-[10px] font-bold tabular-nums text-slate-600">{draft.length}/500</span>
             </div>
             <p className="mt-1.5 text-[9px] text-slate-600">
-              {coarse ? "Tap a message for reply, edit and delete" : "Enter sends · Shift+Enter for a new line"}
+              {coarse
+                ? "Tap a message for reply, edit and delete · @ to mention"
+                : "Enter sends · Shift+Enter for a new line · @ to mention"}
             </p>
           </div>
         </>

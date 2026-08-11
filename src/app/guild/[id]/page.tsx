@@ -1344,11 +1344,31 @@ export default function GuildHomePage() {
                 )}
               </div>
 
-              {/* ── THE GUILD CHAT — shared with the dock's slide-over panel;
-                     no className/heightClass here means the hall's own card
-                     chrome and its fixed 28rem scroller, unchanged. ── */}
+              {/* ── THE GUILD CHAT — shared with the dock's slide-over panel.
+                     No className, so the hall keeps its own card chrome; the
+                     HEIGHT, though, is the hall's business and not the room's.
+
+                     The old fixed 28rem read as a letterbox on a desktop hall,
+                     so the room is viewport-relative now, with both ends
+                     nailed down: 62vh on a 900px screen is ~560px of chat and
+                     the 48rem ceiling stops a tall monitor turning it into a
+                     corridor, while the 30rem floor keeps a short laptop
+                     honest.
+
+                     Below sm it is deliberately SMALLER (52vh, floor 20rem,
+                     ceiling 34rem): at 360x640 that is ~333px of room, which
+                     leaves the composer, the emoji/GIF row and the counter all
+                     on screen together instead of pushing them under the fold.
+
+                     vh, not dvh, on purpose — dvh re-measures every time a
+                     phone's URL bar slides, and resizing a SCROLLER mid-scroll
+                     fights the room's own stick-to-bottom test.
+
+                     The dock passes its own `min-h-0 flex-1` and is untouched
+                     by any of this. ── */}
               <GuildChatRoom key={guild.id} guildId={guild.id} guild={guild} isMember={isMember}
-                canModerate={myPerms.moderateChat} askConfirm={askConfirm} />
+                canModerate={myPerms.moderateChat} askConfirm={askConfirm}
+                heightClass="h-[52vh] min-h-[20rem] max-h-[34rem] sm:h-[62vh] sm:min-h-[30rem] sm:max-h-[48rem]" />
               </div>
 
               <GuildSideRail

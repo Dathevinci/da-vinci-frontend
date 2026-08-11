@@ -35,6 +35,7 @@ const RankIcons: Record<string, any> = {
 import { useToast } from '@/components/ui/Toast';
 import { authHeaders } from "@/lib/authToken";
 import MentionsTextarea from '@/components/ui/MentionsTextarea';
+import MentionText from '@/components/ui/MentionText';
 import Link from 'next/link';
 
 interface Comment {
@@ -442,7 +443,7 @@ const CommentThread = ({
         {/* Content */}
         {isEditing ? (
           <div className="mb-4">
-            <textarea
+            <MentionsTextarea
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
               className="w-full bg-black/40 text-white placeholder-slate-500 text-sm sm:text-base resize-none outline-none min-h-[80px] p-3 rounded-lg border border-white/10 focus-within:border-purple-500/50"
@@ -474,9 +475,13 @@ const CommentThread = ({
         ) : (
           <div className="mb-4">
             <p className="text-slate-200 text-sm sm:text-base leading-relaxed whitespace-pre-wrap break-words">
-              {isExpanded || node.content.length <= 300 
-                ? node.content 
-                : `${node.content.substring(0, 300)}...`}
+              <MentionText
+                text={
+                  isExpanded || node.content.length <= 300
+                    ? node.content
+                    : `${node.content.substring(0, 300)}...`
+                }
+              />
             </p>
             {node.content.length > 300 && (
               <button 
