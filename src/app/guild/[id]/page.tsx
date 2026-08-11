@@ -895,9 +895,13 @@ export default function GuildHomePage() {
                   hero → stats → members → boss → XP → the rest. Everything
                   under this row stays the single stacked column. */}
               <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-6">
-              {/* Left column: hero, the four stat tiles, the level bar and the
-                  member list, so the rail's cards run beside them instead of
-                  over a hollow gap. */}
+              {/* Left column: EVERYTHING except the rail — hero, stat tiles,
+                  level bar, members, roles, lending and the chat. The rail
+                  outgrew the old left column (it carries boss, XP, top
+                  contributor, statistics, roles-lock, management and info),
+                  so sections that waited below the whole grid left a tall
+                  hollow gap beside it. Running them inside the column closes
+                  it and keeps the rail's cards level with real content. */}
               <div className="min-w-0">
               {/* ── THE HERO — the Deep Sea Vibes reference, in our kit ──
                   With a banner, the ART is the hero: the page-level fixed
@@ -1175,20 +1179,6 @@ export default function GuildHomePage() {
                   })}
                 </div>
               </div>
-              </div>
-
-              <GuildSideRail
-                guild={guild}
-                isMember={isMember}
-                isLeader={isLeader}
-                isOfficer={isOfficer}
-                busy={busy}
-                onOpenInvites={() => setInviteOpen(true)}
-                onNewRole={() => setRoleSheet({ role: null })}
-                onPurchase={purchase}
-                onDisband={disband}
-              />
-              </div>
 
               {/* ── ROLES & PERMISSIONS — Discord-style, officer-managed.
                   The section only exists once the treasury has bought the
@@ -1359,6 +1349,20 @@ export default function GuildHomePage() {
                      chrome and its fixed 28rem scroller, unchanged. ── */}
               <GuildChatRoom key={guild.id} guildId={guild.id} guild={guild} isMember={isMember}
                 canModerate={myPerms.moderateChat} askConfirm={askConfirm} />
+              </div>
+
+              <GuildSideRail
+                guild={guild}
+                isMember={isMember}
+                isLeader={isLeader}
+                isOfficer={isOfficer}
+                busy={busy}
+                onOpenInvites={() => setInviteOpen(true)}
+                onNewRole={() => setRoleSheet({ role: null })}
+                onPurchase={purchase}
+                onDisband={disband}
+              />
+              </div>
             </>
           )}
         </div>
