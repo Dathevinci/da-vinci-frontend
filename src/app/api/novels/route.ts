@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { browseNovels, searchAll } from '@/lib/novel/sources';
 import * as Lnori from '@/lib/novel/Lnori';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);

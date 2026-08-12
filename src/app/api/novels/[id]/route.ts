@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getNovelInfo } from '@/lib/novel/sources';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
