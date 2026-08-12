@@ -7,11 +7,16 @@
 import { AsuraScans } from "@/lib/asura";
 import { IMangaResult, IMangaInfo, IMangaChapterPage, ISearch } from "@/lib/asura/models";
 import { combineTotals } from "@/lib/explorePaging";
-import * as MDX from "./MangaDex";
 import MangaRead, { TITLE_ALIASES } from "./parsers/MangaRead";
+import MangaPill from "./MangaPill";
+import FlameComics from "./FlameComics";
+import RizzComics from "./RizzComics";
 
 const asura = () => new AsuraScans();
 const mrd = () => new MangaRead();
+const mpl = () => new MangaPill();
+const flc = () => new FlameComics();
+const rzc = () => new RizzComics();
 
 // ── single-item lookups: route by prefix ────────────────────────────────────
 
@@ -19,7 +24,9 @@ export async function getManhwaInfo(id: string): Promise<IMangaInfo> {
   let info: IMangaInfo;
   if (id.startsWith("mrd:")) info = await mrd().fetchMangaInfo(id);
   else if (id.startsWith("mna:")) info = await mrd().fetchMangaInfo(id); // fallback for any bookmark
-  else if (MDX.isMdx(id)) info = await MDX.fetchInfo(id);
+  else if (id.startsWith("mpl:")) info = await mpl().fetchMangaInfo(id);
+  else if (id.startsWith("flc:")) info = await flc().fetchMangaInfo(id);
+  else if (id.startsWith("rzc:")) info = await rzc().fetchMangaInfo(id);
   else info = await asura().fetchMangaInfo(id);
 
   // Rescue: If a title (like MangaDex DMCA'd licensed titles) returns 0 chapters, rescue chapters from MangaRead!
@@ -56,82 +63,42 @@ export async function getManhwaInfo(id: string): Promise<IMangaInfo> {
     }
   }
 
-  // LICENSED-STUB rescue (MangaDex): licensed hits keep only a handful of
-  // publisher-link rows on MDX while the manga metadata declares the real
-  // span — Jujutsu Kaisen shows 3 rows under lastChapter 271. When the list
-  // is that kind of stub, borrow the full run from MangaRead — same
-  // title-verified pick, and only adopted when it is actually LONGER than
-  // what we have. Chapter ids in the adopted list carry the mrd: prefix,
-  // which the chapter-pages router already dispatches on.
-  if (MDX.isMdx(id) && (info.chapters?.length || 0) > 0) {
-    const declared = info.lastChapter || 0;
-    const have = info.chapters!.length;
-    const isStub = declared > 10 && have < declared * 0.5 && declared - have > 10;
-    if (isStub) {
-      try {
-        const searchRes = await mrd().search(info.title);
-        const hit = pickByTitle(searchRes.results, info.title);
-        if (hit) {
-          const rescueInfo = await mrd().fetchMangaInfo(hit.id);
-          if ((rescueInfo.chapters?.length || 0) > have) {
-            info.chapters = rescueInfo.chapters;
-            console.log(`[manhwa] Stub-rescued ${rescueInfo.chapters!.length} chapters (had ${have}/${declared}) from MangaRead ("${hit.title}") for "${info.title}"`);
-          }
-        }
-      } catch (e) {
-        console.error(`[manhwa] Failed stub rescue for "${info.title}":`, e);
-      }
-    }
-  }
+
 
   return info;
 }
 
 /**
- * Pages for one chapter — with a MangaDex rescue when Asura has it locked.
- *
- * AsuraScans paywalls its newest chapter for a window and then releases it.
- * While it is locked the reader had nothing to show. MangaDex usually carries
- * the same chapter already, so we borrow it for the duration.
- *
- * THE RETURN TO ASURA IS AUTOMATIC, and that is the part worth being careful
- * about. Nothing here is persisted and nothing on this path is cached — the
- * lock is re-checked on every single request, so the moment Asura stops
- * answering "locked" the very next read comes from Asura again. There is no
- * flag to clear, no TTL to wait out, and no state that can get stuck pointing
- * at the wrong source. (Asura clears is_premium and is_locked together at
- * unlock, so the signal itself is not sticky either.)
- *
- * The fallback is strictly BEST EFFORT. If MangaDex does not carry the series,
- * or carries it under a title that doesn't match, or lacks that exact chapter
- * number, the original lock error is rethrown untouched and the reader shows
- * the lock — which is the honest outcome. Serving the wrong chapter would be
- * far worse than serving none, because nothing downstream could detect it.
+ * Pages for one chapter.
  */
 export async function getChapterPages(chapterId: string): Promise<IMangaChapterPage[]> {
   if (chapterId.startsWith("mrd:")) return mrd().fetchChapterPages(chapterId);
   if (chapterId.startsWith("mna:")) return mrd().fetchChapterPages(chapterId);
-  if (MDX.isMdx(chapterId)) return MDX.fetchPages(chapterId);
+  if (chapterId.startsWith("mpl:")) return mpl().fetchChapterPages(chapterId);
+  if (chapterId.startsWith("flc:")) return flc().fetchChapterPages(chapterId);
+  if (chapterId.startsWith("rzc:")) return rzc().fetchChapterPages(chapterId);
+  
   try {
     return await asura().fetchChapterPages(chapterId);
   } catch (err: any) {
     if (!err?.isLocked) throw err;
 
     const slug: string | undefined = err.seriesSlug;
-    const num: string | undefined = err.chapterNumber;
-    if (!slug || !num) throw err;
+    if (!slug) throw err;
 
-    const found = await MDX.findChapterBySlugAndNumber(slug, num).catch(() => null);
+    // Best effort lock rescue via MangaPill
+    const foundRes = await mpl().search(slug.replace(/-/g, ' '));
+    const found = foundRes.results[0]; // simplistic assumption
     if (!found) throw err;
 
-    const pages = await MDX.fetchPages(found.chapterId).catch(() => [] as IMangaChapterPage[]);
+    const rescueInfo = await mpl().fetchMangaInfo(found.id);
+    const rescueChapter = rescueInfo.chapters?.find(c => c.title.includes(err.chapterNumber));
+    if (!rescueChapter) throw err;
+
+    const pages = await mpl().fetchChapterPages(rescueChapter.id).catch(() => [] as IMangaChapterPage[]);
     if (pages.length === 0) throw err;
 
-    console.log(
-      `[manhwa] ${slug} ch ${num} is locked on Asura` +
-        (err.unlockTime ? ` until ${err.unlockTime}` : "") +
-        ` — serving ${pages.length} pages from MangaDex ("${found.mangaTitle}")`
-    );
+    console.log(`[manhwa] Rescued locked chapter ${slug} ch ${err.chapterNumber} from MangaPill`);
     return pages;
   }
 }
@@ -170,58 +137,24 @@ function pickByTitle<T extends { title: string | undefined }>(results: T[], want
   });
 }
 
-/**
- * A MangaDex row with nothing to read behind it. Since `ja` was added to the
- * language set, search returns a long tail of one-shots, doujin and stalled
- * uploads that match a word in the query — they look like series until you
- * open one and find a chapter or two. `latestChapter` comes straight from the
- * source's own last-chapter marker, so its absence is the honest signal that
- * there is nothing there.
- */
-function isStub(r: IMangaResult): boolean {
-  if (!String(r.id).startsWith("mdx:")) return false;
-  const last = String(r.latestChapter || "").trim();
-  if (!last) return true;
-  const n = parseFloat(last.replace(/[^0-9.]/g, ""));
-  return Number.isFinite(n) && n < 3;
-}
+
 
 /**
- * Merge two sources, dropping cross-source duplicates by normalised title.
- *
- * AsuraScans LEADS and MangaDex follows, rather than the two alternating.
- * One-for-one interleaving gave MangaDex half of every list, and once `ja`
- * joined the language set that half filled with loosely-matching manga — so
- * searching a manhwa returned a page where the actual series was buried
- * under near-miss Japanese titles with a couple of chapters each.
- *
- * The curated source people come here for goes first; MangaDex extends the
- * catalogue at the tail instead of displacing it.
+ * Merge multiple sources, dropping cross-source duplicates by normalised title.
+ * 
+ * AsuraScans LEADS and others follow.
  */
 function merge(primary: IMangaResult[], ...secondaries: IMangaResult[][]): IMangaResult[] {
   const seen = new Map<string, { result: IMangaResult; index: number }>();
   const out: IMangaResult[] = [];
   
-  const allSecondary = secondaries.flat().filter((x) => !isStub(x));
+  const allSecondary = secondaries.flat();
   
   for (const r of [...primary, ...allSecondary]) {
     if (!r) continue;
     const k = normTitle(r.title);
     if (k) {
-      const existing = seen.get(k);
-      if (existing) {
-        // If the existing one is a MangaDex licensed stub, but the new one is not,
-        // replace the existing one with the new one!
-        const existingIsStub = String(existing.result.id).startsWith("mdx:") && !!existing.result.officialUrl;
-        const newIsStub = String(r.id).startsWith("mdx:") && !!r.officialUrl;
-        if (existingIsStub && !newIsStub) {
-          const mergedResult: IMangaResult = {
-            ...r,
-            image: existing.result.image || r.image
-          };
-          out[existing.index] = mergedResult;
-          seen.set(k, { result: mergedResult, index: existing.index });
-        }
+      if (seen.has(k)) {
         continue;
       }
       seen.set(k, { result: r, index: out.length });
@@ -278,22 +211,23 @@ const MANHWA_TOTALS = { approximate: true } as const;
 
 export async function searchManhwa(query: string, page = 1, filters?: any): Promise<ISearch<IMangaResult>> {
   const asuraOnly = filtersActive(filters);
-  const [a, m, mr] = await Promise.allSettled([
+  const [a, mr, mp, fc, rc] = await Promise.allSettled([
     asura().search(query, page, filters),
-    asuraOnly ? Promise.resolve({ currentPage: page, hasNextPage: false, results: [] as IMangaResult[] }) : MDX.search(query, page),
-    asuraOnly ? Promise.resolve({ currentPage: page, hasNextPage: false, results: [] as IMangaResult[] }) : mrd().search(query, page)
+    asuraOnly ? Promise.resolve({ currentPage: page, hasNextPage: false, results: [] as IMangaResult[] }) : mrd().search(query, page),
+    asuraOnly ? Promise.resolve({ currentPage: page, hasNextPage: false, results: [] as IMangaResult[] }) : mpl().search(query, page),
+    asuraOnly ? Promise.resolve({ currentPage: page, hasNextPage: false, results: [] as IMangaResult[] }) : flc().search(query, page),
+    asuraOnly ? Promise.resolve({ currentPage: page, hasNextPage: false, results: [] as IMangaResult[] }) : rzc().search(query, page)
   ]);
   const av = settled(a, { currentPage: page, hasNextPage: false, results: [] });
-  const mv = settled(m, { currentPage: page, hasNextPage: false, results: [] });
   const mrv = settled(mr, { currentPage: page, hasNextPage: false, results: [] });
+  const mpv = settled(mp, { currentPage: page, hasNextPage: false, results: [] });
+  const fcv = settled(fc, { currentPage: page, hasNextPage: false, results: [] });
+  const rcv = settled(rc, { currentPage: page, hasNextPage: false, results: [] });
   return {
     currentPage: page,
-    hasNextPage: av.hasNextPage || mv.hasNextPage || mrv.hasNextPage,
-    results: merge(av.results, mv.results, mrv.results),
-    // MangaRead is the blind source here: it reports only "a next link exists".
-    // combineTotals therefore withholds the count whenever MangaRead still has
-    // pages, rather than publishing a total that only covers the other two.
-    ...combineTotals([av, mv, mrv], page, MANHWA_TOTALS),
+    hasNextPage: av.hasNextPage || mrv.hasNextPage || mpv.hasNextPage || fcv.hasNextPage || rcv.hasNextPage,
+    results: merge(av.results, fcv.results, rcv.results, mpv.results, mrv.results), // Ordered by quality
+    ...combineTotals([av, mrv, mpv, fcv, rcv], page, MANHWA_TOTALS),
   };
 }
 
@@ -322,23 +256,16 @@ export async function searchManhwa(query: string, page = 1, filters?: any): Prom
  * one, and only `hasNextPage: false` ends the list.
  */
 export async function browseManhwa(page = 1, filters?: any): Promise<ISearch<IMangaResult>> {
-  const asuraOnly = filtersActive(filters);
   const empty = { currentPage: page, hasNextPage: false, results: [] as IMangaResult[] };
-  const [a, m] = await Promise.allSettled([
+  const [a] = await Promise.allSettled([
     asura().getSeries(page, filters),
-    asuraOnly ? Promise.resolve(empty) : MDX.latestPage(page),
   ]);
   const av = settled(a, empty);
-  const mv = settled(m, empty);
   return {
     currentPage: page,
-    hasNextPage: av.hasNextPage || mv.hasNextPage,
-    results: merge(av.results, mv.results),
-    // Both browse sources publish a total, so this one normally resolves: the
-    // deeper of Asura's 17 pages and MangaDex's reachable 416. With filters
-    // active MangaDex is skipped entirely and the answer is Asura's alone,
-    // which is the correct result — the reader is only being shown Asura rows.
-    ...combineTotals([av, mv], page, MANHWA_TOTALS),
+    hasNextPage: av.hasNextPage,
+    results: merge(av.results),
+    ...combineTotals([av], page, MANHWA_TOTALS),
   };
 }
 
@@ -348,15 +275,13 @@ export async function asuraGenres(): Promise<{ id: number; name: string; slug: s
 }
 
 export async function manhwaHome(): Promise<{ trending: IMangaResult[]; latestUpdates: IMangaResult[] }> {
-  const [ap, al, mp, ml] = await Promise.allSettled([
+  const [ap, al] = await Promise.allSettled([
     asura().getPopularToday(),
     asura().getLatestUpdates(1),
-    MDX.popular(),
-    MDX.latest(1),
   ]);
   const emptySearch = { currentPage: 1, hasNextPage: false, results: [] as IMangaResult[] };
   return {
-    trending: merge(settled(ap, emptySearch).results, settled(mp, [] as IMangaResult[])),
-    latestUpdates: merge(settled(al, emptySearch).results, settled(ml, [] as IMangaResult[])),
+    trending: merge(settled(ap, emptySearch).results),
+    latestUpdates: merge(settled(al, emptySearch).results),
   };
 }
