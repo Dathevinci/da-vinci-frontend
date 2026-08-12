@@ -58,6 +58,49 @@ function ensureContinueMigrated(): void {
 const CAP = 24;
 const EVT = "davinci_continue_updated";
 
+/**
+ * A READABLE LABEL FROM A BARE SOURCE ID, for rows that never got a real title.
+ *
+ * The raw id is the worst possible thing to print — "rzc:r2311170-a-bad-person"
+ * tells the reader nothing and looks broken. The id is a slug underneath, so
+ * most of a real title is recoverable: drop the source prefix, drop the opaque
+ * numeric key some sources staple to the front, and un-slugify the rest.
+ *
+ * The digit rule is deliberately narrow. Stripping any leading number would eat
+ * titles that legitimately start with one, so it only removes a letter followed
+ * by four or more digits (the "r2311170" shape) or a run of six or more digits.
+ * A "1000-year-old" style slug keeps its number.
+ *
+ * This is a fallback, not a fix: the real repair is that push now sends the
+ * title (see pushProgress). It exists because rows already written without one
+ * would otherwise stay ugly forever.
+ */
+const SMALL_WORDS = new Set(["a", "an", "and", "at", "by", "for", "in", "of", "on", "or", "the", "to", "with"]);
+
+export function titleFromId(id: string): string {
+  let s = String(id || "");
+  s = s.replace(/^[a-z]{2,4}:/i, "");
+  s = s.replace(/^(?:[a-z]\d{4,}|\d{6,})-/i, "");
+  s = s.replace(/[-_]+/g, " ").trim();
+  if (!s) return id;
+  return s
+    .split(/\s+/)
+    .map((w, i) =>
+      i > 0 && SMALL_WORDS.has(w.toLowerCase()) ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1)
+    )
+    .join(" ");
+}
+
+/**
+ * What to print on the card. A stored title equal to the id IS the old
+ * id-as-title fallback, so it gets humanised at render — otherwise every shelf
+ * written before the push fix would need a migration to look right.
+ */
+export function displayTitle(entry: Pick<ReadingEntry, "id" | "title">): string {
+  const t = (entry.title || "").trim();
+  return !t || t === entry.id ? titleFromId(entry.id) : t;
+}
+
 export function getContinue(kind: ReadingKind): ReadingEntry[] {
   if (typeof window === "undefined") return [];
   try {
@@ -109,7 +152,9 @@ export function mergeServerReading(
       if (existing && existing.at >= row.at) continue; // local is newer — keep it
       byId.set(row.id, {
         id: row.id,
-        title: row.title || existing?.title || row.id,
+        // Never store the raw id as a title — see titleFromId. A server row
+        // with no title now yields something readable instead of a slug.
+        title: row.title || existing?.title || titleFromId(row.id),
         cover: row.cover || existing?.cover,
         chapterId: row.chapterId,
         chapterTitle: existing?.chapterId === row.chapterId ? existing.chapterTitle : undefined,

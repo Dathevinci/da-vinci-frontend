@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { X, Play, History } from "lucide-react";
-import { getContinue, removeContinue, CONTINUE_EVENT, type ReadingEntry, type ReadingKind } from "@/lib/readingHistory";
+import { getContinue, removeContinue, displayTitle, CONTINUE_EVENT, type ReadingEntry, type ReadingKind } from "@/lib/readingHistory";
 import { novelCover } from "@/lib/novelImage";
 
 /**
@@ -49,12 +49,15 @@ export default function ContinueReading({ kind }: { kind: ReadingKind }) {
         {items.map((e) => {
           const href = `/${kind}/${encodeURIComponent(e.id)}/chapter/${encodeURIComponent(e.chapterId)}`;
           const src = coverSrc(e.cover);
+          // Rows synced from the account before the push fix carry no title, and
+          // printing the bare id showed readers a slug. See displayTitle.
+          const label = displayTitle(e);
           return (
             <div key={e.id} className="group relative shrink-0 w-[128px] sm:w-[148px]">
               <Link href={href} className="block">
                 <div className="relative aspect-[2/3] rounded-xl overflow-hidden border border-white/10 bg-[#151518] shadow-lg transition-transform group-hover:-translate-y-1">
                   {src ? (
-                    <img src={src} alt={e.title} loading="lazy" className="w-full h-full object-cover" />
+                    <img src={src} alt={label} loading="lazy" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-slate-600 text-xs font-bold">No cover</div>
                   )}
@@ -66,7 +69,7 @@ export default function ContinueReading({ kind }: { kind: ReadingKind }) {
                     <p className="text-[11px] text-slate-100 font-bold line-clamp-1">{e.chapterTitle || "Resume"}</p>
                   </div>
                 </div>
-                <p className="mt-1.5 text-[13px] font-bold text-slate-200 line-clamp-2 leading-tight">{e.title}</p>
+                <p className="mt-1.5 text-[13px] font-bold text-slate-200 line-clamp-2 leading-tight">{label}</p>
               </Link>
 
               <button

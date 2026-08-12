@@ -328,9 +328,31 @@ export function pushProgress(
   const owner = uploadOwner(signedIn);
   if (!owner) return;
 
+  /**
+   * THE DEDUPE HAS TO KNOW WHETHER THE METADATA CAME WITH IT.
+   *
+   * The reader fires this as soon as the PAGES are ready, which is routinely
+   * before the SERIES payload lands — so the first push for a chapter often
+   * carries no title and no cover. Keying only on the chapter id meant that
+   * push claimed the slot: the effect re-ran moments later with the real title
+   * (it depends on the series), hit this early return, and the metadata was
+   * never sent. The bookmark row stayed nameless for good.
+   *
+   * That is invisible on the device that did the reading, because the local
+   * shelf is written separately and only once the title is known. It surfaces
+   * on the NEXT device, where the rail is seeded from the server rows and had
+   * nothing to show but the raw id.
+   *
+   * So the stamp records whether metadata was attached. A bare push can still
+   * be upgraded by a later one carrying the title, and once the good version
+   * is in, neither a repeat nor a metadata-less re-fire can downgrade it.
+   */
   const dedupeKey = `${owner}:${kind}:${id}`;
-  if (pushed.get(dedupeKey) === chapterId) return; // already recorded this read
-  pushed.set(dedupeKey, chapterId);
+  const withMeta = Boolean(meta.title || meta.coverImage);
+  const stamp = `${chapterId}:${withMeta ? "meta" : "bare"}`;
+  const prev = pushed.get(dedupeKey);
+  if (prev === stamp || prev === `${chapterId}:meta`) return;
+  pushed.set(dedupeKey, stamp);
 
   const endpoint = kind === "manhwa" ? "manhwa-bookmarks" : "novel-bookmarks";
   const body: Record<string, unknown> = {
