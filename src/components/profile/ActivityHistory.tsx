@@ -57,12 +57,26 @@ const GRID_PAD_TOP = 34;
  *  scrollable overflow — see the note on .ah-scroller. */
 const GRID_PAD_BOTTOM = 8;
 
-type DayRow = { date: string; episodes: number; chapters: number; total: number };
+/**
+ * `finished` is the third kind of activity: a completed series, logged by the
+ * watchlist as finish:<id> and deduped once per title. It is NOT derivable
+ * from episodes + chapters — for most anime watchers here it is the ONLY thing
+ * in their ledger — so `total` is the server's sum of all three and is the only
+ * number the ramp and the tooltip may key off.
+ */
+type DayRow = {
+  date: string;
+  episodes: number;
+  chapters: number;
+  finished: number;
+  total: number;
+};
 
 type Totals = {
   items: number;
   episodes: number;
   chapters: number;
+  finished: number;
   dailyAverage: number;
   currentStreak: number;
   bestStreak: number;
@@ -82,7 +96,13 @@ type DayItem = {
   href: string | null;
 };
 
-type DayDetail = { date: string; episodes: number; chapters: number; items: DayItem[] };
+type DayDetail = {
+  date: string;
+  episodes: number;
+  chapters: number;
+  finished: number;
+  items: DayItem[];
+};
 
 type Cell = {
   key: string;
@@ -90,6 +110,7 @@ type Cell = {
   count: number;
   episodes: number;
   chapters: number;
+  finished: number;
   inRange: boolean;
   delay: number;
 };
@@ -385,7 +406,11 @@ function DayCard({
                   <span className="min-w-0 flex-1 truncate text-[11px] leading-snug text-white/75">
                     {it.title}
                   </span>
-                  <span className="shrink-0 text-[10px] leading-snug text-white/35">
+                  {/* shrink-0 + nowrap: the title truncates, the label never
+                      does. "Finished" is the longest label the server sends
+                      and it must survive intact on a 360px stacked card —
+                      "Finishe…" or a mid-word wrap would read as garbage. */}
+                  <span className="shrink-0 whitespace-nowrap text-[10px] leading-snug text-white/35">
                     {it.label}
                   </span>
                 </>
@@ -397,7 +422,7 @@ function DayCard({
                       href={it.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      title={`${TYPE_LABEL[it.type] || "Item"} · ${it.title}`}
+                      title={`${TYPE_LABEL[it.type] || "Item"} · ${it.title} · ${it.label}`}
                       className="ah-tap flex items-center gap-2 rounded-md px-1 py-1 transition hover:bg-white/[0.06]"
                     >
                       {inner}
@@ -482,6 +507,10 @@ function DayModal({
             date: json.data.date || date,
             episodes: Number(json.data.episodes) || 0,
             chapters: Number(json.data.chapters) || 0,
+            // DEPLOY SKEW: a backend a minute behind this bundle sends no
+            // `finished` at all. Number(undefined) is NaN, and NaN || 0 is 0,
+            // so the field is a real number from here down.
+            finished: Number(json.data.finished) || 0,
             items: Array.isArray(json.data.items) ? json.data.items : [],
           };
           setDetail(next);
@@ -501,11 +530,31 @@ function DayModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, date, seed]);
 
+  /**
+   * The subtitle is assembled from whatever the day actually contains rather
+   * than printed as a fixed pair. A reader used to get "0 episodes watched · 2
+   * chapters read", and the biggest anime watchers on the site — whose ledger
+   * is nothing but finishes — would have got two zeroes and no mention of the
+   * thing they did. Each clause is dropped at zero, "series" is its own plural,
+   * and `?? 0` covers a payload from a backend that has not shipped `finished`
+   * yet, so the line can never say "undefined series finished".
+   */
   const eps = detail?.episodes ?? 0;
   const chs = detail?.chapters ?? 0;
-  const subtitle = `${eps} ${eps === 1 ? "episode" : "episodes"} watched · ${chs} ${
-    chs === 1 ? "chapter" : "chapters"
-  } read on this day`;
+  const fin = detail?.finished ?? 0;
+  const parts: string[] = [];
+  if (eps > 0) parts.push(`${eps} ${eps === 1 ? "episode" : "episodes"} watched`);
+  if (chs > 0) parts.push(`${chs} ${chs === 1 ? "chapter" : "chapters"} read`);
+  if (fin > 0) parts.push(`${fin} series finished`);
+  // A FAILED fetch must not assert emptiness — "nothing tracked" is a claim
+  // about this person that the request never actually established.
+  const subtitle = loading
+    ? "Loading this day…"
+    : parts.length > 0
+    ? `${parts.join(" · ")} on this day`
+    : failed
+    ? "Couldn't load this day"
+    : "Nothing tracked on this day";
 
   const enter = reduce
     ? { opacity: 1, y: 0 }
@@ -684,12 +733,33 @@ export default function ActivityHistory({
             items: Number(d?.totals?.items) || 0,
             episodes: Number(d?.totals?.episodes) || 0,
             chapters: Number(d?.totals?.chapters) || 0,
+            finished: Number(d?.totals?.finished) || 0,
             dailyAverage: Number(d?.totals?.dailyAverage) || 0,
             currentStreak: Number(d?.totals?.currentStreak) || 0,
             bestStreak: Number(d?.totals?.bestStreak) || 0,
           };
+          /* Every row is coerced HERE, once, so nothing downstream — the ramp,
+           * the tooltip, the strip card's number — can meet an undefined and
+           * turn into NaN. `total` is taken from the server, which sums all
+           * three kinds; the episodes+chapters+finished fallback exists only
+           * for the case where the field is absent outright, and it is the
+           * only place in this file that adds the parts up. */
+          const rawDays: any[] = Array.isArray(d.days) ? d.days : [];
+          const dayRows: DayRow[] = rawDays.map((r) => {
+            const episodes = Number(r?.episodes) || 0;
+            const chapters = Number(r?.chapters) || 0;
+            const finished = Number(r?.finished) || 0;
+            const total = Number(r?.total);
+            return {
+              date: r?.date,
+              episodes,
+              chapters,
+              finished,
+              total: Number.isFinite(total) ? total : episodes + chapters + finished,
+            };
+          });
           setData({
-            days: Array.isArray(d.days) ? d.days : [],
+            days: dayRows,
             totals,
             range: { from, to },
           });
@@ -757,9 +827,13 @@ export default function ActivityHistory({
       cols[col].push({
         key,
         date: inRange ? key : null,
+        // count is the server's total (episodes + chapters + finishes) and is
+        // never re-derived here — the ramp and the "N items" tooltip both read
+        // it, so a finish-only day has to colour in like any other.
         count: row ? row.total : 0,
         episodes: row ? row.episodes : 0,
         chapters: row ? row.chapters : 0,
+        finished: row ? row.finished : 0,
         inRange,
         // The stagger is a FRACTION of one fixed budget, so the last square is
         // always ~600ms behind the first whether there are 30 days or 365.
@@ -857,6 +931,10 @@ export default function ActivityHistory({
               date: json.data.date || date,
               episodes: Number(json.data.episodes) || 0,
               chapters: Number(json.data.chapters) || 0,
+              // Same skew default as the modal's own fetch — this cache feeds
+              // the strip cards AND seeds the modal, so it cannot leak an
+              // undefined into either.
+              finished: Number(json.data.finished) || 0,
               items: Array.isArray(json.data.items) ? json.data.items : [],
             };
             dayCache.current.set(date, detail);
@@ -940,11 +1018,18 @@ export default function ActivityHistory({
   const hasAny = !!totals && totals.items > 0;
 
   const period = PERIODS.find((p) => p.days === days) || PERIODS[3];
+  /* "Everything you watched and read" rather than the old "Episodes watched
+     and chapters read": the graph counts finished series too, and naming all
+     three would turn a caption into an inventory. The Today line already had
+     this voice — the other two now match it. */
+  // Third person, always: this card renders on PUBLIC profiles, so "you" would
+  // address the visitor about somebody else's ledger — and the accounts this
+  // whole fix un-blanks are precisely the ones other people go and look at.
   const subtitle = isStrip
     ? days === 1
-      ? "Everything you watched and read today"
-      : `Episodes watched and chapters read — the last ${days} days`
-    : "Episodes watched and chapters read per day — tap a square for the day";
+      ? "Everything watched and read today"
+      : `Everything watched and read — the last ${days} days`
+    : "Everything watched and read, day by day — tap a square for the day";
 
   /**
    * Vanish rather than sit there empty — the rule every other self-contained
@@ -1090,8 +1175,14 @@ export default function ActivityHistory({
             stripDates.map((date, i) => {
               const detail = dayDetails[date] || dayCache.current.get(date) || null;
               const row = dayMap.get(date);
+              /* The day detail carries no total of its own, so this is the one
+                 sum in the card path — and it MUST include finishes, or a day
+                 whose whole story is "finished Solo Leveling" renders a 0 over
+                 a list that plainly has a row in it. `|| 0` for the backend
+                 that has not shipped the field yet: without it the card would
+                 print NaN the moment a detail loaded. */
               const total = detail
-                ? detail.episodes + detail.chapters
+                ? detail.episodes + detail.chapters + (detail.finished || 0)
                 : row
                 ? row.total
                 : 0;
