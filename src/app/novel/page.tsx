@@ -18,9 +18,7 @@ import ContinueReading from "@/components/reading/ContinueReading";
 import { motion, AnimatePresence } from "framer-motion";
 import type { NovelResult } from "@/lib/novel/ReadNovelFull";
 
-// The "Korean" list was served entirely by FanMTL (machine translation), so it
-// went with that source — its titles read badly and were frequently stale.
-// The first three come from readnovelfull, the last two from lightnovelworld.
+// The first three come from readnovelfull & novelfull, the last two from Ranobes & WuxiaWorldSite.
 // They're mixed into one row on purpose — from the reader's side these are just
 // five ways to browse, and splitting them by which site they came from would
 // surface an implementation detail nobody cares about.
@@ -28,8 +26,8 @@ const LISTS = [
   { key: "most-popular-novel", label: "Popular", icon: Flame },
   { key: "latest-release-novel", label: "Latest", icon: Clock },
   { key: "completed-novel", label: "Completed", icon: CheckCircle2 },
-  { key: "lightnovelworld", label: "New Arrivals", icon: Sparkles },
-  { key: "lightnovelworld-top", label: "Top Rated", icon: Star },
+  { key: "ranobes-rating", label: "Ranobes Top", icon: Sparkles },
+  { key: "wws-trending", label: "WuxiaWorld Hot", icon: Star },
 ];
 
 // useSearchParams must sit inside a Suspense boundary or `next build` fails to
@@ -144,13 +142,8 @@ function NovelInner() {
               <NovelCarousel title="Trending Now" icon={<Flame className="w-6 h-6 text-orange-500" />} items={trending} seeAllLink="/novel/explore?list=most-popular-novel" />
               <NovelCarousel title="Recently Updated" icon={<Clock className="w-6 h-6 text-pink-400" />} items={latest} seeAllLink="/novel/explore?list=latest-release-novel" />
               <NovelCarousel title="Completed" icon={<CheckCircle2 className="w-6 h-6 text-green-500" />} items={completed} seeAllLink="/novel/explore?list=completed-novel" />
-              {/* Sourced from LightNovelWorld, so it's labelled honestly rather
-                  than as a vague "More" — these are titles the other sources
-                  don't carry. */}
-              <NovelCarousel title="New on LightNovelWorld" icon={<BookOpen className="w-6 h-6 text-pink-400" />} items={fanmtl} seeAllLink="/novel/explore?list=lightnovelworld" />
-              {/* Ranked by rating, not requested as "popular" — this source
-                  ignores its own sort params, so the order is derived here. */}
-              <NovelCarousel title="Top Rated on LightNovelWorld" icon={<Flame className="w-6 h-6 text-orange-500" />} items={lnwTop} seeAllLink="/novel/explore?list=lightnovelworld-top" />
+              <NovelCarousel title="Highest Rated on Ranobes" icon={<BookOpen className="w-6 h-6 text-pink-400" />} items={fanmtl} seeAllLink="/novel/explore?list=ranobes-rating" />
+              <NovelCarousel title="Trending on WuxiaWorld" icon={<Flame className="w-6 h-6 text-orange-500" />} items={lnwTop} seeAllLink="/novel/explore?list=wws-trending" />
 
               <div className="pt-6">
                 <DiscoverRail
@@ -197,7 +190,7 @@ function NovelInner() {
               </div>
               <div>
                 <h1 className="text-3xl font-black tracking-tight">Light Novels</h1>
-                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">NovelFull &middot; ReadNovelFull &middot; LightNovelWorld</p>
+                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">NovelFull &middot; Ranobes &middot; WuxiaWorld</p>
               </div>
             </div>
 

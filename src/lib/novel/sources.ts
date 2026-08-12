@@ -124,29 +124,10 @@ const TITLE_ALIASES: [RegExp, string][] = [
 ];
 
 export async function browseNovels(page = 1, list = "trending") {
-  const sources = [
-    LightNovelWorld.browseNovels(page, list).catch(() => ({ results: [], hasNextPage: false, totalPages: 1 })),
-    NovelFull.browseNovels(page, list).catch(() => ({ results: [], hasNextPage: false, totalPages: 1 })),
-    ReadNovelFull.browseNovels(page, list).catch(() => ({ results: [], hasNextPage: false, totalPages: 1 })),
-    Ranobes.browseNovels(page, list).catch(() => ({ results: [], hasNextPage: false, totalPages: 1 })),
-    WuxiaWorldSite.browseNovels(page, list).catch(() => ({ results: [], hasNextPage: false, totalPages: 1 }))
-  ];
-
-  const results = await Promise.all(sources);
-  const merged: NovelResult[] = [];
-  const seen = new Set<string>();
-
-  for (const res of results) {
-    for (const item of res.results) {
-      const key = item.title.toLowerCase().trim();
-      if (!seen.has(key)) {
-        seen.add(key);
-        merged.push(item);
-      }
-    }
-  }
-
-  return { results: merged, hasNextPage: results.some(r => r.hasNextPage) };
+  if (list === "ranobes-rating") return Ranobes.browseNovels(page, "rating");
+  if (list === "wws-trending") return WuxiaWorldSite.browseNovels(page, "trending");
+  if (list.startsWith("genre/")) return NovelFull.browseNovels(page, list);
+  return ReadNovelFull.browseNovels(page, list);
 }
 
 import * as Lnori from "./Lnori";
