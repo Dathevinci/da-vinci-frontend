@@ -2,79 +2,149 @@ import { NextResponse } from 'next/server';
 import axios from 'axios';
 
 /**
- * TEMPORARY. Which candidate manhwa sources are reachable FROM PRODUCTION.
+ * TEMPORARY. End-to-end check of the two remaining candidate sources.
  *
- * FlameComics taught the lesson this exists to apply: it answers 200 with the
- * full catalogue from a home connection and 403 + cf-mitigated=challenge from
- * Vercel, because the block keys on the IP. So a candidate that looks healthy
- * from a laptop tells us nothing, and the only way to choose a replacement is
- * to ask each one from the egress the app actually runs on.
+ * Reachability alone is not enough — Comick proved that. Its catalogue is
+ * excellent and its chapter lists work, but md_images comes back EMPTY on every
+ * chapter sampled, so it can only ever list titles a reader cannot open. So
+ * this walks the WHOLE chain each source has to support, and the one that
+ * matters most is the last link: PAGE IMAGES.
  *
- * Targets are hardcoded; nothing is read from the caller. Delete after use, and
- * do not name the folder with a leading underscore — that makes it a PRIVATE
- * folder in the App Router and it silently never registers as a route.
+ *   browse -> pick a series -> chapter list -> resolve page image URLs
+ *
+ * Run from production because both candidates behave differently by IP:
+ * NatoManga answered 200 from Vercel and 403 from a home connection, which is
+ * the exact inverse of Flame and a reminder that neither vantage point alone
+ * can be trusted.
+ *
+ * Targets hardcoded; nothing read from the caller. Delete once a source is
+ * chosen. Do not rename the folder with a leading underscore — that makes it a
+ * private folder and it silently never registers as a route.
  */
 
 const UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
 
-const CANDIDATES: { name: string; url: string; note: string }[] = [
-  { name: 'mangadex-api', url: 'https://api.mangadex.org/manga?limit=2', note: 'official API, NOT behind Cloudflare' },
-  { name: 'weebcentral', url: 'https://weebcentral.com/', note: 'cloudflare' },
-  { name: 'toonily', url: 'https://toonily.com/', note: 'cloudflare, manhwa-only' },
-  { name: 'manhuaplus', url: 'https://manhuaplus.com/', note: 'cloudflare' },
-  { name: 'natomanga', url: 'https://www.natomanga.com/', note: 'cloudflare' },
-  { name: 'mangafire', url: 'https://mangafire.to/', note: 'cloudflare' },
-  { name: 'comick', url: 'https://comick.fun/', note: 'cloudflare' },
-  { name: 'mangapark', url: 'https://mangapark.net/', note: 'cloudflare' },
-  // The incumbents, as controls: two known-good and one known-blocked. Without
-  // these a probe that fails everywhere is unreadable — it could just be egress.
-  { name: 'CONTROL-asura', url: 'https://gg.asuracomic.net/api/series?page=1', note: 'control: works today' },
-  { name: 'CONTROL-mangapill', url: 'https://mangapill.com/', note: 'control: works today' },
-  { name: 'CONTROL-flame', url: 'https://flamecomics.xyz/browse', note: 'control: known blocked' },
-];
+async function get(url: string, headers: Record<string, string> = {}) {
+  const r = await axios.get(url, {
+    timeout: 12_000,
+    headers: { 'User-Agent': UA, 'Accept-Language': 'en-US,en;q=0.9', ...headers },
+    validateStatus: () => true,
+    responseType: 'text',
+    transformResponse: [(d) => d],
+    maxRedirects: 3,
+  });
+  const body = typeof r.data === 'string' ? r.data : JSON.stringify(r.data ?? '');
+  const challenged = r.status === 403 || Boolean(r.headers?.['cf-mitigated']) || /Just a moment/i.test(body.slice(0, 3000));
+  return { status: r.status, body, challenged, bytes: body.length };
+}
 
-async function probe(url: string) {
-  const started = Date.now();
+/** MangaDex: documented API, not behind Cloudflare, and it hosts its own pages. */
+async function mangadex() {
+  const steps: Record<string, any> = {};
   try {
-    const r = await axios.get(url, {
-      timeout: 12_000,
-      headers: {
-        'User-Agent': UA,
-        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
-      validateStatus: () => true,
-      responseType: 'text',
-      transformResponse: [(d) => d],
-      maxRedirects: 3,
-    });
-    const body = typeof r.data === 'string' ? r.data : JSON.stringify(r.data ?? '');
-    const challenged =
-      r.status === 403 ||
-      Boolean(r.headers?.['cf-mitigated']) ||
-      /Just a moment|cf-browser-verification|Checking your browser/i.test(body.slice(0, 4000));
-    return {
-      ok: r.status >= 200 && r.status < 400 && !challenged,
-      status: r.status,
-      challenged,
-      bytes: body.length,
-      ms: Date.now() - started,
-      server: r.headers?.['server'] ?? null,
-      cfMitigated: r.headers?.['cf-mitigated'] ?? null,
-    };
+    const list = await get(
+      'https://api.mangadex.org/manga?limit=5&order%5BlatestUploadedChapter%5D=desc' +
+        '&availableTranslatedLanguage%5B%5D=en&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive' +
+        '&originalLanguage%5B%5D=ko&includes%5B%5D=cover_art'
+    );
+    steps.browse = { status: list.status, bytes: list.bytes, challenged: list.challenged };
+    if (list.challenged || list.status !== 200) return steps;
+
+    const j = JSON.parse(list.body);
+    const first = (j.data || [])[0];
+    steps.browse.korean_titles = (j.data || []).length;
+    steps.browse.total = j.total;
+    if (!first) return steps;
+    const title = first.attributes?.title?.en || Object.values(first.attributes?.title || {})[0];
+    steps.browse.sample = title;
+    steps.browse.hasCoverRelation = (first.relationships || []).some((r: any) => r.type === 'cover_art');
+
+    const feed = await get(
+      `https://api.mangadex.org/manga/${first.id}/feed?translatedLanguage%5B%5D=en&limit=5&order%5Bchapter%5D=desc`
+    );
+    steps.chapters = { status: feed.status, bytes: feed.bytes, challenged: feed.challenged };
+    if (feed.status !== 200) return steps;
+    const fj = JSON.parse(feed.body);
+    steps.chapters.count = fj.total;
+    const ch = (fj.data || [])[0];
+    if (!ch) {
+      // A manga with zero English chapters is the LICENSED case: listed, unreadable.
+      steps.chapters.note = 'ZERO english chapters for this title (licensed/external?)';
+      return steps;
+    }
+    steps.chapters.sample = ch.attributes?.chapter;
+
+    const home = await get(`https://api.mangadex.org/at-home/server/${ch.id}`);
+    steps.pages = { status: home.status, bytes: home.bytes, challenged: home.challenged };
+    if (home.status !== 200) return steps;
+    const hj = JSON.parse(home.body);
+    const files = hj.chapter?.data || [];
+    steps.pages.imageCount = files.length;
+    steps.pages.host = hj.baseUrl ? new URL(hj.baseUrl).hostname : null;
+    steps.pages.sampleUrl = files[0] ? `${hj.baseUrl}/data/${hj.chapter.hash}/${files[0]}` : null;
+    // The decisive bit: can the image actually be fetched from here?
+    if (steps.pages.sampleUrl) {
+      const img = await get(steps.pages.sampleUrl);
+      steps.pages.imageFetch = { status: img.status, bytes: img.bytes };
+    }
   } catch (e: any) {
-    return { ok: false, error: true, code: e?.code ?? null, message: String(e?.message ?? e).slice(0, 160), ms: Date.now() - started };
+    steps.error = String(e?.message ?? e).slice(0, 200);
   }
+  return steps;
+}
+
+/** NatoManga: a reader site, so it serves its own pages — if it lets us in. */
+async function natomanga() {
+  const steps: Record<string, any> = {};
+  try {
+    const list = await get('https://www.natomanga.com/manga-list/hot-manga');
+    steps.browse = { status: list.status, bytes: list.bytes, challenged: list.challenged };
+    if (list.challenged || list.status !== 200) return steps;
+
+    const links = [...list.body.matchAll(/href="(https?:\/\/[^"]*\/manga\/[^"]+)"/g)].map((m) => m[1]);
+    const series = [...new Set(links)][0];
+    steps.browse.seriesLinks = new Set(links).size;
+    steps.browse.sample = series ?? null;
+    if (!series) return steps;
+
+    const sp = await get(series, { Referer: 'https://www.natomanga.com/' });
+    steps.chapters = { status: sp.status, bytes: sp.bytes, challenged: sp.challenged };
+    if (sp.status !== 200) return steps;
+    const chLinks = [...new Set([...sp.body.matchAll(/href="(https?:\/\/[^"]*chapter[^"]*)"/gi)].map((m) => m[1]))];
+    steps.chapters.count = chLinks.length;
+    // Does the listing carry an update time? A "Recently Updated" shelf needs one.
+    steps.chapters.hasUpdateTime = /updated|ago<|\d{2}-\d{2}-\d{4}/i.test(sp.body);
+    const chapter = chLinks[0];
+    steps.chapters.sample = chapter ?? null;
+    if (!chapter) return steps;
+
+    const cp = await get(chapter, { Referer: series });
+    steps.pages = { status: cp.status, bytes: cp.bytes, challenged: cp.challenged };
+    if (cp.status !== 200) return steps;
+    const hosts: Record<string, number> = {};
+    for (const m of cp.body.matchAll(/https?:\/\/([a-z0-9.-]+)\/[^"'\\ )]*\.(?:webp|jpe?g|png)/gi)) {
+      hosts[m[1]] = (hosts[m[1]] || 0) + 1;
+    }
+    steps.pages.imageHosts = hosts;
+    const firstImg = cp.body.match(/https?:\/\/[a-z0-9.-]+\/[^"'\\ )]*\.(?:webp|jpe?g|png)/i)?.[0];
+    steps.pages.sampleUrl = firstImg ?? null;
+    if (firstImg) {
+      // Image hosts on these sites often require a Referer; report both.
+      const bare = await get(firstImg);
+      const withRef = await get(firstImg, { Referer: 'https://www.natomanga.com/' });
+      steps.pages.imageFetch = { bare: bare.status, withReferer: withRef.status, bytes: withRef.bytes };
+    }
+  } catch (e: any) {
+    steps.error = String(e?.message ?? e).slice(0, 200);
+  }
+  return steps;
 }
 
 export async function GET() {
-  const results: Record<string, any> = {};
-  // Sequential on purpose: a dozen concurrent outbound requests from one
-  // invocation is itself the kind of traffic that trips rate limiting, which
-  // would poison the very measurement this is here to make.
-  for (const c of CANDIDATES) {
-    results[c.name] = { note: c.note, ...(await probe(c.url)) };
-  }
-  return NextResponse.json({ region: process.env.VERCEL_REGION ?? null, results });
+  return NextResponse.json({
+    region: process.env.VERCEL_REGION ?? null,
+    mangadex: await mangadex(),
+    natomanga: await natomanga(),
+  });
 }
