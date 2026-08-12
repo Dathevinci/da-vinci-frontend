@@ -123,8 +123,8 @@ function ManhwaPageInner() {
       <AnimatePresence mode="wait">
         {loading ? (
           <motion.div key="loader" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            {/* "Loading comics", not "Loading AsuraScans" — there are two
-                sources now and the page waits on both. */}
+            {/* "Loading comics", not "Loading AsuraScans" — there are four
+                sources now and the page waits on all of them. */}
             <LoadingScreen fullscreen={false} message="Loading comics" />
           </motion.div>
         ) : isHome ? (
@@ -162,7 +162,7 @@ function ManhwaPageInner() {
               <div className="pt-6">
                 <LatestUpdatesGrid
                   items={latestUpdates}
-                  subtitle="Freshly uploaded chapters from AsuraScans and MangaDex"
+                  subtitle="Freshly uploaded chapters from across our sources"
                 />
               </div>
 
@@ -215,8 +215,15 @@ function ManhwaPageInner() {
                   </div>
                   <div>
                     <h1 className="text-3xl font-black tracking-tight text-white drop-shadow-sm">Manhwa</h1>
-                    <p className="text-[#a3a3a3] text-xs font-bold uppercase tracking-widest mt-1">
-                      Powered by AsuraScans · MangaDex
+                    {/* Four names in widely-tracked uppercase is three wrapped
+                        lines at 360px, under a heading, above the filters —
+                        so the phone gets the count and the desktop gets the
+                        roll call. Both are true; only one of them fits. */}
+                    <p className="text-[#a3a3a3] text-xs font-bold uppercase tracking-widest mt-1 break-words">
+                      <span className="sm:hidden">Powered by 4 sources</span>
+                      <span className="hidden sm:inline">
+                        Powered by AsuraScans · FlameComics · RizzComics · MangaPill
+                      </span>
                     </p>
                   </div>
                 </div>

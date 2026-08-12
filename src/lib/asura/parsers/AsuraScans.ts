@@ -326,10 +326,10 @@ class AsuraScans extends MangaParser {
        * locked WITHOUT being flagged premium slipped past and fell through to
        * the generic "No pages found" below.
        *
-       * `unlock_time` is the whole reason the MangaDex fallback can be
-       * temporary rather than permanent: it is the exact moment Asura reopens
-       * the chapter, handed to us on every locked request, and it was being
-       * thrown away.
+       * `unlock_time` is the whole reason the fallback to another source can
+       * be temporary rather than permanent: it is the exact moment Asura
+       * reopens the chapter, handed to us on every locked request, and it was
+       * being thrown away.
        */
       const lockedFlag = data.data?.is_locked === true;
       const unlockTime: string | undefined = data.data?.unlock_time || undefined;

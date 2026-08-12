@@ -5,7 +5,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ chap
   try {
     const resolvedParams = await params;
     const decodedId = decodeURIComponent(resolvedParams.chapterId);
-    // Chapter id carries its source: "mdx:<uuid>" → MangaDex, "<slug>|<n>" → Asura.
+    // The chapter id carries its own source: "flc:<id>|<token>",
+    // "rzc:<chapter-slug>", "mpl:<id>/<slug>", or a bare "<slug>|<n>" for Asura.
     const data = await getChapterPages(decodedId);
     return NextResponse.json(data);
   } catch (error: any) {

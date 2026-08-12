@@ -97,11 +97,12 @@ const CFG = {
 /**
  * How many consecutive all-filtered-out pages to walk before calling it a day.
  *
- * The deep tail of manhwa browse is MangaDex rows that our own dedupe and stub
- * filters can empty completely, so a barren page has to be skipped rather than
- * obeyed. Four is the compromise: enough to cross the gaps that actually occur
- * (observed runs are one or two pages), few enough that a genuinely exhausted
- * source costs four quiet round-trips before the grid says so.
+ * The deep tail of manhwa browse is served by fewer and fewer sources as the
+ * smaller catalogues run out, and our own cross-source dedupe can empty what
+ * is left, so a barren page has to be skipped rather than obeyed. Four is the
+ * compromise: enough to cross the gaps that actually occur (observed runs are
+ * one or two pages), few enough that a genuinely exhausted source costs four
+ * quiet round-trips before the grid says so.
  */
 const EMPTY_RUN_LIMIT = 4;
 
@@ -390,11 +391,12 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
   /**
    * How many pages in a row have come back with nothing usable.
    *
-   * Manhwa browse genuinely produces these: past AsuraScans' 339 series the
-   * grid is MangaDex alone, thinned by title-dedupe and the stub filter, so a
-   * 24-row window can survive as zero — while real results still sit on the
-   * pages after it. An empty page is therefore skipped, not treated as the end.
-   * The counter is what stops that skipping from running forever.
+   * Manhwa browse genuinely produces these: the four sources hold catalogues
+   * of very different sizes, so past the shallowest ones a page is built from
+   * fewer sources and then thinned again by title-dedupe — a full window can
+   * survive as zero while real results still sit on the pages after it. An
+   * empty page is therefore skipped, not treated as the end. The counter is
+   * what stops that skipping from running forever.
    */
   const emptyRun = useRef(0);
   /**

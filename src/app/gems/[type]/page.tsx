@@ -427,7 +427,7 @@ export default function GemsPage() {
                 ) : (
                   results.map((it) => {
                     const cover = source === "novel" ? it.cover : it.image;
-                    // Manhwa art goes through the proxy — MangaDex/Asura
+                    // Manhwa art goes through the proxy — the source CDNs
                     // referer-block hotlinks; AniList art is served direct.
                     const needsProxy = source === "manhwa";
                     const isSel = selected?.id === it.id;

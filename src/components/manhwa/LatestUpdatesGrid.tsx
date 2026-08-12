@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Calendar } from "lucide-react";
 import type { IMangaResult } from "@/lib/asura/models";
+import { canDeriveChapterId } from "@/lib/manhwa/ids";
 
 /**
  * LATEST UPDATES — the reference layout's defining section: a grid of series,
@@ -76,10 +77,13 @@ export default function LatestUpdatesGrid({
           {rows.map((m) => {
             const cover = m.image ? `/api/manhwa-image?url=${encodeURIComponent(m.image)}` : null;
             const seriesHref = `/manhwa/${encodeURIComponent(m.id)}`;
-            // MangaDex chapter ids are their own UUIDs and cannot be derived
-            // from the series id, so only AsuraScans rows get direct chapter
-            // links. The rest fall back to the series page.
-            const canLinkChapters = !String(m.id).startsWith("mdx:");
+            // Only AsuraScans chapter ids can be derived from the series id
+            // (`<slug>|<number>`); every other source uses an opaque token or
+            // slug. The rest fall back to the series page. In practice only
+            // Asura rows even reach the chapter list below — `latest_chapters`
+            // is its feed — but the guard is on the id SHAPE so a source that
+            // starts publishing one cannot quietly get a broken link.
+            const canLinkChapters = canDeriveChapterId(m.id);
             const chapters = (m.latest_chapters || []).slice(0, 3);
 
             return (

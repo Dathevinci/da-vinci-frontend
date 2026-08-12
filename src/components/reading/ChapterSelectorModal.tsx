@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Search, Book, ArrowUpDown } from "lucide-react";
 import Link from "next/link";
 import { IMangaChapter } from "@/lib/asura/models";
+import { chapterNumberFromId } from "@/lib/manhwa/ids";
 
 /**
  * THE CHAPTER NUMBER LIVES IN THE ID, NOT THE TITLE.
@@ -18,13 +19,16 @@ import { IMangaChapter } from "@/lib/asura/models";
  * exactly why the title is only a fallback: that 3 is part of the name, not a
  * chapter number, and trusting the title would file it under chapter 3.
  *
- * MangaDex ids are "mdx:<uuid>" with no number, so those fall through to the
- * title — which for that source really does carry "Chapter N".
+ * Which parts of an id may be read as a number is decided in one place, by
+ * chapterNumberFromId — Rizz and MangaPill spell "chapter-<n>" out inside
+ * theirs, while a FlameComics id ends in a hex token that must never be read
+ * as one. Anything it declines falls through to the title, and a chapter with
+ * genuinely no number shows a dash rather than an invented figure.
  */
 export function chapterNo(chap: IMangaChapter): string | null {
-  const fromId = String(chap.id).split("|")[1];
-  if (fromId && /^\d+(\.\d+)?$/.test(fromId)) return fromId;
-  const m = chap.title.match(/chapter\s*(\d+(?:\.\d+)?)/i);
+  const fromId = chapterNumberFromId(chap.id);
+  if (fromId) return fromId;
+  const m = (chap.title || "").match(/chapter\s*(\d+(?:\.\d+)?)/i);
   return m ? m[1] : null;
 }
 

@@ -104,8 +104,8 @@ function toPositiveInt(value: unknown): number | null {
  *
  * Capped, because `?page=999999999` is a request we would faithfully forward to
  * a scraper. 500 is comfortably past every real ceiling we know of (AniList
- * lastPage tops out at 250, AsuraScans holds 17 pages, MangaDex's own offset
- * window ends around 416).
+ * lastPage tops out at 250, and the deepest manhwa catalogue — AsuraScans —
+ * holds 17 pages).
  */
 export function parsePageParam(raw: string | null | undefined): number {
   const n = toPositiveInt(raw);
@@ -140,12 +140,12 @@ export function totalPagesFrom(payload: any): number | null {
 /**
  * Is that total an UPPER BOUND rather than a count?
  *
- * Manhwa browse merges AsuraScans with MangaDex and then drops licensed stubs
- * and cross-source duplicates, so the reachable-page figure overstates what a
- * reader will actually be shown — the tail is sparse and some pages filter down
- * to nothing. The data layer already marks those payloads; without reading the
- * mark here the UI printed "Page 1 of 416" as if it were counted, which is the
- * one thing this feature was not allowed to do.
+ * Manhwa browse merges four sources and then drops cross-source duplicates, so
+ * the reachable-page figure overstates what a reader will actually be shown —
+ * the tail is sparse and some pages filter down to nothing. The data layer
+ * already marks those payloads; without reading the mark here the UI printed a
+ * bound as if it were counted, which is the one thing this feature was not
+ * allowed to do.
  */
 export function totalsApproximateFrom(payload: any): boolean {
   return !!(payload && typeof payload === "object" && payload.totalsApproximate);

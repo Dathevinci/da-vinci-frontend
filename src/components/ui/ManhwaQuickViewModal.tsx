@@ -12,6 +12,7 @@ import { useToast } from "@/components/ui/Toast";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import { useManhwaModal, ManhwaModalOptions } from "@/components/providers/ManhwaModalProvider";
 import { readLocalProgress } from "@/lib/readingProgress";
+import { chapterNumberFromId } from "@/lib/manhwa/ids";
 
 interface ManhwaQuickViewModalProps {
   manhwa: IMangaResult | { id: string } | null;
@@ -322,13 +323,13 @@ export default function ManhwaQuickViewModal({ manhwa, options, onClose, onBack 
                         }`}
                       >
                         <div className="font-bold text-sm text-[#e2e8f0] group-hover:text-[#dc2626] transition-colors line-clamp-1 min-w-0">
-                          {/* The number after "|" is an AsuraScans id shape.
-                              A MangaDex chapter id is a UUID with no number in
-                              it, so fall back to a bare "Chapter" there rather
-                              than printing a slice of the uuid. */}
+                          {/* Only ever a number the id provably carries — a
+                              Flame chapter id also has a "|" in it but the
+                              right half is a hex token, which the old test
+                              would have printed as the chapter number. */}
                           {chapter.title
-                            || (String(chapter.id || "").includes("|")
-                                  ? `Chapter ${String(chapter.id).split("|")[1] ?? ""}`.trim()
+                            || (chapterNumberFromId(chapter.id)
+                                  ? `Chapter ${chapterNumberFromId(chapter.id)}`
                                   : "Chapter")}
                         </div>
                         <div className="text-xs text-slate-500 font-medium flex items-center gap-2 shrink-0">

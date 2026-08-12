@@ -894,10 +894,10 @@ export default function PublicProfilePage() {
                                 <div className="w-full aspect-[2/3] relative">
                                   {item.coverImage ? (
                                     <img
-                                      // Proxied when the host referer-blocks:
-                                      // MangaDex serves its "read this at
-                                      // MangaDex" placeholder to hotlinks, and
-                                      // tracked covers store the raw URL.
+                                      // Proxied when the host referer-blocks —
+                                      // tracked rows store the raw source URL,
+                                      // and manhwaCoverSrc is what knows which
+                                      // of the source CDNs need coaxing.
                                       src={manhwaCoverSrc(item.coverImage) || item.coverImage}
                                       alt={item.title}
                                       loading="lazy"

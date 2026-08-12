@@ -10,6 +10,7 @@ import UserBadges from "@/components/profile/UserBadges";
 import GuildTag from "@/components/guild/GuildTag";
 import MentionText from "@/components/ui/MentionText";
 import { ACCENT, ACCENT_LIT, notch } from "@/components/cards/gacha";
+import { chapterNumberFromId } from "@/lib/manhwa/ids";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -90,14 +91,12 @@ const ago = (iso: string) => {
 function chapterLabel(title?: string | null, id?: string | null) {
   const t = (title || "").trim();
   if (t && !/^chapter$/i.test(t)) return t.length > 30 ? `${t.slice(0, 29)}…` : t;
-  // MangaDex ids are UUIDs, which are full of digits — deriving a number from
-  // one yields a confident, wrong "Ch. 0". Only the `<slug>|<number>` shape
-  // AsuraScans uses carries a number worth reading.
-  const raw = id || "";
-  if (raw.startsWith("mdx:")) return "Chapter";
-  const tail = raw.split("|").pop() || "";
-  const n = tail.match(/(\d+(?:\.\d+)?)/);
-  return n ? `Ch. ${n[1]}` : "Chapter";
+  // Every source id is full of digits that are NOT chapter numbers — a
+  // MangaPill series key, a Rizz site prefix, a Flame hex token. Taking the
+  // digits nearest the end of any of them yields a confident, wrong number, so
+  // this only reads one where it provably is one. See chapterNumberFromId.
+  const n = chapterNumberFromId(id);
+  return n ? `Ch. ${n}` : "Chapter";
 }
 
 /** Where a comment lives, and the link back to the EXACT spot it was left.

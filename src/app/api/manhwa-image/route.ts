@@ -1,4 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  isProxyableManhwaHost,
+  manhwaSourceReferer,
+  canResizeViaWsrv,
+} from "@/lib/manhwa/coverProxy";
 
 export const runtime = "nodejs";
 
@@ -9,7 +14,7 @@ export async function GET(req: NextRequest) {
     return new NextResponse("Missing url param", { status: 400 });
   }
 
-  // Validate URL and only allow MangaDex domains
+  // Validate the URL and check it against the allowlist.
   let parsed: URL;
   try {
     parsed = new URL(url);
@@ -17,20 +22,19 @@ export async function GET(req: NextRequest) {
     return new NextResponse("Invalid URL", { status: 400 });
   }
 
-  const allowedHosts = [
-    "uploads.mangadex.org",
-    "cmdxd98sb0x3yprd.mangadex.network",
-    "cdn.asurascans.com",
-  ];
-  const isAllowed =
-    allowedHosts.includes(parsed.hostname) ||
-    parsed.hostname.endsWith(".mangadex.network") ||
-    parsed.hostname === "uploads.mangadex.org" ||
-    parsed.hostname.includes("manganato.com") ||
-    parsed.hostname.includes("mkklcdn") ||
-    parsed.hostname.includes("mangaread.org");
+  // Only http(s) — the URL parser happily accepts file:, data: and friends,
+  // and this handler turns whatever it is handed into a fetch.
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    return new NextResponse("Domain not allowed", { status: 403 });
+  }
 
-  if (!isAllowed) {
+  /**
+   * The allowlist lives in lib/manhwa/coverProxy alongside the wrapper that
+   * decides which covers get sent here. They used to keep separate copies and
+   * had already drifted; a host this route accepts but the wrapper skips is an
+   * unproxied hotlink, and the reverse is a 403 from our own proxy.
+   */
+  if (!isProxyableManhwaHost(parsed.hostname)) {
     return new NextResponse("Domain not allowed", { status: 403 });
   }
 
@@ -43,6 +47,17 @@ export async function GET(req: NextRequest) {
     if (isAsura) referer = "https://asuracomic.net/";
     if (isManganato) referer = "https://manganato.com/";
     if (isMangaRead) referer = "https://www.mangaread.org/";
+
+    /**
+     * The newly added sources bring their own Referer requirements, keyed by
+     * the CDN host rather than the site's domain because they rarely match.
+     * MangaPill's CDN is the one that genuinely enforces it — it 403s both a
+     * missing Referer and a foreign one — so a page from it is blank without
+     * this line. Flame's and Rizz's hosts do not currently check, and get the
+     * right value anyway.
+     */
+    const sourceReferer = manhwaSourceReferer(parsed.hostname);
+    if (sourceReferer) referer = sourceReferer;
 
     const UA =
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
@@ -76,7 +91,11 @@ export async function GET(req: NextRequest) {
     const h = Number(req.nextUrl.searchParams.get("h")) || 720;
 
     let res: Response;
-    if (wantsFull) {
+    if (wantsFull || !canResizeViaWsrv(parsed.hostname)) {
+      // Some of the new CDNs are hosts wsrv refuses on sight (blocked TLD) or
+      // cannot authenticate to (it cannot send their Referer). The fallback
+      // below already rescued those; skipping the call just saves every cover
+      // from them a wasted round-trip. See canResizeViaWsrv for the evidence.
       res = await direct();
     } else {
       const bare = url.replace(/^https?:\/\//, "");

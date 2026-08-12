@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { MessageSquare, ThumbsUp, ThumbsDown } from "lucide-react";
 import { Panel, Heading, notch, ACCENT } from "@/components/cards/gacha";
+import { chapterNumberFromId } from "@/lib/manhwa/ids";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -52,13 +53,10 @@ const when = (iso: string) => {
 function chapterLabel(title?: string | null, id?: string | null) {
   const t = (title || "").trim();
   if (t && !/^chapter$/i.test(t)) return t.length > 24 ? `${t.slice(0, 23)}…` : t;
-  // A MangaDex UUID is full of digits; deriving a number from one gives a
-  // confident, wrong "Ch. 0". See the twin of this in GlobalComments.
-  const raw = id || "";
-  if (raw.startsWith("mdx:")) return "Chapter";
-  const tail = raw.split("|").pop() || "";
-  const n = tail.match(/(\d+(?:\.\d+)?)/);
-  return n ? `Ch. ${n[1]}` : "Chapter";
+  // Every source id is full of digits that are not chapter numbers, so the
+  // number is only read where it provably is one. See chapterNumberFromId.
+  const n = chapterNumberFromId(id);
+  return n ? `Ch. ${n}` : "Chapter";
 }
 
 /** Where the comment was left, and where clicking should go — the exact

@@ -307,7 +307,7 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
    *    is_premium || a future early_access_until (lib/asura/parsers/
    *    AsuraScans.ts) — and it is set INDEPENDENTLY of whether the pages
    *    endpoint serves anything. The pages route rescues precisely those
-   *    chapters from MangaDex (lib/manhwa/sources.ts, getChapterPages), and
+   *    chapters from MangaPill (lib/manhwa/sources.ts, getChapterPages), and
    *    the detail page links them as ordinary chapters on the grounds that
    *    they are "very often available". So the chapters people actually
    *    follow — the newest ones on a running series — rendered in full,

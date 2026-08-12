@@ -121,10 +121,10 @@ export function ExplorePager({
   /**
    * The total is an UPPER BOUND, not a count.
    *
-   * Manhwa browse merges two sources and then filters (licensed stubs,
-   * duplicate titles), so the reachable-page figure overstates what is
-   * actually shown and the tail is sparse. Printing that as a plain count
-   * asserts pages that can come back empty, so the caption hedges instead.
+   * Manhwa browse merges four sources and then drops duplicate titles, so the
+   * reachable-page figure overstates what is actually shown and the tail is
+   * sparse. Printing that as a plain count asserts pages that can come back
+   * empty, so the caption hedges instead.
    */
   approximate?: boolean;
   /** Deepest page loaded for this query — pages we have proof of. */
@@ -242,7 +242,7 @@ export function ExplorePager({
       <p aria-live="polite" className="mt-2.5 px-2 text-center font-mono text-[11px] leading-relaxed text-slate-500">
         {endKnown
           ? approximate
-            ? `Page ${page} of about ${knownMax} — this mode merges two sources and filters the results, so the last pages can come back thin or empty.`
+            ? `Page ${page} of about ${knownMax} — this mode merges several sources and removes duplicates, so the last pages can come back thin or empty.`
             : `Page ${page} of ${knownMax}`
           : failed
             ? `Page ${page}`

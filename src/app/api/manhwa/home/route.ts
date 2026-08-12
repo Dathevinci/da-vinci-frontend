@@ -3,7 +3,8 @@ import { manhwaHome } from '@/lib/manhwa/sources';
 
 export async function GET() {
   try {
-    // Trending + latest, merged across AsuraScans + MangaDex.
+    // Trending + latest, merged across AsuraScans, FlameComics, RizzComics
+    // and MangaPill.
     const { trending, latestUpdates } = await manhwaHome();
     return NextResponse.json({ trending, latestUpdates });
   } catch (error: any) {

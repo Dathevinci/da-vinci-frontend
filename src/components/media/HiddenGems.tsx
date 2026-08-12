@@ -275,10 +275,10 @@ export default function HiddenGems({
               ) : (
                 results.map((it) => {
                   const cover = source === "novel" ? it.cover : it.image;
-                  // Manhwa art goes through the proxy: MangaDex referer-blocks
-                  // hotlinks outright (it serves a "read this at MangaDex"
-                  // placeholder instead of the cover), and Asura art has been
-                  // hotlink-protected on and off. AniList (novel/anime art) is
+                  // Manhwa art always goes through the proxy. It comes from
+                  // four different sites' CDNs, and at least one of them
+                  // (MangaPill's) 403s any request without its own Referer,
+                  // which the proxy supplies. AniList art (novel/anime) is
                   // served direct.
                   const needsProxy = source === "manhwa";
                   const picked = myPick?.mediaId === it.id;

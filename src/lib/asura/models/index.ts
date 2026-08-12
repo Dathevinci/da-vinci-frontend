@@ -44,8 +44,8 @@ export interface IMangaChapter {
   /**
    * Where this chapter is published OFFICIALLY, when it is not hosted here.
    *
-   * MangaDex does not host licensed titles — it points at the publisher
-   * instead. That link was being discarded, so a licensed series appeared in
+   * A source that does not host a licensed title can still point at the
+   * publisher. That link was being discarded, so a licensed series appeared in
    * search, opened with nothing, and looked broken, while the answer to "where
    * can I actually read this" was in the payload the whole time.
    *
@@ -72,9 +72,9 @@ export interface IMangaInfo {
   updatedOn?: string;
   chapters?: IMangaChapter[];
   recommendations?: IMangaResult[];
-  /** The source's own claim of the final chapter number (MangaDex manga
-   *  metadata). Lets the router detect licensed STUBS: a 3-row readable list
-   *  under a declared span of 271 is a stub, not the series. */
+  /** The source's own claim of the final chapter number, when it publishes
+   *  one. Lets the router detect STUBS: a 3-row readable list under a declared
+   *  span of 271 is a stub, not the series. */
   lastChapter?: number;
 }
 
@@ -83,10 +83,11 @@ export interface ISearch<T> {
   hasNextPage: boolean;
   results: T[];
   /**
-   * Total page count, when THIS source publishes one (AsuraScans' meta.total,
-   * MangaDex's response envelope). Absent means the source never said — the
-   * client must fall back to a numberless pager rather than invent a figure.
-   * See src/lib/explorePaging.ts for the rule these fields obey.
+   * Total page count, when THIS source publishes one (AsuraScans' meta.total)
+   * or hands over a whole catalogue that can be counted (FlameComics,
+   * RizzComics). Absent means the source never said — the client must fall
+   * back to a numberless pager rather than invent a figure. See
+   * src/lib/explorePaging.ts for the rule these fields obey.
    */
   totalPages?: number;
   /** Item count, same "absent when unknown" contract as totalPages. */

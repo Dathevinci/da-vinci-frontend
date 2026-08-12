@@ -1,7 +1,8 @@
 /**
  * ONE definition of "how many pages are there", shared by every explore/browse
- * source — anime (AniList), manhwa (AsuraScans + MangaDex + MangaRead) and
- * novels (ReadNovelFull / NovelFull / LightNovelWorld / Lnori).
+ * source — anime (AniList), manhwa (AsuraScans + FlameComics + RizzComics +
+ * MangaPill, with MangaRead as a rescue parser) and novels (ReadNovelFull /
+ * NovelFull / LightNovelWorld / Lnori).
  *
  * It exists so the numbered pager the reader can switch to is fed by ONE rule
  * instead of three hand-rolled ones, and so that rule can be stated once:
@@ -53,12 +54,19 @@ export function pagesForItems(totalItems: unknown, perPage: number): number | un
  * any contributing source has. That part is arithmetic, not estimation.
  *
  * THE BLIND-SOURCE RULE is what keeps it honest. If a source says "there is
- * another page" but never says how many it has (MangaRead publishes no count at
- * all), then the page space is genuinely unbounded as far as we know, and any
- * number we printed would be a floor dressed up as a total. So we report
- * NOTHING and let the client fall back to its degraded pager. Reporting
- * `hasNextPage` beyond a stated `totalPages` is the one combination that must
- * never ship: it makes the pager and the scroller contradict each other.
+ * another page" but never says how many it has, then the page space is
+ * genuinely unbounded as far as we know, and any number we printed would be a
+ * floor dressed up as a total. So we report NOTHING and let the client fall
+ * back to its degraded pager. Reporting `hasNextPage` beyond a stated
+ * `totalPages` is the one combination that must never ship: it makes the pager
+ * and the scroller contradict each other.
+ *
+ * Two manhwa sources are blind in exactly this way, and both were checked
+ * rather than assumed: MangaPill's pager renders a lone "Next" link and no
+ * last page, and MangaRead publishes no count at all. Whenever either of them
+ * has more to give, manhwa search correctly reports no total. The sources that
+ * DO report one either publish it (AsuraScans' meta.total) or hand over their
+ * whole catalogue so it can be counted (FlameComics, RizzComics).
  *
  * `totalItems` is dropped for merges on purpose — see the manhwa note in
  * src/lib/manhwa/sources.ts. Summing per-source counts double-counts every

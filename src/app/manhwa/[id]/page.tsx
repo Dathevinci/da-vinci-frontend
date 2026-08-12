@@ -13,6 +13,7 @@ import { useManhwaStatus } from "@/hooks/useManhwaStatus";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 import CommunityFeed from "@/components/community/CommunityFeed";
 import HeroBackdrop from "@/components/ui/HeroBackdrop";
+import { manhwaSourceLabel } from "@/lib/manhwa/ids";
 
 /**
  * MANHWA DETAIL — the reference layout: the series' own blurred cover as
@@ -217,7 +218,10 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
                     ["Updated", manhwa.updatedOn
                       ? new Date(manhwa.updatedOn).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
                       : "—"],
-                    ["Source", "AsuraScans"],
+                    // The site this series actually came from. Hardcoding
+                    // "AsuraScans" was already a guess and is wrong for three
+                    // sources out of four now.
+                    ["Source", manhwaSourceLabel(manhwa.id ?? id)],
                   ].map(([k, v]) => (
                     <div key={k as string} className="min-w-0">
                       <p className="font-mono text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">{k}</p>
@@ -295,10 +299,11 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
                         /**
                          * OFFICIALLY LICENSED — send them to the publisher.
                          *
-                         * MangaDex does not host these, it names where they
-                         * are. Until now that link was thrown away, so the
-                         * series opened with an empty list and looked broken
-                         * while the destination sat unused in the payload.
+                         * A source that does not host a licensed chapter can
+                         * still say where it lives; that link used to be
+                         * thrown away, so the series opened with an empty list
+                         * and looked broken while the destination sat unused
+                         * in the payload.
                          *
                          * Checked BEFORE the locked branch: a licensed chapter
                          * is not paywalled-then-free, it is simply somewhere
@@ -327,9 +332,9 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
                          *
                          * It used to render as a dead div, which was right when
                          * a lock meant there was nothing to read. Now the reader
-                         * tries MangaDex for the same chapter while Asura has it
-                         * paywalled, so refusing the click would hide a chapter
-                         * that is very often available.
+                         * tries MangaPill for the same chapter while Asura has
+                         * it paywalled, so refusing the click would hide a
+                         * chapter that is very often available.
                          *
                          * It stays visibly locked — the badge and the tooltip
                          * are unchanged — because it IS locked on Asura, and the
@@ -362,17 +367,6 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
                     <div className="p-12 text-center font-mono text-sm text-slate-500">
                       {chapters.length > 0 ? (
                         "No chapters match your search."
-                      ) : String(manhwa.id).startsWith("mdx:") ? (
-                        /* MangaDex lists officially licensed titles but serves
-                           their chapters as links to the publisher rather than
-                           pages, so there is genuinely nothing to read here.
-                           Saying so beats an empty list that reads as broken. */
-                        <>
-                          <span className="block text-slate-400">This title is officially licensed.</span>
-                          <span className="mt-2 block text-xs text-slate-600">
-                            Its chapters are published elsewhere, so they can&rsquo;t be read here.
-                          </span>
-                        </>
                       ) : (manhwa as any).chaptersFailed ? (
                         /* THE SOURCE FAILED — say so, and offer the one thing
                            that works. This used to print "No chapters available

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { MessageSquare, Clock, Star, ChevronUp, ChevronDown, CornerDownRight } from "lucide-react";
+import { chapterNumberFromId } from "@/lib/manhwa/ids";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -49,15 +50,12 @@ const ago = (iso: string) => {
   return `${Math.floor(d / 30)} month${Math.floor(d / 30) === 1 ? "" : "s"} ago`;
 };
 
-/** A MangaDex id is a UUID full of digits — never read a chapter number off it. */
+/** Only reads a number where one provably is one — see chapterNumberFromId. */
 function chapterLabel(title?: string | null, id?: string | null) {
   const t = (title || "").trim();
   if (t && !/^chapter$/i.test(t)) return t.length > 26 ? `${t.slice(0, 25)}…` : t;
-  const raw = id || "";
-  if (raw.startsWith("mdx:")) return "Chapter";
-  const tail = raw.split("|").pop() || "";
-  const n = tail.match(/(\d+(?:\.\d+)?)/);
-  return n ? `Ch. ${n[1]}` : "Chapter";
+  const n = chapterNumberFromId(id);
+  return n ? `Ch. ${n}` : "Chapter";
 }
 
 export default function RecentMediaComments({
