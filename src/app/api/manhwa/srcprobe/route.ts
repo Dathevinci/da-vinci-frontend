@@ -52,40 +52,63 @@ async function mangadex() {
     if (list.challenged || list.status !== 200) return steps;
 
     const j = JSON.parse(list.body);
-    const first = (j.data || [])[0];
-    steps.browse.korean_titles = (j.data || []).length;
-    steps.browse.total = j.total;
-    if (!first) return steps;
-    const title = first.attributes?.title?.en || Object.values(first.attributes?.title || {})[0];
-    steps.browse.sample = title;
-    steps.browse.hasCoverRelation = (first.relationships || []).some((r: any) => r.type === 'cover_art');
+    steps.browse.korean_titles_sampled = (j.data || []).length;
+    steps.browse.total_korean_with_english = j.total;
 
-    const feed = await get(
-      `https://api.mangadex.org/manga/${first.id}/feed?translatedLanguage%5B%5D=en&limit=5&order%5Bchapter%5D=desc`
-    );
-    steps.chapters = { status: feed.status, bytes: feed.bytes, challenged: feed.challenged };
-    if (feed.status !== 200) return steps;
-    const fj = JSON.parse(feed.body);
-    steps.chapters.count = fj.total;
-    const ch = (fj.data || [])[0];
-    if (!ch) {
-      // A manga with zero English chapters is the LICENSED case: listed, unreadable.
-      steps.chapters.note = 'ZERO english chapters for this title (licensed/external?)';
+    /**
+     * SAMPLE SEVERAL TITLES, NOT ONE. The first title checked came back with
+     * zero English chapters, which is either the licensed case (listed but
+     * unreadable — the trap that just disqualified Comick) or an artifact of
+     * this query. One sample cannot tell those apart, and the difference
+     * decides whether this source is usable at all, so count across a handful
+     * and report the RATIO of readable titles.
+     */
+    const perTitle: any[] = [];
+    let readable = 0;
+    let firstPlayable: any = null;
+
+    for (const m of (j.data || []).slice(0, 5)) {
+      const title = m.attributes?.title?.en || Object.values(m.attributes?.title || {})[0];
+      const feed = await get(
+        `https://api.mangadex.org/manga/${m.id}/feed?translatedLanguage%5B%5D=en&limit=3` +
+          `&order%5Bchapter%5D=desc&includeExternalUrl=0` +
+          `&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive&contentRating%5B%5D=erotica`
+      );
+      if (feed.status !== 200) {
+        perTitle.push({ title, feedStatus: feed.status });
+        continue;
+      }
+      const fj = JSON.parse(feed.body);
+      const ch = (fj.data || [])[0];
+      const row: any = { title, englishChapters: fj.total };
+      if (ch) {
+        readable++;
+        row.sampleChapter = ch.attributes?.chapter;
+        row.pages = ch.attributes?.pages;
+        if (!firstPlayable) firstPlayable = ch;
+      }
+      perTitle.push(row);
+    }
+
+    steps.chapters = { perTitle, readableTitles: readable + '/' + perTitle.length };
+
+    if (!firstPlayable) {
+      steps.chapters.note = 'NO sampled title had readable English chapters';
       return steps;
     }
-    steps.chapters.sample = ch.attributes?.chapter;
 
-    const home = await get(`https://api.mangadex.org/at-home/server/${ch.id}`);
+    const home = await get(`https://api.mangadex.org/at-home/server/${firstPlayable.id}`);
     steps.pages = { status: home.status, bytes: home.bytes, challenged: home.challenged };
     if (home.status !== 200) return steps;
     const hj = JSON.parse(home.body);
     const files = hj.chapter?.data || [];
     steps.pages.imageCount = files.length;
     steps.pages.host = hj.baseUrl ? new URL(hj.baseUrl).hostname : null;
-    steps.pages.sampleUrl = files[0] ? `${hj.baseUrl}/data/${hj.chapter.hash}/${files[0]}` : null;
-    // The decisive bit: can the image actually be fetched from here?
-    if (steps.pages.sampleUrl) {
-      const img = await get(steps.pages.sampleUrl);
+    const sampleUrl = files[0] ? `${hj.baseUrl}/data/${hj.chapter.hash}/${files[0]}` : null;
+    steps.pages.sampleUrl = sampleUrl;
+    // The decisive bit: the image has to actually come back, from HERE.
+    if (sampleUrl) {
+      const img = await get(sampleUrl);
       steps.pages.imageFetch = { status: img.status, bytes: img.bytes };
     }
   } catch (e: any) {
