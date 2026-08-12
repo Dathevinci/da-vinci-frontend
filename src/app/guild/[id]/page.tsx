@@ -34,13 +34,18 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
  * THE GUILD HOME — one guild's whole world on a page, in the Lunar kit:
  * a full-bleed-feel hero (the guild's banner when it has one, our gradient
  * when it doesn't), the four STAT TILES and the LEVEL bar under it, the
- * MEMBERS strip with the leader's controls, the CHAT (a Discord-style
- * members-only room on /api/guilds/:id/messages — grouped messages, day
- * dividers, an 8-second poll that goes quiet while the tab is hidden), CARD
- * SHARING (7-day loans between guildmates, capped 3 a side), and a right rail
- * carrying the raid boss, the XP ladder, the top contributor, the guild's
- * statistics, the custom-roles unlock, the leader's management panel and the
- * guild's vitals.
+ * MEMBERS strip with the leader's controls, CARD SHARING (7-day loans between
+ * guildmates, capped 3 a side), a right rail of READ cards (the raid boss, the
+ * XP ladder, the guild's statistics, the top contributor, the guild's vitals),
+ * then — full width under the grid — the CHAT (a Discord-style members-only
+ * room on /api/guilds/:id/messages — grouped messages, day dividers, an
+ * 8-second poll that goes quiet while the tab is hidden) and the OFFICER SHELF
+ * (custom roles, guild emoji, guild management) as a row.
+ *
+ * THE LAYOUT IS A BALANCE, and it has been wrong in both directions: whichever
+ * of the two grid columns runs out first leaves a hole beside the other. The
+ * chat and the officer shelf are full width precisely because neither belongs
+ * to a column — see GuildSideRail and GuildManageShelf.
  *
  * THE DIVISION OF LABOUR, and it is absolute:
  *  · The LEVEL LADDER is the server's. levelCost/totalXpFor/guildLevel live in
@@ -1020,19 +1025,19 @@ export default function GuildHomePage() {
           ) : (
             <>
               {/* The top row only: the hero keeps the wide lane, and on lg a
-                  320px rail (boss, XP, contributor, statistics, roles,
-                  management, information) rides beside it. Below lg the rail
-                  drops UNDER the left column, which puts a phone's order at
-                  hero → stats → members → boss → XP → the rest. Everything
-                  under this row stays the single stacked column. */}
+                  320px rail of READ cards (boss, XP, statistics, contributor,
+                  information) rides beside it. Below lg the rail drops UNDER
+                  the left column, which puts a phone's order at hero → stats
+                  → members → boss → XP → the rest. The chat and the officer
+                  shelf run full width under this row. */}
               <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-6">
-              {/* Left column: EVERYTHING except the rail — hero, stat tiles,
-                  level bar, members, roles, lending and the chat. The rail
-                  outgrew the old left column (it carries boss, XP, top
-                  contributor, statistics, roles-lock, management and info),
-                  so sections that waited below the whole grid left a tall
-                  hollow gap beside it. Running them inside the column closes
-                  it and keeps the rail's cards level with real content. */}
+              {/* Left column: hero, stat tiles, level bar, members, roles and
+                  lending. It has to stay roughly as tall as the rail or a hole
+                  opens beside whichever one runs out first — that is the whole
+                  history of this grid. The rail is five cards for exactly that
+                  reason (see GuildManageShelf), and the two blocks that don't
+                  belong to either side — the chat and the officer shelf — take
+                  the full hall below. */}
               <div className="min-w-0">
               {/* ── THE HERO — the Deep Sea Vibes reference, in our kit ──
                   With a banner, the ART is the hero: the page-level fixed
@@ -1475,44 +1480,11 @@ export default function GuildHomePage() {
                 )}
               </div>
 
-              {/* ── THE GUILD CHAT — shared with the dock's slide-over panel.
-                     No className, so the hall keeps its own card chrome; the
-                     HEIGHT, though, is the hall's business and not the room's.
-
-                     The old fixed 28rem read as a letterbox on a desktop hall,
-                     so the room is viewport-relative now, with both ends
-                     nailed down: 62vh on a 900px screen is ~560px of chat and
-                     the 48rem ceiling stops a tall monitor turning it into a
-                     corridor, while the 30rem floor keeps a short laptop
-                     honest.
-
-                     Below sm it is deliberately SMALLER (52vh, floor 20rem,
-                     ceiling 34rem): at 360x640 that is ~333px of room, which
-                     leaves the composer, the emoji/GIF row and the counter all
-                     on screen together instead of pushing them under the fold.
-
-                     vh, not dvh, on purpose — dvh re-measures every time a
-                     phone's URL bar slides, and resizing a SCROLLER mid-scroll
-                     fights the room's own stick-to-bottom test.
-
-                     The dock passes its own `min-h-0 flex-1` and is untouched
-                     by any of this. ── */}
+              {/* The chat used to end this column; it is full width below the
+                  grid now, and its notes live at that call site. */}
               </div>
 
-              <GuildSideRail
-                guild={guild}
-                isMember={isMember}
-                isLeader={isLeader}
-                isOfficer={isOfficer}
-                busy={busy}
-                onOpenInvites={() => setInviteOpen(true)}
-                onNewRole={() => setRoleSheet({ role: null })}
-                onPurchase={purchase}
-                onDisband={disband}
-                canManageEmoji={myPerms.editGuild}
-                onAddEmoji={() => setEmojiOpen(true)}
-                onDeleteEmoji={deleteEmoji}
-              />
+              <GuildSideRail guild={guild} isMember={isMember} />
               </div>
 
               {/* ── THE GUILD CHAT — FULL WIDTH, below the whole grid.
@@ -1538,6 +1510,30 @@ export default function GuildHomePage() {
               <GuildChatRoom key={guild.id} guildId={guild.id} guild={guild} isMember={isMember}
                 canModerate={myPerms.moderateChat} askConfirm={askConfirm}
                 heightClass="h-[62vh] min-h-[26rem] max-h-[44rem] sm:h-[80vh] sm:min-h-[40rem] sm:max-h-[72rem]" />
+
+              {/* ── THE OFFICER SHELF — FULL WIDTH, the last thing in the hall.
+                  These three were the bottom of the rail. Eight rail cards
+                  against a six-block left column meant the column ran out
+                  first and left the tall gap the owner photographed; five read
+                  cards sit far closer to the column's height. As a row they
+                  also get more width than they ever had at 320px, and the
+                  rail's "read first, manage last" order survives — this is
+                  simply the last shelf. Renders nothing at all for a viewer
+                  who can't see any of the three. ── */}
+              <GuildManageShelf
+                guild={guild}
+                isMember={isMember}
+                isLeader={isLeader}
+                isOfficer={isOfficer}
+                busy={busy}
+                onOpenInvites={() => setInviteOpen(true)}
+                onNewRole={() => setRoleSheet({ role: null })}
+                onPurchase={purchase}
+                onDisband={disband}
+                canManageEmoji={myPerms.editGuild}
+                onAddEmoji={() => setEmojiOpen(true)}
+                onDeleteEmoji={deleteEmoji}
+              />
             </>
           )}
         </div>
@@ -1708,33 +1704,27 @@ function LevelProgress({ guild }: { guild: GuildDetail }) {
   );
 }
 
-/* ═══════════ THE RIGHT RAIL ═══════════
+/* ═══════════ THE RIGHT RAIL — FIVE READ-ONLY CARDS ═══════════
    Beside the hero on lg, stacked under the LEFT COLUMN below it — which
    puts the order on a phone at: hero, stats, members, then boss → XP →
-   contributor → statistics → roles → management → information. The chrome is
-   slightly translucent so it sits on the full-screen banner without
-   backdrop-filter (banned on large elements). The boss card is fed by the
-   public raid snapshot and simply doesn't render when that fetch fails;
-   everything else reads the already-loaded guild detail — no extra request. */
+   statistics → contributor → information. The chrome is slightly translucent
+   so it sits on the full-screen banner without backdrop-filter (banned on
+   large elements). The boss card is fed by the public raid snapshot and
+   simply doesn't render when that fetch fails; everything else reads the
+   already-loaded guild detail — no extra request.
 
-function GuildSideRail({
-  guild, isMember, isLeader, isOfficer, busy,
-  onOpenInvites, onNewRole, onPurchase, onDisband,
-  canManageEmoji, onAddEmoji, onDeleteEmoji,
-}: {
+   WHY ONLY FIVE: the rail used to carry eight cards against a six-block left
+   column, so the column ran out first and left a tall hole beside the rail —
+   which is exactly what the owner photographed. The three OFFICER cards
+   (custom roles, emoji, management) moved to GuildManageShelf, a full-width
+   row under the chat. Five read cards sit much closer to the column's height,
+   and the three that left get a whole hall's width as a row instead of being
+   stacked in a 320px lane. It also keeps the rail's "read first, manage last"
+   order — the shelf is simply the last shelf now. */
+
+function GuildSideRail({ guild, isMember }: {
   guild: GuildDetail;
   isMember: boolean;
-  isLeader: boolean;
-  isOfficer: boolean;
-  busy: boolean;
-  onOpenInvites: () => void;
-  onNewRole: () => void;
-  onPurchase: (item: "roles" | "xpBoost" | "slots") => void;
-  onDisband: () => void;
-  /** Officer, or a custom role carrying editGuild — the page computes it once. */
-  canManageEmoji: boolean;
-  onAddEmoji: () => void;
-  onDeleteEmoji: (emoji: GuildEmoji) => void;
 }) {
   const [raid, setRaid] = useState<RaidPanel | null>(null);
   const [artHidden, setArtHidden] = useState(false);
@@ -1765,13 +1755,6 @@ function GuildSideRail({
   const lv = levelView(guild);
   const stats = guild.stats || null;
   const top = stats?.topContributor || null;
-  const treasury = Math.max(0, guild.shards ?? 0);
-  const rolesUnlocked = guild.rolesUnlocked !== false;
-  const roleCount = (guild.roles || []).length;
-  const atMemberCeiling = (guild.memberCap ?? 0) >= MAX_MEMBER_CAP;
-  const canAffordRoles = treasury >= GUILD_PRICES.ROLES_UNLOCK;
-  const canAffordBoost = treasury >= GUILD_PRICES.XP_BOOST;
-  const canAffordSlots = treasury >= GUILD_PRICES.MEMBER_SLOTS;
 
   return (
     <div className="mt-6 space-y-6 lg:mt-0">
@@ -1964,18 +1947,79 @@ function GuildSideRail({
         </dl>
         {isMember && (
           <p className="mt-3 text-[10px] leading-relaxed text-slate-600">
-            Treasury shards are the guild&rsquo;s alone — they buy the upgrades above and can never be paid
+            Treasury shards are the guild&rsquo;s alone — they buy the guild&rsquo;s upgrades and can never be paid
             back out to a member.
           </p>
         )}
       </div>
-      {/* ── RAIL ORDER: READ FIRST, MANAGE LAST ──
-          Everything above this line is what any member comes here to look at —
-          the boss, the level, the numbers, the facts. Everything below it is a
-          control only an officer can act on, ending with the one that destroys
-          the guild. Scattering purchases between statistics made the rail read
-          as a pile; this makes it read as two shelves. ── */}
+      {/* ── READ FIRST, MANAGE LAST ──
+          Everything in this rail is what any member comes here to LOOK at —
+          the boss, the level, the numbers, the facts. Every control an officer
+          can act on now lives in GuildManageShelf below the chat, ending with
+          the one that destroys the guild. Same order the rail was just given;
+          the manage half simply became its own full-width shelf. ── */}
+    </div>
+  );
+}
+
+/* ═══════════ THE MANAGE SHELF — the officer tools, full width ═══════════
+   The last shelf in the hall: custom roles, guild emoji, guild management,
+   laid out as a ROW (1 col below sm, 2 at sm, 3 at lg) under the chat.
+
+   WHY IT EXISTS: these three used to be the bottom of the right rail. Eight
+   rail cards against a six-block left column meant the column ran out first
+   and left a tall empty gap beside the rail. Moving the three officer cards
+   out balances the grid AND gives them more room than they ever had stacked
+   in a 320px lane — the management card's rows and the emoji grid both want
+   width. Nothing about them changed on the way: every gate is the gate it
+   carried in the rail, so nobody sees a control they couldn't see before.
+
+   THE EMPTY-SHELF GUARD IS INSURANCE, NOT CURRENT BEHAVIOUR: the roles card
+   has no viewer gate today, so the count is never zero and the early return
+   never fires. It exists so that tightening any of these three gates later
+   cannot leave a bordered nothing behind. */
+
+function GuildManageShelf({
+  guild, isMember, isLeader, isOfficer, busy,
+  onOpenInvites, onNewRole, onPurchase, onDisband,
+  canManageEmoji, onAddEmoji, onDeleteEmoji,
+}: {
+  guild: GuildDetail;
+  isMember: boolean;
+  isLeader: boolean;
+  isOfficer: boolean;
+  busy: boolean;
+  onOpenInvites: () => void;
+  onNewRole: () => void;
+  onPurchase: (item: "roles" | "xpBoost" | "slots") => void;
+  onDisband: () => void;
+  /** Officer, or a custom role carrying editGuild — the page computes it once. */
+  canManageEmoji: boolean;
+  onAddEmoji: () => void;
+  onDeleteEmoji: (emoji: GuildEmoji) => void;
+}) {
+  const treasury = Math.max(0, guild.shards ?? 0);
+  const rolesUnlocked = guild.rolesUnlocked !== false;
+  const roleCount = (guild.roles || []).length;
+  const atMemberCeiling = (guild.memberCap ?? 0) >= MAX_MEMBER_CAP;
+  const canAffordRoles = treasury >= GUILD_PRICES.ROLES_UNLOCK;
+  const canAffordBoost = treasury >= GUILD_PRICES.XP_BOOST;
+  const canAffordSlots = treasury >= GUILD_PRICES.MEMBER_SLOTS;
+
+  // The three gates, unchanged from the rail: the roles card has never had a
+  // viewer gate (a visitor reads the pitch or the count), emoji is members-
+  // only, management is leader-only. Counting them is what keeps an empty
+  // shelf off the page if any of those ever tightens.
+  const showRoles = true;
+  const showEmoji = isMember;
+  const showManage = isLeader;
+  const cards = [showRoles, showEmoji, showManage].filter(Boolean).length;
+  if (cards === 0) return null;
+
+  return (
+    <div className="mt-6 grid grid-cols-1 items-start gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {/* ── CUSTOM ROLES — locked pitch, or the unlocked summary ── */}
+      {showRoles && (
       <div className={`rounded-3xl border p-5 ${rolesUnlocked ? "border-white/10 bg-[#0b0b11]/85" : "border-amber-400/20 bg-[#0b0b11]/85"}`}>
         <div className="flex items-center gap-2">
           {rolesUnlocked ? (
@@ -1992,7 +2036,7 @@ function GuildSideRail({
               {nf(roleCount)} <span className="text-base text-slate-500">/ {MAX_ROLES}</span>
             </p>
             <p className="mt-1.5 text-[10px] leading-relaxed text-slate-500">
-              Unlocked for good. Create and hand them out in the Roles section further down the hall.
+              Unlocked for good. Create and hand them out in the Roles section further up the hall.
             </p>
             {isOfficer && roleCount < MAX_ROLES && (
               <button type="button" onClick={onNewRole}
@@ -2031,11 +2075,12 @@ function GuildSideRail({
           </>
         )}
       </div>
+      )}
 
       {/* ── GUILD EMOJI — the other guild-level unlock, so it sits beside the
           roles card. MEMBERS ONLY: the catalog read is members-only server
           side, and an outsider has nowhere to type a :shortcode: anyway. ── */}
-      {isMember && (
+      {showEmoji && (
         <GuildEmojiCard
           guild={guild}
           canManage={canManageEmoji}
@@ -2047,7 +2092,7 @@ function GuildSideRail({
 
       {/* ── GUILD MANAGEMENT — leader only. Every debit here is one-way: the
           treasury pays out to the guild, never back to a person. ── */}
-      {isLeader && (
+      {showManage && (
         <div className="rounded-3xl border border-white/10 bg-[#0b0b11]/85 p-5">
           <div className="flex items-center gap-2">
             <Crown className="h-4 w-4 shrink-0 text-amber-300" />
@@ -2118,7 +2163,6 @@ function GuildSideRail({
           </p>
         </div>
       )}
-
     </div>
   );
 }
