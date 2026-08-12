@@ -514,17 +514,36 @@ export async function browseManhwa(page = 1, filters?: any): Promise<ISearch<IMa
 
   const state = await fillCorpus(key, end + 1, filters, asuraOnly);
   const results = state.rows.slice(start, end);
-  const more = state.rows.length > end || state.live.some(Boolean);
+
+  /**
+   * A COUNT ONLY ONCE EVERY CATALOGUE IS SPENT — never while filling.
+   *
+   * The corpus grows lazily, so `rows.length` early on measures HOW MUCH WE
+   * HAVE FETCHED, not how much exists. Dividing it by the page size and calling
+   * that a total published "4 pages" on page 1 of a library that ends at 20 —
+   * a tighter false ceiling than the 17-page one this rewrite set out to remove,
+   * and it would have shrunk the further back the reader started.
+   *
+   * It is also the exact pair `explorePaging.ts` forbids: a stated total next to
+   * hasNextPage true makes the pager and the scroller contradict each other, and
+   * the pager believes the total (see resolvePagerBounds) — so Next would have
+   * gone dead at 4 while rows kept coming.
+   *
+   * So while any source can still grow the corpus we report NO total and let the
+   * pager say the end isn't known yet. When they are all spent the corpus IS the
+   * library: the count is then exact — deduping happened before the slicing, so
+   * every page but the last is full — and needs no approximate hedge.
+   */
+  const complete = !state.live.some(Boolean);
+  const more = state.rows.length > end || !complete;
 
   return {
     currentPage: page,
     hasNextPage: more,
     results,
-    // A COUNTED figure — the corpus is in hand — but still marked approximate
-    // while any source can still grow it, since it is a floor rather than the
-    // final size until every catalogue is spent.
-    totalPages: Math.max(1, Math.ceil(state.rows.length / MANHWA_PAGE_SIZE)),
-    ...(more ? { totalsApproximate: true } : {}),
+    ...(complete
+      ? { totalPages: Math.max(1, Math.ceil(state.rows.length / MANHWA_PAGE_SIZE)) }
+      : {}),
   } as ISearch<IMangaResult>;
 }
 
