@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2, ChevronLeft, ChevronRight, List, ArrowLeft, Home, X, Server } from "lucide-react";
@@ -8,6 +8,7 @@ import type { NovelInfo, ChapterContent } from "@/lib/novel/ReadNovelFull";
 import { useUser } from "@/hooks/useUser";
 import { earnPoints } from "@/lib/earn";
 import { recordReading } from "@/lib/readingHistory";
+import { writeLocalProgress, pushProgress } from "@/lib/readingProgress";
 import { useNovelReaderPrefs, themeById, fontById, spacingById, widthById } from "@/lib/novel/readerPrefs";
 import { browseAnchorHref } from "@/lib/browseAnchor";
 import ReaderSettings from "@/components/novel/ReaderSettings";
@@ -45,11 +46,14 @@ export default function NovelReaderPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-    try {
-      localStorage.setItem(`novel-progress:${id}`, chapterId);
-    } catch {
-      /* ignore */
-    }
+    // NO progress write here. It used to sit in this effect body, OUTSIDE the
+    // fetch resolution, so it ran the instant the URL changed — a chapter that
+    // 404s, fails to scrape, or is tapped offline still stamped progress. That
+    // was survivable while the value was a device-local string; now that the
+    // stamp drives cross-device reconciliation, a bogus one is newer than the
+    // truth and OVERWRITES genuine reading on every other device. It moved
+    // into the effect below, which runs only once a chapter has really loaded.
+    //
     // Now largely redundant with the global ScrollReset — chapterId is part of
     // the pathname, so moving to the next chapter IS a pathname change and the
     // global reset sees it. Kept because it fires immediately rather than a
@@ -66,12 +70,45 @@ export default function NovelReaderPage() {
       .catch(() => {});
   }, [id]);
 
-  // Record a rich entry (title + cover + chapter) for the home "Continue
-  // Reading" shelf, once both the novel info and the chapter have loaded.
+  /**
+   * ONE timestamp per (novel, chapter), held across re-renders.
+   *
+   * The effect below legitimately re-runs for a single chapter — `novel` lands
+   * on its own slower request, and `user` gets a new identity the moment the
+   * reading reward rewrites the cached balance. Taking Date.now() inline would
+   * hand the local write and the server push different clocks for the same
+   * read, which is precisely the disagreement reconciliation cannot resolve.
+   */
+  const readStampRef = useRef<{ key: string; at: number } | null>(null);
+
+  // Save progress + record the "Continue Reading" entry — ONLY for a chapter
+  // that actually loaded.
   useEffect(() => {
-    if (!novel?.title || !chapter) return;
+    // THE GATE. `chapter` is null for a 404 or a failed scrape, and empty
+    // content is the same failure the "Failed to load this chapter" branch
+    // renders. Neither is a read, so neither may touch progress. (The manhwa
+    // reader gates on its pages the same way.)
+    if (!chapter || !chapter.content?.length) return;
+
+    const key = `${id}::${chapterId}`;
+    if (readStampRef.current?.key !== key) readStampRef.current = { key, at: Date.now() };
+    const at = readStampRef.current.at;
+
+    // Local first: instant, offline-safe, and identical when signed out.
+    writeLocalProgress("novel", id, chapterId, at);
+
+    // The shelf entry and the account push both want the novel's title/cover,
+    // which arrive on a separate request. If it has not landed yet there is
+    // nothing to lose by waiting: the local write above already holds this
+    // read, and the reconcile on the next bookmark load pushes it up because
+    // local is newer than the server.
+    if (!novel?.title) return;
     recordReading("novel", { id, title: novel.title, cover: novel.cover, chapterId, chapterTitle: chapter.title });
-  }, [novel, chapter, id, chapterId]);
+    // Fire-and-forget sync of the SAME moment (`at`) to the account, so the
+    // chapter follows the reader to other devices. NOT awaited — a page turn
+    // must never wait on the network.
+    pushProgress("novel", id, chapterId, !!user, { title: novel.title, coverImage: novel.cover, at });
+  }, [novel, chapter, id, chapterId, user]);
 
   // Reward reading: after a short dwell on a loaded chapter, grant Arise Points.
   // Deduped server-side per chapter, so re-reads never re-award.

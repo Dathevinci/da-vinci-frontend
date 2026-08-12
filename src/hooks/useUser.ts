@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { authHeaders, setAuthToken } from "@/lib/authToken";
+import { clearAccountProgress } from "@/lib/readingProgress";
 
 export interface User {
   id: string;
@@ -352,6 +353,18 @@ export function useUser() {
   };
 
   const logout = () => {
+    /**
+     * Drop THIS account's cached reading progress before the session goes.
+     *
+     * Progress is cached per account (see lib/readingProgress), so the next
+     * person to sign in on this browser could never have inherited it — but
+     * logging out is the moment a shared machine changes hands, and leaving one
+     * reader's places sitting in another's storage is not something to shrug
+     * at. Ordering matters: this runs BEFORE broadcastUpdate(null) wipes
+     * `davinci_user`, so the namespace can still be resolved if `user` state is
+     * somehow stale in this instance.
+     */
+    clearAccountProgress(user?.id);
     setAuthToken(null);
     broadcastUpdate(null);
   };

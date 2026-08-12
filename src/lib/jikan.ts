@@ -8,20 +8,45 @@ const ANILIST_API = "https://graphql.anilist.co";
 // Delay to avoid hitting Jikan rate limits (3/sec)
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+/**
+ * ANILIST ALLOWS 30 REQUESTS PER MINUTE, AND INFINITE SCROLL SPENDS THEM FAST.
+ *
+ * Measured against the live API: `x-ratelimit-limit: 30`, the counter drops one
+ * per request, and request 31 in a rolling minute answers HTTP 429 with
+ * `retry-after: 2`. Explore fetches one page per scroll, so a reader flicking
+ * down a phone reaches that ceiling somewhere around page 25-30 — which is
+ * exactly where the grid was reported to stop.
+ *
+ * A 429 is not an error worth propagating: AniList hands back the number of
+ * seconds to wait, and that wait is short. Honour it, retry, and only give up
+ * if the second attempt is refused too. Bounded on purpose — one retry per
+ * call, no unbounded backoff loop — so a genuinely rate-limited burst degrades
+ * to "slow" rather than either hammering AniList or dead-ending the reader.
+ */
 async function anilistQuery(query: string, variables: Record<string, any> = {}, revalidate = 86400): Promise<any> {
-  const res = await fetch(ANILIST_API, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Accept": "application/json",
-      // Identify the app. AniList's WAF/rate-limiter can reject requests with
-      // no User-Agent from shared cloud IPs (e.g. Vercel functions), which
-      // silently emptied the dashboard even while AniList itself was healthy.
-      "User-Agent": "DaVinciTracker/1.0 (+https://dathevinci.vercel.app)",
-    },
-    body: JSON.stringify({ query, variables }),
-    next: { revalidate },
-  });
+  const send = () =>
+    fetch(ANILIST_API, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        // Identify the app. AniList's WAF/rate-limiter can reject requests with
+        // no User-Agent from shared cloud IPs (e.g. Vercel functions), which
+        // silently emptied the dashboard even while AniList itself was healthy.
+        "User-Agent": "DaVinciTracker/1.0 (+https://dathevinci.vercel.app)",
+      },
+      body: JSON.stringify({ query, variables }),
+      next: { revalidate },
+    });
+
+  let res = await send();
+  if (res.status === 429) {
+    // Header is in seconds and is usually 1-2. Clamped so a hostile or absurd
+    // value can't park the UI on a spinner for a minute.
+    const wait = Math.min(Math.max(Number(res.headers.get("retry-after")) || 2, 1), 8);
+    await new Promise((r) => setTimeout(r, wait * 1000));
+    res = await send();
+  }
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`AniList API error: ${res.status} — ${text}`);
@@ -458,7 +483,17 @@ export async function searchAnime(variables: any) {
       return await searchAnimeKitsu(variables);
     } catch (kitsuErr) {
       console.error("Kitsu search fallback also failed:", kitsuErr);
-      return { Page: emptyPage };
+      /**
+       * `failed` SEPARATES "BOTH SOURCES DIED" FROM "THAT IS EVERYTHING".
+       *
+       * This return is an empty page whose pageInfo says `hasNextPage: false`,
+       * and until now that was the only thing the caller could see — so a
+       * network failure on page 26 was indistinguishable from reaching the last
+       * page, and explore's infinite scroll retired itself permanently and
+       * silently. The flag is additive: every existing caller reads
+       * `.Page.media` and is untouched by it.
+       */
+      return { Page: emptyPage, failed: true };
     }
   }
 }

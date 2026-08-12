@@ -85,6 +85,17 @@ const CFG = {
   novel: { path: "/api/novels", heading: "Discover Novels", noun: "novels" },
 } as const;
 
+/**
+ * How many consecutive all-filtered-out pages to walk before calling it a day.
+ *
+ * The deep tail of manhwa browse is MangaDex rows that our own dedupe and stub
+ * filters can empty completely, so a barren page has to be skipped rather than
+ * obeyed. Four is the compromise: enough to cross the gaps that actually occur
+ * (observed runs are one or two pages), few enough that a genuinely exhausted
+ * source costs four quiet round-trips before the grid says so.
+ */
+const EMPTY_RUN_LIMIT = 4;
+
 /** Matches the anime page's grouped block, so both panels read identically. */
 function Section({ Icon, label, children }: { Icon: any; label: string; children: React.ReactNode }) {
   return (
@@ -326,15 +337,38 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
   const filtersWrapRef = useRef<HTMLDivElement>(null);
 
   const [items, setItems] = useState<any[]>([]);
+  /** The deepest page that has LANDED. The next request is always this + 1. */
   const [page, setPage] = useState(1);
   const [hasNext, setHasNext] = useState(false);
   const [loading, setLoading] = useState(true);
   const [more, setMore] = useState(false);
+  /** Set only when an append FAILED. Parks the observer until it is cleared. */
+  const [error, setError] = useState<string | null>(null);
 
   // Only the newest request may render. Both sources are scrapes, so a slow
   // earlier reply landing last would otherwise replace newer results.
   const seq = useRef(0);
   const sentinel = useRef<HTMLDivElement>(null);
+  /**
+   * The deepest page a request has been ISSUED for — the twice-fire guard.
+   *
+   * A state flag cannot do this job. `more` only becomes true after React
+   * commits the update, and IntersectionObserver callbacks run before that
+   * commit, so two callbacks in the same frame both read the old value and both
+   * fetch the same page. A ref is written synchronously inside load(), so the
+   * second caller sees the claim immediately.
+   */
+  const requested = useRef(1);
+  /**
+   * How many pages in a row have come back with nothing usable.
+   *
+   * Manhwa browse genuinely produces these: past AsuraScans' 339 series the
+   * grid is MangaDex alone, thinned by title-dedupe and the stub filter, so a
+   * 24-row window can survive as zero — while real results still sit on the
+   * pages after it. An empty page is therefore skipped, not treated as the end.
+   * The counter is what stops that skipping from running forever.
+   */
+  const emptyRun = useRef(0);
 
   const buildUrl = useCallback((p: number) => {
     const u = new URLSearchParams();
@@ -353,17 +387,55 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
 
   const load = useCallback(async (p: number, append: boolean) => {
     const id = ++seq.current;
-    if (append) setMore(true); else setLoading(true);
+    if (append) {
+      setMore(true);
+      requested.current = Math.max(requested.current, p);
+    } else {
+      setLoading(true);
+      requested.current = p;
+      emptyRun.current = 0;
+    }
+    setError(null);
     try {
       const r = await fetch(buildUrl(p));
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const d = await r.json();
       if (id !== seq.current) return;
-      const rows = d?.results || [];
-      setItems((prev) => (append ? [...prev, ...rows] : rows));
-      setHasNext(!!d?.hasNextPage && rows.length > 0);
+      // Both routes answer 200 with `{ error }` when the scrape blew up, so an
+      // ok status is not on its own proof of a usable payload.
+      if (d?.error) throw new Error(String(d.error));
+      const rows: any[] = Array.isArray(d?.results) ? d.results : [];
+      emptyRun.current = rows.length > 0 ? 0 : emptyRun.current + 1;
+      // A skipped (empty) page must not hand back a fresh array — that would
+      // re-render every card in the grid for nothing.
+      setItems((prev) => (append ? (rows.length ? [...prev, ...rows] : prev) : rows));
       setPage(p);
-    } catch {
-      if (id === seq.current && !append) setItems([]);
+      /**
+       * "NO ROWS ON THIS PAGE" IS NOT "NO MORE PAGES" — that conflation is the
+       * bug this whole block exists to kill. It used to read
+       * `!!d?.hasNextPage && rows.length > 0`, so the first sparse page ended
+       * the catalogue: /api/manhwa answered `{ hasNextPage: true, results: [] }`
+       * around page 26 while page 40 still had series behind it, and the grid
+       * printed "That's everything" on top of a few hundred unshown titles.
+       *
+       * The source's own hasNextPage is now the only end signal. The empty-run
+       * counter is the safety rail: several barren pages in a row means the
+       * useful tail really is spent, and we say so rather than paging into the
+       * void forever.
+       */
+      setHasNext(!!d?.hasNextPage && emptyRun.current < EMPTY_RUN_LIMIT);
+    } catch (e: any) {
+      if (id !== seq.current) return;
+      if (append) {
+        // Hand the page back so Retry — and the observer, once the error is
+        // cleared — can ask for it again instead of skipping past it.
+        requested.current = Math.max(1, p - 1);
+        setError(e?.message ? String(e.message) : "Request failed");
+      } else {
+        setItems([]);
+        setHasNext(false);
+        setError(e?.message ? String(e.message) : "Request failed");
+      }
     } finally {
       if (id === seq.current) { setLoading(false); setMore(false); }
     }
@@ -397,15 +469,38 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
     router.replace(qs ? `${window.location.pathname}?${qs}` : window.location.pathname, { scroll: false });
   }, [q, filters, mode, router]);
 
+  /**
+   * INFINITE SCROLL. One observer, one sentinel, torn down on every change of
+   * the conditions it depends on and on unmount.
+   *
+   * `error` is a dependency AND a bail-out, and that pairing matters: without
+   * it a failed append re-ran this effect (because `more` flipped back to
+   * false), re-observed a sentinel that was STILL inside the root margin, and
+   * fired again at once — a hot retry loop against a scraper that can take 12
+   * seconds to fail, with nothing on screen to say so. Parking on the error and
+   * waiting for Retry is what makes the failure legible instead of frantic.
+   *
+   * rootMargin is deliberately large. On a phone a grid page is barely two
+   * screens tall, so a 600px lead time means the reader hits the bottom and
+   * waits; a full viewport-and-a-half of lead means the next page is usually
+   * already in the DOM by the time they get there.
+   */
   useEffect(() => {
     const el = sentinel.current;
-    if (!el || !hasNext || loading || more) return;
-    const io = new IntersectionObserver((e) => {
-      if (e[0].isIntersecting) load(page + 1, true);
-    }, { rootMargin: "600px" });
+    if (!el || !hasNext || loading || more || error) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        const next = page + 1;
+        // Already claimed by an in-flight (or just-issued) request.
+        if (next <= requested.current) return;
+        load(next, true);
+      },
+      { rootMargin: "1200px 0px", threshold: 0 }
+    );
     io.observe(el);
     return () => io.disconnect();
-  }, [hasNext, loading, more, page, load]);
+  }, [hasNext, loading, more, error, page, load]);
 
   const activeCount = mode === "manhwa"
     ? [filters.status, filters.sort, filters.genre].filter(Boolean).length
@@ -467,12 +562,26 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
 
         {loading ? (
           <LoadingScreen fullscreen={false} message={`Searching ${cfg.noun}`} />
+        ) : items.length === 0 && error ? (
+          /* An empty grid after a FAILED request is not an empty catalogue.
+             "Nothing matched that" here blamed the reader's search for a dead
+             scraper and offered clearing filters, which fixes nothing. */
+          <div className="px-2 py-24 text-center">
+            <p className="font-mono text-sm text-rose-300/90">Couldn&rsquo;t reach the {cfg.noun} source.</p>
+            <p className="mx-auto mt-1.5 max-w-sm break-words font-mono text-[11px] text-slate-600">{error}</p>
+            <button
+              onClick={() => load(1, false)}
+              className="mt-4 rounded-xl border border-white/15 bg-white/[0.06] px-4 py-2 font-mono text-xs font-black text-white transition hover:bg-white/10"
+            >
+              Try again
+            </button>
+          </div>
         ) : items.length === 0 ? (
           <div className="py-24 text-center">
             <p className="font-mono text-sm text-slate-500">Nothing matched that.</p>
             {(q || activeCount > 0) && (
               <button
-                onClick={() => { setQ(""); setFilters({ status: "", sort: "", list: "most-popular-novel" }); }}
+                onClick={() => { setQ(""); setFilters({ status: "", sort: "", list: "most-popular-novel", genre: "" }); }}
                 className="mt-3 font-mono text-xs font-black text-violet-300 hover:text-violet-200"
               >
                 Clear search and filters
@@ -489,15 +598,47 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
               )}
             </div>
 
-            <div ref={sentinel} className="h-10" />
-            {more && (
-              <p className="flex items-center justify-center gap-3 py-6 font-mono text-xs text-slate-500">
-                <LoadingDot /> Loading more
-              </p>
-            )}
-            {!hasNext && items.length > 0 && (
-              <p className="py-8 text-center font-mono text-xs text-slate-700">That&rsquo;s everything.</p>
-            )}
+            {/* The trip wire sits ABOVE the status strip, so the strip's own
+                height never changes how far the reader must scroll to arm it. */}
+            <div ref={sentinel} aria-hidden className="h-px w-full" />
+
+            {/*
+              ONE STATUS STRIP, ONE FIXED HEIGHT, FOUR STATES.
+
+              Loading / error / end / idle all render into the same 88px box, so
+              the strip swaps its contents without ever resizing. That is not
+              cosmetic: a row that appears and disappears moves the sentinel in
+              and out of the root margin by its own height, which on a phone is
+              enough to re-trigger the observer and double-fetch.
+            */}
+            <div
+              aria-live="polite"
+              className="flex min-h-[88px] w-full flex-col items-center justify-center gap-2 px-2 py-6 text-center"
+            >
+              {more ? (
+                <p className="flex items-center justify-center gap-3 font-mono text-xs text-slate-500">
+                  <LoadingDot /> Loading more {cfg.noun}…
+                </p>
+              ) : error ? (
+                <>
+                  <p className="max-w-full break-words font-mono text-xs text-rose-300/90">
+                    Couldn&rsquo;t load more {cfg.noun}.
+                  </p>
+                  <button
+                    onClick={() => load(page + 1, true)}
+                    className="rounded-xl border border-white/15 bg-white/[0.06] px-4 py-2 font-mono text-xs font-black text-white transition hover:bg-white/10"
+                  >
+                    Try again
+                  </button>
+                </>
+              ) : hasNext ? (
+                <p className="font-mono text-xs text-slate-700">Scroll for more</p>
+              ) : (
+                <p className="font-mono text-xs text-slate-600">
+                  That&rsquo;s everything &mdash; {items.length} {cfg.noun}.
+                </p>
+              )}
+            </div>
           </>
         )}
       </div>

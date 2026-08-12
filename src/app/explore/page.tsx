@@ -87,6 +87,8 @@ function ExploreInner() {
   const [hasNext, setHasNext] = useState(false);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  /** Set only when a load FAILED. Parks infinite scroll until Retry clears it. */
+  const [error, setError] = useState<string | null>(null);
   // Requests SUPERSEDE, never drop: each load takes a fresh sequence
   // number and a stale response throws itself away. The old busy-flag
   // version silently discarded a new search typed during an infinite-
@@ -94,6 +96,18 @@ function ExploreInner() {
   const seqRef = useRef(0);
   const inFlightRef = useRef(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  /**
+   * The deepest page a request has been ISSUED for.
+   *
+   * `inFlightRef` alone answers "is something running", which is not the same
+   * question as "has page N already been asked for". Two observer callbacks in
+   * one frame, or a re-observe immediately after an append lands, could both
+   * pass the in-flight test for the SAME page. This ref is claimed
+   * synchronously, so the second caller sees it and stands down.
+   */
+  const requestedRef = useRef(1);
+  /** Consecutive pages that arrived with nothing to show. */
+  const emptyRunRef = useRef(0);
 
   const buildVars = (p: number) => {
     const v: any = { page: p };
@@ -112,18 +126,49 @@ function ExploreInner() {
   const load = async (p: number, append: boolean) => {
     const seq = ++seqRef.current;
     inFlightRef.current = true;
+    if (append) requestedRef.current = Math.max(requestedRef.current, p);
+    else { requestedRef.current = p; emptyRunRef.current = 0; }
+    setError(null);
     setLoading(true);
     try {
-      const res = await searchAnime(buildVars(p));
+      const res: any = await searchAnime(buildVars(p));
       if (seqRef.current !== seq) return; // a newer request took over
+      /**
+       * `failed` MEANS THE REQUEST DIED, NOT THAT THE LIST ENDED.
+       *
+       * searchAnime swallows its own failures and returns an empty page whose
+       * pageInfo reads `hasNextPage: false` — byte-identical to reaching the
+       * final page. Infinite scroll obeyed that and retired itself, silently
+       * and permanently, so a single AniList 429 (they allow 30 requests per
+       * minute, which continuous scrolling reaches in the mid-twenties) looked
+       * exactly like "that's the whole catalogue".
+       */
+      if (res?.failed) throw new Error("Anime sources are not responding");
       const list: Anime[] = res?.Page?.media || [];
       const info = res?.Page?.pageInfo || { total: 0, hasNextPage: false };
-      setMedia((m) => (append ? [...m, ...list] : list));
+      emptyRunRef.current = list.length > 0 ? 0 : emptyRunRef.current + 1;
+      setMedia((m) => (append ? (list.length ? [...m, ...list] : m) : list));
       setTotal(info.total || 0);
-      setHasNext(!!info.hasNextPage);
+      /**
+       * AniList CLAMPS pageInfo.total TO 5000 (verified live: every sort and
+       * filter reports total 5000 / lastPage 250), so hasNextPage stays true
+       * past the real end of a filtered result set and the pages just come back
+       * empty. Two barren pages in a row is the honest end marker — AniList's
+       * paging is dense, and the only thinning we do downstream is the safety
+       * filter, which never empties a whole page twice running.
+       */
+      setHasNext(!!info.hasNextPage && emptyRunRef.current < 2);
       setPage(p);
-    } catch {
-      if (seqRef.current === seq && !append) { setMedia([]); setTotal(0); setHasNext(false); }
+    } catch (e: any) {
+      if (seqRef.current !== seq) return;
+      const msg = e?.message ? String(e.message) : "Request failed";
+      if (append) {
+        // Give the page back so Retry can ask for it again.
+        requestedRef.current = Math.max(1, p - 1);
+      } else {
+        setMedia([]); setTotal(0); setHasNext(false);
+      }
+      setError(msg);
     } finally {
       if (seqRef.current === seq) {
         inFlightRef.current = false;
@@ -153,18 +198,37 @@ function ExploreInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, filters]);
 
-  // Infinite scroll: the sentinel near the grid's end pulls the next page.
+  /**
+   * INFINITE SCROLL — one observer, disconnected on every re-arm and on unmount.
+   *
+   * `error` had to become both a dependency and a bail-out. Without it a thrown
+   * append changed NOTHING this effect watches — same page, same media.length,
+   * same hasNext — so the effect never re-ran, and the observer it left behind
+   * was watching a sentinel that was already intersecting. IntersectionObserver
+   * only fires on a threshold CROSSING, and that crossing had already happened,
+   * so the callback could never fire again: scrolling was dead from that moment
+   * on, with nothing on screen to say why. Now the failure re-arms the effect,
+   * the effect declines to auto-fire, and the reader gets a Retry button.
+   *
+   * rootMargin is a viewport-and-a-half rather than 600px so a phone, where a
+   * grid page is about two screens tall, starts the next fetch well before the
+   * reader arrives at the bottom.
+   */
   useEffect(() => {
-    if (!infinite || !hasNext) return;
+    if (!infinite || !hasNext || error) return;
     const el = sentinelRef.current;
     if (!el) return;
     const io = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && !inFlightRef.current) load(page + 1, true);
-    }, { rootMargin: "600px" });
+      if (!entries.some((e) => e.isIntersecting)) return;
+      if (inFlightRef.current) return;
+      const next = page + 1;
+      if (next <= requestedRef.current) return; // already claimed
+      load(next, true);
+    }, { rootMargin: "1200px 0px", threshold: 0 });
     io.observe(el);
     return () => io.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [infinite, hasNext, page, media.length]);
+  }, [infinite, hasNext, error, page, media.length]);
 
   // The library already strips outright adult content; the veil here
   // additionally hides the suggestive tier until deliberately lifted.
@@ -274,6 +338,20 @@ function ExploreInner() {
           <div className="flex justify-center py-24">
             <Loader2 className="h-9 w-9 animate-spin text-slate-600" />
           </div>
+        ) : media.length === 0 && error ? (
+          /* A dead source is not an empty result set. Telling someone to
+             "try different filters" when AniList and Kitsu are both refusing
+             sends them rearranging controls that cannot possibly help. */
+          <div className="px-2 py-24 text-center">
+            <p className="font-mono text-sm text-rose-300/90">Couldn&rsquo;t reach the anime sources.</p>
+            <p className="mx-auto mt-1.5 max-w-sm break-words font-mono text-[11px] text-slate-600">{error}</p>
+            <button
+              onClick={() => load(1, false)}
+              className="mt-4 rounded-xl border border-white/15 bg-white/[0.06] px-4 py-2 font-mono text-xs font-black text-white transition hover:bg-white/10"
+            >
+              Try again
+            </button>
+          </div>
         ) : shownMedia.length === 0 ? (
           <div className="py-24 text-center font-mono text-sm text-slate-500">
             Nothing found — try different filters.
@@ -313,11 +391,55 @@ function ExploreInner() {
           </div>
         )}
 
-        {/* ── more: sentinel when infinite, buttons when not ── */}
+        {/*
+          ── more: sentinel when infinite, buttons when not ──
+
+          ONE LOADER PER PAGE, chosen by the Infinity toggle in the control bar,
+          and they are never both live: the sentinel exists only while infinite
+          is on, the Prev/Next pair only while it is off. That was already the
+          design and it stays, because the toggle is the reader's own answer to
+          "which one do I want" — a load-more button underneath a live sentinel
+          would race it for the same page.
+
+          The infinite branch used to be a bare div that showed a spinner and
+          nothing else: no end state, no error state. Reaching the last page
+          looked identical to the page being broken.
+        */}
         {infinite ? (
-          <div ref={sentinelRef} className="flex justify-center py-10">
-            {loading && media.length > 0 && <Loader2 className="h-6 w-6 animate-spin text-slate-600" />}
-          </div>
+          <>
+            <div ref={sentinelRef} aria-hidden className="h-px w-full" />
+            {/* Fixed-height strip: swapping between these four states must not
+                resize the box, or the sentinel shifts by the strip's own height
+                and can re-cross the root margin into a duplicate fetch. */}
+            <div
+              aria-live="polite"
+              className="flex min-h-[88px] w-full flex-col items-center justify-center gap-2 px-2 py-6 text-center"
+            >
+              {loading && media.length > 0 ? (
+                <p className="flex items-center justify-center gap-2.5 font-mono text-xs text-slate-500">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Loading more anime…
+                </p>
+              ) : error && media.length > 0 ? (
+                <>
+                  <p className="max-w-full break-words font-mono text-xs text-rose-300/90">
+                    Couldn&rsquo;t load more anime.
+                  </p>
+                  <button
+                    onClick={() => load(page + 1, true)}
+                    className="rounded-xl border border-white/15 bg-white/[0.06] px-4 py-2 font-mono text-xs font-black text-white transition hover:bg-white/10"
+                  >
+                    Try again
+                  </button>
+                </>
+              ) : hasNext ? (
+                <p className="font-mono text-xs text-slate-700">Scroll for more</p>
+              ) : media.length > 0 ? (
+                <p className="font-mono text-xs text-slate-600">
+                  That&rsquo;s everything &mdash; {shownMedia.length} anime.
+                </p>
+              ) : null}
+            </div>
+          </>
         ) : (
           <div className="mt-10 flex items-center justify-center gap-3">
             <button

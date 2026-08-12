@@ -8,6 +8,8 @@ import {
 } from "lucide-react";
 import { IMangaInfo } from "@/lib/asura/models";
 import ManhwaTrackerButton from "@/components/manhwa/ManhwaTrackerButton";
+import { useReadingProgress } from "@/hooks/useReadingProgress";
+import { useManhwaStatus } from "@/hooks/useManhwaStatus";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 import CommunityFeed from "@/components/community/CommunityFeed";
 import HeroBackdrop from "@/components/ui/HeroBackdrop";
@@ -32,15 +34,21 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
 
   const [manhwa, setManhwa] = useState<IMangaInfo | null>(null);
   const [loading, setLoading] = useState(true);
-  const [lastRead, setLastRead] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("overview");
   const [chapterFilter, setChapterFilter] = useState("");
 
-  useEffect(() => {
-    try {
-      setLastRead(localStorage.getItem(`manhwa-progress:${id}`));
-    } catch { /* ignore */ }
-  }, [id]);
+  /**
+   * Where this reader left off — the ACCOUNT's answer, not just this browser's.
+   *
+   * Seeds from the local cache (instant, and the whole answer when signed out
+   * or offline), then updates in place if reconciling against the server turns
+   * up a newer chapter read on another device. useManhwaStatus does that
+   * reconcile off the bookmark list it already fetches, so this costs no extra
+   * request — which matters on mobile, where this sits on the reading path.
+   */
+  const lastRead = useReadingProgress("manhwa", id);
+  // Subscribes this page to the bookmark fetch that performs the reconcile.
+  useManhwaStatus();
 
   useEffect(() => {
     fetch(`/api/manhwa/${encodeURIComponent(id)}`)

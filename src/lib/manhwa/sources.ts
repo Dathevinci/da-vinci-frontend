@@ -258,18 +258,43 @@ export async function searchManhwa(query: string, page = 1, filters?: any): Prom
   };
 }
 
+/**
+ * BROWSE PAGES CAN COME BACK EMPTY WITHOUT THE CATALOGUE BEING OVER, and this
+ * function has to report those two states separately.
+ *
+ * AsuraScans holds 339 series (its own `meta.total`, per_page 20), so it is
+ * exhausted after page 17 and every deeper page is MangaDex alone. What reaches
+ * the grid from MangaDex is then thinned twice — `merge` drops cross-source
+ * title duplicates, and `isStub` drops rows whose last-chapter marker is
+ * missing or under 3 — so a 24-row MangaDex window routinely survives as 2-11
+ * rows, and occasionally as ZERO.
+ *
+ * The old `hasNextPage: av.hasNextPage || mv.length > 0` measured the RAW
+ * MangaDex array, before those filters. Live, page 26 answered
+ * `{ hasNextPage: true, results: [] }` — 24 rows fetched, 24 rows filtered out
+ * — while page 40 still had real results behind it. The explore grid read that
+ * empty page as the end of the catalogue and stopped, which is the "explore
+ * stops around page 25" report.
+ *
+ * Both halves now come from the sources' own pagination metadata, so
+ * `hasNextPage` means "the SOURCE has another page" and never doubles as a
+ * claim about how many rows survived our own filtering. An empty page is
+ * therefore a page to skip, not a wall — the caller is free to ask for the next
+ * one, and only `hasNextPage: false` ends the list.
+ */
 export async function browseManhwa(page = 1, filters?: any): Promise<ISearch<IMangaResult>> {
   const asuraOnly = filtersActive(filters);
+  const empty = { currentPage: page, hasNextPage: false, results: [] as IMangaResult[] };
   const [a, m] = await Promise.allSettled([
     asura().getSeries(page, filters),
-    asuraOnly ? Promise.resolve([] as IMangaResult[]) : MDX.latest(page),
+    asuraOnly ? Promise.resolve(empty) : MDX.latestPage(page),
   ]);
-  const av = settled(a, { currentPage: page, hasNextPage: false, results: [] });
-  const mv = settled(m, [] as IMangaResult[]);
+  const av = settled(a, empty);
+  const mv = settled(m, empty);
   return {
     currentPage: page,
-    hasNextPage: av.hasNextPage || mv.length > 0,
-    results: merge(av.results, mv),
+    hasNextPage: av.hasNextPage || mv.hasNextPage,
+    results: merge(av.results, mv.results),
   };
 }
 

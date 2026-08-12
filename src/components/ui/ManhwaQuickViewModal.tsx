@@ -11,6 +11,7 @@ import ManhwaTrackerButton from "@/components/manhwa/ManhwaTrackerButton";
 import { useToast } from "@/components/ui/Toast";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import { useManhwaModal, ManhwaModalOptions } from "@/components/providers/ManhwaModalProvider";
+import { readLocalProgress } from "@/lib/readingProgress";
 
 interface ManhwaQuickViewModalProps {
   manhwa: IMangaResult | { id: string } | null;
@@ -67,11 +68,11 @@ export default function ManhwaQuickViewModal({ manhwa, options, onClose, onBack 
   // Fetch full details
   useEffect(() => {
     if (!manhwa) return;
-    try {
-      setLastRead(localStorage.getItem(`manhwa-progress:${manhwa.id}`));
-    } catch {
-      /* ignore */
-    }
+    // Through the module, not a hand-built key: progress is cached per account
+    // now (`dv-progress:<owner>:manhwa:<id>`), so reading the old unprefixed
+    // key here would find nothing after the one-time migration — and would show
+    // whoever is signed in someone else's chapter if it ever came back.
+    setLastRead(readLocalProgress("manhwa", manhwa.id)?.chapterId ?? null);
     let isMounted = true;
 
     const loadFull = async () => {

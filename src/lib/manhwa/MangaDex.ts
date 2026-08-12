@@ -142,11 +142,41 @@ export async function popular(): Promise<IMangaResult[]> {
   return (d.data || []).map(mapResult);
 }
 
-export async function latest(page = 1): Promise<IMangaResult[]> {
+/**
+ * The latest-upload feed, WITH the source's own "is there a page after this
+ * one" answer attached.
+ *
+ * `latest()` below returns the bare rows and is what the home shelves want.
+ * Browse needs more than rows: the router merges this with AsuraScans and then
+ * FILTERS the merged list (dedupe by title, `isStub` drop). Judging "is there
+ * more" by how many rows came back — which is what browseManhwa used to do —
+ * conflates "this window survived our filters" with "the catalogue is over",
+ * and the two are not the same thing. MangaDex publishes offset/limit/total on
+ * every response; that is the honest signal, and it is unaffected by whatever
+ * we throw away downstream.
+ */
+export async function latestPage(page = 1): Promise<ISearch<IMangaResult>> {
   const limit = 24;
-  const q = qs({ ...BASE_SEARCH, limit, offset: (page - 1) * limit, "order[latestUploadedChapter]": "desc" });
+  const offset = (page - 1) * limit;
+  const q = qs({ ...BASE_SEARCH, limit, offset, "order[latestUploadedChapter]": "desc" });
   const d = await mdx(`/manga?${q}`);
-  return (d.data || []).map(mapResult);
+  const at = d.offset ?? offset;
+  const per = d.limit ?? limit;
+  // MangaDex rejects any window past 10000 — verified live: offset 9960 (page
+  // 416) answers 200, offset 9984 answers HTTP 400. So the test has to be run
+  // against the window the NEXT page would ask for, not this one's; testing
+  // this one's still claims a page 417 that cannot be fetched, and the reader
+  // gets an error row where the honest end of the list belongs.
+  const nextWindowEnd = at + per * 2;
+  return {
+    currentPage: page,
+    hasNextPage: at + per < (d.total || 0) && nextWindowEnd <= 10000,
+    results: (d.data || []).map(mapResult),
+  };
+}
+
+export async function latest(page = 1): Promise<IMangaResult[]> {
+  return (await latestPage(page)).results;
 }
 
 export async function fetchInfo(id: string): Promise<IMangaInfo> {

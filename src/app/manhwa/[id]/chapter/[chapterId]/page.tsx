@@ -9,6 +9,7 @@ import CommunityFeed from "@/components/community/CommunityFeed";
 import { useUser } from "@/hooks/useUser";
 import { earnPoints } from "@/lib/earn";
 import { recordReading } from "@/lib/readingHistory";
+import { writeLocalProgress, pushProgress } from "@/lib/readingProgress";
 
 import { useManhwaStatus } from "@/hooks/useManhwaStatus";
 import { useToast } from "@/components/ui/Toast";
@@ -103,6 +104,19 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
      * nothing else would have cleared them.
      */
     imageRefs.current = [];
+    /**
+     * Same reasoning, and it is what makes the progress gate below TRUE.
+     *
+     * `pages` is the only evidence that this chapter loaded, but it was never
+     * cleared when a new chapterId came in — only on the `data.error` branch.
+     * So a chapter tapped with no signal rejected into the .catch, left the
+     * PREVIOUS chapter's pages in state, and the progress effect saw a
+     * non-empty `pages` with the NEW chapterId and stamped progress for a
+     * chapter that never rendered. Clearing here makes `pages` mean "pages of
+     * the chapter in the URL" on every path, failures included. Nothing
+     * flashes: `loading` is true from the line above until the fetch settles.
+     */
+    setPages([]);
     fetch(`/api/manhwa/${encodeURIComponent(id)}/chapter/${encodeURIComponent(chapterId)}`)
       .then(res => res.json())
       .then((data: any) => {
@@ -261,29 +275,72 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
     }
   };
 
-  // Remember progress
+  // Remember progress — locally first (instant, works offline and signed out),
+  // then a fire-and-forget push so it follows the account to other devices.
   useEffect(() => {
     if (loading || pages.length === 0) return;
     const cc = manhwa?.chapters?.find((c) => c.id === chapterId);
     if ((cc as any)?.isLocked) return;
-    try {
-      localStorage.setItem(`manhwa-progress:${id}`, chapterId);
-    } catch { /* ignore */ }
+    const at = Date.now();
+    writeLocalProgress("manhwa", id, chapterId, at);
     if (manhwa?.title) {
       recordReading("manhwa", { id, title: manhwa.title, cover: manhwa.image, chapterId, chapterTitle: cc?.title });
     }
-  }, [loading, pages.length, manhwa, id, chapterId]);
+    // NOT awaited: a page turn must never wait on the network. The server
+    // upserts, so this also creates the bookmark row for a series that was
+    // never explicitly added to the library.
+    pushProgress("manhwa", id, chapterId, !!user, {
+      title: manhwa?.title,
+      coverImage: manhwa?.image,
+      at,
+    });
+  }, [loading, pages.length, manhwa, id, chapterId, user]);
 
-  // Reward reading
+  /**
+   * REWARD READING.
+   *
+   * TWO faults lived here, and either one alone was enough to stop the
+   * payout — which is why manhwa paid nothing while novels and anime paid.
+   *
+   * 1. A LOCK FLAG IS NOT "THERE IS NOTHING TO READ".
+   *    `isLocked` is computed off Asura's chapter LIST — is_locked ||
+   *    is_premium || a future early_access_until (lib/asura/parsers/
+   *    AsuraScans.ts) — and it is set INDEPENDENTLY of whether the pages
+   *    endpoint serves anything. The pages route rescues precisely those
+   *    chapters from MangaDex (lib/manhwa/sources.ts, getChapterPages), and
+   *    the detail page links them as ordinary chapters on the grounds that
+   *    they are "very often available". So the chapters people actually
+   *    follow — the newest ones on a running series — rendered in full,
+   *    were read end to end, and this returned before ever arming the timer.
+   *
+   *    The guard's INTENT survives, keyed on the truth instead of on
+   *    metadata: pages are required below, and the lock wall further down
+   *    renders on exactly the opposite condition (locked AND no pages). A
+   *    lock with nothing behind it still pays nothing, because there is
+   *    nothing on screen to pay for.
+   *
+   * 2. IT DEPENDED ON OBJECT IDENTITY.
+   *    `manhwa` arrives from a SEPARATE, slower request than the pages
+   *    (series, then series/chapters, through a host fallback) and this
+   *    effect never waited for it — so the timer always started before it
+   *    landed and was always cancelled when it did. `user` does the same on
+   *    its background sync, which hands every mounted useUser a brand-new
+   *    object. Each cancellation restarts the FULL 3.5s from zero.
+   *
+   *    The novel reader gates on its chapter object BEFORE arming its timer,
+   *    so that timer starts once and never restarts — that difference is the
+   *    whole reason novels pay. Depending on PRIMITIVES here (an id, a
+   *    count, a flag) means a refetch that changes nothing re-arms nothing.
+   */
+  const hasPages = pages.length > 0;
+  const userId = user?.id;
   useEffect(() => {
-    if (!user || loading || pages.length === 0) return;
-    const cc = manhwa?.chapters?.find((c) => c.id === chapterId);
-    if ((cc as any)?.isLocked) return;
+    if (!userId || loading || !hasPages) return;
     const t = setTimeout(() => {
-      earnPoints(user.id, "read", `manhwa:${id}:${chapterId}`);
+      earnPoints(userId, "read", `manhwa:${id}:${chapterId}`);
     }, 3500);
     return () => clearTimeout(t);
-  }, [user, loading, pages.length, manhwa, id, chapterId]);
+  }, [userId, loading, hasPages, id, chapterId]);
 
   // Zoom logic
   const BASE_READER_WIDTH = 800;

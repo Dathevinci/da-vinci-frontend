@@ -122,7 +122,14 @@ export default function NotificationsMenu({ openUp = false, onOpenChange }: { op
         onClick={() => setIsOpen(!isOpen)}
         title="Notifications"
         aria-label={unreadCount > 0 ? `Notifications (${unreadCount} unread)` : "Notifications"}
-        className={`relative grid h-9 w-9 place-items-center rounded-full transition-colors ${
+        /**
+         * 36px of pixels, 44px of TAP. The ::before is absolutely positioned,
+         * so it costs no layout — the bell keeps its exact place in the dock
+         * pill and the desktop bar — while the thing a thumb has to hit meets
+         * the 44px floor. Drawn as part of the button, so it is the button
+         * that receives the tap.
+         */
+        className={`relative grid h-9 w-9 place-items-center rounded-full transition-colors before:absolute before:left-1/2 before:top-1/2 before:h-11 before:w-11 before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full before:content-[''] ${
           isOpen ? "bg-white/10 text-white" : "text-slate-400 hover:bg-white/5 hover:text-white"
         }`}
       >
@@ -278,7 +285,9 @@ export default function NotificationsMenu({ openUp = false, onOpenChange }: { op
                           <Icon className={`h-4 w-4 ${tint}`} />
                         </div>
 
-                        <div className="min-w-0 flex-1 pr-5">
+                        {/* room for the always-visible dismiss target on
+                            touch; the hover-revealed desktop one is smaller */}
+                        <div className="min-w-0 flex-1 pr-12 sm:pr-5">
                           <p className={`break-words text-sm leading-snug ${notif.read ? "text-slate-400" : "font-medium text-white"}`}>
                             {notif.message}
                           </p>
@@ -293,7 +302,17 @@ export default function NotificationsMenu({ openUp = false, onOpenChange }: { op
                             removeNotification(notif.id);
                           }}
                           aria-label="Dismiss"
-                          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-500 opacity-0 transition hover:bg-white/10 hover:text-white group-hover:opacity-100"
+                          /**
+                           * A TOUCH SCREEN HAS NO HOVER. This was
+                           * `opacity-0 group-hover:opacity-100`, so on every
+                           * phone it was permanently invisible — and opacity
+                           * does not remove an element from hit-testing, so
+                           * it sat over the right edge of every row eating
+                           * taps meant to OPEN the notification. Below sm it
+                           * is now simply visible, at a 44px target; from sm
+                           * up it keeps the hover reveal it was designed for.
+                           */
+                          className="absolute right-1 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full text-slate-500 transition hover:bg-white/10 hover:text-white sm:right-3 sm:h-7 sm:w-7 sm:opacity-0 sm:group-hover:opacity-100"
                         >
                           <X className="h-3.5 w-3.5" />
                         </button>

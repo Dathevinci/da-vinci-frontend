@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import type { NovelInfo } from "@/lib/novel/ReadNovelFull";
 import NovelTrackerButton from "@/components/novel/NovelTrackerButton";
+import { useReadingProgress } from "@/hooks/useReadingProgress";
+import { useNovelStatus } from "@/hooks/useNovelStatus";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 import { novelCover } from "@/lib/novelImage";
 import CommunityFeed from "@/components/community/CommunityFeed";
@@ -36,10 +38,22 @@ export default function NovelDetailPage() {
   const [loading, setLoading] = useState(true);
   const [chapterFilter, setChapterFilter] = useState("");
   const [chapterPage, setChapterPage] = useState(0);
-  const [lastRead, setLastRead] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("overview");
   const [serverOpen, setServerOpen] = useState(false);
   const serverRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * Where this reader left off — the ACCOUNT's answer, not just this browser's.
+   *
+   * Seeds from the local cache (instant, and the whole answer when signed out
+   * or offline), then updates in place if reconciling against the server turns
+   * up a newer chapter read on another device. useNovelStatus does that
+   * reconcile off the bookmark list it already fetches, so this costs no extra
+   * request — which matters on mobile, where this sits on the reading path.
+   */
+  const lastRead = useReadingProgress("novel", id);
+  // Subscribes this page to the bookmark fetch that performs the reconcile.
+  useNovelStatus();
 
   useEffect(() => setChapterPage(0), [chapterFilter]);
 
@@ -64,9 +78,6 @@ export default function NovelDetailPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-    try {
-      setLastRead(localStorage.getItem(`novel-progress:${id}`));
-    } catch { /* ignore */ }
   }, [id]);
 
   const cover = novelCover(novel?.cover);

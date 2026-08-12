@@ -9,6 +9,7 @@ import type { NovelInfo, NovelResult } from "@/lib/novel/ReadNovelFull";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import NovelTrackerButton from "@/components/novel/NovelTrackerButton";
 import { novelCover } from "@/lib/novelImage";
+import { readLocalProgress } from "@/lib/readingProgress";
 
 const reveal = (delay: number) => ({
   initial: { opacity: 0, y: 16 },
@@ -54,11 +55,11 @@ export default function NovelQuickViewModal({
         if (alive) setFull(d && d.error ? null : d);
       })
       .catch(() => {});
-    try {
-      setLastRead(localStorage.getItem(`novel-progress:${novel.id}`));
-    } catch {
-      /* ignore */
-    }
+    // Through the module, not a hand-built key: progress is cached per account
+    // now (`dv-progress:<owner>:novel:<id>`), so reading the old unprefixed key
+    // here would find nothing after the one-time migration — and would show
+    // whoever is signed in someone else's chapter if it ever came back.
+    setLastRead(readLocalProgress("novel", novel.id)?.chapterId ?? null);
     return () => {
       alive = false;
     };
