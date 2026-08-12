@@ -149,7 +149,13 @@ function ManhwaPageInner() {
                   page opens on what the row was showing. */}
               <ManhwaCarousel title="Trending Now" icon={<Flame className="w-6 h-6 text-orange-500" />} items={trending}
                 seeAllLink="/manhwa/explore?sort=popular" />
-              <ManhwaCarousel title="Recently Added" icon={<Clock className="w-6 h-6 text-[#dc2626]" />} items={latestUpdates}
+              {/* SLICED. The merged latest list runs ~190 rows, and the rail
+                  is newest-first — so its far end is the oldest thing any
+                  source still publishes (one of them has not updated in a
+                  year). Scrolling to the end of "Recently Added" and finding
+                  last year's releases is the reported bug, just further along.
+                  It also stops the carousel mounting 190 lazy tiles. */}
+              <ManhwaCarousel title="Recently Added" icon={<Clock className="w-6 h-6 text-[#dc2626]" />} items={latestUpdates.slice(0, 30)}
                 seeAllLink="/manhwa/explore" />
               {topRated.length > 0 && (
                 <ManhwaCarousel title="Top Rated" icon={<Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />} items={topRated}

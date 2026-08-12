@@ -1,4 +1,5 @@
 import { MangaParser, ISearch, IMangaInfo, IMangaResult, MediaStatus, IMangaChapterPage, IMangaChapter } from '@/lib/asura/models';
+import { ManhwaRow, isoFromEpochSeconds, sortByRecency } from './recency';
 
 /**
  * FLAMECOMICS — a Next.js app, NOT the WordPress theme this adapter was
@@ -57,14 +58,47 @@ interface FlameChapter {
   release_date?: number;
 }
 
+/** A row of the home page's `latestEntries` block: a series WITH its newest chapters. */
+interface FlameLatestSeries extends FlameSeries {
+  chapters?: FlameChapter[];
+}
+
 /**
  * The catalogue is ~1.5MB of HTML and every browse request would otherwise
  * re-fetch and re-parse it. Cached at module scope for five minutes, which on
  * a serverless runtime means "for the life of a warm instance" — a fresh
  * instance simply pays for it once.
  */
-let catalogueCache: { at: number; rows: IMangaResult[] } | null = null;
+let catalogueCache: { at: number; rows: ManhwaRow[]; ranked: ManhwaRow[] } | null = null;
 const CATALOGUE_TTL = 5 * 60 * 1000;
+
+/**
+ * The HOME payload, which serves BOTH home rails from ONE request.
+ *
+ * Separate from the catalogue cache above because it is a different, much
+ * cheaper document: /browse is ~1.5MB and /latest ~1.6MB, while / is ~460KB and
+ * carries a `popularEntries` block AND a `latestEntries` block with per-series
+ * chapters. getPopularToday and getLatestUpdates are both called on every home
+ * render, so without this they would fetch the same page twice.
+ */
+let homeCache: { at: number; popular: ManhwaRow[]; latest: ManhwaRow[] } | null = null;
+const HOME_TTL = 60 * 1000;
+
+/**
+ * THE IN-FLIGHT REQUEST, WITHOUT WHICH THE CACHE ABOVE NEVER FIRES.
+ *
+ * manhwaHome calls getPopularToday and getLatestUpdates inside one
+ * Promise.allSettled, so they run CONCURRENTLY. Both consult the cache before
+ * either has finished filling it, both miss, and both fetch — measured: two
+ * hits on flamecomics.xyz/ per render. A results-only cache cannot help,
+ * because there is no moment between the two lookups at which a result exists.
+ *
+ * Caching the PROMISE closes that window: the second caller joins the first
+ * one's request instead of starting its own. (The same stampede was already
+ * happening on /browse before this change, at 1.5MB a copy, which is how it
+ * went unnoticed.)
+ */
+let homeInflight: Promise<{ popular: ManhwaRow[]; latest: ManhwaRow[] }> | null = null;
 
 export default class FlameComics extends MangaParser {
   override readonly name = 'FlameComics';
@@ -121,7 +155,7 @@ export default class FlameComics extends MangaParser {
     return `${CDN}/uploads/images/series/${s.series_id}/${s.cover}${bust}`;
   }
 
-  private toResult(s: FlameSeries): IMangaResult {
+  private toResult(s: FlameSeries): ManhwaRow {
     return {
       id: `flc:${s.series_id}`,
       title: s.title,
@@ -130,23 +164,44 @@ export default class FlameComics extends MangaParser {
     };
   }
 
-  /** The whole catalogue, freshly or from the warm cache. */
-  private async catalogue(): Promise<IMangaResult[]> {
+  /**
+   * The whole catalogue, freshly or from the warm cache.
+   *
+   * Builds BOTH orderings from the one fetch: `rows` in the payload's own
+   * order (which browse pages through, so it must stay stable) and `ranked` by
+   * `popularityRank`. Deriving the ranked list here rather than in a second
+   * method keeps it free — it is the same document, sorted twice.
+   */
+  private async loadCatalogue(): Promise<{ rows: ManhwaRow[]; ranked: ManhwaRow[] }> {
     if (catalogueCache && Date.now() - catalogueCache.at < CATALOGUE_TTL) {
-      return catalogueCache.rows;
+      return { rows: catalogueCache.rows, ranked: catalogueCache.ranked };
     }
     const html = await this.request<string>(`${this.baseUrl}/browse`);
     const data = this.nextData(html);
     const list: FlameSeries[] = data?.props?.pageProps?.series;
-    if (!Array.isArray(list)) return [];
+    if (!Array.isArray(list)) return { rows: [], ranked: [] };
 
-    const rows = list
-      .filter((s) => s && s.series_id != null && s.title)
+    // `series_id != null` also drops the 13 light-novel rows, which carry a
+    // `novel_id` instead and would otherwise mint the id `flc:undefined`.
+    const kept = list.filter((s) => s && s.series_id != null && s.title);
+    const rows = kept.map((s) => this.toResult(s));
+    const ranked = [...kept]
+      .sort((a, b) => (a.popularityRank ?? Number.MAX_SAFE_INTEGER) - (b.popularityRank ?? Number.MAX_SAFE_INTEGER))
       .map((s) => this.toResult(s));
+
     // Only cache a payload that actually parsed. Caching an empty result would
     // pin a transient holding page in front of the catalogue for five minutes.
-    if (rows.length > 0) catalogueCache = { at: Date.now(), rows };
-    return rows;
+    if (rows.length > 0) catalogueCache = { at: Date.now(), rows, ranked };
+    return { rows, ranked };
+  }
+
+  private async catalogue(): Promise<ManhwaRow[]> {
+    return (await this.loadCatalogue()).rows;
+  }
+
+  /** The catalogue ordered by Flame's own popularity rank (1 = most popular). */
+  private async catalogueRanked(): Promise<ManhwaRow[]> {
+    return (await this.loadCatalogue()).ranked;
   }
 
   /**
@@ -156,7 +211,7 @@ export default class FlameComics extends MangaParser {
    * and `totalItems` are measurements, not estimates — see the contract in
    * src/lib/explorePaging.ts.
    */
-  private paginate(rows: IMangaResult[], page: number): ISearch<IMangaResult> {
+  private paginate(rows: ManhwaRow[], page: number): ISearch<ManhwaRow> {
     const per = FlameComics.PER_PAGE;
     const p = Math.max(1, page);
     const start = (p - 1) * per;
@@ -170,33 +225,164 @@ export default class FlameComics extends MangaParser {
     };
   }
 
-  private empty(page: number): ISearch<IMangaResult> {
+  private empty(page: number): ISearch<ManhwaRow> {
     return { currentPage: page, hasNextPage: false, results: [] };
   }
 
-  /** Newest edits first — Flame's `last_edit`/`time` are unix seconds. */
-  async getLatestUpdates(page: number = 1): Promise<ISearch<IMangaResult>> {
+  /**
+   * THE HOME PAGE, WHICH IS WHERE FLAME'S REAL RECENCY SIGNAL LIVES.
+   *
+   * The previous getLatestUpdates returned `catalogue()` — all 166 series in
+   * /browse's own alphabetical order — straight into a shelf labelled Recently
+   * Updated. That is the reported bug in its purest form: the source was
+   * answering "here is everything I host" to the question "what changed today".
+   *
+   * WHAT WAS ACTUALLY AVAILABLE, measured against the live payloads:
+   *
+   *   /browse  → pageProps.series      166 rows. Carries `last_edit`, `time`
+   *              and `popularityRank`. NO chapter data of any kind.
+   *   /latest  → pageProps.allSeries   166 rows, each with a nested `chapters`
+   *              array (up to 3) carrying a real `release_date`. ~1.6MB.
+   *   /        → pageProps.latestEntries.blocks[0].series  24 rows, the SAME
+   *              shape with nested chapters, plus popularEntries. ~460KB.
+   *
+   * So a recency signal does exist, and this uses the cheapest document that
+   * carries it. The home block's 24 rows are more than a rail of ~20 needs, and
+   * taking it from `/` means popular and latest share one fetch instead of
+   * costing two — the request budget goes DOWN, not up, versus the /browse call
+   * this replaces.
+   *
+   * `last_edit` IS NOT THAT SIGNAL, despite being the obvious-looking field and
+   * the one the old comment on getLatestUpdates claimed to sort by (it sorted
+   * by nothing at all). It tracks metadata edits: "The Former Supreme" reported
+   * last_edit 2026-07-29 with its newest chapter released 2026-08-12, and "The
+   * Ancient Sovereign of Eternity" reported 2024-08-07 while sitting fifth in
+   * Flame's own latest feed. Only `chapters[].release_date` is the release.
+   *
+   * NOVEL ROWS ARE DROPPED. 13 of the 166 catalogue rows carry `novel_id` and
+   * no `series_id`; they are light novels, not manhwa, and without a series_id
+   * they would mint the id `flc:undefined` and open to nothing.
+   */
+  private async home(): Promise<{ popular: ManhwaRow[]; latest: ManhwaRow[] }> {
+    if (homeCache && Date.now() - homeCache.at < HOME_TTL) {
+      return { popular: homeCache.popular, latest: homeCache.latest };
+    }
+    if (homeInflight) return homeInflight;
+    homeInflight = this.loadHome().finally(() => { homeInflight = null; });
+    return homeInflight;
+  }
+
+  private async loadHome(): Promise<{ popular: ManhwaRow[]; latest: ManhwaRow[] }> {
+    const html = await this.request<string>(`${this.baseUrl}/`);
+    const pp = this.nextData(html)?.props?.pageProps;
+
+    const blockSeries = (entries: any): any[] => {
+      const blocks = entries?.blocks;
+      if (!Array.isArray(blocks)) return [];
+      return blocks.flatMap((b: any) => (Array.isArray(b?.series) ? b.series : []));
+    };
+
+    const popular: ManhwaRow[] = blockSeries(pp?.popularEntries)
+      .filter((s: FlameSeries) => s && s.series_id != null && s.title)
+      .map((s: FlameSeries) => this.toResult(s));
+
+    const latest: ManhwaRow[] = blockSeries(pp?.latestEntries)
+      .filter((s: FlameLatestSeries) => s && s.series_id != null && s.title)
+      .map((s: FlameLatestSeries): ManhwaRow => {
+        const chapters = Array.isArray(s.chapters) ? s.chapters : [];
+        // The block is ALREADY ordered newest-first per series, but this takes
+        // the max rather than [0] so a reordered payload cannot quietly date a
+        // row by its oldest chapter instead of its newest.
+        let newest = 0;
+        let newestChapter: FlameChapter | undefined;
+        for (const c of chapters) {
+          const t = Number(c?.release_date) || 0;
+          if (t > newest) { newest = t; newestChapter = c; }
+        }
+        const num = newestChapter?.chapter ? String(Number(newestChapter.chapter)) : '';
+        return {
+          ...this.toResult(s),
+          latestChapter: num ? `Chapter ${num}` : undefined,
+          updatedAt: isoFromEpochSeconds(newest),
+        };
+      })
+      // A row with no chapter payload has no release date, so it cannot be
+      // placed in a shelf that is sorted by release date. Dropping it here is
+      // the whole point of the fix — it is exactly the catalogue filler the
+      // owner was seeing.
+      .filter((r) => !!r.updatedAt);
+
+    const out = { popular, latest: sortByRecency(latest) };
+    // Only cache a payload that parsed. Flame serves a 200 "We'll be right
+    // back" holding page under load, and caching that would pin an empty home
+    // rail in front of a working site.
+    if (popular.length > 0 || out.latest.length > 0) {
+      homeCache = { at: Date.now(), popular: out.popular, latest: out.latest };
+    }
+    return out;
+  }
+
+  /**
+   * Flame's own Latest block, newest chapter first.
+   *
+   * Page 1 only, and EMPTY beyond it — the block is a fixed-size board, not a
+   * paged listing. Returning the catalogue for page 2 is what put old series in
+   * this shelf in the first place; a source that cannot answer the question
+   * contributes nothing rather than padding the answer.
+   */
+  async getLatestUpdates(page: number = 1): Promise<ISearch<ManhwaRow>> {
+    if (page > 1) return this.empty(page);
     try {
-      const rows = await this.catalogue();
-      return this.paginate(rows, page);
+      const { latest } = await this.home();
+      return { currentPage: 1, hasNextPage: false, results: latest };
     } catch (e) {
       console.error('FlameComics getLatestUpdates error:', e);
       return this.empty(page);
     }
   }
 
-  async getPopularToday(): Promise<ISearch<IMangaResult>> {
+  /**
+   * Flame's own Popular block.
+   *
+   * The fallback is sorted by `popularityRank`, which /browse publishes as a
+   * real 1..166 ordering (rank 1 is Omniscient Reader's Viewpoint, 9 is Solo
+   * Leveling — it is a genuine popularity list). The old code sliced the first
+   * 15 rows of the catalogue in its native order, which is ALPHABETICAL: the
+   * trending rail led with "30 Years Have Passed Since the Prologue" and "48
+   * Hours a Day" because their titles start with digits, not because anyone was
+   * reading them.
+   */
+  async getPopularToday(): Promise<ISearch<ManhwaRow>> {
     try {
-      const rows = await this.catalogue();
-      return { currentPage: 1, hasNextPage: false, results: rows.slice(0, 15) };
+      const { popular } = await this.home();
+      if (popular.length > 0) return { currentPage: 1, hasNextPage: false, results: popular.slice(0, 15) };
     } catch (e) {
       console.error('FlameComics getPopularToday error:', e);
+    }
+    try {
+      const rows = await this.catalogueRanked();
+      return { currentPage: 1, hasNextPage: false, results: rows.slice(0, 15) };
+    } catch (e) {
+      console.error('FlameComics getPopularToday fallback error:', e);
       return this.empty(1);
     }
   }
 
+  /**
+   * BROWSE KEEPS THE CATALOGUE, deliberately.
+   *
+   * This used to delegate to getLatestUpdates, so narrowing that method to a
+   * 24-row board would have amputated browse down to one page. Browse wants
+   * every series in a stable order; the home rail wants the few that changed
+   * today. They are different questions and now have different implementations.
+   */
   async getSeries(page: number = 1, _filters?: any): Promise<ISearch<IMangaResult>> {
-    return this.getLatestUpdates(page);
+    try {
+      return this.paginate(await this.catalogue(), page);
+    } catch (e) {
+      console.error('FlameComics getSeries error:', e);
+      return this.empty(page);
+    }
   }
 
   /**

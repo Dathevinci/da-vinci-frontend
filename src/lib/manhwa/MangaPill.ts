@@ -1,5 +1,6 @@
 import { MangaParser, ISearch, IMangaInfo, IMangaResult, MediaStatus, IMangaChapterPage, IMangaChapter } from '@/lib/asura/models';
 import * as cheerio from 'cheerio';
+import { ManhwaRow, isoFromDateString } from './recency';
 
 /**
  * MANGAPILL — the one new source with real server-side paging, and the one
@@ -79,16 +80,45 @@ export default class MangaPill extends MangaParser {
   }
 
   /**
+   * The release time of the chapter this card is announcing.
+   *
+   * `/chapters` cards carry `<time-ago datetime="2026-08-12T21:12:21Z">`, a
+   * custom element whose text the site rewrites client-side into "3 hours ago".
+   * The ATTRIBUTE is the exact instant and needs no relative-time parsing; the
+   * text is a rendering of it and would have to be parsed back, badly.
+   *
+   * It sits in a sibling `div` of the `/manga/` anchor, so this walks outward
+   * exactly like findImage and findLatestChapter rather than looking inside the
+   * link — the card layout is a flat `div.px-1` with the anchor, the chapter
+   * number and the timestamp as peers.
+   */
+  private findReleaseDate($el: cheerio.Cheerio<any>): string | undefined {
+    let node: cheerio.Cheerio<any> | undefined = $el;
+    for (let depth = 0; depth < 3 && node && node.length; depth++) {
+      const dt = node.find('time-ago[datetime], time[datetime]').first().attr('datetime');
+      const iso = isoFromDateString(dt);
+      if (iso) return iso;
+      node = node.parent();
+    }
+    return undefined;
+  }
+
+  /**
    * Parse every series card on a page. Shared by search and the listings, so
    * one markup change cannot fix one and silently break the other.
    *
    * A missing cover is NOT a reason to drop a row — the grid renders a
    * placeholder, and dropping the row instead loses a real series from the
    * merged page for a cosmetic reason.
+   *
+   * A missing TIMESTAMP is likewise not a reason to drop a row: only the
+   * `/chapters` board carries one, and search and the home shelf legitimately
+   * do not. `updatedAt` stays undefined there, which the merged recency sort
+   * reads as "this source did not say" rather than as "now".
    */
-  private parseCards(html: string): IMangaResult[] {
+  private parseCards(html: string): ManhwaRow[] {
     const $ = cheerio.load(html);
-    const results: IMangaResult[] = [];
+    const results: ManhwaRow[] = [];
     const seen = new Set<string>();
 
     $('a[href^="/manga/"]').each((_, el) => {
@@ -109,6 +139,7 @@ export default class MangaPill extends MangaParser {
         title,
         image: this.findImage($el),
         latestChapter: this.findLatestChapter($el),
+        updatedAt: this.findReleaseDate($el),
       });
     });
 
@@ -131,7 +162,7 @@ export default class MangaPill extends MangaParser {
     return false;
   }
 
-  private empty(page: number): ISearch<IMangaResult> {
+  private empty(page: number): ISearch<ManhwaRow> {
     return { currentPage: page, hasNextPage: false, results: [] };
   }
 
@@ -139,8 +170,21 @@ export default class MangaPill extends MangaParser {
    * Latest releases. `/chapters` is MangaPill's own newest-chapters board, so
    * these rows are genuinely fresh rather than "whatever search returned".
    * One page only — the board is not addressable by page number.
+   *
+   * RE-VERIFIED against the live board rather than trusted: it announces itself
+   * as "120 most recent chapters", renders exactly 120 cards, and their
+   * `time-ago` datetimes are strictly descending from now back about two days
+   * (2026-08-12T21:12Z → 2026-08-10T12:13Z). So this endpoint was already
+   * correct and its ENDPOINT is unchanged; the only addition is reading the
+   * timestamp that was on the page all along, so these rows can be interleaved
+   * with the other sources instead of being concatenated after them.
+   *
+   * The board is deduplicated by SERIES, not by chapter, by parseCards' `seen`
+   * set — a series that released three chapters today contributes one row,
+   * dated by whichever of its cards comes first, which on a descending board is
+   * its newest.
    */
-  async getLatestUpdates(page: number = 1): Promise<ISearch<IMangaResult>> {
+  async getLatestUpdates(page: number = 1): Promise<ISearch<ManhwaRow>> {
     if (page > 1) return this.empty(page);
     try {
       const html = await this.request<string>(`${this.baseUrl}/chapters`);
@@ -151,10 +195,23 @@ export default class MangaPill extends MangaParser {
     }
   }
 
-  async getPopularToday(): Promise<ISearch<IMangaResult>> {
+  async getPopularToday(): Promise<ISearch<ManhwaRow>> {
     try {
       const html = await this.request<string>(`${this.baseUrl}/`);
-      return { currentPage: 1, hasNextPage: false, results: this.parseCards(html).slice(0, 15) };
+      /**
+       * POPULAR ONLY — the same shelf-mixing bug that was just fixed for Rizz,
+       * in the other source. mangapill.com/ renders TWO blocks: 8 popular
+       * anchors carrying no <time-ago>, then a latest-chapters block where
+       * every anchor carries one. parseCards returns document order, so a bare
+       * slice(0, 15) took the 8 real popular rows plus 7 rows whose only claim
+       * was being recent.
+       *
+       * The timestamp IS the discriminator: a card with no date is a
+       * popularity card. Filtering on its absence needs no new selector and
+       * cannot drift if they reorder the page.
+       */
+      const rows = this.parseCards(html).filter((r) => !r.updatedAt);
+      return { currentPage: 1, hasNextPage: false, results: rows.slice(0, 15) };
     } catch (e) {
       console.error('MangaPill getPopularToday error:', e);
       return this.empty(1);

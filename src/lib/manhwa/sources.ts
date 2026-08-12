@@ -19,6 +19,7 @@
 import { AsuraScans } from "@/lib/asura";
 import { IMangaResult, IMangaInfo, IMangaChapterPage, ISearch } from "@/lib/asura/models";
 import { combineTotals } from "@/lib/explorePaging";
+import { ManhwaRow, recencyOf, sortByRecency } from "./recency";
 import MangaRead, { TITLE_ALIASES } from "./parsers/MangaRead";
 import MangaPill from "./MangaPill";
 import FlameComics from "./FlameComics";
@@ -238,9 +239,9 @@ function pickByTitle<T extends { title: string | undefined }>(results: T[], want
  *    renders as a nameless tile; it used to bypass the `seen` check entirely
  *    and accumulate one copy per source per page.
  */
-function merge(primary: IMangaResult[], ...secondaries: IMangaResult[][]): IMangaResult[] {
-  const seen = new Map<string, IMangaResult>();
-  const out: IMangaResult[] = [];
+function merge(primary: ManhwaRow[], ...secondaries: ManhwaRow[][]): ManhwaRow[] {
+  const seen = new Map<string, ManhwaRow>();
+  const out: ManhwaRow[] = [];
 
   for (const r of [primary, ...secondaries].flat()) {
     if (!r) continue;
@@ -256,6 +257,57 @@ function merge(primary: IMangaResult[], ...secondaries: IMangaResult[][]): IMang
     out.push(r);
   }
   return out;
+}
+
+/**
+ * The LATEST rail: merge exactly as above, then order NEWEST-FIRST ACROSS
+ * SOURCES rather than source-block by source-block.
+ *
+ * `merge` alone produces Asura's rows, then Flame's, then Rizz's, then Pill's.
+ * Even once every source is internally sorted by recency — which, before this
+ * fix, two of them were not — the rail still reads as four separate shelves
+ * stapled together, so a series Rizz updated last year sat above one Asura
+ * published an hour ago simply because Rizz's block came first. The sort is
+ * what makes the shelf's label true.
+ *
+ * SORTING AFTER THE MERGE, NOT BEFORE, IS DELIBERATE. The dedupe rule is
+ * "first wins", and the argument order encodes best-metadata-first (Asura
+ * leads because it publishes rating, status and a real chapter feed). Sorting
+ * first would let whichever source happened to be a second newer decide which
+ * copy of a duplicated series survives, and the rail would silently lose
+ * Asura's richer rows to a scraper's thinner ones. So: dedupe on quality,
+ * order on recency — the two rules stay independent.
+ *
+ * Cross-source TIMESTAMPS ARE NOT ADOPTED between duplicates, though covers
+ * are. A cover is the same picture whichever source served it; a release date
+ * is a claim about THAT source's copy, and the sources genuinely disagree —
+ * Rizz's newest release is about a year behind Asura's and Flame's. Copying a
+ * fresh date onto a stale row, or the reverse, would manufacture a fact
+ * neither source stated.
+ */
+function mergeLatest(primary: ManhwaRow[], ...secondaries: ManhwaRow[][]): ManhwaRow[] {
+  return sortByRecency(merge(primary, ...secondaries));
+}
+
+/**
+ * Give AsuraScans' rows the same `updatedAt` the other three now carry.
+ *
+ * Asura already ships the answer on every row — `latest_chapters[].published_at`
+ * — and `src/lib/asura` is intentionally left untouched by this fix, so the
+ * derivation lives here. Verified live that the newest `published_at` equals
+ * the API's own `last_chapter_at` on all 20 rows of page 1, and that
+ * `series?offset=0` is already ordered by it, so this reads Asura's own sort
+ * key rather than inventing a competing one.
+ *
+ * Rows are mutated in place; they are built fresh per request by the parser.
+ */
+function withAsuraRecency(rows: ManhwaRow[]): ManhwaRow[] {
+  for (const r of rows) {
+    if (!r || r.updatedAt) continue;
+    const ms = recencyOf(r);
+    if (ms > 0) r.updatedAt = new Date(ms).toISOString();
+  }
+  return rows;
 }
 
 // ── browse / search / home: merge Asura + the three added sources ───────────
@@ -392,7 +444,42 @@ export async function asuraGenres(): Promise<{ id: number; name: string; slug: s
   return asura().getGenres();
 }
 
-export async function manhwaHome(): Promise<{ trending: IMangaResult[]; latestUpdates: IMangaResult[] }> {
+/**
+ * THE TWO HOME RAILS, and the two questions they are NOT allowed to confuse.
+ *
+ * TRENDING asks "what is popular", LATEST asks "what changed recently". The
+ * owner's report — old series showing up in Recently Updated — was three
+ * separate versions of one source answering the wrong question:
+ *
+ *  1. FlameComics.getLatestUpdates returned `catalogue()`: all 166 series in
+ *     /browse's ALPHABETICAL order. It now reads the home page's own Latest
+ *     block, which carries a per-series `chapters[].release_date`.
+ *  2. RizzComics.getLatestUpdates returned `catalogue()` too: 88 series from
+ *     /series/. It now reads the home page's `.utao` "Latest Update" shelf,
+ *     which carries a per-chapter epoch timestamp.
+ *  3. RizzComics.parseCards matched `.bsx, .utao` together, so TRENDING was
+ *     served 8 popular cards followed by 7 latest-update ones. `.bsx` is the
+ *     popular grid and `.utao` the latest listing — verified, not assumed —
+ *     and they are now parsed separately and routed to the rail each belongs
+ *     to.
+ *
+ * AND THEN THE RAIL IS SORTED. Even with all four sources internally correct,
+ * `merge` concatenates them, so the shelf was Asura-then-Flame-then-Rizz-then-
+ * Pill. `mergeLatest` orders it newest-first across every source.
+ *
+ * THE REQUEST BUDGET DID NOT GROW. Both new sources serve BOTH of their rails
+ * from a single cached fetch of their home page, so per render: Asura 2 (its
+ * popular and browse endpoints differ), MangaPill 2 (`/` and `/chapters`),
+ * Flame 1 (`/`, down from `/browse` and ~3x smaller), Rizz 1 (`/`, DOWN from
+ * two — it used to fetch `/` for popular and `/series/` for latest). Nothing is
+ * fetched per card.
+ *
+ * ONE SOURCE FAILING STILL CANNOT EMPTY EITHER RAIL: every call goes through
+ * allSettled and `settled()`, and the adapters catch their own network errors
+ * and return empty. A source that returns nothing now contributes nothing —
+ * which is the point. It no longer contributes its back catalogue instead.
+ */
+export async function manhwaHome(): Promise<{ trending: ManhwaRow[]; latestUpdates: ManhwaRow[] }> {
   const [ap, al, mpp, mpll, fcp, fcl, rcp, rcl] = await Promise.allSettled([
     asura().getPopularToday(),
     asura().getLatestUpdates(1),
@@ -403,9 +490,14 @@ export async function manhwaHome(): Promise<{ trending: IMangaResult[]; latestUp
     rzc().getPopularToday(),
     rzc().getLatestUpdates(1),
   ]);
-  const emptySearch = { currentPage: 1, hasNextPage: false, results: [] as IMangaResult[] };
+  const emptySearch = { currentPage: 1, hasNextPage: false, results: [] as ManhwaRow[] };
   return {
     trending: merge(settled(ap, emptySearch).results, settled(fcp, emptySearch).results, settled(rcp, emptySearch).results, settled(mpp, emptySearch).results),
-    latestUpdates: merge(settled(al, emptySearch).results, settled(fcl, emptySearch).results, settled(rcl, emptySearch).results, settled(mpll, emptySearch).results),
+    latestUpdates: mergeLatest(
+      withAsuraRecency(settled(al, emptySearch).results),
+      settled(fcl, emptySearch).results,
+      settled(rcl, emptySearch).results,
+      settled(mpll, emptySearch).results
+    ),
   };
 }
