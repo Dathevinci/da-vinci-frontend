@@ -16,6 +16,7 @@
  */
 
 import type { NovelResult, NovelChapter, NovelInfo, ChapterContent } from "./ReadNovelFull";
+import { pagerTotalPages, type PageTotals } from "@/lib/explorePaging";
 
 const BASE = "https://novelfull.net";
 const UA =
@@ -111,19 +112,43 @@ function maxPageOf(html: string, current: number): number {
   return pages.length ? Math.max(current, ...pages) : current;
 }
 
-export async function browseNovels(page = 1, list = "most-popular"): Promise<{ results: NovelResult[]; hasNextPage: boolean }> {
+export async function browseNovels(
+  page = 1,
+  list = "most-popular"
+): Promise<{ results: NovelResult[]; hasNextPage: boolean } & PageTotals> {
   const nfList = LIST_MAP[list] || (list.startsWith("genre/") ? list : "most-popular");
   const html = await fetchHtml(`/${nfList}?page=${Math.max(1, page)}`);
   const results = parseListRows(html);
   const maxPage = maxPageOf(html, page);
-  return { results, hasNextPage: page < maxPage && results.length > 0 };
+  /**
+   * Same classic NovelFull pager as readnovelfull, so the same Last link is a
+   * real total — verified live through the relay: /most-popular shows 2-9 then
+   * 146, page 9 of it still shows 146, and /genre/Fantasy shows 94.
+   *
+   * hasNextPage keeps using maxPageOf untouched; this is a second, independent
+   * read for the totals only.
+   */
+  const totalPages = pagerTotalPages(html, page, results.length);
+  return {
+    results,
+    hasNextPage: page < maxPage && results.length > 0,
+    ...(totalPages === undefined ? {} : { totalPages }),
+  };
 }
 
-export async function searchNovels(keyword: string, page = 1): Promise<{ results: NovelResult[]; hasNextPage: boolean }> {
+export async function searchNovels(
+  keyword: string,
+  page = 1
+): Promise<{ results: NovelResult[]; hasNextPage: boolean } & PageTotals> {
   const html = await fetchHtml(`/search?keyword=${encodeURIComponent(keyword)}&page=${Math.max(1, page)}`);
   const results = parseListRows(html);
   const maxPage = maxPageOf(html, page);
-  return { results, hasNextPage: page < maxPage && results.length > 0 };
+  const totalPages = pagerTotalPages(html, page, results.length);
+  return {
+    results,
+    hasNextPage: page < maxPage && results.length > 0,
+    ...(totalPages === undefined ? {} : { totalPages }),
+  };
 }
 
 // ── detail + chapters ──────────────────────────────────────────────────────────

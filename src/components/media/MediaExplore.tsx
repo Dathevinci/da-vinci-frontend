@@ -7,6 +7,15 @@ import { Search, Filter, Clock, ListFilter, Library } from "lucide-react";
 import ManhwaCard from "@/components/manhwa/ManhwaCard";
 import NovelCard from "@/components/novel/NovelCard";
 import LoadingScreen, { LoadingDot } from "@/components/ui/LoadingScreen";
+import { ExplorePager, PagingModeToggle } from "@/components/media/ExplorePaging";
+import {
+  parsePageParam,
+  scrollExploreToTop,
+  sliceLoadedPage,
+  totalPagesFrom,
+  totalsApproximateFrom,
+  usePagingMode,
+} from "@/lib/pagingMode";
 
 /**
  * EXPLORE for comics and novels — the same page anime has, which these modes
@@ -336,10 +345,29 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
   // Shared with the panel's outside-click test — see the note in there.
   const filtersWrapRef = useRef<HTMLDivElement>(null);
 
+  /**
+   * Infinite scroll or numbered pages — the reader's own setting, shared with
+   * the anime explore and every other tab. `ready` is false until localStorage
+   * has been read, which the URL writer below waits for.
+   */
+  const { mode: paging, setMode: setPaging, ready: pagingReady } = usePagingMode();
+
   const [items, setItems] = useState<any[]>([]);
-  /** The deepest page that has LANDED. The next request is always this + 1. */
-  const [page, setPage] = useState(1);
+  /** The page currently ON SCREEN: the deepest appended, or the one paged to. */
+  const [page, setPage] = useState(() => parsePageParam(sp.get("page")));
   const [hasNext, setHasNext] = useState(false);
+  /**
+   * How many pages this query has, WHEN THE SOURCE SAYS SO — null when it does
+   * not, which is most of the time here. Read straight off each response rather
+   * than remembered, so it never outlives the answer that produced it.
+   */
+  const [totalPages, setTotalPages] = useState<number | null>(null);
+  // Whether that total is a counted figure or an upper bound (manhwa merges two
+  // sources and then filters, so its tail is sparse). Set from the SAME
+  // response as totalPages so the two can never describe different payloads.
+  const [totalsApprox, setTotalsApprox] = useState(false);
+  /** Deepest page reached for this query, so paging back keeps them nameable. */
+  const [deepest, setDeepest] = useState(1);
   const [loading, setLoading] = useState(true);
   const [more, setMore] = useState(false);
   /** Set only when an append FAILED. Parks the observer until it is cleared. */
@@ -369,6 +397,29 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
    * The counter is what stops that skipping from running forever.
    */
   const emptyRun = useRef(0);
+  /**
+   * Where each appended page's rows START inside `items`, and the running
+   * length that feeds it.
+   *
+   * This is what lets a switch to numbered pages show the page the reader is on
+   * WITHOUT asking the scraper for it again — the rows are already here, they
+   * just have to be found. Rebuilt from scratch on every fresh (non-append)
+   * load, so it can never describe a list that no longer exists.
+   */
+  const pageStarts = useRef<Map<number, number>>(new Map());
+  const loadedCount = useRef(0);
+  /** `items` readable outside the render/updater — used by the mode switch. */
+  const itemsRef = useRef<any[]>([]);
+  /** The page a failed request was for, so "Try again" retries THAT page. */
+  const failedPage = useRef(1);
+  /** A ?page deep link seeds the FIRST load only; later queries start at 1. */
+  const seededPage = useRef(parsePageParam(sp.get("page")));
+  /** The last URL written, so infinite scroll doesn't replace() every append. */
+  const lastUrl = useRef<string | null>(null);
+
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
 
   const buildUrl = useCallback((p: number) => {
     const u = new URLSearchParams();
@@ -406,10 +457,29 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
       if (d?.error) throw new Error(String(d.error));
       const rows: any[] = Array.isArray(d?.results) ? d.results : [];
       emptyRun.current = rows.length > 0 ? 0 : emptyRun.current + 1;
+      // Record where this page landed BEFORE the list grows, so a later switch
+      // to numbered pages can slice it back out. An empty (skipped) page is not
+      // recorded at all — it owns no rows, and pretending otherwise would hand
+      // the pager an empty grid.
+      if (append) {
+        if (rows.length) {
+          pageStarts.current.set(p, loadedCount.current);
+          loadedCount.current += rows.length;
+        }
+      } else {
+        pageStarts.current = new Map([[p, 0]]);
+        loadedCount.current = rows.length;
+      }
       // A skipped (empty) page must not hand back a fresh array — that would
       // re-render every card in the grid for nothing.
       setItems((prev) => (append ? (rows.length ? [...prev, ...rows] : prev) : rows));
       setPage(p);
+      // ABSENT IS NOT ZERO: `null` here means the source reported no total, and
+      // the pager renders a different (honest) shape for it. Never derived,
+      // never remembered from an earlier response — only what this one said.
+      setTotalPages(totalPagesFrom(d));
+      setTotalsApprox(totalsApproximateFrom(d));
+      setDeepest((seen) => Math.max(seen, p));
       /**
        * "NO ROWS ON THIS PAGE" IS NOT "NO MORE PAGES" — that conflation is the
        * bug this whole block exists to kill. It used to read
@@ -426,6 +496,7 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
       setHasNext(!!d?.hasNextPage && emptyRun.current < EMPTY_RUN_LIMIT);
     } catch (e: any) {
       if (id !== seq.current) return;
+      failedPage.current = p;
       if (append) {
         // Hand the page back so Retry — and the observer, once the error is
         // cleared — can ask for it again instead of skipping past it.
@@ -442,7 +513,14 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
   }, [buildUrl]);
 
   useEffect(() => {
-    const t = setTimeout(() => load(1, false), 350);
+    const t = setTimeout(() => {
+      // The seeded page is spent on the first load; a changed search or filter
+      // is a new result set, and a new result set starts at page 1.
+      const first = seededPage.current;
+      seededPage.current = 1;
+      setDeepest(1);
+      load(first, false);
+    }, 350);
     return () => clearTimeout(t);
   }, [load]);
 
@@ -454,8 +532,16 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
    * remembers the last browse URL — returned you to explore with your genre
    * filter wiped. The anime explore page has always done this; this brings
    * the shared manhwa/novel page level with it.
+   *
+   * `page` joins them ONLY in pages mode. There it is a place the reader chose
+   * and can share or refresh back into. In infinite mode it is just how far
+   * they have scrolled — writing it would churn the URL on every append and
+   * hand out links that drop someone into the middle of a list with the top of
+   * it missing. Held until `pagingReady`, so the first render's default mode
+   * can't strip a ?page the reader arrived with.
    */
   useEffect(() => {
+    if (!pagingReady) return;
     const u = new URLSearchParams();
     if (q.trim()) u.set("q", q.trim());
     if (mode === "manhwa") {
@@ -465,9 +551,15 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
     } else if (filters.list !== "most-popular-novel") {
       u.set("list", filters.list);
     }
+    if (paging === "pages" && page > 1) u.set("page", String(page));
     const qs = u.toString();
-    router.replace(qs ? `${window.location.pathname}?${qs}` : window.location.pathname, { scroll: false });
-  }, [q, filters, mode, router]);
+    const next = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+    // An identical replace() is a navigation the router still processes, and in
+    // infinite mode this effect fires on every appended page.
+    if (lastUrl.current === next) return;
+    lastUrl.current = next;
+    router.replace(next, { scroll: false });
+  }, [q, filters, mode, router, paging, page, pagingReady]);
 
   /**
    * INFINITE SCROLL. One observer, one sentinel, torn down on every change of
@@ -486,6 +578,11 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
    * already in the DOM by the time they get there.
    */
   useEffect(() => {
+    // PAGES MODE HAS NO OBSERVER AT ALL. The sentinel isn't rendered and this
+    // effect refuses to build one, so nothing can keep quietly loading pages
+    // underneath a reader who asked for a pager. Hiding the sentinel would have
+    // left it intersecting and firing.
+    if (paging !== "infinite") return;
     const el = sentinel.current;
     if (!el || !hasNext || loading || more || error) return;
     const io = new IntersectionObserver(
@@ -500,7 +597,64 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [hasNext, loading, more, error, page, load]);
+  }, [paging, hasNext, loading, more, error, page, load]);
+
+  /**
+   * SWITCHING MODES KEEPS THE READER WHERE THEY ARE.
+   *
+   * Infinite → pages: the grid collapses to the single page they are standing
+   * on, sliced out of the rows already in memory. No request, so nothing is
+   * re-fetched and nothing can arrive twice; the pager then opens on that page
+   * rather than dumping them back at page 1. Only if that page can't be sliced
+   * — it was one of the skipped empty pages, or nothing was recorded — is it
+   * fetched.
+   *
+   * Pages → infinite: nothing happens at all. What is on screen stays on
+   * screen, and because `requested` already holds the current page, the
+   * observer's first fetch is page+1 — the twice-fire guard does the work.
+   *
+   * An append caught mid-flight is dropped (bumping `seq` makes its reply stale
+   * on arrival) because it is only fetching MORE, which pages mode does not
+   * want. `requested` is rolled back with it, or a later switch back to
+   * infinite would see the cancelled page as claimed and stall forever. A fresh
+   * page-1 load is NOT cancelled — that one is the reader's actual query, and
+   * it lands as exactly one page, which is already the right shape.
+   */
+  const prevPaging = useRef(paging);
+  useEffect(() => {
+    const from = prevPaging.current;
+    if (from === paging) return;
+    prevPaging.current = paging;
+    if (paging !== "pages") return;
+    if (itemsRef.current.length === 0) return;
+
+    if (more) {
+      seq.current++;
+      setMore(false);
+      setError(null);
+    } else if (loading) {
+      return;
+    }
+    requested.current = page;
+
+    const slice = sliceLoadedPage(itemsRef.current, pageStarts.current, page);
+    if (slice) {
+      setItems(slice);
+      pageStarts.current = new Map([[page, 0]]);
+      loadedCount.current = slice.length;
+    } else {
+      load(page, false);
+    }
+    // Instant, not smooth: the content under the reader just shrank by several
+    // pages, and animating a scroll through the gap is worse than being there.
+    scrollExploreToTop(false);
+  }, [paging, page, more, loading, load]);
+
+  const goToPage = useCallback((p: number) => {
+    if (p === page || p < 1 || loading || more) return;
+    load(p, false);
+    scrollExploreToTop();
+  }, [page, loading, more, load]);
 
   const activeCount = mode === "manhwa"
     ? [filters.status, filters.sort, filters.genre].filter(Boolean).length
@@ -527,6 +681,8 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
               className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-3 pl-11 pr-4 font-mono text-base text-white placeholder:text-slate-600 focus:border-white/25 focus:outline-none sm:text-sm"
             />
           </div>
+
+          <PagingModeToggle mode={paging} onChange={setPaging} />
 
           <div className="relative shrink-0" ref={filtersWrapRef}>
             <button
@@ -560,7 +716,14 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
           {loading ? `Searching ${cfg.noun}…` : `${items.length} ${cfg.noun} shown${q.trim() ? ` for “${q.trim()}”` : ""}`}
         </p>
 
-        {loading ? (
+        {/*
+          In PAGES mode a page change replaces the grid, and swapping the whole
+          screen for a loading panel each time makes the pager feel like it is
+          re-entering the site. With rows already up, the outgoing page is dimmed
+          in place instead and the pager stays put. The full loading panel is
+          still what a first load and infinite scroll get.
+        */}
+        {loading && (paging === "infinite" || items.length === 0) ? (
           <LoadingScreen fullscreen={false} message={`Searching ${cfg.noun}`} />
         ) : items.length === 0 && error ? (
           /* An empty grid after a FAILED request is not an empty catalogue.
@@ -570,7 +733,9 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
             <p className="font-mono text-sm text-rose-300/90">Couldn&rsquo;t reach the {cfg.noun} source.</p>
             <p className="mx-auto mt-1.5 max-w-sm break-words font-mono text-[11px] text-slate-600">{error}</p>
             <button
-              onClick={() => load(1, false)}
+              /* The page that FAILED, not page 1 — in pages mode the reader was
+                 on their way to page 9 and "try again" has to mean that page. */
+              onClick={() => load(failedPage.current, false)}
               className="mt-4 rounded-xl border border-white/15 bg-white/[0.06] px-4 py-2 font-mono text-xs font-black text-white transition hover:bg-white/10"
             >
               Try again
@@ -590,7 +755,12 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
           </div>
         ) : (
           <>
-            <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+            <div
+              aria-busy={loading}
+              className={`mt-6 grid grid-cols-2 gap-4 transition-opacity sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 ${
+                loading ? "opacity-40" : ""
+              }`}
+            >
               {items.map((it, i) =>
                 mode === "manhwa"
                   ? <ManhwaCard key={`${it.id}-${i}`} manhwa={it} />
@@ -598,48 +768,68 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
               )}
             </div>
 
-            {/* The trip wire sits ABOVE the status strip, so the strip's own
-                height never changes how far the reader must scroll to arm it. */}
-            <div ref={sentinel} aria-hidden className="h-px w-full" />
+            {paging === "infinite" && (
+              <>
+                {/* The trip wire sits ABOVE the status strip, so the strip's own
+                    height never changes how far the reader must scroll to arm it.
+                    In pages mode it is not rendered at all — see the observer. */}
+                <div ref={sentinel} aria-hidden className="h-px w-full" />
 
-            {/*
-              ONE STATUS STRIP, ONE FIXED HEIGHT, FOUR STATES.
+                {/*
+                  ONE STATUS STRIP, ONE FIXED HEIGHT, FOUR STATES.
 
-              Loading / error / end / idle all render into the same 88px box, so
-              the strip swaps its contents without ever resizing. That is not
-              cosmetic: a row that appears and disappears moves the sentinel in
-              and out of the root margin by its own height, which on a phone is
-              enough to re-trigger the observer and double-fetch.
-            */}
-            <div
-              aria-live="polite"
-              className="flex min-h-[88px] w-full flex-col items-center justify-center gap-2 px-2 py-6 text-center"
-            >
-              {more ? (
-                <p className="flex items-center justify-center gap-3 font-mono text-xs text-slate-500">
-                  <LoadingDot /> Loading more {cfg.noun}…
-                </p>
-              ) : error ? (
-                <>
-                  <p className="max-w-full break-words font-mono text-xs text-rose-300/90">
-                    Couldn&rsquo;t load more {cfg.noun}.
-                  </p>
-                  <button
-                    onClick={() => load(page + 1, true)}
-                    className="rounded-xl border border-white/15 bg-white/[0.06] px-4 py-2 font-mono text-xs font-black text-white transition hover:bg-white/10"
-                  >
-                    Try again
-                  </button>
-                </>
-              ) : hasNext ? (
-                <p className="font-mono text-xs text-slate-700">Scroll for more</p>
-              ) : (
-                <p className="font-mono text-xs text-slate-600">
-                  That&rsquo;s everything &mdash; {items.length} {cfg.noun}.
-                </p>
-              )}
-            </div>
+                  Loading / error / end / idle all render into the same 88px box, so
+                  the strip swaps its contents without ever resizing. That is not
+                  cosmetic: a row that appears and disappears moves the sentinel in
+                  and out of the root margin by its own height, which on a phone is
+                  enough to re-trigger the observer and double-fetch.
+                */}
+                <div
+                  aria-live="polite"
+                  className="flex min-h-[88px] w-full flex-col items-center justify-center gap-2 px-2 py-6 text-center"
+                >
+                  {more ? (
+                    <p className="flex items-center justify-center gap-3 font-mono text-xs text-slate-500">
+                      <LoadingDot /> Loading more {cfg.noun}…
+                    </p>
+                  ) : error ? (
+                    <>
+                      <p className="max-w-full break-words font-mono text-xs text-rose-300/90">
+                        Couldn&rsquo;t load more {cfg.noun}.
+                      </p>
+                      <button
+                        onClick={() => load(page + 1, true)}
+                        className="rounded-xl border border-white/15 bg-white/[0.06] px-4 py-2 font-mono text-xs font-black text-white transition hover:bg-white/10"
+                      >
+                        Try again
+                      </button>
+                    </>
+                  ) : hasNext ? (
+                    <p className="font-mono text-xs text-slate-700">Scroll for more</p>
+                  ) : (
+                    <p className="font-mono text-xs text-slate-600">
+                      That&rsquo;s everything &mdash; {items.length} {cfg.noun}.
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
           </>
+        )}
+
+        {/* The pager sits OUTSIDE the grid branches on purpose: a page that came
+            back empty or broken still needs a way back to one that didn't. */}
+        {paging === "pages" && (items.length > 0 || page > 1) && (
+          <ExplorePager
+            page={page}
+            hasNext={hasNext}
+            totalPages={totalPages}
+            approximate={totalsApprox}
+            deepest={deepest}
+            loading={loading}
+            failed={!!error}
+            onGo={goToPage}
+          />
         )}
       </div>
     </div>

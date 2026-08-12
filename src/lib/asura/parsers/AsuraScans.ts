@@ -7,6 +7,17 @@ import {
   IMangaChapterPage,
   IMangaChapter,
 } from '../models';
+import { pagesForItems } from '@/lib/explorePaging';
+
+/**
+ * Asura's `meta.total` → the optional totals fields, or NOTHING when the API
+ * did not send a usable count (a missing/zero total must stay absent rather
+ * than becoming `totalPages: 0`, which a client would read as a real answer).
+ */
+function totalsFrom(total: number, perPage: number): { totalPages?: number; totalItems?: number } {
+  const totalPages = pagesForItems(total, perPage);
+  return totalPages === undefined ? {} : { totalPages, totalItems: total };
+}
 
 interface MangaFilters {
   status?: string;
@@ -135,6 +146,12 @@ class AsuraScans extends MangaParser {
         // Trust the API's own has_more; fall back to an offset/total check.
         hasNextPage: data.meta?.has_more === true || (total > 0 && offset + items.length < total),
         results: items.map((i: any) => this.mapMangaResult(i)),
+        // Asura is the one manhwa source that states its catalogue size
+        // outright: meta { total, per_page, has_more }. Verified live — the
+        // unfiltered browse answers total 339 / per_page 20, and the count
+        // TRACKS THE FILTER (total 317 under genres=action), so it is the real
+        // size of the list being paged rather than a catalogue-wide constant.
+        ...totalsFrom(total, Number(data.meta?.per_page) || per),
       };
     } catch (err) {
       throw new Error((err as Error).message);
@@ -189,6 +206,10 @@ class AsuraScans extends MangaParser {
         currentPage: page,
         hasNextPage: data.meta?.has_more === true || (total > 0 && offset + items.length < total),
         results: items.map((i: any) => this.mapMangaResult(i)),
+        // Search reports the same meta block as browse (verified: search=solo
+        // answers total 10). Note it OMITS has_more on short result sets, which
+        // is why hasNextPage keeps its offset/total fallback above.
+        ...totalsFrom(total, Number(data.meta?.per_page) || per),
       };
     } catch (err) {
       throw new Error((err as Error).message);

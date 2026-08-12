@@ -51,6 +51,8 @@ export interface ChapterContent {
   next: string | null;
 }
 
+import { pagerTotalPages, pagesForItems, type PageTotals } from "@/lib/explorePaging";
+
 const BASE = "https://lightnovelworld.org";
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";
@@ -169,12 +171,42 @@ function parseCards(html: string): Card[] {
   return out;
 }
 
-export async function browseNovels(page = 1, _list = "popular"): Promise<{ results: NovelResult[]; hasNextPage: boolean }> {
+/**
+ * This site states its catalogue size in words, above the grid: "1-24 of
+ * 11041". That is the single best totals signal of any scraped source here —
+ * an actual item count, not a page count to be divided out — and it agrees
+ * exactly with its own pager (11041 items at 24/page is 461 pages, and the
+ * pager's last link is 461).
+ *
+ * Both are read, and both must agree before either is reported. They come from
+ * different parts of the markup, so if a template change breaks one, the
+ * disagreement is the signal that the parse is stale — better to fall back to
+ * the numberless pager than to publish whichever half still parses.
+ */
+function browseTotals(html: string, page: number, perPage: number, resultCount: number): PageTotals {
+  const totalPages = pagerTotalPages(html, page, resultCount);
+  const stated = Number(html.match(/\b\d+\s*-\s*\d+\s+of\s+([\d,]+)/i)?.[1]?.replace(/,/g, "") || 0);
+  const totalItems = Number.isFinite(stated) && stated > 0 ? stated : undefined;
+
+  if (totalPages !== undefined && totalItems !== undefined) {
+    const implied = pagesForItems(totalItems, perPage);
+    // One page of slack: the count is live and the pager can lag it by a row.
+    if (implied !== undefined && Math.abs(implied - totalPages) <= 1) return { totalPages, totalItems };
+    return { totalPages };
+  }
+  if (totalPages !== undefined) return { totalPages };
+  return {};
+}
+
+export async function browseNovels(
+  page = 1,
+  _list = "popular"
+): Promise<{ results: NovelResult[]; hasNextPage: boolean } & PageTotals> {
   const html = await fetchHtml(`/genre-all/${page > 1 ? `?page=${page}` : ""}`);
   const results = parseCards(html);
   // Pagination is ?page=N; a link to the next page existing is the honest test.
   const hasNextPage = new RegExp(`href="\\?page=${page + 1}"`).test(html);
-  return { results, hasNextPage };
+  return { results, hasNextPage, ...browseTotals(html, page, 24, results.length) };
 }
 
 /**
@@ -197,7 +229,10 @@ export async function browseNovels(page = 1, _list = "popular"): Promise<{ resul
  * home shelf wants a fast row (3 pages), the browse grid wants a page worth of
  * results and can afford the extra parallel fetches.
  */
-export async function browseTopRated(pages = 3, limit = 24): Promise<{ results: NovelResult[]; hasNextPage: boolean }> {
+export async function browseTopRated(
+  pages = 3,
+  limit = 24
+): Promise<{ results: NovelResult[]; hasNextPage: boolean } & PageTotals> {
   const settled = await Promise.allSettled(
     Array.from({ length: pages }, (_, i) => fetchHtml(`/genre-all/${i > 0 ? `?page=${i + 1}` : ""}`, 900))
   );
@@ -214,15 +249,25 @@ export async function browseTopRated(pages = 3, limit = 24): Promise<{ results: 
   }
 
   all.sort((a, b) => b.rating - a.rating);
-  return { results: all.slice(0, limit), hasNextPage: false };
+  // Exactly one page BY CONSTRUCTION: this shelf is the best `limit` of a fixed
+  // sample, so there is no page 2 to offer and never was — hasNextPage has
+  // always said so. Stating it as a total lets the pager render "1" honestly
+  // instead of falling back to "we don't know".
+  return { results: all.slice(0, limit), hasNextPage: false, totalPages: 1 };
 }
 
-export async function searchNovels(keyword: string, page = 1): Promise<{ results: NovelResult[]; hasNextPage: boolean }> {
+export async function searchNovels(
+  keyword: string,
+  page = 1
+): Promise<{ results: NovelResult[]; hasNextPage: boolean } & PageTotals> {
   const q = encodeURIComponent(keyword.trim());
   const html = await fetchHtml(`/search/?keyword=${q}${page > 1 ? `&page=${page}` : ""}`, 120);
   const results = parseCards(html);
   const hasNextPage = new RegExp(`href="[^"]*page=${page + 1}"`).test(html);
-  return { results, hasNextPage };
+  // Search renders no pager here (verified live: not one page= link on the
+  // results page), which for this template means the matches fit one page.
+  const totalPages = pagerTotalPages(html, page, results.length);
+  return { results, hasNextPage, ...(totalPages === undefined ? {} : { totalPages }) };
 }
 
 export async function getNovelInfo(slug: string): Promise<NovelInfo> {

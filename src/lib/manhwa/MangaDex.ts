@@ -17,9 +17,34 @@ import {
   ISearch,
   MediaStatus,
 } from "@/lib/asura/models";
+import { pagesForItems } from "@/lib/explorePaging";
 
 const API = "https://api.mangadex.org";
 const UPLOADS = "https://uploads.mangadex.org";
+
+/**
+ * MangaDex refuses any window past offset 10000 (verified live: offset 9960
+ * answers 200, offset 9984 answers HTTP 400), so the deepest page that can be
+ * FETCHED is usually far shallower than the one the total implies — the latest
+ * feed reports total 51977, which is 2166 pages of 24, of which only 416 can be
+ * requested at all.
+ *
+ * The pager must be told the REACHABLE count, not the arithmetic one. Offering
+ * page 2000 and having it fail is the same broken promise as inventing "50".
+ */
+const MAX_OFFSET = 10000;
+
+function reachableTotals(total: unknown, perPage: number): { totalPages?: number; totalItems?: number } {
+  const pages = pagesForItems(total, perPage);
+  if (pages === undefined) return {};
+  // Last page whose window STARTS at or before the ceiling.
+  const fetchable = Math.max(1, Math.floor(MAX_OFFSET / perPage));
+  const totalPages = Math.min(pages, fetchable);
+  // totalItems is reported only when the whole set is reachable; past the
+  // ceiling the honest statement is "this many pages", not "this many titles,
+  // most of which you cannot page to".
+  return totalPages < pages ? { totalPages } : { totalPages, totalItems: Number(total) };
+}
 
 // Korean manhwa, Chinese manhua, AND Japanese manga. The first cut of this
 // file skipped `ja` to keep the mode "on-theme", which is exactly why simply
@@ -133,6 +158,10 @@ export async function search(query: string, page = 1): Promise<ISearch<IMangaRes
     currentPage: page,
     hasNextPage: (d.offset || 0) + (d.limit || 0) < (d.total || 0),
     results: (d.data || []).map(mapResult),
+    // Every MangaDex response carries offset/limit/total in its envelope, so
+    // the count is published rather than inferred (verified: title=solo answers
+    // total 69 at limit 24).
+    ...reachableTotals(d.total, d.limit || limit),
   };
 }
 
@@ -170,8 +199,11 @@ export async function latestPage(page = 1): Promise<ISearch<IMangaResult>> {
   const nextWindowEnd = at + per * 2;
   return {
     currentPage: page,
-    hasNextPage: at + per < (d.total || 0) && nextWindowEnd <= 10000,
+    hasNextPage: at + per < (d.total || 0) && nextWindowEnd <= MAX_OFFSET,
     results: (d.data || []).map(mapResult),
+    // Clamped to the same 10000-offset wall hasNextPage respects, so the pager
+    // and the scroller agree on where this source ends.
+    ...reachableTotals(d.total, per),
   };
 }
 

@@ -10,6 +10,8 @@
  *   content:  /<slug>/<chapterId>.html         → #chr-content text
  */
 
+import { pagerTotalPages, type PageTotals } from "@/lib/explorePaging";
+
 const BASE = "https://readnovelfull.com";
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
@@ -130,24 +132,48 @@ function parseListRows(html: string): NovelResult[] {
 export async function browseNovels(
   page = 1,
   list = "most-popular-novel"
-): Promise<{ results: NovelResult[]; hasNextPage: boolean }> {
+): Promise<{ results: NovelResult[]; hasNextPage: boolean } & PageTotals> {
   const safeList = /^[a-z0-9-]+$/.test(list) ? list : "most-popular-novel";
   const html = await fetchHtml(`/novel-list/${safeList}?page=${Math.max(1, page)}`);
   const results = parseListRows(html);
   const pages = Array.from(html.matchAll(/[?&]page=(\d+)/g)).map((m) => Number(m[1]));
   const maxPage = pages.length ? Math.max(...pages) : page;
-  return { results, hasNextPage: page < maxPage && results.length > 0 };
+  /**
+   * The pager's "Last »" link is a REAL last page, not a window edge — verified
+   * live: this list renders 1-7 and then a Last link to page 118, and page 5 of
+   * the same list still names 118. So the total is published, just in HTML.
+   *
+   * Read with its own entity-aware scan rather than the `pages` array above:
+   * that array is left EXACTLY as it was because hasNextPage rides on it, and
+   * hasNextPage was only just fixed. (The two disagree on search pages, where
+   * the link is escaped as `&amp;page=2` and the old scan cannot see it — that
+   * is a real pre-existing hasNextPage bug, deliberately not touched here.)
+   */
+  const totalPages = pagerTotalPages(html, page, results.length);
+  return {
+    results,
+    hasNextPage: page < maxPage && results.length > 0,
+    ...(totalPages === undefined ? {} : { totalPages }),
+  };
 }
 
 // ── search ────────────────────────────────────────────────────────────────────
-export async function searchNovels(keyword: string, page = 1): Promise<{ results: NovelResult[]; hasNextPage: boolean }> {
+export async function searchNovels(
+  keyword: string,
+  page = 1
+): Promise<{ results: NovelResult[]; hasNextPage: boolean } & PageTotals> {
   // Use the full paginated search page (covers + many results across the whole
   // catalog), not the tiny autocomplete. Same row structure as browse.
   const html = await fetchHtml(`/novel-list/search?keyword=${encodeURIComponent(keyword)}&page=${Math.max(1, page)}`);
   const results = parseListRows(html);
   const pages = Array.from(html.matchAll(/[?&]page=(\d+)/g)).map((m) => Number(m[1]));
   const maxPage = pages.length ? Math.max(...pages) : page;
-  return { results, hasNextPage: page < maxPage && results.length > 0 };
+  const totalPages = pagerTotalPages(html, page, results.length);
+  return {
+    results,
+    hasNextPage: page < maxPage && results.length > 0,
+    ...(totalPages === undefined ? {} : { totalPages }),
+  };
 }
 
 // ── detail ────────────────────────────────────────────────────────────────────

@@ -214,7 +214,10 @@ export async function searchAnimeKitsu(variables: any) {
 
   const json = await kitsuFetch(`/anime?${params.join("&")}&${MAPPING_PARAMS}`);
   const media = extractAnimeWithMalIds(json);
-  const total = json.meta?.count || media.length;
+  const stated = Number(json.meta?.count);
+  const hasStatedTotal = Number.isFinite(stated) && stated > 0;
+  const total = hasStatedTotal ? stated : media.length;
+  const lastPage = Math.max(1, Math.ceil(total / 20));
 
   return {
     Page: {
@@ -223,9 +226,20 @@ export async function searchAnimeKitsu(variables: any) {
         total,
         perPage: 20,
         currentPage: page,
-        lastPage: Math.max(1, Math.ceil(total / 20)),
+        lastPage,
         hasNextPage: page * 20 < total,
       },
     },
+    /**
+     * Kitsu publishes `meta.count`, a real unclamped total, so the fallback
+     * keeps the numbered pager working instead of silently downgrading it the
+     * moment AniList refuses.
+     *
+     * Reported ONLY when Kitsu actually sent the count. Without it, `total` is
+     * just the length of the rows in hand, and pages derived from that would
+     * say "1 page" about every result set — a fabricated number wearing the
+     * same field name as a real one. Absent is the honest answer there.
+     */
+    ...(hasStatedTotal ? { totalPages: lastPage, totalItems: total } : {}),
   };
 }

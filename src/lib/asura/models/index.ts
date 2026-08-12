@@ -82,6 +82,17 @@ export interface ISearch<T> {
   currentPage: number;
   hasNextPage: boolean;
   results: T[];
+  /**
+   * Total page count, when THIS source publishes one (AsuraScans' meta.total,
+   * MangaDex's response envelope). Absent means the source never said — the
+   * client must fall back to a numberless pager rather than invent a figure.
+   * See src/lib/explorePaging.ts for the rule these fields obey.
+   */
+  totalPages?: number;
+  /** Item count, same "absent when unknown" contract as totalPages. */
+  totalItems?: number;
+  /** Set when the two numbers above are an upper bound rather than a count. */
+  totalsApproximate?: boolean;
 }
 
 export abstract class MangaParser {

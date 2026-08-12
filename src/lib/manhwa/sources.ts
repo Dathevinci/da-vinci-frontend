@@ -6,6 +6,7 @@
 
 import { AsuraScans } from "@/lib/asura";
 import { IMangaResult, IMangaInfo, IMangaChapterPage, ISearch } from "@/lib/asura/models";
+import { combineTotals } from "@/lib/explorePaging";
 import * as MDX from "./MangaDex";
 import MangaRead, { TITLE_ALIASES } from "./parsers/MangaRead";
 
@@ -241,6 +242,40 @@ function merge(primary: IMangaResult[], ...secondaries: IMangaResult[][]): IMang
  */
 const filtersActive = (f?: any) => !!(f && (f.status || f.sort || f.genre));
 
+/**
+ * WHY MANHWA REPORTS A PAGE COUNT BUT NEVER AN ITEM COUNT.
+ *
+ * Both upstreams publish a real total — Asura's meta.total (339 browsing, 317
+ * under genres=action) and MangaDex's envelope total (51977 on the latest
+ * feed). Neither is the number of titles the reader will actually see, because
+ * this router MERGES them and then throws rows away: `merge` drops cross-source
+ * title duplicates and `isStub` drops MangaDex rows with no real chapters. A
+ * 44-row raw window routinely survives as a handful. So any item count we
+ * printed would be an upstream figure describing a list nobody is looking at —
+ * exactly the "exact-looking number that is wrong" this must not ship.
+ * `totalItems` is therefore OMITTED for manhwa. Always.
+ *
+ * The PAGE count survives that objection, and this is the whole distinction the
+ * decision rests on. Our page N is literally their page N — browse asks Asura
+ * for page N and MangaDex for page N and merges the two answers — so the last
+ * page a reader can address is just the deepest last page any source has. That
+ * is arithmetic over published numbers, not an estimate, and filtering cannot
+ * change it: dropping rows changes how FULL a page is, never how MANY pages the
+ * sources will answer.
+ *
+ * It still ships marked `totalsApproximate`, for one honest reason: our own
+ * filters can empty a page in the tail completely (past Asura's 17 pages the
+ * grid is MangaDex alone, and page 26 has been observed returning zero rows
+ * while page 40 still had results). So the count is a truthful bound on the
+ * paging space, not a promise that every page in it has something on it, and
+ * the client is told which of those two it is holding.
+ *
+ * When a blind source is in the mix, combineTotals drops the whole thing rather
+ * than understating it — MangaRead publishes no count at all, so if IT still
+ * has pages the space is genuinely unbounded and the degraded pager is correct.
+ */
+const MANHWA_TOTALS = { approximate: true } as const;
+
 export async function searchManhwa(query: string, page = 1, filters?: any): Promise<ISearch<IMangaResult>> {
   const asuraOnly = filtersActive(filters);
   const [a, m, mr] = await Promise.allSettled([
@@ -255,6 +290,10 @@ export async function searchManhwa(query: string, page = 1, filters?: any): Prom
     currentPage: page,
     hasNextPage: av.hasNextPage || mv.hasNextPage || mrv.hasNextPage,
     results: merge(av.results, mv.results, mrv.results),
+    // MangaRead is the blind source here: it reports only "a next link exists".
+    // combineTotals therefore withholds the count whenever MangaRead still has
+    // pages, rather than publishing a total that only covers the other two.
+    ...combineTotals([av, mv, mrv], page, MANHWA_TOTALS),
   };
 }
 
@@ -295,6 +334,11 @@ export async function browseManhwa(page = 1, filters?: any): Promise<ISearch<IMa
     currentPage: page,
     hasNextPage: av.hasNextPage || mv.hasNextPage,
     results: merge(av.results, mv.results),
+    // Both browse sources publish a total, so this one normally resolves: the
+    // deeper of Asura's 17 pages and MangaDex's reachable 416. With filters
+    // active MangaDex is skipped entirely and the answer is Asura's alone,
+    // which is the correct result — the reader is only being shown Asura rows.
+    ...combineTotals([av, mv], page, MANHWA_TOTALS),
   };
 }
 

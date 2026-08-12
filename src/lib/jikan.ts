@@ -1,9 +1,42 @@
 import type { Anime } from '@tutkli/jikan-ts';
+import type { PageTotals } from './explorePaging';
 
 // ═══════════════════════════════════════════════════════════
 // HYBRID DATA FETCHING: Jikan for Data, AniList for HD Images
 // ═══════════════════════════════════════════════════════════
 const ANILIST_API = "https://graphql.anilist.co";
+
+/**
+ * AniList's own ceiling on how deep a result set may be paged. Its pageInfo
+ * reports at most `total: 5000` / `lastPage: 250`, whatever the real size.
+ */
+const ANILIST_TOTAL_CAP = 5000;
+
+/**
+ * AniList pageInfo → the shared totals contract.
+ *
+ * AniList is the ONE source here that publishes a page count outright, and for
+ * anything but the widest queries it is exact — measured live: search "frieren"
+ * answers total 6 / lastPage 1, and season WINTER 2024 + genre Mecha answers
+ * total 4 / lastPage 1. So a numbered pager over a filtered search is showing
+ * real page numbers, not a guess.
+ *
+ * THE ONE PLACE IT IS NOT EXACT is the cap: an unfiltered browse answers total
+ * 5000 / lastPage 250 no matter how many anime exist, because that is where
+ * AniList stops counting. 250 is still the last page a reader can reach, so it
+ * is the right number to page to — but it is a CEILING, not a census, and
+ * calling it exact would be the same class of lie as inventing one. That case
+ * is flagged approximate so the client can render it as "250+".
+ */
+function anilistTotals(pageInfo: any): PageTotals {
+  const total = Number(pageInfo?.total);
+  const lastPage = Number(pageInfo?.lastPage);
+  if (!Number.isFinite(lastPage) || lastPage <= 0) return {};
+  if (!Number.isFinite(total) || total <= 0) return { totalPages: lastPage };
+  return total >= ANILIST_TOTAL_CAP
+    ? { totalPages: lastPage, totalItems: total, totalsApproximate: true }
+    : { totalPages: lastPage, totalItems: total };
+}
 
 // Delay to avoid hitting Jikan rate limits (3/sec)
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -470,11 +503,16 @@ export async function searchAnime(variables: any) {
       }
     }
 
+    const pageInfo = data.Page?.pageInfo || emptyPage.pageInfo;
     return {
       Page: {
         media: (data.Page?.media || []).filter(isSafeMedia).map(mapAniListMedia),
-        pageInfo: data.Page?.pageInfo || emptyPage.pageInfo,
+        pageInfo,
       },
+      // Additive and top-level, matching /api/manhwa and /api/novels, so one
+      // pager component can read all three modes without branching. pageInfo is
+      // left exactly as it was for every existing caller.
+      ...anilistTotals(pageInfo),
     };
   } catch (err) {
     console.warn("AniList search failed, falling back to Kitsu:", err);

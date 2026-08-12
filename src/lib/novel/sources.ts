@@ -17,6 +17,7 @@ import * as FMTL from "./FanMTL";
 import * as LNW from "./LightNovelWorld";
 import * as Lnori from "./Lnori";
 import type { NovelResult, NovelInfo, ChapterContent } from "./ReadNovelFull";
+import { combineTotals, type PageTotals, type SourcePaging } from "@/lib/explorePaging";
 
 export function resolveSource(id: string): { source: "nf" | "fmtl" | "rnf" | "lnw" | "lnori"; slug: string } {
   if (id.startsWith("nf:")) return { source: "nf", slug: id.slice(3) };
@@ -104,7 +105,7 @@ export async function getChapterContent(id: string, chapterId: string): Promise<
 // Query novelfull + readnovelfull for one term and interleave (novelfull first,
 // since it's the richer source), deduped by title. A source that fails is
 // skipped, so search still works if one is down.
-async function runSearch(query: string, page: number): Promise<{ results: NovelResult[]; hasNextPage: boolean }> {
+async function runSearch(query: string, page: number): Promise<{ results: NovelResult[]; hasNextPage: boolean } & PageTotals> {
   const [nf, rnf, lnw] = await Promise.allSettled([
     NF.searchNovels(query, page),
     RNF.searchNovels(query, page),
@@ -127,7 +128,21 @@ async function runSearch(query: string, page: number): Promise<{ results: NovelR
     }
   }
   const hasNextPage = (nf.status === "fulfilled" && nf.value.hasNextPage) || (rnf.status === "fulfilled" && rnf.value.hasNextPage);
-  return { results: merged, hasNextPage };
+  /**
+   * Search is a MERGE, so it gets the merge treatment: a page count (our page N
+   * is each source's page N, so the deepest last page wins) and no item count
+   * (the merge dedupes by title, so summing the sources would over-count every
+   * novel that appears on more than one of them).
+   *
+   * A source that REJECTED contributes nothing — not a total, and not a
+   * "there's more" — which is right for this response: its rows aren't in it.
+   * The page count then describes the sources that actually answered.
+   */
+  const parts: SourcePaging[] = [nf, rnf, lnw]
+    .filter((r): r is PromiseFulfilledResult<{ results: NovelResult[]; hasNextPage: boolean } & PageTotals> =>
+      r.status === "fulfilled")
+    .map((r) => ({ hasNextPage: r.value.hasNextPage, totalPages: r.value.totalPages }));
+  return { results: merged, hasNextPage, ...combineTotals(parts, page) };
 }
 
 // Famous titles some sources only index under a different (romaji) name, so the
@@ -137,7 +152,7 @@ const TITLE_ALIASES: [RegExp, string][] = [
   [/that time i got reincarnated as a slime|^\s*tensura\s*$/i, "tensei shitara slime datta ken"],
 ];
 
-export async function searchAll(query: string, page = 1): Promise<{ results: NovelResult[]; hasNextPage: boolean }> {
+export async function searchAll(query: string, page = 1): Promise<{ results: NovelResult[]; hasNextPage: boolean } & PageTotals> {
   const q = query.trim();
   let result = await runSearch(q, page);
   // The sources do a contiguous substring match, so a full title with

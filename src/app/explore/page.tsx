@@ -4,13 +4,20 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  Search, Filter, EyeOff, Eye, Infinity as InfinityIcon, Star, Loader2,
-  ChevronLeft, ChevronRight, Clock, Calendar, Tag,
+  Search, Filter, EyeOff, Eye, Star, Loader2,
+  Clock, Calendar, Tag,
 } from "lucide-react";
 import { searchAnime } from "@/lib/jikan";
 import { useAnimeModal } from "@/components/providers/AnimeModalProvider";
 import HoverPreview from "@/components/anime/HoverPreview";
 import LoadingScreen from "@/components/ui/LoadingScreen";
+import { ExplorePager, PagingModeToggle } from "@/components/media/ExplorePaging";
+import {
+  parsePageParam,
+  scrollExploreToTop,
+  sliceLoadedPage,
+  usePagingMode,
+} from "@/lib/pagingMode";
 import { Anime } from "@tutkli/jikan-ts";
 
 /**
@@ -51,6 +58,29 @@ type Filters = {
   format: string | null;
 };
 
+/**
+ * ANILIST CLAMPS ITS OWN TOTALS, so its lastPage is only sometimes a fact.
+ *
+ * Verified live: a BROAD query (the unfiltered browse) hits the ceiling and
+ * reports `total: 5000 / lastPage: 250` — that is "at least 5000", not a count.
+ * NARROW queries are genuinely exact, measured the same day: search "frieren"
+ * came back total 6 / lastPage 1, and WINTER 2024 + Mecha came back total 4.
+ * So the clamp is a property of the QUERY, not of AniList generally — which is
+ * why the test below is a runtime one against the value rather than a blanket
+ * refusal to trust it. At the clamp we report NO total and the pager counts
+ * only what it can prove; below it the number is real and gets used as one.
+ */
+const ANILIST_TOTAL_CLAMP = 5000;
+
+function anilistTotalPages(info: any): number | null {
+  const last = Number(info?.lastPage);
+  const total = Number(info?.total);
+  if (!Number.isFinite(last) || last < 1) return null;
+  if (!Number.isFinite(total) || total < 1) return null;
+  if (total >= ANILIST_TOTAL_CLAMP) return null;
+  return Math.floor(last);
+}
+
 export default function ExplorePage() {
   return (
     <Suspense fallback={<LoadingScreen message="Loading discover" />}>
@@ -75,7 +105,14 @@ function ExploreInner() {
     format: sp.get("format"),
   });
   const [nsfw, setNsfw] = useState(false);
-  const [infinite, setInfinite] = useState(true);
+  /**
+   * Infinite scroll or numbered pages. This used to be page-local state behind
+   * an ∞ icon; it is now the shared reader preference, so choosing pages here
+   * chooses pages on the comics and novels explore too, and a surface already
+   * open in another tab follows along without a reload.
+   */
+  const { mode: paging, setMode: setPaging, ready: pagingReady } = usePagingMode();
+  const infinite = paging === "infinite";
   const [filtersOpen, setFiltersOpen] = useState(false);
   // Shared with the panel's outside-click test — the Filters button must
   // count as inside, or its mousedown closes the panel and the click
@@ -85,7 +122,11 @@ function ExploreInner() {
   const [media, setMedia] = useState<Anime[]>([]);
   const [total, setTotal] = useState(0);
   const [hasNext, setHasNext] = useState(false);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(() => parsePageParam(sp.get("page")));
+  /** AniList's lastPage when it is a real count, null at the clamp. */
+  const [totalPages, setTotalPages] = useState<number | null>(null);
+  /** Deepest page reached for this query, so paging back keeps them nameable. */
+  const [deepest, setDeepest] = useState(1);
   const [loading, setLoading] = useState(true);
   /** Set only when a load FAILED. Parks infinite scroll until Retry clears it. */
   const [error, setError] = useState<string | null>(null);
@@ -108,6 +149,33 @@ function ExploreInner() {
   const requestedRef = useRef(1);
   /** Consecutive pages that arrived with nothing to show. */
   const emptyRunRef = useRef(0);
+  /**
+   * Whether the request in flight is an APPEND.
+   *
+   * `inFlightRef` says something is running; this says what kind. Switching to
+   * numbered pages may discard an append (it only fetches more, which pages
+   * mode does not want) but must never discard a fresh query the reader just
+   * typed.
+   */
+  const appendInFlightRef = useRef(false);
+  /**
+   * Where each appended page's rows START inside `media`, so switching to pages
+   * can lift the current page back out without asking AniList for it again.
+   */
+  const pageStartsRef = useRef<Map<number, number>>(new Map());
+  const loadedCountRef = useRef(0);
+  /** `media` readable outside render — used by the mode switch. */
+  const mediaRef = useRef<Anime[]>([]);
+  /** The page a failed request was for, so "Try again" retries THAT page. */
+  const failedPageRef = useRef(1);
+  /** A ?page deep link seeds the FIRST load only; later queries start at 1. */
+  const seededPageRef = useRef(parsePageParam(sp.get("page")));
+  /** The last URL written, so infinite scroll doesn't replace() every append. */
+  const lastUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    mediaRef.current = media;
+  }, [media]);
 
   const buildVars = (p: number) => {
     const v: any = { page: p };
@@ -126,6 +194,7 @@ function ExploreInner() {
   const load = async (p: number, append: boolean) => {
     const seq = ++seqRef.current;
     inFlightRef.current = true;
+    appendInFlightRef.current = append;
     if (append) requestedRef.current = Math.max(requestedRef.current, p);
     else { requestedRef.current = p; emptyRunRef.current = 0; }
     setError(null);
@@ -147,8 +216,22 @@ function ExploreInner() {
       const list: Anime[] = res?.Page?.media || [];
       const info = res?.Page?.pageInfo || { total: 0, hasNextPage: false };
       emptyRunRef.current = list.length > 0 ? 0 : emptyRunRef.current + 1;
+      // Where this page's rows begin, recorded before the list grows, so a
+      // switch to numbered pages can show page p alone without re-fetching it.
+      // Empty (skipped) pages own no rows and so are never recorded.
+      if (append) {
+        if (list.length) {
+          pageStartsRef.current.set(p, loadedCountRef.current);
+          loadedCountRef.current += list.length;
+        }
+      } else {
+        pageStartsRef.current = new Map([[p, 0]]);
+        loadedCountRef.current = list.length;
+      }
       setMedia((m) => (append ? (list.length ? [...m, ...list] : m) : list));
       setTotal(info.total || 0);
+      setTotalPages(anilistTotalPages(info));
+      setDeepest((seen) => Math.max(seen, p));
       /**
        * AniList CLAMPS pageInfo.total TO 5000 (verified live: every sort and
        * filter reports total 5000 / lastPage 250), so hasNextPage stays true
@@ -162,6 +245,7 @@ function ExploreInner() {
     } catch (e: any) {
       if (seqRef.current !== seq) return;
       const msg = e?.message ? String(e.message) : "Request failed";
+      failedPageRef.current = p;
       if (append) {
         // Give the page back so Retry can ask for it again.
         requestedRef.current = Math.max(1, p - 1);
@@ -172,31 +256,58 @@ function ExploreInner() {
     } finally {
       if (seqRef.current === seq) {
         inFlightRef.current = false;
+        appendInFlightRef.current = false;
         setLoading(false);
       }
     }
   };
 
-  // Debounced search + filters → fresh page 1, and the URL keeps up so the
-  // state survives refresh/share.
+  // Debounced search + filters → a fresh result set, which always starts at
+  // page 1. The URL used to be written from in here as well; it now has its own
+  // effect below, because the page number belongs in it too and this one must
+  // NOT re-run when the page changes — it would fight the pager for control.
   useEffect(() => {
     const t = setTimeout(() => {
-      load(1, false);
-      const params = new URLSearchParams();
-      if (q.trim()) params.set("q", q.trim());
-      if (filters.sort !== "popularity") params.set("sort", filters.sort);
-      if (filters.year) params.set("year", String(filters.year));
-      if (filters.season) params.set("season", filters.season);
-      if (filters.genres.length) params.set("genre", filters.genres.join(","));
-      if (filters.status) params.set("status", filters.status);
-      if (filters.format) params.set("format", filters.format);
-      if (sp.get("title")) params.set("title", sp.get("title")!);
-      const qs = params.toString();
-      router.replace(qs ? `/explore?${qs}` : "/explore", { scroll: false });
+      // A ?page deep link seeds the first load only.
+      const first = seededPageRef.current;
+      seededPageRef.current = 1;
+      setDeepest(1);
+      load(first, false);
     }, q ? 400 : 0);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, filters]);
+
+  /**
+   * The URL mirrors the query so it survives a refresh or a share.
+   *
+   * `page` joins it ONLY in pages mode — there it is a place the reader chose;
+   * in infinite mode it is just how far they have scrolled, and writing it
+   * would rewrite the URL on every appended page and hand out links that start
+   * someone mid-list with the top missing. Held until the paging preference has
+   * actually been read, so the first render's default can't strip a ?page the
+   * reader arrived with.
+   */
+  useEffect(() => {
+    if (!pagingReady) return;
+    const params = new URLSearchParams();
+    if (q.trim()) params.set("q", q.trim());
+    if (filters.sort !== "popularity") params.set("sort", filters.sort);
+    if (filters.year) params.set("year", String(filters.year));
+    if (filters.season) params.set("season", filters.season);
+    if (filters.genres.length) params.set("genre", filters.genres.join(","));
+    if (filters.status) params.set("status", filters.status);
+    if (filters.format) params.set("format", filters.format);
+    if (sp.get("title")) params.set("title", sp.get("title")!);
+    if (paging === "pages" && page > 1) params.set("page", String(page));
+    const qs = params.toString();
+    const next = qs ? `/explore?${qs}` : "/explore";
+    // An identical replace() is still a navigation the router processes.
+    if (lastUrlRef.current === next) return;
+    lastUrlRef.current = next;
+    router.replace(next, { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, filters, page, paging, pagingReady]);
 
   /**
    * INFINITE SCROLL — one observer, disconnected on every re-arm and on unmount.
@@ -215,6 +326,9 @@ function ExploreInner() {
    * reader arrives at the bottom.
    */
   useEffect(() => {
+    // In pages mode there is no observer AND no sentinel in the tree, so
+    // nothing can keep loading in the background behind the pager. Merely
+    // hiding the sentinel would have left it intersecting and firing.
     if (!infinite || !hasNext || error) return;
     const el = sentinelRef.current;
     if (!el) return;
@@ -229,6 +343,64 @@ function ExploreInner() {
     return () => io.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [infinite, hasNext, error, page, media.length]);
+
+  /**
+   * SWITCHING MODES KEEPS THE READER WHERE THEY ARE.
+   *
+   * Infinite → pages: the grid collapses to the one page they are standing on,
+   * sliced out of the rows already in memory — no request, so nothing is
+   * re-fetched and nothing can arrive twice — and the pager opens on that page
+   * instead of dropping them back at page 1. Only a page that cannot be sliced
+   * (one of the skipped empty ones, or nothing recorded yet) is fetched.
+   *
+   * Pages → infinite: nothing happens. What is on screen stays, and since
+   * `requestedRef` already holds the current page, the observer's first fetch
+   * is page+1 — the existing twice-fire guard does the work.
+   *
+   * An append caught in flight is discarded (bumping the sequence makes its
+   * reply stale on arrival) since it only fetches MORE; `requestedRef` is
+   * rolled back with it, or switching back to infinite would treat the
+   * cancelled page as claimed and never scroll again. A fresh, non-append load
+   * is left alone — that one is the reader's query, and it lands as exactly one
+   * page, which is already the shape pages mode wants.
+   */
+  const prevPagingRef = useRef(paging);
+  useEffect(() => {
+    const from = prevPagingRef.current;
+    if (from === paging) return;
+    prevPagingRef.current = paging;
+    if (paging !== "pages") return;
+    if (mediaRef.current.length === 0) return;
+
+    if (inFlightRef.current) {
+      if (!appendInFlightRef.current) return;
+      seqRef.current++;
+      inFlightRef.current = false;
+      appendInFlightRef.current = false;
+      setLoading(false);
+      setError(null);
+    }
+    requestedRef.current = page;
+
+    const slice = sliceLoadedPage(mediaRef.current, pageStartsRef.current, page);
+    if (slice) {
+      setMedia(slice);
+      pageStartsRef.current = new Map([[page, 0]]);
+      loadedCountRef.current = slice.length;
+    } else {
+      load(page, false);
+    }
+    // Instant, not smooth: several pages of content just left the document, and
+    // animating a scroll through the hole they leave is worse than being there.
+    scrollExploreToTop(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paging, page]);
+
+  const goToPage = (p: number) => {
+    if (p === page || p < 1 || inFlightRef.current) return;
+    load(p, false);
+    scrollExploreToTop();
+  };
 
   // The library already strips outright adult content; the veil here
   // additionally hides the suggestive tier until deliberately lifted.
@@ -271,17 +443,9 @@ function ExploreInner() {
             {nsfw ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />} NSFW
           </button>
 
-          <button
-            onClick={() => setInfinite((v) => !v)}
-            title={`Infinite scroll: ${infinite ? "on" : "off"}`}
-            className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl border font-black transition ${
-              infinite
-                ? "border-white/25 bg-white text-black"
-                : "border-white/10 bg-white/[0.04] text-slate-400 hover:text-white"
-            }`}
-          >
-            <InfinityIcon className="h-5 w-5" />
-          </button>
+          {/* Was a bare ∞ button whose meaning lived in a tooltip — invisible on
+              every touch device. Both choices are now written out. */}
+          <PagingModeToggle mode={paging} onChange={setPaging} />
 
           <div className="relative shrink-0" ref={filtersWrapRef}>
             <button
@@ -346,7 +510,9 @@ function ExploreInner() {
             <p className="font-mono text-sm text-rose-300/90">Couldn&rsquo;t reach the anime sources.</p>
             <p className="mx-auto mt-1.5 max-w-sm break-words font-mono text-[11px] text-slate-600">{error}</p>
             <button
-              onClick={() => load(1, false)}
+              /* The page that FAILED, not page 1 — in pages mode the reader was
+                 on their way to page 9 and "try again" has to mean that page. */
+              onClick={() => load(failedPageRef.current, false)}
               className="mt-4 rounded-xl border border-white/15 bg-white/[0.06] px-4 py-2 font-mono text-xs font-black text-white transition hover:bg-white/10"
             >
               Try again
@@ -357,7 +523,15 @@ function ExploreInner() {
             Nothing found — try different filters.
           </div>
         ) : (
-          <div className="mt-7 grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          /* In pages mode the outgoing page dims in place while the next one
+             loads, so the pager below never jumps out from under the tap that
+             just used it. Infinite scroll never dims — it appends. */
+          <div
+            aria-busy={loading}
+            className={`mt-7 grid grid-cols-2 gap-x-5 gap-y-8 transition-opacity sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 ${
+              !infinite && loading ? "opacity-40" : ""
+            }`}
+          >
             {shownMedia.map((a, i) => (
               <HoverPreview key={`${a.mal_id}-${i}`} anime={a}>
               <button
@@ -392,18 +566,21 @@ function ExploreInner() {
         )}
 
         {/*
-          ── more: sentinel when infinite, buttons when not ──
+          ── more: sentinel when infinite, a numbered pager when not ──
 
-          ONE LOADER PER PAGE, chosen by the Infinity toggle in the control bar,
-          and they are never both live: the sentinel exists only while infinite
-          is on, the Prev/Next pair only while it is off. That was already the
-          design and it stays, because the toggle is the reader's own answer to
-          "which one do I want" — a load-more button underneath a live sentinel
-          would race it for the same page.
+          ONE LOADER PER PAGE, chosen by the segmented control in the bar, and
+          they are never both live: the sentinel exists only while infinite is
+          on, the pager only while it is off. That was already the design and it
+          stays, because the toggle is the reader's own answer to "which one do
+          I want" — a pager underneath a live sentinel would race it for the
+          same page.
 
           The infinite branch used to be a bare div that showed a spinner and
           nothing else: no end state, no error state. Reaching the last page
           looked identical to the page being broken.
+
+          The pager replaces a Prev / "Page 7" / Next trio that could never say
+          how far the list went, even for AniList, which reports it.
         */}
         {infinite ? (
           <>
@@ -440,25 +617,19 @@ function ExploreInner() {
               ) : null}
             </div>
           </>
-        ) : (
-          <div className="mt-10 flex items-center justify-center gap-3">
-            <button
-              onClick={() => page > 1 && load(page - 1, false)}
-              disabled={page <= 1 || loading}
-              className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-5 py-2.5 font-mono text-xs font-bold text-slate-300 transition hover:bg-white/10 disabled:opacity-40"
-            >
-              <ChevronLeft className="h-4 w-4" /> Prev
-            </button>
-            <span className="font-mono text-xs font-bold text-slate-500">Page {page}</span>
-            <button
-              onClick={() => hasNext && load(page + 1, false)}
-              disabled={!hasNext || loading}
-              className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-5 py-2.5 font-mono text-xs font-bold text-slate-300 transition hover:bg-white/10 disabled:opacity-40"
-            >
-              Next <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        )}
+        ) : (media.length > 0 || page > 1) ? (
+          /* Rendered even when the grid came back empty or broken — a page the
+             reader cannot navigate away from is a dead end. */
+          <ExplorePager
+            page={page}
+            hasNext={hasNext}
+            totalPages={totalPages}
+            deepest={deepest}
+            loading={loading}
+            failed={!!error}
+            onGo={goToPage}
+          />
+        ) : null}
       </div>
     </div>
   );
