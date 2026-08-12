@@ -119,6 +119,15 @@ export function recordReading(kind: ReadingKind, entry: Omit<ReadingEntry, "at">
     const list = getContinue(kind).filter((e) => e.id !== entry.id); // move-to-front (dedupe by title id)
     list.unshift({ ...entry, at: Date.now() });
     localStorage.setItem(KEY(kind), JSON.stringify(list.slice(0, CAP)));
+
+    // Actually reading it is an unmistakable "put this back", so the tombstone
+    // goes rather than being left to be out-dated later.
+    const dismissed = getDismissed(kind);
+    if (entry.id in dismissed) {
+      delete dismissed[entry.id];
+      writeDismissed(kind, dismissed);
+    }
+
     window.dispatchEvent(new Event(EVT));
   } catch {
     /* ignore */
@@ -144,10 +153,19 @@ export function mergeServerReading(
   try {
     const byId = new Map<string, ReadingEntry>();
     for (const e of getContinue(kind)) byId.set(e.id, e);
+    const dismissed = getDismissed(kind);
 
     let changed = false;
     for (const row of rows) {
       if (!row?.id || !row.chapterId || !row.at) continue;
+      /**
+       * A dismissed title only returns if the account has genuinely moved on
+       * since — otherwise this is the resurrection the reader was fighting:
+       * the card is removed, the very next sync finds no local copy, and puts
+       * the unchanged server row straight back.
+       */
+      const dismissedAt = dismissed[row.id];
+      if (typeof dismissedAt === "number" && row.at <= dismissedAt) continue;
       const existing = byId.get(row.id);
       if (existing && existing.at >= row.at) continue; // local is newer — keep it
       byId.set(row.id, {
@@ -172,10 +190,65 @@ export function mergeServerReading(
   }
 }
 
+/**
+ * DISMISSALS HAVE TO OUTLIVE THE NEXT SYNC.
+ *
+ * Removing a card only rewrote this device's shelf, and the shelf is re-seeded
+ * from the account's progress rows every time the status hook runs. With the
+ * local entry gone, mergeServerReading saw no local copy at all and restored
+ * the row from the server — so the card came back within seconds, and kept
+ * coming back. Deleting locally could never win that argument.
+ *
+ * Clearing the server row instead would be wrong: the reader asked to take a
+ * title off a shelf, not to forget where they were in it. That progress is
+ * still what powers Resume on the detail page and the cross-device sync.
+ *
+ * So a dismissal is recorded as a TOMBSTONE — the moment it was dismissed —
+ * and a server row is only allowed back if it is genuinely NEWER than that.
+ * Reading the title again therefore brings it back, which is what a reader
+ * expects, while a stale row that has not moved stays gone.
+ */
+const DISMISS_KEY = (k: ReadingKind) => `davinci_continue_dismissed:${currentOwner()}:${k}`;
+/** Plenty for a real shelf, and stops the map growing without bound. */
+const DISMISS_CAP = 200;
+
+function getDismissed(kind: ReadingKind): Record<string, number> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(DISMISS_KEY(kind));
+    const map = raw ? JSON.parse(raw) : {};
+    return map && typeof map === "object" && !Array.isArray(map) ? (map as Record<string, number>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeDismissed(kind: ReadingKind, map: Record<string, number>): void {
+  try {
+    let entries = Object.entries(map).filter(([, at]) => Number.isFinite(at));
+    if (entries.length > DISMISS_CAP) {
+      entries = entries.sort((a, b) => b[1] - a[1]).slice(0, DISMISS_CAP);
+    }
+    localStorage.setItem(DISMISS_KEY(kind), JSON.stringify(Object.fromEntries(entries)));
+  } catch {
+    /* private mode / quota — the shelf must still work */
+  }
+}
+
 export function removeContinue(kind: ReadingKind, id: string): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(KEY(kind), JSON.stringify(getContinue(kind).filter((e) => e.id !== id)));
+    const list = getContinue(kind);
+    const entry = list.find((e) => e.id === id);
+    localStorage.setItem(KEY(kind), JSON.stringify(list.filter((e) => e.id !== id)));
+
+    // Stamp at least "now", and never behind the entry being dismissed — a
+    // clock-skewed row must not be able to out-date its own tombstone and
+    // walk straight back onto the shelf.
+    const map = getDismissed(kind);
+    map[id] = Math.max(Date.now(), entry?.at ?? 0);
+    writeDismissed(kind, map);
+
     window.dispatchEvent(new Event(EVT));
   } catch {
     /* ignore */
