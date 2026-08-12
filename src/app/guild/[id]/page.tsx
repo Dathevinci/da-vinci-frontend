@@ -1497,9 +1497,6 @@ export default function GuildHomePage() {
 
                      The dock passes its own `min-h-0 flex-1` and is untouched
                      by any of this. ── */}
-              <GuildChatRoom key={guild.id} guildId={guild.id} guild={guild} isMember={isMember}
-                canModerate={myPerms.moderateChat} askConfirm={askConfirm}
-                heightClass="h-[60vh] min-h-[24rem] max-h-[40rem] sm:h-[76vh] sm:min-h-[36rem] sm:max-h-[64rem]" />
               </div>
 
               <GuildSideRail
@@ -1517,6 +1514,30 @@ export default function GuildHomePage() {
                 onDeleteEmoji={deleteEmoji}
               />
               </div>
+
+              {/* ── THE GUILD CHAT — FULL WIDTH, below the whole grid.
+                  It used to sit in the left column, which capped it at the
+                  column's ~800px while the rail ate the rest. The room is the
+                  thing people actually live in on this page, so it gets the
+                  entire hall: ~1150px wide and taller, instead of a tall
+                  narrow strip beside a stack of cards.
+
+                  HEIGHT: viewport-relative with both ends pinned. The ceiling
+                  was the real limiter before — at 48rem a tall monitor never
+                  reached the vh it was promised — so it is 72rem now.
+
+                  Below sm it stays deliberately shorter so the composer, the
+                  emoji/GIF row and the counter all fit on screen together
+                  rather than pushing under the fold.
+
+                  vh, not dvh, on purpose: dvh re-measures every time a phone's
+                  URL bar slides, and resizing a SCROLLER mid-scroll fights the
+                  room's own stick-to-bottom test.
+
+                  The dock passes its own min-h-0 flex-1 and is untouched. ── */}
+              <GuildChatRoom key={guild.id} guildId={guild.id} guild={guild} isMember={isMember}
+                canModerate={myPerms.moderateChat} askConfirm={askConfirm}
+                heightClass="h-[62vh] min-h-[26rem] max-h-[44rem] sm:h-[80vh] sm:min-h-[40rem] sm:max-h-[72rem]" />
             </>
           )}
         </div>
@@ -1860,33 +1881,6 @@ function GuildSideRail({
         )}
       </div>
 
-      {/* ── TOP CONTRIBUTOR — hidden entirely when the API sends null ── */}
-      {top && (
-        <div className="rounded-3xl border border-amber-400/25 bg-amber-500/[0.06] p-5">
-          <div className="flex items-center gap-2">
-            <Trophy className="h-4 w-4 shrink-0 text-amber-300" />
-            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-amber-200/80">Top contributor</p>
-          </div>
-          <div className="mt-3 flex items-center gap-3">
-            {top.avatar ? (
-              <img src={top.avatar} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover ring-1 ring-amber-400/40" />
-            ) : (
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-amber-900/60 text-sm font-black text-amber-100 ring-1 ring-amber-400/30">
-                {(top.username || "?")[0]?.toUpperCase()}
-              </span>
-            )}
-            <div className="min-w-0 flex-1">
-              <UserLink username={top.username} className="block truncate text-sm font-black text-white hover:underline">
-                {top.username}
-              </UserLink>
-              <p className="mt-0.5 font-mono text-[11px] tabular-nums text-amber-200">
-                {nf(top.xpContributed)} XP contributed
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ── GUILD STATISTICS ── */}
       {stats && (
         <div className="rounded-3xl border border-white/10 bg-[#0b0b11]/85 p-5">
@@ -1917,6 +1911,70 @@ function GuildSideRail({
         </div>
       )}
 
+      {/* ── TOP CONTRIBUTOR — hidden entirely when the API sends null ── */}
+      {top && (
+        <div className="rounded-3xl border border-amber-400/25 bg-amber-500/[0.06] p-5">
+          <div className="flex items-center gap-2">
+            <Trophy className="h-4 w-4 shrink-0 text-amber-300" />
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-amber-200/80">Top contributor</p>
+          </div>
+          <div className="mt-3 flex items-center gap-3">
+            {top.avatar ? (
+              <img src={top.avatar} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover ring-1 ring-amber-400/40" />
+            ) : (
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-amber-900/60 text-sm font-black text-amber-100 ring-1 ring-amber-400/30">
+                {(top.username || "?")[0]?.toUpperCase()}
+              </span>
+            )}
+            <div className="min-w-0 flex-1">
+              <UserLink username={top.username} className="block truncate text-sm font-black text-white hover:underline">
+                {top.username}
+              </UserLink>
+              <p className="mt-0.5 font-mono text-[11px] tabular-nums text-amber-200">
+                {nf(top.xpContributed)} XP contributed
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── GUILD INFORMATION ── */}
+      <div className="rounded-3xl border border-white/10 bg-[#0b0b11]/85 p-5">
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 shrink-0 text-emerald-300" />
+          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">Guild information</p>
+        </div>
+        <dl className="mt-3 space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <dt className="shrink-0 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">Created</dt>
+            <dd className="min-w-0 truncate font-mono text-[11px] text-slate-300">{dateLabel(guild.createdAt)}</dd>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <dt className="shrink-0 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">Type</dt>
+            <dd className="min-w-0 truncate font-mono text-[11px] text-slate-300">
+              {guild.isPublic === false ? "Private · invite only" : "Public"}
+            </dd>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <dt className="shrink-0 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">Min level</dt>
+            <dd className="min-w-0 truncate font-mono text-[11px] tabular-nums text-slate-300">
+              Level {Math.max(1, Math.round(guild.minLevel ?? 1))}
+            </dd>
+          </div>
+        </dl>
+        {isMember && (
+          <p className="mt-3 text-[10px] leading-relaxed text-slate-600">
+            Treasury shards are the guild&rsquo;s alone — they buy the upgrades above and can never be paid
+            back out to a member.
+          </p>
+        )}
+      </div>
+      {/* ── RAIL ORDER: READ FIRST, MANAGE LAST ──
+          Everything above this line is what any member comes here to look at —
+          the boss, the level, the numbers, the facts. Everything below it is a
+          control only an officer can act on, ending with the one that destroys
+          the guild. Scattering purchases between statistics made the rail read
+          as a pile; this makes it read as two shelves. ── */}
       {/* ── CUSTOM ROLES — locked pitch, or the unlocked summary ── */}
       <div className={`rounded-3xl border p-5 ${rolesUnlocked ? "border-white/10 bg-[#0b0b11]/85" : "border-amber-400/20 bg-[#0b0b11]/85"}`}>
         <div className="flex items-center gap-2">
@@ -2061,37 +2119,6 @@ function GuildSideRail({
         </div>
       )}
 
-      {/* ── GUILD INFORMATION ── */}
-      <div className="rounded-3xl border border-white/10 bg-[#0b0b11]/85 p-5">
-        <div className="flex items-center gap-2">
-          <Calendar className="h-4 w-4 shrink-0 text-emerald-300" />
-          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">Guild information</p>
-        </div>
-        <dl className="mt-3 space-y-2">
-          <div className="flex items-center justify-between gap-3">
-            <dt className="shrink-0 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">Created</dt>
-            <dd className="min-w-0 truncate font-mono text-[11px] text-slate-300">{dateLabel(guild.createdAt)}</dd>
-          </div>
-          <div className="flex items-center justify-between gap-3">
-            <dt className="shrink-0 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">Type</dt>
-            <dd className="min-w-0 truncate font-mono text-[11px] text-slate-300">
-              {guild.isPublic === false ? "Private · invite only" : "Public"}
-            </dd>
-          </div>
-          <div className="flex items-center justify-between gap-3">
-            <dt className="shrink-0 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">Min level</dt>
-            <dd className="min-w-0 truncate font-mono text-[11px] tabular-nums text-slate-300">
-              Level {Math.max(1, Math.round(guild.minLevel ?? 1))}
-            </dd>
-          </div>
-        </dl>
-        {isMember && (
-          <p className="mt-3 text-[10px] leading-relaxed text-slate-600">
-            Treasury shards are the guild&rsquo;s alone — they buy the upgrades above and can never be paid
-            back out to a member.
-          </p>
-        )}
-      </div>
     </div>
   );
 }
