@@ -149,26 +149,32 @@ export async function browseNovels(page = 1, list = "trending") {
   return { results: merged, hasNextPage: results.some(r => r.hasNextPage) };
 }
 
+import * as Lnori from "./Lnori";
+
 export async function homeShelves() {
   const [
-    lnwPopular,
-    nfLatest,
-    rnfHot,
-    rnbPopular,
-    wwsHot
-  ] = await Promise.all([
-    LightNovelWorld.browseNovels(1, "trending").catch(() => ({ results: [] })),
-    NovelFull.browseNovels(1, "latest").catch(() => ({ results: [] })),
-    ReadNovelFull.browseNovels(1, "most-popular-novel").catch(() => ({ results: [] })),
-    Ranobes.browseNovels(1, "rating").catch(() => ({ results: [] })),
-    WuxiaWorldSite.browseNovels(1, "trending").catch(() => ({ results: [] }))
+    trending,
+    latest,
+    completed,
+    more,
+    lnwTop,
+    lnori
+  ] = await Promise.allSettled([
+    WuxiaWorldSite.browseNovels(1, "trending"),
+    NovelFull.browseNovels(1, "latest"),
+    ReadNovelFull.browseNovels(1, "completed-novel"),
+    Ranobes.browseNovels(1, "rating"),
+    LightNovelWorld.browseNovels(1, "trending"),
+    Lnori.browseNovels(1),
   ]);
 
-  return [
-    { title: "Light Novel World Top", results: lnwPopular.results.slice(0, 10) },
-    { title: "Ranobes Highest Rated", results: rnbPopular.results.slice(0, 10) },
-    { title: "WuxiaWorld Trending", results: wwsHot.results.slice(0, 10) },
-    { title: "NovelFull Latest", results: nfLatest.results.slice(0, 10) },
-    { title: "ReadNovelFull Hot", results: rnfHot.results.slice(0, 10) },
-  ];
+  return {
+    trending: trending.status === "fulfilled" ? trending.value.results : [],
+    latestUpdates: latest.status === "fulfilled" ? latest.value.results : [],
+    completed: completed.status === "fulfilled" ? completed.value.results : [],
+    korean: [],
+    fanmtl: more.status === "fulfilled" ? more.value.results : [],
+    lnwTop: lnwTop.status === "fulfilled" ? lnwTop.value.results : [],
+    lnori: lnori.status === "fulfilled" ? lnori.value.results : [],
+  };
 }
