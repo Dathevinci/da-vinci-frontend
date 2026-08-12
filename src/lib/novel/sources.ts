@@ -150,7 +150,7 @@ export async function homeShelves() {
     lnori
   ] = await Promise.allSettled([
     ReadNovelFull.browseNovels(1, "most-popular-novel"),
-    NovelFull.browseNovels(1, "latest"),
+    ReadNovelFull.browseNovels(1, "latest-release-novel"),
     ReadNovelFull.browseNovels(1, "completed-novel"),
     Ranobes.browseNovels(1, "rating"),
     WuxiaWorldSite.browseNovels(1, "trending"),
