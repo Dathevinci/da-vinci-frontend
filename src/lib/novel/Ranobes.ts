@@ -38,10 +38,16 @@ export interface ChapterContent {
 
 async function fetchHtml(path: string, init?: RequestInit): Promise<string> {
   const url = `${BASE}${path}`;
-  const res = await fetch(url, {
-    ...init,
-    headers: { "User-Agent": UA, Referer: `${BASE}/`, ...init?.headers },
-  } as any);
+  const headers = {
+    "User-Agent": UA,
+    Referer: path.includes("/novels/") ? `${BASE}/ranking/` : `${BASE}/`,
+    ...init?.headers
+  };
+  let res = await fetch(url, { ...init, headers } as any);
+  if (res.status === 429) {
+    await new Promise((r) => setTimeout(r, 1000));
+    res = await fetch(url, { ...init, headers } as any);
+  }
   if (!res.ok) throw new Error(`Ranobes HTTP ${res.status}`);
   return res.text();
 }
@@ -111,7 +117,8 @@ export async function searchNovels(query: string, page = 1): Promise<{ results: 
 export async function getNovelInfo(slug: string): Promise<NovelInfo> {
   let html = await fetchHtml(`/novels/${slug}-.html`);
   
-  const title = decode(html.match(/<h1 class="title"[^>]*>([^<]+)<\/h1>/i)?.[1] || "Unknown");
+  const rawTitle = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1] || "";
+  const title = decode(rawTitle.replace(/<[^>]+>/g, " ").trim()) || slug;
   const coverMatch = html.match(/<div class="poster">[\s\S]*?<img[^>]*src="([^"]+)"/i);
   const cover = absUrl(coverMatch?.[1] || "");
   

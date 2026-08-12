@@ -27,7 +27,7 @@ export function resolveSource(id: string) {
   if (id.startsWith("lnw:")) return { source: LightNovelWorld, slug: id.replace("lnw:", "") };
   if (id.startsWith("rnb:")) return { source: Ranobes, slug: id.replace("rnb:", "") };
   if (id.startsWith("wws:")) return { source: WuxiaWorldSite, slug: id.replace("wws:", "") };
-  throw new Error(`Unknown source for id: ${id}`);
+  return { source: ReadNovelFull, slug: id };
 }
 
 import { getNovelCover } from '../anilist';
@@ -36,56 +36,64 @@ import { getKitsuNovelCover } from '../kitsu';
 export async function getNovelInfo(id: string): Promise<NovelInfo> {
   const { source, slug } = resolveSource(id);
   
-  const info = await source.getNovelInfo(slug);
+  try {
+    const info = await source.getNovelInfo(slug);
 
-  // Run alternative search & anilist cover fetch in parallel
-  const [searchRes, anilistCover] = await Promise.allSettled([
-    searchAll(info.title, 1),
-    getNovelCover(info.title)
-  ]);
+    // Run alternative search & anilist cover fetch in parallel
+    const [searchRes, anilistCover] = await Promise.allSettled([
+      searchAll(info.title, 1),
+      getNovelCover(info.title)
+    ]);
 
-  if (anilistCover.status === "fulfilled" && anilistCover.value) {
-    info.cover = anilistCover.value;
-  }
+    if (anilistCover.status === "fulfilled" && anilistCover.value) {
+      info.cover = anilistCover.value;
+    }
 
-  // Still nothing? The source page had no parseable cover AND AniList doesn't
-  // know the title (it excludes English-original webnovels like The Beginning
-  // After the End). Kitsu indexes those, so ask it before shipping a blank
-  // detail hero. Only runs on the doubly-missed case, so it costs nothing on
-  // the normal path.
-  if (!info.cover) {
-    const kitsu = await getKitsuNovelCover(info.title).catch(() => null);
-    if (kitsu) info.cover = kitsu;
-  }
+    if (!info.cover) {
+      const kitsu = await getKitsuNovelCover(info.title).catch(() => null);
+      if (kitsu) info.cover = kitsu;
+    }
 
-  const alternatives: { source: string; id: string; name: string }[] = [];
-  
-  // Add current source as an option
-  alternatives.push({
-    source: "current",
-    id,
-    name: "Current Source"
-  });
+    const alternatives: { source: string; id: string; name: string }[] = [];
+    
+    alternatives.push({
+      source: "current",
+      id,
+      name: "Current Source"
+    });
 
-  if (searchRes.status === "fulfilled") {
-    // Add alternatives found in search (deduped by source)
-    for (const res of searchRes.value.results) {
-      if (res.id !== id && !alternatives.find(a => a.id === res.id)) {
-        // Only add if title is very similar (ignoring punctuation and spacing)
-        const clean = (t: string) => t.toLowerCase().replace(/[^a-z0-9]/g, "");
-        if (clean(res.title) === clean(info.title)) {
-          alternatives.push({
-            source: "alternative",
-            id: res.id,
-            name: "Alternative"
-          });
+    if (searchRes.status === "fulfilled") {
+      for (const res of searchRes.value.results) {
+        if (res.id !== id && !alternatives.find(a => a.id === res.id)) {
+          const clean = (t: string) => t.toLowerCase().replace(/[^a-z0-9]/g, "");
+          if (clean(res.title) === clean(info.title)) {
+            alternatives.push({
+              source: "alternative",
+              id: res.id,
+              name: "Alternative"
+            });
+          }
         }
       }
     }
-  }
 
-  info.alternativeServers = alternatives;
-  return info;
+    info.alternativeServers = alternatives;
+    return info;
+  } catch (err) {
+    console.error(`Error fetching info for novel ${id}:`, err);
+    return {
+      id,
+      novelId: slug,
+      title: slug.replace(/[-_]/g, " ").replace(/\b\w/g, l => l.toUpperCase()),
+      cover: "",
+      author: "Unknown",
+      status: "Unknown",
+      genres: [],
+      synopsis: "Details currently unavailable due to source server limits. Please try refreshing in a moment.",
+      chapters: [],
+      alternativeServers: [{ source: "current", id, name: "Current Source" }]
+    };
+  }
 }
 
 export async function getChapterContent(id: string, chapterId: string): Promise<ChapterContent> {
