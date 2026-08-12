@@ -1499,7 +1499,7 @@ export default function GuildHomePage() {
                      by any of this. ── */}
               <GuildChatRoom key={guild.id} guildId={guild.id} guild={guild} isMember={isMember}
                 canModerate={myPerms.moderateChat} askConfirm={askConfirm}
-                heightClass="h-[52vh] min-h-[20rem] max-h-[34rem] sm:h-[62vh] sm:min-h-[30rem] sm:max-h-[48rem]" />
+                heightClass="h-[60vh] min-h-[24rem] max-h-[40rem] sm:h-[76vh] sm:min-h-[36rem] sm:max-h-[64rem]" />
               </div>
 
               <GuildSideRail

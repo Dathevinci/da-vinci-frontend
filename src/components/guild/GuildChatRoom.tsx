@@ -823,14 +823,26 @@ export default function GuildChatRoom({
     return { cls: font + (nameColorClass(a?.activeColor) || "text-white") };
   };
 
-  const shell = className ?? "mt-6 rounded-3xl border border-white/10 bg-[#0b0b11] p-5 sm:p-6";
+  /**
+   * font-mono is stated HERE, not inherited.
+   *
+   * The guild page's root carries it, so the hall's copy of this room always
+   * looked right — but the dock panel is portalled OUT of that page, so the
+   * very same room rendered in the default sans there. One component, two
+   * fonts, depending on where you opened it. Owning the base font fixes both
+   * mounts and keeps it in the Lunar kit's register (font-fell for display,
+   * font-mono for body).
+   */
+  const shell = className ?? "mt-6 rounded-3xl border border-white/10 bg-[#0b0b11] p-5 font-mono sm:p-6";
   const scrollerHeight = heightClass ?? "h-[28rem]";
 
   return (
     <div className={shell}>
       <div className="flex items-center gap-2">
         <MessageSquare className="h-4 w-4 text-emerald-300" />
-        <p className="text-sm font-black text-white">Guild chat</p>
+        {/* font-fell: the redesign's display face, the same one the hall's
+            headings, the stat tiles and the activity card wear. */}
+        <p className="font-fell text-lg leading-none text-white">Guild chat</p>
         <span className="rounded-full border border-emerald-400/25 bg-emerald-500/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-emerald-200">
           Members only
         </span>
