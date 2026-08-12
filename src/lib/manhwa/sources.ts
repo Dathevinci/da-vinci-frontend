@@ -443,64 +443,177 @@ export async function searchManhwa(query: string, page = 1, filters?: any): Prom
  */
 const MANHWA_PAGE_SIZE = 24;
 const CORPUS_TTL = 5 * 60 * 1000;
+/**
+ * Wall-clock ceiling on ONE fill. A cold corpus asked for a deep page walks the
+ * catalogues a round at a time, and rounds are sequential — without a clock the
+ * only brake is the round guard, which is 60 rounds of upstream scraping and
+ * comfortably longer than the platform will let the request live. Stopping
+ * early is safe: the state is cached, so the next request resumes the walk.
+ */
+const CORPUS_FILL_BUDGET_MS = 8_000;
+/**
+ * How many distinct filter corpora to hold. The cache is keyed by the caller's
+ * filters, which come from query params, so the key space is as wide as the
+ * filter panel (and anything else that can be typed into the URL). Each entry
+ * can hold hundreds of fully-hydrated rows and module state outlives the
+ * request, so it needs a ceiling as well as a TTL.
+ */
+const CORPUS_MAX_KEYS = 24;
+
+/**
+ * WHY A SOURCE STOPPED — the distinction the page count depends on.
+ *
+ * "It ran out" and "it broke" are different facts, and collapsing them into one
+ * boolean is what lets a timeout be published as a library size. Only `spent`
+ * means the catalogue actually ended; `failed` is a source we should ask again
+ * on the next request, and must never be counted as evidence of the end.
+ */
+type SourceStatus = "live" | "spent" | "failed";
 
 type CorpusState = {
   at: number;
   rows: ManhwaRow[];
-  /** Next page to ask each source for; a source drops out when it says no more. */
+  /** Next page to ask each source for; frozen once that source is not live. */
   cursors: number[];
-  live: boolean[];
+  status: SourceStatus[];
 };
 
 const corpusCache = new Map<string, CorpusState>();
+/**
+ * The fill currently running for a key, so concurrent readers SHARE it.
+ *
+ * Without this, two requests for the same key interleave inside one mutable
+ * CorpusState: both read the same cursors, both fetch the same upstream page,
+ * and both then advance the cursor — so the cursor moves twice for one page
+ * consumed and the pages in between are never fetched by anyone. Those series
+ * are missing from every page of the browse until the TTL rebuilds the corpus.
+ * The loser of the race also breaks out on the no-growth check (its whole round
+ * was duplicates), returning a corpus shorter than asked for, which serves an
+ * empty grid on a page that has rows.
+ */
+const corpusFills = new Map<string, Promise<CorpusState>>();
+
+/** Drop expired corpora, then the oldest ones, so the Map cannot grow forever. */
+function evictCorpora(now: number): void {
+  for (const [k, v] of corpusCache) if (now - v.at > CORPUS_TTL) corpusCache.delete(k);
+  while (corpusCache.size > CORPUS_MAX_KEYS) {
+    let oldest: string | undefined;
+    let oldestAt = Infinity;
+    for (const [k, v] of corpusCache) if (v.at < oldestAt) [oldestAt, oldest] = [v.at, k];
+    if (!oldest) break;
+    corpusCache.delete(oldest);
+  }
+}
 
 /**
  * Grow the merged corpus until it holds `need` rows or every source is spent.
+ *
+ * ONE FILL PER KEY AT A TIME. A caller that arrives while a fill is running
+ * waits for it instead of racing it, and only starts its own if that fill
+ * stopped short of what this caller needs. The hop limit bounds the wait: after
+ * a few handoffs we do the work ourselves rather than queue behind strangers.
+ */
+async function fillCorpus(key: string, need: number, filters: any, asuraOnly: boolean): Promise<CorpusState> {
+  for (let hop = 0; hop < 4; hop++) {
+    const running = corpusFills.get(key);
+    if (!running) break;
+    const state = await running.catch(() => undefined);
+    if (!state) break;
+    if (state.rows.length >= need || !state.status.includes("live")) return state;
+  }
+
+  const run = growCorpus(key, need, filters, asuraOnly);
+  corpusFills.set(key, run);
+  try {
+    return await run;
+  } finally {
+    if (corpusFills.get(key) === run) corpusFills.delete(key);
+  }
+}
+
+/**
+ * The actual walk. Only ever called with the single-flight guard above held.
  *
  * Round-robin rather than source-by-source so early pages stay MIXED — reading
  * one catalogue to its end before starting the next would make page 1 pure
  * Asura and bury the new sources a dozen pages deep.
  */
-async function fillCorpus(key: string, need: number, filters: any, asuraOnly: boolean): Promise<CorpusState> {
+async function growCorpus(key: string, need: number, filters: any, asuraOnly: boolean): Promise<CorpusState> {
   const now = Date.now();
-  let state = corpusCache.get(key);
-  if (!state || now - state.at > CORPUS_TTL) {
-    state = { at: now, rows: [], cursors: [1, 1, 1, 1], live: [true, !asuraOnly, !asuraOnly, !asuraOnly] };
-    corpusCache.set(key, state);
+  evictCorpora(now);
+
+  let cached = corpusCache.get(key);
+  if (!cached || now - cached.at > CORPUS_TTL) {
+    cached = {
+      at: now,
+      rows: [],
+      cursors: [1, 1, 1, 1],
+      status: ["live", asuraOnly ? "spent" : "live", asuraOnly ? "spent" : "live", asuraOnly ? "spent" : "live"],
+    };
+    corpusCache.set(key, cached);
   }
+  const state = cached;
+
+  // A NEW REQUEST IS A NEW CHANCE for a source that merely broke. Within one
+  // fill a failure retires the source, so we don't hammer a dead scraper round
+  // after round; across requests it gets asked again, so one timeout can't
+  // remove a whole catalogue for the rest of the TTL.
+  for (let i = 0; i < state.status.length; i++) if (state.status[i] === "failed") state.status[i] = "live";
+
+  const deadline = now + CORPUS_FILL_BUDGET_MS;
+  const empty = { currentPage: 0, hasNextPage: false, results: [] as ManhwaRow[] };
 
   // Hard stop on rounds as well as on rows: a source that keeps promising a
   // next page forever must not spin this loop.
-  for (let guard = 0; guard < 60 && state.rows.length < need && state.live.some(Boolean); guard++) {
+  for (let guard = 0; guard < 60 && state.rows.length < need && state.status.includes("live"); guard++) {
+    if (Date.now() > deadline) break;
+
+    // The pages we are about to consume. The cursor is advanced FROM THIS
+    // SNAPSHOT rather than by incrementing whatever it holds when the round
+    // resolves, so the write can never count a page nobody read.
+    const dispatched = state.cursors.slice();
     const fetchers = [
-      () => asura().getSeries(state!.cursors[0], filters),
-      () => mpl().getSeries(state!.cursors[1], filters),
-      () => flc().getSeries(state!.cursors[2], filters),
-      () => rzc().getSeries(state!.cursors[3], filters),
+      () => asura().getSeries(dispatched[0], filters),
+      () => mpl().getSeries(dispatched[1], filters),
+      () => flc().getSeries(dispatched[2], filters),
+      () => rzc().getSeries(dispatched[3], filters),
     ];
     const settledRounds = await Promise.allSettled(
-      fetchers.map((f, i) =>
-        state!.live[i] ? f() : Promise.resolve({ currentPage: 0, hasNextPage: false, results: [] as ManhwaRow[] })
-      )
+      fetchers.map((f, i) => (state.status[i] === "live" ? f() : Promise.resolve(empty)))
     );
 
     const batches: ManhwaRow[][] = [];
     settledRounds.forEach((r, i) => {
-      if (!state!.live[i]) return;
-      const v = settled(r, { currentPage: 0, hasNextPage: false, results: [] as ManhwaRow[] });
-      batches[i] = v.results;
-      // A source is spent when it stops promising more. A transient failure
-      // reads as "no rows this round" and retires it for this corpus only —
-      // the alternative is retrying a dead scraper on every deep page.
-      if (!v.hasNextPage || v.results.length === 0) state!.live[i] = false;
-      else state!.cursors[i] += 1;
+      if (state.status[i] !== "live") return;
+      if (r.status === "rejected") {
+        state.status[i] = "failed";
+        return;
+      }
+      const v = settled(r, empty);
+      batches[i] = v.results || [];
+
+      if (batches[i].length === 0) {
+        // Nothing came back. If the source ALSO says there is more, it
+        // contradicted itself — a rate limit or a shape change, not an ending.
+        state.status[i] = v.hasNextPage ? "failed" : "spent";
+        return;
+      }
+      // Rows arrived, so keep them either way; a source on its true last page
+      // contributes that page and then retires.
+      if (!v.hasNextPage) state.status[i] = "spent";
+      else state.cursors[i] = dispatched[i] + 1;
     });
 
     const before = state.rows.length;
     state.rows = merge(state.rows, batches[0] || [], batches[2] || [], batches[3] || [], batches[1] || []);
-    // Nothing new survived the cross-source dedupe — every source is repeating
-    // what we already hold, so continuing would loop without growing.
-    if (state.rows.length === before) break;
+    if (state.rows.length === before) {
+      // Nothing new survived the cross-source dedupe. Every source still in
+      // play is repeating what we already hold, so the corpus cannot grow —
+      // that IS exhaustion, and recording it as such is what stops the caller
+      // from asking again forever.
+      for (let i = 0; i < state.status.length; i++) if (state.status[i] === "live") state.status[i] = "spent";
+      break;
+    }
   }
 
   return state;
@@ -533,8 +646,15 @@ export async function browseManhwa(page = 1, filters?: any): Promise<ISearch<IMa
    * pager say the end isn't known yet. When they are all spent the corpus IS the
    * library: the count is then exact — deduping happened before the slicing, so
    * every page but the last is full — and needs no approximate hedge.
+   *
+   * COMPLETE MEANS EVERY SOURCE *ENDED*, NOT MERELY STOPPED. A source that threw
+   * is `failed`, never `spent`, so it cannot make the corpus look finished. That
+   * distinction is the whole point: treating a timeout as an ending would print
+   * an exact page count over a library missing a catalogue — and cache it for
+   * the TTL. In the worst case, one bad first round would have published
+   * "Page 1 of 1" over an empty grid and stood by it for five minutes.
    */
-  const complete = !state.live.some(Boolean);
+  const complete = state.status.every((s) => s === "spent");
   const more = state.rows.length > end || !complete;
 
   return {
