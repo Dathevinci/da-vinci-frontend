@@ -20,6 +20,9 @@ export async function GET(req: NextRequest) {
     host === "img.readnovelfull.com" || host.endsWith(".readnovelfull.com") ||
     host === "www.fanmtl.com" || host.endsWith(".fanmtl.com") ||
     host === "lightnovelworld.org" || host.endsWith(".lightnovelworld.org") ||
+    host === "ranobes.top" || host.endsWith(".ranobes.top") ||
+    host === "wuxiaworld.site" || host.endsWith(".wuxiaworld.site") ||
+    host === "allnovelupdates.com" || host.endsWith(".allnovelupdates.com") ||
     // DOT BOUNDARIES matter on suffix checks: a bare endsWith("kitsu.app")
     // also matches "evilkitsu.app" — any attacker-registered domain ending in
     // the string would ride the proxy.
@@ -39,6 +42,12 @@ export async function GET(req: NextRequest) {
     ? "https://www.fanmtl.com/"
     : host.includes("lightnovelworld")
     ? "https://lightnovelworld.org/"
+    : host.includes("ranobes")
+    ? "https://ranobes.top/"
+    : host.includes("wuxiaworld")
+    ? "https://wuxiaworld.site/"
+    : host.includes("allnovelupdates")
+    ? "https://allnovelupdates.com/"
     : "https://readnovelfull.com/";
 
   // Every source serves low-res covers (novelfull ~180-220px, readnovelfull

@@ -11,20 +11,23 @@
  * Viewpoint, …) and reads far cleaner.
  */
 
-import * as RNF from "./ReadNovelFull";
-import * as NF from "./NovelFull";
-import * as FMTL from "./FanMTL";
-import * as LNW from "./LightNovelWorld";
-import * as Lnori from "./Lnori";
+import * as NovelFull from "./NovelFull";
+import * as ReadNovelFull from "./ReadNovelFull";
+import * as FanMTL from "./FanMTL";
+import * as LightNovelWorld from "./LightNovelWorld";
+import * as Ranobes from "./Ranobes";
+import * as WuxiaWorldSite from "./WuxiaWorldSite";
 import type { NovelResult, NovelInfo, ChapterContent } from "./ReadNovelFull";
 import { combineTotals, type PageTotals, type SourcePaging } from "@/lib/explorePaging";
 
-export function resolveSource(id: string): { source: "nf" | "fmtl" | "rnf" | "lnw" | "lnori"; slug: string } {
-  if (id.startsWith("nf:")) return { source: "nf", slug: id.slice(3) };
-  if (id.startsWith("fmtl:")) return { source: "fmtl", slug: id.slice(5) };
-  if (id.startsWith("lnw:")) return { source: "lnw", slug: id.slice(4) };
-  if (id.startsWith("lnori:")) return { source: "lnori", slug: id.slice(6) };
-  return { source: "rnf", slug: id.replace(/^rnf:/, "") };
+export function resolveSource(id: string) {
+  if (id.startsWith("nf:")) return { source: NovelFull, slug: id.replace("nf:", "") };
+  if (id.startsWith("rnf:")) return { source: ReadNovelFull, slug: id.replace("rnf:", "") };
+  if (id.startsWith("fmtl:")) return { source: FanMTL, slug: id.replace("fmtl:", "") };
+  if (id.startsWith("lnw:")) return { source: LightNovelWorld, slug: id.replace("lnw:", "") };
+  if (id.startsWith("rnb:")) return { source: Ranobes, slug: id.replace("rnb:", "") };
+  if (id.startsWith("wws:")) return { source: WuxiaWorldSite, slug: id.replace("wws:", "") };
+  throw new Error(`Unknown source for id: ${id}`);
 }
 
 import { getNovelCover } from '../anilist';
@@ -33,14 +36,7 @@ import { getKitsuNovelCover } from '../kitsu';
 export async function getNovelInfo(id: string): Promise<NovelInfo> {
   const { source, slug } = resolveSource(id);
   
-  let infoPromise: Promise<NovelInfo>;
-  if (source === "nf") infoPromise = NF.getNovelInfo(slug);
-  else if (source === "fmtl") infoPromise = FMTL.getNovelInfo(slug);
-  else if (source === "lnw") infoPromise = LNW.getNovelInfo(slug);
-  else if (source === "lnori") infoPromise = Lnori.getNovelInfo(slug);
-  else infoPromise = RNF.getNovelInfo(slug);
-
-  const info = await infoPromise;
+  const info = await source.getNovelInfo(slug);
 
   // Run alternative search & anilist cover fetch in parallel
   const [searchRes, anilistCover] = await Promise.allSettled([
@@ -66,23 +62,22 @@ export async function getNovelInfo(id: string): Promise<NovelInfo> {
   
   // Add current source as an option
   alternatives.push({
-    source,
+    source: "current",
     id,
-    name: source === "nf" ? "NovelFull" : source === "fmtl" ? "FanMTL" : "ReadNovelFull"
+    name: "Current Source"
   });
 
   if (searchRes.status === "fulfilled") {
     // Add alternatives found in search (deduped by source)
     for (const res of searchRes.value.results) {
-      const altSrc = resolveSource(res.id).source;
-      if (altSrc !== source && !alternatives.find(a => a.source === altSrc)) {
+      if (res.id !== id && !alternatives.find(a => a.id === res.id)) {
         // Only add if title is very similar (ignoring punctuation and spacing)
         const clean = (t: string) => t.toLowerCase().replace(/[^a-z0-9]/g, "");
         if (clean(res.title) === clean(info.title)) {
           alternatives.push({
-            source: altSrc,
+            source: "alternative",
             id: res.id,
-            name: altSrc === "nf" ? "NovelFull" : altSrc === "fmtl" ? "FanMTL" : "ReadNovelFull"
+            name: "Alternative"
           });
         }
       }
@@ -95,155 +90,85 @@ export async function getNovelInfo(id: string): Promise<NovelInfo> {
 
 export async function getChapterContent(id: string, chapterId: string): Promise<ChapterContent> {
   const { source, slug } = resolveSource(id);
-  if (source === "nf") return NF.getChapterContent(slug, chapterId);
-  if (source === "fmtl") return FMTL.getChapterContent(slug, chapterId);
-  if (source === "lnw") return LNW.getChapterContent(slug, chapterId);
-  if (source === "lnori") return Lnori.getChapterContent(slug, chapterId);
-  return RNF.getChapterContent(slug, chapterId);
+  return source.getChapterContent(slug, chapterId);
 }
 
-// Query novelfull + readnovelfull for one term and interleave (novelfull first,
-// since it's the richer source), deduped by title. A source that fails is
-// skipped, so search still works if one is down.
-async function runSearch(query: string, page: number): Promise<{ results: NovelResult[]; hasNextPage: boolean } & PageTotals> {
-  const [nf, rnf, lnw] = await Promise.allSettled([
-    NF.searchNovels(query, page),
-    RNF.searchNovels(query, page),
-    LNW.searchNovels(query, page),
-  ]);
-  const a = nf.status === "fulfilled" ? nf.value.results : [];
-  const b = rnf.status === "fulfilled" ? rnf.value.results : [];
-  const c = lnw.status === "fulfilled" ? lnw.value.results : [];
-
+export async function searchAll(query: string, page = 1) {
+  const sources = [
+    LightNovelWorld.searchNovels(query, page).catch(() => ({ results: [], hasNextPage: false, totalPages: 1 })),
+    NovelFull.searchNovels(query, page).catch(() => ({ results: [], hasNextPage: false, totalPages: 1 })),
+    ReadNovelFull.searchNovels(query, page).catch(() => ({ results: [], hasNextPage: false, totalPages: 1 })),
+    Ranobes.searchNovels(query, page).catch(() => ({ results: [], hasNextPage: false, totalPages: 1 })),
+    WuxiaWorldSite.searchNovels(query, page).catch(() => ({ results: [], hasNextPage: false, totalPages: 1 }))
+  ];
+  
+  const results = await Promise.all(sources);
   const merged: NovelResult[] = [];
   const seen = new Set<string>();
-  const max = Math.max(a.length, b.length, c.length);
-  for (let i = 0; i < max; i++) {
-    for (const item of [a[i], b[i], c[i]]) {
-      if (!item) continue;
+
+  for (const res of results) {
+    for (const item of res.results) {
       const key = item.title.toLowerCase().trim();
-      if (seen.has(key)) continue;
-      seen.add(key);
-      merged.push(item);
+      if (!seen.has(key)) {
+        seen.add(key);
+        merged.push(item);
+      }
     }
   }
-  const hasNextPage = (nf.status === "fulfilled" && nf.value.hasNextPage) || (rnf.status === "fulfilled" && rnf.value.hasNextPage);
-  /**
-   * Search is a MERGE, so it gets the merge treatment: a page count (our page N
-   * is each source's page N, so the deepest last page wins) and no item count
-   * (the merge dedupes by title, so summing the sources would over-count every
-   * novel that appears on more than one of them).
-   *
-   * A source that REJECTED contributes nothing — not a total, and not a
-   * "there's more" — which is right for this response: its rows aren't in it.
-   * The page count then describes the sources that actually answered.
-   */
-  const parts: SourcePaging[] = [nf, rnf, lnw]
-    .filter((r): r is PromiseFulfilledResult<{ results: NovelResult[]; hasNextPage: boolean } & PageTotals> =>
-      r.status === "fulfilled")
-    .map((r) => ({ hasNextPage: r.value.hasNextPage, totalPages: r.value.totalPages }));
-  return { results: merged, hasNextPage, ...combineTotals(parts, page) };
+
+  return { results: merged, hasNextPage: results.some(r => r.hasNextPage) };
 }
 
-// Famous titles some sources only index under a different (romaji) name, so the
-// obvious English search would miss them. When the query matches, we ALSO search
-// the alias and merge. Keep this short — it's for well-known aliases only.
 const TITLE_ALIASES: [RegExp, string][] = [
   [/that time i got reincarnated as a slime|^\s*tensura\s*$/i, "tensei shitara slime datta ken"],
 ];
 
-export async function searchAll(query: string, page = 1): Promise<{ results: NovelResult[]; hasNextPage: boolean } & PageTotals> {
-  const q = query.trim();
-  let result = await runSearch(q, page);
-  // The sources do a contiguous substring match, so a full title with
-  // punctuation (e.g. the curly apostrophe in "Omniscient Reader's Viewpoint")
-  // can match nothing. On an empty first page, retry with the first 2 clean words.
-  if (result.results.length === 0 && page <= 1) {
-    const words = q.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((w) => w.length > 1);
-    const short = words.slice(0, 2).join(" ");
-    if (short && short !== q.toLowerCase()) {
-      result = await runSearch(short, page);
-    }
-  }
-  // Merge in any aliased title (e.g. English name → romaji), deduped by title.
-  if (page <= 1) {
-    const alias = TITLE_ALIASES.find(([re]) => re.test(q))?.[1];
-    if (alias) {
-      const extra = await runSearch(alias, page);
-      const seen = new Set(result.results.map((r) => r.title.toLowerCase().trim()));
-      for (const item of extra.results) {
-        const k = item.title.toLowerCase().trim();
-        if (!seen.has(k)) { seen.add(k); result.results.push(item); }
+export async function browseNovels(page = 1, list = "trending") {
+  const sources = [
+    LightNovelWorld.browseNovels(page, list).catch(() => ({ results: [], hasNextPage: false, totalPages: 1 })),
+    NovelFull.browseNovels(page, list).catch(() => ({ results: [], hasNextPage: false, totalPages: 1 })),
+    ReadNovelFull.browseNovels(page, list).catch(() => ({ results: [], hasNextPage: false, totalPages: 1 })),
+    Ranobes.browseNovels(page, list).catch(() => ({ results: [], hasNextPage: false, totalPages: 1 })),
+    WuxiaWorldSite.browseNovels(page, list).catch(() => ({ results: [], hasNextPage: false, totalPages: 1 }))
+  ];
+
+  const results = await Promise.all(sources);
+  const merged: NovelResult[] = [];
+  const seen = new Set<string>();
+
+  for (const res of results) {
+    for (const item of res.results) {
+      const key = item.title.toLowerCase().trim();
+      if (!seen.has(key)) {
+        seen.add(key);
+        merged.push(item);
       }
     }
   }
-  return result;
+
+  return { results: merged, hasNextPage: results.some(r => r.hasNextPage) };
 }
 
-// Browse + home shelves use READNOVELFULL, whose list pages carry proper
-// portrait covers (~266x399). novelfull.net's list/browse/home pages only serve
-// tiny 180x80 thumbnails — its good 221x324 covers live ONLY on detail pages, so
-// pulling them for every shelf item would mean ~40 detail fetches per home load.
-// So novelfull stays the SEARCH + reading source (where its unique licensed
-// titles + full chapter lists matter) and readnovelfull powers the crisp shelves.
-/**
- * FanMTL is no longer surfaced ANYWHERE you can browse or search.
- *
- * It is machine translation, which is why those titles read badly and often sit
- * stale — the "Korean" shelf was FanMTL, so dropping that shelf and dropping the
- * MTL source are the same change. Everything discoverable now comes from
- * readnovelfull/novelfull, which carry human translations.
- *
- * FMTL is still imported on purpose: getNovelInfo and getChapterContent keep
- * working so anyone with an existing `fmtl:` bookmark can still open what they
- * were reading instead of hitting a dead link. Nothing NEW routes there.
- */
-export async function browseNovels(page = 1, list = "most-popular-novel") {
-  // "See all" on the LightNovelWorld shelf browses THAT source, rather than
-  // dropping you into a readnovelfull list that shares none of the titles you
-  // just clicked from.
-  if (list === "lightnovelworld") return LNW.browseNovels(page);
-  // Deeper than the home shelf: 6 pages scanned, best 48 kept. The shelf's 24
-  // was a dead end as a browse destination — clicking through to "see all" and
-  // landing on the same row you just left is worse than not offering the link.
-  if (list === "lightnovelworld-top") return LNW.browseTopRated(6, 48);
-  if (list.startsWith("genre/")) return NF.browseNovels(page, list);
-  return RNF.browseNovels(page, list);
-}
-
-/**
- * Shelf sourcing is split deliberately.
- *
- * readnovelfull is the only source with genuinely DISTINCT lists — popular,
- * latest-release and completed each return different novels. lightnovelworld
- * ignores its sort params (verified: ?sort=latest and ?sort=popular return the
- * same first title as the unsorted list), so driving several shelves from it
- * would render the same books three times.
- *
- * What it IS good for is fresh titles the other source doesn't carry. So it
- * takes over the last shelf, which used to be readnovelfull page 2 — i.e. more
- * of what was already above it.
- */
 export async function homeShelves() {
-  const [trending, latest, completed, more, lnwTop, lnori] = await Promise.allSettled([
-    RNF.browseNovels(1, "most-popular-novel"),
-    RNF.browseNovels(1, "latest-release-novel"),
-    RNF.browseNovels(1, "completed-novel"),
-    LNW.browseNovels(1),
-    LNW.browseTopRated(),
-    Lnori.browseNovels(1),
+  const [
+    lnwPopular,
+    nfLatest,
+    rnfHot,
+    rnbPopular,
+    wwsHot
+  ] = await Promise.all([
+    LightNovelWorld.browseNovels(1, "trending").catch(() => ({ results: [] })),
+    NovelFull.browseNovels(1, "latest").catch(() => ({ results: [] })),
+    ReadNovelFull.browseNovels(1, "most-popular-novel").catch(() => ({ results: [] })),
+    Ranobes.browseNovels(1, "rating").catch(() => ({ results: [] })),
+    WuxiaWorldSite.browseNovels(1, "trending").catch(() => ({ results: [] }))
   ]);
-  return {
-    trending: trending.status === "fulfilled" ? trending.value.results : [],
-    latestUpdates: latest.status === "fulfilled" ? latest.value.results : [],
-    completed: completed.status === "fulfilled" ? completed.value.results : [],
-    // Kept in the shape so consumers reading this key don't break — the MTL
-    // source that fed it is gone.
-    korean: [],
-    fanmtl: more.status === "fulfilled" ? more.value.results : [],
-    // Ranked by rating rather than requested as "popular", since this source
-    // ignores its own sort params.
-    lnwTop: lnwTop.status === "fulfilled" ? lnwTop.value.results : [],
-    lnori: lnori.status === "fulfilled" ? lnori.value.results : [],
-  };
+
+  return [
+    { title: "Light Novel World Top", results: lnwPopular.results.slice(0, 10) },
+    { title: "Ranobes Highest Rated", results: rnbPopular.results.slice(0, 10) },
+    { title: "WuxiaWorld Trending", results: wwsHot.results.slice(0, 10) },
+    { title: "NovelFull Latest", results: nfLatest.results.slice(0, 10) },
+    { title: "ReadNovelFull Hot", results: rnfHot.results.slice(0, 10) },
+  ];
 }
