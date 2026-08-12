@@ -64,13 +64,31 @@ interface FlameLatestSeries extends FlameSeries {
 }
 
 /**
- * The catalogue is ~1.5MB of HTML and every browse request would otherwise
- * re-fetch and re-parse it. Cached at module scope for five minutes, which on
- * a serverless runtime means "for the life of a warm instance" — a fresh
- * instance simply pays for it once.
+ * The whole catalogue arrives in one document (102KB via the data route below,
+ * or 1.5MB of HTML if that is unavailable) and every browse request would
+ * otherwise re-fetch and re-parse it. Cached at module scope for five minutes,
+ * which on a serverless runtime means "for the life of a warm instance" — a
+ * fresh instance simply pays for it once.
  */
 let catalogueCache: { at: number; rows: ManhwaRow[]; ranked: ManhwaRow[] } | null = null;
 const CATALOGUE_TTL = 5 * 60 * 1000;
+
+/**
+ * Flame's current SSG build id — the address of its JSON data routes.
+ *
+ * Flame is a statically generated Next site, so every page it renders also
+ * exists as the raw payload behind /_next/data/<buildId>/<route>.json. Same
+ * data, a fraction of the weight, and no HTML to scrape: browse is 102KB
+ * against the page's 1.5MB, home 31KB against 460KB (measured live).
+ *
+ * The id MOVES whenever Flame redeploys, which is why it is discovered rather
+ * than configured, and why every read has to survive it going stale. A stale
+ * id 404s, and the fallback re-reads the HTML page — which carries both the
+ * payload we wanted AND the new build id, so the miss costs one heavy fetch
+ * that is not wasted and then self-corrects.
+ */
+let buildIdCache: { id: string; at: number } | null = null;
+const BUILD_ID_TTL = 30 * 60 * 1000;
 
 /**
  * The HOME payload, which serves BOTH home rails from ONE request.
@@ -133,6 +151,42 @@ export default class FlameComics extends MangaParser {
     }
   }
 
+  /**
+   * One page's `pageProps`, taken from the JSON data route when possible.
+   *
+   * `dataRoute` is the route as Next names it internally ('browse', 'index');
+   * `htmlPath` is the same page's human URL, used only as the fallback.
+   *
+   * THE FALLBACK IS THE BUILD-ID REPAIR PATH, not just a safety net. A stale id
+   * 404s immediately — the shared request helper retries transport faults and
+   * 5xx, never a 404, so a moved build costs no retry budget — and reading the
+   * HTML page hands back the payload AND the current build id together. So the
+   * first request after a Flame deploy pays the old heavy cost once and every
+   * request after it is back on the light path.
+   *
+   * Returns null rather than throwing when nothing parses, matching nextData:
+   * a Flame outage must degrade to "no rows" instead of taking the whole merged
+   * browse down with it.
+   */
+  private async pageProps(dataRoute: string, htmlPath: string): Promise<any | null> {
+    const cached = buildIdCache && Date.now() - buildIdCache.at < BUILD_ID_TTL ? buildIdCache.id : null;
+    if (cached) {
+      try {
+        const body = await this.request<any>(`${this.baseUrl}/_next/data/${cached}/${dataRoute}.json`);
+        // Axios parses by content-type; accept a string too rather than trust it.
+        const json = typeof body === 'string' ? JSON.parse(body) : body;
+        if (json?.pageProps) return json.pageProps;
+      } catch {
+        // Stale build id, or the data route is unavailable. Fall through.
+      }
+    }
+
+    const html = await this.request<string>(`${this.baseUrl}${htmlPath}`);
+    const data = this.nextData(html);
+    if (data?.buildId) buildIdCache = { id: data.buildId, at: Date.now() };
+    return data?.props?.pageProps ?? null;
+  }
+
   private determineStatus(status?: string): MediaStatus {
     switch ((status || '').toLowerCase().trim()) {
       case 'ongoing': return MediaStatus.ONGOING;
@@ -176,9 +230,7 @@ export default class FlameComics extends MangaParser {
     if (catalogueCache && Date.now() - catalogueCache.at < CATALOGUE_TTL) {
       return { rows: catalogueCache.rows, ranked: catalogueCache.ranked };
     }
-    const html = await this.request<string>(`${this.baseUrl}/browse`);
-    const data = this.nextData(html);
-    const list: FlameSeries[] = data?.props?.pageProps?.series;
+    const list: FlameSeries[] = (await this.pageProps('browse', '/browse'))?.series;
     if (!Array.isArray(list)) return { rows: [], ranked: [] };
 
     // `series_id != null` also drops the 13 light-novel rows, which carry a
@@ -273,8 +325,7 @@ export default class FlameComics extends MangaParser {
   }
 
   private async loadHome(): Promise<{ popular: ManhwaRow[]; latest: ManhwaRow[] }> {
-    const html = await this.request<string>(`${this.baseUrl}/`);
-    const pp = this.nextData(html)?.props?.pageProps;
+    const pp = await this.pageProps('index', '/');
 
     const blockSeries = (entries: any): any[] => {
       const blocks = entries?.blocks;
@@ -405,16 +456,16 @@ export default class FlameComics extends MangaParser {
 
   override async fetchMangaInfo(mangaId: string): Promise<IMangaInfo> {
     const seriesId = mangaId.replace(/^flc:/, '');
-    const url = `${this.baseUrl}/series/${seriesId}`;
     try {
-      const html = await this.request<string>(url);
-      const data = this.nextData(html);
-      const s: FlameSeries | undefined = data?.props?.pageProps?.series;
+      const pp = await this.pageProps(`series/${seriesId}`, `/series/${seriesId}`);
+      const s: FlameSeries | undefined = pp?.series;
       if (!s) throw new Error(`FlameComics returned no series payload for "${seriesId}"`);
 
-      const rawChapters: FlameChapter[] = Array.isArray(data?.props?.pageProps?.chapters)
-        ? data.props.pageProps.chapters
-        : [];
+      // Verified live that the data route carries the SAME chapter list as the
+      // page it backs — same count, same range — which is the only reason this
+      // read may move off the HTML. A shorter list here would silently truncate
+      // a series, the exact failure the MangaRead rescue once caused.
+      const rawChapters: FlameChapter[] = Array.isArray(pp?.chapters) ? pp.chapters : [];
 
       /**
        * Newest first, to match every other source's chapter ordering — the
@@ -489,11 +540,10 @@ export default class FlameComics extends MangaParser {
     const dir = `/uploads/images/series/${seriesId}/${token}/`;
 
     try {
-      const html = await this.request<string>(url);
-      const data = this.nextData(html);
+      const pp = await this.pageProps(`series/${seriesId}/${token}`, `/series/${seriesId}/${token}`);
 
       // Preferred: the chapter's own image manifest, in its own order.
-      const images = data?.props?.pageProps?.chapter?.images;
+      const images = pp?.chapter?.images;
       if (images && typeof images === 'object') {
         const pages: IMangaChapterPage[] = [];
         for (const key of Object.keys(images).filter((k) => /^\d+$/.test(k)).sort((a, b) => Number(a) - Number(b))) {
@@ -505,6 +555,12 @@ export default class FlameComics extends MangaParser {
       }
 
       // Fallback: harvest the markup, restricted to THIS chapter's directory.
+      // This path genuinely wants the DOCUMENT, not the manifest — it exists for
+      // the case where the manifest is missing or empty — so it fetches the page
+      // itself. That costs a second request, but only on a chapter the light
+      // path could not read, which is the rare case rather than the normal one.
+      const html = await this.request<string>(url);
+
       // Both plain and JSON-escaped forms, since the payload may be embedded
       // inside a JSON string where the slashes are escaped.
       const source = html.replace(/\\u002F/gi, '/').replace(/\\\//g, '/');
