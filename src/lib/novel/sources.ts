@@ -33,6 +33,15 @@ export function resolveSource(id: string) {
 import { getNovelCover } from '../anilist';
 import { getKitsuNovelCover } from '../kitsu';
 
+export function getSourceName(id: string): string {
+  if (id.startsWith("rnb:")) return "Ranobes";
+  if (id.startsWith("wws:")) return "WuxiaWorld";
+  if (id.startsWith("nf:")) return "NovelFull";
+  if (id.startsWith("lnw:")) return "LightNovelWorld";
+  if (id.startsWith("fmtl:")) return "FanMTL";
+  return "ReadNovelFull";
+}
+
 export async function getNovelInfo(id: string): Promise<NovelInfo> {
   const { source, slug } = resolveSource(id);
   
@@ -59,7 +68,7 @@ export async function getNovelInfo(id: string): Promise<NovelInfo> {
     alternatives.push({
       source: "current",
       id,
-      name: "Current Source"
+      name: getSourceName(id)
     });
 
     if (searchRes.status === "fulfilled") {
@@ -70,7 +79,7 @@ export async function getNovelInfo(id: string): Promise<NovelInfo> {
             alternatives.push({
               source: "alternative",
               id: res.id,
-              name: "Alternative"
+              name: getSourceName(res.id)
             });
           }
         }

@@ -94,13 +94,24 @@ async function fetchSuggestions(mode: Mode, term: string, signal: AbortSignal): 
     const res = await fetch(`/api/novels?q=${encodeURIComponent(term)}&page=1`, { signal });
     if (!res.ok) throw new Error("novel search failed");
     const data = await res.json();
-    return (data.results || []).slice(0, 6).map((n: any) => ({
-      key: String(n.id),
-      title: n.title,
-      image: novelCover(n.cover) || "",
-      meta: [n.latestChapter, n.status].filter(Boolean).join(" · ") || "Light Novel",
-      raw: n,
-    }));
+    return (data.results || []).slice(0, 6).map((n: any) => {
+      const sourceName = n.id.startsWith("rnb:")
+        ? "Ranobes"
+        : n.id.startsWith("wws:")
+        ? "WuxiaWorld"
+        : n.id.startsWith("nf:")
+        ? "NovelFull"
+        : n.id.startsWith("lnw:")
+        ? "LightNovelWorld"
+        : "ReadNovelFull";
+      return {
+        key: String(n.id),
+        title: n.title,
+        image: novelCover(n.cover) || "",
+        meta: [sourceName, n.latestChapter, n.status].filter(Boolean).join(" · ") || "Light Novel",
+        raw: n,
+      };
+    });
   }
 
   // searchAnime takes no AbortSignal, so this one relies on the sequence
