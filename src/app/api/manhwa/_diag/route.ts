@@ -18,9 +18,19 @@ import axios from 'axios';
 const UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
 
+/**
+ * The third target is the candidate fix, measured from home: Flame is an SSG
+ * Next site, so the same 166 series are served as pure JSON at
+ * /_next/data/<buildId>/browse.json — 103KB against the HTML page's 1.5MB, in
+ * 0.19s. Probing it here answers, in the same round trip, whether it survives
+ * whatever is stopping the HTML. The buildId is pinned to the one observed
+ * live; it moves whenever Flame redeploys, which is exactly why the real fix
+ * cannot hardcode it.
+ */
 const TARGETS = [
   { label: 'browse (what the catalogue uses)', url: 'https://flamecomics.xyz/browse' },
   { label: 'home (what the rails use)', url: 'https://flamecomics.xyz/' },
+  { label: 'json data route (candidate fix)', url: 'https://flamecomics.xyz/_next/data/fQQxmOSu5mqEoDWF3CCy7/browse.json' },
 ];
 
 async function probe(url: string, headers: Record<string, string>) {
@@ -36,11 +46,20 @@ async function probe(url: string, headers: Record<string, string>) {
       transformResponse: [(d) => d],
     });
     const body = typeof r.data === 'string' ? r.data : JSON.stringify(r.data ?? '');
+    // Two shapes: the HTML page carries the payload inside __NEXT_DATA__, the
+    // data route IS the payload. Counting rows the same way for both is what
+    // makes the three targets comparable.
     const strict = /<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/.exec(body);
     let series: number | string = 'n/a';
     if (strict) {
       try {
         series = JSON.parse(strict[1])?.props?.pageProps?.series?.length ?? 'no series key';
+      } catch {
+        series = 'unparseable json';
+      }
+    } else if (body.trimStart().startsWith('{')) {
+      try {
+        series = JSON.parse(body)?.pageProps?.series?.length ?? 'no series key';
       } catch {
         series = 'unparseable json';
       }
