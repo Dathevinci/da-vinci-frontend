@@ -18,6 +18,10 @@ export default class FlameComics extends MangaParser {
     return match ? match[1] : '';
   }
 
+  async getLatestUpdates(page: number = 1): Promise<ISearch<IMangaResult>> { return this.search('', page); }
+  async getPopularToday(): Promise<ISearch<IMangaResult>> { return this.search('', 1); }
+  async getSeries(page: number = 1, filters?: any): Promise<ISearch<IMangaResult>> { return this.search('', page); }
+
   override async search(query: string, page: number = 1): Promise<ISearch<IMangaResult>> {
     const url = `${this.baseUrl}/page/${page}/?s=${encodeURIComponent(query)}`;
     try {

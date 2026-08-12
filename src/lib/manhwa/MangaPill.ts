@@ -19,6 +19,10 @@ export default class MangaPill extends MangaParser {
     return match ? match[1] : '';
   }
 
+  async getLatestUpdates(page: number = 1): Promise<ISearch<IMangaResult>> { return this.search('', page); }
+  async getPopularToday(): Promise<ISearch<IMangaResult>> { return this.search('', 1); }
+  async getSeries(page: number = 1, filters?: any): Promise<ISearch<IMangaResult>> { return this.search('', page); }
+
   override async search(query: string, page: number = 1): Promise<ISearch<IMangaResult>> {
     // MangaPill search doesn't explicitly use page numbers in standard URL unless it's like ?page=2
     const url = `${this.baseUrl}/search?q=${encodeURIComponent(query)}&page=${page}`;

@@ -257,15 +257,22 @@ export async function searchManhwa(query: string, page = 1, filters?: any): Prom
  */
 export async function browseManhwa(page = 1, filters?: any): Promise<ISearch<IMangaResult>> {
   const empty = { currentPage: page, hasNextPage: false, results: [] as IMangaResult[] };
-  const [a] = await Promise.allSettled([
+  const asuraOnly = filtersActive(filters);
+  const [a, mp, fc, rc] = await Promise.allSettled([
     asura().getSeries(page, filters),
+    asuraOnly ? Promise.resolve(empty) : mpl().getSeries(page, filters),
+    asuraOnly ? Promise.resolve(empty) : flc().getSeries(page, filters),
+    asuraOnly ? Promise.resolve(empty) : rzc().getSeries(page, filters),
   ]);
   const av = settled(a, empty);
+  const mpv = settled(mp, empty);
+  const fcv = settled(fc, empty);
+  const rcv = settled(rc, empty);
   return {
     currentPage: page,
-    hasNextPage: av.hasNextPage,
-    results: merge(av.results),
-    ...combineTotals([av], page, MANHWA_TOTALS),
+    hasNextPage: av.hasNextPage || mpv.hasNextPage || fcv.hasNextPage || rcv.hasNextPage,
+    results: merge(av.results, fcv.results, rcv.results, mpv.results),
+    ...combineTotals([av, mpv, fcv, rcv], page, MANHWA_TOTALS),
   };
 }
 
@@ -275,13 +282,19 @@ export async function asuraGenres(): Promise<{ id: number; name: string; slug: s
 }
 
 export async function manhwaHome(): Promise<{ trending: IMangaResult[]; latestUpdates: IMangaResult[] }> {
-  const [ap, al] = await Promise.allSettled([
+  const [ap, al, mpp, mpll, fcp, fcl, rcp, rcl] = await Promise.allSettled([
     asura().getPopularToday(),
     asura().getLatestUpdates(1),
+    mpl().getPopularToday(),
+    mpl().getLatestUpdates(1),
+    flc().getPopularToday(),
+    flc().getLatestUpdates(1),
+    rzc().getPopularToday(),
+    rzc().getLatestUpdates(1),
   ]);
   const emptySearch = { currentPage: 1, hasNextPage: false, results: [] as IMangaResult[] };
   return {
-    trending: merge(settled(ap, emptySearch).results),
-    latestUpdates: merge(settled(al, emptySearch).results),
+    trending: merge(settled(ap, emptySearch).results, settled(fcp, emptySearch).results, settled(rcp, emptySearch).results, settled(mpp, emptySearch).results),
+    latestUpdates: merge(settled(al, emptySearch).results, settled(fcl, emptySearch).results, settled(rcl, emptySearch).results, settled(mpll, emptySearch).results),
   };
 }
