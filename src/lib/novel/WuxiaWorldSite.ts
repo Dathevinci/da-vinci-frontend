@@ -37,22 +37,10 @@ export interface ChapterContent {
 }
 
 async function fetchHtml(url: string, init?: RequestInit): Promise<string> {
-  // Use node global fetch which should be undici. 
-  // Disable TLS checks only for this hostname using an agent or just depend on Next.js fetch.
-  // Next.js fetch doesn't support custom agent easily without undici dispatcher.
-  // Using global fetch with dispatcher for self-signed cert bypassing.
-  
-  // Actually, we can just use regular fetch with an undici dispatcher
-  const { Agent } = require("undici");
-  const agent = new Agent({
-    connect: { rejectUnauthorized: false }
-  });
-  
   const res = await fetch(url, {
     ...init,
     headers: { "User-Agent": UA, Referer: `${BASE}/`, ...init?.headers },
-    dispatcher: agent,
-  } as any);
+  });
   if (!res.ok) throw new Error(`WuxiaWorldSite HTTP ${res.status}`);
   return res.text();
 }
@@ -71,7 +59,7 @@ function parseCards(html: string): NovelResult[] {
   const out: NovelResult[] = [];
   const seen = new Set<string>();
   
-  const re = /<div class="(?:c-tabs-item__content|page-item-detail[^"]*)">[\s\S]*?<a href="https:\/\/wuxiaworld\.site\/novel\/([^/]+)\/"[^>]*>[\s\S]*?<img[^>]*src="([^"]+)"[\s\S]*?<h3[^>]*>[\s\S]*?<a[^>]*>([^<]+)<\/a>/gi;
+  const re = /<div class="[^"]*(?:c-tabs-item__content|page-item-detail)[^"]*">[\s\S]*?<a href="https:\/\/wuxiaworld\.site\/novel\/([^/]+)\/"[^>]*>[\s\S]*?<img[^>]*(?:data-src|src)="([^"]+)"[\s\S]*?<h3[^>]*>[\s\S]*?<a[^>]*>([^<]+)<\/a>/gi;
   
   let m: RegExpExecArray | null;
   while ((m = re.exec(html))) {

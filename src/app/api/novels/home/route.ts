@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { homeShelves } from '@/lib/novel/sources';
 
+export const revalidate = 3600;
+
 // Home shelves for Novels mode — readnovelfull lists + a fanmtl shelf.
 export async function GET() {
   try {
