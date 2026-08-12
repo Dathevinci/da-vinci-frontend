@@ -418,25 +418,114 @@ export async function searchManhwa(query: string, page = 1, filters?: any): Prom
  * returning empty rather than throwing — resilience is the entire point of
  * running four sources, and it only works if a bad one degrades to silence.
  */
+/**
+ * BROWSE PAGES THE WHOLE LIBRARY, NOT EACH SOURCE IN LOCKSTEP.
+ *
+ * The old shape asked every source for ITS page N and merged the four answers.
+ * Two things fell out of that, both reported:
+ *
+ *  1. IT STOPPED AT 17. The sources have wildly different depths — Asura 17
+ *     pages, Flame ~8, Rizz ~5 — so once the deepest one ran out, everything
+ *     ran out. Page 18 was empty even though hundreds of series had never been
+ *     shown. (Measured live: page 17 returned 19 rows, all Asura; page 18, none.)
+ *  2. THE PAGES SLID. Page 1 carried ~106 rows (four sources answering) and
+ *     page 17 carried 19 (one source left), because "a page" meant "whatever
+ *     four independent catalogues happened to hand back".
+ *
+ * So the four catalogues are treated as ONE corpus, consumed round-robin and
+ * cut into fixed-size pages. Deeper pages simply keep pulling from whichever
+ * sources still have rows, and the corpus is reachable to its end.
+ *
+ * IT FILLS LAZILY. Serving page 1 pulls one round; page 20 pulls until it has
+ * 20 pages' worth, and everything fetched is cached — so the common case stays
+ * as cheap as it was and only deep paging pays. The cursor cache is keyed by
+ * the active filters, because a filtered browse is a different corpus.
+ */
+const MANHWA_PAGE_SIZE = 24;
+const CORPUS_TTL = 5 * 60 * 1000;
+
+type CorpusState = {
+  at: number;
+  rows: ManhwaRow[];
+  /** Next page to ask each source for; a source drops out when it says no more. */
+  cursors: number[];
+  live: boolean[];
+};
+
+const corpusCache = new Map<string, CorpusState>();
+
+/**
+ * Grow the merged corpus until it holds `need` rows or every source is spent.
+ *
+ * Round-robin rather than source-by-source so early pages stay MIXED — reading
+ * one catalogue to its end before starting the next would make page 1 pure
+ * Asura and bury the new sources a dozen pages deep.
+ */
+async function fillCorpus(key: string, need: number, filters: any, asuraOnly: boolean): Promise<CorpusState> {
+  const now = Date.now();
+  let state = corpusCache.get(key);
+  if (!state || now - state.at > CORPUS_TTL) {
+    state = { at: now, rows: [], cursors: [1, 1, 1, 1], live: [true, !asuraOnly, !asuraOnly, !asuraOnly] };
+    corpusCache.set(key, state);
+  }
+
+  // Hard stop on rounds as well as on rows: a source that keeps promising a
+  // next page forever must not spin this loop.
+  for (let guard = 0; guard < 60 && state.rows.length < need && state.live.some(Boolean); guard++) {
+    const fetchers = [
+      () => asura().getSeries(state!.cursors[0], filters),
+      () => mpl().getSeries(state!.cursors[1], filters),
+      () => flc().getSeries(state!.cursors[2], filters),
+      () => rzc().getSeries(state!.cursors[3], filters),
+    ];
+    const settledRounds = await Promise.allSettled(
+      fetchers.map((f, i) =>
+        state!.live[i] ? f() : Promise.resolve({ currentPage: 0, hasNextPage: false, results: [] as ManhwaRow[] })
+      )
+    );
+
+    const batches: ManhwaRow[][] = [];
+    settledRounds.forEach((r, i) => {
+      if (!state!.live[i]) return;
+      const v = settled(r, { currentPage: 0, hasNextPage: false, results: [] as ManhwaRow[] });
+      batches[i] = v.results;
+      // A source is spent when it stops promising more. A transient failure
+      // reads as "no rows this round" and retires it for this corpus only —
+      // the alternative is retrying a dead scraper on every deep page.
+      if (!v.hasNextPage || v.results.length === 0) state!.live[i] = false;
+      else state!.cursors[i] += 1;
+    });
+
+    const before = state.rows.length;
+    state.rows = merge(state.rows, batches[0] || [], batches[2] || [], batches[3] || [], batches[1] || []);
+    // Nothing new survived the cross-source dedupe — every source is repeating
+    // what we already hold, so continuing would loop without growing.
+    if (state.rows.length === before) break;
+  }
+
+  return state;
+}
+
 export async function browseManhwa(page = 1, filters?: any): Promise<ISearch<IMangaResult>> {
-  const empty = { currentPage: page, hasNextPage: false, results: [] as IMangaResult[] };
   const asuraOnly = filtersActive(filters);
-  const [a, mp, fc, rc] = await Promise.allSettled([
-    asura().getSeries(page, filters),
-    asuraOnly ? Promise.resolve(empty) : mpl().getSeries(page, filters),
-    asuraOnly ? Promise.resolve(empty) : flc().getSeries(page, filters),
-    asuraOnly ? Promise.resolve(empty) : rzc().getSeries(page, filters),
-  ]);
-  const av = settled(a, empty);
-  const mpv = settled(mp, empty);
-  const fcv = settled(fc, empty);
-  const rcv = settled(rc, empty);
+  const key = `${asuraOnly ? "asura" : "all"}:${JSON.stringify(filters || {})}`;
+  const start = (Math.max(1, page) - 1) * MANHWA_PAGE_SIZE;
+  const end = start + MANHWA_PAGE_SIZE;
+
+  const state = await fillCorpus(key, end + 1, filters, asuraOnly);
+  const results = state.rows.slice(start, end);
+  const more = state.rows.length > end || state.live.some(Boolean);
+
   return {
     currentPage: page,
-    hasNextPage: av.hasNextPage || mpv.hasNextPage || fcv.hasNextPage || rcv.hasNextPage,
-    results: merge(av.results, fcv.results, rcv.results, mpv.results),
-    ...combineTotals([av, mpv, fcv, rcv], page, MANHWA_TOTALS),
-  };
+    hasNextPage: more,
+    results,
+    // A COUNTED figure — the corpus is in hand — but still marked approximate
+    // while any source can still grow it, since it is a floor rather than the
+    // final size until every catalogue is spent.
+    totalPages: Math.max(1, Math.ceil(state.rows.length / MANHWA_PAGE_SIZE)),
+    ...(more ? { totalsApproximate: true } : {}),
+  } as ISearch<IMangaResult>;
 }
 
 /** The Asura genre taxonomy, for the explore filter panel. */
