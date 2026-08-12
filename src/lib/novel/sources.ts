@@ -156,15 +156,15 @@ export async function homeShelves() {
     trending,
     latest,
     completed,
-    more,
-    lnwTop,
+    rnbTop,
+    wwsTop,
     lnori
   ] = await Promise.allSettled([
-    WuxiaWorldSite.browseNovels(1, "trending"),
+    ReadNovelFull.browseNovels(1, "most-popular-novel"),
     NovelFull.browseNovels(1, "latest"),
     ReadNovelFull.browseNovels(1, "completed-novel"),
     Ranobes.browseNovels(1, "rating"),
-    LightNovelWorld.browseNovels(1, "trending"),
+    WuxiaWorldSite.browseNovels(1, "trending"),
     Lnori.browseNovels(1),
   ]);
 
@@ -173,8 +173,8 @@ export async function homeShelves() {
     latestUpdates: latest.status === "fulfilled" ? latest.value.results : [],
     completed: completed.status === "fulfilled" ? completed.value.results : [],
     korean: [],
-    fanmtl: more.status === "fulfilled" ? more.value.results : [],
-    lnwTop: lnwTop.status === "fulfilled" ? lnwTop.value.results : [],
+    fanmtl: rnbTop.status === "fulfilled" ? rnbTop.value.results : [],
+    lnwTop: wwsTop.status === "fulfilled" ? wwsTop.value.results : [],
     lnori: lnori.status === "fulfilled" ? lnori.value.results : [],
   };
 }
