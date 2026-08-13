@@ -33,11 +33,8 @@ const SOURCE_LABELS: Record<string, string> = {
   // to the live Manganato source, so the label follows it. Old rows point at
   // the same site either way, so nothing is mislabelled by the change —
   // whereas keeping "MangaRead" put a wrong source name on every new row.
-  "mna:": "MangaNato", // live
-  // Removed 2026-08-13, the same day it was added: weebcentral.com challenges
-  // our production egress, so it never served a row. Label kept for any
-  // bookmark saved during its few live hours.
-  "mse:": "WeebCentral",
+  "mna:": "Manganato", // live
+  "mse:": "Mangasee", // live (Mangasee / WeebCentral)
   "flc:": "FlameComics",
   "rzc:": "RizzComics",
   "mpl:": "MangaPill",

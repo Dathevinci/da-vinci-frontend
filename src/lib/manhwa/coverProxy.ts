@@ -53,6 +53,14 @@ export const MANHWA_IMAGE_HOSTS = [
   "2xstorage.com", // Manganato — covers + reader pages, per-title mirror hosts
   "storage.waitst.com", // Manganato — reader pages
   "www.manganato.gg", // Manganato
+  "temp.compsci88.com", // Mangasee / WeebCentral covers
+  "temp.mangasee123.com", // Mangasee covers
+  "official.mangasee123.com", // Mangasee covers
+  "weebcentral.com", // WeebCentral
+  "hot.planeptune.us", // WeebCentral reader pages
+  "hot.leanbox.us", // WeebCentral reader pages
+  "official.lowee.us", // WeebCentral reader pages
+  "official-ongoing-1.epicstream.com", // WeebCentral reader pages
 ] as const;
 
 /** True for the newly added source hosts (dot-boundary safe). */
@@ -65,12 +73,17 @@ export function isManhwaSourceImageHost(host: string): boolean {
  */
 const REFERERS: Record<string, string> = {
   "storage.vortexscans.org": "https://vortexscans.org/",
-  // Manganato's CDNs enforce this: 403 bare, 200 with it — measured on both
-  // covers and reader pages. Domain-wide for 2xstorage, since the mirror host
-  // set (img-r1, img-r2, imgs-2…) is per-title and open-ended.
   "2xstorage.com": "https://www.manganato.gg/",
   "storage.waitst.com": "https://www.manganato.gg/",
   "www.manganato.gg": "https://www.manganato.gg/",
+  "temp.compsci88.com": "https://weebcentral.com/",
+  "temp.mangasee123.com": "https://mangasee123.com/",
+  "official.mangasee123.com": "https://mangasee123.com/",
+  "weebcentral.com": "https://weebcentral.com/",
+  "hot.planeptune.us": "https://weebcentral.com/",
+  "hot.leanbox.us": "https://weebcentral.com/",
+  "official.lowee.us": "https://weebcentral.com/",
+  "official-ongoing-1.epicstream.com": "https://weebcentral.com/",
 };
 
 /** The Referer a newly added host wants, or null if it is not one of ours. */

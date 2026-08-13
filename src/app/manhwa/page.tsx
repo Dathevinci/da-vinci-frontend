@@ -118,6 +118,7 @@ function ManhwaPageInner() {
       href: `/manhwa/${encodeURIComponent(m.id)}`,
     }));
 
+  const mseItems = dedupeById([...trending, ...latestUpdates].filter((m) => m.id.startsWith("mse:")));
   const mnaItems = dedupeById([...trending, ...latestUpdates].filter((m) => m.id.startsWith("mna:")));
   const vtxItems = dedupeById([...trending, ...latestUpdates].filter((m) => m.id.startsWith("vtx:")));
 
@@ -183,6 +184,7 @@ function ManhwaPageInner() {
                       items: toDiscover(latestUpdates) },
                     { key: "top", label: "Top Rated", icon: "top",
                       items: toDiscover(topRated) },
+                    ...(mseItems.length > 0 ? [{ key: "mangasee", label: "Mangasee", icon: "trending" as const, items: toDiscover(mseItems) }] : []),
                     ...(mnaItems.length > 0 ? [{ key: "manganato", label: "Manganato", icon: "trending" as const, items: toDiscover(mnaItems) }] : []),
                     ...(vtxItems.length > 0 ? [{ key: "vortex", label: "Vortex", icon: "popular" as const, items: toDiscover(vtxItems) }] : []),
                   ]}
