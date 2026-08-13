@@ -34,7 +34,7 @@ export default class Mangasee extends MangaParser {
    * Mangasee 6-digit chapter string decoder (e.g. "100125" -> Chapter 12.5)
    */
   public static decodeChapter(raw: string): { chapterNum: number; displayTitle: string; urlSlug: string } {
-    const s = String(raw).trim();
+    const s = String(raw || "").trim();
     if (/^\d{6}$/.test(s)) {
       const mainNum = parseInt(s.slice(1, 5), 10);
       const dec = s.slice(5);
@@ -44,9 +44,15 @@ export default class Mangasee extends MangaParser {
       return { chapterNum, displayTitle, urlSlug };
     }
 
+    const specificMatch = s.match(/(?:chapter|episode|stage|act|ch\.?|ep\.?)\s*([0-9.]+)/i);
+    if (specificMatch) {
+      const chapterNum = parseFloat(specificMatch[1]) || 0;
+      return { chapterNum, displayTitle: s, urlSlug: String(chapterNum) };
+    }
+
     const numMatch = s.match(/([0-9.]+)/);
-    const chapterNum = numMatch ? parseFloat(numMatch[1]) : 1;
-    return { chapterNum, displayTitle: `Chapter ${chapterNum}`, urlSlug: String(chapterNum) };
+    const chapterNum = numMatch ? parseFloat(numMatch[1]) : 0;
+    return { chapterNum, displayTitle: s || `Chapter ${chapterNum}`, urlSlug: String(chapterNum) };
   }
 
   /**
@@ -273,7 +279,7 @@ export default class Mangasee extends MangaParser {
 
     const chapMatches = Array.from(
       chapHtml.matchAll(
-        /href="(?:https:\/\/weebcentral\.com)?\/chapters\/([^"]+)"[\s\S]*?<span[^>]*>(Chapter\s+[^<]+)<\/span>(?:[\s\S]*?<time[^>]*datetime="([^"]+)")?/gi
+        /href="(?:https:\/\/weebcentral\.com)?\/chapters\/([^"]+)"[\s\S]*?<span[^>]*>([^<]+)<\/span>(?:[\s\S]*?<time[^>]*datetime="([^"]+)")?/gi
       )
     );
 

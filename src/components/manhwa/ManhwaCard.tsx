@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { IMangaResult } from "@/lib/asura/models";
 import { MediaHoverPreview } from "@/components/anime/HoverPreview";
-import { canDeriveChapterId } from "@/lib/manhwa/ids";
+import { canDeriveChapterId, manhwaSourceLabel } from "@/lib/manhwa/ids";
 
 /**
  * ONE MANHWA CARD. Hover summons the follower dossier (same as anime);
@@ -33,24 +33,20 @@ export default function ManhwaCard({ manhwa }: { manhwa: IMangaResult }) {
 
   const open = () => router.push(`/manhwa/${encodeURIComponent(manhwa.id)}`);
 
-  const sourceName = (id: string) => {
-    if (id.startsWith("vtx:")) return "Vortex";
-    if (id.startsWith("mna:")) return "Manganato";
-    return "Asura";
-  };
+  const sourceName = manhwaSourceLabel(manhwa.id);
 
   return (
     <MediaHoverPreview
       title={manhwa.title}
       image={cover}
       chips={[
-        sourceName(manhwa.id),
+        sourceName,
         ...(hasRating ? [`★ ${displayRating}`] : []),
         "Manga",
         ...(manhwa.status ? [String(manhwa.status)] : []),
       ]}
       stats={[
-        ["Source", sourceName(manhwa.id)],
+        ["Source", sourceName],
         ["Format", "Manga/Manhwa"],
         ["Status", String(manhwa.status || "—")],
         ["Latest", chapterLabel || "—"],

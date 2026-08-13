@@ -73,6 +73,8 @@ const MODES: Record<
   },
 };
 
+import { manhwaSourceLabel } from "@/lib/manhwa/ids";
+
 /** Shape each source's very different payload into one row format. */
 async function fetchSuggestions(mode: Mode, term: string, signal: AbortSignal): Promise<Suggestion[]> {
   if (mode === "manhwa") {
@@ -80,11 +82,7 @@ async function fetchSuggestions(mode: Mode, term: string, signal: AbortSignal): 
     if (!res.ok) throw new Error("manhwa search failed");
     const data = await res.json();
     return (data.results || []).slice(0, 6).map((m: any) => {
-      const sourceName = String(m.id).startsWith("vtx:")
-        ? "Vortex"
-        : String(m.id).startsWith("mna:")
-        ? "Manganato"
-        : "Asura";
+      const sourceName = manhwaSourceLabel(m.id);
       return {
         key: String(m.id),
         title: m.title,
