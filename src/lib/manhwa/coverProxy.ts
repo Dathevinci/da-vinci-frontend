@@ -49,18 +49,19 @@ function isHostOrSubdomain(host: string, domain: string): boolean {
  * domain by boundary rather than enumerating mirrors.
  */
 export const MANHWA_IMAGE_HOSTS = [
-  "storage.vortexscans.org", // VortexScans — covers + pages
-  "2xstorage.com", // Manganato — covers + reader pages, per-title mirror hosts
-  "storage.waitst.com", // Manganato — reader pages
-  "www.manganato.gg", // Manganato
-  "temp.compsci88.com", // Mangasee / WeebCentral covers
-  "temp.mangasee123.com", // Mangasee covers
-  "official.mangasee123.com", // Mangasee covers
+  "vortexscans.org", // VortexScans
+  "2xstorage.com", // Manganato
+  "waitst.com", // Manganato
+  "manganato.gg", // Manganato
+  "compsci88.com", // Mangasee / WeebCentral
+  "mangasee123.com", // Mangasee
+  "manga4life.com", // Mangasee / Manga4life
   "weebcentral.com", // WeebCentral
-  "hot.planeptune.us", // WeebCentral reader pages
-  "hot.leanbox.us", // WeebCentral reader pages
-  "official.lowee.us", // WeebCentral reader pages
-  "official-ongoing-1.epicstream.com", // WeebCentral reader pages
+  "lastation.us", // WeebCentral reader CDN (scans.lastation.us, etc.)
+  "planeptune.us", // WeebCentral reader CDN (hot.planeptune.us, etc.)
+  "leanbox.us", // WeebCentral reader CDN (hot.leanbox.us, etc.)
+  "lowee.us", // WeebCentral reader CDN (official.lowee.us, etc.)
+  "epicstream.com", // WeebCentral reader CDN
 ] as const;
 
 /** True for the newly added source hosts (dot-boundary safe). */
@@ -72,18 +73,19 @@ export function isManhwaSourceImageHost(host: string): boolean {
  * HOTLINK PROTECTION, MEASURED PER HOST.
  */
 const REFERERS: Record<string, string> = {
-  "storage.vortexscans.org": "https://vortexscans.org/",
+  "vortexscans.org": "https://vortexscans.org/",
   "2xstorage.com": "https://www.manganato.gg/",
-  "storage.waitst.com": "https://www.manganato.gg/",
-  "www.manganato.gg": "https://www.manganato.gg/",
-  "temp.compsci88.com": "https://weebcentral.com/",
-  "temp.mangasee123.com": "https://mangasee123.com/",
-  "official.mangasee123.com": "https://mangasee123.com/",
+  "waitst.com": "https://www.manganato.gg/",
+  "manganato.gg": "https://www.manganato.gg/",
+  "compsci88.com": "https://weebcentral.com/",
+  "mangasee123.com": "https://mangasee123.com/",
+  "manga4life.com": "https://manga4life.com/",
   "weebcentral.com": "https://weebcentral.com/",
-  "hot.planeptune.us": "https://weebcentral.com/",
-  "hot.leanbox.us": "https://weebcentral.com/",
-  "official.lowee.us": "https://weebcentral.com/",
-  "official-ongoing-1.epicstream.com": "https://weebcentral.com/",
+  "lastation.us": "https://weebcentral.com/",
+  "planeptune.us": "https://weebcentral.com/",
+  "leanbox.us": "https://weebcentral.com/",
+  "lowee.us": "https://weebcentral.com/",
+  "epicstream.com": "https://weebcentral.com/",
 };
 
 /** The Referer a newly added host wants, or null if it is not one of ours. */
