@@ -34,6 +34,7 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
   const id = decodeURIComponent(resolvedParams.id);
 
   const [manhwa, setManhwa] = useState<IMangaInfo | null>(null);
+  const [bannerUrl, setBannerUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("overview");
   const [chapterFilter, setChapterFilter] = useState("");
@@ -55,8 +56,20 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
     fetch(`/api/manhwa/${encodeURIComponent(id)}`)
       .then((res) => res.json())
       .then((data: any) => {
-        if (data.error) { console.error(data.error); setManhwa(null); }
-        else setManhwa(data);
+        if (data.error) {
+          console.error(data.error);
+          setManhwa(null);
+        } else {
+          setManhwa(data);
+          if (data.title) {
+            fetch(`/api/manhwa/banner?title=${encodeURIComponent(data.title)}`)
+              .then((bRes) => bRes.json())
+              .then((bData: any) => {
+                if (bData?.banner) setBannerUrl(bData.banner);
+              })
+              .catch(() => {});
+          }
+        }
         setLoading(false);
       })
       .catch((err) => { console.error(err); setLoading(false); });
@@ -106,7 +119,7 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
           the hero itself — on the hero it clipped the Add to Library
           dropdown, which opens past the hero's bottom edge. */}
       <div className="relative">
-        <HeroBackdrop src={cover} wide={false} />
+        <HeroBackdrop src={bannerUrl || cover} wide={!!bannerUrl} />
 
         <div className="relative mx-auto flex max-w-4xl flex-col items-center px-4 pb-10 pt-20 text-center sm:pt-24">
           {/* ambient bloom behind the poster — the reference's themed halo */}

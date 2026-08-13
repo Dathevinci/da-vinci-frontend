@@ -1,17 +1,9 @@
 /**
  * THE HERO BACKDROP — the artwork behind a detail screen's poster.
  *
- * Anime carry a real wide banner (AniList bannerImage, else the trailer's
- * HD still), so it is shown SHARP and anchored to the top, melting into
- * the page through a bottom fade. It used to be buried under blur-2xl at
- * 35% opacity, which threw away the one piece of wide art we have.
- *
- * Manhwa and novels have no wide art — only a portrait cover — so a
- * stretched copy has to stay blurred or it smears. It gets the same
- * fade and a lighter blur so the two read as one design.
- *
- * The overflow-hidden lives HERE rather than on the hero itself: on the
- * hero it clipped the tracker dropdowns that open past its bottom edge.
+ * Anime, Manhwa, and Novels get rich cinematic backdrops:
+ * 1. Wide banners are shown crisp, high-opacity, anchored to top with smooth bottom fade.
+ * 2. Portrait covers render dual-layered: high-radius ambient color blur + stylized cinematic vignette.
  */
 export default function HeroBackdrop({
   src,
@@ -24,20 +16,37 @@ export default function HeroBackdrop({
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
       {src && (
-        <img
-          src={src}
-          alt=""
-          className={
-            wide
-              ? "absolute inset-x-0 top-0 h-[70%] w-full object-cover object-top opacity-[0.55]"
-              : "absolute inset-0 h-full w-full scale-110 object-cover object-top opacity-40 blur-xl"
-          }
-        />
+        <>
+          {/* Layer 1: Ambient color bloom / glow across the entire hero background */}
+          <img
+            src={src}
+            alt=""
+            referrerPolicy="no-referrer"
+            className="absolute inset-0 h-full w-full scale-125 object-cover object-center opacity-60 blur-3xl"
+          />
+
+          {/* Layer 2: Main backdrop image */}
+          {wide ? (
+            <img
+              src={src}
+              alt=""
+              referrerPolicy="no-referrer"
+              className="absolute inset-x-0 top-0 h-[80%] w-full object-cover object-top opacity-70 sm:opacity-80 brightness-95 contrast-105"
+            />
+          ) : (
+            <img
+              src={src}
+              alt=""
+              referrerPolicy="no-referrer"
+              className="absolute inset-0 h-full w-full scale-110 object-cover object-center opacity-45 blur-lg brightness-90 contrast-110"
+            />
+          )}
+        </>
       )}
-      {/* the art fades down into the page floor */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#070709]/25 via-[#070709]/80 to-[#070709]" />
-      {/* and inward from the edges, so it never ends on a hard seam */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_75%_65%_at_50%_0%,transparent_35%,rgba(7,7,9,0.75))]" />
+
+      {/* Atmospheric overlays: floor fade and cinematic vignette */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#070709]/20 via-[#070709]/75 to-[#070709]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_65%_at_50%_15%,transparent_25%,rgba(7,7,9,0.85))]" />
     </div>
   );
 }

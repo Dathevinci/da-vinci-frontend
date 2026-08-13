@@ -62,3 +62,45 @@ export async function getNovelCover(title: string): Promise<string | null> {
     return null;
   }
 }
+
+export async function getManhwaBanner(title: string): Promise<string | null> {
+  if (!title) return null;
+  // Clean up title (strip season tags, brackets, and extra noise)
+  const cleanTitle = title
+    .replace(/\s*\(?(?:season|s)\s*\d+\)?/gi, "")
+    .replace(/\s*-\s*season\s*\d+/gi, "")
+    .trim();
+
+  const query = `
+    query ($search: String) {
+      Media(search: $search, type: MANGA) {
+        bannerImage
+        coverImage {
+          extraLarge
+        }
+      }
+    }
+  `;
+
+  try {
+    const res = await fetch("https://graphql.anilist.co", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        query,
+        variables: { search: cleanTitle },
+      }),
+      next: { revalidate: 86400 },
+    });
+
+    const json = await res.json();
+    return json.data?.Media?.bannerImage || null;
+  } catch (error) {
+    console.error("Anilist manhwa banner fetch error for", title, error);
+    return null;
+  }
+}
+
