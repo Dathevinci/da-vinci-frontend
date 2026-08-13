@@ -28,6 +28,82 @@ export default class Manganato extends MangaParser {
       .replace(/&gt;/g, ">");
   }
 
+  /**
+   * THE CHAPTER LIST IS NOT IN THE SERIES PAGE. IT COMES FROM AN API.
+   *
+   * Scraping the detail HTML for chapter links cannot work here, and the way it
+   * fails is quiet rather than obvious. Measured against a real 308-chapter
+   * series (`the-beginning-after-the-endd`):
+   *
+   *   chapter hrefs in the page   24
+   *     belonging to THIS series   4   — chapter-1 and chapter-248, each twice
+   *     belonging to OTHER series 20   — a sidebar of unrelated titles
+   *
+   * The page only ever links its first and newest chapter; everything else on
+   * it belongs to other comics. A pattern like `/manga/<any-slug>/chapter-N`
+   * matches those too, so the reader ends up with another series' chapters
+   * listed under this one — the reported "chapter mismatching", and the same
+   * class of bug as the old MangaRead rescue that served a stranger's list.
+   *
+   * The site loads the real list from /api/manga/<slug>/chapters (the page
+   * markup carries a `chapter-list-loading` placeholder and the template URL).
+   * It returns clean JSON, newest first, 50 at a time with an offset cursor and
+   * a `pagination.has_more` flag — so all 308 arrive in seven requests.
+   *
+   * USE `chapter_slug` VERBATIM rather than rebuilding a URL from the number.
+   * Sub-chapters are dashed, not dotted: chapter 188.5 lives at
+   * `chapter-188-5`, and composing `chapter-188.5` from the parsed float gives
+   * a URL that does not exist. 26 of the 50 rows on one page were sub-chapters,
+   * so this is the common case, not an edge case.
+   */
+  private async fetchChapterList(slug: string): Promise<IMangaChapter[]> {
+    const LIMIT = 50;
+    const MAX_REQUESTS = 40; // 2000 chapters; a stop, not an expectation
+    const chapters: IMangaChapter[] = [];
+    const seen = new Set<string>();
+
+    for (let i = 0; i < MAX_REQUESTS; i++) {
+      let payload: any;
+      try {
+        const raw = await this.fetchHtml(
+          `${this.baseUrl}/api/manga/${slug}/chapters?limit=${LIMIT}&offset=${i * LIMIT}`
+        );
+        payload = JSON.parse(raw);
+      } catch {
+        // A failed page mid-walk means an INCOMPLETE list, not the end of one.
+        // Returning what we have is right — a partial list still reads — but it
+        // must not be mistaken for the whole series, hence the log.
+        console.error(`[manganato] chapter list for "${slug}" stopped at ${chapters.length} rows`);
+        break;
+      }
+
+      const rows = payload?.data?.chapters;
+      if (!Array.isArray(rows) || rows.length === 0) break;
+
+      for (const r of rows) {
+        const chapterSlug = String(r?.chapter_slug || "").trim();
+        if (!chapterSlug || seen.has(chapterSlug)) continue;
+        seen.add(chapterSlug);
+
+        const num = Number(r?.chapter_num);
+        chapters.push({
+          id: `mna:${slug}|${chapterSlug}`,
+          title: String(r?.chapter_name || "").trim() || `Chapter ${Number.isFinite(num) ? num : ""}`.trim(),
+          chapterNumber: Number.isFinite(num) ? num : 0,
+          url: `${this.baseUrl}/manga/${slug}/${chapterSlug}`,
+          releaseDate: r?.updated_at ? new Date(r.updated_at).toISOString() : undefined,
+        } as IMangaChapter);
+      }
+
+      if (!payload?.data?.pagination?.has_more) break;
+    }
+
+    // The API already returns newest-first, but sort explicitly so the order is
+    // this function's guarantee rather than an upstream habit.
+    chapters.sort((a, b) => ((b as any).chapterNumber ?? 0) - ((a as any).chapterNumber ?? 0));
+    return chapters;
+  }
+
   private async fetchHtml(url: string): Promise<string> {
     try {
       const res = await fetch(url, {
@@ -251,39 +327,9 @@ export default class Manganato extends MangaParser {
       ? this.unescapeHtml(descMatch[1].replace(/<[^>]+>/g, "").trim())
       : undefined;
 
-    const chapterMatches = Array.from(
-      detailHtml.matchAll(
-        /href="[^"]*(?:\/manga\/[^\/]+\/chapter-|\/chapter-[a-zA-Z0-9_-]+\/chapter-)([0-9.]+)[^"]*"[^>]*>([\s\S]*?)<\/a>/gi
-      )
-    ).concat(
-      Array.from(
-        detailHtml.matchAll(
-          /<a[^>]*class="chapter-name[^"]*"[^>]*href="[^"]*\/chapter-([0-9.]+)[^"]*"[^>]*>([\s\S]*?)<\/a>/gi
-        )
-      )
-    );
-
-    const seenChaps = new Set<string>();
-    const chapters: IMangaChapter[] = [];
-
-    for (const m of chapterMatches) {
-      const numStr = m[1];
-      const chapId = `mna:${slug}|chapter-${numStr}`;
-      if (seenChaps.has(chapId)) continue;
-      seenChaps.add(chapId);
-
-      const rawTitle = m[2] ? m[2].replace(/<[^>]+>/g, "").trim() : `Chapter ${numStr}`;
-      const chapterNumber = parseFloat(numStr) || 0;
-      chapters.push({
-        id: chapId,
-        title: this.unescapeHtml(rawTitle.replace(/\s+/g, " ") || `Chapter ${numStr}`),
-        chapterNumber,
-        url: `https://www.manganato.gg/manga/${slug}/chapter-${numStr}`,
-      });
-    }
-
-    // Strict numerical descending sort (newest chapters first)
-    chapters.sort((a, b) => (b.chapterNumber ?? 0) - (a.chapterNumber ?? 0));
+    // Chapters come from the API, not this HTML — see fetchChapterList for the
+    // measurements. Already deduped and sorted newest-first there.
+    const chapters = await this.fetchChapterList(slug);
 
     return {
       id: `mna:${slug}`,
