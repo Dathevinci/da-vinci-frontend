@@ -88,9 +88,18 @@ function adapterFor(id: string): (() => any) | null {
   return null;
 }
 
+import { getManhwaBanner } from "@/lib/anilist";
+
 export async function getManhwaInfo(id: string): Promise<IMangaInfo> {
   const make = adapterFor(id);
-  return make ? await make().fetchMangaInfo(id) : await asura().fetchMangaInfo(id);
+  const info: IMangaInfo = make ? await make().fetchMangaInfo(id) : await asura().fetchMangaInfo(id);
+  if (info && info.title && !info.bannerImage) {
+    try {
+      const banner = await getManhwaBanner(info.title);
+      if (banner) info.bannerImage = banner;
+    } catch {}
+  }
+  return info;
 }
 
 /**

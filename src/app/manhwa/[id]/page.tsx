@@ -29,13 +29,17 @@ import { manhwaSourceLabel } from "@/lib/manhwa/ids";
 
 type Tab = "overview" | "chapters" | "discussions" | "morelike";
 
+// In-memory cache for instant switching between series
+const detailCache = new Map<string, IMangaInfo>();
+
 export default function ManhwaDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const id = decodeURIComponent(resolvedParams.id);
 
-  const [manhwa, setManhwa] = useState<IMangaInfo | null>(null);
-  const [bannerUrl, setBannerUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cached = detailCache.get(id);
+  const [manhwa, setManhwa] = useState<IMangaInfo | null>(cached || null);
+  const [bannerUrl, setBannerUrl] = useState<string | null>(cached?.bannerImage || null);
+  const [loading, setLoading] = useState(!cached);
   const [tab, setTab] = useState<Tab>("overview");
   const [chapterFilter, setChapterFilter] = useState("");
 
@@ -53,26 +57,54 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
   useManhwaStatus();
 
   useEffect(() => {
+    const existing = detailCache.get(id);
+    if (existing) {
+      setManhwa(existing);
+      setBannerUrl(existing.bannerImage || null);
+      setLoading(false);
+    } else {
+      setManhwa(null);
+      setBannerUrl(null);
+      setLoading(true);
+    }
+
+    let active = true;
     fetch(`/api/manhwa/${encodeURIComponent(id)}`)
       .then((res) => res.json())
       .then((data: any) => {
+        if (!active) return;
         if (data.error) {
           console.error(data.error);
-          setManhwa(null);
+          if (!existing) setManhwa(null);
         } else {
+          detailCache.set(id, data);
           setManhwa(data);
-          if (data.title) {
+          if (data.bannerImage) {
+            setBannerUrl(data.bannerImage);
+          } else if (data.title) {
             fetch(`/api/manhwa/banner?title=${encodeURIComponent(data.title)}`)
               .then((bRes) => bRes.json())
               .then((bData: any) => {
-                if (bData?.banner) setBannerUrl(bData.banner);
+                if (active && bData?.banner) {
+                  data.bannerImage = bData.banner;
+                  detailCache.set(id, data);
+                  setBannerUrl(bData.banner);
+                }
               })
               .catch(() => {});
           }
         }
         setLoading(false);
       })
-      .catch((err) => { console.error(err); setLoading(false); });
+      .catch((err) => {
+        if (!active) return;
+        console.error(err);
+        setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, [id]);
 
   const chapters = manhwa?.chapters || [];

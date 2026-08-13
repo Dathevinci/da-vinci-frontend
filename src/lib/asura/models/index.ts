@@ -18,6 +18,7 @@ export interface IMangaResult {
   id: string;
   title: string;
   image?: string;
+  bannerImage?: string;
   status?: MediaStatus;
   latestChapter?: string;
   rating?: string;
@@ -58,6 +59,7 @@ export interface IMangaInfo {
   id: string;
   title: string;
   image?: string;
+  bannerImage?: string;
   status?: MediaStatus;
   rating?: string;
   description?: string;
