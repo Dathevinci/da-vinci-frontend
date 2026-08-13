@@ -94,21 +94,40 @@ function decode(str: string): string {
     .trim();
 }
 
+function cleanWuxiaCover(rawUrl: string | undefined | null): string {
+  if (!rawUrl || rawUrl.includes("dflazy.jpg")) return "";
+  let url = rawUrl.trim();
+  url = url.replace(/render_jsfalse$/, "");
+  if (url.startsWith("//")) url = `https:${url}`;
+  else if (url.startsWith("/")) url = `https://wuxiaworld.site${url}`;
+  else if (!url.startsWith("http")) url = `https://wuxiaworld.site/${url}`;
+
+  // Fix truncated URLs ending with a dot e.g. "thumb_67c038face76b-193x278."
+  if (url.endsWith(".")) {
+    url = url + "jpg";
+  }
+  return url;
+}
+
 function parseCards(html: string): NovelResult[] {
   const out: NovelResult[] = [];
   const seen = new Set<string>();
 
-  const re = /<div class="[^"]*(?:c-tabs-item__content|page-item-detail)[^"]*">[\s\S]*?<a href="https:\/\/wuxiaworld\.site\/novel\/([^/]+)\/"[^>]*>[\s\S]*?<img[^>]*(?:data-src|src)="([^"]+)"[\s\S]*?<h3[^>]*>[\s\S]*?<a[^>]*>([^<]+)<\/a>/gi;
+  const re = /<div class="[^"]*(?:c-tabs-item__content|page-item-detail)[^"]*">[\s\S]*?<a href="https:\/\/wuxiaworld\.site\/novel\/([^/]+)\/"[^>]*>([\s\S]*?)<\/div>\s*<\/div>/gi;
 
   let m: RegExpExecArray | null;
   while ((m = re.exec(html))) {
-    let slug = m[1];
-    let cover = m[2];
-    let title = decode(m[3]);
+    const slug = m[1];
+    const block = m[2];
+    const titleMatch = block.match(/<h3[^>]*>[\s\S]*?<a[^>]*>([^<]+)<\/a>/i);
+    const title = decode(titleMatch ? titleMatch[1].trim() : slug);
 
-    const dataSrcMatch = html.substring(m.index, m.index + 500).match(/data-src="([^"]+)"/);
-    if (dataSrcMatch) cover = dataSrcMatch[1];
-    cover = cover.replace(/render_jsfalse$/, "");
+    const dataSrc = block.match(/data-src="([^"]+)"/i)?.[1];
+    const dataSrcset = block.match(/data-srcset="([^",\s]+)/i)?.[1];
+    const src = block.match(/src="([^"]+)"/i)?.[1];
+
+    const candidate = [dataSrc, dataSrcset, src].find((u) => u && !u.includes("dflazy.jpg"));
+    const cover = cleanWuxiaCover(candidate);
 
     if (seen.has(slug)) continue;
     seen.add(slug);
@@ -141,9 +160,12 @@ export async function getNovelInfo(slug: string): Promise<NovelInfo> {
   const titleMatch = html.match(/<div class="post-title">[\s\S]*?<h1>(.*?)<\/h1>/i) || html.match(/<title>(.*?)- WuxiaWorld/i);
   const title = titleMatch ? decode(titleMatch[1].replace(/<[^>]+>/g, "")) : slug;
 
-  const coverMatch = html.match(/<div class="summary_image">[\s\S]*?src="([^"]+)"/i);
-  let cover = coverMatch ? coverMatch[1] : "";
-  cover = cover.replace(/render_jsfalse$/, "");
+  const summaryImageBlock = html.match(/<div class="summary_image">([\s\S]*?)<\/div>/i)?.[1] || "";
+  const dataSrc = summaryImageBlock.match(/data-src="([^"]+)"/i)?.[1];
+  const dataSrcset = summaryImageBlock.match(/data-srcset="([^",\s]+)/i)?.[1];
+  const src = summaryImageBlock.match(/src="([^"]+)"/i)?.[1];
+  const candidateCover = [dataSrc, dataSrcset, src].find((u) => u && !u.includes("dflazy.jpg"));
+  const cover = cleanWuxiaCover(candidateCover);
 
   const authorMatch = html.match(/<div class="author-content">[\s\S]*?<a[^>]*>([^<]+)<\/a>/i);
   const author = authorMatch ? decode(authorMatch[1]) : "Unknown";

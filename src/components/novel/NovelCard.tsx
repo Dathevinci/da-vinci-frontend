@@ -52,6 +52,7 @@ export default function NovelCard({ novel }: { novel: NovelResult }) {
               alt={novel.title}
               loading="lazy"
               decoding="async"
+              referrerPolicy="no-referrer"
               onError={onCoverError}
               className="hq-image h-full w-full object-cover"
             />
