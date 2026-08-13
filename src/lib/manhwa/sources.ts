@@ -42,22 +42,27 @@ import { IMangaResult, IMangaInfo, IMangaChapterPage, ISearch } from "@/lib/asur
 import { ManhwaRow, recencyOf, sortByRecency } from "./recency";
 import VortexScans from "./VortexScans";
 import Manganato from "./Manganato";
-import Mangasee from "./Mangasee";
 
 const asura = () => new AsuraScans();
 const vtx = () => new VortexScans();
 const mna = () => new Manganato();
-const mse = () => new Mangasee();
 
 // ── single-item lookups: route by prefix ────────────────────────────────────
 
 /**
  * Every prefix this app can resolve, and the adapter that owns it.
+ *
+ * mse: (Mangasee/WeebCentral) was removed on 2026-08-13, the same day it was
+ * added. It never served a single production row: weebcentral.com answers
+ * Vercel's egress with 403 + cf-mitigated=challenge — measured from iad1 —
+ * while answering a home connection normally, which is exactly the failure
+ * FlameComics was removed for. Its trending parser also matched nothing even
+ * where the site DID answer. A removed prefix falls through to adapterFor's
+ * named error, so any mse: row a reader saved today says what it was.
  */
 const ADAPTERS: Record<string, () => any> = {
   "vtx:": vtx,
   "mna:": mna,
-  "mse:": mse,
 };
 
 /**
@@ -237,23 +242,21 @@ function withAsuraRecency(rows: ManhwaRow[]): ManhwaRow[] {
 
 
 export async function searchManhwa(query: string, page = 1, filters?: any): Promise<ISearch<IMangaResult>> {
-  const [a, v, m, s] = await Promise.allSettled([
+  const [a, v, m] = await Promise.allSettled([
     asura().search(query, page, filters),
     vtx().search(query, page),
     mna().search(query, page),
-    mse().search(query, page),
   ]);
   const emptyRes = { currentPage: page, hasNextPage: false, results: [] as ManhwaRow[] };
   const av = settled(a, emptyRes as any);
   const vv = settled(v, emptyRes);
   const mv = settled(m, emptyRes);
-  const sv = settled(s, emptyRes);
 
   return {
     currentPage: page,
-    hasNextPage: av.hasNextPage || vv.hasNextPage || mv.hasNextPage || sv.hasNextPage,
-    // Asura leads, followed by Vortex, Mangasee, and Manganato
-    results: merge(av.results as ManhwaRow[], vv.results, sv.results, mv.results),
+    hasNextPage: av.hasNextPage || vv.hasNextPage || mv.hasNextPage,
+    // Asura leads, followed by Vortex and Manganato
+    results: merge(av.results as ManhwaRow[], vv.results, mv.results),
   };
 }
 
@@ -414,8 +417,8 @@ async function growCorpus(key: string, need: number, filters: any): Promise<Corp
       // ONE ENTRY PER SOURCE, and the arrays must stay the same length as the
       // fetcher list below — they are indexed together. Adding a source means
       // adding a cursor, a status, and a fetcher, in step.
-      cursors: [1, 1, 1, 1],
-      status: ["live", "live", "live", "live"],
+      cursors: [1, 1, 1],
+      status: ["live", "live", "live"],
     };
     corpusCache.set(key, cached);
   }
@@ -442,8 +445,7 @@ async function growCorpus(key: string, need: number, filters: any): Promise<Corp
     const fetchers = [
       () => asura().getSeries(dispatched[0], filters),
       () => vtx().getSeries(dispatched[1], filters),
-      () => mse().getLatestUpdates(dispatched[2]),
-      () => mna().getLatestUpdates(dispatched[3]),
+      () => mna().getLatestUpdates(dispatched[2]),
     ];
     const settledRounds = await Promise.allSettled(
       fetchers.map((f, i) => (state.status[i] === "live" ? f() : Promise.resolve(empty)))
@@ -472,13 +474,7 @@ async function growCorpus(key: string, need: number, filters: any): Promise<Corp
     });
 
     const before = state.rows.length;
-    state.rows = merge(
-      state.rows,
-      batches[0] || [],
-      batches[1] || [],
-      batches[2] || [],
-      batches[3] || []
-    );
+    state.rows = merge(state.rows, batches[0] || [], batches[1] || [], batches[2] || []);
     if (state.rows.length === before) {
       // Nothing new survived the cross-source dedupe. Every source still in
       // play is repeating what we already hold, so the corpus cannot grow —
@@ -584,33 +580,28 @@ export async function asuraGenres(): Promise<{ id: number; name: string; slug: s
  * which is the point. It no longer contributes its back catalogue instead.
  */
 export async function manhwaHome(): Promise<{ trending: ManhwaRow[]; latestUpdates: ManhwaRow[] }> {
-  const [ap, al, vp, vl, mp, ml, sp, sl] = await Promise.allSettled([
+  const [ap, al, vp, vl, mp, ml] = await Promise.allSettled([
     asura().getPopularToday(),
     asura().getLatestUpdates(1),
     vtx().getPopularToday(),
     vtx().getLatestUpdates(1),
     mna().getPopularToday(),
     mna().getLatestUpdates(1),
-    mse().getPopularToday(),
-    mse().getLatestUpdates(1),
   ]);
   const emptySearch = { currentPage: 1, hasNextPage: false, results: [] as ManhwaRow[] };
-  
+
   const asuraPop = settled(ap, emptySearch).results;
   const asuraLat = settled(al, emptySearch).results;
   const vtxPop = settled(vp, emptySearch).results;
   const vtxLat = settled(vl, emptySearch).results;
   const natoPop = settled(mp, emptySearch).results;
   const natoLat = settled(ml, emptySearch).results;
-  const seePop = settled(sp, emptySearch).results;
-  const seeLat = settled(sl, emptySearch).results;
 
   return {
-    trending: merge(asuraPop, vtxPop, seePop, natoPop),
+    trending: merge(asuraPop, vtxPop, natoPop),
     latestUpdates: mergeLatest(
       withAsuraRecency(asuraLat),
       vtxLat,
-      seeLat,
       natoLat
     ),
   };

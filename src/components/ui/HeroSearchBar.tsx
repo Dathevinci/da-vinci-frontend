@@ -84,8 +84,6 @@ async function fetchSuggestions(mode: Mode, term: string, signal: AbortSignal): 
         ? "Vortex"
         : String(m.id).startsWith("mna:")
         ? "Manganato"
-        : String(m.id).startsWith("mse:")
-        ? "Mangasee"
         : "Asura";
       return {
         key: String(m.id),

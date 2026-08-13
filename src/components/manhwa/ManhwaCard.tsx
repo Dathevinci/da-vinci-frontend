@@ -36,7 +36,6 @@ export default function ManhwaCard({ manhwa }: { manhwa: IMangaResult }) {
   const sourceName = (id: string) => {
     if (id.startsWith("vtx:")) return "Vortex";
     if (id.startsWith("mna:")) return "Manganato";
-    if (id.startsWith("mse:")) return "Mangasee";
     return "Asura";
   };
 

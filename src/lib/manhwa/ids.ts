@@ -34,7 +34,10 @@ const SOURCE_LABELS: Record<string, string> = {
   // the same site either way, so nothing is mislabelled by the change —
   // whereas keeping "MangaRead" put a wrong source name on every new row.
   "mna:": "MangaNato", // live
-  "mse:": "WeebCentral", // live adapter, though its host challenges our egress
+  // Removed 2026-08-13, the same day it was added: weebcentral.com challenges
+  // our production egress, so it never served a row. Label kept for any
+  // bookmark saved during its few live hours.
+  "mse:": "WeebCentral",
   "flc:": "FlameComics",
   "rzc:": "RizzComics",
   "mpl:": "MangaPill",
