@@ -18,16 +18,17 @@
 /**
  * Display names, keyed by id prefix. A bare id is AsuraScans.
  *
- * EVERY PREFIX HERE IS HISTORICAL — those sources were removed on 2026-08-13
- * and nothing produces these ids any more. The map stays because people's
- * libraries still hold rows saved under them, and a row that says
- * "RizzComics" is telling the truth about where it came from, whereas
- * deleting the entry would make it claim to be AsuraScans and mislead.
+ * Only `vtx:` is live. The rest are HISTORICAL — those sources were removed on
+ * 2026-08-13 and nothing produces their ids any more. They stay because
+ * people's libraries still hold rows saved under them, and a row that says
+ * "RizzComics" is telling the truth about where it came from, whereas deleting
+ * the entry would make it claim to be AsuraScans and mislead.
  *
  * Add a new source's prefix here at the same time as its ADAPTERS entry in
  * sources.ts, or its rows will be mislabelled in exactly that way.
  */
 const SOURCE_LABELS: Record<string, string> = {
+  "vtx:": "VortexScans", // live
   "flc:": "FlameComics",
   "rzc:": "RizzComics",
   "mpl:": "MangaPill",

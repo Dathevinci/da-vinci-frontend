@@ -20,6 +20,8 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "img.youtube.com" },
       { protocol: "https", hostname: "uploads.mangadex.org" },
       { protocol: "https", hostname: "**.mangadex.network" },
+      // VortexScans serves BOTH covers and chapter pages from here.
+      { protocol: "https", hostname: "storage.vortexscans.org" },
     ],
   },
 };

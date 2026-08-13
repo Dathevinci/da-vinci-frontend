@@ -8,20 +8,18 @@
  * wrapper does not wrap (or the reverse) is a broken image either way.
  *
  * Every host below was observed on the live sites, not inferred from the
- * source's domain — which is the only way to get these right, because two of
- * the three new sources serve their art from a domain that has nothing to do
- * with their own:
+ * source's domain — which is the only way to get these right, since a source
+ * commonly serves its art from a domain unrelated to its own.
  *
- *   FlameComics  flamecomics.com 301s to flamecomics.xyz; covers AND chapter
- *                pages both come from cdn.flamecomics.xyz
- *                (/uploads/images/series/<id>/thumbnail.jpg?<ts>).
- *   RizzComics   covers are served by the site itself, rizzfables.com
- *                (/assets/images/<slug>.webp), but chapter pages come from
- *                cdn.55779955.xyz (/file/roraor/wp-content/uploads/...) —
- *                an unrelated bucket domain. Both are needed.
- *   MangaPill    nothing is served from mangapill.com. Covers and pages alike
- *                come from cdn.readdetectiveconan.com
- *                (/file/mangapill/i/<id>.jpeg, /file/mangap/<id>/<ch>/<n>.jpeg).
+ *   VortexScans  covers AND chapter pages both come from
+ *                storage.vortexscans.org — covers at
+ *                /upload/series/featured/<n>/<uuid>.png, pages at
+ *                /upload/series/<slug>/<uuid>/page-0001_….webp.
+ *
+ * FlameComics, RizzComics and MangaPill were removed on 2026-08-13 and their
+ * hosts with them. Nothing new points at those domains, and the covers stored
+ * on old bookmark rows would not load anyway — Flame is IP-blocked from our
+ * egress, which is why it was dropped.
  */
 
 /**
@@ -38,12 +36,9 @@ function isHostOrSubdomain(host: string, domain: string): boolean {
   return host === domain || host.endsWith(`.${domain}`);
 }
 
-/** Image hosts for the three sources the owner added. Observed, not guessed. */
+/** Image hosts for the sources beyond Asura. Observed, not guessed. */
 export const MANHWA_IMAGE_HOSTS = [
-  "cdn.flamecomics.xyz", // FlameComics — covers + pages
-  "rizzfables.com", // RizzComics — covers
-  "cdn.55779955.xyz", // RizzComics — chapter pages
-  "cdn.readdetectiveconan.com", // MangaPill — covers + pages
+  "storage.vortexscans.org", // VortexScans — covers + pages
 ] as const;
 
 /** True for the newly added source hosts (dot-boundary safe). */
@@ -61,10 +56,11 @@ export function isManhwaSourceImageHost(host: string): boolean {
  * without warning and the correct value costs nothing.
  */
 const REFERERS: Record<string, string> = {
-  "cdn.flamecomics.xyz": "https://flamecomics.xyz/",
-  "rizzfables.com": "https://rizzfables.com/",
-  "cdn.55779955.xyz": "https://rizzfables.com/",
-  "cdn.readdetectiveconan.com": "https://mangapill.com/",
+  // Vortex's CDN was measured serving 200 with no Referer, with its own, and
+  // with a foreign one — identical bytes in all three, so it does not need
+  // coaxing. Set anyway, because these CDNs turn hotlink protection on without
+  // warning and the correct value costs nothing.
+  "storage.vortexscans.org": "https://vortexscans.org/",
 };
 
 /** The Referer a newly added host wants, or null if it is not one of ours. */
@@ -78,23 +74,16 @@ export function manhwaSourceReferer(host: string): string | null {
 /**
  * HOSTS THE RESIZER CANNOT FETCH, SO DO NOT ASK IT TO.
  *
- * The proxy resizes covers through wsrv.nl by default. wsrv refuses two of
- * these outright — `{"code":400,"message":"Domain or TLD blocked by policy"}`
- * for both `.xyz` CDNs — and gets a 403 from MangaPill's CDN because it
- * cannot send a mangapill.com Referer on our behalf.
+ * The proxy resizes covers through wsrv.nl by default, and wsrv refuses
+ * Vortex's CDN outright — measured, not assumed:
+ * `{"status":"error","code":400,"message":"Domain or TLD blocked by policy"}`.
  *
  * The route already falls back to a direct fetch when wsrv is unhappy, so
- * these loaded even before this list existed; the list just stops us paying a
- * doomed round-trip on every single cover. The cost is that covers from these
- * three arrive at full size — the weight problem the route's own comment
- * describes. rizzfables.com resizes fine (verified 200) and is deliberately
- * absent so it keeps getting thumbnails.
+ * these load either way; the list just stops us paying a doomed round-trip on
+ * every single cover. The cost is that Vortex covers arrive at full size —
+ * the weight problem the route's own comment describes.
  */
-const WSRV_CANNOT_FETCH = [
-  "cdn.flamecomics.xyz",
-  "cdn.55779955.xyz",
-  "cdn.readdetectiveconan.com",
-];
+const WSRV_CANNOT_FETCH = ["storage.vortexscans.org"];
 
 /** False when wsrv.nl is known to refuse this host — fetch it directly. */
 export function canResizeViaWsrv(host: string): boolean {
