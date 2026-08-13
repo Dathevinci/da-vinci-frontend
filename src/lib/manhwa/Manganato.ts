@@ -208,8 +208,31 @@ export default class Manganato extends MangaParser {
    * Series Info & Chapter List
    */
   async fetchMangaInfo(mangaId: string): Promise<IMangaInfo> {
-    const slug = mangaId.replace(/^mna:/, "").split("|")[0];
-    const detailHtml = await this.fetchHtml(`https://www.manganato.gg/manga/${slug}`);
+    let slug = mangaId.replace(/^mna:/, "").split("|")[0];
+    let detailHtml = "";
+
+    try {
+      detailHtml = await this.fetchHtml(`https://www.manganato.gg/manga/${slug}`);
+    } catch {
+      // Direct fetch 404 or network issue — attempt search fallback
+      try {
+        const searchRes = await this.search(slug.replace(/[-_]/g, " "));
+        if (searchRes.results.length > 0) {
+          slug = searchRes.results[0].id.replace(/^mna:/, "");
+          detailHtml = await this.fetchHtml(`https://www.manganato.gg/manga/${slug}`);
+        }
+      } catch {}
+    }
+
+    if (!detailHtml) {
+      try {
+        const searchRes = await this.search(slug.replace(/[-_]/g, " "));
+        if (searchRes.results.length > 0) {
+          slug = searchRes.results[0].id.replace(/^mna:/, "");
+          detailHtml = await this.fetchHtml(`https://www.manganato.gg/manga/${slug}`);
+        }
+      } catch {}
+    }
 
     const titleMatch =
       detailHtml.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i) ||
@@ -220,6 +243,13 @@ export default class Manganato extends MangaParser {
 
     const coverMatch = detailHtml.match(/<div class="[^"]*story-info-left[^"]*"[\s\S]*?<img[^>]*src="([^"]+)"/i);
     const image = coverMatch ? coverMatch[1] : `https://img-r2.2xstorage.com/thumb/${slug}.webp`;
+
+    const descMatch =
+      detailHtml.match(/<div class="[^"]*description[^"]*">([\s\S]*?)<\/div>/i) ||
+      detailHtml.match(/<meta name="description" content="([^"]+)"/i);
+    const description = descMatch
+      ? this.unescapeHtml(descMatch[1].replace(/<[^>]+>/g, "").trim())
+      : undefined;
 
     const chapterMatches = Array.from(
       detailHtml.matchAll(
