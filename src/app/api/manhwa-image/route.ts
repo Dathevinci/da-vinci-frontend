@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
 
     let referer = "https://mangadex.org/";
     if (isAsura) referer = "https://asuracomic.net/";
-    if (isManganato) referer = "https://manganato.com/";
+    if (isManganato) referer = "https://www.manganato.gg/";
     if (isMangaRead) referer = "https://www.mangaread.org/";
 
     /**

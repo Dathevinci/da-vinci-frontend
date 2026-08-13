@@ -273,11 +273,17 @@ export default class Manganato extends MangaParser {
       seenChaps.add(chapId);
 
       const rawTitle = m[2] ? m[2].replace(/<[^>]+>/g, "").trim() : `Chapter ${numStr}`;
+      const chapterNumber = parseFloat(numStr) || 0;
       chapters.push({
         id: chapId,
         title: this.unescapeHtml(rawTitle.replace(/\s+/g, " ") || `Chapter ${numStr}`),
+        chapterNumber,
+        url: `https://www.manganato.gg/manga/${slug}/chapter-${numStr}`,
       });
     }
+
+    // Strict numerical descending sort (newest chapters first)
+    chapters.sort((a, b) => (b.chapterNumber ?? 0) - (a.chapterNumber ?? 0));
 
     return {
       id: `mna:${slug}`,

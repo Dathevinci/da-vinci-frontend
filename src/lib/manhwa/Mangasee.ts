@@ -275,9 +275,14 @@ export default class Mangasee extends MangaParser {
       return {
         id: `mse:${rawId}|${m[1]}`,
         title: decoded.displayTitle,
+        chapterNumber: decoded.chapterNum,
+        url: `https://weebcentral.com/chapters/${m[1]}`,
         releaseDate: m[3] || undefined,
       };
     });
+
+    // Strict numerical descending sort (newest chapters first)
+    chapters.sort((a, b) => (b.chapterNumber ?? 0) - (a.chapterNumber ?? 0));
 
     return {
       id: `mse:${rawId}`,
