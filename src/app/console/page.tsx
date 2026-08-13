@@ -298,7 +298,7 @@ function UsersTab({ toast, meId }: { toast: any; meId?: string }) {
           toast={toast}
           onClose={() => setSelected(null)}
           onChanged={load}
-          onDanger={(kind) => setDanger({ kind, target: selected })}
+          onDanger={(kind: "delete" | "leaddev") => setDanger({ kind, target: selected })}
         />
       )}
 

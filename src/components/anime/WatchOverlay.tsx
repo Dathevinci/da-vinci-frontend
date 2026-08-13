@@ -177,7 +177,7 @@ export default function WatchOverlay({
     // identical writes.
     autoTrackedRef.current = true;
     if (isTracked(anime.mal_id)) return;
-    setStatus(anime, "Watching");
+    setStatus(anime as any, "Watching");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [anime.mal_id]);
 

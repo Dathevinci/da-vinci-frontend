@@ -43,6 +43,7 @@ export interface ArenaSide {
   // Buffs the server tracks. They used to be invisible, so you could raise a
   // Ward and have no way to tell whether it was still up.
   shield?: boolean; block?: boolean; focus?: boolean; focusMult?: number;
+  usedAbilities?: string[];
 }
 
 const ITEMS = [

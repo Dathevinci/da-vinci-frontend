@@ -60,7 +60,7 @@ export default function MobileBottomNav() {
       icon: <Compass className="h-6 w-6" />,
     },
     { label: "Community", href: "/community", icon: <Users className="h-6 w-6" /> },
-    { label: "Profile", href: user ? `/user/${user.username}` : "/user/login", icon: <UserIcon className="h-6 w-6" /> },
+    { label: "Profile", href: "/login", icon: <UserIcon className="h-6 w-6" /> },
   ];
 
   /** Everything the bar has no room for. Mirrors the desktop nav island. */

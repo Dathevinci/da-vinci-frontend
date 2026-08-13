@@ -50,12 +50,13 @@ export async function GET(req: NextRequest) {
   // (unsharp mask) restores edge definition the plain upscale would leave soft.
   // Fall back to a direct fetch (with the source's referer) if weserv is
   // unavailable, so covers never break.
+  const targetUrl: string = url;
   async function upstream(): Promise<Response | null> {
-    const bare = url.replace(/^https?:\/\//, "");
+    const bare = targetUrl.replace(/^https?:\/\//, "");
     const weserv = `https://wsrv.nl/?url=${encodeURIComponent(bare)}&w=480&h=720&fit=cover&output=webp&q=85&sharp=3`;
     const r = await fetch(weserv, { headers: { "User-Agent": UA } }).catch(() => null);
     if (r && r.ok) return r;
-    return fetch(url, { headers: { Referer: referer, "User-Agent": UA } }).catch(() => null);
+    return fetch(targetUrl, { headers: { Referer: referer, "User-Agent": UA } }).catch(() => null);
   }
 
   try {

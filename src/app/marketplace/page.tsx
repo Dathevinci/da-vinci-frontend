@@ -434,7 +434,8 @@ function ListingDetail({ listing, meId, balance, busy, onBuy, onClose }: {
   const R = card ? RARITY_META[card.rarity] : null;
   const isMine = meId === listing.sellerId;
   const canAfford = balance >= price;
-  const stats = card ? ({ common: [3, 10], rare: [5, 14], epic: [8, 20], legendary: [12, 28], event: [10, 24] }[card.rarity] ?? [3, 10]) : [0, 0];
+  const statsMap: Record<string, number[]> = { common: [3, 10], rare: [5, 14], epic: [8, 20], legendary: [12, 28], mythic: [16, 36], event: [10, 24] };
+  const stats = card ? (statsMap[card.rarity] ?? [3, 10]) : [0, 0];
   const mult = (foil ? 1.2 : 1) * (1 + (Math.max(1, level) - 1) * 0.07);
 
   return (

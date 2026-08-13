@@ -483,7 +483,7 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
           if (!manhwa) return;
           // Marking read implies you have it — track it if you don't, so the
           // status has somewhere to live.
-          await setStatus(id, manhwa.title, manhwa.image, "Completed");
+          await setStatus(id, manhwa.title, manhwa.image, "Finished");
           toast("Marked as read.", "success");
         }}
         onOpenSettings={() => setShowSettings(true)}

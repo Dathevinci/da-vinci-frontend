@@ -202,7 +202,7 @@ export default function ForgePage() {
               </p>
             </div>
             <span className="rounded-full border border-cyan-400/30 bg-cyan-500/10 px-4 py-2 text-sm font-black text-cyan-200">
-              <Gem className="mr-1.5 inline h-4 w-4" />{lead ? "∞" : displayShards({ ...user, shards } as any)} shards
+              <Gem className="mr-1.5 inline h-4 w-4" />{displayShards(user, shards)} shards
             </span>
           </div>
 

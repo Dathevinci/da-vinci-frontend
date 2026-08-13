@@ -738,7 +738,7 @@ export default function DuelsPage() {
         {showChallenge && (
           <ChallengeModal myCards={myCards} meId={user?.id} foils={foils} asleep={asleep} cardStats={cardStats} cardStatsById={cardStatsById} cardRolls={cardRolls} levels={cardLevels} forges={cardForges} skillLvls={cardSkillLvls} skillCaps={skillCaps}
             onClose={() => { setShowChallenge(false); setDeck(loadSavedDeck()); }}
-            onSend={(opp, stake, deck) => post("", { opponentUsername: opp, stake, deck }, (d) => {
+            onSend={(opp: string, stake: number, deck: any) => post("", { opponentUsername: opp, stake, deck }, (d) => {
               setShowChallenge(false);
               // Straight into the waiting room — the response IS the duel row,
               // and the poll takes over from there. Staying is optional: closing
@@ -751,7 +751,7 @@ export default function DuelsPage() {
         {active && (
           <DuelBoard duel={active} me={user?.id} byId={byId} myCards={myCards} bag={bag} busy={busy} foils={foils} cardStats={cardStats} cardStatsById={cardStatsById} cardRolls={cardRolls} abilityIds={abilityIds} abilities={abilities} asleep={asleep} levels={cardLevels} forges={cardForges} skillLvls={cardSkillLvls} skillCaps={skillCaps}
             onClose={() => { setActive(null); setDeck(loadSavedDeck()); }}
-            onAccept={(deck) => post(`${active.id}/accept`, { deck }, (d) => { setActive(d); toast("Duel started!", "success"); }, "background")}
+            onAccept={(deck: any) => post(`${active.id}/accept`, { deck }, (d) => { setActive(d); toast("Duel started!", "success"); }, "background")}
             onMove={(action: string, index?: number, cardId?: string, target?: number) =>
               post(`${active.id}/move`, { action, index, cardId, target }, (d) => {
                 // The response carries the whole updated duel — showing it IS

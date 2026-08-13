@@ -3,6 +3,7 @@ import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 export enum MediaStatus {
   ONGOING = 'Ongoing',
   COMPLETED = 'Completed',
+  HIATUS = 'Hiatus',
   CANCELLED = 'Cancelled',
   UNKNOWN = 'Unknown'
 }
