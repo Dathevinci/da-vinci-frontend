@@ -33,17 +33,26 @@ export default function ManhwaCard({ manhwa }: { manhwa: IMangaResult }) {
 
   const open = () => router.push(`/manhwa/${encodeURIComponent(manhwa.id)}`);
 
+  const sourceName = (id: string) => {
+    if (id.startsWith("vtx:")) return "Vortex";
+    if (id.startsWith("mna:")) return "Manganato";
+    if (id.startsWith("mse:")) return "Mangasee";
+    return "Asura";
+  };
+
   return (
     <MediaHoverPreview
       title={manhwa.title}
       image={cover}
       chips={[
+        sourceName(manhwa.id),
         ...(hasRating ? [`★ ${displayRating}`] : []),
-        "Manhwa",
+        "Manga",
         ...(manhwa.status ? [String(manhwa.status)] : []),
       ]}
       stats={[
-        ["Format", "Manhwa"],
+        ["Source", sourceName(manhwa.id)],
+        ["Format", "Manga/Manhwa"],
         ["Status", String(manhwa.status || "—")],
         ["Latest", chapterLabel || "—"],
         ["Score", hasRating ? `${displayRating} / 10` : "—"],

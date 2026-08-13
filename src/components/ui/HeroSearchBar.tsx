@@ -79,15 +79,24 @@ async function fetchSuggestions(mode: Mode, term: string, signal: AbortSignal): 
     const res = await fetch(`/api/manhwa?q=${encodeURIComponent(term)}&page=1`, { signal });
     if (!res.ok) throw new Error("manhwa search failed");
     const data = await res.json();
-    return (data.results || []).slice(0, 6).map((m: any) => ({
-      key: String(m.id),
-      title: m.title,
-      image: m.image ? `/api/manhwa-image?url=${encodeURIComponent(m.image)}` : "",
-      meta:
-        [m.status, m.latestChapter, m.rating ? `★ ${m.rating}` : null].filter(Boolean).join(" · ") ||
-        "Manhwa",
-      raw: m,
-    }));
+    return (data.results || []).slice(0, 6).map((m: any) => {
+      const sourceName = String(m.id).startsWith("vtx:")
+        ? "Vortex"
+        : String(m.id).startsWith("mna:")
+        ? "Manganato"
+        : String(m.id).startsWith("mse:")
+        ? "Mangasee"
+        : "Asura";
+      return {
+        key: String(m.id),
+        title: m.title,
+        image: m.image ? `/api/manhwa-image?url=${encodeURIComponent(m.image)}` : "",
+        meta:
+          [sourceName, m.status, m.latestChapter, m.rating ? `★ ${m.rating}` : null].filter(Boolean).join(" · ") ||
+          "Manga",
+        raw: m,
+      };
+    });
   }
 
   if (mode === "novel") {

@@ -39,28 +39,41 @@ function isHostOrSubdomain(host: string, domain: string): boolean {
 /** Image hosts for the sources beyond Asura. Observed, not guessed. */
 export const MANHWA_IMAGE_HOSTS = [
   "storage.vortexscans.org", // VortexScans — covers + pages
+  "temp.compsci88.com", // Mangasee / WeebCentral — covers + pages
+  "hot.planeptune.us", // Mangasee / WeebCentral — reader pages
+  "hot.leanbox.us", // Mangasee / WeebCentral — reader pages
+  "official.lowee.us", // Mangasee / WeebCentral — reader pages
+  "official-ongoing-1.epicstream.com", // Mangasee / WeebCentral — reader pages
+  "img-r1.2xstorage.com", // Manganato — reader pages
+  "img-r2.2xstorage.com", // Manganato — covers + reader pages
+  "storage.waitst.com", // Manganato — reader pages
+  "www.manganato.gg", // Manganato
 ] as const;
 
 /** True for the newly added source hosts (dot-boundary safe). */
 export function isManhwaSourceImageHost(host: string): boolean {
-  return MANHWA_IMAGE_HOSTS.some((d) => isHostOrSubdomain(host, d));
+  return MANHWA_IMAGE_HOSTS.some((d) => isHostOrSubdomain(host, d)) ||
+         host.includes("2xstorage") ||
+         host.includes("waitst") ||
+         host.includes("compsci88") ||
+         host.includes("planeptune") ||
+         host.includes("leanbox");
 }
 
 /**
  * HOTLINK PROTECTION, MEASURED PER HOST.
- *
- * cdn.readdetectiveconan.com (MangaPill) 403s a request with no Referer AND
- * one with a foreign Referer; only `https://mangapill.com/` gets the bytes.
- * The Flame and Rizz hosts served 200 in all three cases, so their Referer is
- * belt-and-braces — set anyway, because these CDNs turn hotlink protection on
- * without warning and the correct value costs nothing.
  */
 const REFERERS: Record<string, string> = {
-  // Vortex's CDN was measured serving 200 with no Referer, with its own, and
-  // with a foreign one — identical bytes in all three, so it does not need
-  // coaxing. Set anyway, because these CDNs turn hotlink protection on without
-  // warning and the correct value costs nothing.
   "storage.vortexscans.org": "https://vortexscans.org/",
+  "temp.compsci88.com": "https://weebcentral.com/",
+  "hot.planeptune.us": "https://weebcentral.com/",
+  "hot.leanbox.us": "https://weebcentral.com/",
+  "official.lowee.us": "https://weebcentral.com/",
+  "official-ongoing-1.epicstream.com": "https://weebcentral.com/",
+  "img-r1.2xstorage.com": "https://www.manganato.gg/",
+  "img-r2.2xstorage.com": "https://www.manganato.gg/",
+  "storage.waitst.com": "https://www.manganato.gg/",
+  "www.manganato.gg": "https://www.manganato.gg/",
 };
 
 /** The Referer a newly added host wants, or null if it is not one of ours. */
@@ -68,6 +81,8 @@ export function manhwaSourceReferer(host: string): string | null {
   for (const [domain, referer] of Object.entries(REFERERS)) {
     if (isHostOrSubdomain(host, domain)) return referer;
   }
+  if (host.includes("2xstorage") || host.includes("waitst")) return "https://www.manganato.gg/";
+  if (host.includes("compsci88") || host.includes("planeptune") || host.includes("leanbox")) return "https://weebcentral.com/";
   return null;
 }
 

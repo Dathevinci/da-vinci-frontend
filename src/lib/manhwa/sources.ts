@@ -41,26 +41,23 @@ import { AsuraScans } from "@/lib/asura";
 import { IMangaResult, IMangaInfo, IMangaChapterPage, ISearch } from "@/lib/asura/models";
 import { ManhwaRow, recencyOf, sortByRecency } from "./recency";
 import VortexScans from "./VortexScans";
+import Manganato from "./Manganato";
+import Mangasee from "./Mangasee";
 
 const asura = () => new AsuraScans();
 const vtx = () => new VortexScans();
+const mna = () => new Manganato();
+const mse = () => new Mangasee();
 
 // ── single-item lookups: route by prefix ────────────────────────────────────
 
 /**
  * Every prefix this app can resolve, and the adapter that owns it.
- *
- * A TABLE rather than an if-chain so the two lookups below cannot drift out of
- * step — the previous pair had to be edited twice for every source, and a
- * prefix present in one but not the other is a series that opens and then
- * cannot be read.
- *
- * AsuraScans is absent on purpose — its ids are BARE, so it is the fallback
- * rather than an entry. Everything else is registered here, and this table plus
- * the browse/search/home lists below is the entire registration surface.
  */
 const ADAPTERS: Record<string, () => any> = {
   "vtx:": vtx,
+  "mna:": mna,
+  "mse:": mse,
 };
 
 /**
@@ -240,34 +237,23 @@ function withAsuraRecency(rows: ManhwaRow[]): ManhwaRow[] {
 
 
 export async function searchManhwa(query: string, page = 1, filters?: any): Promise<ISearch<IMangaResult>> {
-  /**
-   * ONE SOURCE, SO ASURA'S OWN ENVELOPE IS THE ANSWER — including its totals.
-   *
-   * There is nothing left to merge or to reconcile totals against, and Asura
-   * publishes a real `meta.total`, so the honest thing is to pass its
-   * pagination straight through rather than re-derive it. The blind-source
-   * hedging that combineTotals existed for here only applied to the sources
-   * that no longer ship.
-   *
-   * Still routed through allSettled: a search that throws must return an empty
-   * result set rather than a 500, exactly as before.
-   */
-  const [a, v] = await Promise.allSettled([asura().search(query, page, filters), vtx().search(query, page)]);
-  const av = settled(a, { currentPage: page, hasNextPage: false, results: [] as IMangaResult[] });
-  const vv = settled(v, { currentPage: page, hasNextPage: false, results: [] as ManhwaRow[] });
+  const [a, v, m, s] = await Promise.allSettled([
+    asura().search(query, page, filters),
+    vtx().search(query, page),
+    mna().search(query, page),
+    mse().search(query, page),
+  ]);
+  const emptyRes = { currentPage: page, hasNextPage: false, results: [] as ManhwaRow[] };
+  const av = settled(a, emptyRes as any);
+  const vv = settled(v, emptyRes);
+  const mv = settled(m, emptyRes);
+  const sv = settled(s, emptyRes);
+
   return {
     currentPage: page,
-    hasNextPage: av.hasNextPage || vv.hasNextPage,
-    // Asura leads, so on a cross-source duplicate its richer row survives.
-    results: merge(av.results as ManhwaRow[], vv.results),
-    /**
-     * NO TOTAL WHILE THE TWO DISAGREE ABOUT THE SHAPE OF THE SPACE. Asura pages
-     * server-side; Vortex matches against a cached catalogue and pages that.
-     * Their page N holds different things, so neither count describes the
-     * merged list, and combining them would invent one — the rule in
-     * explorePaging.ts. hasNextPage alone is honest, and the degraded pager
-     * says so out loud.
-     */
+    hasNextPage: av.hasNextPage || vv.hasNextPage || mv.hasNextPage || sv.hasNextPage,
+    // Asura leads, followed by Vortex, Mangasee, and Manganato
+    results: merge(av.results as ManhwaRow[], vv.results, sv.results, mv.results),
   };
 }
 
@@ -428,8 +414,8 @@ async function growCorpus(key: string, need: number, filters: any): Promise<Corp
       // ONE ENTRY PER SOURCE, and the arrays must stay the same length as the
       // fetcher list below — they are indexed together. Adding a source means
       // adding a cursor, a status, and a fetcher, in step.
-      cursors: [1, 1],
-      status: ["live", "live"],
+      cursors: [1, 1, 1, 1],
+      status: ["live", "live", "live", "live"],
     };
     corpusCache.set(key, cached);
   }
@@ -456,6 +442,8 @@ async function growCorpus(key: string, need: number, filters: any): Promise<Corp
     const fetchers = [
       () => asura().getSeries(dispatched[0], filters),
       () => vtx().getSeries(dispatched[1], filters),
+      () => mse().getLatestUpdates(dispatched[2]),
+      () => mna().getLatestUpdates(dispatched[3]),
     ];
     const settledRounds = await Promise.allSettled(
       fetchers.map((f, i) => (state.status[i] === "live" ? f() : Promise.resolve(empty)))
@@ -484,7 +472,13 @@ async function growCorpus(key: string, need: number, filters: any): Promise<Corp
     });
 
     const before = state.rows.length;
-    state.rows = merge(state.rows, batches[0] || [], batches[1] || []);
+    state.rows = merge(
+      state.rows,
+      batches[0] || [],
+      batches[1] || [],
+      batches[2] || [],
+      batches[3] || []
+    );
     if (state.rows.length === before) {
       // Nothing new survived the cross-source dedupe. Every source still in
       // play is repeating what we already hold, so the corpus cannot grow —
@@ -590,27 +584,34 @@ export async function asuraGenres(): Promise<{ id: number; name: string; slug: s
  * which is the point. It no longer contributes its back catalogue instead.
  */
 export async function manhwaHome(): Promise<{ trending: ManhwaRow[]; latestUpdates: ManhwaRow[] }> {
-  const [ap, al, vp, vl] = await Promise.allSettled([
+  const [ap, al, vp, vl, mp, ml, sp, sl] = await Promise.allSettled([
     asura().getPopularToday(),
     asura().getLatestUpdates(1),
     vtx().getPopularToday(),
     vtx().getLatestUpdates(1),
+    mna().getPopularToday(),
+    mna().getLatestUpdates(1),
+    mse().getPopularToday(),
+    mse().getLatestUpdates(1),
   ]);
   const emptySearch = { currentPage: 1, hasNextPage: false, results: [] as ManhwaRow[] };
+  
+  const asuraPop = settled(ap, emptySearch).results;
+  const asuraLat = settled(al, emptySearch).results;
+  const vtxPop = settled(vp, emptySearch).results;
+  const vtxLat = settled(vl, emptySearch).results;
+  const natoPop = settled(mp, emptySearch).results;
+  const natoLat = settled(ml, emptySearch).results;
+  const seePop = settled(sp, emptySearch).results;
+  const seeLat = settled(sl, emptySearch).results;
+
   return {
-    trending: merge(settled(ap, emptySearch).results, settled(vp, emptySearch).results),
-    /**
-     * STILL SORTED BY RECENCY, with one source rather than four.
-     *
-     * mergeLatest is not redundant here just because there is nothing to merge:
-     * it is what applies the newest-chapter ordering, and withAsuraRecency is
-     * what gives Asura's rows the timestamp to be ordered BY. Dropping either
-     * would quietly turn "Recently Updated" back into "whatever order the API
-     * returned" — the exact bug this rail was fixed for.
-     */
+    trending: merge(asuraPop, vtxPop, seePop, natoPop),
     latestUpdates: mergeLatest(
-      withAsuraRecency(settled(al, emptySearch).results),
-      settled(vl, emptySearch).results
+      withAsuraRecency(asuraLat),
+      vtxLat,
+      seeLat,
+      natoLat
     ),
   };
 }

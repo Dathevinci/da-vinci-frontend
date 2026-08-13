@@ -118,6 +118,10 @@ function ManhwaPageInner() {
       href: `/manhwa/${encodeURIComponent(m.id)}`,
     }));
 
+  const mseItems = dedupeById([...trending, ...latestUpdates].filter((m) => m.id.startsWith("mse:")));
+  const mnaItems = dedupeById([...trending, ...latestUpdates].filter((m) => m.id.startsWith("mna:")));
+  const vtxItems = dedupeById([...trending, ...latestUpdates].filter((m) => m.id.startsWith("vtx:")));
+
   return (
     <div className="bg-[#0b0b0c] min-h-screen pt-16 pb-16 text-white font-sans selection:bg-red-500/30">
       <AnimatePresence mode="wait">
@@ -151,10 +155,7 @@ function ManhwaPageInner() {
                 seeAllLink="/manhwa/explore?sort=popular" />
               {/* SLICED. The merged latest list runs ~190 rows, and the rail
                   is newest-first — so its far end is the oldest thing any
-                  source still publishes (one of them has not updated in a
-                  year). Scrolling to the end of "Recently Added" and finding
-                  last year's releases is the reported bug, just further along.
-                  It also stops the carousel mounting 190 lazy tiles. */}
+                  source still publishes. */}
               <ManhwaCarousel title="Recently Added" icon={<Clock className="w-6 h-6 text-[#dc2626]" />} items={latestUpdates.slice(0, 30)}
                 seeAllLink="/manhwa/explore" />
               {topRated.length > 0 && (
@@ -183,6 +184,9 @@ function ManhwaPageInner() {
                       items: toDiscover(latestUpdates) },
                     { key: "top", label: "Top Rated", icon: "top",
                       items: toDiscover(topRated) },
+                    ...(mseItems.length > 0 ? [{ key: "mangasee", label: "Mangasee", icon: "top" as const, items: toDiscover(mseItems) }] : []),
+                    ...(mnaItems.length > 0 ? [{ key: "manganato", label: "Manganato", icon: "trending" as const, items: toDiscover(mnaItems) }] : []),
+                    ...(vtxItems.length > 0 ? [{ key: "vortex", label: "Vortex", icon: "popular" as const, items: toDiscover(vtxItems) }] : []),
                   ]}
                 />
               </div>
