@@ -104,6 +104,54 @@ export default class Manganato extends MangaParser {
     return chapters;
   }
 
+  /**
+   * ONE PARSER FOR EVERY LISTING PAGE — and it reads the REAL cover.
+   *
+   * All three listing methods used to match title anchors alone and then
+   * INVENT the cover as `img-r2.2xstorage.com/thumb/<slug>.webp`. The CDN host
+   * is per-title and cannot be guessed: one hot-manga page serves covers from
+   * img-r1, img-r2, imgs-2 AND storage.waitst.com, and the img-r2 guess for a
+   * title living on img-r1 is a plain 404 — which is the wall of broken
+   * thumbnails the owner reported, twice.
+   *
+   * The listing markup already carries the answer. Every card is a
+   * `<div class="item">` block holding the real `<img>` (lazy ones keep the
+   * URL in data-src), the title anchor and a latest-chapter link — verified
+   * 20/20 blocks on both listing pages, with the img's filename slug equal to
+   * the anchor's slug in all 40, so a block's image provably belongs to that
+   * block's series. Parsing per-block also fixes the "Chapter ?" cards: the
+   * chapter link was simply never read.
+   */
+  private parseCards(html: string): ManhwaRow[] {
+    const rows: ManhwaRow[] = [];
+    const seen = new Set<string>();
+
+    for (const block of html.split('<div class="item">').slice(1)) {
+      const anchor = /<a[^>]*href="https:\/\/www\.manganato\.gg\/manga\/([a-zA-Z0-9_-]+)"[^>]*title="([^"]+)"/i.exec(block);
+      if (!anchor) continue;
+      const [, slug, rawTitle] = anchor;
+      const id = `mna:${slug}`;
+      if (seen.has(id) || !rawTitle) continue;
+      seen.add(id);
+
+      // data-src before src: on a lazy image, src is a placeholder.
+      const img =
+        /<img[^>]+data-src="(https?:\/\/[a-z0-9.-]*(?:2xstorage|waitst)[a-z0-9.-]*\/[^"]+)"/i.exec(block) ||
+        /<img[^>]+src="(https?:\/\/[a-z0-9.-]*(?:2xstorage|waitst)[a-z0-9.-]*\/[^"]+)"/i.exec(block);
+
+      const chapter = /\/chapter-[\d.-]+"[^>]*title="(Chapter[^"]+)"/i.exec(block);
+
+      rows.push({
+        id,
+        title: this.unescapeHtml(rawTitle.trim()),
+        image: img ? img[1] : undefined,
+        latestChapter: chapter ? this.unescapeHtml(chapter[1].trim()) : undefined,
+        status: MediaStatus.ONGOING,
+      });
+    }
+    return rows;
+  }
+
   private async fetchHtml(url: string): Promise<string> {
     try {
       const res = await fetch(url, {
@@ -131,41 +179,10 @@ export default class Manganato extends MangaParser {
   async getPopularToday(): Promise<ISearch<IMangaResult>> {
     try {
       const html = await this.fetchHtml("https://www.manganato.gg/manga-list/hot-manga?page=1");
-      const results: ManhwaRow[] = [];
-      const seen = new Set<string>();
-
-      const linkMatches = Array.from(
-        html.matchAll(
-          /<a[^>]*href="https:\/\/www\.manganato\.gg\/manga\/([a-zA-Z0-9_-]+)"[^>]*title="([^"]+)"/gi
-        )
-      ).concat(
-        Array.from(
-          html.matchAll(
-            /<a[^>]*title="([^"]+)"[^>]*href="https:\/\/www\.manganato\.gg\/manga\/([a-zA-Z0-9_-]+)"/gi
-          )
-        ).map((m) => [m[0], m[2], m[1]])
-      );
-
-      for (const m of linkMatches) {
-        const slug = m[1];
-        const rawTitle = m[2];
-        if (!slug || !rawTitle) continue;
-        const id = `mna:${slug}`;
-        if (seen.has(id)) continue;
-        seen.add(id);
-
-        results.push({
-          id,
-          title: this.unescapeHtml(rawTitle.trim()),
-          image: `https://img-r2.2xstorage.com/thumb/${slug}.webp`,
-          status: MediaStatus.ONGOING,
-        });
-      }
-
       return {
         currentPage: 1,
         hasNextPage: false,
-        results,
+        results: this.parseCards(html),
       };
     } catch (e: any) {
       console.warn("[Manganato.getPopularToday] Failed:", e.message);
@@ -179,40 +196,10 @@ export default class Manganato extends MangaParser {
   async getLatestUpdates(page = 1): Promise<ISearch<IMangaResult>> {
     try {
       const html = await this.fetchHtml(`https://www.manganato.gg/manga-list/latest-manga?page=${page}`);
-      const results: ManhwaRow[] = [];
-      const seen = new Set<string>();
-
-      const linkMatches = Array.from(
-        html.matchAll(
-          /<a[^>]*href="https:\/\/www\.manganato\.gg\/manga\/([a-zA-Z0-9_-]+)"[^>]*title="([^"]+)"/gi
-        )
-      ).concat(
-        Array.from(
-          html.matchAll(
-            /<a[^>]*title="([^"]+)"[^>]*href="https:\/\/www\.manganato\.gg\/manga\/([a-zA-Z0-9_-]+)"/gi
-          )
-        ).map((m) => [m[0], m[2], m[1]])
-      );
-
-      for (const m of linkMatches) {
-        const slug = m[1];
-        const rawTitle = m[2];
-        if (!slug || !rawTitle) continue;
-        const id = `mna:${slug}`;
-        if (seen.has(id)) continue;
-        seen.add(id);
-
-        results.push({
-          id,
-          title: this.unescapeHtml(rawTitle.trim()),
-          image: `https://img-r2.2xstorage.com/thumb/${slug}.webp`,
-          status: MediaStatus.ONGOING,
-        });
-      }
-
+      const results = this.parseCards(html);
       return {
         currentPage: page,
-        hasNextPage: results.length >= 24,
+        hasNextPage: results.length >= 20,
         results,
       };
     } catch (e: any) {
@@ -235,39 +222,12 @@ export default class Manganato extends MangaParser {
       const html = await this.fetchHtml(
         `https://www.manganato.gg/manga-list/latest-manga?page=${page}`
       );
-      const results: ManhwaRow[] = [];
-      const seen = new Set<string>();
-
-      const linkMatches = Array.from(
-        html.matchAll(
-          /<a[^>]*href="https:\/\/www\.manganato\.gg\/manga\/([a-zA-Z0-9_-]+)"[^>]*title="([^"]+)"/gi
-        )
-      ).concat(
-        Array.from(
-          html.matchAll(
-            /<a[^>]*title="([^"]+)"[^>]*href="https:\/\/www\.manganato\.gg\/manga\/([a-zA-Z0-9_-]+)"/gi
-          )
-        ).map((m) => [m[0], m[2], m[1]])
-      );
-
       const q = query.toLowerCase();
-      for (const m of linkMatches) {
-        const slug = m[1];
-        const rawTitle = m[2];
-        if (!slug || !rawTitle) continue;
-        if (!rawTitle.toLowerCase().includes(q) && !slug.toLowerCase().includes(searchWord)) continue;
-
-        const id = `mna:${slug}`;
-        if (seen.has(id)) continue;
-        seen.add(id);
-
-        results.push({
-          id,
-          title: this.unescapeHtml(rawTitle.trim()),
-          image: `https://img-r2.2xstorage.com/thumb/${slug}.webp`,
-          status: MediaStatus.ONGOING,
-        });
-      }
+      const results = this.parseCards(html).filter(
+        (r) =>
+          r.title.toLowerCase().includes(q) ||
+          r.id.replace(/^mna:/, "").toLowerCase().includes(searchWord)
+      );
 
       return {
         currentPage: page,
