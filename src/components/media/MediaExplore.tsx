@@ -85,8 +85,6 @@ const NOVEL_LISTS = [
   { key: "most-popular-novel", label: "Most Popular (ReadNovelFull)" },
   { key: "lnw-top", label: "LightNovelWorld Top Rated" },
   { key: "nf-popular", label: "NovelFull Popular Hits" },
-  { key: "ranobes-rating", label: "Ranobes Top Rated" },
-  { key: "wws-trending", label: "WuxiaWorld Trending" },
   { key: "latest-release-novel", label: "Latest Release (ReadNovelFull)" },
   { key: "completed-novel", label: "Completed Novels" },
 ];

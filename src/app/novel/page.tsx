@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { BookOpen, ChevronLeft, ChevronRight, Flame, Clock, CheckCircle2, BookMarked, Star, Sparkles } from "lucide-react";
+import { BookOpen, ChevronLeft, ChevronRight, Flame, Clock, CheckCircle2, BookMarked, Star } from "lucide-react";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 import HeroSearchBar from "@/components/ui/HeroSearchBar";
 import DiscoverRail from "@/components/media/DiscoverRail";
@@ -12,33 +12,22 @@ import HiddenGems from "@/components/media/HiddenGems";
 import { novelCover } from "@/lib/novelImage";
 import NovelCard from "@/components/novel/NovelCard";
 import NovelCarousel from "@/components/novel/NovelCarousel";
-import LnoriCarousel from "@/components/novel/LnoriCarousel";
 import NovelHeroCarousel from "@/components/novel/NovelHeroCarousel";
 import ContinueReading from "@/components/reading/ContinueReading";
 import { motion, AnimatePresence } from "framer-motion";
 import type { NovelResult } from "@/lib/novel/ReadNovelFull";
 
-// The first three come from readnovelfull & novelfull, the last two from Ranobes & WuxiaWorldSite.
-// They're mixed into one row on purpose — from the reader's side these are just
 const LISTS = [
   { key: "most-popular-novel", label: "Popular", icon: Flame },
-  { key: "lnw-top", label: "LightNovelWorld Top", icon: Flame },
+  { key: "lnw-top", label: "LightNovelWorld Top", icon: Star },
   { key: "nf-popular", label: "NovelFull Hits", icon: BookOpen },
-  { key: "ranobes-rating", label: "Ranobes Top", icon: Sparkles },
-  { key: "wws-trending", label: "WuxiaWorld Hot", icon: Star },
   { key: "latest-release-novel", label: "Latest", icon: Clock },
   { key: "completed-novel", label: "Completed", icon: CheckCircle2 },
 ];
 
-// useSearchParams must sit inside a Suspense boundary or `next build` fails to
-// prerender /novel (same pattern as the manhwa page).
 export default function NovelBrowsePage() {
   return (
-    <Suspense
-      fallback={
-        <LoadingScreen message="Loading library" />
-      }
-    >
+    <Suspense fallback={<LoadingScreen message="Loading library" />}>
       <NovelInner />
     </Suspense>
   );
@@ -57,11 +46,8 @@ function NovelInner() {
   const [trending, setTrending] = useState<NovelResult[]>([]);
   const [latest, setLatest] = useState<NovelResult[]>([]);
   const [completed, setCompleted] = useState<NovelResult[]>([]);
-  const [rnbTop, setRnbTop] = useState<NovelResult[]>([]);
-  const [wwsTop, setWwsTop] = useState<NovelResult[]>([]);
   const [lnwTop, setLnwTop] = useState<NovelResult[]>([]);
   const [nfTop, setNfTop] = useState<NovelResult[]>([]);
-  const [lnori, setLnori] = useState<NovelResult[]>([]);
   const [hasNext, setHasNext] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -74,11 +60,8 @@ function NovelInner() {
           setTrending(res.trending || []);
           setLatest(res.latestUpdates || []);
           setCompleted(res.completed || []);
-          setRnbTop(res.rnbTop || []);
-          setWwsTop(res.wwsTop || []);
           setLnwTop(res.lnwTop || []);
           setNfTop(res.nfTop || []);
-          setLnori(res.lnori || []);
           setLoading(false);
         })
         .catch(() => setLoading(false));
@@ -98,12 +81,8 @@ function NovelInner() {
           setLoading(false);
         });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sp.toString(), isHome]);
 
-  // Novel rows carry a cover, a title and a latest-chapter string — no rating
-  // and no chapter count — so that string is the only meta passed through.
-  // Nothing here fabricates a score the sources don't publish.
   const toDiscover = (arr: NovelResult[]) =>
     (arr || []).filter((n) => n && n.id).map((n) => ({
       id: n.id,
@@ -131,7 +110,6 @@ function NovelInner() {
           <motion.div key="home" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }} className="w-full">
             <NovelHeroCarousel items={trending.slice(0, 10)} />
 
-            {/* Scoped to novels — searches this page's own sources. */}
             <HeroSearchBar
               mode="novel"
               initialValue={query}
@@ -141,12 +119,9 @@ function NovelInner() {
 
             <div className="relative z-20 space-y-2 max-w-[1600px] mx-auto">
               <ContinueReading kind="novel" />
-              <LnoriCarousel title="Da Vinci Official EPUBs" items={lnori} exploreHref="/novel/lnori" />
               <NovelCarousel title="Trending Now" icon={<Flame className="w-6 h-6 text-orange-500" />} items={trending} seeAllLink="/novel/explore?list=most-popular-novel" />
               <NovelCarousel title="Top Rated on LightNovelWorld" icon={<Star className="w-6 h-6 text-yellow-400" />} items={lnwTop} seeAllLink="/novel/explore?list=lnw-top" />
               <NovelCarousel title="Popular on NovelFull" icon={<BookOpen className="w-6 h-6 text-pink-400" />} items={nfTop} seeAllLink="/novel/explore?list=nf-popular" />
-              <NovelCarousel title="Highest Rated on Ranobes" icon={<Sparkles className="w-6 h-6 text-purple-400" />} items={rnbTop} seeAllLink="/novel/explore?list=ranobes-rating" />
-              <NovelCarousel title="Trending on WuxiaWorld" icon={<Flame className="w-6 h-6 text-red-500" />} items={wwsTop} seeAllLink="/novel/explore?list=wws-trending" />
               <NovelCarousel title="Recently Updated" icon={<Clock className="w-6 h-6 text-pink-400" />} items={latest} seeAllLink="/novel/explore?list=latest-release-novel" />
               <NovelCarousel title="Completed" icon={<CheckCircle2 className="w-6 h-6 text-green-500" />} items={completed} seeAllLink="/novel/explore?list=completed-novel" />
 
@@ -159,8 +134,6 @@ function NovelInner() {
                     { key: "trending", label: "ReadNovelFull", icon: "trending", items: toDiscover(trending) },
                     { key: "lnw", label: "LightNovelWorld", icon: "top", items: toDiscover(lnwTop) },
                     { key: "nf", label: "NovelFull", icon: "popular", items: toDiscover(nfTop) },
-                    { key: "ranobes", label: "Ranobes", icon: "sparkles", items: toDiscover(rnbTop) },
-                    { key: "wws", label: "WuxiaWorld", icon: "trending", items: toDiscover(wwsTop) },
                   ]}
                 />
               </div>
@@ -190,21 +163,16 @@ function NovelInner() {
           </motion.div>
         ) : (
           <motion.div key="browse" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }} className="max-w-[1500px] mx-auto px-4 md:px-8">
-            {/* Header */}
             <div className="flex items-center gap-3 mb-8 pt-4">
               <div className="w-12 h-12 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400">
                 <BookOpen className="w-6 h-6" />
               </div>
               <div>
                 <h1 className="text-3xl font-black tracking-tight">Light Novels</h1>
-                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">ReadNovelFull &middot; LightNovelWorld &middot; NovelFull &middot; Ranobes &middot; WuxiaWorld</p>
+                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">ReadNovelFull &middot; LightNovelWorld &middot; NovelFull</p>
               </div>
             </div>
 
-            {/* Searching unmounts the home branch and its search row with it,
-                so the box has to exist here too — otherwise a wrong search
-                can only be undone with the back button. Keyed on the query so
-                it re-seeds when you search again from somewhere else. */}
             <HeroSearchBar
               key={query}
               mode="novel"
@@ -212,7 +180,6 @@ function NovelInner() {
               className="mx-auto mb-8 w-full max-w-[960px]"
             />
 
-            {/* List tabs (hidden during search) */}
             {!query && (
               <div className="flex gap-2 mb-8 flex-wrap">
                 {LISTS.map(({ key, label, icon: Icon }) => (
@@ -230,7 +197,6 @@ function NovelInner() {
             )}
             {query && <h2 className="text-lg font-bold mb-6 text-slate-300">Search results for &ldquo;{query}&rdquo;</h2>}
 
-            {/* Grid */}
             {data.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5">
                 {data.map((n) => (
@@ -248,7 +214,6 @@ function NovelInner() {
         )}
       </AnimatePresence>
 
-      {/* Pagination (browse grid only) */}
       {!loading && !isHome && data.length > 0 && (
         <div className="mt-14 flex justify-center items-center gap-4 text-xs font-bold uppercase tracking-widest">
           {page > 1 ? (

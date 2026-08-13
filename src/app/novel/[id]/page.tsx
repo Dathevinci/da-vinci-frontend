@@ -15,7 +15,6 @@ import LoadingScreen from "@/components/ui/LoadingScreen";
 import { novelCover } from "@/lib/novelImage";
 import CommunityFeed from "@/components/community/CommunityFeed";
 import HeroBackdrop from "@/components/ui/HeroBackdrop";
-import EpubVolumeCard from "@/components/novel/EpubVolumeCard";
 
 /**
  * NOVEL DETAIL — the reference layout: blurred cover stage, poster front
@@ -308,31 +307,20 @@ export default function NovelDetailPage() {
                   </div>
                 )}
 
-                <div className={id.startsWith("lnori:") ? "grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4" : "grid grid-cols-1 gap-2 sm:grid-cols-2"}>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {shown.map((ch) => (
-                    id.startsWith("lnori:") ? (
-                      <EpubVolumeCard
-                        key={ch.id}
-                        chapterId={ch.id}
-                        file={(ch as any).file || ch.id}
-                        title={ch.title}
-                        novelId={id}
-                        fallbackCover={novelCover(novel.cover)}
-                      />
-                    ) : (
-                      <Link
-                        key={ch.id}
-                        href={`/novel/${encodeURIComponent(id)}/chapter/${encodeURIComponent(ch.id)}`}
-                        className={`group flex items-center justify-between rounded-xl border p-3 transition-colors ${
-                          lastRead === ch.id
-                            ? "border-pink-500/40 bg-pink-500/10"
-                            : "border-white/5 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06]"
-                        }`}
-                      >
-                        <span className="line-clamp-1 font-mono text-sm text-slate-300 group-hover:text-white">{ch.title}</span>
-                        <ChevronRight className="h-4 w-4 shrink-0 text-slate-600 group-hover:text-white" />
-                      </Link>
-                    )
+                    <Link
+                      key={ch.id}
+                      href={`/novel/${encodeURIComponent(id)}/chapter/${encodeURIComponent(ch.id)}`}
+                      className={`group flex items-center justify-between rounded-xl border p-3 transition-colors ${
+                        lastRead === ch.id
+                          ? "border-pink-500/40 bg-pink-500/10"
+                          : "border-white/5 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06]"
+                      }`}
+                    >
+                      <span className="line-clamp-1 font-mono text-sm text-slate-300 group-hover:text-white">{ch.title}</span>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-slate-600 group-hover:text-white" />
+                    </Link>
                   ))}
                 </div>
                 {filtered.length === 0 && (

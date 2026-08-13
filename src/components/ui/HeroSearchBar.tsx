@@ -95,14 +95,12 @@ async function fetchSuggestions(mode: Mode, term: string, signal: AbortSignal): 
     if (!res.ok) throw new Error("novel search failed");
     const data = await res.json();
     return (data.results || []).slice(0, 6).map((n: any) => {
-      const sourceName = n.id.startsWith("rnb:")
-        ? "Ranobes"
-        : n.id.startsWith("wws:")
-        ? "WuxiaWorld"
-        : n.id.startsWith("nf:")
+      const sourceName = n.id.startsWith("nf:")
         ? "NovelFull"
         : n.id.startsWith("lnw:")
         ? "LightNovelWorld"
+        : n.id.startsWith("fmtl:")
+        ? "FanMTL"
         : "ReadNovelFull";
       return {
         key: String(n.id),

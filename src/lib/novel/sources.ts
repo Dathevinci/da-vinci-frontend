@@ -2,43 +2,38 @@
  * Multi-source router for novels. Ids carry a source prefix so the frontend can
  * treat them as opaque and round-trip them through the routes:
  *   "nf:<slug>"   → novelfull.net   (PRIMARY — big, clean, non-MTL library)
- *   "fmtl:<slug>" → fanmtl.com       (LEGACY — retained only so old bookmarks
- *                                     still open; no longer searched/browsed)
+ *   "lnw:<slug>"  → lightnovelworld.org (Top rated & trending)
+ *   "fmtl:<slug>" → fanmtl.com       (LEGACY — retained for backward compat)
  *   "<slug>"      → readnovelfull    (secondary — supplements search)
- *
- * novelfull.net replaced fanmtl as the main source: it carries the licensed
- * titles the MTL sources lacked (Overlord LN, Tensura, Omniscient Reader's
- * Viewpoint, …) and reads far cleaner.
  */
 
 import * as NovelFull from "./NovelFull";
 import * as ReadNovelFull from "./ReadNovelFull";
 import * as FanMTL from "./FanMTL";
 import * as LightNovelWorld from "./LightNovelWorld";
-import * as Ranobes from "./Ranobes";
-import * as WuxiaWorldSite from "./WuxiaWorldSite";
 import type { NovelResult, NovelInfo, ChapterContent } from "./ReadNovelFull";
 import { combineTotals, type PageTotals, type SourcePaging } from "@/lib/explorePaging";
+import { getNovelCover } from '../anilist';
+import { getKitsuNovelCover } from '../kitsu';
 
 export function resolveSource(id: string) {
   if (id.startsWith("nf:")) return { source: NovelFull, slug: id.replace("nf:", "") };
   if (id.startsWith("rnf:")) return { source: ReadNovelFull, slug: id.replace("rnf:", "") };
   if (id.startsWith("fmtl:")) return { source: FanMTL, slug: id.replace("fmtl:", "") };
   if (id.startsWith("lnw:")) return { source: LightNovelWorld, slug: id.replace("lnw:", "") };
-  if (id.startsWith("rnb:")) return { source: Ranobes, slug: id.replace("rnb:", "") };
-  if (id.startsWith("wws:")) return { source: WuxiaWorldSite, slug: id.replace("wws:", "") };
+  // Graceful fallback for legacy removed sources (rnb, wws, lnori)
+  if (id.startsWith("rnb:") || id.startsWith("wws:") || id.startsWith("ww:") || id.startsWith("lnori:")) {
+    const rawSlug = id.replace(/^(rnb|wws|ww|lnori):/, "");
+    return { source: NovelFull, slug: rawSlug };
+  }
   return { source: ReadNovelFull, slug: id };
 }
 
-import { getNovelCover } from '../anilist';
-import { getKitsuNovelCover } from '../kitsu';
-
 export function getSourceName(id: string): string {
-  if (id.startsWith("rnb:")) return "Ranobes";
-  if (id.startsWith("wws:")) return "WuxiaWorld";
   if (id.startsWith("nf:")) return "NovelFull";
   if (id.startsWith("lnw:")) return "LightNovelWorld";
   if (id.startsWith("fmtl:")) return "FanMTL";
+  if (id.startsWith("rnb:") || id.startsWith("wws:") || id.startsWith("lnori:")) return "Archived Source";
   return "ReadNovelFull";
 }
 
@@ -98,7 +93,7 @@ export async function getNovelInfo(id: string): Promise<NovelInfo> {
       author: "Unknown",
       status: "Unknown",
       genres: [],
-      synopsis: "Details currently unavailable due to source server limits. Please try refreshing in a moment.",
+      synopsis: "Details currently unavailable for this title. Please try another source or novel.",
       chapters: [],
       alternativeServers: [{ source: "current", id, name: "Current Source" }]
     };
@@ -107,7 +102,16 @@ export async function getNovelInfo(id: string): Promise<NovelInfo> {
 
 export async function getChapterContent(id: string, chapterId: string): Promise<ChapterContent> {
   const { source, slug } = resolveSource(id);
-  return source.getChapterContent(slug, chapterId);
+  try {
+    return await source.getChapterContent(slug, chapterId);
+  } catch (err) {
+    return {
+      title: "Chapter",
+      content: ["This chapter is no longer available from the requested provider."],
+      prev: null,
+      next: null
+    };
+  }
 }
 
 export async function searchAll(query: string, page = 1) {
@@ -115,8 +119,6 @@ export async function searchAll(query: string, page = 1) {
     LightNovelWorld.searchNovels(query, page).catch(() => ({ results: [], hasNextPage: false, totalPages: 1 })),
     NovelFull.searchNovels(query, page).catch(() => ({ results: [], hasNextPage: false, totalPages: 1 })),
     ReadNovelFull.searchNovels(query, page).catch(() => ({ results: [], hasNextPage: false, totalPages: 1 })),
-    Ranobes.searchNovels(query, page).catch(() => ({ results: [], hasNextPage: false, totalPages: 1 })),
-    WuxiaWorldSite.searchNovels(query, page).catch(() => ({ results: [], hasNextPage: false, totalPages: 1 }))
   ];
   
   const results = await Promise.all(sources);
@@ -136,50 +138,37 @@ export async function searchAll(query: string, page = 1) {
   return { results: merged, hasNextPage: results.some(r => r.hasNextPage) };
 }
 
-const TITLE_ALIASES: [RegExp, string][] = [
-  [/that time i got reincarnated as a slime|^\s*tensura\s*$/i, "tensei shitara slime datta ken"],
-];
-
 export async function browseNovels(page = 1, list = "trending") {
-  if (list === "ranobes-rating") return Ranobes.browseNovels(page, "rating");
-  if (list === "wws-trending") return WuxiaWorldSite.browseNovels(page, "trending");
   if (list === "lnw-top") return LightNovelWorld.browseTopRated(3, 24);
   if (list === "nf-popular") return NovelFull.browseNovels(page, "most-popular");
   if (list.startsWith("genre/")) return NovelFull.browseNovels(page, list);
+  // Fallback for removed legacy lists
+  if (list === "ranobes-rating" || list === "wws-trending" || list === "lnori") {
+    return NovelFull.browseNovels(page, "most-popular");
+  }
   return ReadNovelFull.browseNovels(page, list);
 }
-
-import * as Lnori from "./Lnori";
 
 export async function homeShelves() {
   const [
     trending,
     latest,
     completed,
-    rnbTop,
-    wwsTop,
     lnwTop,
     nfTop,
-    lnori
   ] = await Promise.allSettled([
     ReadNovelFull.browseNovels(1, "most-popular-novel"),
     ReadNovelFull.browseNovels(1, "latest-release-novel"),
     ReadNovelFull.browseNovels(1, "completed-novel"),
-    Ranobes.browseNovels(1, "rating"),
-    WuxiaWorldSite.browseNovels(1, "trending"),
     LightNovelWorld.browseTopRated(3, 10),
     NovelFull.browseNovels(1, "most-popular"),
-    Lnori.browseNovels(1),
   ]);
 
   return {
     trending: trending.status === "fulfilled" ? trending.value.results : [],
     latestUpdates: latest.status === "fulfilled" ? latest.value.results : [],
     completed: completed.status === "fulfilled" ? completed.value.results : [],
-    rnbTop: rnbTop.status === "fulfilled" ? rnbTop.value.results : [],
-    wwsTop: wwsTop.status === "fulfilled" ? wwsTop.value.results : [],
     lnwTop: lnwTop.status === "fulfilled" ? lnwTop.value.results : [],
     nfTop: nfTop.status === "fulfilled" ? nfTop.value.results : [],
-    lnori: lnori.status === "fulfilled" ? lnori.value.results : [],
   };
 }

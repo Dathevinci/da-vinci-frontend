@@ -40,7 +40,6 @@ const BROWSE_SURFACES: RegExp[] = [
   /^\/manhwa\/explore$/,
   /^\/novel$/,
   /^\/novel\/explore$/,
-  /^\/novel\/lnori$/,
   // Anchored: /community/post/<id> is a DETAIL page, and an unanchored prefix
   // would also swallow any future /community* sibling route.
   /^\/community$/,

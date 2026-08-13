@@ -16,14 +16,12 @@ export default function NovelCard({ novel }: { novel: NovelResult }) {
   const router = useRouter();
   const { cover, onError: onCoverError } = useNovelCover(novel.title, novel.cover);
 
-  const sourceName = novel.id.startsWith("rnb:")
-    ? "Ranobes"
-    : novel.id.startsWith("wws:")
-    ? "WuxiaWorld"
-    : novel.id.startsWith("nf:")
+  const sourceName = novel.id.startsWith("nf:")
     ? "NovelFull"
     : novel.id.startsWith("lnw:")
     ? "LightNovelWorld"
+    : novel.id.startsWith("fmtl:")
+    ? "FanMTL"
     : "ReadNovelFull";
 
   const open = () => router.push(`/novel/${encodeURIComponent(novel.id)}`);

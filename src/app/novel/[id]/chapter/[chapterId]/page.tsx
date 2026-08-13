@@ -13,7 +13,6 @@ import { useNovelReaderPrefs, themeById, fontById, spacingById, widthById } from
 import { browseAnchorHref } from "@/lib/browseAnchor";
 import ReaderSettings from "@/components/novel/ReaderSettings";
 import CommunityFeed from "@/components/community/CommunityFeed";
-import EpubReader from "@/components/reading/EpubReader";
 
 export default function NovelReaderPage() {
   const params = useParams();
@@ -131,32 +130,6 @@ export default function NovelReaderPage() {
   const go = (cid: string | null) => {
     if (cid) router.push(`/novel/${encodeURIComponent(id)}/chapter/${encodeURIComponent(cid)}`);
   };
-
-  /**
-   * EPUB volumes are detected from the SERIES id, not from the chapter id.
-   *
-   * It used to sniff for ".epub" on the chapter id, because the id WAS the
-   * file address — which is precisely what made download managers grab every
-   * link on the page. Volumes are "vol-3" now and the address lives on the
-   * chapter record, so the check moved to the one part of the route that still
-   * says which source this is.
-   *
-   * A chapter id that still looks like a URL is an old bookmark, and is used
-   * as-is so those keep opening.
-   */
-  const legacyFile = chapterId.includes("files.lnori.com") ? chapterId : null;
-  const vol = chapters.find((c) => c.id === chapterId) as any;
-  const file: string | null = legacyFile || vol?.file || null;
-
-  if (file) {
-    return (
-      <EpubReader
-        file={file}
-        title={vol?.title || chapter?.title || novel?.title || "EPUB Volume"}
-        novelId={id}
-      />
-    );
-  }
 
   return (
     <div className="min-h-screen selection:bg-pink-500/30" style={{ backgroundColor: t.bg, color: t.text }}>
