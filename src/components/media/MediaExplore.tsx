@@ -87,6 +87,7 @@ const NOVEL_LISTS = [
   { key: "completed-novel", label: "Completed Novels" },
   { key: "ranobes-rating", label: "Ranobes Top Rated" },
   { key: "wws-trending", label: "WuxiaWorld Trending" },
+  { key: "lnw-top", label: "LightNovelWorld Top Rated" },
 ];
 
 const CFG = {

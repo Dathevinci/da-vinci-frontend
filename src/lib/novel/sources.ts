@@ -143,6 +143,7 @@ const TITLE_ALIASES: [RegExp, string][] = [
 export async function browseNovels(page = 1, list = "trending") {
   if (list === "ranobes-rating") return Ranobes.browseNovels(page, "rating");
   if (list === "wws-trending") return WuxiaWorldSite.browseNovels(page, "trending");
+  if (list === "lnw-top") return LightNovelWorld.browseTopRated(3, 24);
   if (list.startsWith("genre/")) return NovelFull.browseNovels(page, list);
   return ReadNovelFull.browseNovels(page, list);
 }
@@ -156,6 +157,7 @@ export async function homeShelves() {
     completed,
     rnbTop,
     wwsTop,
+    lnwTop,
     lnori
   ] = await Promise.allSettled([
     ReadNovelFull.browseNovels(1, "most-popular-novel"),
@@ -163,6 +165,7 @@ export async function homeShelves() {
     ReadNovelFull.browseNovels(1, "completed-novel"),
     Ranobes.browseNovels(1, "rating"),
     WuxiaWorldSite.browseNovels(1, "trending"),
+    LightNovelWorld.browseTopRated(3, 10),
     Lnori.browseNovels(1),
   ]);
 
@@ -170,9 +173,9 @@ export async function homeShelves() {
     trending: trending.status === "fulfilled" ? trending.value.results : [],
     latestUpdates: latest.status === "fulfilled" ? latest.value.results : [],
     completed: completed.status === "fulfilled" ? completed.value.results : [],
-    korean: [],
-    fanmtl: rnbTop.status === "fulfilled" ? rnbTop.value.results : [],
-    lnwTop: wwsTop.status === "fulfilled" ? wwsTop.value.results : [],
+    rnbTop: rnbTop.status === "fulfilled" ? rnbTop.value.results : [],
+    wwsTop: wwsTop.status === "fulfilled" ? wwsTop.value.results : [],
+    lnwTop: lnwTop.status === "fulfilled" ? lnwTop.value.results : [],
     lnori: lnori.status === "fulfilled" ? lnori.value.results : [],
   };
 }

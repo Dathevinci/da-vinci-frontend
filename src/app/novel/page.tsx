@@ -20,14 +20,13 @@ import type { NovelResult } from "@/lib/novel/ReadNovelFull";
 
 // The first three come from readnovelfull & novelfull, the last two from Ranobes & WuxiaWorldSite.
 // They're mixed into one row on purpose — from the reader's side these are just
-// five ways to browse, and splitting them by which site they came from would
-// surface an implementation detail nobody cares about.
 const LISTS = [
   { key: "most-popular-novel", label: "Popular", icon: Flame },
   { key: "latest-release-novel", label: "Latest", icon: Clock },
   { key: "completed-novel", label: "Completed", icon: CheckCircle2 },
   { key: "ranobes-rating", label: "Ranobes Top", icon: Sparkles },
   { key: "wws-trending", label: "WuxiaWorld Hot", icon: Star },
+  { key: "lnw-top", label: "LightNovelWorld Top", icon: Flame },
 ];
 
 // useSearchParams must sit inside a Suspense boundary or `next build` fails to
@@ -57,7 +56,8 @@ function NovelInner() {
   const [trending, setTrending] = useState<NovelResult[]>([]);
   const [latest, setLatest] = useState<NovelResult[]>([]);
   const [completed, setCompleted] = useState<NovelResult[]>([]);
-  const [fanmtl, setFanmtl] = useState<NovelResult[]>([]);
+  const [rnbTop, setRnbTop] = useState<NovelResult[]>([]);
+  const [wwsTop, setWwsTop] = useState<NovelResult[]>([]);
   const [lnwTop, setLnwTop] = useState<NovelResult[]>([]);
   const [lnori, setLnori] = useState<NovelResult[]>([]);
   const [hasNext, setHasNext] = useState(false);
@@ -72,7 +72,8 @@ function NovelInner() {
           setTrending(res.trending || []);
           setLatest(res.latestUpdates || []);
           setCompleted(res.completed || []);
-          setFanmtl(res.fanmtl || []);
+          setRnbTop(res.rnbTop || []);
+          setWwsTop(res.wwsTop || []);
           setLnwTop(res.lnwTop || []);
           setLnori(res.lnori || []);
           setLoading(false);
@@ -136,14 +137,14 @@ function NovelInner() {
             />
 
             <div className="relative z-20 space-y-2 max-w-[1600px] mx-auto">
-              {/* Resume where you left off (client-side; hidden until you've read something) */}
               <ContinueReading kind="novel" />
               <LnoriCarousel title="Da Vinci Official EPUBs" items={lnori} exploreHref="/novel/lnori" />
               <NovelCarousel title="Trending Now" icon={<Flame className="w-6 h-6 text-orange-500" />} items={trending} seeAllLink="/novel/explore?list=most-popular-novel" />
               <NovelCarousel title="Recently Updated" icon={<Clock className="w-6 h-6 text-pink-400" />} items={latest} seeAllLink="/novel/explore?list=latest-release-novel" />
               <NovelCarousel title="Completed" icon={<CheckCircle2 className="w-6 h-6 text-green-500" />} items={completed} seeAllLink="/novel/explore?list=completed-novel" />
-              <NovelCarousel title="Highest Rated on Ranobes" icon={<BookOpen className="w-6 h-6 text-pink-400" />} items={fanmtl} seeAllLink="/novel/explore?list=ranobes-rating" />
-              <NovelCarousel title="Trending on WuxiaWorld" icon={<Flame className="w-6 h-6 text-orange-500" />} items={lnwTop} seeAllLink="/novel/explore?list=wws-trending" />
+              <NovelCarousel title="Highest Rated on Ranobes" icon={<BookOpen className="w-6 h-6 text-pink-400" />} items={rnbTop} seeAllLink="/novel/explore?list=ranobes-rating" />
+              <NovelCarousel title="Trending on WuxiaWorld" icon={<Flame className="w-6 h-6 text-orange-500" />} items={wwsTop} seeAllLink="/novel/explore?list=wws-trending" />
+              <NovelCarousel title="Top Rated on LightNovelWorld" icon={<Star className="w-6 h-6 text-yellow-400" />} items={lnwTop} seeAllLink="/novel/explore?list=lnw-top" />
 
               <div className="pt-6">
                 <DiscoverRail
@@ -154,6 +155,7 @@ function NovelInner() {
                     { key: "trending", label: "Trending", icon: "trending", items: toDiscover(trending) },
                     { key: "updated", label: "Recently Updated", icon: "popular", items: toDiscover(latest) },
                     { key: "top", label: "Top Rated", icon: "top", items: toDiscover(lnwTop) },
+                    { key: "ranobes", label: "Ranobes Top", icon: "sparkles", items: toDiscover(rnbTop) },
                   ]}
                 />
               </div>
@@ -190,7 +192,7 @@ function NovelInner() {
               </div>
               <div>
                 <h1 className="text-3xl font-black tracking-tight">Light Novels</h1>
-                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">NovelFull &middot; Ranobes &middot; WuxiaWorld</p>
+                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">NovelFull &middot; Ranobes &middot; WuxiaWorld &middot; LightNovelWorld</p>
               </div>
             </div>
 
