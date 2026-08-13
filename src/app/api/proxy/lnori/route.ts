@@ -19,6 +19,8 @@ export async function GET(req: NextRequest) {
 
   try {
     const headers = new Headers();
+    headers.set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36");
+    headers.set("Referer", "https://files.lnori.com/");
     const range = req.headers.get("range");
     if (range) headers.set("Range", range);
 

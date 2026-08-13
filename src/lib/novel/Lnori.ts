@@ -6,6 +6,8 @@ import { getKitsuNovelCover } from "../kitsu";
 import * as NF from "./NovelFull";
 
 const BASE = "https://files.lnori.com";
+const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
+const RELAY = "https://goodproxy.goodproxy.workers.dev/fetch?url=";
 
 let catalogCache: { title: string; slug: string; id: string }[] | null = null;
 let catalogTime = 0;
@@ -17,28 +19,58 @@ const FALLBACK_CATALOG = [
   { title: "The Beginning After the End", slug: "the-beginning-after-the-end", id: "lnori:the-beginning-after-the-end" },
   { title: "Lord of the Mysteries", slug: "lord-of-the-mysteries", id: "lnori:lord-of-the-mysteries" },
   { title: "Re:Zero - Starting Life in Another World", slug: "rezero-kara-hajimeru-isekai-seikatsu", id: "lnori:rezero-kara-hajimeru-isekai-seikatsu" },
+  { title: "Classroom of the Elite", slug: "youkoso-jitsuryoku-shijou-shugi-no-kyoushitsu-e", id: "lnori:youkoso-jitsuryoku-shijou-shugi-no-kyoushitsu-e" },
+  { title: "Mushoku Tensei: Jobless Reincarnation", slug: "mushoku-tensei-isekai-ittara-honki-dasu-ln", id: "lnori:mushoku-tensei-isekai-ittara-honki-dasu-ln" },
+  { title: "That Time I Got Reincarnated as a Slime", slug: "tensei-shitara-slime-datta-ken-ln", id: "lnori:tensei-shitara-slime-datta-ken-ln" },
+  { title: "No Game No Life", slug: "no-game-no-life", id: "lnori:no-game-no-life" },
 ];
+
+async function fetchHtml(url: string): Promise<string> {
+  const headers = {
+    "User-Agent": UA,
+    Referer: "https://files.lnori.com/",
+    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+  };
+  try {
+    const res = await fetch(url, { headers, signal: AbortSignal.timeout(10000) });
+    if (res.ok) return await res.text();
+  } catch {}
+
+  try {
+    const proxyRes = await fetch(`${RELAY}${encodeURIComponent(url)}`, {
+      headers: { "User-Agent": UA },
+      signal: AbortSignal.timeout(12000),
+    });
+    if (proxyRes.ok) return await proxyRes.text();
+  } catch {}
+
+  throw new Error(`Failed to reach Lnori at ${url}`);
+}
 
 export async function getCatalog() {
   if (catalogCache && Date.now() - catalogTime < 1000 * 60 * 60) return catalogCache;
   try {
-    const res = await fetch(`${BASE}/`, { next: { revalidate: 3600 } });
-    if (res.ok) {
-      const html = await res.text();
-      const $ = cheerio.load(html);
-      const items: { title: string; slug: string; id: string }[] = [];
-      $("#files li a.folder").each((_, el) => {
-        const $el = $(el);
-        const title = $el.text().replace(/\/$/, "");
-        const href = $el.attr("href") || "";
-        const slug = href.replace(".html", "");
+    const html = await fetchHtml(`${BASE}/`);
+    const $ = cheerio.load(html);
+    const items: { title: string; slug: string; id: string }[] = [];
+    const seen = new Set<string>();
+
+    // Support both standard #files list and newer DOM structures
+    $("#files li a.folder, .folder-link, a.folder, a[href$='.html']").each((_, el) => {
+      const $el = $(el);
+      const title = $el.text().replace(/\/$/, "").trim();
+      const href = $el.attr("href") || "";
+      const slug = href.replace(/^\//, "").replace(".html", "").trim();
+      if (slug && !seen.has(slug) && slug !== "index") {
+        seen.add(slug);
         items.push({ title, slug, id: `lnori:${slug}` });
-      });
-      if (items.length > 0) {
-        catalogCache = items;
-        catalogTime = Date.now();
-        return items;
       }
+    });
+
+    if (items.length > 0) {
+      catalogCache = items;
+      catalogTime = Date.now();
+      return items;
     }
   } catch (e) {}
 
@@ -60,10 +92,6 @@ async function coverFor(title: string): Promise<string> {
         .trim();
       if (clean && clean !== title) cover = await getNovelCover(clean);
     }
-    // AniList refuses English-original webnovels outright (TBATE et al), so a
-    // miss there is not "no art exists" — ask Kitsu before giving up. With
-    // files.lnori.com behind Cloudflare, the EPUB's own cover can't back this
-    // up any more, so an empty string here means a permanently blank card.
     if (!cover) cover = (await getKitsuNovelCover(title)) || "";
     return cover || "";
   } catch {
@@ -108,11 +136,10 @@ export async function searchNovels(
 
 export async function firstVolumeFile(slug: string): Promise<string | null> {
   try {
-    const res = await fetch(`${BASE}/${slug}.html`, { next: { revalidate: 3600 } });
-    if (!res.ok) return null;
-    const $ = cheerio.load(await res.text());
-    const href = $("#files li a.epub").first().attr("href");
-    return href ? `${BASE}${href}` : null;
+    const html = await fetchHtml(`${BASE}/${slug}.html`);
+    const $ = cheerio.load(html);
+    const href = $("#files li a.epub, a[href$='.epub'], a.epub-link").first().attr("href");
+    return href ? (href.startsWith("http") ? href : `${BASE}${href.startsWith("/") ? "" : "/"}${href}`) : null;
   } catch {
     return null;
   }
@@ -120,36 +147,37 @@ export async function firstVolumeFile(slug: string): Promise<string | null> {
 
 export async function getNovelInfo(slug: string): Promise<NovelInfo> {
   try {
-    const res = await fetch(`${BASE}/${slug}.html`, { next: { revalidate: 3600 } });
-    if (res.ok) {
-      const html = await res.text();
-      const $ = cheerio.load(html);
-      const title = $("h1").text().trim();
-      const chapters: any[] = [];
-      $("#files li a.epub").each((i, el) => {
-        const $el = $(el);
-        const href = $el.attr("href") || "";
-        const name = $el.text().replace(".epub", "").trim();
-        chapters.push({
-          id: `vol-${i + 1}`,
-          title: name,
-          number: i + 1,
-          file: `${BASE}${href}`,
-        });
+    const html = await fetchHtml(`${BASE}/${slug}.html`);
+    const $ = cheerio.load(html);
+    const title = $("h1, .novel-title, .title").first().text().trim() || slug;
+    const chapters: any[] = [];
+
+    // Support both #files li a.epub and flexible selectors
+    $("#files li a.epub, a[href$='.epub'], .file-entry a, .epub-download").each((i, el) => {
+      const $el = $(el);
+      const href = $el.attr("href") || "";
+      const name = $el.text().replace(".epub", "").trim();
+      const fileUrl = href.startsWith("http") ? href : `${BASE}${href.startsWith("/") ? "" : "/"}${href}`;
+      chapters.push({
+        id: `vol-${i + 1}`,
+        title: name || `Volume ${i + 1}`,
+        number: i + 1,
+        file: fileUrl,
       });
-      if (chapters.length > 0) {
-        return {
-          id: `lnori:${slug}`,
-          novelId: slug,
-          title,
-          cover: "",
-          author: "Various",
-          status: "Completed",
-          genres: ["Official EPUB"],
-          synopsis: "Official Light Novel EPUBs provided by Lnori.",
-          chapters,
-        };
-      }
+    });
+
+    if (chapters.length > 0) {
+      return {
+        id: `lnori:${slug}`,
+        novelId: slug,
+        title,
+        cover: (await coverFor(title)) || "",
+        author: "Various",
+        status: "Completed",
+        genres: ["Official EPUB"],
+        synopsis: "Official Light Novel EPUB collection provided by Lnori.",
+        chapters,
+      };
     }
   } catch (e) {}
 
@@ -179,6 +207,8 @@ export async function getNovelInfo(slug: string): Promise<NovelInfo> {
   };
 }
 
+import * as ReadNovelFull from "./ReadNovelFull";
+
 export async function getChapterContent(slug: string, chapterId: string): Promise<ChapterContent> {
   let targetChapterId = chapterId;
   if (chapterId.startsWith("vol-")) {
@@ -189,7 +219,7 @@ export async function getChapterContent(slug: string, chapterId: string): Promis
   const nfContent = await NF.getChapterContent(slug, targetChapterId).catch(() => null);
   if (nfContent) return nfContent;
 
-  const rnfContent = await RNF.getChapterContent(slug, targetChapterId).catch(() => null);
+  const rnfContent = await ReadNovelFull.getChapterContent(slug, targetChapterId).catch(() => null);
   if (rnfContent) return rnfContent;
 
   let title = "Volume";
