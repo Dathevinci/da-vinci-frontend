@@ -91,6 +91,40 @@ export function canResizeViaWsrv(host: string): boolean {
 }
 
 /**
+ * A RESIZER THAT WILL ACTUALLY TAKE THE HOSTS wsrv REFUSES.
+ *
+ * Skipping the resize for those hosts was costing far more than the wasted
+ * round-trip it saved. MEASURED on live Vortex covers coming through our own
+ * proxy: 752KB, 447KB, 2125KB and 793KB — an average near a megabyte against
+ * AsuraScans' 63KB, so roughly SIXTEEN TIMES the weight. A deep explore page
+ * is mostly Vortex rows (page 15 was 24 of 24), which put about 24MB of covers
+ * on a single screen. That is the manhwa-mode lag, and it is not a rendering
+ * problem — it is bytes.
+ *
+ * Nothing else could fix it: the CDN ignores every resize parameter it was
+ * offered (?width, ?w, ?resize and ?tr all returned the identical 2,145,666
+ * bytes), next.config sets `unoptimized: true` so next/image will not resize
+ * either, and wsrv refuses the domain outright with "Domain or TLD blocked by
+ * policy" — as does images.weserv.nl, which is the same service.
+ *
+ * Photon (WordPress.com's image CDN) accepts arbitrary hosts and takes this
+ * one happily. Measured on the same four covers: 66KB, 61KB, 67KB and 74KB —
+ * about a 28x reduction on the worst of them, landing in line with Asura. It
+ * takes the URL with the scheme stripped, and `resize=w,h` crops to exact
+ * dimensions the way the wsrv path's fit=cover does.
+ *
+ * Returns null for anything that is not a plain https URL, so a malformed or
+ * non-https cover falls through to the direct fetch rather than being handed
+ * to a third party in a shape it will not understand.
+ */
+export function photonResizeUrl(url: string, w: number, h: number, quality = 82): string | null {
+  if (!/^https:\/\//i.test(url)) return null;
+  const bare = url.replace(/^https:\/\//i, "");
+  if (!bare || bare.startsWith("/")) return null;
+  return `https://i0.wp.com/${bare}?resize=${Math.round(w)},${Math.round(h)}&quality=${Math.round(quality)}`;
+}
+
+/**
  * The proxy's allowlist. Legacy entries keep their original substring form on
  * purpose: narrowing them would unwrap covers that work today, and widening
  * them is not this change's business. See isHostOrSubdomain above for why new

@@ -184,7 +184,8 @@ export default class VortexScans extends MangaParser {
    * title= were each verified to return the identical unfiltered 420), so
    * pretending otherwise would silently serve unfiltered rows as filtered ones.
    */
-  async getSeries(page: number = 1, _filters?: any): Promise<ISearch<ManhwaRow>> {
+  /** One raw page of the listing, parsed. The only place that fetches /series. */
+  private async fetchPage(page: number): Promise<{ rows: ManhwaRow[]; total?: number }> {
     const p = Math.max(1, page);
     try {
       const html = await this.request<string>(`${this.baseUrl}/series?page=${p}`);
@@ -193,31 +194,34 @@ export default class VortexScans extends MangaParser {
           ? { posts: props.initialPosts, total: Number(props.initialTotalCount) }
           : undefined
       );
-      if (!island) return this.empty(p);
-
-      const results = this.rowsFrom(island.posts);
+      if (!island) return { rows: [] };
       const total = Number.isFinite(island.total) && (island.total as number) > 0 ? (island.total as number) : undefined;
-      const totalPages = total ? Math.max(1, Math.ceil(total / VortexScans.PER_PAGE)) : undefined;
-      return {
-        currentPage: p,
-        hasNextPage: totalPages ? p < totalPages : results.length >= VortexScans.PER_PAGE,
-        results,
-        ...(total ? { totalItems: total, totalPages } : {}),
-      };
+      return { rows: this.rowsFrom(island.posts), total };
     } catch (e) {
-      console.error('VortexScans getSeries error:', e);
-      return this.empty(p);
+      console.error(`VortexScans fetchPage(${p}) error:`, e);
+      return { rows: [] };
     }
   }
 
   /**
-   * The whole catalogue, for searching.
+   * THE WHOLE CATALOGUE, HELD ONCE — and browse is served from it too.
    *
-   * Vortex has NO server-side search — /series?q=, ?search= and ?title= were
-   * each measured returning the same unfiltered 420 rows — so matching has to
-   * happen here, which means holding the catalogue. It is ~12 pages, fetched
-   * once per TTL and shared by every concurrent caller through an in-flight
-   * promise so a cold cache cannot start twelve fetches per visitor.
+   * Search needs it because Vortex has no server-side search: /series?q=,
+   * ?search= and ?title= were each measured returning the same unfiltered 420
+   * rows, so matching has to happen here.
+   *
+   * BROWSE reads it as well, which is a fix rather than a convenience. The
+   * merged corpus walks sources round-robin, one page per round, and rounds are
+   * sequential — so serving browse page-by-page meant a deep explore page paid
+   * for a dozen SEQUENTIAL 450KB fetches of this listing. Measured against
+   * production: page 1 answered in 0.5s, page 5 in 3.0s and page 20 in 8.9s,
+   * the last one brushing the corpus fill budget and coming back truncated.
+   *
+   * Fetching the pages TOGETHER instead of one per round turns that into
+   * roughly the cost of a single page, and every later page is then free until
+   * the TTL. Concurrency is capped anyway: twelve simultaneous requests is the
+   * kind of burst that gets a scraper rate-limited, which would cost far more
+   * than it saves.
    */
   private async catalogue(): Promise<ManhwaRow[]> {
     const now = Date.now();
@@ -225,17 +229,27 @@ export default class VortexScans extends MangaParser {
     if (catalogueInflight) return catalogueInflight;
 
     catalogueInflight = (async () => {
-      const first = await this.getSeries(1);
-      const rows = [...first.results];
-      const totalPages = Math.min(Number((first as any).totalPages) || 1, 40);
-      if (totalPages > 1) {
-        const rest = await Promise.allSettled(
-          Array.from({ length: totalPages - 1 }, (_, i) => this.getSeries(i + 2))
-        );
-        for (const r of rest) if (r.status === 'fulfilled') rows.push(...r.value.results);
+      const first = await this.fetchPage(1);
+      const rows = [...first.rows];
+
+      // The site's own count, so the page span is measured rather than guessed.
+      // Capped so a bad `initialTotalCount` cannot turn into hundreds of fetches.
+      const totalPages = first.total
+        ? Math.min(Math.ceil(first.total / VortexScans.PER_PAGE), 40)
+        : 1;
+
+      const CONCURRENCY = 4;
+      for (let start = 2; start <= totalPages; start += CONCURRENCY) {
+        const batch = [];
+        for (let p = start; p < start + CONCURRENCY && p <= totalPages; p++) batch.push(this.fetchPage(p));
+        const settled = await Promise.allSettled(batch);
+        for (const r of settled) if (r.status === 'fulfilled') rows.push(...r.value.rows);
       }
+
       // Only cache something that actually parsed; caching an empty catalogue
-      // would pin a transient outage in front of search for the whole TTL.
+      // would pin a transient outage in front of browse AND search for the
+      // whole TTL — the failure mode that made Flame invisible for five
+      // minutes at a time before it was removed.
       if (rows.length > 0) catalogueCache = { at: Date.now(), rows };
       return rows;
     })().finally(() => {
@@ -243,6 +257,32 @@ export default class VortexScans extends MangaParser {
     });
 
     return catalogueInflight;
+  }
+
+  /**
+   * A page of the catalogue. Totals are COUNTED from the rows in hand, so they
+   * are measurements — the contract in src/lib/explorePaging.ts. `filters` is
+   * accepted and ignored: Vortex's listing takes no parameter that actually
+   * filters, so honouring one would serve unfiltered rows as filtered.
+   */
+  async getSeries(page: number = 1, _filters?: any): Promise<ISearch<ManhwaRow>> {
+    const p = Math.max(1, page);
+    try {
+      const all = await this.catalogue();
+      if (all.length === 0) return this.empty(p);
+      const start = (p - 1) * VortexScans.PER_PAGE;
+      const results = all.slice(start, start + VortexScans.PER_PAGE);
+      return {
+        currentPage: p,
+        hasNextPage: all.length > start + results.length,
+        results,
+        totalItems: all.length,
+        totalPages: Math.max(1, Math.ceil(all.length / VortexScans.PER_PAGE)),
+      };
+    } catch (e) {
+      console.error('VortexScans getSeries error:', e);
+      return this.empty(p);
+    }
   }
 
   async search(query: string, page: number = 1): Promise<ISearch<ManhwaRow>> {

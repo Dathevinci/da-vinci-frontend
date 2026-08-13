@@ -3,6 +3,7 @@ import {
   isProxyableManhwaHost,
   manhwaSourceReferer,
   canResizeViaWsrv,
+  photonResizeUrl,
 } from "@/lib/manhwa/coverProxy";
 
 export const runtime = "nodejs";
@@ -91,12 +92,26 @@ export async function GET(req: NextRequest) {
     const h = Number(req.nextUrl.searchParams.get("h")) || 720;
 
     let res: Response;
-    if (wantsFull || !canResizeViaWsrv(parsed.hostname)) {
-      // Some of the new CDNs are hosts wsrv refuses on sight (blocked TLD) or
-      // cannot authenticate to (it cannot send their Referer). The fallback
-      // below already rescued those; skipping the call just saves every cover
-      // from them a wasted round-trip. See canResizeViaWsrv for the evidence.
+    if (wantsFull) {
       res = await direct();
+    } else if (!canResizeViaWsrv(parsed.hostname)) {
+      /**
+       * wsrv refuses this host, so resize it through Photon instead of giving
+       * up and shipping the original.
+       *
+       * Skipping the resize entirely is what made manhwa mode lag: these
+       * covers average close to a megabyte against AsuraScans' 63KB, and a
+       * deep explore page is mostly them. Photon takes the hosts wsrv blocks
+       * and brings them back to roughly 67KB. See photonResizeUrl for the
+       * measurements and for why nothing else worked.
+       *
+       * Still falls back to the direct fetch if Photon is unavailable or
+       * unhappy, so a cover never fails to load because a resizer had a bad
+       * day — the same rule the wsrv path follows.
+       */
+      const photon = photonResizeUrl(url, w, h);
+      const r = photon ? await fetch(photon, { headers: { "User-Agent": UA } }).catch(() => null) : null;
+      res = r && r.ok ? r : await direct();
     } else {
       const bare = url.replace(/^https?:\/\//, "");
       const weserv = `https://wsrv.nl/?url=${encodeURIComponent(bare)}&w=${w}&h=${h}&fit=cover&output=webp&q=82`;
