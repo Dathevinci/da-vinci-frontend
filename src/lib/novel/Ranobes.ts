@@ -95,27 +95,39 @@ function parseCards(html: string): NovelResult[] {
   const out: NovelResult[] = [];
   const seen = new Set<string>();
 
-  // 1. Classic Ranobes card markup
-  const re = /<h2 class="title"><a href="[^"]*\/novels\/(\d+)[^"]*">([^<]+)<\/a>[\s\S]*?(?:background-image:\s*url\(([^)]+)\)|src="([^"]+)")/gi;
+  // Extract each novel article block
+  const cardMatches = Array.from(html.matchAll(/<article[\s\S]*?<\/article>/gi));
+  for (let i = 0; i < cardMatches.length; i++) {
+    const block = cardMatches[i][0];
+    const slugMatch = block.match(/href="[^"]*\/novels\/(\d+)[^"]*"/i);
+    const slug = slugMatch ? slugMatch[1] : `novel-${i}`;
 
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(html))) {
-    const slug = m[1];
-    const title = decode(m[2]);
-    const rawCover = m[3] || m[4] || "";
-    const cover = absUrl(rawCover.replace(/['"]/g, ""));
+    // Multi-source title resolution: img alt > <h2 class="title"> a > title attribute
+    const imgAlt = block.match(/<img[^>]*alt="([^"]+)"/i)?.[1];
+    const h2Text = block.match(/<h2 class="title"><a[^>]*>([\s\S]*?)<\/a>/i)?.[1]?.replace(/<[^>]+>/g, "").trim();
+    const titleAttr = block.match(/title="Start reading:\s*([^"]+)"/i)?.[1] || block.match(/title="([^"]+)"/i)?.[1];
+    const title = decode(imgAlt || h2Text || titleAttr || slug).trim();
+
+    const coverMatch =
+      block.match(/background-image:\s*url\(([^)]+)\)/i) ||
+      block.match(/<img[^>]*(?:data-src|src)="([^"]+)"/i);
+    let rawCover = coverMatch ? (coverMatch[1] || coverMatch[2]).replace(/['"]/g, "") : "";
+    const cover = absUrl(rawCover);
+
     if (seen.has(slug)) continue;
     seen.add(slug);
     out.push({ id: `rnb:${slug}`, title, cover });
   }
 
-  // 2. Alternative .poster structure
+  // Fallback: regex scan if article blocks were not found
   if (out.length === 0) {
-    const reAlt = /<a href="[^"]*\/novels\/(\d+)[^"]*"[^>]*title="([^"]*)"[\s\S]*?<img[^>]*src="([^"]+)"/gi;
-    while ((m = reAlt.exec(html))) {
+    const re = /<h2 class="title"><a href="[^"]*\/novels\/(\d+)[^"]*">([^<]+)<\/a>[\s\S]*?(?:background-image:\s*url\(([^)]+)\)|src="([^"]+)")/gi;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(html))) {
       const slug = m[1];
       const title = decode(m[2]);
-      const cover = absUrl(m[3]);
+      const rawCover = m[3] || m[4] || "";
+      const cover = absUrl(rawCover.replace(/['"]/g, ""));
       if (seen.has(slug)) continue;
       seen.add(slug);
       out.push({ id: `rnb:${slug}`, title, cover });
