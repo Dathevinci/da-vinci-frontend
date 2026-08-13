@@ -97,15 +97,16 @@ function decode(str: string): string {
 function cleanWuxiaCover(rawUrl: string | undefined | null): string {
   if (!rawUrl || rawUrl.includes("dflazy.jpg")) return "";
   let url = rawUrl.trim();
-  url = url.replace(/render_jsfalse$/, "");
+  url = url.replace(/render_jsfalse.*$/, "");
   if (url.startsWith("//")) url = `https:${url}`;
   else if (url.startsWith("/")) url = `https://wuxiaworld.site${url}`;
   else if (!url.startsWith("http")) url = `https://wuxiaworld.site/${url}`;
 
-  // Fix truncated URLs ending with a dot e.g. "thumb_67c038face76b-193x278."
-  if (url.endsWith(".")) {
-    url = url + "jpg";
-  }
+  // Strip WordPress resize dimensions (-193x278, -125x180, etc.) to reach original high-res upload
+  url = url.replace(/-\d+x\d+(\.[a-z]+)?$/i, (match, ext) => ext || "");
+  url = url.replace(/-\d+x\d+\.$/, "");
+  url = url.replace(/\.$/, "");
+
   return url;
 }
 

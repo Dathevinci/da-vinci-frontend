@@ -181,12 +181,35 @@ export async function getNovelInfo(slug: string): Promise<NovelInfo> {
     }
   } catch (e) {}
 
-  const nfInfo = await NF.getNovelInfo(slug).catch(() => null);
+const SLUG_MAP: Record<string, string> = {
+  "i-alone-level-up": "only-i-level-up",
+  "overlord-ln": "overlord",
+  "tensei-shitara-slime-datta-ken-ln": "tensei-shitara-slime-datta-ken",
+  "mushoku-tensei-isekai-ittara-honki-dasu-ln": "mushoku-tensei-isekai-ittara-honki-dasu",
+  "youkoso-jitsuryoku-shijou-shugi-no-kyoushitsu-e": "youkoso-jitsuryoku-shijou-shugi-no-kyoushitsu-e",
+  "omniscient-readers-viewpoint": "omniscient-readers-viewpoint",
+  "the-beginning-after-the-end": "the-beginning-after-the-end",
+  "lord-of-the-mysteries": "lord-of-the-mysteries",
+  "rezero-kara-hajimeru-isekai-seikatsu": "rezero-kara-hajimeru-isekai-seikatsu",
+  "no-game-no-life": "no-game-no-life",
+};
+
+  const targetSlug = SLUG_MAP[slug] || slug;
+  const nfInfo = await NF.getNovelInfo(targetSlug).catch(() => null);
   if (nfInfo) {
     return {
       ...nfInfo,
       id: `lnori:${slug}`,
       genres: ["Official EPUB", ...(nfInfo.genres || [])],
+    };
+  }
+
+  const rnfInfo = await ReadNovelFull.getNovelInfo(targetSlug).catch(() => null);
+  if (rnfInfo) {
+    return {
+      ...rnfInfo,
+      id: `lnori:${slug}`,
+      genres: ["Official EPUB", ...(rnfInfo.genres || [])],
     };
   }
 
@@ -210,17 +233,18 @@ export async function getNovelInfo(slug: string): Promise<NovelInfo> {
 import * as ReadNovelFull from "./ReadNovelFull";
 
 export async function getChapterContent(slug: string, chapterId: string): Promise<ChapterContent> {
+  const targetSlug = SLUG_MAP[slug] || slug;
   let targetChapterId = chapterId;
   if (chapterId.startsWith("vol-")) {
     const volNum = parseInt(chapterId.replace("vol-", ""), 10) || 1;
     targetChapterId = `chapter-${volNum}`;
   }
 
-  const nfContent = await NF.getChapterContent(slug, targetChapterId).catch(() => null);
-  if (nfContent) return nfContent;
+  const nfContent = await NF.getChapterContent(targetSlug, targetChapterId).catch(() => null);
+  if (nfContent && nfContent.content?.length > 0) return nfContent;
 
-  const rnfContent = await ReadNovelFull.getChapterContent(slug, targetChapterId).catch(() => null);
-  if (rnfContent) return rnfContent;
+  const rnfContent = await ReadNovelFull.getChapterContent(targetSlug, targetChapterId).catch(() => null);
+  if (rnfContent && rnfContent.content?.length > 0) return rnfContent;
 
   let title = "Volume";
   const volNo = chapterId.match(/^(?:vol|chapter)-(\d+)$/i);

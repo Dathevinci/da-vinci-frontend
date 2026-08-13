@@ -236,7 +236,7 @@ export async function getNovelInfo(slug: string): Promise<NovelInfo> {
   let chapters: NovelChapter[] = [];
   if (novelId) {
     try {
-      const ajaxHtml = await fetchHtml(`/ajax/chapter-archive?novelId=${novelId}`);
+      const ajaxHtml = await fetchHtml(`/ajax-chapter-option?novelId=${novelId}`);
       chapters = parseChapterOptions(ajaxHtml);
     } catch {}
   }
