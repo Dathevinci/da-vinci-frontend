@@ -144,6 +144,7 @@ export async function browseNovels(page = 1, list = "trending") {
   if (list === "ranobes-rating") return Ranobes.browseNovels(page, "rating");
   if (list === "wws-trending") return WuxiaWorldSite.browseNovels(page, "trending");
   if (list === "lnw-top") return LightNovelWorld.browseTopRated(3, 24);
+  if (list === "nf-popular") return NovelFull.browseNovels(page, "most-popular");
   if (list.startsWith("genre/")) return NovelFull.browseNovels(page, list);
   return ReadNovelFull.browseNovels(page, list);
 }
@@ -158,6 +159,7 @@ export async function homeShelves() {
     rnbTop,
     wwsTop,
     lnwTop,
+    nfTop,
     lnori
   ] = await Promise.allSettled([
     ReadNovelFull.browseNovels(1, "most-popular-novel"),
@@ -166,6 +168,7 @@ export async function homeShelves() {
     Ranobes.browseNovels(1, "rating"),
     WuxiaWorldSite.browseNovels(1, "trending"),
     LightNovelWorld.browseTopRated(3, 10),
+    NovelFull.browseNovels(1, "most-popular"),
     Lnori.browseNovels(1),
   ]);
 
@@ -176,6 +179,7 @@ export async function homeShelves() {
     rnbTop: rnbTop.status === "fulfilled" ? rnbTop.value.results : [],
     wwsTop: wwsTop.status === "fulfilled" ? wwsTop.value.results : [],
     lnwTop: lnwTop.status === "fulfilled" ? lnwTop.value.results : [],
+    nfTop: nfTop.status === "fulfilled" ? nfTop.value.results : [],
     lnori: lnori.status === "fulfilled" ? lnori.value.results : [],
   };
 }

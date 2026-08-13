@@ -72,14 +72,42 @@ const LIST_MAP: Record<string, string> = {
   "completed-novel": "completed-novel",
 };
 
-// ── list rows (browse + search share the list-truyen markup) ───────────────────
+// ── list rows (browse + search share the list markup) ───────────────────
 function parseListRows(html: string): NovelResult[] {
-  // Scope to the results container so the genre-filter dropdown at the top of the
-  // page (which also holds /genre/ links) can't pollute the results.
-  const startIdx = html.indexOf("list-truyen");
-  const scoped = startIdx >= 0 ? html.slice(startIdx) : html;
   const out: NovelResult[] = [];
   const seen = new Set<string>();
+
+  // 1. Try modern NovelFull markup (<div class="li-row"> or <div class="li">)
+  const blocks = html.split(/class="li-row"|class="li"/);
+  if (blocks.length > 1) {
+    for (let i = 1; i < blocks.length; i++) {
+      const block = blocks[i];
+      const slug = block.match(/href="\/([a-z0-9-]+)\.html"/)?.[1];
+      if (!slug || slug === "novel-list" || seen.has(slug)) continue;
+      seen.add(slug);
+
+      const titleMatch = block.match(/<h3 class="tit">\s*<a[^>]*>([^<]+)<\/a>/i) || block.match(/title="([^"]+)"/i);
+      const title = titleMatch ? titleMatch[1].trim() : slug;
+
+      const coverMatch = block.match(/<img[^>]*(?:data-src|src)="([^"]+)"/i);
+      const cover = coverMatch ? absCover(coverMatch[1]) : "";
+
+      const chapMatch = block.match(/<a class="chapter"[^>]*>([\s\S]*?)<\/a>/i);
+      const latestChapter = chapMatch ? chapMatch[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() : undefined;
+
+      out.push({
+        id: `nf:${slug}`,
+        title: decodeEntities(title),
+        cover: absCover(cover),
+        latestChapter: latestChapter ? decodeEntities(latestChapter) : undefined,
+      });
+    }
+    if (out.length > 0) return out;
+  }
+
+  // 2. Fallback to classic NovelFull markup (<div class="row"> + <h3 class="truyen-title">)
+  const startIdx = html.indexOf("list-truyen");
+  const scoped = startIdx >= 0 ? html.slice(startIdx) : html;
   const rows = scoped.split(/<div class="row"/);
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
@@ -120,14 +148,6 @@ export async function browseNovels(
   const html = await fetchHtml(`/${nfList}?page=${Math.max(1, page)}`);
   const results = parseListRows(html);
   const maxPage = maxPageOf(html, page);
-  /**
-   * Same classic NovelFull pager as readnovelfull, so the same Last link is a
-   * real total — verified live through the relay: /most-popular shows 2-9 then
-   * 146, page 9 of it still shows 146, and /genre/Fantasy shows 94.
-   *
-   * hasNextPage keeps using maxPageOf untouched; this is a second, independent
-   * read for the totals only.
-   */
   const totalPages = pagerTotalPages(html, page, results.length);
   return {
     results,
@@ -152,8 +172,6 @@ export async function searchNovels(
 }
 
 // ── detail + chapters ──────────────────────────────────────────────────────────
-// The FULL chapter list (all of it, in one call) comes from the ajax endpoint as
-// a <select> of <option value="/<slug>/<chapter>.html">Title</option>.
 function parseChapterOptions(html: string): NovelChapter[] {
   const out: NovelChapter[] = [];
   const re = /<option[^>]*value="\/[a-z0-9-]+\/([^"/]+?)\.html"[^>]*>([^<]*)/gi;
@@ -163,8 +181,6 @@ function parseChapterOptions(html: string): NovelChapter[] {
   return out;
 }
 
-// Fallback: chapters also appear on the paginated detail page inside
-// <ul class="list-chapter"> (25/page) — used only if the ajax option list fails.
 function parseChapters(html: string): NovelChapter[] {
   const m = html.match(/<ul class="list-chapter">([\s\S]*?)<\/ul>/i);
   const block = m ? m[1] : "";
@@ -179,61 +195,58 @@ function parseChapters(html: string): NovelChapter[] {
 export async function getNovelInfo(slug: string): Promise<NovelInfo> {
   const html = await fetchHtml(`/${slug}.html`);
 
-  const title = decodeEntities(html.match(/<h3 class="title"[^>]*>([^<]+)<\/h3>/i)?.[1] || slug);
-  const cover = absCover(
-    html.match(/<div class="book">\s*<img[^>]*(?:data-src|src)="([^"]+)"/i)?.[1] ||
-      html.match(/(?:data-src|src)="([^"]*\/uploads\/[^"]*)"/i)?.[1] ||
-      ""
+  const title = decodeEntities(
+    html.match(/<h1 class="tit">([\s\S]*?)<\/h1>/i)?.[1]?.replace(/<[^>]+>/g, "") ||
+    html.match(/<h3 class="title"[^>]*>([^<]+)<\/h3>/i)?.[1] ||
+    slug
   );
 
-  // The <div class="info"> block holds Author / Genre / Status; scope to it so the
-  // page-wide genre-filter dropdown doesn't leak in.
-  const infoStart = html.indexOf('<div class="info">');
-  const descIdx = html.indexOf("desc-text");
-  const info = infoStart >= 0 ? html.slice(infoStart, descIdx > infoStart ? descIdx : infoStart + 3000) : "";
-  const author = decodeEntities(info.match(/Author:[\s\S]{0,60}?<a[^>]*>([^<]+)<\/a>/i)?.[1] || "Unknown");
-  const status = decodeEntities(info.match(/Status:[\s\S]{0,80}?<a[^>]*>([^<]+)<\/a>/i)?.[1] || "Unknown");
-  const genres = Array.from(info.matchAll(/href="\/genre[s]?\/[^"]*"[^>]*>([^<]+)<\/a>/gi))
-    .map((m) => decodeEntities(m[1]))
-    .filter(Boolean)
-    .slice(0, 8);
+  const cover = absCover(
+    html.match(/<div class="pic"[^>]*>[\s\S]*?<img[^>]*src="([^"]+)"/i)?.[1] ||
+    html.match(/<div class="book">\s*<img[^>]*(?:data-src|src)="([^"]+)"/i)?.[1] ||
+    html.match(/(?:data-src|src)="([^"]*\/uploads\/[^"]*)"/i)?.[1] ||
+    ""
+  );
 
-  const descBlock = html.match(/<div class="desc-text"[^>]*>([\s\S]*?)<\/div>/i)?.[1] || "";
-  const synopsis = decodeEntities(descBlock.replace(/<[^>]+>/g, " "));
+  const author = decodeEntities(
+    html.match(/glyphicon-user[\s\S]*?<a[^>]*>([^<]+)<\/a>/i)?.[1] ||
+    html.match(/Author:[\s\S]{0,60}?<a[^>]*>([^<]+)<\/a>/i)?.[1] ||
+    "Unknown"
+  );
 
-  // Chapters: the ajax-chapter-option endpoint returns the ENTIRE list in one
-  // call (2000+ chapters for long novels), so use it as the source of truth.
-  const numericId = html.match(/data-novel-id="(\d+)"/i)?.[1] || "";
+  const status = decodeEntities(
+    html.match(/glyphicon-info-sign[\s\S]*?<a[^>]*>([^<]+)<\/a>/i)?.[1] ||
+    html.match(/Status:[\s\S]{0,80}?<a[^>]*>([^<]+)<\/a>/i)?.[1] ||
+    "Unknown"
+  );
+
+  const genreMatches = Array.from(html.matchAll(/href="\/genre[s]?\/[^"]*"[^>]*>([^<]+)<\/a>/gi));
+  const genres = Array.from(new Set(genreMatches.map((m) => decodeEntities(m[1])))).filter(Boolean).slice(0, 8);
+
+  const synopsisMatch =
+    html.match(/id="novel-summary-inner"[^>]*>([\s\S]*?)<\/div>/i) ||
+    html.match(/class="desc-text"[^>]*>([\s\S]*?)<\/div>/i);
+  const synopsis = decodeEntities(
+    synopsisMatch ? synopsisMatch[1].replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, " ") : "No synopsis available."
+  );
+
+  const novelId = html.match(/data-novel-id="(\d+)"/i)?.[1] || "";
+
+  // The full chapter list (all chapters) comes from ajax
   let chapters: NovelChapter[] = [];
-  if (numericId) {
+  if (novelId) {
     try {
-      const opt = await fetchHtml(`/ajax-chapter-option?novelId=${numericId}`);
-      chapters = parseChapterOptions(opt);
-    } catch {
-      /* fall back to pagination below */
-    }
+      const ajaxHtml = await fetchHtml(`/ajax/chapter-archive?novelId=${novelId}`);
+      chapters = parseChapterOptions(ajaxHtml);
+    } catch {}
   }
-  // Fallback (ajax failed / no id): walk the paginated detail page (bounded).
+
+  // Fallback: parse whatever chapters are inlined on the detail page
   if (chapters.length === 0) {
     chapters = parseChapters(html);
-    const maxPage = Math.min(maxPageOf(html, 1), MAX_CHAPTER_PAGES);
-    if (maxPage > 1) {
-      const rest = await Promise.allSettled(
-        Array.from({ length: maxPage - 1 }, (_, i) => fetchHtml(`/${slug}.html?page=${i + 2}`))
-      );
-      const seen = new Set(chapters.map((c) => c.id));
-      for (const r of rest) {
-        if (r.status !== "fulfilled") continue;
-        for (const ch of parseChapters(r.value)) {
-          if (seen.has(ch.id)) continue;
-          seen.add(ch.id);
-          chapters.push({ ...ch, number: chapters.length + 1 });
-        }
-      }
-    }
   }
 
-  return { id: `nf:${slug}`, novelId: slug, title, cover, author, status, genres, synopsis, chapters };
+  return { id: `nf:${slug}`, novelId, title, cover, author, status, genres, synopsis, chapters };
 }
 
 // ── chapter content ─────────────────────────────────────────────────────────────

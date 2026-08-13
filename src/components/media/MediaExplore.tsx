@@ -83,11 +83,12 @@ const MANHWA_STATUS = [
 
 const NOVEL_LISTS = [
   { key: "most-popular-novel", label: "Most Popular (ReadNovelFull)" },
-  { key: "latest-release-novel", label: "Latest Release (ReadNovelFull)" },
-  { key: "completed-novel", label: "Completed Novels" },
+  { key: "lnw-top", label: "LightNovelWorld Top Rated" },
+  { key: "nf-popular", label: "NovelFull Popular Hits" },
   { key: "ranobes-rating", label: "Ranobes Top Rated" },
   { key: "wws-trending", label: "WuxiaWorld Trending" },
-  { key: "lnw-top", label: "LightNovelWorld Top Rated" },
+  { key: "latest-release-novel", label: "Latest Release (ReadNovelFull)" },
+  { key: "completed-novel", label: "Completed Novels" },
 ];
 
 const CFG = {
