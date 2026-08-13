@@ -27,6 +27,40 @@ export default class Mangasee extends MangaParser {
       .replace(/&gt;/g, ">");
   }
 
+  /**
+   * Mangasee 6-Digit Chapter Decoder:
+   * E.g. "100125" -> Chapter 12.5 (1=index, 0012=main, 5=decimal)
+   * E.g. "100010" -> Chapter 1
+   */
+  public static decodeChapter(raw: string | number): { chapterNum: number; displayTitle: string; urlSlug: string } {
+    const s = String(raw).trim();
+    if (/^\d{6}$/.test(s)) {
+      const mainNum = parseInt(s.slice(1, 5), 10);
+      const dec = s.slice(5);
+      const chapterNum = dec === "0" ? mainNum : parseFloat(`${mainNum}.${dec}`);
+      const displayTitle = `Chapter ${chapterNum}`;
+      const urlSlug = dec === "0" ? String(mainNum) : `${mainNum}.${dec}`;
+      return { chapterNum, displayTitle, urlSlug };
+    }
+
+    const numMatch = s.match(/([0-9.]+)/);
+    const chapterNum = numMatch ? parseFloat(numMatch[1]) : 1;
+    return { chapterNum, displayTitle: `Chapter ${chapterNum}`, urlSlug: String(chapterNum) };
+  }
+
+  /**
+   * Normalizes relative cover paths or missing covers
+   */
+  public static normalizeCover(rawUrl?: string | null, idOrIndex?: string): string {
+    if (!rawUrl && idOrIndex) {
+      return `https://temp.compsci88.com/cover/fallback/${idOrIndex}.jpg`;
+    }
+    if (rawUrl?.startsWith("/")) {
+      return `https://temp.mangasee123.com${rawUrl}`;
+    }
+    return rawUrl || (idOrIndex ? `https://temp.compsci88.com/cover/fallback/${idOrIndex}.jpg` : "");
+  }
+
   private async fetchHtml(url: string): Promise<string> {
     const res = await fetch(url, {
       headers: {
@@ -224,7 +258,7 @@ export default class Mangasee extends MangaParser {
     const imgMatch =
       infoHtml.match(/<img[^>]*alt="[^"]*cover"[^>]*src="([^"]+)"/i) ||
       infoHtml.match(/<picture>[\s\S]*?<img[^>]*src="([^"]+)"/i);
-    const image = imgMatch ? imgMatch[1] : `https://temp.compsci88.com/cover/fallback/${rawId}.jpg`;
+    const image = Mangasee.normalizeCover(imgMatch ? imgMatch[1] : null, rawId);
 
     const descMatch = infoHtml.match(/<p class="[^"]*description[^"]*">([\s\S]*?)<\/p>/i) ||
                       infoHtml.match(/<meta name="description" content="([^"]+)"/i);
@@ -236,11 +270,14 @@ export default class Mangasee extends MangaParser {
       )
     );
 
-    const chapters: IMangaChapter[] = chapMatches.map((m) => ({
-      id: `mse:${rawId}|${m[1]}`,
-      title: this.unescapeHtml(m[2].trim()),
-      releaseDate: m[3] || undefined,
-    }));
+    const chapters: IMangaChapter[] = chapMatches.map((m) => {
+      const decoded = Mangasee.decodeChapter(m[2]);
+      return {
+        id: `mse:${rawId}|${m[1]}`,
+        title: decoded.displayTitle,
+        releaseDate: m[3] || undefined,
+      };
+    });
 
     return {
       id: `mse:${rawId}`,

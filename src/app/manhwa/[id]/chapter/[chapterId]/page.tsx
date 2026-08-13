@@ -525,6 +525,7 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
                 ref={(el) => { imageRefs.current[actualIndex - 1] = el; }}
                 data-index={actualIndex}
                 crossOrigin="anonymous"
+                referrerPolicy="no-referrer"
                 src={`/api/manhwa-image?url=${encodeURIComponent(page.img)}&full=1`}
                 alt={`Page ${page.page}`}
                 loading="lazy"

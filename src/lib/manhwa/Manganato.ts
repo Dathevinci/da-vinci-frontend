@@ -221,20 +221,33 @@ export default class Manganato extends MangaParser {
     const coverMatch = detailHtml.match(/<div class="[^"]*story-info-left[^"]*"[\s\S]*?<img[^>]*src="([^"]+)"/i);
     const image = coverMatch ? coverMatch[1] : `https://img-r2.2xstorage.com/thumb/${slug}.webp`;
 
-    const descMatch = detailHtml.match(/<div class="[^"]*description[^"]*">([\s\S]*?)<\/div>/i) ||
-                      detailHtml.match(/<meta name="description" content="([^"]+)"/i);
-    const description = descMatch ? this.unescapeHtml(descMatch[1].replace(/<[^>]+>/g, "").trim()) : undefined;
-
     const chapterMatches = Array.from(
       detailHtml.matchAll(
-        /href="https:\/\/www\.manganato\.gg\/manga\/[^\/]+\/chapter-([0-9.]+)"[^>]*>([\s\S]*?)<\/a>/gi
+        /href="[^"]*(?:\/manga\/[^\/]+\/chapter-|\/chapter-[a-zA-Z0-9_-]+\/chapter-)([0-9.]+)[^"]*"[^>]*>([\s\S]*?)<\/a>/gi
+      )
+    ).concat(
+      Array.from(
+        detailHtml.matchAll(
+          /<a[^>]*class="chapter-name[^"]*"[^>]*href="[^"]*\/chapter-([0-9.]+)[^"]*"[^>]*>([\s\S]*?)<\/a>/gi
+        )
       )
     );
 
-    const chapters: IMangaChapter[] = chapterMatches.map((m) => ({
-      id: `mna:${slug}|chapter-${m[1]}`,
-      title: this.unescapeHtml(m[2].trim().replace(/\s+/g, " ") || `Chapter ${m[1]}`),
-    }));
+    const seenChaps = new Set<string>();
+    const chapters: IMangaChapter[] = [];
+
+    for (const m of chapterMatches) {
+      const numStr = m[1];
+      const chapId = `mna:${slug}|chapter-${numStr}`;
+      if (seenChaps.has(chapId)) continue;
+      seenChaps.add(chapId);
+
+      const rawTitle = m[2] ? m[2].replace(/<[^>]+>/g, "").trim() : `Chapter ${numStr}`;
+      chapters.push({
+        id: chapId,
+        title: this.unescapeHtml(rawTitle.replace(/\s+/g, " ") || `Chapter ${numStr}`),
+      });
+    }
 
     return {
       id: `mna:${slug}`,

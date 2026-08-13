@@ -69,6 +69,7 @@ export default function ManhwaCard({ manhwa }: { manhwa: IMangaResult }) {
               alt={manhwa.title}
               loading="lazy"
               decoding="async"
+              referrerPolicy="no-referrer"
               className="hq-image h-full w-full object-cover"
             />
           ) : (

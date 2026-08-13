@@ -122,7 +122,7 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
             style={{ boxShadow: "0 0 0 1px rgba(255,255,255,.14), 0 30px 80px rgba(0,0,0,.8)" }}
           >
             {cover ? (
-              <img src={cover} alt={manhwa.title} className="aspect-[2/3] w-full object-cover" />
+              <img src={cover} alt={manhwa.title} referrerPolicy="no-referrer" className="aspect-[2/3] w-full object-cover" />
             ) : (
               <div className="grid aspect-[2/3] w-full place-items-center bg-[#101018]">
                 <BookOpen className="h-12 w-12 text-slate-700" />
