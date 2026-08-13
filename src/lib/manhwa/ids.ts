@@ -29,11 +29,16 @@
  */
 const SOURCE_LABELS: Record<string, string> = {
   "vtx:": "VortexScans", // live
+  // mna: was ONCE legacy-Manganato-served-by-MangaRead; the prefix now belongs
+  // to the live Manganato source, so the label follows it. Old rows point at
+  // the same site either way, so nothing is mislabelled by the change —
+  // whereas keeping "MangaRead" put a wrong source name on every new row.
+  "mna:": "MangaNato", // live
+  "mse:": "WeebCentral", // live adapter, though its host challenges our egress
   "flc:": "FlameComics",
   "rzc:": "RizzComics",
   "mpl:": "MangaPill",
   "mrd:": "MangaRead",
-  "mna:": "MangaRead",
 };
 
 /** The human name of the site a series came from — for the detail page's meta. */

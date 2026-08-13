@@ -317,14 +317,43 @@ export default class Manganato extends MangaParser {
       ? this.unescapeHtml(titleMatch[1].replace(/<[^>]+>/g, "").trim())
       : slug.replace(/-/g, " ");
 
-    const coverMatch = detailHtml.match(/<div class="[^"]*story-info-left[^"]*"[\s\S]*?<img[^>]*src="([^"]+)"/i);
-    const image = coverMatch ? coverMatch[1] : `https://img-r2.2xstorage.com/thumb/${slug}.webp`;
+    /**
+     * THE COVER COMES FROM og:image — THE HOST CANNOT BE GUESSED.
+     *
+     * The old extraction looked for a `story-info-left` container that this
+     * template does not have, so every title fell through to a HAND-BUILT
+     * `img-r2.2xstorage.com/thumb/<slug>.webp` — and the CDN host genuinely
+     * varies per title. Measured across three series pages: kimetsu-no-yaiba
+     * lives on imgs-2, the-beginning-after-the-endd on img-r1, and
+     * the-heavenly-demons-otherworld-livestream on img-r2. Guessing img-r2
+     * returned 503 for the first of those, which is the broken thumbnail the
+     * owner reported. og:image carries the right host every time (verified on
+     * all three, and the URL answers 200 with the site Referer).
+     */
+    const ogImage = detailHtml.match(/<meta property="og:image" content="([^"]+)"/i);
+    const image = ogImage ? ogImage[1] : `https://img-r2.2xstorage.com/thumb/${slug}.webp`;
 
-    const descMatch =
-      detailHtml.match(/<div class="[^"]*description[^"]*">([\s\S]*?)<\/div>/i) ||
-      detailHtml.match(/<meta name="description" content="([^"]+)"/i);
-    const description = descMatch
-      ? this.unescapeHtml(descMatch[1].replace(/<[^>]+>/g, "").trim())
+    /**
+     * NEVER READ `class="description"` — IT IS THE SITE'S ANNOUNCEMENT BANNER.
+     *
+     * The first div with that class on every series page is a site-wide notice
+     * ("New Feature: Save Reading History for Guests!"), which is exactly what
+     * was being shown as the synopsis for every title. The real synopsis sits
+     * in an inline-styled container anchored by a "<title> summary:" heading —
+     * verified present on all three series pages measured. The meta
+     * description is generic boilerplate ("Read X manga online for free…"),
+     * so when the anchor is missing the honest answer is NO description
+     * rather than either of the wrong ones.
+     */
+    // Strip tags AFTER unescaping as well as before: the site double-escapes
+    // markup inside the synopsis (&lt;br&gt;), so a single pre-unescape strip
+    // leaves literal "<br>" text in the description.
+    const summaryMatch = detailHtml.match(/summary:\s*<\/p>\s*<\/h2>([\s\S]*?)<\/div>/i);
+    const description = summaryMatch
+      ? this.unescapeHtml(summaryMatch[1].replace(/<[^>]+>/g, " "))
+          .replace(/<[^>]+>/g, " ")
+          .replace(/\s+/g, " ")
+          .trim()
       : undefined;
 
     // Chapters come from the API, not this HTML — see fetchChapterList for the
