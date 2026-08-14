@@ -12,7 +12,7 @@ import HeroSearchBar from "@/components/ui/HeroSearchBar";
 import ContinueReading from "@/components/reading/ContinueReading";
 import DiscoverRail from "@/components/media/DiscoverRail";
 import HiddenGems from "@/components/media/HiddenGems";
-import GlobalComments from "@/components/community/GlobalComments";
+import RecentMediaComments from "@/components/media/RecentMediaComments";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 
 function NovelInner() {
@@ -147,7 +147,12 @@ function NovelInner() {
               </div>
 
               <div className="pt-6">
-                <GlobalComments embedded />
+                <RecentMediaComments
+                  source="novel"
+                  title="Recent Novel Comments"
+                  accent="#ec4899"
+                  chipLabel="Novel"
+                />
               </div>
 
               <div className="flex justify-center pt-4 pb-2 pl-4 md:pl-12">

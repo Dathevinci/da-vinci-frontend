@@ -159,7 +159,17 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
       const r = await fetch(url.toString());
       const d = await r.json();
       const list = Array.isArray(d?.data) ? d.data : d?.data?.comments;
-      setRows(Array.isArray(list) ? list.filter((c: any) => !c.parentId && Boolean(c.chapterId || c.episodeNo)) : []);
+      setRows(
+        Array.isArray(list)
+          ? list.filter((c: any) => {
+              if (c.parentId) return false;
+              if (source === "novel") return Boolean(c.novelId && c.chapterId);
+              if (source === "manhwa") return Boolean(c.mangaId && c.chapterId);
+              if (source === "anime") return Boolean(c.animeId && c.episodeNo);
+              return Boolean(c.chapterId || c.episodeNo);
+            })
+          : []
+      );
     } catch {
       /* offline */
     } finally {

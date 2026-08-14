@@ -79,13 +79,26 @@ export default function RecentMediaComments({
       try {
         const url = new URL(`${API_URL}/api/comments`);
         url.searchParams.set("global", "true");
+        url.searchParams.set("chaptersOnly", "true");
         url.searchParams.set("sort", "newest");
-        url.searchParams.set("limit", "30");
-        url.searchParams.set("source", source);
+        url.searchParams.set("limit", "40");
+        if (source) url.searchParams.set("source", source);
         const r = await fetch(url.toString());
         const d = await r.json();
         const list = Array.isArray(d?.data) ? d.data : d?.data?.comments;
-        if (alive) setRows(Array.isArray(list) ? list.filter((c: Row) => !c.parentId && c.content) : []);
+        if (alive) {
+          setRows(
+            Array.isArray(list)
+              ? list.filter((c: Row) => {
+                  if (c.parentId || !c.content) return false;
+                  if (source === "novel") return Boolean(c.novelId && c.chapterId);
+                  if (source === "manhwa") return Boolean(c.mangaId && c.chapterId);
+                  if (source === "anime") return Boolean(c.animeId && c.episodeNo);
+                  return Boolean(c.chapterId || c.episodeNo);
+                })
+              : []
+          );
+        }
       } catch {
         /* offline — the panel just doesn't render */
       } finally {
@@ -182,13 +195,13 @@ export default function RecentMediaComments({
                       <span className="mt-1.5 flex flex-wrap items-center gap-2">
                         <span
                           className="rounded px-1.5 py-0.5 font-mono text-[10px] font-black"
-                          style={{ background: "rgba(34,197,94,.14)", color: "#4ade80" }}
+                          style={{ background: `${accent}22`, color: accent }}
                         >
                           {chipLabel}
                         </span>
-                        <span className="truncate font-mono text-[11px] text-slate-500">{seriesTitle}</span>
+                        <span className="truncate font-mono text-[11px] text-slate-400">{seriesTitle}</span>
                         {c.chapterId && (
-                          <span className="font-mono text-[11px] text-slate-600">
+                          <span className="font-mono text-[11px] font-bold" style={{ color: accent }}>
                             · {chapterLabel(c.chapterTitle, c.chapterId)}
                           </span>
                         )}
