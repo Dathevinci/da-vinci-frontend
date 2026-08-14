@@ -1,10 +1,41 @@
 export async function getNovelCover(title: string): Promise<string | null> {
+  const data = await getNovelHydration(title);
+  return data.cover;
+}
+
+export interface NovelHydration {
+  cover: string | null;
+  banner: string | null;
+  score: number | null;
+  genres: string[];
+}
+
+export async function getNovelHydration(title: string): Promise<NovelHydration> {
+  if (!title) return { cover: null, banner: null, score: null, genres: [] };
+
+  const cleanTitle = title
+    .replace(/\s*\(?(?:volume|vol|v|season|s)\s*\d+.*?\)?/gi, "")
+    .replace(/\s*\(ln\)/gi, "")
+    .replace(/\s*\(wn\)/gi, "")
+    .trim();
+
   const query = `
     query ($search: String) {
-      Media(search: $search, type: MANGA, format: NOVEL) {
+      novel: Media(search: $search, type: MANGA, format: NOVEL) {
         coverImage {
           extraLarge
         }
+        bannerImage
+        averageScore
+        genres
+      }
+      manga: Media(search: $search, type: MANGA) {
+        coverImage {
+          extraLarge
+        }
+        bannerImage
+        averageScore
+        genres
       }
     }
   `;
@@ -18,48 +49,24 @@ export async function getNovelCover(title: string): Promise<string | null> {
       },
       body: JSON.stringify({
         query,
-        variables: { search: title },
+        variables: { search: cleanTitle },
       }),
-      // Cache covers heavily since they rarely change
       next: { revalidate: 86400 },
     });
 
     const json = await res.json();
-    if (json.data?.Media?.coverImage?.extraLarge) {
-      return json.data.Media.coverImage.extraLarge;
+    const media = json.data?.novel || json.data?.manga;
+    if (media) {
+      return {
+        cover: media.coverImage?.extraLarge || null,
+        banner: media.bannerImage || null,
+        score: media.averageScore || null,
+        genres: media.genres || [],
+      };
     }
-    
-    // Fallback: If no strict format=NOVEL match, try just type=MANGA for ambiguous titles
-    const fallbackQuery = `
-      query ($search: String) {
-        Media(search: $search, type: MANGA) {
-          coverImage {
-            extraLarge
-          }
-        }
-      }
-    `;
-    const fallbackRes = await fetch("https://graphql.anilist.co", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({
-        query: fallbackQuery,
-        variables: { search: title },
-      }),
-      next: { revalidate: 86400 },
-    });
-    const fallbackJson = await fallbackRes.json();
-    if (fallbackJson.data?.Media?.coverImage?.extraLarge) {
-      return fallbackJson.data.Media.coverImage.extraLarge;
-    }
-
-    return null;
+    return { cover: null, banner: null, score: null, genres: [] };
   } catch (error) {
-    console.error("Anilist cover fetch error for", title, error);
-    return null;
+    return { cover: null, banner: null, score: null, genres: [] };
   }
 }
 

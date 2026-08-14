@@ -13,8 +13,15 @@ import * as FanMTL from "./FanMTL";
 import * as LightNovelWorld from "./LightNovelWorld";
 import type { NovelResult, NovelInfo, ChapterContent } from "./ReadNovelFull";
 import { combineTotals, type PageTotals, type SourcePaging } from "@/lib/explorePaging";
-import { getNovelCover } from '../anilist';
-import { getKitsuNovelCover } from '../kitsu';
+import { getNovelCover, getNovelHydration } from "@/lib/anilist";
+import { getKitsuNovelCover } from "@/lib/kitsu";
+import {
+  OFFICIAL_LIGHT_NOVELS,
+  KOREAN_GLOBAL_MASTERPIECES,
+  CULTIVATION_CLASSICS,
+  ALL_MASTERPIECES,
+  type MasterpieceNovel
+} from "./masterpieces";
 
 export function resolveSource(id: string) {
   if (id.startsWith("nf:")) return { source: NovelFull, slug: id.replace("nf:", "") };
@@ -37,20 +44,30 @@ export function getSourceName(id: string): string {
   return "ReadNovelFull";
 }
 
-export async function getNovelInfo(id: string): Promise<NovelInfo> {
+export async function getNovelInfo(id: string): Promise<NovelInfo & { bannerImage?: string | null; score?: number | null }> {
   const { source, slug } = resolveSource(id);
   
   try {
     const info = await source.getNovelInfo(slug);
 
-    // Run alternative search & anilist cover fetch in parallel
-    const [searchRes, anilistCover] = await Promise.allSettled([
+    // Run alternative search & anilist official hydration in parallel
+    const [searchRes, hydration] = await Promise.allSettled([
       searchAll(info.title, 1),
-      getNovelCover(info.title)
+      getNovelHydration(info.title)
     ]);
 
-    if (anilistCover.status === "fulfilled" && anilistCover.value) {
-      info.cover = anilistCover.value;
+    let bannerImage: string | null = null;
+    let score: number | null = null;
+
+    if (hydration.status === "fulfilled" && hydration.value) {
+      if (hydration.value.cover) {
+        info.cover = hydration.value.cover;
+      }
+      bannerImage = hydration.value.banner;
+      score = hydration.value.score;
+      if (info.genres.length === 0 && hydration.value.genres.length > 0) {
+        info.genres = hydration.value.genres;
+      }
     }
 
     if (!info.cover) {
@@ -82,7 +99,11 @@ export async function getNovelInfo(id: string): Promise<NovelInfo> {
     }
 
     info.alternativeServers = alternatives;
-    return info;
+    return {
+      ...info,
+      bannerImage,
+      score,
+    };
   } catch (err) {
     console.error(`Error fetching info for novel ${id}:`, err);
     return {
@@ -115,6 +136,18 @@ export async function getChapterContent(id: string, chapterId: string): Promise<
 }
 
 export async function searchAll(query: string, page = 1) {
+  const q = query.toLowerCase().trim();
+  
+  // Prioritize curated masterpieces matching the query
+  const masterpieceMatches = ALL_MASTERPIECES
+    .filter(m => m.title.toLowerCase().includes(q) || m.id.toLowerCase().includes(q))
+    .map(m => ({
+      id: m.id,
+      title: m.title,
+      cover: m.fallbackCover || "",
+      latestChapter: m.latestChapter
+    }));
+
   const sources = [
     LightNovelWorld.searchNovels(query, page).catch(() => ({ results: [], hasNextPage: false, totalPages: 1 })),
     NovelFull.searchNovels(query, page).catch(() => ({ results: [], hasNextPage: false, totalPages: 1 })),
@@ -122,8 +155,8 @@ export async function searchAll(query: string, page = 1) {
   ];
   
   const results = await Promise.all(sources);
-  const merged: NovelResult[] = [];
-  const seen = new Set<string>();
+  const merged: NovelResult[] = [...masterpieceMatches];
+  const seen = new Set<string>(masterpieceMatches.map(m => m.title.toLowerCase().trim()));
 
   for (const res of results) {
     for (const item of res.results) {
@@ -139,36 +172,88 @@ export async function searchAll(query: string, page = 1) {
 }
 
 export async function browseNovels(page = 1, list = "trending") {
+  if (list === "light-novels") {
+    return {
+      results: OFFICIAL_LIGHT_NOVELS.map(m => ({ id: m.id, title: m.title, cover: "", latestChapter: m.latestChapter })),
+      hasNextPage: false,
+      totalPages: 1
+    };
+  }
+  if (list === "korean-masterpieces") {
+    return {
+      results: KOREAN_GLOBAL_MASTERPIECES.map(m => ({ id: m.id, title: m.title, cover: "", latestChapter: m.latestChapter })),
+      hasNextPage: false,
+      totalPages: 1
+    };
+  }
+  if (list === "cultivation-classics") {
+    return {
+      results: CULTIVATION_CLASSICS.map(m => ({ id: m.id, title: m.title, cover: "", latestChapter: m.latestChapter })),
+      hasNextPage: false,
+      totalPages: 1
+    };
+  }
   if (list === "lnw-top") return LightNovelWorld.browseTopRated(3, 24);
   if (list === "nf-popular") return NovelFull.browseNovels(page, "most-popular");
   if (list.startsWith("genre/")) return NovelFull.browseNovels(page, list);
-  // Fallback for removed legacy lists
-  if (list === "ranobes-rating" || list === "wws-trending" || list === "lnori") {
-    return NovelFull.browseNovels(page, "most-popular");
-  }
   return ReadNovelFull.browseNovels(page, list);
+}
+
+// Pre-hydrate a list of masterpieces with AniList covers
+async function hydrateMasterpieces(list: MasterpieceNovel[]): Promise<NovelResult[]> {
+  const promises = list.map(async (m) => {
+    const hyd = await getNovelHydration(m.title).catch(() => null);
+    return {
+      id: m.id,
+      title: m.title,
+      cover: hyd?.cover || m.fallbackCover || "",
+      banner: hyd?.banner || null,
+      latestChapter: m.latestChapter,
+      tag: m.tag,
+      description: m.description,
+      score: hyd?.score || null
+    };
+  });
+  return Promise.all(promises);
 }
 
 export async function homeShelves() {
   const [
+    lightNovels,
+    koreanMasterpieces,
+    cultivationEpics,
     trending,
     latest,
     completed,
     lnwTop,
-    nfTop,
   ] = await Promise.allSettled([
+    hydrateMasterpieces(OFFICIAL_LIGHT_NOVELS),
+    hydrateMasterpieces(KOREAN_GLOBAL_MASTERPIECES),
+    hydrateMasterpieces(CULTIVATION_CLASSICS),
     ReadNovelFull.browseNovels(1, "most-popular-novel"),
     ReadNovelFull.browseNovels(1, "latest-release-novel"),
     ReadNovelFull.browseNovels(1, "completed-novel"),
     LightNovelWorld.browseTopRated(3, 10),
-    NovelFull.browseNovels(1, "most-popular"),
   ]);
 
+  const lnList = lightNovels.status === "fulfilled" ? lightNovels.value : [];
+  const kmList = koreanMasterpieces.status === "fulfilled" ? koreanMasterpieces.value : [];
+  const cultList = cultivationEpics.status === "fulfilled" ? cultivationEpics.value : [];
+
+  // Hero carousel featuring the biggest world-renowned masterpieces
+  const featuredHero = [
+    ...kmList.slice(0, 3), // Shadow Slave, Solo Leveling, Omniscient Reader
+    ...lnList.slice(0, 3), // Classroom of the Elite, Overlord, Mushoku Tensei
+  ];
+
   return {
+    featuredHero,
+    lightNovels: lnList,
+    koreanMasterpieces: kmList,
+    cultivationEpics: cultList,
     trending: trending.status === "fulfilled" ? trending.value.results : [],
     latestUpdates: latest.status === "fulfilled" ? latest.value.results : [],
     completed: completed.status === "fulfilled" ? completed.value.results : [],
     lnwTop: lnwTop.status === "fulfilled" ? lnwTop.value.results : [],
-    nfTop: nfTop.status === "fulfilled" ? nfTop.value.results : [],
   };
 }

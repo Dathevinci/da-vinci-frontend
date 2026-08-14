@@ -43,11 +43,14 @@ function NovelInner() {
   const isHome = !query && page === 1 && sp.get("view") !== "all";
 
   const [data, setData] = useState<NovelResult[]>([]);
+  const [featuredHero, setFeaturedHero] = useState<NovelResult[]>([]);
+  const [lightNovels, setLightNovels] = useState<NovelResult[]>([]);
+  const [koreanMasterpieces, setKoreanMasterpieces] = useState<NovelResult[]>([]);
+  const [cultivationEpics, setCultivationEpics] = useState<NovelResult[]>([]);
   const [trending, setTrending] = useState<NovelResult[]>([]);
   const [latest, setLatest] = useState<NovelResult[]>([]);
   const [completed, setCompleted] = useState<NovelResult[]>([]);
   const [lnwTop, setLnwTop] = useState<NovelResult[]>([]);
-  const [nfTop, setNfTop] = useState<NovelResult[]>([]);
   const [hasNext, setHasNext] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -57,11 +60,14 @@ function NovelInner() {
       fetch("/api/novels/home")
         .then((r) => r.json())
         .then((res) => {
+          setFeaturedHero(res.featuredHero || []);
+          setLightNovels(res.lightNovels || []);
+          setKoreanMasterpieces(res.koreanMasterpieces || []);
+          setCultivationEpics(res.cultivationEpics || []);
           setTrending(res.trending || []);
           setLatest(res.latestUpdates || []);
           setCompleted(res.completed || []);
           setLnwTop(res.lnwTop || []);
-          setNfTop(res.nfTop || []);
           setLoading(false);
         })
         .catch(() => setLoading(false));
@@ -108,7 +114,7 @@ function NovelInner() {
           </motion.div>
         ) : isHome ? (
           <motion.div key="home" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }} className="w-full">
-            <NovelHeroCarousel items={trending.slice(0, 10)} />
+            <NovelHeroCarousel items={featuredHero.length > 0 ? featuredHero : trending.slice(0, 10)} />
 
             <HeroSearchBar
               mode="novel"
@@ -119,21 +125,30 @@ function NovelInner() {
 
             <div className="relative z-20 space-y-2 max-w-[1600px] mx-auto">
               <ContinueReading kind="novel" />
+              {lightNovels.length > 0 && (
+                <NovelCarousel title="Official Light Novels (Hall of Fame)" icon={<Star className="w-6 h-6 text-amber-400" />} items={lightNovels} seeAllLink="/novel/explore?list=light-novels" />
+              )}
+              {koreanMasterpieces.length > 0 && (
+                <NovelCarousel title="Global & Korean Masterpieces" icon={<BookOpen className="w-6 h-6 text-purple-400" />} items={koreanMasterpieces} seeAllLink="/novel/explore?list=korean-masterpieces" />
+              )}
+              {cultivationEpics.length > 0 && (
+                <NovelCarousel title="Cultivation & Immortal Epics" icon={<Flame className="w-6 h-6 text-rose-500" />} items={cultivationEpics} seeAllLink="/novel/explore?list=cultivation-classics" />
+              )}
               <NovelCarousel title="Trending Now" icon={<Flame className="w-6 h-6 text-orange-500" />} items={trending} seeAllLink="/novel/explore?list=most-popular-novel" />
               <NovelCarousel title="Top Rated on LightNovelWorld" icon={<Star className="w-6 h-6 text-yellow-400" />} items={lnwTop} seeAllLink="/novel/explore?list=lnw-top" />
-              <NovelCarousel title="Popular on NovelFull" icon={<BookOpen className="w-6 h-6 text-pink-400" />} items={nfTop} seeAllLink="/novel/explore?list=nf-popular" />
               <NovelCarousel title="Recently Updated" icon={<Clock className="w-6 h-6 text-pink-400" />} items={latest} seeAllLink="/novel/explore?list=latest-release-novel" />
-              <NovelCarousel title="Completed" icon={<CheckCircle2 className="w-6 h-6 text-green-500" />} items={completed} seeAllLink="/novel/explore?list=completed-novel" />
+              <NovelCarousel title="Completed Masterpieces" icon={<CheckCircle2 className="w-6 h-6 text-green-500" />} items={completed} seeAllLink="/novel/explore?list=completed-novel" />
 
               <div className="pt-6">
                 <DiscoverRail
                   title="Discover Novels"
-                  subtitle="Trending shelves, reader favourites, and top rated picks"
+                  subtitle="Official Light Novels, Global Masterpieces, and Cultivation Epics"
                   accent="#ec4899"
                   tabs={[
-                    { key: "trending", label: "ReadNovelFull", icon: "trending", items: toDiscover(trending) },
-                    { key: "lnw", label: "LightNovelWorld", icon: "top", items: toDiscover(lnwTop) },
-                    { key: "nf", label: "NovelFull", icon: "popular", items: toDiscover(nfTop) },
+                    { key: "light-novels", label: "Official Light Novels", icon: "top", items: toDiscover(lightNovels) },
+                    { key: "korean", label: "Global Masterpieces", icon: "popular", items: toDiscover(koreanMasterpieces) },
+                    { key: "cultivation", label: "Cultivation Epics", icon: "trending", items: toDiscover(cultivationEpics) },
+                    { key: "trending", label: "Trending Releases", icon: "trending", items: toDiscover(trending) },
                   ]}
                 />
               </div>

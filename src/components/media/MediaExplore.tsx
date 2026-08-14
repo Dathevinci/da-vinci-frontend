@@ -82,11 +82,14 @@ const MANHWA_STATUS = [
 ];
 
 const NOVEL_LISTS = [
-  { key: "most-popular-novel", label: "Most Popular (ReadNovelFull)" },
+  { key: "light-novels", label: "Official Light Novels (Hall of Fame)" },
+  { key: "korean-masterpieces", label: "Global & Korean Masterpieces" },
+  { key: "cultivation-classics", label: "Cultivation & Immortal Epics" },
+  { key: "most-popular-novel", label: "Most Popular Releases" },
   { key: "lnw-top", label: "LightNovelWorld Top Rated" },
   { key: "nf-popular", label: "NovelFull Popular Hits" },
-  { key: "latest-release-novel", label: "Latest Release (ReadNovelFull)" },
-  { key: "completed-novel", label: "Completed Novels" },
+  { key: "latest-release-novel", label: "Latest Releases" },
+  { key: "completed-novel", label: "Completed Masterpieces" },
 ];
 
 const CFG = {

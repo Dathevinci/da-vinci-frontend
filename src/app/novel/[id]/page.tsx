@@ -105,7 +105,7 @@ export default function NovelDetailPage() {
           the hero itself — on the hero it clipped the tracker dropdown,
           which opens past the hero's bottom edge. */}
       <div className="relative">
-        <HeroBackdrop src={cover} wide={false} />
+        <HeroBackdrop src={(novel as any)?.bannerImage || cover} wide={!!(novel as any)?.bannerImage} />
 
         <div className="relative mx-auto flex max-w-4xl flex-col items-center px-4 pb-10 pt-20 text-center sm:pt-24">
           {/* ambient bloom behind the poster — the reference's themed halo */}

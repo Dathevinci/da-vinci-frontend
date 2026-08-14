@@ -16,13 +16,13 @@ export default function NovelCard({ novel }: { novel: NovelResult }) {
   const router = useRouter();
   const { cover, onError: onCoverError } = useNovelCover(novel.title, novel.cover);
 
-  const sourceName = novel.id.startsWith("nf:")
+  const badgeLabel = (novel as any).tag || (novel.id.startsWith("nf:")
     ? "NovelFull"
     : novel.id.startsWith("lnw:")
     ? "LightNovelWorld"
     : novel.id.startsWith("fmtl:")
     ? "FanMTL"
-    : "ReadNovelFull";
+    : "ReadNovelFull");
 
   const open = () => router.push(`/novel/${encodeURIComponent(novel.id)}`);
 
@@ -31,18 +31,18 @@ export default function NovelCard({ novel }: { novel: NovelResult }) {
       title={novel.title}
       image={cover || null}
       chips={[
-        sourceName,
+        badgeLabel,
         ...(novel.latestChapter ? [novel.latestChapter] : []),
       ]}
       stats={[
-        ["Source", sourceName],
+        ["Category", badgeLabel],
         ["Latest", novel.latestChapter || "—"],
       ]}
     >
       <div className="group relative flex h-full flex-col bg-transparent">
         <button onClick={open} className="relative block w-full overflow-hidden rounded-lg text-left shadow-md transition-transform duration-300 hover:scale-[1.03] aspect-[2/3]">
           <span className="absolute top-2 left-2 z-10 rounded-md bg-black/75 px-2 py-0.5 text-[10px] font-black text-pink-400 backdrop-blur-md border border-pink-500/20 uppercase tracking-wider shadow-lg">
-            {sourceName}
+            {badgeLabel}
           </span>
           {cover ? (
             <img

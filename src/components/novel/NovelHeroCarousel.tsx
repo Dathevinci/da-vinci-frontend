@@ -20,7 +20,7 @@ export default function NovelHeroCarousel({ items }: { items: NovelResult[] }) {
     title: n.title,
     image: novelCover(n.cover),
     chips: [
-      "Light Novel",
+      (n as any).tag || "Light Novel",
       ...(n.latestChapter ? [n.latestChapter] : []),
     ],
     // straight to the novel page — popups are retired
