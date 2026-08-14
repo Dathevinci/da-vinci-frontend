@@ -9,7 +9,7 @@ export async function searchRanobes(query: string): Promise<NovelResult[]> {
     const url = `${BASE_URL}/index.php?do=search&subaction=search&story=${encodeURIComponent(query)}`;
     const res = await axios.get(url, { headers: { "User-Agent": UA }, timeout: 8000 });
     
-    const matches = Array.from(res.data.matchAll(/<h2 class="title"><a href="https:\/\/ranobes\.top\/([^"]+)\.html"[^>]*>([^<]+)<\/a><\/h2>/gi));
+    const matches = Array.from(res.data.matchAll(/<h2 class="title"><a href="https:\/\/ranobes\.top\/novels\/([^"]+)\.html"[^>]*>([^<]+)<\/a><\/h2>/gi));
     return matches.map((m: any) => ({
       id: `rnb:${m[1]}`,
       title: m[2].trim(),
@@ -22,15 +22,15 @@ export async function searchRanobes(query: string): Promise<NovelResult[]> {
 }
 
 export async function getRanobesInfo(slug: string): Promise<NovelInfo> {
-  const url = `${BASE_URL}/${slug}.html`;
+  const cleanSlug = slug.replace(/^novels\//, '').replace(/\.html$/, '');
+  const url = `${BASE_URL}/novels/${cleanSlug}.html`;
   const res = await axios.get(url, { headers: { "User-Agent": UA }, timeout: 8000 });
 
   const titleMatch = res.data.match(/<h1 class="title"[^>]*>([\s\S]*?)<\/h1>/i) || res.data.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
   const descMatch = res.data.match(/<div class="moreless__full"[^>]*>([\s\S]*?)<\/div>/i) || res.data.match(/<div class="showcontent"[^>]*>([\s\S]*?)<\/div>/i);
   const coverMatch = res.data.match(/<div class="poster"[^>]*>[\s\S]*?<img[^>]*src="([^"]+)"/i);
 
-  // Extract series ID number from slug (e.g. 667603 or 718239)
-  const idMatch = slug.match(/(\d+)/);
+  const idMatch = cleanSlug.match(/(\d+)/);
   const seriesNum = idMatch ? idMatch[1] : "";
 
   const chapters: NovelChapter[] = [];
@@ -46,12 +46,11 @@ export async function getRanobesInfo(slug: string): Promise<NovelInfo> {
         const data = JSON.parse(rawJson);
         
         if (Array.isArray(data.chapters) && data.chapters.length > 0) {
-          // Ranobes returns chapters newest-first; reverse to chronological ascending (Chapter 1 -> End)
           const reversed = [...data.chapters].reverse();
           reversed.forEach((c: any, index: number) => {
-            const rawLink = c.link ? c.link.replace(/^https:\/\/ranobes\.top\//, '').replace(/\.html$/, '') : `${slug}/${c.id}`;
+            const chapId = c.id || String(index + 1);
             chapters.push({
-              id: rawLink,
+              id: chapId,
               number: index + 1,
               title: c.title || `Chapter ${index + 1}`,
               releaseDate: c.showDate || c.date
@@ -62,13 +61,12 @@ export async function getRanobesInfo(slug: string): Promise<NovelInfo> {
     } catch {}
   }
 
-  // Fallback: If no chapters found from JSON, parse direct HTML links from series page
+  // Fallback: If no chapters found from JSON, parse direct HTML links
   if (chapters.length === 0) {
-    const htmlLinks = Array.from(res.data.matchAll(/href="https:\/\/ranobes\.top\/([^"]+-\d+\/\d+\.html)"/gi));
+    const htmlLinks = Array.from(res.data.matchAll(/href="https:\/\/ranobes\.top\/[^"]*\/(\d+)\.html"/gi));
     htmlLinks.forEach((c: any, index: number) => {
-      const rawLink = c[1].replace(/\.html$/, '');
       chapters.push({
-        id: rawLink,
+        id: c[1],
         number: index + 1,
         title: `Chapter ${index + 1}`,
       });
@@ -76,29 +74,31 @@ export async function getRanobesInfo(slug: string): Promise<NovelInfo> {
   }
 
   return {
-    id: `rnb:${slug}`,
-    novelId: slug,
-    title: titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').trim() : slug,
+    id: `rnb:${cleanSlug}`,
+    novelId: cleanSlug,
+    title: titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').trim() : cleanSlug,
     cover: coverMatch ? `${BASE_URL}${coverMatch[1]}` : "",
     author: "Official Japanese Light Novel",
     status: "Completed",
     genres: ["Light Novel", "Fantasy", "Action"],
     synopsis: descMatch ? descMatch[1].replace(/<[^>]+>/g, '').trim() : "Synopsis coming soon.",
     chapters,
-    alternativeServers: [{ source: "ranobes", id: `rnb:${slug}`, name: "Ranobes (Human Translation)" }]
+    alternativeServers: [{ source: "ranobes", id: `rnb:${cleanSlug}`, name: "Ranobes (Human Translation)" }]
   };
 }
 
-export async function getRanobesChapter(chapterPath: string): Promise<ChapterContent> {
-  const cleanPath = chapterPath.replace(/^https:\/\/ranobes\.top\//, '').replace(/^\//, '').replace(/\.html$/, '');
-  const url = `${BASE_URL}/${cleanPath}.html`;
+export async function getRanobesChapter(slug: string, chapterId: string): Promise<ChapterContent> {
+  const cleanSlug = slug.replace(/^novels\//, '').replace(/\.html$/, '');
+  const cleanChapId = chapterId.replace(/\.html$/, '');
+
+  const url = `${BASE_URL}/${cleanSlug}/${cleanChapId}.html`;
   const res = await axios.get(url, { headers: { "User-Agent": UA }, timeout: 8000 });
 
   const titleMatch = res.data.match(/<h1 class="title"[^>]*>([\s\S]*?)<\/h1>/i) || res.data.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
   const textMatch = res.data.match(/<div class="text"[^>]*>([\s\S]*?)<\/div>/i) || res.data.match(/<div id="arrticle"[^>]*>([\s\S]*?)<\/div>/i);
 
-  const prevMatch = res.data.match(/href="https:\/\/ranobes\.top\/([^"]+\/\d+\.html)"[^>]*id="prev"/i) || res.data.match(/href="\/([^"]+\/\d+\.html)"[^>]*id="prev"/i);
-  const nextMatch = res.data.match(/href="https:\/\/ranobes\.top\/([^"]+\/\d+\.html)"[^>]*id="next"/i) || res.data.match(/href="\/([^"]+\/\d+\.html)"[^>]*id="next"/i);
+  const prevMatch = res.data.match(/href="https:\/\/ranobes\.top\/[^"]*\/(\d+)\.html"[^>]*id="prev"/i);
+  const nextMatch = res.data.match(/href="https:\/\/ranobes\.top\/[^"]*\/(\d+)\.html"[^>]*id="next"/i);
 
   const content = textMatch
     ? textMatch[1]
@@ -111,9 +111,9 @@ export async function getRanobesChapter(chapterPath: string): Promise<ChapterCon
     : ["Chapter text is loading or unavailable."];
 
   return {
-    title: titleMatch ? titleMatch[1].replace(/<[^>]+>/g, "").trim() : "Chapter",
+    title: titleMatch ? titleMatch[1].replace(/<[^>]+>/g, "").trim() : `Chapter ${cleanChapId}`,
     content,
-    prev: prevMatch ? prevMatch[1].replace(/^https:\/\/ranobes\.top\//, '').replace(/^\//, '').replace(/\.html$/, '') : null,
-    next: nextMatch ? nextMatch[1].replace(/^https:\/\/ranobes\.top\//, '').replace(/^\//, '').replace(/\.html$/, '') : null,
+    prev: prevMatch ? prevMatch[1] : null,
+    next: nextMatch ? nextMatch[1] : null,
   };
 }

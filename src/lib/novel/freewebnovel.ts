@@ -11,9 +11,10 @@ export async function searchFreeWebNovel(query: string): Promise<NovelResult[]> 
     const url = `${PROXY}${encodeURIComponent(rawUrl)}`;
     const res = await axios.get(url, { headers: { "User-Agent": UA }, timeout: 10000 });
 
-    const matches = Array.from(res.data.matchAll(/<h3 class="tit"><a href="\/([^"]+)" title="([^"]+)">/gi));
+    const matches = Array.from(res.data.matchAll(/<h3 class="tit"><a href="\/novel\/([^"]+)" title="([^"]+)">/gi))
+      .concat(Array.from(res.data.matchAll(/<h3 class="tit"><a href="\/([^"]+)" title="([^"]+)">/gi)));
     return matches.map((m: any) => ({
-      id: `fwn:${m[1].replace(/^\//, '')}`,
+      id: `fwn:${m[1].replace(/^novel\//, '').replace(/^\//, '')}`,
       title: m[2].replace(/&amp;/g, '&').replace(/&apos;/g, "'").trim(),
       cover: "",
       tag: "Web Novel",
@@ -37,7 +38,6 @@ export async function getFreeWebNovelInfo(slug: string): Promise<NovelInfo> {
   
   let chapters: NovelChapter[] = [];
   if (chapMatches.length > 0) {
-    // Find the highest chapter number from scraped links
     let maxChapNum = 1;
     chapMatches.forEach((c: any) => {
       const numMatch = c[1].match(/chapter-(\d+)/i);
@@ -47,22 +47,20 @@ export async function getFreeWebNovelInfo(slug: string): Promise<NovelInfo> {
       }
     });
 
-    // If there are more than 40 chapters, generate the full sequential chapter index
     if (maxChapNum > 40) {
       for (let i = 1; i <= maxChapNum; i++) {
         chapters.push({
-          id: `novel/${cleanSlug}/chapter-${i}`,
+          id: String(i),
           number: i,
           title: `Chapter ${i}`
         });
       }
     } else {
-      // Use parsed links in ascending order
       const parsed = chapMatches.map((c: any) => {
         const numMatch = c[1].match(/chapter-(\d+)/i);
         const num = numMatch ? parseInt(numMatch[1]) : 1;
         return {
-          id: c[1].replace(/^\//, ''),
+          id: String(num),
           number: num,
           title: c[2].replace(/&amp;/g, '&').replace(/&apos;/g, "'").trim(),
         };
@@ -72,11 +70,10 @@ export async function getFreeWebNovelInfo(slug: string): Promise<NovelInfo> {
     }
   }
 
-  // Fallback: If no chapters found, provide at least chapters 1-50
   if (chapters.length === 0) {
     for (let i = 1; i <= 50; i++) {
       chapters.push({
-        id: `novel/${cleanSlug}/chapter-${i}`,
+        id: String(i),
         number: i,
         title: `Chapter ${i}`
       });
@@ -97,22 +94,20 @@ export async function getFreeWebNovelInfo(slug: string): Promise<NovelInfo> {
   };
 }
 
-export async function getFreeWebNovelChapter(chapterPath: string): Promise<ChapterContent> {
-  const cleanPath = chapterPath.replace(/^\//, '');
-  const rawUrl = `${BASE_URL}/${cleanPath}`;
+export async function getFreeWebNovelChapter(slug: string, chapterId: string): Promise<ChapterContent> {
+  const cleanSlug = slug.replace(/^novel\//, '').replace(/\.html$/, '');
+  const cleanNum = chapterId.replace(/[^0-9]/g, '') || "1";
+  const num = parseInt(cleanNum);
+
+  const rawUrl = `${BASE_URL}/novel/${cleanSlug}/chapter-${num}`;
   const url = `${PROXY}${encodeURIComponent(rawUrl)}`;
   const res = await axios.get(url, { headers: { "User-Agent": UA }, timeout: 10000 });
 
   const titleMatch = res.data.match(/<h1 class="tit"[^>]*>([\s\S]*?)<\/h1>/i) || res.data.match(/<span class="view_title"[^>]*>([\s\S]*?)<\/span>/i);
   const contentMatch = res.data.match(/<div class="txt"[^>]*>([\s\S]*?)<\/div>/i) || res.data.match(/<div id="article"[^>]*>([\s\S]*?)<\/div>/i);
 
-  // Extract current chapter number for reliable prev/next calculation
-  const numMatch = cleanPath.match(/chapter-(\d+)/i);
-  const currentNum = numMatch ? parseInt(numMatch[1]) : 1;
-  const basePath = cleanPath.replace(/chapter-\d+.*$/, 'chapter-');
-
-  const prev = currentNum > 1 ? `${basePath}${currentNum - 1}` : null;
-  const next = `${basePath}${currentNum + 1}`;
+  const prev = num > 1 ? String(num - 1) : null;
+  const next = String(num + 1);
 
   const content = contentMatch
     ? contentMatch[1]
@@ -125,7 +120,7 @@ export async function getFreeWebNovelChapter(chapterPath: string): Promise<Chapt
     : ["Chapter text is loading or unavailable."];
 
   return {
-    title: titleMatch ? titleMatch[1].replace(/<[^>]+>/g, "").trim() : `Chapter ${currentNum}`,
+    title: titleMatch ? titleMatch[1].replace(/<[^>]+>/g, "").trim() : `Chapter ${num}`,
     content,
     prev,
     next,

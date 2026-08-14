@@ -17,10 +17,11 @@ import {
 import { getNovelHydration } from "@/lib/anilist";
 
 export function resolveSource(id: string) {
-  if (id.startsWith("rnb:")) return { provider: "ranobes", slug: id.replace("rnb:", "") };
-  if (id.startsWith("fwn:")) return { provider: "freewebnovel", slug: id.replace("fwn:", "") };
-  // Legacy or raw slug fallback
-  return { provider: "freewebnovel", slug: id.replace(/^(nf|rnf|fmtl|lnw):/, "") };
+  const clean = decodeURIComponent(id).replace(/^\//, '');
+  if (clean.startsWith("rnb:")) return { provider: "ranobes", slug: clean.replace("rnb:", "") };
+  if (clean.startsWith("fwn:")) return { provider: "freewebnovel", slug: clean.replace("fwn:", "") };
+  // Fallback for legacy IDs
+  return { provider: "freewebnovel", slug: clean.replace(/^(nf|rnf|fmtl|lnw):/, "") };
 }
 
 export function getSourceName(id: string): string {
@@ -32,7 +33,7 @@ export function getSourceName(id: string): string {
 export async function getNovelInfo(id: string): Promise<NovelInfo> {
   const { provider, slug } = resolveSource(id);
 
-  // Check if it's a curated masterpiece entry
+  // Match masterpiece entry
   const masterpiece = ALL_MASTERPIECES.find(m => m.id === id || m.id.endsWith(slug) || id.endsWith(m.id));
 
   let info: NovelInfo;
@@ -79,12 +80,14 @@ export async function getNovelInfo(id: string): Promise<NovelInfo> {
 }
 
 export async function getChapterContent(id: string, chapterId: string): Promise<ChapterContent> {
-  const { provider } = resolveSource(id);
+  const { provider, slug } = resolveSource(id);
+  const cleanChap = decodeURIComponent(chapterId).replace(/^\//, '');
+
   try {
     if (provider === "ranobes") {
-      return await Ranobes.getRanobesChapter(chapterId);
+      return await Ranobes.getRanobesChapter(slug, cleanChap);
     }
-    return await FreeWebNovel.getFreeWebNovelChapter(chapterId);
+    return await FreeWebNovel.getFreeWebNovelChapter(slug, cleanChap);
   } catch (err) {
     return {
       title: "Chapter",
@@ -203,9 +206,11 @@ export async function homeShelves() {
     lightNovels[0], // Mushoku Tensei
     lightNovels[1], // Classroom of the Elite
     koreanMasterpieces[0], // Shadow Slave
-    koreanMasterpieces[1], // Omniscient Reader
+    koreanMasterpieces[1], // Solo Leveling
+    koreanMasterpieces[2], // Omniscient Reader
     lightNovels[2], // Overlord
     cultivationEpics[0], // Lord of the Mysteries
+    lightNovels[3], // Re:Zero
   ];
 
   return {
@@ -213,7 +218,7 @@ export async function homeShelves() {
     lightNovels,
     koreanMasterpieces,
     cultivationEpics,
-    trending: [...lightNovels, ...koreanMasterpieces],
+    trending: [...lightNovels.slice(0, 10), ...koreanMasterpieces.slice(0, 10)],
     latestUpdates: [...koreanMasterpieces, ...cultivationEpics],
     completed: ALL_MASTERPIECES.filter(m => m.status === "Completed").map(m => ({
       id: m.id,
