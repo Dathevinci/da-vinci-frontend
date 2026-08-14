@@ -1,16 +1,18 @@
 import axios from "axios";
 import type { NovelResult, NovelInfo, NovelChapter, ChapterContent } from "./types";
 import { ALL_MASTERPIECES } from "./masterpieces";
+import { getExactSlug } from "./slugMapping";
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
 const BASE_URL = "https://freewebnovel.com";
 
-// Multi-proxy parallel pool with fast Promise.any racing
+// Multi-proxy parallel pool with direct-first priority and fast Promise.any racing
 const PROXIES = [
-  (url: string) => `https://goodproxy.goodproxy.workers.dev/fetch?url=${encodeURIComponent(url)}`,
-  (url: string) => `https://proxy.cors.sh/${url}`,
-  (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
   (url: string) => url,
+  (url: string) => `https://goodproxy.goodproxy.workers.dev/fetch?url=${encodeURIComponent(url)}`,
+  (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  (url: string) => `https://proxy.cors.sh/${url}`,
 ];
 
 // In-memory cache
@@ -28,9 +30,17 @@ async function fetchWithProxyFallback(targetUrl: string): Promise<string | null>
           "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
           "Accept-Language": "en-US,en;q=0.5"
         },
-        timeout: 4500
+        timeout: 5500
       });
-      if (res.status === 200 && typeof res.data === "string" && res.data.length > 400 && !res.data.includes("Cloudflare</title>") && !res.data.includes("Access denied")) {
+      if (
+        res.status === 200 &&
+        typeof res.data === "string" &&
+        res.data.length > 400 &&
+        !res.data.includes("Cloudflare</title>") &&
+        !res.data.includes("Error 1015") &&
+        !res.data.includes("rate limited") &&
+        !res.data.includes("Access denied")
+      ) {
         return res.data;
       }
       throw new Error("Invalid response");
@@ -60,7 +70,7 @@ export async function searchFreeWebNovel(query: string): Promise<NovelResult[]> 
 }
 
 export async function getFreeWebNovelInfo(slug: string): Promise<NovelInfo> {
-  const cleanSlug = slug.replace(/^novel\//, '').replace(/\.html$/, '');
+  const cleanSlug = getExactSlug(slug.replace(/^novel\//, '').replace(/\.html$/, ''));
   const cacheKey = cleanSlug;
 
   const cached = infoCache.get(cacheKey);
@@ -69,18 +79,22 @@ export async function getFreeWebNovelInfo(slug: string): Promise<NovelInfo> {
   }
 
   // Check if we have pre-verified masterpiece metadata
-  const masterpiece = ALL_MASTERPIECES.find(m => m.id === `fwn:${cleanSlug}` || m.id.endsWith(cleanSlug));
+  const masterpiece = ALL_MASTERPIECES.find(m => m.id === `fwn:${cleanSlug}` || m.id.endsWith(cleanSlug) || cleanSlug.endsWith(m.id.replace(/^fwn:/, '')));
 
-  // FreeWebNovel novel URL variations (correct endpoint without .html first)
+  // FreeWebNovel novel URL variations
   const url1 = `${BASE_URL}/novel/${cleanSlug}`;
-  const url2 = `${BASE_URL}/novel/${cleanSlug}/`;
-  const url3 = `${BASE_URL}/${cleanSlug}.html`;
+  const url2 = `${BASE_URL}/${cleanSlug}.html`;
+  const url3 = `${BASE_URL}/novel/${cleanSlug}/`;
   const url4 = `${BASE_URL}/novel/${cleanSlug}.html`;
 
-  let html = await fetchWithProxyFallback(url1);
-  if (!html) html = await fetchWithProxyFallback(url2);
-  if (!html) html = await fetchWithProxyFallback(url3);
-  if (!html) html = await fetchWithProxyFallback(url4);
+  let html: string | null = null;
+  for (const u of [url1, url2, url3, url4]) {
+    const raw = await fetchWithProxyFallback(u);
+    if (raw && !raw.includes("<title>Novels online") && !raw.includes("<h1 class=\"tit\">Novels online</h1>") && !raw.includes("HX is going to get some good stuff")) {
+      html = raw;
+      break;
+    }
+  }
 
   let title = masterpiece?.title || cleanSlug.replace(/[-_]/g, " ").replace(/\b\w/g, l => l.toUpperCase());
   let cover = masterpiece?.cover || "";
@@ -115,7 +129,7 @@ export async function getFreeWebNovelInfo(slug: string): Promise<NovelInfo> {
     }
   }
 
-  // Fallback if novel is brand new
+  // Fallback default chapter count
   if (maxChapter < 50) {
     maxChapter = 100;
   }
@@ -138,7 +152,7 @@ export async function getFreeWebNovelInfo(slug: string): Promise<NovelInfo> {
     genres: masterpiece?.genres || ["Fantasy", "Action", "Adventure"],
     synopsis,
     chapters,
-    alternativeServers: [{ source: "freewebnovel", id: `fwn:${cleanSlug}`, name: "FreeWebNovel (Human Translation)" }]
+    alternativeServers: [{ source: "freewebnovel", id: `fwn:${cleanSlug}`, name: "FreeWebNovel (Global Fast Server)" }]
   };
 
   infoCache.set(cacheKey, { data: result, timestamp: Date.now() });
@@ -146,7 +160,7 @@ export async function getFreeWebNovelInfo(slug: string): Promise<NovelInfo> {
 }
 
 export async function getFreeWebNovelChapter(slug: string, chapterId: string): Promise<ChapterContent> {
-  const cleanSlug = slug.replace(/^novel\//, '').replace(/\.html$/, '');
+  const cleanSlug = getExactSlug(slug.replace(/^novel\//, '').replace(/\.html$/, ''));
   const cleanNum = chapterId.replace(/[^0-9]/g, '') || "1";
   const num = parseInt(cleanNum);
   const cacheKey = `${cleanSlug}::${num}`;
@@ -156,17 +170,43 @@ export async function getFreeWebNovelChapter(slug: string, chapterId: string): P
     return cached.data;
   }
 
-  // FreeWebNovel chapter URL variations (canonical /novel/slug/chapter-num without .html first)
-  const url1 = `${BASE_URL}/novel/${cleanSlug}/chapter-${num}`;
-  const url2 = `${BASE_URL}/novel/${cleanSlug}/chapter-${num}.html`;
-  const url3 = `${BASE_URL}/${cleanSlug}/chapter-${num}`;
-  const url4 = `${BASE_URL}/${cleanSlug}/chapter-${num}.html`;
+  // FreeWebNovel chapter URL variations
+  const urls = [
+    `${BASE_URL}/${cleanSlug}/chapter-${num}.html`,
+    `${BASE_URL}/novel/${cleanSlug}/chapter-${num}`,
+    `${BASE_URL}/novel/${cleanSlug}/chapter-${num}.html`,
+    `${BASE_URL}/${cleanSlug}/chapter-${num}`,
+    `${BASE_URL}/novel/${cleanSlug}/chapter-0${num}`,
+    `${BASE_URL}/${cleanSlug}/chapter-0${num}.html`
+  ];
 
   let html: string | null = null;
-  const urls = [url1, url2, url3, url4];
+
   for (const u of urls) {
     const raw = await fetchWithProxyFallback(u);
-    if (raw && (raw.includes('class="txt"') || raw.includes('id="article"') || raw.includes('chapter-content') || raw.includes('view_title'))) {
+    if (!raw) continue;
+
+    // Reject redirect/fallback indicators
+    if (
+      raw.includes("<title>Novels online") ||
+      raw.includes("HX is going to get some good stuff") ||
+      raw.includes("More people who want to die") ||
+      raw.includes("Wasn’t she at 109 temptation") ||
+      raw.includes("Wasn't she at 109 temptation")
+    ) {
+      continue;
+    }
+
+    const hasText = raw.includes('class="txt"') || raw.includes('id="article"') || raw.includes('chapter-content') || raw.includes('view_title');
+    if (hasText) {
+      const titleMatch = raw.match(/<h1 class="tit"[^>]*>([\s\S]*?)<\/h1>/i) ||
+                         raw.match(/<span class="view_title"[^>]*>([\s\S]*?)<\/span>/i) ||
+                         raw.match(/<div class="chapter-title"[^>]*>([\s\S]*?)<\/div>/i);
+      const titleText = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, "").trim() : "";
+      if (titleText.toLowerCase().startsWith("novels online")) {
+        continue;
+      }
+
       html = raw;
       break;
     }
@@ -176,7 +216,7 @@ export async function getFreeWebNovelChapter(slug: string, chapterId: string): P
   const next = String(num + 1);
 
   if (!html) {
-    throw new Error(`Failed to retrieve Chapter ${num} from translation server`);
+    throw new Error(`Failed to retrieve Chapter ${num} for ${cleanSlug} from translation server`);
   }
 
   const titleMatch = html.match(/<h1 class="tit"[^>]*>([\s\S]*?)<\/h1>/i) ||

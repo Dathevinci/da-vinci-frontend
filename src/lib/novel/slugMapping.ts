@@ -1,0 +1,117 @@
+export const EXACT_NOVEL_SLUGS: Record<string, string> = {
+  // Japanese Light Novels
+  "fwn:mushoku-tensei-full-version": "mushoku-tensei-full-version",
+  "fwn:classroom-of-the-elite-year-1": "classroom-of-the-elite-year-1",
+  "fwn:classroom-of-the-elite-year-2": "classroom-of-the-elite-year-2",
+  "fwn:overlord-the-multiverse": "overlord-ln-novel",
+  "fwn:rezero-kara-hajimeru-isekai-seikatsu-wn": "rezero-kara-hajimeru-isekai-seikatsu-wn",
+  "fwn:tensei-shitara-slime-datta-ken-ln": "tensei-shitara-slime-datta-ken-novel",
+  "fwn:86-eighty-six": "86-eighty-six",
+  "fwn:kumo-desu-ga-nani-ka-wn": "kumo-desu-ga-nani-ka-novel",
+  "fwn:no-game-no-life": "no-game-no-life",
+  "fwn:tsukimichi-moonlit-fantasy": "tsuki-ga-michibiku-isekai-douchuu",
+  "fwn:ascendance-of-a-bookworm": "ascendance-of-a-bookworm",
+  "fwn:tondemo-skill-de-isekai-hourou-meshi": "tondemo-skill-de-isekai-hourou-meshi",
+  "fwn:mahouka-koukou-no-rettousei": "mahouka-koukou-no-rettousei",
+  "fwn:arifureta-shokugyou-de-sekai-saikyou": "arifureta-shokugyou-de-sekai-saikyou-wn",
+  "fwn:tate-no-yuusha-no-nariagari": "tate-no-yuusha-no-nariagari-novel",
+  "fwn:high-school-dxd": "high-school-dxd",
+  "fwn:toradora": "toradora",
+  "fwn:toaru-majutsu-no-index": "toaru-majutsu-no-index",
+  "fwn:i-want-to-eat-your-pancreas": "i-want-to-eat-your-pancreas",
+  "fwn:three-days-of-happiness": "three-days-of-happiness",
+  "fwn:death-march-kara-hajimaru-isekai-kyusoukyoku": "death-march-kara-hajimaru-isekai-kyusoukyoku-novel",
+  "fwn:seirei-gensouki-konna-sekai-de-deaeta-kimi-ni": "seirei-gensouki-konna-sekai-de-deaeta-kimi-ni",
+  "fwn:kuma-kuma-kuma-bear": "kuma-kuma-kuma-bear",
+  "fwn:skeleton-knight-in-another-world": "skeleton-knight-in-another-world",
+  "fwn:the-legendary-moonlight-sculptor": "the-legendary-moonlight-sculptor",
+
+  // Korean Fantasy & Global Hits
+  "fwn:shadow-slave": "shadow-slave",
+  "fwn:solo-leveling": "only-i-level-up-wn",
+  "fwn:omniscient-readers-viewpoint": "omniscient-readers-viewpoint-novel",
+  "fwn:the-beginning-after-the-end": "the-beginning-after-the-end-novel",
+  "fwn:trash-of-the-counts-family": "trash-of-the-counts-family",
+  "fwn:the-novels-extra": "the-novels-extra",
+  "fwn:the-authors-pov": "the-authors-pov",
+  "fwn:second-life-ranker": "second-life-ranker-novel",
+  "fwn:sss-class-suicide-hunter": "sssclass-suicide-hunter",
+  "fwn:nano-machine": "nano-machine-retranslated-version-novel",
+  "fwn:damn-reincarnation": "damn-reincarnation",
+  "fwn:the-world-after-the-fall": "the-world-after-the-fall",
+  "fwn:pick-me-up-infinite-gacha": "pick-me-up",
+  "fwn:regressor-instruction-manual": "regressor-instruction-manual",
+  "fwn:ending-maker": "ending-maker",
+  "fwn:leveling-with-the-gods": "leveling-with-the-gods",
+  "fwn:return-of-the-mount-hua-sect": "return-of-the-mount-hua-sect-novel",
+  "fwn:overgeared": "overgeared-novel",
+  "fwn:tomb-raider-king": "tomb-raider-king",
+  "fwn:kill-the-hero": "kill-the-hero",
+  "fwn:doctors-rebirth": "doctors-rebirth",
+  "fwn:chronicles-of-the-heavenly-demon": "chronicles-of-the-heavenly-demon",
+  "fwn:warlock-of-the-magus-world": "warlock-of-the-magus-world",
+  "fwn:player-who-returned-10000-years-later": "player-who-returned-10000-years-later",
+  "fwn:the-heavenly-demon-cant-live-a-normal-life": "the-heavenly-demon-cant-live-a-normal-life-novel",
+  "fwn:academys-undercover-professor": "academys-undercover-professor",
+  "fwn:the-reincarnated-assassin-is-a-genius-swordsman": "the-reincarnated-assassin-is-a-genius-swordsman",
+  "fwn:kage-no-jitsuryokusha-ni-naritakute": "to-be-a-power-in-the-shadows",
+  "fwn:the-empty-box-and-zeroth-maria": "utsuro-no-hako-to-zero-no-maria",
+  "fwn:farming-life-in-another-world": "isekai-nonbiri-nouka",
+  "fwn:trapped-in-a-dating-sim-otome-games": "the-world-of-otome-games-is-tough-for-mobs",
+  "fwn:days-with-my-stepsister-gimai-seikatsu": "gimai-seikatsu-days-with-my-step-sister",
+
+  // Chinese Xianxia & Cultivation
+  "fwn:lord-of-the-mysteries": "lord-of-the-mysteries",
+  "fwn:reverend-insanity": "reverend-insanity",
+  "fwn:martial-peak": "martial-peak",
+  "fwn:coiling-dragon": "coiling-dragon",
+  "fwn:martial-world": "martial-world-novel",
+  "fwn:renegade-immortal": "renegade-immortal",
+  "fwn:i-shall-seal-the-heavens": "i-shall-seal-the-heavens",
+  "fwn:a-will-eternal": "a-will-eternal",
+  "fwn:against-the-gods": "against-the-gods-novel",
+  "fwn:the-desolate-era": "the-desolate-era-novel",
+  "fwn:battle-through-the-heavens": "battle-through-the-heavens-novel",
+  "fwn:perfect-world": "perfect-world",
+  "fwn:ancient-godly-monarch": "ancient-godly-monarch",
+  "fwn:tales-of-demons-and-gods": "tales-of-demons-and-gods",
+  "fwn:a-record-of-a-mortals-journey-to-immortality": "a-record-of-a-mortals-journey-to-immortality-novel",
+  "fwn:way-of-choices": "ze-tian-ji",
+  "fwn:lord-xue-ying": "lord-xue-ying",
+  "fwn:stellar-transformations": "stellar-transformations",
+  "fwn:swallowed-star": "swallowed-star",
+  "fwn:nine-star-hegemon-body-arts": "nine-star-hegemon-body-arts",
+  "fwn:dragon-prince-yuan": "dragon-prince-yuan",
+  "fwn:the-great-ruler": "the-great-ruler",
+  "fwn:martial-universe": "martial-universe",
+  "fwn:emperors-domination": "emperors-domination",
+  "fwn:cultivation-chat-group": "cultivation-chat-group",
+  "fwn:my-house-of-horrors": "my-house-of-horrors",
+  "fwn:the-charm-of-soul-pets": "the-charm-of-soul-pets",
+  "fwn:world-of-cultivation": "world-of-cultivation",
+  "fwn:absolute-resonance": "absolute-resonance",
+  "fwn:martial-god-asura": "martial-god-asura-novel",
+  "fwn:super-gene": "super-gene",
+  "fwn:monster-paradise": "monster-paradise",
+  "fwn:way-of-the-devil": "way-of-the-devil",
+  "fwn:let-me-game-in-peace": "let-me-game-in-peace",
+  "fwn:top-tier-providence": "top-tier-providence-secretly-cultivate-for-a-thousand-years",
+  "fwn:the-kings-avatar": "the-kings-avatar",
+  "fwn:release-that-witch": "release-that-witch",
+  "fwn:library-of-heavens-path": "library-of-heavens-path",
+  "fwn:versatile-mage": "versatile-mage"
+};
+
+export function getExactSlug(id: string): string {
+  const cleanId = id.startsWith("fwn:") || id.startsWith("rnb:") ? id : `fwn:${id}`;
+  if (EXACT_NOVEL_SLUGS[cleanId]) {
+    return EXACT_NOVEL_SLUGS[cleanId];
+  }
+  const stripped = cleanId.replace(/^(fwn|rnb):/, '');
+  for (const [key, slug] of Object.entries(EXACT_NOVEL_SLUGS)) {
+    if (key.endsWith(stripped) || stripped.endsWith(key.replace(/^(fwn|rnb):/, ''))) {
+      return slug;
+    }
+  }
+  return stripped;
+}

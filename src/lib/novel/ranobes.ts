@@ -16,7 +16,7 @@ export async function searchRanobes(query: string): Promise<NovelResult[]> {
       cover: "",
       tag: "Light Novel",
     }));
-  } catch (err) {
+  } catch {
     return [];
   }
 }
@@ -100,15 +100,21 @@ export async function getRanobesChapter(slug: string, chapterId: string): Promis
   const prevMatch = res.data.match(/href="https:\/\/ranobes\.top\/[^"]*\/(\d+)\.html"[^>]*id="prev"/i);
   const nextMatch = res.data.match(/href="https:\/\/ranobes\.top\/[^"]*\/(\d+)\.html"[^>]*id="next"/i);
 
-  const content = textMatch
-    ? textMatch[1]
-        .replace(/<script[\s\S]*?<\/script>/gi, "")
-        .replace(/<style[\s\S]*?<\/style>/gi, "")
-        .replace(/<[^>]+>/g, "\n")
-        .split("\n")
-        .map((p: string) => p.trim())
-        .filter((p: string) => p.length > 20 && !p.includes("ranobes") && !p.includes("copyright"))
-    : ["Chapter text is loading or unavailable."];
+  if (!textMatch) {
+    throw new Error(`Ranobes chapter ${cleanChapId} not found`);
+  }
+
+  const content = textMatch[1]
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<[^>]+>/g, "\n")
+    .split("\n")
+    .map((p: string) => p.trim())
+    .filter((p: string) => p.length > 20 && !p.includes("ranobes") && !p.includes("copyright"));
+
+  if (content.length === 0) {
+    throw new Error(`Ranobes chapter ${cleanChapId} content was empty`);
+  }
 
   return {
     title: titleMatch ? titleMatch[1].replace(/<[^>]+>/g, "").trim() : `Chapter ${cleanChapId}`,
