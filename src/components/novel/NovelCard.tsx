@@ -16,13 +16,11 @@ export default function NovelCard({ novel }: { novel: NovelResult }) {
   const router = useRouter();
   const { cover, onError: onCoverError } = useNovelCover(novel.title, novel.cover);
 
-  const badgeLabel = (novel as any).tag || (novel.id.startsWith("nf:")
-    ? "NovelFull"
-    : novel.id.startsWith("lnw:")
-    ? "LightNovelWorld"
-    : novel.id.startsWith("fmtl:")
-    ? "FanMTL"
-    : "ReadNovelFull");
+  const badgeLabel = (novel as any).tag || (novel.id.startsWith("rnb:")
+    ? "Ranobes"
+    : novel.id.startsWith("fwn:")
+    ? "FreeWebNovel"
+    : "Light Novel");
 
   const open = () => router.push(`/novel/${encodeURIComponent(novel.id)}`);
 
