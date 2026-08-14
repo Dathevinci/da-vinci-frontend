@@ -50,7 +50,7 @@ export const OFFICIAL_LIGHT_NOVELS: MasterpieceEntry[] = [
   {
     "id": "fwn:classroom-of-the-elite-year-2",
     "title": "Classroom of the Elite (Year 2)",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx96798-SIQLQqS8HO9h.jpg",
+    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx115166-eBK5EqkUTplf.jpg",
     "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/96798-XfoFzYL1xof9.jpg",
     "author": "Shougo Kinugasa",
     "status": "Ongoing",
@@ -102,8 +102,8 @@ export const OFFICIAL_LIGHT_NOVELS: MasterpieceEntry[] = [
   {
     "id": "fwn:tensei-shitara-slime-datta-ken-novel",
     "title": "That Time I Got Reincarnated as a Slime",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx86399-NwbRFVh5koqc.jpg",
-    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/86399-Tejvk4pMg9PR.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/35483/large.jpg",
+    "bannerImage": "https://media.kitsu.app/manga/cover_images/35483/large.jpg",
     "author": "Fuse",
     "status": "Completed",
     "genres": [
@@ -120,8 +120,8 @@ export const OFFICIAL_LIGHT_NOVELS: MasterpieceEntry[] = [
   {
     "id": "fwn:86-eighty-six",
     "title": "86 - Eighty Six",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx101606-3lMiy9HQjBgv.jpg",
-    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/101606-OXPYcB9KD9qT.png",
+    "cover": "https://media.kitsu.app/manga/poster_images/40398/large.jpg",
+    "bannerImage": "https://media.kitsu.app/manga/cover_images/40398/large.jpg",
     "author": "Asato Asato",
     "status": "Completed",
     "genres": [
@@ -138,8 +138,8 @@ export const OFFICIAL_LIGHT_NOVELS: MasterpieceEntry[] = [
   {
     "id": "fwn:kumo-desu-ga-nani-ka-novel",
     "title": "So I'm a Spider, So What?",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx103632-2wsy9wFUdm1C.jpg",
-    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/103632-N4ssExnvLw74.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/37173/large.jpg",
+    "bannerImage": "https://media.kitsu.app/manga/cover_images/37173/large.jpg",
     "author": "Okina Baba",
     "status": "Completed",
     "genres": [
@@ -156,8 +156,8 @@ export const OFFICIAL_LIGHT_NOVELS: MasterpieceEntry[] = [
   {
     "id": "fwn:no-game-no-life",
     "title": "No Game No Life",
-    "cover": "https://media.kitsu.app/manga/poster_images/23974/original.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/23974/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/5927/large.jpg",
+    "bannerImage": "https://media.kitsu.app/manga/cover_images/5927/large.jpg",
     "author": "Yuu Kamiya",
     "status": "Completed",
     "genres": [
@@ -174,7 +174,7 @@ export const OFFICIAL_LIGHT_NOVELS: MasterpieceEntry[] = [
   {
     "id": "fwn:tsuki-ga-michibiku-isekai-douchuu",
     "title": "Tsukimichi - Moonlit Fantasy",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104494-xmWuGEwxzbfB.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/36470/large.jpg",
     "bannerImage": "https://media.kitsu.app/manga/cover_images/34351/original.jpg",
     "author": "Kei Azumi",
     "status": "Ongoing",
@@ -191,8 +191,8 @@ export const OFFICIAL_LIGHT_NOVELS: MasterpieceEntry[] = [
   {
     "id": "fwn:ascendance-of-a-bookworm",
     "title": "Ascendance of a Bookworm",
-    "cover": "https://media.kitsu.app/manga/poster_images/34759/original.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/34759/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/34511/large.jpg",
+    "bannerImage": "https://media.kitsu.app/manga/cover_images/34511/large.jpg",
     "author": "Miya Kazuki",
     "status": "Completed",
     "genres": [
@@ -208,7 +208,7 @@ export const OFFICIAL_LIGHT_NOVELS: MasterpieceEntry[] = [
   {
     "id": "fwn:tondemo-skill-de-isekai-hourou-meshi",
     "title": "Campfire Cooking in Another World",
-    "cover": "https://media.kitsu.app/manga/poster_images/40964/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/39104/large.jpg",
     "bannerImage": "https://media.kitsu.app/manga/cover_images/40964/original.jpg",
     "author": "Ren Eguchi",
     "status": "Ongoing",
@@ -226,8 +226,8 @@ export const OFFICIAL_LIGHT_NOVELS: MasterpieceEntry[] = [
   {
     "id": "fwn:mahouka-koukou-no-rettousei",
     "title": "The Irregular at Magic High School",
-    "cover": "https://media.kitsu.app/manga/poster_images/24018/original.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/24018/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/9158/large.jpg",
+    "bannerImage": "https://media.kitsu.app/manga/cover_images/9158/large.jpg",
     "author": "Tsutomu Satou",
     "status": "Completed",
     "genres": [
@@ -243,7 +243,7 @@ export const OFFICIAL_LIGHT_NOVELS: MasterpieceEntry[] = [
   {
     "id": "fwn:arifureta-shokugyou-de-sekai-saikyou-wn",
     "title": "Arifureta: From Commonplace to World's Strongest",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104494-xmWuGEwxzbfB.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/37711/large.jpg",
     "bannerImage": "https://media.kitsu.app/manga/cover_images/34354/original.jpg",
     "author": "Ryo Shirakome",
     "status": "Completed",
@@ -261,8 +261,8 @@ export const OFFICIAL_LIGHT_NOVELS: MasterpieceEntry[] = [
   {
     "id": "fwn:tate-no-yuusha-no-nariagari-novel",
     "title": "The Rising of the Shield Hero",
-    "cover": "https://media.kitsu.app/manga/poster_images/26830/original.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/26830/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/25524/large.jpg",
+    "bannerImage": "https://media.kitsu.app/manga/cover_images/25524/large.jpg",
     "author": "Aneko Yusagi",
     "status": "Completed",
     "genres": [
@@ -279,8 +279,8 @@ export const OFFICIAL_LIGHT_NOVELS: MasterpieceEntry[] = [
   {
     "id": "fwn:high-school-dxd",
     "title": "High School DxD",
-    "cover": "https://media.kitsu.app/manga/poster_images/20888/original.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/20888/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/18650/large.jpg",
+    "bannerImage": "https://media.kitsu.app/manga/cover_images/18650/large.jpg",
     "author": "Ichiei Ishibumi",
     "status": "Completed",
     "genres": [
@@ -298,7 +298,7 @@ export const OFFICIAL_LIGHT_NOVELS: MasterpieceEntry[] = [
   {
     "id": "fwn:toradora",
     "title": "Toradora!",
-    "cover": "https://media.kitsu.app/manga/poster_images/8537/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/14738/large.jpg",
     "bannerImage": "https://media.kitsu.app/manga/cover_images/8537/original.jpg",
     "author": "Yuyuko Takemiya",
     "status": "Completed",
@@ -316,8 +316,8 @@ export const OFFICIAL_LIGHT_NOVELS: MasterpieceEntry[] = [
   {
     "id": "fwn:toaru-majutsu-no-index",
     "title": "A Certain Magical Index",
-    "cover": "https://media.kitsu.app/manga/poster_images/16912/original.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/16912/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/23343/large.jpg",
+    "bannerImage": "https://media.kitsu.app/manga/cover_images/23343/large.jpg",
     "author": "Kazuma Kamachi",
     "status": "Completed",
     "genres": [
@@ -333,7 +333,7 @@ export const OFFICIAL_LIGHT_NOVELS: MasterpieceEntry[] = [
   {
     "id": "fwn:i-want-to-eat-your-pancreas",
     "title": "I Want to Eat Your Pancreas",
-    "cover": "https://media.kitsu.app/manga/poster_images/39537/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/39808/large.jpg",
     "bannerImage": "https://media.kitsu.app/manga/cover_images/39537/original.jpg",
     "author": "Yoru Sumino",
     "status": "Completed",
@@ -351,7 +351,7 @@ export const OFFICIAL_LIGHT_NOVELS: MasterpieceEntry[] = [
   {
     "id": "fwn:three-days-of-happiness",
     "title": "Three Days of Happiness",
-    "cover": "https://media.kitsu.app/manga/poster_images/38959/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/40439/large.jpg",
     "bannerImage": "https://media.kitsu.app/manga/cover_images/38959/original.jpg",
     "author": "Sugaru Miaki",
     "status": "Completed",
@@ -368,7 +368,7 @@ export const OFFICIAL_LIGHT_NOVELS: MasterpieceEntry[] = [
   {
     "id": "fwn:death-march-kara-hajimaru-isekai-kyusoukyoku-novel",
     "title": "Death March to the Parallel World Rhapsody",
-    "cover": "https://media.kitsu.app/manga/poster_images/34347/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/26906/large.jpg",
     "bannerImage": "https://media.kitsu.app/manga/cover_images/34347/original.jpg",
     "author": "Hiro Ainana",
     "status": "Ongoing",
@@ -386,8 +386,8 @@ export const OFFICIAL_LIGHT_NOVELS: MasterpieceEntry[] = [
   {
     "id": "fwn:seirei-gensouki-konna-sekai-de-deaeta-kimi-ni",
     "title": "Seirei Gensouki: Spirit Chronicles",
-    "cover": "https://media.kitsu.app/manga/poster_images/38950/original.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/38950/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/38491/large.jpg",
+    "bannerImage": "https://media.kitsu.app/manga/cover_images/38491/large.jpg",
     "author": "Yuri Kitayama",
     "status": "Ongoing",
     "genres": [
@@ -405,8 +405,8 @@ export const OFFICIAL_LIGHT_NOVELS: MasterpieceEntry[] = [
   {
     "id": "fwn:kuma-kuma-kuma-bear",
     "title": "Kuma Kuma Kuma Bear",
-    "cover": "https://media.kitsu.app/manga/poster_images/40962/original.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/40962/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/40840/large.jpg",
+    "bannerImage": "https://media.kitsu.app/manga/cover_images/40840/large.jpg",
     "author": "Kumanano",
     "status": "Ongoing",
     "genres": [
@@ -423,7 +423,7 @@ export const OFFICIAL_LIGHT_NOVELS: MasterpieceEntry[] = [
   {
     "id": "fwn:skeleton-knight-in-another-world",
     "title": "Skeleton Knight in Another World",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104494-xmWuGEwxzbfB.jpg",
+    "cover": "https://media.kitsu.app/manga/39044/poster_image/large-90f1b3590cc58b3d75d252f1794da9f1.jpeg",
     "bannerImage": "https://media.kitsu.app/manga/cover_images/34358/original.jpg",
     "author": "Enki Hakari",
     "status": "Completed",
@@ -440,8 +440,8 @@ export const OFFICIAL_LIGHT_NOVELS: MasterpieceEntry[] = [
   {
     "id": "fwn:the-legendary-moonlight-sculptor",
     "title": "The Legendary Moonlight Sculptor",
-    "cover": "https://media.kitsu.app/manga/poster_images/34345/original.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/34345/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/35878/large.jpg",
+    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/105398-4UrEhdqZukrg.jpg",
     "author": "Nam Heesung",
     "status": "Completed",
     "genres": [
@@ -462,7 +462,7 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:shadow-slave",
     "title": "Shadow Slave",
-    "cover": "https://uploads.mangadex.org/covers/9ee7510b-f0cc-4a04-bdf3-72174b17139a/66ea9c4b-eb0b-4011-b7a6-ea53a1169f92.jpg.512.jpg",
+    "cover": "https://media.kitsu.app/manga/75529/poster_image/large-2df49f981edd9ebf1a040696808c2ea9.jpeg",
     "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/105398-4UrEhdqZukrg.jpg",
     "author": "Guiltythree",
     "status": "Ongoing",
@@ -480,8 +480,8 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:solo-leveling-digispirit",
     "title": "Solo Leveling (Only I Level Up)",
-    "cover": "https://media.kitsu.app/manga/poster_images/41372/original.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/41372/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/54114/large.jpg",
+    "bannerImage": "https://media.kitsu.app/manga/54114/cover_image/large-5ced5f4969b4e15202e7f08188ba093f.jpeg",
     "author": "Chugong",
     "status": "Completed",
     "genres": [
@@ -498,7 +498,7 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:omniscient-readers-viewpoint-novel",
     "title": "Omniscient Reader's Viewpoint",
-    "cover": "https://media.kitsu.app/manga/poster_images/43831/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/55196/large.jpg",
     "bannerImage": "https://media.kitsu.app/manga/cover_images/43831/original.jpg",
     "author": "Sing Shong",
     "status": "Completed",
@@ -516,7 +516,7 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:the-beginning-after-the-end-novel",
     "title": "The Beginning After the End",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104494-xmWuGEwxzbfB.jpg",
+    "cover": "https://media.kitsu.app/anime/poster_images/43690/large.jpg",
     "bannerImage": "https://media.kitsu.app/manga/cover_images/42491/original.jpg",
     "author": "TurtleMe",
     "status": "Ongoing",
@@ -534,8 +534,8 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:trash-of-the-counts-family",
     "title": "Trash of the Count's Family",
-    "cover": "https://media.kitsu.app/manga/poster_images/43833/original.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/43833/original.jpg",
+    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx123573-LKoCKwRouEMW.png",
+    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/123573-1a2b3c4d5e6f.jpg",
     "author": "Yoo Ryeo Han",
     "status": "Ongoing",
     "genres": [
@@ -552,8 +552,8 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:the-novels-extra",
     "title": "The Novel's Extra",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104494-xmWuGEwxzbfB.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/45750/original.jpg",
+    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx152128-hk1Dq8zlEPVn.png",
+    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/105398-4UrEhdqZukrg.jpg",
     "author": "Jee Gab Song",
     "status": "Completed",
     "genres": [
@@ -570,7 +570,7 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:the-authors-pov",
     "title": "The Author's POV",
-    "cover": "https://media.kitsu.app/manga/75920/poster_image/ae0b0c21e84e7e2388574a1623aabb1a.png",
+    "cover": "https://media.kitsu.app/manga/75920/poster_image/large-ceb6ed9d2a279a8b00be4026c588e0a5.jpeg",
     "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/119257-2V3a1l8b9k4m.jpg",
     "author": "Entrail_Ji",
     "status": "Completed",
@@ -588,7 +588,7 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:second-life-ranker-novel",
     "title": "Second Life Ranker",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104494-xmWuGEwxzbfB.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/54690/large.jpg",
     "bannerImage": "https://media.kitsu.app/manga/cover_images/42490/original.jpg",
     "author": "Sadoyeon",
     "status": "Completed",
@@ -606,7 +606,7 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:sssclass-suicide-hunter",
     "title": "SSS-Class Suicide Hunter",
-    "cover": "https://media.kitsu.app/manga/poster_images/44470/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/58485/large.jpg",
     "bannerImage": "https://media.kitsu.app/manga/cover_images/44470/original.jpg",
     "author": "Shin Noah",
     "status": "Completed",
@@ -625,7 +625,7 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:nano-machine-retranslated-version-novel",
     "title": "Nano Machine",
-    "cover": "https://media.kitsu.app/manga/poster_images/43834/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/57618/large.jpg",
     "bannerImage": "https://media.kitsu.app/manga/cover_images/43834/original.jpg",
     "author": "Jeolmu Hyeon",
     "status": "Completed",
@@ -643,8 +643,8 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:damn-reincarnation",
     "title": "Damn Reincarnation",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104494-xmWuGEwxzbfB.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/45753/original.jpg",
+    "cover": "https://media.kitsu.app/manga/63710/poster_image/large-c54a38644f84c80b7e43073829c81f62.jpeg",
+    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/105398-4UrEhdqZukrg.jpg",
     "author": "Mogma",
     "status": "Ongoing",
     "genres": [
@@ -661,8 +661,8 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:the-world-after-the-fall",
     "title": "The World After the Fall",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104494-xmWuGEwxzbfB.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/45751/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/59455/large.jpg",
+    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/119257-2V3a1l8b9k4m.jpg",
     "author": "Sing Shong",
     "status": "Completed",
     "genres": [
@@ -679,7 +679,7 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:pick-me-up",
     "title": "Pick Me Up! Infinite Gacha",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104494-xmWuGEwxzbfB.jpg",
+    "cover": "https://media.kitsu.app/manga/65728/poster_image/large-c5f9b3bd3f82fb8df55b68843bfa2464.jpeg",
     "bannerImage": "https://media.kitsu.app/manga/cover_images/45755/original.jpg",
     "author": "Hermod",
     "status": "Completed",
@@ -698,8 +698,8 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:regressor-instruction-manual",
     "title": "Regressor Instruction Manual",
-    "cover": "https://media.kitsu.app/manga/poster_images/44471/original.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/44471/original.jpg",
+    "cover": "https://media.kitsu.app/manga/61570/poster_image/large-a2cca59f103c01a0201fa1947eff6983.jpeg",
+    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/105398-4UrEhdqZukrg.jpg",
     "author": "Wooden Spoon",
     "status": "Ongoing",
     "genres": [
@@ -717,8 +717,8 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:ending-maker",
     "title": "Ending Maker",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104494-xmWuGEwxzbfB.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/45754/original.jpg",
+    "cover": "https://media.kitsu.app/manga/63562/poster_image/large-f62ae50d9ebd22276c86b262cbbff02f.jpeg",
+    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/119257-2V3a1l8b9k4m.jpg",
     "author": "Chwiryong",
     "status": "Completed",
     "genres": [
@@ -736,8 +736,8 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:leveling-with-the-gods",
     "title": "Leveling with the Gods",
-    "cover": "https://media.kitsu.app/manga/poster_images/44472/original.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/44472/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/60832/large.jpg",
+    "bannerImage": "https://media.kitsu.app/manga/60832/cover_image/large-bdd7a97cd89fff138fef1783989d77c4.jpeg",
     "author": "Black Lotus",
     "status": "Ongoing",
     "genres": [
@@ -755,7 +755,7 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:return-of-the-mount-hua-sect-novel",
     "title": "Return of the Mount Hua Sect",
-    "cover": "https://media.kitsu.app/manga/poster_images/44469/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/59455/large.jpg",
     "bannerImage": "https://media.kitsu.app/manga/cover_images/44469/original.jpg",
     "author": "Biga",
     "status": "Ongoing",
@@ -773,7 +773,7 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:overgeared-novel",
     "title": "Overgeared",
-    "cover": "https://media.kitsu.app/manga/poster_images/43832/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/56166/large.jpg",
     "bannerImage": "https://media.kitsu.app/manga/cover_images/43832/original.jpg",
     "author": "Park Saenal",
     "status": "Ongoing",
@@ -792,8 +792,8 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:tomb-raider-king",
     "title": "Tomb Raider King",
-    "cover": "https://media.kitsu.app/manga/poster_images/43835/original.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/43835/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/54877/large.jpg",
+    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/105398-4UrEhdqZukrg.jpg",
     "author": "SANJIKGAK",
     "status": "Completed",
     "genres": [
@@ -810,8 +810,8 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:kill-the-hero",
     "title": "Kill the Hero",
-    "cover": "https://media.kitsu.app/manga/poster_images/43836/original.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/43836/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/56114/large.jpg",
+    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/105398-4UrEhdqZukrg.jpg",
     "author": "D-Dart",
     "status": "Completed",
     "genres": [
@@ -828,8 +828,8 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:doctors-rebirth",
     "title": "Doctor's Rebirth",
-    "cover": "https://media.kitsu.app/manga/poster_images/44473/original.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/44473/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/59179/large.jpg",
+    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/105398-4UrEhdqZukrg.jpg",
     "author": "Tae Sun",
     "status": "Ongoing",
     "genres": [
@@ -847,8 +847,8 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:chronicles-of-the-heavenly-demon",
     "title": "Chronicles of the Heavenly Demon",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104494-xmWuGEwxzbfB.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/42492/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/54562/large.jpg",
+    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/105398-4UrEhdqZukrg.jpg",
     "author": "Il-hwang",
     "status": "Completed",
     "genres": [
@@ -865,8 +865,8 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:warlock-of-the-magus-world",
     "title": "Warlock of the Magus World",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104494-xmWuGEwxzbfB.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/45756/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/40407/large.jpg",
+    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/125291-3X9k1b2m5n8t.jpg",
     "author": "The Plagiarist",
     "status": "Completed",
     "genres": [
@@ -883,7 +883,7 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:player-who-returned-10000-years-later",
     "title": "Player Who Returned 10,000 Years Later",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104494-xmWuGEwxzbfB.jpg",
+    "cover": "https://media.kitsu.app/manga/63977/poster_image/large-bcc7100bc646f56fab6f90304b7bc24d.jpeg",
     "bannerImage": "https://media.kitsu.app/manga/cover_images/45757/original.jpg",
     "author": "Butterfly Valley",
     "status": "Ongoing",
@@ -901,8 +901,8 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:the-heavenly-demon-cant-live-a-normal-life-novel",
     "title": "The Heavenly Demon Can't Live a Normal Life",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104494-xmWuGEwxzbfB.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/45758/original.jpg",
+    "cover": "https://media.kitsu.app/manga/59974/poster_image/large-6e8e6bf92e444747410a9c2f06ec5132.jpeg",
+    "bannerImage": "https://media.kitsu.app/manga/cover_images/59974/large.jpg",
     "author": "San Cheon",
     "status": "Ongoing",
     "genres": [
@@ -919,8 +919,8 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:academys-undercover-professor",
     "title": "Academy's Undercover Professor",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104494-xmWuGEwxzbfB.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/45759/original.jpg",
+    "cover": "https://media.kitsu.app/manga/63644/poster_image/large-16adc3d279da53b55a5ff3c4b11975d3.jpeg",
+    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/105398-4UrEhdqZukrg.jpg",
     "author": "Sayren",
     "status": "Ongoing",
     "genres": [
@@ -937,8 +937,8 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:the-reincarnated-assassin-is-a-genius-swordsman",
     "title": "The Reincarnated Assassin is a Genius Swordsman",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104494-xmWuGEwxzbfB.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/45760/original.jpg",
+    "cover": "https://media.kitsu.app/manga/68985/poster_image/large-605314d8b4154e841a07c172b3050052.jpeg",
+    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/105398-4UrEhdqZukrg.jpg",
     "author": "Geul Jengi S",
     "status": "Ongoing",
     "genres": [
@@ -958,7 +958,7 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:to-be-a-power-in-the-shadows",
     "title": "The Eminence in Shadow",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx106758-jtXpQYQqyNJv.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/54238/large.jpg",
     "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/106758-IWiib0G2AJdg.jpg",
     "author": "Daisuke Aizawa",
     "status": "Completed",
@@ -976,8 +976,8 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:utsuro-no-hako-to-zero-no-maria",
     "title": "The Empty Box and Zeroth Maria",
-    "cover": "https://media.kitsu.app/manga/poster_images/23971/original.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/23971/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/14109/large.jpg",
+    "bannerImage": "https://media.kitsu.app/manga/cover_images/14109/large.jpg",
     "author": "Eiji Mikage",
     "status": "Completed",
     "genres": [
@@ -993,7 +993,7 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:isekai-nonbiri-nouka",
     "title": "Farming Life in Another World",
-    "cover": "https://media.kitsu.app/manga/poster_images/40961/original.jpg",
+    "cover": "https://media.kitsu.app/manga/40268/poster_image/large-4ab9677b9566e6361f0df16c533de7e2.jpeg",
     "bannerImage": "https://media.kitsu.app/manga/cover_images/40961/original.jpg",
     "author": "Kinosuke Naito",
     "status": "Ongoing",
@@ -1010,7 +1010,7 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:the-world-of-otome-games-is-tough-for-mobs",
     "title": "Trapped in a Dating Sim: Otome Games",
-    "cover": "https://media.kitsu.app/manga/poster_images/42550/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/54705/large.jpg",
     "bannerImage": "https://media.kitsu.app/manga/cover_images/42550/original.jpg",
     "author": "Yomu Mishima",
     "status": "Completed",
@@ -1030,7 +1030,7 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:gimai-seikatsu-days-with-my-step-sister",
     "title": "Days with My Stepsister (Gimai Seikatsu)",
-    "cover": "https://media.kitsu.app/manga/poster_images/45220/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/60504/large.jpg",
     "bannerImage": "https://media.kitsu.app/manga/cover_images/45220/original.jpg",
     "author": "Ghost Mikawa",
     "status": "Completed",
@@ -1047,8 +1047,8 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:lord-of-the-mysteries",
     "title": "Lord of the Mysteries",
-    "cover": "https://media.kitsu.app/manga/poster_images/44468/original.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/44468/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/59428/large.jpg",
+    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/125291-3X9k1b2m5n8t.jpg",
     "author": "Cuttlefish That Loves Diving",
     "status": "Completed",
     "genres": [
@@ -1065,8 +1065,8 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:reverend-insanity",
     "title": "Reverend Insanity (Gu Daoist Master)",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104494-xmWuGEwxzbfB.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/42493/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/54478/large.jpg",
+    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/108050-P8m2b5x7q1v.jpg",
     "author": "Gu Zhen Ren",
     "status": "Completed",
     "genres": [
@@ -1083,8 +1083,8 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:martial-peak",
     "title": "Martial Peak",
-    "cover": "https://media.kitsu.app/manga/poster_images/34348/original.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/34348/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/40987/large.jpg",
+    "bannerImage": "https://media.kitsu.app/manga/cover_images/40987/large.jpg",
     "author": "Momo",
     "status": "Ongoing",
     "genres": [
@@ -1101,8 +1101,8 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:coiling-dragon",
     "title": "Coiling Dragon",
-    "cover": "https://media.kitsu.app/manga/poster_images/25542/original.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/25542/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/35024/large.jpg",
+    "bannerImage": "https://media.kitsu.app/manga/cover_images/35024/large.jpg",
     "author": "I Eat Tomatoes",
     "status": "Completed",
     "genres": [
@@ -1119,8 +1119,8 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:martial-world-novel",
     "title": "Martial World",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104494-xmWuGEwxzbfB.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/42494/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/37605/large.jpg",
+    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/104494-3H7rwoNkGgBe.jpg",
     "author": "Cocooned Cow",
     "status": "Completed",
     "genres": [
@@ -1137,8 +1137,8 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:renegade-immortal",
     "title": "Renegade Immortal (Xian Ni)",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104494-xmWuGEwxzbfB.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/42495/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/38816/large.jpg",
+    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/125291-3X9k1b2m5n8t.jpg",
     "author": "Er Gen",
     "status": "Completed",
     "genres": [
@@ -1155,8 +1155,8 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:i-shall-seal-the-heavens",
     "title": "I Shall Seal the Heavens (ISSTH)",
-    "cover": "https://media.kitsu.app/manga/poster_images/34349/original.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/34349/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/40544/large.jpg",
+    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/108050-P8m2b5x7q1v.jpg",
     "author": "Er Gen",
     "status": "Completed",
     "genres": [
@@ -1173,8 +1173,8 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:a-will-eternal",
     "title": "A Will Eternal",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104494-xmWuGEwxzbfB.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/42496/original.jpg",
+    "cover": "https://media.kitsu.app/manga/469/poster_image/large-c8f4a9ee0b9d6d552d9caa51d12cccec.jpeg",
+    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/125291-3X9k1b2m5n8t.jpg",
     "author": "Er Gen",
     "status": "Completed",
     "genres": [
@@ -1191,8 +1191,8 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:against-the-gods-novel",
     "title": "Against the Gods",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104494-xmWuGEwxzbfB.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/42497/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/54416/large.jpg",
+    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/104494-3H7rwoNkGgBe.jpg",
     "author": "Mars Gravity",
     "status": "Ongoing",
     "genres": [
@@ -1209,8 +1209,8 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:the-desolate-era-novel",
     "title": "The Desolate Era",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104494-xmWuGEwxzbfB.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/34350/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/40082/large.jpg",
+    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/86707-3H7rwoNkGgBe.jpg",
     "author": "I Eat Tomatoes",
     "status": "Completed",
     "genres": [
@@ -1227,8 +1227,8 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:battle-through-the-heavens-novel",
     "title": "Battle Through the Heavens",
-    "cover": "https://media.kitsu.app/manga/poster_images/25543/original.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/25543/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/32621/large.jpg",
+    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/86707-3H7rwoNkGgBe.jpg",
     "author": "Heavenly Silkworm Potato",
     "status": "Completed",
     "genres": [
@@ -1245,7 +1245,7 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:perfect-world",
     "title": "Perfect World (Wanmei Shijie)",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx32485-Nl8bI9VXwRiV.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/26938/large.jpg",
     "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/86707-3H7rwoNkGgBe.jpg",
     "author": "Chen Dong",
     "status": "Completed",
@@ -1263,7 +1263,7 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:ancient-godly-monarch",
     "title": "Ancient Godly Monarch",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx167603-emKJALMoYdx4.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/40427/large.jpg",
     "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/86707-3H7rwoNkGgBe.jpg",
     "author": "Jing Wu Hen",
     "status": "Completed",
@@ -1281,8 +1281,8 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:tales-of-demons-and-gods",
     "title": "Tales of Demons and Gods",
-    "cover": "https://media.kitsu.app/manga/poster_images/25544/original.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/25544/original.jpg",
+    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx86707-QD3UyAOHUEaT.jpg",
+    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/86707-3H7rwoNkGgBe.jpg",
     "author": "Mad Snail",
     "status": "Ongoing",
     "genres": [
@@ -1299,7 +1299,7 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:a-record-of-a-mortals-journey-to-immortality-novel",
     "title": "A Record of a Mortal's Journey to Immortality",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx120412-xtWfQuyu3Wsn.jpg",
+    "cover": "https://media.kitsu.app/manga/65008/poster_image/large-cdbf598f8aea1409ad78f78e12e6f610.jpeg",
     "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/125291-3X9k1b2m5n8t.jpg",
     "author": "Wang Yu",
     "status": "Completed",
@@ -1317,7 +1317,7 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:ze-tian-ji",
     "title": "Way of Choices (Ze Tian Ji)",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/101409-ZD0EylMhydPc.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/55551/large.jpg",
     "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/86707-3H7rwoNkGgBe.jpg",
     "author": "Mao Ni",
     "status": "Completed",
@@ -1335,7 +1335,7 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:lord-xue-ying",
     "title": "Lord Xue Ying",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx107370-PVPvU1RnF7hz.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/40930/large.jpg",
     "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/86707-3H7rwoNkGgBe.jpg",
     "author": "I Eat Tomatoes",
     "status": "Completed",
@@ -1353,7 +1353,7 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:stellar-transformations",
     "title": "Stellar Transformations",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx101783-gRI4WpvStbhC.png",
+    "cover": "https://media.kitsu.app/manga/poster_images/38910/large.jpg",
     "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/86707-3H7rwoNkGgBe.jpg",
     "author": "I Eat Tomatoes",
     "status": "Completed",
@@ -1371,7 +1371,7 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:swallowed-star",
     "title": "Swallowed Star",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx130624-mB29XN5oZjD4.png",
+    "cover": "https://media.kitsu.app/manga/poster_images/40665/large.jpg",
     "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/86707-3H7rwoNkGgBe.jpg",
     "author": "I Eat Tomatoes",
     "status": "Completed",
@@ -1389,7 +1389,7 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:nine-star-hegemon-body-arts",
     "title": "Nine Star Hegemon Body Arts",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104494-xmWuGEwxzbfB.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/54895/large.jpg",
     "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/104494-3H7rwoNkGgBe.jpg",
     "author": "Ordinary Magician",
     "status": "Ongoing",
@@ -1407,8 +1407,8 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:dragon-prince-yuan",
     "title": "Dragon Prince Yuan (Yuan Zun)",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104494-xmWuGEwxzbfB.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/42506/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/40809/large.jpg",
+    "bannerImage": "https://media.kitsu.app/manga/cover_images/40809/large.jpg",
     "author": "Heavenly Silkworm Potato",
     "status": "Completed",
     "genres": [
@@ -1425,8 +1425,8 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:the-great-ruler",
     "title": "The Great Ruler (Da Zhu Zai)",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104494-xmWuGEwxzbfB.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/42507/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/38798/large.jpg",
+    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/86707-3H7rwoNkGgBe.jpg",
     "author": "Heavenly Silkworm Potato",
     "status": "Completed",
     "genres": [
@@ -1443,8 +1443,8 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:martial-universe",
     "title": "Martial Universe (Wu Dong Qian Kun)",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104494-xmWuGEwxzbfB.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/42508/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/38743/large.jpg",
+    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/86707-3H7rwoNkGgBe.jpg",
     "author": "Heavenly Silkworm Potato",
     "status": "Completed",
     "genres": [
@@ -1461,8 +1461,8 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:emperors-domination",
     "title": "Emperor's Domination",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104494-xmWuGEwxzbfB.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/42509/original.jpg",
+    "cover": "https://media.kitsu.app/manga/63018/poster_image/large-8f5a0875f65aadfc9c73322ea03ca3e1.jpeg",
+    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/104494-3H7rwoNkGgBe.jpg",
     "author": "Yan Bi Xiao Sheng",
     "status": "Ongoing",
     "genres": [
@@ -1479,7 +1479,7 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:cultivation-chat-group",
     "title": "Cultivation Chat Group",
-    "cover": "https://uploads.mangadex.org/covers/39d90e07-d29a-4583-bc54-dbbcb5f07612/d6e9451e-80e1-4dc3-aaf3-aeda12c2cbbd.jpg.512.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/54536/large.jpg",
     "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/125291-3X9k1b2m5n8t.jpg",
     "author": "Legend of the Paladin",
     "status": "Completed",
@@ -1497,7 +1497,7 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:my-house-of-horrors",
     "title": "My House of Horrors",
-    "cover": "https://uploads.mangadex.org/covers/dbcc54b8-0a76-4508-a3a8-eca0a8f5492d/e5076e0a-9264-4e87-932d-ff65f773432d.png.512.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/54202/large.jpg",
     "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/125291-3X9k1b2m5n8t.jpg",
     "author": "I Fix Air Conditioners",
     "status": "Completed",
@@ -1515,7 +1515,7 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:the-charm-of-soul-pets",
     "title": "The Charm of Soul Pets",
-    "cover": "https://uploads.mangadex.org/covers/84098265-e497-4e94-90b0-9a3fce32043a/726d41b4-68dd-48f7-97b8-0e34bf4a94b1.jpg.512.jpg",
+    "cover": "https://media.kitsu.app/manga/62537/poster_image/large-b1cfda54e6727e75d125d085c9a708ae.jpeg",
     "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/86707-3H7rwoNkGgBe.jpg",
     "author": "Fish's Sky",
     "status": "Completed",
@@ -1533,8 +1533,8 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:world-of-cultivation",
     "title": "World of Cultivation",
-    "cover": "https://uploads.mangadex.org/covers/c79dceb6-9d5b-4d52-9d58-89afde9c264f/071531d2-4f0f-407d-8684-05c37720968d.jpg.512.jpg",
-    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/104494-3H7rwoNkGgBe.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/54550/large.jpg",
+    "bannerImage": "https://media.kitsu.app/manga/cover_images/54550/large.jpg",
     "author": "Fang Xiang",
     "status": "Completed",
     "genres": [
@@ -1551,7 +1551,7 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:absolute-resonance",
     "title": "Absolute Resonance",
-    "cover": "https://uploads.mangadex.org/covers/5ac45000-7df6-4fb4-b482-3a6cbf942e07/4f9a7b67-ea61-4fe2-9f68-6f7dd914af8e.jpg.512.jpg",
+    "cover": "https://media.kitsu.app/manga/66715/poster_image/large-8d9ad6bcae2dc720d87a0a44312b621b.jpeg",
     "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/86707-3H7rwoNkGgBe.jpg",
     "author": "Heavenly Silkworm Potato",
     "status": "Ongoing",
@@ -1569,7 +1569,7 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:martial-god-asura-novel",
     "title": "Martial God Asura",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104494-xmWuGEwxzbfB.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/58479/large.jpg",
     "bannerImage": "https://media.kitsu.app/manga/cover_images/34352/original.jpg",
     "author": "Kindhearted Bee",
     "status": "Ongoing",
@@ -1587,7 +1587,7 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:super-gene",
     "title": "Super Gene",
-    "cover": "https://uploads.mangadex.org/covers/cec577bc-7795-400e-a656-59eca3f7556c/813ce722-6c4e-4b86-b890-db59dfdba4ef.jpg.512.jpg",
+    "cover": "https://media.kitsu.app/manga/63627/poster_image/large-f856cfddfb38d8e5ef40c9faf2ab6bf1.jpeg",
     "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/105398-4UrEhdqZukrg.jpg",
     "author": "Twelve Winged Dark Seraphim",
     "status": "Completed",
@@ -1605,7 +1605,7 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:monster-paradise",
     "title": "Monster Paradise",
-    "cover": "https://uploads.mangadex.org/covers/302b6955-28b6-4968-956e-cb003fc34ba2/5fdfd926-b08d-4431-a422-74319e8a0184.jpg.512.jpg",
+    "cover": "https://media.kitsu.app/manga/66671/poster_image/large-84e93d46839136421b1f1a5bec9560aa.jpeg",
     "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/105398-4UrEhdqZukrg.jpg",
     "author": "Nuclear Warhead Cooked Tea",
     "status": "Completed",
@@ -1623,8 +1623,8 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:way-of-the-devil",
     "title": "Way of the Devil",
-    "cover": "https://uploads.mangadex.org/covers/e2e84a56-193a-43e4-9ebd-9a714f9dc42a/13ff51dd-34de-4eaf-8459-57a62cfd5a4c.jpg.512.jpg",
-    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/108050-P8m2b5x7q1v.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/15448/large.jpg",
+    "bannerImage": "https://media.kitsu.app/manga/cover_images/15448/large.jpg",
     "author": "Get Lost",
     "status": "Completed",
     "genres": [
@@ -1641,7 +1641,7 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:let-me-game-in-peace",
     "title": "Let Me Game in Peace",
-    "cover": "https://uploads.mangadex.org/covers/86d25eac-eb2f-4ec0-a341-f1a5cbbe80b8/28a5585c-cc55-457f-9c3e-310061d83f15.jpg.512.jpg",
+    "cover": "https://media.kitsu.app/manga/66417/poster_image/large-2a8f73dff6f6468e9be1f1a1a55ffbde.jpeg",
     "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/105398-4UrEhdqZukrg.jpg",
     "author": "Twelve Winged Dark Seraphim",
     "status": "Completed",
@@ -1659,7 +1659,7 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:top-tier-providence-secretly-cultivate-for-a-thousand-years",
     "title": "Top Tier Providence, Secretly Cultivate for a Thousand Years",
-    "cover": "https://uploads.mangadex.org/covers/c089b50c-beeb-434a-ab8d-2676dc026564/1b68d2fc-8e1c-4703-8daa-2e8228d5ad6c.jpg.512.jpg",
+    "cover": "https://media.kitsu.app/manga/65005/poster_image/large-1c084daedefef267f258aafc6a26c1e8.jpeg",
     "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/125291-3X9k1b2m5n8t.jpg",
     "author": "Let Me Laugh",
     "status": "Completed",
@@ -1677,8 +1677,8 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:the-kings-avatar",
     "title": "The King's Avatar (Quan Zhi Gao Shou)",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104494-xmWuGEwxzbfB.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/34353/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/39180/large.jpg",
+    "bannerImage": "https://media.kitsu.app/manga/cover_images/39180/large.jpg",
     "author": "Butterfly Blue",
     "status": "Completed",
     "genres": [
@@ -1695,8 +1695,8 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:release-that-witch",
     "title": "Release That Witch",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104494-xmWuGEwxzbfB.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/34355/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/54522/large.jpg",
+    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/108050-P8m2b5x7q1v.jpg",
     "author": "Er Mu",
     "status": "Completed",
     "genres": [
@@ -1714,8 +1714,8 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:library-of-heavens-path",
     "title": "Library of Heaven's Path",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104494-xmWuGEwxzbfB.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/34356/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/40355/large.jpg",
+    "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/104494-3H7rwoNkGgBe.jpg",
     "author": "Heng Sao Tian Ya",
     "status": "Completed",
     "genres": [
@@ -1732,8 +1732,8 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
   {
     "id": "fwn:versatile-mage",
     "title": "Versatile Mage (Quanzhi Fashi)",
-    "cover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104494-xmWuGEwxzbfB.jpg",
-    "bannerImage": "https://media.kitsu.app/manga/cover_images/34357/original.jpg",
+    "cover": "https://media.kitsu.app/manga/poster_images/54093/large.jpg",
+    "bannerImage": "https://media.kitsu.app/manga/cover_images/54093/large.jpg",
     "author": "Chaos",
     "status": "Completed",
     "genres": [

@@ -12,7 +12,6 @@ export function novelCover(url?: string | null): string | null {
   // both spellings must pass through, or Kitsu covers get proxied and 403.)
   if (
     url.includes("anilist.co") ||
-    url.includes("mangadex.org") ||
     url.includes("kitsu.io") ||
     url.includes("kitsu.app") ||
     url.includes("myanimelist.net")

@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
     host === "www.fanmtl.com" || host.endsWith(".fanmtl.com") ||
     host === "lightnovelworld.org" || host.endsWith(".lightnovelworld.org") ||
     host === "allnovelupdates.com" || host.endsWith(".allnovelupdates.com") ||
+    host === "freewebnovel.com" || host.endsWith(".freewebnovel.com") ||
     // DOT BOUNDARIES matter on suffix checks: a bare endsWith("kitsu.app")
     // also matches "evilkitsu.app" — any attacker-registered domain ending in
     // the string would ride the proxy.
