@@ -80,7 +80,7 @@ export default function NovelReaderPage() {
 
   // Auto-load next chapter on scroll into view
   useEffect(() => {
-    if (!autoLoad || loading || loadingNext || !currentNextId) return;
+    if (!autoLoad || loading || loadingNext || !currentNextId || loadedSections.length === 0) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -89,12 +89,15 @@ export default function NovelReaderPage() {
           fetch(`/api/novels/${encodeURIComponent(id)}/chapter/${encodeURIComponent(currentNextId)}`)
             .then((r) => r.json())
             .then((nextData) => {
-              if (nextData && nextData.content?.length) {
-                setLoadedSections((prev) => [
-                  ...prev,
-                  { id: currentNextId, title: nextData.title, content: nextData.content }
-                ]);
-                // Silently update reading progress for the newly loaded chapter
+              if (nextData && nextData.content?.length && !nextData.error) {
+                setLoadedSections((prev) => {
+                  // Prevent duplicate sections
+                  if (prev.some(s => s.id === currentNextId)) return prev;
+                  return [
+                    ...prev,
+                    { id: currentNextId, title: nextData.title, content: nextData.content }
+                  ];
+                });
                 if (novel?.title) {
                   recordReading("novel", { id, title: novel.title, cover: novel.cover, chapterId: currentNextId, chapterTitle: nextData.title });
                   writeLocalProgress("novel", id, currentNextId, Date.now());
@@ -105,7 +108,7 @@ export default function NovelReaderPage() {
             .catch(() => setLoadingNext(false));
         }
       },
-      { rootMargin: "600px" }
+      { rootMargin: "200px" }
     );
 
     const el = bottomObserverRef.current;
@@ -113,7 +116,7 @@ export default function NovelReaderPage() {
     return () => {
       if (el) observer.unobserve(el);
     };
-  }, [autoLoad, loading, loadingNext, currentNextId, id, novel]);
+  }, [autoLoad, loading, loadingNext, currentNextId, id, novel, loadedSections.length]);
 
   /**
    * ONE timestamp per (novel, chapter), held across re-renders.
@@ -122,7 +125,7 @@ export default function NovelReaderPage() {
 
   // Save progress + record the "Continue Reading" entry — ONLY for a chapter that actually loaded.
   useEffect(() => {
-    if (!chapter || !chapter.content?.length) return;
+    if (!chapter || !chapter.content?.length || (chapter as any).error) return;
 
     const key = `${id}::${chapterId}`;
     if (readStampRef.current?.key !== key) readStampRef.current = { key, at: Date.now() };
@@ -137,7 +140,7 @@ export default function NovelReaderPage() {
 
   // Reward reading: after a short dwell on a loaded chapter, grant Arise Points.
   useEffect(() => {
-    if (!user || !chapter || !chapter.content?.length) return;
+    if (!user || !chapter || !chapter.content?.length || (chapter as any).error) return;
     const timer = setTimeout(() => {
       earnPoints(user.id, "read", `novel:${id}:${chapterId}`);
     }, 3500);
@@ -146,6 +149,23 @@ export default function NovelReaderPage() {
 
   // Window the drawer list around the current chapter to keep the DOM light.
   const drawerChapters = idx >= 0 ? chapters.slice(Math.max(0, idx - 150), idx + 150) : chapters.slice(0, 300);
+
+  const retryChapter = () => {
+    setLoading(true);
+    setChapter(null);
+    setLoadedSections([]);
+    fetch(`/api/novels/${encodeURIComponent(id)}/chapter/${encodeURIComponent(chapterId)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        const ch = data && data.error ? null : data;
+        setChapter(ch);
+        if (ch && ch.content?.length) {
+          setLoadedSections([{ id: chapterId, title: ch.title, content: ch.content }]);
+        }
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  };
 
   const go = (cid: string | null) => {
     if (cid) router.push(`/novel/${encodeURIComponent(id)}/chapter/${encodeURIComponent(cid)}`);
@@ -220,11 +240,17 @@ export default function NovelReaderPage() {
         <div className="py-40 flex justify-center">
           <Loader2 className="w-10 h-10 text-pink-500 animate-spin" />
         </div>
-      ) : !chapter || !chapter.content?.length ? (
-        <div className="py-40 text-center" style={{ color: t.muted }}>
-          Failed to load this chapter.{" "}
-          <button onClick={() => go(chapterId)} className="text-pink-400 underline">
-            Retry
+      ) : !chapter || !chapter.content?.length || (chapter as any).error ? (
+        <div className="py-32 px-4 text-center" style={{ color: t.muted }}>
+          <p className="text-lg font-bold mb-2 text-white">Unable to load Chapter {chapterId}</p>
+          <p className="text-sm mb-6 max-w-sm mx-auto" style={{ color: t.muted }}>
+            The chapter is syncing with the translation mirrors. Please tap retry to reload.
+          </p>
+          <button
+            onClick={retryChapter}
+            className="px-6 py-2.5 bg-pink-500 hover:bg-pink-400 text-black font-bold rounded-xl transition text-sm shadow-lg shadow-pink-500/20"
+          >
+            Retry Loading
           </button>
         </div>
       ) : (

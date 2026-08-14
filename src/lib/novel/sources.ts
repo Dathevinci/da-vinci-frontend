@@ -99,19 +99,28 @@ export async function getChapterContent(id: string, chapterId: string): Promise<
   const { provider, slug } = resolveSource(id);
   const cleanChap = decodeURIComponent(chapterId).replace(/^\//, '');
 
+  let lastError: any = null;
+
+  // Primary source attempt
   try {
     if (provider === "ranobes") {
       return await Ranobes.getRanobesChapter(slug, cleanChap);
     }
     return await FreeWebNovel.getFreeWebNovelChapter(slug, cleanChap);
-  } catch {
-    return {
-      title: "Chapter",
-      content: ["This chapter is currently loading or being retrieved from the translation source. Please refresh in a moment."],
-      prev: null,
-      next: null
-    };
+  } catch (err) {
+    lastError = err;
   }
+
+  // Cross-provider fallback: if primary failed, attempt alternate provider
+  try {
+    if (provider === "ranobes") {
+      return await FreeWebNovel.getFreeWebNovelChapter(slug, cleanChap);
+    } else {
+      return await Ranobes.getRanobesChapter(slug, cleanChap);
+    }
+  } catch {}
+
+  throw lastError || new Error("Unable to retrieve chapter content");
 }
 
 export async function searchAll(query: string, page = 1): Promise<{ results: NovelResult[]; hasNextPage: boolean }> {

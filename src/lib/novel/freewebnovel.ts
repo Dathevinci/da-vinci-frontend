@@ -5,11 +5,11 @@ import { ALL_MASTERPIECES } from "./masterpieces";
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
 const BASE_URL = "https://freewebnovel.com";
 
-// Multi-proxy rotating pool to eliminate Cloudflare 429/rate-limiting
+// Multi-proxy parallel pool with fast Promise.any racing
 const PROXIES = [
   (url: string) => `https://goodproxy.goodproxy.workers.dev/fetch?url=${encodeURIComponent(url)}`,
+  (url: string) => `https://proxy.cors.sh/${url}`,
   (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-  (url: string) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
   (url: string) => url,
 ];
 
@@ -19,21 +19,26 @@ const chapterCache = new Map<string, { data: ChapterContent; timestamp: number }
 const CACHE_TTL = 1000 * 60 * 30; // 30 minutes
 
 async function fetchWithProxyFallback(targetUrl: string): Promise<string | null> {
-  for (const proxyBuilder of PROXIES) {
-    try {
+  try {
+    const promises = PROXIES.map(async (proxyBuilder) => {
       const url = proxyBuilder(targetUrl);
       const res = await axios.get(url, {
-        headers: { "User-Agent": UA },
-        timeout: 7000
+        headers: {
+          "User-Agent": UA,
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+          "Accept-Language": "en-US,en;q=0.5"
+        },
+        timeout: 4500
       });
-      if (res.status === 200 && typeof res.data === "string" && res.data.length > 300) {
+      if (res.status === 200 && typeof res.data === "string" && res.data.length > 400 && !res.data.includes("Cloudflare</title>") && !res.data.includes("Access denied")) {
         return res.data;
       }
-    } catch {
-      // try next proxy
-    }
+      throw new Error("Invalid response");
+    });
+    return await Promise.any(promises);
+  } catch {
+    return null;
   }
-  return null;
 }
 
 export async function searchFreeWebNovel(query: string): Promise<NovelResult[]> {
@@ -171,15 +176,7 @@ export async function getFreeWebNovelChapter(slug: string, chapterId: string): P
   const next = String(num + 1);
 
   if (!html) {
-    return {
-      title: `Chapter ${num}`,
-      content: [
-        "This chapter is currently being synchronized with the master translation archive.",
-        "Please check your internet connection or try navigating to the next chapter."
-      ],
-      prev,
-      next
-    };
+    throw new Error(`Failed to retrieve Chapter ${num} from translation server`);
   }
 
   const titleMatch = html.match(/<h1 class="tit"[^>]*>([\s\S]*?)<\/h1>/i) ||
@@ -200,9 +197,13 @@ export async function getFreeWebNovelChapter(slug: string, chapterId: string): P
     .map(p => p.replace(/&amp;/g, '&').replace(/&apos;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim())
     .filter(p => p.length > 20 && !p.toLowerCase().includes("freewebnovel") && !p.toLowerCase().includes("report chapter") && !p.toLowerCase().includes("read latest chapters"));
 
+  if (cleanedParagraphs.length === 0) {
+    throw new Error(`Chapter ${num} content was empty or protected`);
+  }
+
   const finalContent: ChapterContent = {
     title: titleMatch ? titleMatch[1].replace(/<[^>]+>/g, "").trim() : `Chapter ${num}`,
-    content: cleanedParagraphs.length > 0 ? cleanedParagraphs : ["Chapter text loaded successfully."],
+    content: cleanedParagraphs,
     prev,
     next
   };
