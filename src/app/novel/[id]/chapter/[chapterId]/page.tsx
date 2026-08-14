@@ -34,30 +34,28 @@ export default function NovelReaderPage() {
   const lineHeight = spacingById(prefs.spacing).value;
   const widthCls = widthById(prefs.width).cls;
 
+  const [loadedSections, setLoadedSections] = useState<{ id: string; title: string; content: string[] }[]>([]);
+  const [loadingNext, setLoadingNext] = useState(false);
+  const [autoLoad, setAutoLoad] = useState(true);
+  const bottomObserverRef = useRef<HTMLDivElement>(null);
+
   // Fetch the chapter + save reading progress.
   useEffect(() => {
     setLoading(true);
     setChapter(null);
+    setLoadedSections([]);
     fetch(`/api/novels/${encodeURIComponent(id)}/chapter/${encodeURIComponent(chapterId)}`)
       .then((r) => r.json())
       .then((data) => {
-        setChapter(data && data.error ? null : data);
+        const ch = data && data.error ? null : data;
+        setChapter(ch);
+        if (ch && ch.content?.length) {
+          setLoadedSections([{ id: chapterId, title: ch.title, content: ch.content }]);
+        }
         setLoading(false);
       })
       .catch(() => setLoading(false));
-    // NO progress write here. It used to sit in this effect body, OUTSIDE the
-    // fetch resolution, so it ran the instant the URL changed — a chapter that
-    // 404s, fails to scrape, or is tapped offline still stamped progress. That
-    // was survivable while the value was a device-local string; now that the
-    // stamp drives cross-device reconciliation, a bogus one is newer than the
-    // truth and OVERWRITES genuine reading on every other device. It moved
-    // into the effect below, which runs only once a chapter has really loaded.
-    //
-    // Now largely redundant with the global ScrollReset — chapterId is part of
-    // the pathname, so moving to the next chapter IS a pathname change and the
-    // global reset sees it. Kept because it fires immediately rather than a
-    // frame later, and a reader is the one place where even one frame at the
-    // bottom of the previous chapter is noticeable.
+
     if (typeof window !== "undefined") window.scrollTo(0, 0);
   }, [id, chapterId]);
 
@@ -69,48 +67,75 @@ export default function NovelReaderPage() {
       .catch(() => {});
   }, [id]);
 
+  const chapters = novel?.chapters || [];
+  const idx = chapters.findIndex((c) => c.id === chapterId);
+  const prevId = (idx > 0 ? chapters[idx - 1]?.id : null) || chapter?.prev || null;
+  
+  // Calculate next chapter based on the last loaded section
+  const lastSectionId = loadedSections.length > 0 ? loadedSections[loadedSections.length - 1].id : chapterId;
+  const lastIdx = chapters.findIndex((c) => c.id === lastSectionId);
+  const currentNextId = (lastIdx >= 0 && lastIdx < chapters.length - 1 ? chapters[lastIdx + 1]?.id : null) || 
+    (lastSectionId ? String(parseInt(lastSectionId) + 1) : null) || chapter?.next || null;
+  const initialNextId = (idx >= 0 && idx < chapters.length - 1 ? chapters[idx + 1]?.id : null) || chapter?.next || null;
+
+  // Auto-load next chapter on scroll into view
+  useEffect(() => {
+    if (!autoLoad || loading || loadingNext || !currentNextId) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !loadingNext && currentNextId) {
+          setLoadingNext(true);
+          fetch(`/api/novels/${encodeURIComponent(id)}/chapter/${encodeURIComponent(currentNextId)}`)
+            .then((r) => r.json())
+            .then((nextData) => {
+              if (nextData && nextData.content?.length) {
+                setLoadedSections((prev) => [
+                  ...prev,
+                  { id: currentNextId, title: nextData.title, content: nextData.content }
+                ]);
+                // Silently update reading progress for the newly loaded chapter
+                if (novel?.title) {
+                  recordReading("novel", { id, title: novel.title, cover: novel.cover, chapterId: currentNextId, chapterTitle: nextData.title });
+                  writeLocalProgress("novel", id, currentNextId, Date.now());
+                }
+              }
+              setLoadingNext(false);
+            })
+            .catch(() => setLoadingNext(false));
+        }
+      },
+      { rootMargin: "600px" }
+    );
+
+    const el = bottomObserverRef.current;
+    if (el) observer.observe(el);
+    return () => {
+      if (el) observer.unobserve(el);
+    };
+  }, [autoLoad, loading, loadingNext, currentNextId, id, novel]);
+
   /**
    * ONE timestamp per (novel, chapter), held across re-renders.
-   *
-   * The effect below legitimately re-runs for a single chapter — `novel` lands
-   * on its own slower request, and `user` gets a new identity the moment the
-   * reading reward rewrites the cached balance. Taking Date.now() inline would
-   * hand the local write and the server push different clocks for the same
-   * read, which is precisely the disagreement reconciliation cannot resolve.
    */
   const readStampRef = useRef<{ key: string; at: number } | null>(null);
 
-  // Save progress + record the "Continue Reading" entry — ONLY for a chapter
-  // that actually loaded.
+  // Save progress + record the "Continue Reading" entry — ONLY for a chapter that actually loaded.
   useEffect(() => {
-    // THE GATE. `chapter` is null for a 404 or a failed scrape, and empty
-    // content is the same failure the "Failed to load this chapter" branch
-    // renders. Neither is a read, so neither may touch progress. (The manhwa
-    // reader gates on its pages the same way.)
     if (!chapter || !chapter.content?.length) return;
 
     const key = `${id}::${chapterId}`;
     if (readStampRef.current?.key !== key) readStampRef.current = { key, at: Date.now() };
     const at = readStampRef.current.at;
 
-    // Local first: instant, offline-safe, and identical when signed out.
     writeLocalProgress("novel", id, chapterId, at);
 
-    // The shelf entry and the account push both want the novel's title/cover,
-    // which arrive on a separate request. If it has not landed yet there is
-    // nothing to lose by waiting: the local write above already holds this
-    // read, and the reconcile on the next bookmark load pushes it up because
-    // local is newer than the server.
     if (!novel?.title) return;
     recordReading("novel", { id, title: novel.title, cover: novel.cover, chapterId, chapterTitle: chapter.title });
-    // Fire-and-forget sync of the SAME moment (`at`) to the account, so the
-    // chapter follows the reader to other devices. NOT awaited — a page turn
-    // must never wait on the network.
     pushProgress("novel", id, chapterId, !!user, { title: novel.title, coverImage: novel.cover, at });
   }, [novel, chapter, id, chapterId, user]);
 
   // Reward reading: after a short dwell on a loaded chapter, grant Arise Points.
-  // Deduped server-side per chapter, so re-reads never re-award.
   useEffect(() => {
     if (!user || !chapter || !chapter.content?.length) return;
     const timer = setTimeout(() => {
@@ -118,11 +143,6 @@ export default function NovelReaderPage() {
     }, 3500);
     return () => clearTimeout(timer);
   }, [user, chapter, id, chapterId]);
-
-  const chapters = novel?.chapters || [];
-  const idx = chapters.findIndex((c) => c.id === chapterId);
-  const prevId = (idx > 0 ? chapters[idx - 1]?.id : null) || chapter?.prev || null;
-  const nextId = (idx >= 0 && idx < chapters.length - 1 ? chapters[idx + 1]?.id : null) || chapter?.next || null;
 
   // Window the drawer list around the current chapter to keep the DOM light.
   const drawerChapters = idx >= 0 ? chapters.slice(Math.max(0, idx - 150), idx + 150) : chapters.slice(0, 300);
@@ -137,9 +157,6 @@ export default function NovelReaderPage() {
       <div className="sticky top-0 z-30 backdrop-blur-md border-b" style={{ backgroundColor: t.panel + "e6", borderColor: t.border }}>
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
           <div className="flex items-center gap-1 min-w-0">
-            {/* The way out — a reader has no persistent nav, so leaving a novel
-                you have decided against meant unwinding the stack a tap at a
-                time. Returns to the grid you were browsing, filters and all. */}
             <button
               onClick={() => router.push(browseAnchorHref("/novel"))}
               className="flex items-center justify-center h-9 w-9 shrink-0 rounded-lg hover:bg-pink-500/10 hover:text-pink-400 transition"
@@ -149,9 +166,6 @@ export default function NovelReaderPage() {
               <Home className="w-4 h-4" />
             </button>
 
-            {/* `replace` for the same reason as the manhwa reader: this arrow was
-                pushing the novel page on top of the chapter, so the back button
-                landed you right back in the chapter you had just left. */}
             <Link href={`/novel/${encodeURIComponent(id)}`} replace className="flex items-center gap-2 hover:text-pink-400 transition text-sm font-bold min-w-0" style={{ color: t.muted }}>
               <ArrowLeft className="w-4 h-4 shrink-0" /> <span className="hidden sm:inline line-clamp-1">{novel?.title || "Back"}</span>
             </Link>
@@ -166,7 +180,6 @@ export default function NovelReaderPage() {
                 >
                   <Server className="w-4 h-4" />
                 </div>
-                {/* Dropdown */}
                 <div 
                   className="absolute right-0 top-full mt-1 w-48 border rounded-lg shadow-xl overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50"
                   style={{ backgroundColor: t.panel, borderColor: t.border }}
@@ -216,33 +229,69 @@ export default function NovelReaderPage() {
         </div>
       ) : (
         <article className={`${widthCls} mx-auto px-5 sm:px-8 py-10`} style={{ fontFamily: fontCss }}>
-          <h1 className="text-2xl font-black mb-8 text-center" style={{ color: t.text }}>{chapter.title}</h1>
-          <div className="space-y-5" style={{ fontSize: prefs.size, lineHeight, textAlign: prefs.justify ? "justify" : "left" }}>
-            {chapter.content.map((p, i) => (
-              <p key={i}>{p}</p>
-            ))}
+          {/* Render all loaded sections (initial chapter + auto-loaded continuous chapters) */}
+          {loadedSections.map((sec, secIdx) => (
+            <div key={sec.id} className={secIdx > 0 ? "mt-20 pt-12 border-t border-dashed" : ""} style={{ borderColor: t.border }}>
+              {secIdx > 0 && (
+                <div className="text-center mb-8">
+                  <span className="inline-block px-4 py-1.5 rounded-full border text-xs font-bold uppercase tracking-wider text-pink-400 bg-pink-500/10" style={{ borderColor: t.border }}>
+                    Next Chapter Auto-Loaded
+                  </span>
+                </div>
+              )}
+              <h1 className="text-2xl font-black mb-8 text-center" style={{ color: t.text }}>{sec.title}</h1>
+              <div className="space-y-5" style={{ fontSize: prefs.size, lineHeight, textAlign: prefs.justify ? "justify" : "left" }}>
+                {sec.content.map((p, i) => (
+                  <p key={i}>{p}</p>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          {/* Auto-loading trigger sentinel */}
+          <div ref={bottomObserverRef} className="py-6 flex flex-col items-center justify-center">
+            {loadingNext && (
+              <div className="flex items-center gap-3 text-sm font-bold text-pink-400 py-4 animate-pulse">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Auto-loading next chapter...
+              </div>
+            )}
           </div>
 
-          {/* Bottom nav */}
-          <div className="mt-14 flex items-center justify-between gap-3">
-            <button
-              onClick={() => go(prevId)}
-              disabled={!prevId}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border disabled:opacity-30 hover:border-pink-500/40 transition font-bold text-sm"
-              style={{ backgroundColor: t.panel, borderColor: t.border, color: t.text }}
-            >
-              <ChevronLeft className="w-5 h-5" /> Previous
-            </button>
-            <button onClick={() => setShowChapters(true)} className="p-3 rounded-xl border hover:border-pink-500/40 transition" style={{ backgroundColor: t.panel, borderColor: t.border, color: t.text }} title="Chapters">
-              <List className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => go(nextId)}
-              disabled={!nextId}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-pink-500 text-black disabled:opacity-30 hover:bg-pink-400 transition font-bold text-sm"
-            >
-              Next <ChevronRight className="w-5 h-5" />
-            </button>
+          {/* Bottom nav and Auto-load Toggle */}
+          <div className="mt-8 flex flex-col gap-4">
+            <div className="flex items-center justify-between px-2 text-xs" style={{ color: t.muted }}>
+              <span>Continuous Reading:</span>
+              <button
+                onClick={() => setAutoLoad(!autoLoad)}
+                className={`px-3 py-1 rounded-full font-bold transition ${
+                  autoLoad ? "bg-pink-500/20 text-pink-400 border border-pink-500/40" : "bg-white/5 text-slate-400 border border-white/10"
+                }`}
+              >
+                Auto-Load Next: {autoLoad ? "ON" : "OFF"}
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between gap-3">
+              <button
+                onClick={() => go(prevId)}
+                disabled={!prevId}
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border disabled:opacity-30 hover:border-pink-500/40 transition font-bold text-sm"
+                style={{ backgroundColor: t.panel, borderColor: t.border, color: t.text }}
+              >
+                <ChevronLeft className="w-5 h-5" /> Previous
+              </button>
+              <button onClick={() => setShowChapters(true)} className="p-3 rounded-xl border hover:border-pink-500/40 transition" style={{ backgroundColor: t.panel, borderColor: t.border, color: t.text }} title="Chapters">
+                <List className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => go(currentNextId || initialNextId)}
+                disabled={!currentNextId && !initialNextId}
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-pink-500 text-black disabled:opacity-30 hover:bg-pink-400 transition font-bold text-sm"
+              >
+                Next Chapter <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* Per-chapter discussion. The manhwa reader has always had this;
