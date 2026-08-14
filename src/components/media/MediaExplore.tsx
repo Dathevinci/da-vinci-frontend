@@ -52,44 +52,30 @@ type Filters = { status: string; sort: string; list: string; genre: string };
  * markup ("Martial", "Traged", "Supernatur") are left out.
  */
 const NOVEL_GENRES = [
-  "Action", "Adventure", "Comedy", "Drama", "Eastern", "Fantasy", "Game",
-  "Gender+Bender", "Harem", "Historical", "Horror", "Isekai", "Josei", "Magic",
-  "Magical+Realism", "Martial+Arts", "Mature", "Mecha", "Mystery",
-  "Psychological", "Reincarnation", "Romance", "School+Life", "Sci-fi",
-  "Seinen", "Shoujo", "Shounen", "Slice+of+Life", "Sports", "Supernatural",
-  "System", "Tragedy", "Urban", "Video+Games", "Wuxia", "Xianxia", "Xuanhuan",
-].map((slug) => ({ key: "genre/" + slug, label: slug.replace(/\+/g, " ") }));
+  "Action", "Adventure", "Comedy", "Dark Fantasy", "Drama", "Fantasy", "Isekai", "Magic",
+  "Martial Arts", "Murim", "Mystery", "Psychological", "Reincarnation", "Romance", "School Life",
+  "Sci-Fi", "Slice of Life", "Supernatural", "System", "Urban", "Xianxia", "Xuanhuan"
+].map((g) => ({ key: g.toLowerCase(), label: g }));
 
-/**
- * Asura's genre taxonomy is fetched from their API (it drifts with their
- * catalog) and memoised at module level so reopening the panel costs nothing.
- */
-let asuraGenreCache: { name: string; slug: string }[] | null = null;
-
-const MANHWA_SORTS = [
-  { key: "", label: "Latest" },
-  { key: "popular", label: "Most Popular" },
+const NOVEL_SORTS = [
+  { key: "", label: "Most Popular" },
   { key: "rating", label: "Highest Rated" },
+  { key: "latest", label: "Latest Chapters" },
   { key: "title", label: "A–Z" },
 ];
 
-const MANHWA_STATUS = [
+const NOVEL_STATUS = [
   { key: "", label: "Any" },
   { key: "ongoing", label: "Ongoing" },
   { key: "completed", label: "Completed" },
-  { key: "hiatus", label: "Hiatus" },
-  { key: "dropped", label: "Dropped" },
 ];
 
 const NOVEL_LISTS = [
-  { key: "light-novels", label: "Official Light Novels (Hall of Fame)" },
+  { key: "", label: "All Masterpieces" },
+  { key: "light-novels", label: "Official Japanese Light Novels" },
   { key: "korean-masterpieces", label: "Global & Korean Masterpieces" },
-  { key: "cultivation-classics", label: "Chinese Xianxia & Cultivation Masterpieces" },
-  { key: "most-popular-novel", label: "Most Popular Releases" },
-  { key: "lnw-top", label: "LightNovelWorld Top Rated" },
-  { key: "nf-popular", label: "NovelFull Popular Hits" },
-  { key: "latest-release-novel", label: "Latest Releases" },
-  { key: "completed-novel", label: "Completed Masterpieces" },
+  { key: "chinese-xianxia", label: "Chinese Xianxia & Immortals" },
+  { key: "completed-novel", label: "Completed Classics" },
 ];
 
 const CFG = {
@@ -281,30 +267,51 @@ function FiltersPanel({
         </>
       ) : (
         <>
-          <Section Icon={Library} label="Source List">
+          <Section Icon={Clock} label="Sort By">
+            <div className="flex flex-col">
+              {NOVEL_SORTS.map((s) => (
+                <Choice key={s.key || "popular"} on={staged.sort === s.key} label={s.label}
+                  onClick={() => setStaged({ ...staged, sort: s.key })} />
+              ))}
+            </div>
+          </Section>
+
+          <Section Icon={ListFilter} label="Status">
+            <div className="flex flex-col">
+              {NOVEL_STATUS.map((s) => (
+                <Choice key={s.key || "any"} on={staged.status === s.key} label={s.label}
+                  onClick={() => setStaged({ ...staged, status: s.key })} />
+              ))}
+            </div>
+          </Section>
+
+          <Section Icon={Library} label="Source Shelf">
             <div className="flex flex-col">
               {NOVEL_LISTS.map((l) => (
-                <Choice key={l.key} on={staged.list === l.key} label={l.label}
+                <Choice key={l.key || "all"} on={staged.list === l.key} label={l.label}
                   onClick={() => setStaged({ ...staged, list: l.key })} />
               ))}
             </div>
-            <p className="mt-3 font-mono text-[11px] leading-relaxed text-slate-600">
-              The novel sources don&rsquo;t publish a status or a sort order, so a list is
-              the filter. It applies when you aren&rsquo;t searching.
-            </p>
           </Section>
 
-          {/* Genres share the `list` slot with the source lists, so picking one
-              naturally deselects the other — a genre IS a list on NovelFull's
-              side, which is also why these run on NovelFull specifically. */}
-          <Section Icon={ListFilter} label="Genre">
+          <Section Icon={Library} label="Genre">
             <div className="grid grid-cols-3 gap-1.5">
+              <button
+                onClick={() => setStaged({ ...staged, genre: "" })}
+                className={`rounded-lg border px-2 py-1.5 font-mono text-[11px] font-bold transition ${
+                  staged.genre === ""
+                    ? "border-white bg-white text-black"
+                    : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-white/30"
+                }`}
+              >
+                Any
+              </button>
               {NOVEL_GENRES.map((g) => (
                 <button
                   key={g.key}
-                  onClick={() => setStaged({ ...staged, list: g.key })}
+                  onClick={() => setStaged({ ...staged, genre: staged.genre === g.key ? "" : g.key })}
                   className={`rounded-lg border px-2 py-1.5 font-mono text-[11px] font-bold transition ${
-                    staged.list === g.key
+                    staged.genre === g.key
                       ? "border-white bg-white text-black"
                       : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-white/30"
                   }`}
@@ -313,9 +320,6 @@ function FiltersPanel({
                 </button>
               ))}
             </div>
-            <p className="mt-3 font-mono text-[11px] leading-relaxed text-slate-600">
-              Genre browsing runs on the NovelFull library.
-            </p>
           </Section>
         </>
       )}
@@ -342,7 +346,7 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
   const [filters, setFilters] = useState<Filters>({
     status: sp.get("status") || "",
     sort: sp.get("sort") || "",
-    list: sp.get("list") || "most-popular-novel",
+    list: sp.get("list") || "",
     genre: sp.get("genre") || "",
   });
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -381,45 +385,13 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
   // earlier reply landing last would otherwise replace newer results.
   const seq = useRef(0);
   const sentinel = useRef<HTMLDivElement>(null);
-  /**
-   * The deepest page a request has been ISSUED for — the twice-fire guard.
-   *
-   * A state flag cannot do this job. `more` only becomes true after React
-   * commits the update, and IntersectionObserver callbacks run before that
-   * commit, so two callbacks in the same frame both read the old value and both
-   * fetch the same page. A ref is written synchronously inside load(), so the
-   * second caller sees the claim immediately.
-   */
   const requested = useRef(1);
-  /**
-   * How many pages in a row have come back with nothing usable.
-   *
-   * Manhwa browse genuinely produces these: the four sources hold catalogues
-   * of very different sizes, so past the shallowest ones a page is built from
-   * fewer sources and then thinned again by title-dedupe — a full window can
-   * survive as zero while real results still sit on the pages after it. An
-   * empty page is therefore skipped, not treated as the end. The counter is
-   * what stops that skipping from running forever.
-   */
   const emptyRun = useRef(0);
-  /**
-   * Where each appended page's rows START inside `items`, and the running
-   * length that feeds it.
-   *
-   * This is what lets a switch to numbered pages show the page the reader is on
-   * WITHOUT asking the scraper for it again — the rows are already here, they
-   * just have to be found. Rebuilt from scratch on every fresh (non-append)
-   * load, so it can never describe a list that no longer exists.
-   */
   const pageStarts = useRef<Map<number, number>>(new Map());
   const loadedCount = useRef(0);
-  /** `items` readable outside the render/updater — used by the mode switch. */
   const itemsRef = useRef<any[]>([]);
-  /** The page a failed request was for, so "Try again" retries THAT page. */
   const failedPage = useRef(1);
-  /** A ?page deep link seeds the FIRST load only; later queries start at 1. */
   const seededPage = useRef(parsePageParam(sp.get("page")));
-  /** The last URL written, so infinite scroll doesn't replace() every append. */
   const lastUrl = useRef<string | null>(null);
 
   useEffect(() => {
@@ -430,16 +402,12 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
     const u = new URLSearchParams();
     u.set("page", String(p));
     if (q.trim()) u.set("q", q.trim());
-    if (mode === "manhwa") {
-      if (filters.status) u.set("status", filters.status);
-      if (filters.sort) u.set("sort", filters.sort);
-      if (filters.genre) u.set("genre", filters.genre);
-    } else if (!q.trim()) {
-      // The novel API treats `list` and `q` as mutually exclusive.
-      u.set("list", filters.list);
-    }
+    if (filters.status) u.set("status", filters.status);
+    if (filters.sort) u.set("sort", filters.sort);
+    if (filters.genre) u.set("genre", filters.genre);
+    if (filters.list) u.set("list", filters.list);
     return `${cfg.path}?${u.toString()}`;
-  }, [q, filters, mode, cfg.path]);
+  }, [q, filters, cfg.path]);
 
   const load = useCallback(async (p: number, append: boolean) => {
     const id = ++seq.current;

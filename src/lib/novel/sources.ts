@@ -165,34 +165,122 @@ export async function searchAll(query: string, page = 1): Promise<{ results: Nov
   };
 }
 
-export async function browseNovels(page = 1, list = "trending") {
-  if (list === "light-novels") {
-    return {
-      results: OFFICIAL_LIGHT_NOVELS.map(m => ({ id: m.id, title: m.title, cover: m.cover, latestChapter: m.latestChapter, tag: m.tag })),
-      hasNextPage: false,
-      totalPages: 1
-    };
-  }
-  if (list === "korean-masterpieces") {
-    return {
-      results: KOREAN_GLOBAL_MASTERPIECES.map(m => ({ id: m.id, title: m.title, cover: m.cover, latestChapter: m.latestChapter, tag: m.tag })),
-      hasNextPage: false,
-      totalPages: 1
-    };
-  }
-  if (list === "chinese-xianxia") {
-    return {
-      results: CHINESE_XIANXIA_MASTERPIECES.map(m => ({ id: m.id, title: m.title, cover: m.cover, latestChapter: m.latestChapter, tag: m.tag })),
-      hasNextPage: false,
-      totalPages: 1
-    };
+export interface NovelBrowseParams {
+  page?: number;
+  list?: string;
+  genre?: string;
+  status?: string;
+  sort?: string;
+}
+
+export async function browseNovels(
+  paramsOrPage: number | NovelBrowseParams = 1,
+  legacyList?: string
+): Promise<{ results: NovelResult[]; hasNextPage: boolean; totalPages: number }> {
+  let page = 1;
+  let list = "";
+  let genre = "";
+  let status = "";
+  let sort = "";
+
+  if (typeof paramsOrPage === "number") {
+    page = paramsOrPage;
+    list = legacyList || "";
+  } else if (paramsOrPage && typeof paramsOrPage === "object") {
+    page = Number(paramsOrPage.page) || 1;
+    list = paramsOrPage.list || "";
+    genre = paramsOrPage.genre || "";
+    status = paramsOrPage.status || "";
+    sort = paramsOrPage.sort || "";
   }
 
-  const all = ALL_MASTERPIECES.map(m => ({ id: m.id, title: m.title, cover: m.cover, latestChapter: m.latestChapter, tag: m.tag }));
+  // Handle genre passed inside list (e.g. "genre/Action", "genre/Martial+Arts")
+  if (list.startsWith("genre/")) {
+    genre = list.replace("genre/", "").replace(/\+/g, " ");
+    list = "";
+  }
+
+  let pool = [...ALL_MASTERPIECES];
+
+  // 1. Filter by source shelf / list
+  if (list === "light-novels") {
+    pool = [...OFFICIAL_LIGHT_NOVELS];
+  } else if (list === "korean-masterpieces") {
+    pool = [...KOREAN_GLOBAL_MASTERPIECES];
+  } else if (list === "chinese-xianxia" || list === "cultivation-classics") {
+    pool = [...CHINESE_XIANXIA_MASTERPIECES];
+  } else if (list === "completed-novel" || list === "completed") {
+    pool = pool.filter(m => m.status.toLowerCase() === "completed");
+  }
+
+  // 2. Filter by status
+  if (status) {
+    const s = status.toLowerCase().trim();
+    if (s === "completed") {
+      pool = pool.filter(m => m.status.toLowerCase() === "completed");
+    } else if (s === "ongoing") {
+      pool = pool.filter(m => m.status.toLowerCase() === "ongoing");
+    }
+  }
+
+  // 3. Filter by genre
+  if (genre) {
+    const g = genre.toLowerCase().trim();
+    pool = pool.filter(m =>
+      m.genres.some(itemGenre => itemGenre.toLowerCase().includes(g)) ||
+      m.tag.toLowerCase().includes(g)
+    );
+  }
+
+  // 4. Sort
+  if (sort === "title") {
+    pool.sort((a, b) => a.title.localeCompare(b.title));
+  } else if (sort === "latest") {
+    pool.sort((a, b) => {
+      const numA = parseInt(a.latestChapter.replace(/[^0-9]/g, '')) || 0;
+      const numB = parseInt(b.latestChapter.replace(/[^0-9]/g, '')) || 0;
+      return numB - numA;
+    });
+  } else if (sort === "rating" || sort === "popular") {
+    // Top-tier popular ranking
+    const priorities: Record<string, number> = {
+      "fwn:shadow-slave": 100,
+      "fwn:solo-leveling": 99,
+      "fwn:lord-of-the-mysteries": 98,
+      "fwn:mushoku-tensei-full-version": 97,
+      "fwn:classroom-of-the-elite-year-1": 96,
+      "fwn:reverend-insanity": 95,
+      "fwn:omniscient-readers-viewpoint": 94,
+      "fwn:overlord-the-multiverse": 93,
+      "fwn:martial-peak": 92,
+      "fwn:rezero-kara-hajimeru-isekai-seikatsu-wn": 91,
+      "fwn:the-beginning-after-the-end": 90,
+      "fwn:trash-of-the-counts-family": 89
+    };
+    pool.sort((a, b) => (priorities[b.id] || 50) - (priorities[a.id] || 50));
+  }
+
+  // 5. Paginate (24 items per page)
+  const pageSize = 24;
+  const totalPages = Math.max(1, Math.ceil(pool.length / pageSize));
+  const currentPage = Math.min(Math.max(1, page), totalPages);
+  const start = (currentPage - 1) * pageSize;
+  const pagedItems = pool.slice(start, start + pageSize);
+
+  const results: NovelResult[] = pagedItems.map(m => ({
+    id: m.id,
+    title: m.title,
+    cover: m.cover,
+    banner: m.bannerImage || null,
+    latestChapter: m.latestChapter,
+    tag: m.tag,
+    description: m.synopsis
+  }));
+
   return {
-    results: all,
-    hasNextPage: false,
-    totalPages: 1
+    results,
+    hasNextPage: currentPage < totalPages,
+    totalPages
   };
 }
 
