@@ -192,7 +192,8 @@ export async function getFreeWebNovelChapter(slug: string, chapterId: string): P
       raw.includes("HX is going to get some good stuff") ||
       raw.includes("More people who want to die") ||
       raw.includes("Wasn’t she at 109 temptation") ||
-      raw.includes("Wasn't she at 109 temptation")
+      raw.includes("Wasn't she at 109 temptation") ||
+      raw.includes("Man i wish klein")
     ) {
       continue;
     }
@@ -202,8 +203,8 @@ export async function getFreeWebNovelChapter(slug: string, chapterId: string): P
       const titleMatch = raw.match(/<h1 class="tit"[^>]*>([\s\S]*?)<\/h1>/i) ||
                          raw.match(/<span class="view_title"[^>]*>([\s\S]*?)<\/span>/i) ||
                          raw.match(/<div class="chapter-title"[^>]*>([\s\S]*?)<\/div>/i);
-      const titleText = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, "").trim() : "";
-      if (titleText.toLowerCase().startsWith("novels online")) {
+      const titleText = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, "").trim().toLowerCase() : "";
+      if (titleText.includes("novels online")) {
         continue;
       }
 
