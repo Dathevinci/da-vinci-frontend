@@ -6,12 +6,12 @@ import { getExactSlug } from "./slugMapping";
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
 const BASE_URL = "https://freewebnovel.com";
 
-// Multi-proxy pool with sequential fallback
+// Multi-proxy pool with direct connection priority and fallback cascade
 const PROXIES = [
+  (url: string) => url,
   (url: string) => `https://goodproxy.goodproxy.workers.dev/fetch?url=${encodeURIComponent(url)}`,
   (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
   (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-  (url: string) => url,
   (url: string) => `https://proxy.cors.sh/${url}`,
 ];
 
