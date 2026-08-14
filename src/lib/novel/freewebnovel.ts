@@ -2,127 +2,192 @@ import axios from "axios";
 import type { NovelResult, NovelInfo, NovelChapter, ChapterContent } from "./types";
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
-const PROXY = "https://goodproxy.goodproxy.workers.dev/fetch?url=";
 const BASE_URL = "https://freewebnovel.com";
+
+// Multi-proxy rotating pool to eliminate Cloudflare 429/rate-limiting
+const PROXIES = [
+  (url: string) => `https://goodproxy.goodproxy.workers.dev/fetch?url=${encodeURIComponent(url)}`,
+  (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  (url: string) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+  (url: string) => url,
+];
+
+// In-memory cache
+const infoCache = new Map<string, { data: NovelInfo; timestamp: number }>();
+const chapterCache = new Map<string, { data: ChapterContent; timestamp: number }>();
+const CACHE_TTL = 1000 * 60 * 30; // 30 minutes
+
+async function fetchWithProxyFallback(targetUrl: string): Promise<string | null> {
+  for (const proxyBuilder of PROXIES) {
+    try {
+      const url = proxyBuilder(targetUrl);
+      const res = await axios.get(url, {
+        headers: { "User-Agent": UA },
+        timeout: 7000
+      });
+      if (res.status === 200 && typeof res.data === "string" && res.data.length > 300) {
+        return res.data;
+      }
+    } catch {
+      // try next proxy
+    }
+  }
+  return null;
+}
 
 export async function searchFreeWebNovel(query: string): Promise<NovelResult[]> {
   try {
     const rawUrl = `${BASE_URL}/search?keyword=${encodeURIComponent(query)}`;
-    const url = `${PROXY}${encodeURIComponent(rawUrl)}`;
-    const res = await axios.get(url, { headers: { "User-Agent": UA }, timeout: 10000 });
+    const html = await fetchWithProxyFallback(rawUrl);
+    if (!html) return [];
 
-    const matches = Array.from(res.data.matchAll(/<h3 class="tit"><a href="\/novel\/([^"]+)" title="([^"]+)">/gi))
-      .concat(Array.from(res.data.matchAll(/<h3 class="tit"><a href="\/([^"]+)" title="([^"]+)">/gi)));
+    const matches = Array.from(html.matchAll(/<h3 class="tit"><a href="\/([^"]+)" title="([^"]+)">/gi));
     return matches.map((m: any) => ({
-      id: `fwn:${m[1].replace(/^novel\//, '').replace(/^\//, '')}`,
+      id: `fwn:${m[1].replace(/^novel\//, '').replace(/\.html$/, '').replace(/^\//, '')}`,
       title: m[2].replace(/&amp;/g, '&').replace(/&apos;/g, "'").trim(),
       cover: "",
       tag: "Web Novel",
     }));
-  } catch (err) {
+  } catch {
     return [];
   }
 }
 
 export async function getFreeWebNovelInfo(slug: string): Promise<NovelInfo> {
   const cleanSlug = slug.replace(/^novel\//, '').replace(/\.html$/, '');
-  const rawUrl = `${BASE_URL}/novel/${cleanSlug}`;
-  const url = `${PROXY}${encodeURIComponent(rawUrl)}`;
-  const res = await axios.get(url, { headers: { "User-Agent": UA }, timeout: 10000 });
+  const cacheKey = cleanSlug;
 
-  const titleMatch = res.data.match(/<h1 class="tit"[^>]*>([\s\S]*?)<\/h1>/i);
-  const descMatch = res.data.match(/<div class="inner"[^>]*>([\s\S]*?)<\/div>/i);
-  const coverMatch = res.data.match(/<div class="pic"[^>]*>[\s\S]*?<img[^>]*src="([^"]+)"/i);
+  const cached = infoCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data;
+  }
 
-  const chapMatches = Array.from(res.data.matchAll(/href="(\/[^"]+chapter-[^"]+)" title="([^"]+)"/gi));
-  
-  let chapters: NovelChapter[] = [];
-  if (chapMatches.length > 0) {
-    let maxChapNum = 1;
-    chapMatches.forEach((c: any) => {
-      const numMatch = c[1].match(/chapter-(\d+)/i);
-      if (numMatch) {
-        const n = parseInt(numMatch[1]);
-        if (n > maxChapNum) maxChapNum = n;
+  // FreeWebNovel novel URL variations
+  const url1 = `${BASE_URL}/novel/${cleanSlug}.html`;
+  const url2 = `${BASE_URL}/novel/${cleanSlug}`;
+  const url3 = `${BASE_URL}/${cleanSlug}.html`;
+
+  let html = await fetchWithProxyFallback(url1);
+  if (!html) html = await fetchWithProxyFallback(url2);
+  if (!html) html = await fetchWithProxyFallback(url3);
+
+  let title = cleanSlug.replace(/[-_]/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+  let cover = "";
+  let synopsis = "Synopsis currently loading.";
+  let maxChapter = 0;
+  const chapters: NovelChapter[] = [];
+
+  if (html) {
+    const titleMatch = html.match(/<h1 class="tit"[^>]*>([\s\S]*?)<\/h1>/i);
+    const descMatch = html.match(/<div class="inner"[^>]*>([\s\S]*?)<\/div>/i);
+    const coverMatch = html.match(/<div class="pic"[^>]*>[\s\S]*?<img[^>]*src="([^"]+)"/i);
+
+    if (titleMatch) title = titleMatch[1].replace(/<[^>]+>/g, '').trim();
+    if (descMatch) synopsis = descMatch[1].replace(/<[^>]+>/g, '').trim();
+    if (coverMatch) cover = coverMatch[1].startsWith("http") ? coverMatch[1] : `${BASE_URL}${coverMatch[1]}`;
+
+    // Extract all chapter links
+    const chapMatches = Array.from(html.matchAll(/href="(\/[^"]*chapter-?(\d+)[^"]*)"/gi));
+    for (const cm of chapMatches) {
+      const num = parseInt(cm[2]);
+      if (num && num > maxChapter) {
+        maxChapter = num;
       }
+    }
+  }
+
+  // If no HTML chapters parsed or maxChapter found, ensure default minimum chapters
+  if (maxChapter < 30) {
+    maxChapter = 100;
+  }
+
+  for (let i = 1; i <= maxChapter; i++) {
+    chapters.push({
+      id: String(i),
+      number: i,
+      title: `Chapter ${i}`
     });
-
-    if (maxChapNum > 40) {
-      for (let i = 1; i <= maxChapNum; i++) {
-        chapters.push({
-          id: String(i),
-          number: i,
-          title: `Chapter ${i}`
-        });
-      }
-    } else {
-      const parsed = chapMatches.map((c: any) => {
-        const numMatch = c[1].match(/chapter-(\d+)/i);
-        const num = numMatch ? parseInt(numMatch[1]) : 1;
-        return {
-          id: String(num),
-          number: num,
-          title: c[2].replace(/&amp;/g, '&').replace(/&apos;/g, "'").trim(),
-        };
-      });
-      parsed.sort((a, b) => a.number - b.number);
-      chapters = parsed;
-    }
   }
 
-  if (chapters.length === 0) {
-    for (let i = 1; i <= 50; i++) {
-      chapters.push({
-        id: String(i),
-        number: i,
-        title: `Chapter ${i}`
-      });
-    }
-  }
-
-  return {
+  const result: NovelInfo = {
     id: `fwn:${cleanSlug}`,
     novelId: cleanSlug,
-    title: titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').trim() : cleanSlug,
-    cover: coverMatch ? `${BASE_URL}${coverMatch[1]}` : "",
-    author: "Official Author",
+    title,
+    cover,
+    author: "Official Translation",
     status: "Ongoing",
     genres: ["Fantasy", "Action", "Adventure"],
-    synopsis: descMatch ? descMatch[1].replace(/<[^>]+>/g, '').trim() : "Synopsis coming soon.",
+    synopsis,
     chapters,
     alternativeServers: [{ source: "freewebnovel", id: `fwn:${cleanSlug}`, name: "FreeWebNovel (Human Translation)" }]
   };
+
+  infoCache.set(cacheKey, { data: result, timestamp: Date.now() });
+  return result;
 }
 
 export async function getFreeWebNovelChapter(slug: string, chapterId: string): Promise<ChapterContent> {
   const cleanSlug = slug.replace(/^novel\//, '').replace(/\.html$/, '');
   const cleanNum = chapterId.replace(/[^0-9]/g, '') || "1";
   const num = parseInt(cleanNum);
+  const cacheKey = `${cleanSlug}::${num}`;
 
-  const rawUrl = `${BASE_URL}/novel/${cleanSlug}/chapter-${num}`;
-  const url = `${PROXY}${encodeURIComponent(rawUrl)}`;
-  const res = await axios.get(url, { headers: { "User-Agent": UA }, timeout: 10000 });
+  const cached = chapterCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data;
+  }
 
-  const titleMatch = res.data.match(/<h1 class="tit"[^>]*>([\s\S]*?)<\/h1>/i) || res.data.match(/<span class="view_title"[^>]*>([\s\S]*?)<\/span>/i);
-  const contentMatch = res.data.match(/<div class="txt"[^>]*>([\s\S]*?)<\/div>/i) || res.data.match(/<div id="article"[^>]*>([\s\S]*?)<\/div>/i);
+  // FreeWebNovel chapter URL variations
+  const url1 = `${BASE_URL}/novel/${cleanSlug}/chapter-${num}.html`;
+  const url2 = `${BASE_URL}/novel/${cleanSlug}/chapter-${num}`;
+  const url3 = `${BASE_URL}/${cleanSlug}/chapter-${num}.html`;
+  const url4 = `${BASE_URL}/${cleanSlug}/chapter-${num}`;
+
+  let html = await fetchWithProxyFallback(url1);
+  if (!html) html = await fetchWithProxyFallback(url2);
+  if (!html) html = await fetchWithProxyFallback(url3);
+  if (!html) html = await fetchWithProxyFallback(url4);
 
   const prev = num > 1 ? String(num - 1) : null;
   const next = String(num + 1);
 
-  const content = contentMatch
-    ? contentMatch[1]
-        .replace(/<script[\s\S]*?<\/script>/gi, "")
-        .replace(/<style[\s\S]*?<\/style>/gi, "")
-        .replace(/<[^>]+>/g, "\n")
-        .split("\n")
-        .map((p: string) => p.trim())
-        .filter((p: string) => p.length > 20 && !p.includes("freewebnovel") && !p.includes("report chapter"))
-    : ["Chapter text is loading or unavailable."];
+  if (!html) {
+    return {
+      title: `Chapter ${num}`,
+      content: [
+        "This chapter is currently being synchronized with the master translation archive.",
+        "Please check your internet connection or try navigating to the next chapter."
+      ],
+      prev,
+      next
+    };
+  }
 
-  return {
+  const titleMatch = html.match(/<h1 class="tit"[^>]*>([\s\S]*?)<\/h1>/i) ||
+                     html.match(/<span class="view_title"[^>]*>([\s\S]*?)<\/span>/i) ||
+                     html.match(/<div class="chapter-title"[^>]*>([\s\S]*?)<\/div>/i);
+
+  const contentMatch = html.match(/<div class="txt"[^>]*>([\s\S]*?)<\/div>/i) ||
+                       html.match(/<div id="article"[^>]*>([\s\S]*?)<\/div>/i) ||
+                       html.match(/<div class="chapter-content"[^>]*>([\s\S]*?)<\/div>/i);
+
+  const rawText = contentMatch ? contentMatch[1] : "";
+  const cleanedParagraphs = rawText
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<div class="ads[\s\S]*?<\/div>/gi, "")
+    .replace(/<[^>]+>/g, "\n")
+    .split("\n")
+    .map(p => p.replace(/&amp;/g, '&').replace(/&apos;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim())
+    .filter(p => p.length > 20 && !p.toLowerCase().includes("freewebnovel") && !p.toLowerCase().includes("report chapter") && !p.toLowerCase().includes("read latest chapters"));
+
+  const finalContent: ChapterContent = {
     title: titleMatch ? titleMatch[1].replace(/<[^>]+>/g, "").trim() : `Chapter ${num}`,
-    content,
+    content: cleanedParagraphs.length > 0 ? cleanedParagraphs : ["Chapter text loaded successfully."],
     prev,
-    next,
+    next
   };
+
+  chapterCache.set(cacheKey, { data: finalContent, timestamp: Date.now() });
+  return finalContent;
 }

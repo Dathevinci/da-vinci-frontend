@@ -16,7 +16,7 @@ export interface MasterpieceEntry {
 
 export const OFFICIAL_LIGHT_NOVELS: MasterpieceEntry[] = [
   {
-    id: "rnb:667603-mushoku-tensei-v812312",
+    id: "fwn:mushoku-tensei-full-version",
     title: "Mushoku Tensei: Jobless Reincarnation",
     category: "light-novel",
     tag: "Official Light Novel",
@@ -29,7 +29,7 @@ export const OFFICIAL_LIGHT_NOVELS: MasterpieceEntry[] = [
     synopsis: "A 34-year-old NEET is reborn into a world of swords and magic as Rudeus Greyrat, resolved to live his second life to the absolute fullest without regrets."
   },
   {
-    id: "rnb:718239-youjitsu-v812312",
+    id: "fwn:youkoso-jitsuryoku-shijou-shugi-no-kyoushitsu-e",
     title: "Classroom of the Elite",
     category: "light-novel",
     tag: "Official Light Novel",
@@ -68,7 +68,7 @@ export const OFFICIAL_LIGHT_NOVELS: MasterpieceEntry[] = [
     synopsis: "Subaru Natsuki is suddenly summoned to a fantasy world with no special abilities, except the harrowing power of Return by Death."
   },
   {
-    id: "rnb:59150-regarding-reincarnating-as-slime-v812312",
+    id: "fwn:tensei-shitara-slime-datta-ken-novel",
     title: "That Time I Got Reincarnated as a Slime",
     category: "light-novel",
     tag: "Official Light Novel",
@@ -81,7 +81,7 @@ export const OFFICIAL_LIGHT_NOVELS: MasterpieceEntry[] = [
     synopsis: "Stabbed on the streets of Tokyo, Satoru Mikami awakens in a fantasy world as a slime endowed with the unique skill Predator, founding the Jura Tempest Federation."
   },
   {
-    id: "rnb:593616-to-be-a-power-in-the-shadows-v812312",
+    id: "fwn:to-be-a-power-in-the-shadows",
     title: "The Eminence in Shadow",
     category: "light-novel",
     tag: "Official Light Novel",
@@ -94,7 +94,7 @@ export const OFFICIAL_LIGHT_NOVELS: MasterpieceEntry[] = [
     synopsis: "Cid Kagenou lives to act like a mysterious mastermind operating in the background, completely unaware that his made-up conspiracies against the Cult of Diablos are all real."
   },
   {
-    id: "fwn:86-eighty-six-novel",
+    id: "fwn:86-eighty-six",
     title: "86 - Eighty Six",
     category: "light-novel",
     tag: "Official Light Novel",
@@ -107,20 +107,20 @@ export const OFFICIAL_LIGHT_NOVELS: MasterpieceEntry[] = [
     synopsis: "The Republic of San Magnolia boasts of a bloodless war fought by autonomous drones, hiding the fact that the 86th Sector's discarded citizens are the pilots sent to die."
   },
   {
-    id: "fwn:sword-art-online-novel",
-    title: "Sword Art Online",
+    id: "fwn:kumo-desu-ga-nani-ka-novel",
+    title: "So I'm a Spider, So What?",
     category: "light-novel",
     tag: "Official Light Novel",
-    status: "Ongoing",
-    author: "Reki Kawahara",
-    cover: "https://media.kitsu.app/manga/poster_images/11071/original.png",
-    bannerImage: "https://media.kitsu.app/manga/cover_images/11071/original.jpg",
-    latestChapter: "Volume 28 (Unital Ring VII)",
-    genres: ["Action", "Adventure", "Fantasy", "Sci-Fi", "Romance"],
-    synopsis: "Ten thousand players are trapped in the virtual reality MMORPG Sword Art Online, where game over means death in the real world."
+    status: "Completed",
+    author: "Okina Baba",
+    cover: "https://media.kitsu.app/manga/poster_images/37173/original.jpg",
+    bannerImage: "https://media.kitsu.app/manga/cover_images/37173/original.jpg",
+    latestChapter: "Volume 16 (Complete)",
+    genres: ["Action", "Adventure", "Comedy", "Fantasy", "Isekai"],
+    synopsis: "An ordinary high school girl wakes up reincarnated as a weak dungeon spider in the Elroe Great Labyrinth, battling monsters to survive and evolve."
   },
   {
-    id: "fwn:no-game-no-life-novel",
+    id: "fwn:no-game-no-life",
     title: "No Game No Life",
     category: "light-novel",
     tag: "Official Light Novel",
@@ -133,58 +133,44 @@ export const OFFICIAL_LIGHT_NOVELS: MasterpieceEntry[] = [
     synopsis: "Genius shut-in gamer siblings Sora and Shiro, known as Blank, are summoned to Disboard, a fantasy world where every conflict is resolved through games."
   },
   {
-    id: "fwn:is-it-wrong-to-try-to-pick-up-girls-in-a-dungeon-novel",
-    title: "DanMachi: Is It Wrong to Try to Pick Up Girls in a Dungeon?",
+    id: "fwn:tsuki-ga-michibiku-isekai-douchuu",
+    title: "Tsukimichi - Moonlit Fantasy",
     category: "light-novel",
     tag: "Official Light Novel",
     status: "Ongoing",
-    author: "Fujino Oomori",
-    cover: "https://media.kitsu.app/manga/poster_images/16462/original.jpg",
-    bannerImage: "https://media.kitsu.app/manga/cover_images/16462/original.jpg",
-    latestChapter: "Volume 19",
-    genres: ["Action", "Adventure", "Comedy", "Fantasy"],
-    synopsis: "In the labyrinth city of Orario, novice adventurer Bell Cranel strives to become a hero under the guidance of the goddess Hestia."
+    author: "Kei Azumi",
+    cover: "https://media.kitsu.app/manga/poster_images/36470/original.jpg",
+    latestChapter: "Chapter 518+",
+    genres: ["Action", "Adventure", "Comedy", "Fantasy", "Isekai"],
+    synopsis: "Makoto Misumi is summoned to an alternate world by the Goddess, only to be deemed hideous and cast away to the furthest wasteland, building a nation of non-human monsters."
   },
   {
-    id: "fwn:ascendance-of-a-bookworm-novel",
+    id: "fwn:ascendance-of-a-bookworm",
     title: "Ascendance of a Bookworm",
     category: "light-novel",
     tag: "Official Light Novel",
     status: "Completed",
     author: "Miya Kazuki",
     cover: "https://media.kitsu.app/manga/poster_images/34511/original.jpg",
-    bannerImage: "https://media.kitsu.app/manga/cover_images/34511/original.jpg",
+    bannerImage: "https://media.kitsu.app/manga/cover_images/34511/original.png",
     latestChapter: "Part 5 Volume 12 (Complete)",
     genres: ["Fantasy", "Slice of Life", "Drama"],
     synopsis: "Reincarnated as a frail girl in a medieval world where books are only for the nobility, Urano decides to create books herself using ancient crafts and modern chemistry."
   },
   {
-    id: "fwn:konosuba-gods-blessing-on-this-wonderful-world-novel",
-    title: "KonoSuba: God's Blessing on this Wonderful World!",
-    category: "light-novel",
-    tag: "Official Light Novel",
-    status: "Completed",
-    author: "Natsume Akatsuki",
-    cover: "https://media.kitsu.app/manga/poster_images/26844/original.jpg",
-    bannerImage: "https://media.kitsu.app/manga/cover_images/26844/original.jpg",
-    latestChapter: "Volume 17 (Complete)",
-    genres: ["Adventure", "Comedy", "Fantasy", "Parody"],
-    synopsis: "Kazuma Satou dies an embarrassing death and drags the useless goddess Aqua with him into a fantasy world, forming an eccentric party of misfits."
-  },
-  {
-    id: "fwn:the-angel-next-door-spoils-me-rotten-novel",
-    title: "The Angel Next Door Spoils Me Rotten",
+    id: "fwn:tondemo-skill-de-isekai-hourou-meshi",
+    title: "Campfire Cooking in Another World",
     category: "light-novel",
     tag: "Official Light Novel",
     status: "Ongoing",
-    author: "Saekisan",
-    cover: "https://media.kitsu.app/manga/62641/poster_image/0cf23d7f8981faf5dad528ced9dd4460.png",
-    latestChapter: "Volume 9",
-    genres: ["Romance", "School Life", "Slice of Life"],
-    synopsis: "Amane Fujimiya lives next door to the school's most beautiful girl, Mahiru Shiina. After lending her his umbrella on a rainy day, she begins taking care of his untidy lifestyle."
+    author: "Ren Eguchi",
+    cover: "https://media.kitsu.app/manga/poster_images/39104/original.jpg",
+    latestChapter: "Chapter 647+",
+    genres: ["Adventure", "Comedy", "Fantasy", "Gourmet", "Isekai"],
+    synopsis: "Tsuyoshi Mukouda is caught in a hero summoning and given the useless skill 'Online Supermarket', cooking modern earthly dishes that enslave legendary divine beasts."
   },
   {
-    id: "fwn:the-irregular-at-magic-high-school-novel",
+    id: "fwn:mahouka-koukou-no-rettousei",
     title: "The Irregular at Magic High School",
     category: "light-novel",
     tag: "Official Light Novel",
@@ -197,14 +183,13 @@ export const OFFICIAL_LIGHT_NOVELS: MasterpieceEntry[] = [
     synopsis: "Siblings Tatsuya and Miyuki Shiba enroll in First High School, where magic is taught as a technical science. Tatsuya hides unparalleled tactical abilities as a Course 2 Weed."
   },
   {
-    id: "fwn:arifureta-from-commonplace-to-worlds-strongest-novel",
+    id: "fwn:arifureta-shokugyou-de-sekai-saikyou-wn",
     title: "Arifureta: From Commonplace to World's Strongest",
     category: "light-novel",
     tag: "Official Light Novel",
     status: "Completed",
     author: "Ryo Shirakome",
     cover: "https://media.kitsu.app/manga/poster_images/37711/original.jpg",
-    bannerImage: "https://media.kitsu.app/manga/cover_images/37711/original.jpg",
     latestChapter: "Volume 13 (Complete)",
     genres: ["Action", "Adventure", "Fantasy", "Harem", "Isekai"],
     synopsis: "Betrayed and pushed to the abyss of the Orcus Labyrinth, Hajime Nagumo consumes monster meat, forges modern firearms with transmutation, and rises as an apex predator."
@@ -232,7 +217,7 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
     status: "Completed",
     author: "Chugong",
     cover: "https://media.kitsu.app/manga/poster_images/54114/original.jpg",
-    bannerImage: "https://media.kitsu.app/manga/cover_images/54114/original.jpg",
+    bannerImage: "https://media.kitsu.app/manga/54114/cover_image/50f5b4b656a64e8fe560fad557830dcd.png",
     latestChapter: "Chapter 270 (Complete)",
     genres: ["Action", "Adventure", "Fantasy", "System"],
     synopsis: "Sung Jinwoo, the World's Weakest E-Rank Hunter, discovers a dual dungeon that awakens a unique Player System, transforming him into the Shadow Monarch."
@@ -277,7 +262,7 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
     synopsis: "Waking up as the trash son of a wealthy count, Cale Henituse only wants a lazy peaceful life, but keeps accidentally saving the kingdom alongside dragons and heroes."
   },
   {
-    id: "fwn:the-novels-extra-novel",
+    id: "fwn:the-novels-extra",
     title: "The Novel's Extra",
     category: "korean-masterpiece",
     tag: "Korean Masterpiece",
@@ -302,7 +287,7 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
     synopsis: "After receiving the pocket watch of his deceased twin brother, Yeon-woo enters the Obelisk Tower of the Sun God to hunt down the traitors."
   },
   {
-    id: "fwn:sss-class-suicide-hunter-novel",
+    id: "fwn:sssclass-suicide-hunter",
     title: "SSS-Class Suicide Hunter",
     category: "korean-masterpiece",
     tag: "Korean Masterpiece",
@@ -315,7 +300,7 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
     synopsis: "Gong-ja copies the skills of those who kill him and rewinds time upon death by 24 hours, vowing to climb Babylon Tower with undying empathy for all."
   },
   {
-    id: "fwn:nano-machine-novel",
+    id: "fwn:nano-machine-retranslated-version-novel",
     title: "Nano Machine",
     category: "korean-masterpiece",
     tag: "Murim Sci-Fi",
@@ -328,7 +313,7 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
     synopsis: "An illegitimate prince of the Demonic Cult is injected with future nanomachines by a time-traveling descendant, mastering supreme martial arts."
   },
   {
-    id: "fwn:damn-reincarnation-novel",
+    id: "fwn:damn-reincarnation",
     title: "Damn Reincarnation",
     category: "korean-masterpiece",
     tag: "Korean Epic",
@@ -338,6 +323,30 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
     latestChapter: "Chapter 625 (Complete)",
     genres: ["Action", "Adventure", "Fantasy", "Reincarnation"],
     synopsis: "Hamel sacrificed himself fighting the Demon Kings. Reincarnated 300 years later as Eugene Lionheart, descendant of his rival Vermouth, he aims to finish the war."
+  },
+  {
+    id: "fwn:the-reincarnated-assassin-is-a-genius-swordsman",
+    title: "The Reincarnated Assassin is a Genius Swordsman",
+    category: "korean-masterpiece",
+    tag: "Korean Hit",
+    status: "Ongoing",
+    author: "Geul-jin-a",
+    cover: "https://media.kitsu.app/manga/68985/poster_image/c23225536fdafc9a3d084290fd9fe1b5.png",
+    latestChapter: "Chapter 709+",
+    genres: ["Action", "Adventure", "Fantasy", "Revenge"],
+    synopsis: "Raon Zieghart lived as an assassin tool, enslaved by an explosive curse. Reborn into the legendary swordsman family Zieghart, he carves his own destiny with the Wrath fire."
+  },
+  {
+    id: "rnb:143263-reincarnation-of-the-strongest-sword-god-v812312",
+    title: "Reincarnation of the Strongest Sword God",
+    category: "korean-masterpiece",
+    tag: "MMORPG Classic",
+    status: "Ongoing",
+    author: "Lucky Old Cat",
+    cover: "https://media.kitsu.app/manga/poster_images/37605/original.jpg",
+    latestChapter: "Chapter 3800+",
+    genres: ["Action", "Adventure", "Game", "Reincarnation", "Virtual Reality"],
+    synopsis: "Shi Feng, a top-tier guild leader in the world-dominating virtual reality game God's Domain, is betrayed and thrown back ten years in time to the game's launch day."
   }
 ];
 
@@ -369,7 +378,7 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
     synopsis: "Linley Baruch discovers a mysterious ring that awakens the heritage of the legendary Dragonblood Warriors, ascending through the divine planes of the universe."
   },
   {
-    id: "fwn:reverend-insanity-novel",
+    id: "fwn:reverend-insanity",
     title: "Reverend Insanity (Gu Daoist Master)",
     category: "chinese-xianxia",
     tag: "Cultivation Masterpiece",
@@ -395,7 +404,7 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
     synopsis: "Lin Ming obtains the Magic Cube from the Divine Realm, embarking on the path of martial mastery across the thirty-three skies."
   },
   {
-    id: "fwn:renegade-immortal-novel",
+    id: "fwn:renegade-immortal",
     title: "Renegade Immortal (Xian Ni)",
     category: "chinese-xianxia",
     tag: "Cultivation Classic",
@@ -408,7 +417,7 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
     synopsis: "Wang Lin, an ordinary youth without talent, defies heavenly fate and slaughters through mortal and immortal realms to resurrect his beloved."
   },
   {
-    id: "fwn:i-shall-seal-the-heavens-novel",
+    id: "fwn:i-shall-seal-the-heavens",
     title: "I Shall Seal the Heavens (ISSTH)",
     category: "chinese-xianxia",
     tag: "Cultivation Classic",
@@ -421,7 +430,7 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
     synopsis: "Meng Hao is abducted into the Reliance Sect, learning the Copper Mirror's duplication miracles and rising as the Ninth Generation Demon Sealer."
   },
   {
-    id: "fwn:a-will-eternal-novel",
+    id: "fwn:a-will-eternal",
     title: "A Will Eternal",
     category: "chinese-xianxia",
     tag: "Comedy Xianxia",
@@ -434,7 +443,92 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
     synopsis: "Terrified of death, Bai Xiaochun lights incense to join the Spirit Stream Sect, unintentionally wreaking havoc wherever he goes in search of immortality."
   },
   {
-    id: "fwn:the-kings-avatar-novel",
+    id: "fwn:against-the-gods-novel",
+    title: "Against the Gods",
+    category: "chinese-xianxia",
+    tag: "Cultivation Epic",
+    status: "Ongoing",
+    author: "Mars Gravity",
+    cover: "https://media.kitsu.app/manga/poster_images/54416/original.jpg",
+    latestChapter: "Chapter 2193+",
+    genres: ["Action", "Adventure", "Cultivation", "Fantasy", "Harem", "Xianxia"],
+    synopsis: "Yun Che is hunted for holding the Sky Poison Pearl, jumping off the Cloud's End Cliff and waking up in the body of a crippled youth in the Azure Cloud Continent."
+  },
+  {
+    id: "fwn:martial-peak",
+    title: "Martial Peak",
+    category: "chinese-xianxia",
+    tag: "Cultivation Legend",
+    status: "Completed",
+    author: "Momo",
+    cover: "https://media.kitsu.app/manga/poster_images/40987/original.jpg",
+    bannerImage: "https://media.kitsu.app/manga/cover_images/40987/original.jpg",
+    latestChapter: "Chapter 6108 (Complete)",
+    genres: ["Action", "Adventure", "Cultivation", "Martial Arts", "Xianxia"],
+    synopsis: "The journey to the martial peak is a lonely, solitary and long one. Yang Kai, a lowly sweeper disciple at High Heaven Pavilion, obtains a wordless Black Book."
+  },
+  {
+    id: "fwn:the-desolate-era-novel",
+    title: "The Desolate Era",
+    category: "chinese-xianxia",
+    tag: "Cultivation Masterpiece",
+    status: "Completed",
+    author: "I Eat Tomatoes",
+    cover: "https://media.kitsu.app/manga/poster_images/40082/original.jpg",
+    latestChapter: "Book 45 Chapter 40 (Complete)",
+    genres: ["Action", "Adventure", "Cultivation", "Reincarnation", "Xianxia"],
+    synopsis: "Ji Ning reincarnates with exceptional karmic merit into the primordial Grand Xia world, cultivating divine swordsmanship to reach the Dao of the Chaosverse."
+  },
+  {
+    id: "fwn:battle-through-the-heavens-novel",
+    title: "Battle Through the Heavens",
+    category: "chinese-xianxia",
+    tag: "Cultivation Legend",
+    status: "Completed",
+    author: "Heavenly Silkworm Potato",
+    cover: "https://media.kitsu.app/manga/poster_images/32621/original.jpg",
+    latestChapter: "Chapter 1648 (Complete)",
+    genres: ["Action", "Adventure", "Alchemy", "Cultivation", "Xianxia"],
+    synopsis: "Xiao Yan was a genius who lost all his Dou Qi power due to the ring left by his mother. Inside resides Yao Lao, embarking on a quest for the Heavenly Flames."
+  },
+  {
+    id: "fwn:perfect-world",
+    title: "Perfect World (Wanmei Shijie)",
+    category: "chinese-xianxia",
+    tag: "Cultivation Epic",
+    status: "Completed",
+    author: "Chen Dong",
+    cover: "https://media.kitsu.app/manga/poster_images/26938/original.jpg",
+    latestChapter: "Chapter 2018 (Complete)",
+    genres: ["Action", "Adventure", "Cultivation", "Mythology", "Xianxia"],
+    synopsis: "Born in a unique world where village totems guard mankind against archaic beasts, Shi Hao is stripped of his Supreme Bone, rising through desolate lands to protect all existence."
+  },
+  {
+    id: "fwn:ancient-godly-monarch",
+    title: "Ancient Godly Monarch",
+    category: "chinese-xianxia",
+    tag: "Cultivation Classic",
+    status: "Completed",
+    author: "Jing Wu Hen",
+    cover: "https://media.kitsu.app/manga/poster_images/40427/original.jpg",
+    latestChapter: "Chapter 2053 (Complete)",
+    genres: ["Action", "Adventure", "Cultivation", "Martial Arts", "Xianxia"],
+    synopsis: "Qin Wentian awakens the Astral Soul from the 9 Heavenly Layers, forming astral conduits to shatter tyrannical clans and establish divine supremacy."
+  },
+  {
+    id: "fwn:tales-of-demons-and-gods",
+    title: "Tales of Demons and Gods",
+    category: "chinese-xianxia",
+    tag: "Cultivation Classic",
+    status: "Ongoing",
+    author: "Mad Snail",
+    cover: "https://media.kitsu.app/manga/poster_images/37605/original.jpg",
+    latestChapter: "Chapter 507+",
+    genres: ["Action", "Adventure", "Cultivation", "Demons", "Reincarnation"],
+    synopsis: "Killed by the Sage Emperor, Nie Li wakes up in his thirteen-year-old body with the vast knowledge of the Temporal Demon Spirit Book to safeguard Glory City."
+  },
+  {
+    id: "fwn:the-kings-avatar",
     title: "The King's Avatar (Quan Zhi Gao Shou)",
     category: "chinese-xianxia",
     tag: "Esports Classic",
@@ -447,7 +541,7 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
     synopsis: "Top-tier pro player Ye Xiu is forced out of his team. Working as an internet cafe manager, he starts afresh in the tenth server of Glory with an unspecialized avatar."
   },
   {
-    id: "fwn:release-that-witch-novel",
+    id: "fwn:release-that-witch",
     title: "Release That Witch",
     category: "chinese-xianxia",
     tag: "Kingdom Building",
@@ -460,7 +554,7 @@ export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceEntry[] = [
     synopsis: "Mechanical engineer Cheng Yan is reincarnated as Prince Roland Wimbledon, harnessing the magical powers of persecuted witches to trigger an industrial revolution."
   },
   {
-    id: "fwn:library-of-heavens-path-novel",
+    id: "fwn:library-of-heavens-path",
     title: "Library of Heaven's Path",
     category: "chinese-xianxia",
     tag: "Comedy Cultivation",
