@@ -3,13 +3,13 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Globe, Tv, BookMarked, BookOpen, ArrowRight, Loader2, MessagesSquare, Info, Heart, ThumbsDown } from "lucide-react";
+import { Globe, Tv, BookMarked, BookOpen, ArrowRight, Loader2, MessagesSquare, Heart, ThumbsDown } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import UserLink from "@/components/profile/UserLink";
 import UserBadges from "@/components/profile/UserBadges";
 import GuildTag from "@/components/guild/GuildTag";
 import MentionText from "@/components/ui/MentionText";
-import { ACCENT, ACCENT_LIT, notch } from "@/components/cards/gacha";
+import { ACCENT, notch } from "@/components/cards/gacha";
 import { chapterNumberFromId } from "@/lib/manhwa/ids";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -151,6 +151,7 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
     try {
       const url = new URL(`${API_URL}/api/comments`);
       url.searchParams.set("global", "true");
+      url.searchParams.set("chaptersOnly", "true");
       url.searchParams.set("sort", sort);
       url.searchParams.set("limit", "40");
       if (source !== "all") url.searchParams.set("source", source);
@@ -158,7 +159,7 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
       const r = await fetch(url.toString());
       const d = await r.json();
       const list = Array.isArray(d?.data) ? d.data : d?.data?.comments;
-      setRows(Array.isArray(list) ? list.filter((c: any) => !c.parentId) : []);
+      setRows(Array.isArray(list) ? list.filter((c: any) => !c.parentId && Boolean(c.chapterId || c.episodeNo)) : []);
     } catch {
       /* offline */
     } finally {
@@ -180,29 +181,7 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <h2 className="text-2xl font-black tracking-tight md:text-3xl">Global Comments</h2>
-            <span className="px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.24em]"
-              style={{ clipPath: notch(6), background: `${ACCENT}22`, boxShadow: `inset 0 0 0 1px ${ACCENT}66`, color: ACCENT_LIT }}>
-              Read only
-            </span>
           </div>
-        </div>
-
-        {/* ── WHY THIS IS READ ONLY ── said once, plainly, at the top ── */}
-        <div className="mb-6 flex flex-wrap items-start gap-3 px-4 py-3.5"
-          style={{ clipPath: notch(14), background: `${ACCENT}12`, boxShadow: `inset 0 0 0 1px ${ACCENT}44` }}>
-          <Info className="mt-0.5 h-4 w-4 shrink-0" style={{ color: ACCENT_LIT }} />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm leading-relaxed text-slate-300">
-              Discussion has moved to the <b className="text-white">Forum</b>. This page is a live window onto every
-              comment left on an anime, manhwa or novel across the site — you can read and follow them here, but replies
-              belong on the thing they&rsquo;re about, so each card links you straight there.
-            </p>
-          </div>
-          <Link href="/community"
-            className="inline-flex shrink-0 items-center gap-1.5 px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white transition hover:brightness-115"
-            style={{ clipPath: "polygon(9px 0, 100% 0, calc(100% - 9px) 100%, 0 100%)", background: `linear-gradient(100deg, #7c3aed, ${ACCENT})` }}>
-            Go to forum <ArrowRight className="h-3 w-3" />
-          </Link>
         </div>
 
         {/* ── filters ── */}
