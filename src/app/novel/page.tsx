@@ -132,7 +132,7 @@ function NovelInner() {
                 <NovelCarousel title="Global & Korean Masterpieces" icon={<BookOpen className="w-6 h-6 text-purple-400" />} items={koreanMasterpieces} seeAllLink="/novel/explore?list=korean-masterpieces" />
               )}
               {cultivationEpics.length > 0 && (
-                <NovelCarousel title="Cultivation & Immortal Epics" icon={<Flame className="w-6 h-6 text-rose-500" />} items={cultivationEpics} seeAllLink="/novel/explore?list=cultivation-classics" />
+                <NovelCarousel title="Chinese Xianxia & Cultivation Masterpieces" icon={<Flame className="w-6 h-6 text-rose-500" />} items={cultivationEpics} seeAllLink="/novel/explore?list=cultivation-classics" />
               )}
               <NovelCarousel title="Trending Now" icon={<Flame className="w-6 h-6 text-orange-500" />} items={trending} seeAllLink="/novel/explore?list=most-popular-novel" />
               <NovelCarousel title="Top Rated on LightNovelWorld" icon={<Star className="w-6 h-6 text-yellow-400" />} items={lnwTop} seeAllLink="/novel/explore?list=lnw-top" />
@@ -142,12 +142,12 @@ function NovelInner() {
               <div className="pt-6">
                 <DiscoverRail
                   title="Discover Novels"
-                  subtitle="Official Light Novels, Global Masterpieces, and Cultivation Epics"
+                  subtitle="Official Light Novels, Global Masterpieces, and Chinese Xianxia Epics"
                   accent="#ec4899"
                   tabs={[
                     { key: "light-novels", label: "Official Light Novels", icon: "top", items: toDiscover(lightNovels) },
                     { key: "korean", label: "Global Masterpieces", icon: "popular", items: toDiscover(koreanMasterpieces) },
-                    { key: "cultivation", label: "Cultivation Epics", icon: "trending", items: toDiscover(cultivationEpics) },
+                    { key: "cultivation", label: "Chinese Xianxia Epics", icon: "trending", items: toDiscover(cultivationEpics) },
                     { key: "trending", label: "Trending Releases", icon: "trending", items: toDiscover(trending) },
                   ]}
                 />

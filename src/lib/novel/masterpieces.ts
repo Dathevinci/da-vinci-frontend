@@ -6,7 +6,7 @@
 export interface MasterpieceNovel {
   id: string;
   title: string;
-  category: "light-novel" | "korean-masterpiece" | "cultivation-epic";
+  category: "light-novel" | "korean-masterpiece" | "chinese-xianxia";
   tag: string;
   status: "Completed" | "Ongoing";
   author: string;
@@ -163,17 +163,6 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceNovel[] = [
     description: "Dokja was an average office worker whose only hobby was reading an obscure webnovel. Then the novel becomes reality."
   },
   {
-    id: "lord-of-the-mysteries-v1",
-    title: "Lord of the Mysteries",
-    category: "korean-masterpiece",
-    tag: "Victorian Fantasy",
-    status: "Completed",
-    author: "Cuttlefish That Loves Diving",
-    fallbackCover: "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b125291-5UbQcPd0JwiV.png",
-    latestChapter: "Chapter 1432 (Complete)",
-    description: "In a world of steam engines, tarot clubs, and cosmic horrors, Klein Moretti unravels the potion sequences of godhood."
-  },
-  {
     id: "the-beginning-after-the-end",
     title: "The Beginning After the End",
     category: "korean-masterpiece",
@@ -219,23 +208,23 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceNovel[] = [
   }
 ];
 
-export const CULTIVATION_CLASSICS: MasterpieceNovel[] = [
+export const CHINESE_XIANXIA_MASTERPIECES: MasterpieceNovel[] = [
   {
-    id: "coiling-dragon-an-unconventional-transcendence",
-    title: "Coiling Dragon",
-    category: "cultivation-epic",
-    tag: "Cultivation Classic",
+    id: "lord-of-the-mysteries-v1",
+    title: "Lord of the Mysteries",
+    category: "chinese-xianxia",
+    tag: "Victorian Xianxia",
     status: "Completed",
-    author: "I Eat Tomatoes",
-    fallbackCover: "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx86486-lJjo26or9gSk.jpg",
-    latestChapter: "Book 21 Chapter 44 (Complete)",
-    description: "Linley Baruch discovers a mysterious ring that awakens the heritage of the legendary Dragonblood Warriors."
+    author: "Cuttlefish That Loves Diving",
+    fallbackCover: "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b125291-5UbQcPd0JwiV.png",
+    latestChapter: "Chapter 1432 (Complete)",
+    description: "In a world of steam engines, tarot clubs, and cosmic horrors, Klein Moretti unravels the potion sequences of godhood."
   },
   {
-    id: "reverend-insanity",
+    id: "reverend-insanity-v1",
     title: "Reverend Insanity",
-    category: "cultivation-epic",
-    tag: "Cultivation Epic",
+    category: "chinese-xianxia",
+    tag: "Cultivation Masterpiece",
     status: "Completed",
     author: "Gu Zhen Ren",
     fallbackCover: "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b108050-ZGWnOokjiHG7.jpg",
@@ -243,53 +232,209 @@ export const CULTIVATION_CLASSICS: MasterpieceNovel[] = [
     description: "Fang Yuan uses the Spring Autumn Cicada to travel 500 years into the past, pursuing true immortality with ruthless cunning."
   },
   {
-    id: "a-will-eternal",
-    title: "A Will Eternal",
-    category: "cultivation-epic",
-    tag: "Cultivation Classic",
+    id: "the-kings-avatar-v1",
+    title: "The King's Avatar",
+    category: "chinese-xianxia",
+    tag: "Esports Masterpiece",
     status: "Completed",
-    author: "Er Gen",
-    fallbackCover: "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx153936-msfOD3UBIDiB.png",
-    latestChapter: "Chapter 1314 (Complete)",
-    description: "Bai Xiaochun is terrified of dying and will do anything to achieve eternal life, causing hilarious chaos across the immortal sects."
+    author: "Butterfly Blue",
+    fallbackCover: "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx86689-iXQY9R064cT8.png",
+    latestChapter: "Chapter 1728 (Complete)",
+    description: "Ye Xiu, a top-tier pro player in Glory, is ousted from his club and takes up work in an Internet café, plotting his grand return."
   },
   {
-    id: "i-shall-seal-the-heavens-novel",
-    title: "I Shall Seal the Heavens",
-    category: "cultivation-epic",
-    tag: "Cultivation Classic",
+    id: "library-of-heavens-path-v1",
+    title: "Library of Heaven's Path",
+    category: "chinese-xianxia",
+    tag: "Comedy Cultivation",
     status: "Completed",
-    author: "Er Gen",
-    fallbackCover: "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx105953-NSdVLOZFOptt.jpg",
-    latestChapter: "Chapter 1614 (Complete)",
-    description: "Meng Hao, a failed scholar, is kidnapped into the Reliance Sect and ascends the nine mountains and eight seas."
+    author: "Heng Sao Tian Ya",
+    fallbackCover: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx103608-T7NnBfgC77rO.jpg",
+    latestChapter: "Chapter 2268 (Complete)",
+    description: "Zhang Xuan transmigrates into another world as an academy teacher with a mystical library that detects the flaws of all things."
   },
   {
-    id: "martial-world",
-    title: "Martial World",
-    category: "cultivation-epic",
+    id: "martial-peak-v3",
+    title: "Martial Peak",
+    category: "chinese-xianxia",
+    tag: "Xianxia Epic",
+    status: "Completed",
+    author: "Momo",
+    fallbackCover: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx107380-z4w5WwXmJ2l8.jpg",
+    latestChapter: "Chapter 6000+ (Complete)",
+    description: "Yang Kai, a lowly sweeper of High Heaven Pavilion, obtains a black book and begins his journey to the pinnacle of the martial dao."
+  },
+  {
+    id: "apotheosis-ascension-to-godhood-v1",
+    title: "Apotheosis – Ascension to Godhood",
+    category: "chinese-xianxia",
+    tag: "Cultivation Epic",
+    author: "Zheng Huo",
+    status: "Ongoing",
+    fallbackCover: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx100868-hW7g83hZ9M4p.jpg",
+    latestChapter: "Chapter 3900+",
+    description: "Luo Zheng is betrayed and made a slave, but discovers a secret family technique that turns his own body into a divine weapon."
+  },
+  {
+    id: "release-that-witch-v1",
+    title: "Release That Witch",
+    category: "chinese-xianxia",
+    tag: "Kingdom Building",
+    status: "Completed",
+    author: "Er Mu",
+    fallbackCover: "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b100780-6m7n9Qe7c6M0.jpg",
+    latestChapter: "Chapter 1498 (Complete)",
+    description: "Modern engineer Cheng Yan is reborn as Prince Roland and allies with hunted witches to launch an industrial revolution."
+  },
+  {
+    id: "cultivation-chat-group-v1",
+    title: "Cultivation Chat Group",
+    category: "chinese-xianxia",
+    tag: "Modern Cultivation",
+    status: "Completed",
+    author: "Legend of the Paladin",
+    fallbackCover: "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b108860-tUuWj3y1Wz2I.jpg",
+    latestChapter: "Chapter 3170 (Complete)",
+    description: "Song Shuhang is accidentally invited into a QQ chat group full of chuunibyou seniors—except they are real immortal cultivators."
+  },
+  {
+    id: "top-tier-providence-secretly-cultivate-for-a-thousand-years",
+    title: "Top Tier Providence, Secretly Cultivate for a Thousand Years",
+    category: "chinese-xianxia",
+    tag: "System Cultivation",
+    status: "Completed",
+    author: "Let Me Laugh",
+    fallbackCover: "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b138860-rY6k9FvP4o7z.jpg",
+    latestChapter: "Chapter 1192 (Complete)",
+    description: "Reincarnated in a cultivation world, Han Jue discovers he can reroll life traits and resolves to secretly cultivate in absolute safety."
+  },
+  {
+    id: "my-disciples-are-all-villains-v2",
+    title: "My Disciples Are All Villains",
+    category: "chinese-xianxia",
+    tag: "Master & Disciples",
+    status: "Completed",
+    author: "Mudan Jiang",
+    fallbackCover: "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx119860-wJkP2x1V9t2u.jpg",
+    latestChapter: "Chapter 1750 (Complete)",
+    description: "Lu Zhou awakens as the world's most powerful and feared evil patriarch, surrounded by treacherous disciples waiting for him to die."
+  },
+  {
+    id: "true-martial-world-v1",
+    title: "True Martial World",
+    category: "chinese-xianxia",
     tag: "Cultivation Classic",
     status: "Completed",
     author: "Cocooned Cow",
     fallbackCover: "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx145699-uIthlAtq5lEp.png",
-    latestChapter: "Chapter 2255 (Complete)",
-    description: "Lin Ming obtains the mysterious Magic Cube from the divine realm, beginning his legendary ascent across the cosmos."
+    latestChapter: "Chapter 1750 (Complete)",
+    description: "With the mysterious Purple Crystal card, Yi Yun travels to the desolate wilderness and reaches the supreme peak of martial arts."
   },
   {
-    id: "renegade-immortal",
-    title: "Renegade Immortal",
-    category: "cultivation-epic",
+    id: "world-defying-dan-god-v1",
+    title: "World Defying Dan God",
+    category: "chinese-xianxia",
+    tag: "Alchemy Cultivation",
+    status: "Completed",
+    author: "Ji Xiao Zei",
+    fallbackCover: "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx106860-oPqW3e7v4u8K.jpg",
+    latestChapter: "Chapter 3800+",
+    description: "Young Shen Xiang encounters a trapped goddess and sister and inherits supreme divine martial arts and heavenly alchemy."
+  },
+  {
+    id: "ancient-godly-monarch-v1",
+    title: "Ancient Godly Monarch",
+    category: "chinese-xianxia",
+    tag: "Xuanhuan Epic",
+    status: "Completed",
+    author: "Jing Wu Hen",
+    fallbackCover: "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx105860-aBcD3e5f6g7H.jpg",
+    latestChapter: "Chapter 2048 (Complete)",
+    description: "In the Grand Xia Empire, Qin Wentian communicates with the Astral Constellations to establish himself as an Ancient Godly Monarch."
+  },
+  {
+    id: "shrouding-the-heavens-v1",
+    title: "Shrouding the Heavens",
+    category: "chinese-xianxia",
+    tag: "Xianxia Classic",
+    status: "Completed",
+    author: "Chen Dong",
+    fallbackCover: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx137654-2qWbCVvABGOr.png",
+    latestChapter: "Chapter 1822 (Complete)",
+    description: "Nine colossal dragon corpses pulling an ancient bronze coffin descend upon Mount Tai, ferrying Ye Fan into the cosmic cultivation world."
+  },
+  {
+    id: "peerless-battle-spirit-v1",
+    title: "Peerless Battle Spirit",
+    category: "chinese-xianxia",
+    tag: "Cultivation Epic",
+    status: "Completed",
+    author: "Supreme Villain",
+    fallbackCover: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx138860-4wXyZ1234567.png",
+    latestChapter: "Chapter 2900+",
+    description: "Qin Nan awakens the lowest tier martial spirit, but unlocks the Primordial Divine Battle Spirit that allows him to defy the heavens."
+  },
+  {
+    id: "transcending-the-nine-heavens",
+    title: "Transcending the Nine Heavens",
+    category: "chinese-xianxia",
     tag: "Cultivation Classic",
     status: "Completed",
-    author: "Er Gen",
-    fallbackCover: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx137653-1wHbCVvABGOr.png",
-    latestChapter: "Chapter 2088 (Complete)",
-    description: "Wang Lin possesses mediocre talent, but with unyielding determination and the Heaven Defying Bead, he slays gods to protect his loved ones."
+    author: "Feng Ling Tian Xia",
+    fallbackCover: "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104860-zXcVbN789012.jpg",
+    latestChapter: "Chapter 2500+",
+    description: "Chu Yang sacrifices his life for the Nine Tribulations Sword, reincarnating back to his youth to rectify all his past regrets."
+  },
+  {
+    id: "cultivation-online-v3",
+    title: "Cultivation Online",
+    category: "chinese-xianxia",
+    tag: "VRMMO Cultivation",
+    status: "Ongoing",
+    author: "MyLittleBrother",
+    fallbackCover: "https://media.kitsu.app/manga/71789/poster_image/large-4a20dc6c7576a4dfebf0dfb3f9dc3708.jpeg",
+    latestChapter: "Chapter 1200+",
+    description: "Paralyzed and blind Yuan enters Cultivation Online, discovering that its cultivation secrets awaken inside his real body."
+  },
+  {
+    id: "complete-martial-arts-attributes-v1",
+    title: "Complete Martial Arts Attributes",
+    category: "chinese-xianxia",
+    tag: "Urban Cultivation",
+    status: "Completed",
+    author: "Mo Zhi",
+    fallbackCover: "https://media.kitsu.app/manga/68298/poster_image/large-7ab90d3d526a7a01a3556ae8c5c7ce42.jpeg",
+    latestChapter: "Chapter 2100+",
+    description: "Wang Teng transmigrates to a martial arts earth where he can pick up dropped attribute orbs to infinitely strengthen himself."
+  },
+  {
+    id: "soul-land-iv-douluo-dalu-ultimate-fighting-v1",
+    title: "Soul Land (Douluo Dalu)",
+    category: "chinese-xianxia",
+    tag: "Fantasy Epic",
+    status: "Completed",
+    author: "Tang Jia San Shao",
+    fallbackCover: "https://media.kitsu.app/manga/poster_images/56837/large.jpg",
+    latestChapter: "Chapter 1800+",
+    description: "Tang San, disciple of the legendary Tang Sect, jumps off a cliff to atone for stealing forbidden lore and is reborn in the world of Douluo Dalu."
+  },
+  {
+    id: "heaven-officials-blessing-novel",
+    title: "Heaven Official's Blessing",
+    category: "chinese-xianxia",
+    tag: "Xianxia Masterpiece",
+    status: "Completed",
+    author: "Mo Xiang Tong Xiu",
+    fallbackCover: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx114420-pQwmLqVTwwE4.jpg",
+    latestChapter: "Chapter 244 (Complete)",
+    description: "Xie Lian, the Crown Prince of Xianle, ascends to heaven for the third time as a laughingstock, crossing paths with the Ghost King Hua Cheng."
   }
 ];
+
+export const CULTIVATION_CLASSICS: MasterpieceNovel[] = CHINESE_XIANXIA_MASTERPIECES;
 
 export const ALL_MASTERPIECES: MasterpieceNovel[] = [
   ...OFFICIAL_LIGHT_NOVELS,
   ...KOREAN_GLOBAL_MASTERPIECES,
-  ...CULTIVATION_CLASSICS,
+  ...CHINESE_XIANXIA_MASTERPIECES,
 ];

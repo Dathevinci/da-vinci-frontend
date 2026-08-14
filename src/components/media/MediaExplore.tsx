@@ -84,7 +84,7 @@ const MANHWA_STATUS = [
 const NOVEL_LISTS = [
   { key: "light-novels", label: "Official Light Novels (Hall of Fame)" },
   { key: "korean-masterpieces", label: "Global & Korean Masterpieces" },
-  { key: "cultivation-classics", label: "Cultivation & Immortal Epics" },
+  { key: "cultivation-classics", label: "Chinese Xianxia & Cultivation Masterpieces" },
   { key: "most-popular-novel", label: "Most Popular Releases" },
   { key: "lnw-top", label: "LightNovelWorld Top Rated" },
   { key: "nf-popular", label: "NovelFull Popular Hits" },
