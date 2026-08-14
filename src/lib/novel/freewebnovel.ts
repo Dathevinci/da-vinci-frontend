@@ -6,12 +6,12 @@ import { getExactSlug } from "./slugMapping";
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
 const BASE_URL = "https://freewebnovel.com";
 
-// Multi-proxy parallel pool with direct-first priority and fast Promise.any racing
+// Multi-proxy pool with sequential fallback
 const PROXIES = [
-  (url: string) => url,
   (url: string) => `https://goodproxy.goodproxy.workers.dev/fetch?url=${encodeURIComponent(url)}`,
   (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
   (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  (url: string) => url,
   (url: string) => `https://proxy.cors.sh/${url}`,
 ];
 
@@ -21,8 +21,8 @@ const chapterCache = new Map<string, { data: ChapterContent; timestamp: number }
 const CACHE_TTL = 1000 * 60 * 30; // 30 minutes
 
 async function fetchWithProxyFallback(targetUrl: string): Promise<string | null> {
-  try {
-    const promises = PROXIES.map(async (proxyBuilder) => {
+  for (const proxyBuilder of PROXIES) {
+    try {
       const url = proxyBuilder(targetUrl);
       const res = await axios.get(url, {
         headers: {
@@ -30,7 +30,7 @@ async function fetchWithProxyFallback(targetUrl: string): Promise<string | null>
           "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
           "Accept-Language": "en-US,en;q=0.5"
         },
-        timeout: 5500
+        timeout: 4500
       });
       if (
         res.status === 200 &&
@@ -43,12 +43,9 @@ async function fetchWithProxyFallback(targetUrl: string): Promise<string | null>
       ) {
         return res.data;
       }
-      throw new Error("Invalid response");
-    });
-    return await Promise.any(promises);
-  } catch {
-    return null;
+    } catch {}
   }
+  return null;
 }
 
 export async function searchFreeWebNovel(query: string): Promise<NovelResult[]> {

@@ -65,7 +65,7 @@ export const OFFICIAL_LIGHT_NOVELS: MasterpieceEntry[] = [
     "tag": "Psychological Thriller"
   },
   {
-    "id": "fwn:overlord-the-multiverse",
+    "id": "fwn:overlord-ln-novel",
     "title": "Overlord",
     "cover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20832-vUNm5zrYWifc.jpg",
     "bannerImage": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/20832-NswCiSYMoI2k.jpg",
@@ -478,7 +478,7 @@ export const KOREAN_GLOBAL_MASTERPIECES: MasterpieceEntry[] = [
     "tag": "Top Rated Dark Fantasy"
   },
   {
-    "id": "fwn:solo-leveling-digispirit",
+    "id": "fwn:only-i-level-up-wn",
     "title": "Solo Leveling (Only I Level Up)",
     "cover": "https://media.kitsu.app/manga/poster_images/54114/large.jpg",
     "bannerImage": "https://media.kitsu.app/manga/54114/cover_image/large-5ced5f4969b4e15202e7f08188ba093f.jpeg",
