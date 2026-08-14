@@ -37,7 +37,7 @@ export default function NovelDetailPage() {
   const [loading, setLoading] = useState(true);
   const [chapterFilter, setChapterFilter] = useState("");
   const [chapterPage, setChapterPage] = useState(0);
-  const [tab, setTab] = useState<Tab>("overview");
+  const [tab, setTab] = useState<Tab>("chapters");
   const [serverOpen, setServerOpen] = useState(false);
   const serverRef = useRef<HTMLDivElement>(null);
 

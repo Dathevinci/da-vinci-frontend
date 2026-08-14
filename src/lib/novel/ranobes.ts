@@ -29,7 +29,7 @@ export async function getRanobesInfo(slug: string): Promise<NovelInfo> {
   const descMatch = res.data.match(/<div class="moreless__full"[^>]*>([\s\S]*?)<\/div>/i) || res.data.match(/<div class="showcontent"[^>]*>([\s\S]*?)<\/div>/i);
   const coverMatch = res.data.match(/<div class="poster"[^>]*>[\s\S]*?<img[^>]*src="([^"]+)"/i);
 
-  // Extract series ID number from slug or page to fetch chapter list
+  // Extract series ID number from slug (e.g. 667603 or 718239)
   const idMatch = slug.match(/(\d+)/);
   const seriesNum = idMatch ? idMatch[1] : "";
 
@@ -38,18 +38,41 @@ export async function getRanobesInfo(slug: string): Promise<NovelInfo> {
     try {
       const chapListUrl = `${BASE_URL}/chapters/${seriesNum}/`;
       const cRes = await axios.get(chapListUrl, { headers: { "User-Agent": UA }, timeout: 8000 });
-      const chapLinks = Array.from(cRes.data.matchAll(/href="https:\/\/ranobes\.top\/([^"]+\/\d+\.html)"[^>]*title="([^"]+)"/gi))
-        .concat(Array.from(cRes.data.matchAll(/href="\/([^"]+\/\d+\.html)"[^>]*title="([^"]+)"/gi)));
-
-      chapLinks.forEach((c: any, index: number) => {
-        const rawHref = c[1].replace(/^\//, '').replace(/\.html$/, '');
-        chapters.push({
-          id: rawHref,
-          number: index + 1,
-          title: c[2].replace(/<[^>]+>/g, '').trim(),
-        });
-      });
+      
+      const start = cRes.data.indexOf("window.__DATA__ = ");
+      if (start !== -1) {
+        const end = cRes.data.indexOf("</script>", start);
+        const rawJson = cRes.data.slice(start + "window.__DATA__ = ".length, end).trim().replace(/;$/, '').trim();
+        const data = JSON.parse(rawJson);
+        
+        if (Array.isArray(data.chapters) && data.chapters.length > 0) {
+          // Ranobes returns chapters newest-first; reverse to chronological ascending (Chapter 1 -> End)
+          const reversed = [...data.chapters].reverse();
+          reversed.forEach((c: any, index: number) => {
+            const rawLink = c.link ? c.link.replace(/^https:\/\/ranobes\.top\//, '').replace(/\.html$/, '') : `${slug}/${c.id}`;
+            chapters.push({
+              id: rawLink,
+              number: index + 1,
+              title: c.title || `Chapter ${index + 1}`,
+              releaseDate: c.showDate || c.date
+            });
+          });
+        }
+      }
     } catch {}
+  }
+
+  // Fallback: If no chapters found from JSON, parse direct HTML links from series page
+  if (chapters.length === 0) {
+    const htmlLinks = Array.from(res.data.matchAll(/href="https:\/\/ranobes\.top\/([^"]+-\d+\/\d+\.html)"/gi));
+    htmlLinks.forEach((c: any, index: number) => {
+      const rawLink = c[1].replace(/\.html$/, '');
+      chapters.push({
+        id: rawLink,
+        number: index + 1,
+        title: `Chapter ${index + 1}`,
+      });
+    });
   }
 
   return {
@@ -57,7 +80,7 @@ export async function getRanobesInfo(slug: string): Promise<NovelInfo> {
     novelId: slug,
     title: titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').trim() : slug,
     cover: coverMatch ? `${BASE_URL}${coverMatch[1]}` : "",
-    author: "Official Japanese Author",
+    author: "Official Japanese Light Novel",
     status: "Completed",
     genres: ["Light Novel", "Fantasy", "Action"],
     synopsis: descMatch ? descMatch[1].replace(/<[^>]+>/g, '').trim() : "Synopsis coming soon.",
@@ -67,7 +90,8 @@ export async function getRanobesInfo(slug: string): Promise<NovelInfo> {
 }
 
 export async function getRanobesChapter(chapterPath: string): Promise<ChapterContent> {
-  const url = `${BASE_URL}/${chapterPath}.html`;
+  const cleanPath = chapterPath.replace(/^https:\/\/ranobes\.top\//, '').replace(/^\//, '').replace(/\.html$/, '');
+  const url = `${BASE_URL}/${cleanPath}.html`;
   const res = await axios.get(url, { headers: { "User-Agent": UA }, timeout: 8000 });
 
   const titleMatch = res.data.match(/<h1 class="title"[^>]*>([\s\S]*?)<\/h1>/i) || res.data.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
@@ -89,7 +113,7 @@ export async function getRanobesChapter(chapterPath: string): Promise<ChapterCon
   return {
     title: titleMatch ? titleMatch[1].replace(/<[^>]+>/g, "").trim() : "Chapter",
     content,
-    prev: prevMatch ? prevMatch[1].replace(/^\//, '').replace(/\.html$/, '') : null,
-    next: nextMatch ? nextMatch[1].replace(/^\//, '').replace(/\.html$/, '') : null,
+    prev: prevMatch ? prevMatch[1].replace(/^https:\/\/ranobes\.top\//, '').replace(/^\//, '').replace(/\.html$/, '') : null,
+    next: nextMatch ? nextMatch[1].replace(/^https:\/\/ranobes\.top\//, '').replace(/^\//, '').replace(/\.html$/, '') : null,
   };
 }

@@ -34,16 +34,53 @@ export async function getFreeWebNovelInfo(slug: string): Promise<NovelInfo> {
   const coverMatch = res.data.match(/<div class="pic"[^>]*>[\s\S]*?<img[^>]*src="([^"]+)"/i);
 
   const chapMatches = Array.from(res.data.matchAll(/href="(\/[^"]+chapter-[^"]+)" title="([^"]+)"/gi));
-  const chapters: NovelChapter[] = chapMatches.map((c: any, index: number) => ({
-    id: c[1].replace(/^\//, ''),
-    number: index + 1,
-    title: c[2].replace(/&amp;/g, '&').replace(/&apos;/g, "'").trim(),
-  }));
+  
+  let chapters: NovelChapter[] = [];
+  if (chapMatches.length > 0) {
+    // Find the highest chapter number from scraped links
+    let maxChapNum = 1;
+    chapMatches.forEach((c: any) => {
+      const numMatch = c[1].match(/chapter-(\d+)/i);
+      if (numMatch) {
+        const n = parseInt(numMatch[1]);
+        if (n > maxChapNum) maxChapNum = n;
+      }
+    });
 
-  // Chronological sort: If chapters start from the latest, reverse to ascending
-  if (chapters.length > 1 && chapters[0].id.includes('chapter-') && chapters[chapters.length - 1].id.includes('chapter-1')) {
-    chapters.reverse();
-    chapters.forEach((ch, idx) => { ch.number = idx + 1; });
+    // If there are more than 40 chapters, generate the full sequential chapter index
+    if (maxChapNum > 40) {
+      for (let i = 1; i <= maxChapNum; i++) {
+        chapters.push({
+          id: `novel/${cleanSlug}/chapter-${i}`,
+          number: i,
+          title: `Chapter ${i}`
+        });
+      }
+    } else {
+      // Use parsed links in ascending order
+      const parsed = chapMatches.map((c: any) => {
+        const numMatch = c[1].match(/chapter-(\d+)/i);
+        const num = numMatch ? parseInt(numMatch[1]) : 1;
+        return {
+          id: c[1].replace(/^\//, ''),
+          number: num,
+          title: c[2].replace(/&amp;/g, '&').replace(/&apos;/g, "'").trim(),
+        };
+      });
+      parsed.sort((a, b) => a.number - b.number);
+      chapters = parsed;
+    }
+  }
+
+  // Fallback: If no chapters found, provide at least chapters 1-50
+  if (chapters.length === 0) {
+    for (let i = 1; i <= 50; i++) {
+      chapters.push({
+        id: `novel/${cleanSlug}/chapter-${i}`,
+        number: i,
+        title: `Chapter ${i}`
+      });
+    }
   }
 
   return {
@@ -69,8 +106,13 @@ export async function getFreeWebNovelChapter(chapterPath: string): Promise<Chapt
   const titleMatch = res.data.match(/<h1 class="tit"[^>]*>([\s\S]*?)<\/h1>/i) || res.data.match(/<span class="view_title"[^>]*>([\s\S]*?)<\/span>/i);
   const contentMatch = res.data.match(/<div class="txt"[^>]*>([\s\S]*?)<\/div>/i) || res.data.match(/<div id="article"[^>]*>([\s\S]*?)<\/div>/i);
 
-  const prevMatch = res.data.match(/href="(\/[^"]+chapter-[^"]+)"[^>]*id="prev"/i) || res.data.match(/<a[^>]*href="(\/[^"]+chapter-[^"]+)"[^>]*>Prev<\/a>/i);
-  const nextMatch = res.data.match(/href="(\/[^"]+chapter-[^"]+)"[^>]*id="next"/i) || res.data.match(/<a[^>]*href="(\/[^"]+chapter-[^"]+)"[^>]*>Next<\/a>/i);
+  // Extract current chapter number for reliable prev/next calculation
+  const numMatch = cleanPath.match(/chapter-(\d+)/i);
+  const currentNum = numMatch ? parseInt(numMatch[1]) : 1;
+  const basePath = cleanPath.replace(/chapter-\d+.*$/, 'chapter-');
+
+  const prev = currentNum > 1 ? `${basePath}${currentNum - 1}` : null;
+  const next = `${basePath}${currentNum + 1}`;
 
   const content = contentMatch
     ? contentMatch[1]
@@ -83,9 +125,9 @@ export async function getFreeWebNovelChapter(chapterPath: string): Promise<Chapt
     : ["Chapter text is loading or unavailable."];
 
   return {
-    title: titleMatch ? titleMatch[1].replace(/<[^>]+>/g, "").trim() : "Chapter",
+    title: titleMatch ? titleMatch[1].replace(/<[^>]+>/g, "").trim() : `Chapter ${currentNum}`,
     content,
-    prev: prevMatch ? prevMatch[1].replace(/^\//, '') : null,
-    next: nextMatch ? nextMatch[1].replace(/^\//, '') : null,
+    prev,
+    next,
   };
 }
