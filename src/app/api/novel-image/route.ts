@@ -22,6 +22,11 @@ export async function GET(req: NextRequest) {
     host === "lightnovelworld.org" || host.endsWith(".lightnovelworld.org") ||
     host === "allnovelupdates.com" || host.endsWith(".allnovelupdates.com") ||
     host === "freewebnovel.com" || host.endsWith(".freewebnovel.com") ||
+    // RoyalRoad serves every cover from its own CDN. Without this the proxy
+    // answered 403 "Domain not allowed" for the entire source — which is what
+    // a wall of broken novel thumbnails looks like from the outside.
+    host === "royalroadcdn.com" || host.endsWith(".royalroadcdn.com") ||
+    host === "royalroad.com" || host.endsWith(".royalroad.com") ||
     // DOT BOUNDARIES matter on suffix checks: a bare endsWith("kitsu.app")
     // also matches "evilkitsu.app" — any attacker-registered domain ending in
     // the string would ride the proxy.
@@ -35,7 +40,9 @@ export async function GET(req: NextRequest) {
 
   const UA =
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
-  const referer = host.includes("novelfull")
+  const referer = host.includes("royalroad")
+    ? "https://www.royalroad.com/"
+    : host.includes("novelfull")
     ? "https://novelfull.net/"
     : host.includes("fanmtl")
     ? "https://www.fanmtl.com/"

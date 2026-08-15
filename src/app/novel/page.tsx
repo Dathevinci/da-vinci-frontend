@@ -26,9 +26,12 @@ function NovelInner() {
 
   const [data, setData] = useState<NovelResult[]>([]);
   const [featuredHero, setFeaturedHero] = useState<NovelResult[]>([]);
-  const [lightNovels, setLightNovels] = useState<NovelResult[]>([]);
-  const [koreanMasterpieces, setKoreanMasterpieces] = useState<NovelResult[]>([]);
-  const [cultivationEpics, setCultivationEpics] = useState<NovelResult[]>([]);
+  // Shelves are named for what the sources actually hold: ReadNovelFull is
+  // translated Asian web novels, RoyalRoad is original English fiction. The
+  // old curated-era names described a catalogue that no longer exists.
+  const [translatedNovels, setTranslatedNovels] = useState<NovelResult[]>([]);
+  const [originalFiction, setOriginalFiction] = useState<NovelResult[]>([]);
+  const [latestUpdates, setLatestUpdates] = useState<NovelResult[]>([]);
   const [trending, setTrending] = useState<NovelResult[]>([]);
   const [completed, setCompleted] = useState<NovelResult[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,9 +43,9 @@ function NovelInner() {
         .then((r) => r.json())
         .then((res) => {
           setFeaturedHero(res.featuredHero || []);
-          setLightNovels(res.lightNovels || []);
-          setKoreanMasterpieces(res.koreanMasterpieces || []);
-          setCultivationEpics(res.cultivationEpics || []);
+          setTranslatedNovels(res.translatedNovels || []);
+          setOriginalFiction(res.originalFiction || []);
+          setLatestUpdates(res.latestUpdates || []);
           setTrending(res.trending || []);
           setCompleted(res.completed || []);
           setLoading(false);
@@ -95,49 +98,60 @@ function NovelInner() {
             <div className="relative z-20 space-y-2 max-w-[1600px] mx-auto">
               <ContinueReading kind="novel" />
               
-              {lightNovels.length > 0 && (
+              {trending.length > 0 && (
                 <NovelCarousel
-                  title="Official Japanese Light Novels (Hall of Fame)"
-                  icon={<Star className="w-6 h-6 text-amber-400" />}
-                  items={lightNovels}
-                  seeAllLink="/novel/explore?list=light-novels"
-                />
-              )}
-
-              {koreanMasterpieces.length > 0 && (
-                <NovelCarousel
-                  title="Global & Korean Fantasy Masterpieces"
-                  icon={<Sparkles className="w-6 h-6 text-purple-400" />}
-                  items={koreanMasterpieces}
-                  seeAllLink="/novel/explore?list=korean-masterpieces"
-                />
-              )}
-
-              {cultivationEpics.length > 0 && (
-                <NovelCarousel
-                  title="Chinese Xianxia & Immortal Epics"
+                  title="Trending Now"
                   icon={<Flame className="w-6 h-6 text-rose-500" />}
-                  items={cultivationEpics}
-                  seeAllLink="/novel/explore?list=chinese-xianxia"
+                  items={trending}
+                  seeAllLink="/novel/explore?list=popular"
                 />
               )}
 
-              <NovelCarousel
-                title="Completed Classics"
-                icon={<CheckCircle2 className="w-6 h-6 text-emerald-400" />}
-                items={completed}
-                seeAllLink="/novel/explore?list=completed"
-              />
+              {latestUpdates.length > 0 && (
+                <NovelCarousel
+                  title="Latest Updates"
+                  icon={<Sparkles className="w-6 h-6 text-purple-400" />}
+                  items={latestUpdates}
+                  seeAllLink="/novel/explore?list=latest"
+                />
+              )}
+
+              {translatedNovels.length > 0 && (
+                <NovelCarousel
+                  title="Translated Web Novels"
+                  icon={<Star className="w-6 h-6 text-amber-400" />}
+                  items={translatedNovels}
+                  seeAllLink="/novel/explore?list=popular"
+                />
+              )}
+
+              {originalFiction.length > 0 && (
+                <NovelCarousel
+                  title="Original English Fiction"
+                  icon={<Star className="w-6 h-6 text-sky-400" />}
+                  items={originalFiction}
+                  seeAllLink="/novel/explore?list=original"
+                />
+              )}
+
+              {completed.length > 0 && (
+                <NovelCarousel
+                  title="Completed"
+                  icon={<CheckCircle2 className="w-6 h-6 text-emerald-400" />}
+                  items={completed}
+                  seeAllLink="/novel/explore?list=completed"
+                />
+              )}
 
               <div className="pt-6">
                 <DiscoverRail
-                  title="Discover Light Novels"
-                  subtitle="Curated official light novels, global masterworks, and human translations"
+                  title="Discover Novels"
+                  subtitle="Human-translated web novels and original English fiction"
                   accent="#ec4899"
                   tabs={[
-                    { key: "light-novels", label: "Official Light Novels", icon: "top", items: toDiscover(lightNovels) },
-                    { key: "korean", label: "Global Masterpieces", icon: "popular", items: toDiscover(koreanMasterpieces) },
-                    { key: "cultivation", label: "Chinese Xianxia", icon: "trending", items: toDiscover(cultivationEpics) },
+                    { key: "translated", label: "Translated", icon: "top", items: toDiscover(translatedNovels) },
+                    { key: "original", label: "Original English", icon: "popular", items: toDiscover(originalFiction) },
+                    { key: "completed", label: "Completed", icon: "trending", items: toDiscover(completed) },
                   ]}
                 />
               </div>

@@ -121,15 +121,29 @@ export interface NovelBrowseParams {
  * curation exists.
  */
 const LIST_MAP: Record<string, string> = {
+  popular: "most-popular-novel",
   completed: "completed-novel",
   "completed-novel": "completed-novel",
   latest: "latest-release-novel",
   "latest-release-novel": "latest-release-novel",
   hot: "hot-novel",
   "hot-novel": "hot-novel",
+  // Retired curated-era list names still arriving from old links/bookmarks.
   "light-novels": "most-popular-novel",
   "korean-masterpieces": "most-popular-novel",
   "chinese-xianxia": "most-popular-novel",
+};
+
+/**
+ * Lists that mean ONE source, because their shelf makes a claim about origin.
+ * "Original English Fiction" must not return translated novels, and vice
+ * versa — that is the whole point of splitting the shelves by kind.
+ */
+const SOURCE_ONLY: Record<string, "rnf" | "rr"> = {
+  original: "rr",
+  "original-fiction": "rr",
+  translated: "rnf",
+  "translated-novels": "rnf",
 };
 
 export async function browseNovels(
@@ -148,13 +162,35 @@ export async function browseNovels(
     status = paramsOrPage.status || "";
   }
 
-  const completedWanted = status.toLowerCase() === "completed" || list.toLowerCase().startsWith("completed");
-  const target = completedWanted ? "completed-novel" : LIST_MAP[list.toLowerCase()] || "most-popular-novel";
+  const key = list.toLowerCase();
+  const completedWanted = status.toLowerCase() === "completed" || key.startsWith("completed");
+  const target = completedWanted ? "completed-novel" : LIST_MAP[key] || "most-popular-novel";
   const rrTarget = completedWanted
     ? "complete"
     : target === "latest-release-novel"
       ? "latest-updates"
       : "best-rated";
+
+  // A list that claims an origin is served by that source alone.
+  const only = SOURCE_ONLY[key];
+  if (only === "rr") {
+    try {
+      const r = await RR.listFictions(rrTarget, page);
+      return { results: r.results, hasNextPage: r.hasNextPage, totalPages: r.totalPages ?? 0 };
+    } catch (e) {
+      console.error("[novel] rr browse failed:", e);
+      return { results: [], hasNextPage: false, totalPages: 0 };
+    }
+  }
+  if (only === "rnf") {
+    try {
+      const r = await RNF.listNovels(target, page);
+      return { results: r.results, hasNextPage: r.hasNextPage, totalPages: r.totalPages ?? 0 };
+    } catch (e) {
+      console.error("[novel] rnf browse failed:", e);
+      return { results: [], hasNextPage: false, totalPages: 0 };
+    }
+  }
 
   /**
    * BOTH SOURCES PER BROWSE PAGE, interleaved. Page N means page N of each,
@@ -205,13 +241,22 @@ export async function homeShelves() {
     r.status === "fulfilled" ? r.value.results : [];
 
   /**
-   * TWO SOURCES PER SHELF, interleaved rather than concatenated — appending
-   * would bury every RoyalRoad row below twenty ReadNovelFull rows, which on a
-   * horizontally-scrolling shelf means nobody ever sees them.
+   * SHELVES NOW DESCRIBE WHAT THE SOURCES ACTUALLY ARE.
    *
-   * The two curated-era shelves that have no honest equivalent stay empty and
-   * the page hides them; `lightNovels` now has one, since original English
-   * serials are exactly what that shelf claims to hold.
+   * The old keys came from the deleted curated era and had become labels that
+   * lie: "Official Japanese Light Novels" was being filled with RoyalRoad's
+   * ORIGINAL ENGLISH serials, while "Korean Masterpieces" and "Chinese Xianxia"
+   * sat permanently empty because nothing left could honestly fill them. A
+   * shelf whose title contradicts its contents is worse than no shelf.
+   *
+   * The two sources split cleanly by KIND, so the shelves split the same way:
+   * translated Asian web novels (ReadNovelFull) and original English fiction
+   * (RoyalRoad). The mixed shelves — trending, latest, completed — interleave
+   * rather than concatenate, because appending would bury every RoyalRoad row
+   * below twenty ReadNovelFull rows on a horizontally-scrolling shelf.
+   *
+   * The legacy keys are still emitted, empty, so an older cached client cannot
+   * crash on a missing field; the page hides an empty shelf.
    */
   const interleave = (a: NovelResult[], b: NovelResult[]) => {
     const out: NovelResult[] = [];
@@ -223,12 +268,18 @@ export async function homeShelves() {
   };
 
   return {
-    featuredHero: mergeByTitle(rows(hot)).slice(0, 6),
-    lightNovels: mergeByTitle(rows(rrPop)).slice(0, 20),
-    koreanMasterpieces: [] as NovelResult[],
-    cultivationEpics: [] as NovelResult[],
+    featuredHero: interleave(rows(hot), rows(rrPop)).slice(0, 8),
+
+    // Honest, source-shaped shelves.
+    translatedNovels: mergeByTitle(rows(pop)).slice(0, 20),
+    originalFiction: mergeByTitle(rows(rrPop)).slice(0, 20),
     trending: interleave(rows(pop), rows(rrPop)),
     latestUpdates: interleave(rows(latest), rows(rrLatest)),
     completed: interleave(rows(done), rows(rrDone)),
+
+    // Retired curated-era keys — emitted empty for back-compat only.
+    lightNovels: [] as NovelResult[],
+    koreanMasterpieces: [] as NovelResult[],
+    cultivationEpics: [] as NovelResult[],
   };
 }
