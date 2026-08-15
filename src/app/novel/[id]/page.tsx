@@ -171,28 +171,42 @@ export default function NovelDetailPage() {
           {/* THE TITLE — a book spine, not a terminal. Each mode wears its own
               face now: novels in literary Garamond with the last word lit in
               amber italic (the reference treatment), manhwa in an Anton
-              masthead, anime in the atelier's Fell serif. */}
-          <h1
-            className="mt-5 max-w-3xl text-4xl leading-tight text-white sm:text-5xl md:text-6xl"
-            style={{ fontFamily: "var(--font-garamond), Georgia, serif" }}
-          >
-            {(() => {
-              const words = novel.title.trim().split(/\s+/);
-              const tail = words[words.length - 1];
-              const head = words.slice(0, -1).join(" ");
-              // The featured title's lit word burns violet, not amber.
-              const emClass = featured
-                ? "italic text-fuchsia-300 drop-shadow-[0_0_18px_rgba(192,132,252,0.65)]"
-                : "italic text-amber-300";
-              return head ? (
-                <>
-                  {head} <em className={emClass}>{tail}</em>
-                </>
-              ) : (
-                <em className={emClass}>{tail}</em>
-              );
-            })()}
-          </h1>
+              masthead, anime in the atelier's Fell serif.
+
+              THE FEATURED NOVEL wears its own lettering instead: the Pirata
+              blackletter its cover art uses, in a violet gradient with a
+              layered glow — matching the aura the rest of its page breathes.
+              Every other novel keeps the Garamond treatment untouched. */}
+          {featured ? (
+            <h1
+              className="mt-5 max-w-3xl bg-gradient-to-b from-fuchsia-200 via-purple-300 to-purple-600 bg-clip-text text-5xl leading-tight text-transparent sm:text-6xl md:text-7xl"
+              style={{
+                fontFamily: "var(--font-pirata), 'Pirata One', serif",
+                filter:
+                  "drop-shadow(0 0 14px rgba(168,85,247,0.55)) drop-shadow(0 0 42px rgba(126,34,206,0.35)) drop-shadow(0 2px 2px rgba(0,0,0,0.9))",
+              }}
+            >
+              {novel.title}
+            </h1>
+          ) : (
+            <h1
+              className="mt-5 max-w-3xl text-4xl leading-tight text-white sm:text-5xl md:text-6xl"
+              style={{ fontFamily: "var(--font-garamond), Georgia, serif" }}
+            >
+              {(() => {
+                const words = novel.title.trim().split(/\s+/);
+                const tail = words[words.length - 1];
+                const head = words.slice(0, -1).join(" ");
+                return head ? (
+                  <>
+                    {head} <em className="italic text-amber-300">{tail}</em>
+                  </>
+                ) : (
+                  <em className="italic text-amber-300">{tail}</em>
+                );
+              })()}
+            </h1>
+          )}
 
           {novel.genres.length > 0 && (
             <div className="mt-4 flex flex-wrap items-center justify-center gap-2">

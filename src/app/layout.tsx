@@ -37,6 +37,9 @@ const ebGaramond = localFont({
 // Dispatch's arcade face. preload off — they only download when a reader
 // actually picks them; zero cost to every other page.
 const pressStart = localFont({ src: "./fonts/press-start-2p-latin.woff2", weight: "400", variable: "--font-pixel", display: "swap", preload: false });
+// Blackletter display face for the FEATURED novel's title only — preload:false
+// so its 8.8KB downloads solely on pages that actually render it.
+const pirataOne = localFont({ src: "./fonts/pirata-one-latin.woff2", weight: "400", variable: "--font-pirata", display: "swap", preload: false });
 const lora = localFont({
   src: [
     { path: "./fonts/lora-latin.woff2", style: "normal" },
@@ -110,7 +113,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className="dark">
-      <body className={`${geistSans.variable} ${geistMono.variable} ${permanentMarker.variable} ${cinzel.variable} ${ebGaramond.variable} ${fellEnglish.variable} ${anton.variable} ${pressStart.variable} ${lora.variable} ${merriweather.variable} ${literata.variable} ${lexend.variable} bg-[#050505] text-white antialiased min-h-screen flex flex-col transition-colors duration-300 overflow-x-hidden`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} ${permanentMarker.variable} ${cinzel.variable} ${ebGaramond.variable} ${fellEnglish.variable} ${anton.variable} ${pressStart.variable} ${pirataOne.variable} ${lora.variable} ${merriweather.variable} ${literata.variable} ${lexend.variable} bg-[#050505] text-white antialiased min-h-screen flex flex-col transition-colors duration-300 overflow-x-hidden`}>
         <ThemeProvider>
           <AppMotionConfig>
           <AppModeProvider>

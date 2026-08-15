@@ -136,7 +136,14 @@ export default function MustReadSpotlight() {
               </span>
             </div>
 
-            <h2 className="mb-1 bg-gradient-to-r from-purple-200 via-fuchsia-300 to-purple-400 bg-clip-text text-3xl font-black leading-tight text-transparent drop-shadow-[0_0_24px_rgba(168,85,247,0.45)] sm:text-4xl">
+            <h2
+              className="mb-1 bg-gradient-to-b from-fuchsia-200 via-purple-300 to-purple-600 bg-clip-text text-4xl leading-tight text-transparent sm:text-5xl"
+              style={{
+                fontFamily: "var(--font-pirata), 'Pirata One', serif",
+                filter:
+                  "drop-shadow(0 0 14px rgba(168,85,247,0.55)) drop-shadow(0 0 42px rgba(126,34,206,0.35)) drop-shadow(0 2px 2px rgba(0,0,0,0.9))",
+              }}
+            >
               {MUST_READ.title}
             </h2>
             <p className="mb-4 text-sm font-bold text-slate-400">
