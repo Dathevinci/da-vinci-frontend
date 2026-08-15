@@ -10,6 +10,7 @@ import NovelCarousel from "@/components/novel/NovelCarousel";
 import NovelHeroCarousel from "@/components/novel/NovelHeroCarousel";
 import HeroSearchBar from "@/components/ui/HeroSearchBar";
 import ContinueReading from "@/components/reading/ContinueReading";
+import MustReadSpotlight from "@/components/novel/MustReadSpotlight";
 import DiscoverRail from "@/components/media/DiscoverRail";
 import HiddenGems from "@/components/media/HiddenGems";
 import RecentMediaComments from "@/components/media/RecentMediaComments";
@@ -97,6 +98,9 @@ function NovelInner() {
 
             <div className="relative z-20 space-y-2 max-w-[1600px] mx-auto">
               <ContinueReading kind="novel" />
+
+              {/* Owner's editorial pin — its own shelf, above the listings. */}
+              <MustReadSpotlight />
               
               {trending.length > 0 && (
                 <NovelCarousel
