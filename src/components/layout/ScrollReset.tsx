@@ -55,12 +55,60 @@ export default function ScrollReset() {
       popped.current = false;
       return;
     }
-    const id = requestAnimationFrame(() => {
-      // `instant` rather than smooth: a page you just opened should already be
-      // at the top, not visibly travelling there.
-      window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
-    });
-    return () => cancelAnimationFrame(id);
+
+    /**
+     * A PIN, NOT A POKE. The single one-frame reset this used to be kept
+     * losing: the real content arrives hundreds of milliseconds after
+     * navigation, and whatever re-applies the old offset — the router's own
+     * restoration, the browser re-extending a clamped offset as the document
+     * grows — fires AFTER a one-shot reset has already retired. That is the
+     * "opens a chapter and starts from below, sometimes, almost everywhere"
+     * report: the outcome depended on how fast the content happened to load.
+     *
+     * So for a short window after each push navigation the page is HELD at the
+     * top: any frame where something has moved the scroll without the reader's
+     * involvement gets reset. The pin releases on the FIRST real user gesture
+     * (wheel, touch, key, pointer), so a reader who starts scrolling
+     * immediately is never fought — their gesture ends the window mid-flight.
+     *
+     * ANCHOR NAVIGATIONS ARE EXEMPT: a #hash or a ?comment= permalink is a
+     * navigation whose PURPOSE is to land mid-page (the comment feed scrolls
+     * to the linked comment on mount). Those get one initial top-reset only if
+     * scroll survived from the previous page, and no pin.
+     */
+    const wantsAnchor =
+      window.location.hash.length > 1 || /[?&]comment=/.test(window.location.search);
+
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+    if (wantsAnchor) return;
+
+    const PIN_MS = 1400;
+    const deadline = performance.now() + PIN_MS;
+    let raf = 0;
+    let released = false;
+
+    const release = () => {
+      released = true;
+      cancelAnimationFrame(raf);
+      for (const ev of GESTURES) window.removeEventListener(ev, release);
+    };
+    const GESTURES = ["wheel", "touchstart", "keydown", "pointerdown"] as const;
+    for (const ev of GESTURES) window.addEventListener(ev, release, { passive: true });
+
+    const hold = () => {
+      if (released) return;
+      if (performance.now() > deadline) {
+        release();
+        return;
+      }
+      if (window.scrollY > 2) {
+        window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+      }
+      raf = requestAnimationFrame(hold);
+    };
+    raf = requestAnimationFrame(hold);
+
+    return release;
   }, [pathname]);
 
   return null;
