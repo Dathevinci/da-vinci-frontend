@@ -15,8 +15,8 @@ import LoadingScreen from "@/components/ui/LoadingScreen";
 import { novelCover } from "@/lib/novelImage";
 import CommunityFeed from "@/components/community/CommunityFeed";
 import HeroBackdrop from "@/components/ui/HeroBackdrop";
-import { isFeaturedNovel } from "@/lib/novel/featured";
-import { PurpleAuraStyles, AuraPlumes, AuraRing, AuraOverlays, AuraEmbers } from "@/components/novel/PurpleAura";
+import { featuredFor } from "@/lib/novel/featured";
+import { PurpleAuraStyles, AuraPlumes, AuraRing, AuraOverlays, AuraEmbers, coverGlow, titleStyle } from "@/components/novel/PurpleAura";
 
 /**
  * NOVEL DETAIL — the reference layout: blurred cover stage, poster front
@@ -34,9 +34,11 @@ type Tab = "overview" | "chapters" | "discussions";
 export default function NovelDetailPage() {
   const params = useParams();
   const id = decodeURIComponent(String(params.id));
-  // The featured title wears its purple aura here too — same id the Must Read
-  // spotlight pins, from one shared constant so the surfaces cannot disagree.
-  const featured = isFeaturedNovel(id);
+  // A featured title wears its own aura here too — same registry the Must
+  // Read spotlight rotates through, so the surfaces cannot disagree, and each
+  // pinned novel keeps its own palette and lettering.
+  const feat = featuredFor(id);
+  const featured = feat !== null;
 
   const [novel, setNovel] = useState<NovelInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -117,11 +119,12 @@ export default function NovelDetailPage() {
               the featured title breathes violet instead of amber */}
           <div
             aria-hidden
-            className={`pointer-events-none absolute inset-x-0 top-6 h-[460px] ${
-              featured
-                ? "bg-[radial-gradient(ellipse_45%_60%_at_50%_40%,rgba(147,51,234,0.28),transparent_70%)]"
-                : "bg-[radial-gradient(ellipse_45%_60%_at_50%_40%,rgba(251,191,36,0.14),transparent_70%)]"
-            }`}
+            className="pointer-events-none absolute inset-x-0 top-6 h-[460px]"
+            style={{
+              background: feat
+                ? `radial-gradient(ellipse 45% 60% at 50% 40%, rgba(${feat.palette.rgb},0.26), transparent 70%)`
+                : "radial-gradient(ellipse 45% 60% at 50% 40%, rgba(251,191,36,0.14), transparent 70%)",
+            }}
           />
           {featured && <PurpleAuraStyles />}
           <motion.div
@@ -130,19 +133,19 @@ export default function NovelDetailPage() {
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             className="relative w-44 shrink-0 sm:w-56"
           >
-            {featured && (
+            {feat && (
               <>
-                <AuraPlumes />
-                <AuraRing />
+                <AuraPlumes p={feat.palette} />
+                <AuraRing p={feat.palette} />
               </>
             )}
             <div
               className="relative overflow-hidden rounded-xl"
-              style={
-                featured
-                  ? { boxShadow: "0 0 0 1px rgba(216,180,254,.45), 0 0 34px rgba(147,51,234,.6), 0 0 90px rgba(88,28,135,.4), 0 30px 80px rgba(0,0,0,.8)" }
-                  : { boxShadow: "0 0 0 1px rgba(255,255,255,.14), 0 30px 80px rgba(0,0,0,.8)" }
-              }
+              style={{
+                boxShadow: feat
+                  ? coverGlow(feat.palette)
+                  : "0 0 0 1px rgba(255,255,255,.14), 0 30px 80px rgba(0,0,0,.8)",
+              }}
             >
               {cover ? (
                 <img src={cover} alt={novel.title} className="aspect-[2/3] w-full object-cover" />
@@ -151,9 +154,9 @@ export default function NovelDetailPage() {
                   <BookOpen className="h-12 w-12 text-slate-700" />
                 </div>
               )}
-              {featured && <AuraOverlays />}
+              {feat && <AuraOverlays p={feat.palette} />}
             </div>
-            {featured && <AuraEmbers />}
+            {feat && <AuraEmbers p={feat.palette} />}
           </motion.div>
 
           <div className="mt-7 flex flex-wrap items-center justify-center gap-2 font-mono text-[11px] font-black uppercase tracking-wide">
@@ -177,14 +180,10 @@ export default function NovelDetailPage() {
               blackletter its cover art uses, in a violet gradient with a
               layered glow — matching the aura the rest of its page breathes.
               Every other novel keeps the Garamond treatment untouched. */}
-          {featured ? (
+          {feat ? (
             <h1
-              className="mt-5 max-w-3xl bg-gradient-to-b from-fuchsia-200 via-purple-300 to-purple-600 bg-clip-text text-5xl leading-tight text-transparent sm:text-6xl md:text-7xl"
-              style={{
-                fontFamily: "var(--font-pirata), 'Pirata One', serif",
-                filter:
-                  "drop-shadow(0 0 14px rgba(168,85,247,0.55)) drop-shadow(0 0 42px rgba(126,34,206,0.35)) drop-shadow(0 2px 2px rgba(0,0,0,0.9))",
-              }}
+              className="mt-5 max-w-3xl text-5xl leading-tight sm:text-6xl md:text-7xl"
+              style={titleStyle(feat.palette, feat.font)}
             >
               {novel.title}
             </h1>
@@ -213,11 +212,21 @@ export default function NovelDetailPage() {
               {novel.genres.slice(0, 6).map((g) => (
                 <span
                   key={g}
-                  className={`rounded-lg border px-3 py-1 font-mono text-xs font-bold ${
-                    featured
-                      ? "border-purple-400/40 bg-purple-500/10 text-purple-100/90 shadow-[0_0_12px_rgba(147,51,234,0.25)]"
-                      : "border-amber-400/25 bg-amber-400/[0.06] text-amber-100/90"
-                  }`}
+                  className="rounded-lg border px-3 py-1 font-mono text-xs font-bold"
+                  style={
+                    feat
+                      ? {
+                          borderColor: `rgba(${feat.palette.rgb},0.4)`,
+                          background: `rgba(${feat.palette.rgb},0.1)`,
+                          color: feat.palette.bright,
+                          boxShadow: `0 0 12px rgba(${feat.palette.rgb},0.25)`,
+                        }
+                      : {
+                          borderColor: "rgba(251,191,36,0.25)",
+                          background: "rgba(251,191,36,0.06)",
+                          color: "rgba(254,243,199,0.9)",
+                        }
+                  }
                 >
                   {g}
                 </span>

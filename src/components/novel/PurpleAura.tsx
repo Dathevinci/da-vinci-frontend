@@ -1,17 +1,31 @@
 "use client";
 
+import type { FeaturedPalette } from "@/lib/novel/featured";
+
 /**
- * The featured novel's purple dress — keyframes plus the aura layers, shared
- * by the Must Read spotlight and the novel detail page so the effect cannot
- * drift between the two surfaces.
+ * The featured-novel aura — keyframes plus the layered effects, shared by the
+ * Must Read spotlight and the novel detail page so the dress cannot drift
+ * between surfaces. Every layer takes its colours from a FeaturedPalette, so
+ * one novel burns violet and another sunset-amber from the same machinery.
  *
  * PURE CSS ON TRANSFORM/OPACITY ONLY: no canvas, no framer, no per-frame JS.
  * The aura is compositor work, not a render loop, and prefers-reduced-motion
  * stills every animation. Class names are prefixed `sps-` because the style
- * tag is global — styled-jsx is deliberately not used here, since its template
+ * tag is global — styled-jsx is deliberately not used, since its template
  * literal silently terminates on a backtick in a comment, a trap this repo has
  * already paid for twice.
  */
+
+const PURPLE: FeaturedPalette = {
+  bright: "rgba(240,215,255,1)",
+  mid: "rgba(168,85,247,1)",
+  deep: "rgba(88,28,135,1)",
+  rgb: "168,85,247",
+};
+
+/** rgba() from an "r,g,b" triple. */
+const tint = (rgb: string, a: number) => `rgba(${rgb},${a})`;
+
 export function PurpleAuraStyles() {
   return (
     <style>{`
@@ -50,29 +64,47 @@ export function PurpleAuraStyles() {
 }
 
 /** The two breathing plumes that sit BEHIND the cover. */
-export function AuraPlumes() {
+export function AuraPlumes({ p = PURPLE }: { p?: FeaturedPalette }) {
   return (
     <>
-      <div className="sps-aura pointer-events-none absolute -inset-8 rounded-full bg-[radial-gradient(closest-side,rgba(168,85,247,0.55),rgba(126,34,206,0.25)_55%,transparent_75%)] blur-2xl" />
-      <div className="sps-aura2 pointer-events-none absolute -inset-12 rounded-full bg-[radial-gradient(closest-side,rgba(216,180,254,0.28),transparent_70%)] blur-3xl" />
+      <div
+        className="sps-aura pointer-events-none absolute -inset-8 rounded-full blur-2xl"
+        style={{
+          background: `radial-gradient(closest-side, ${tint(p.rgb, 0.55)}, ${tint(p.rgb, 0.25)} 55%, transparent 75%)`,
+        }}
+      />
+      <div
+        className="sps-aura2 pointer-events-none absolute -inset-12 rounded-full blur-3xl"
+        style={{ background: `radial-gradient(closest-side, ${tint(p.rgb, 0.28)}, transparent 70%)` }}
+      />
     </>
   );
 }
 
 /** The rotating conic neon rim; wrap around the cover frame. */
-export function AuraRing() {
+export function AuraRing({ p = PURPLE }: { p?: FeaturedPalette }) {
   return (
     <div className="pointer-events-none absolute -inset-[3px] overflow-hidden rounded-2xl">
-      <div className="sps-ring absolute -inset-16 bg-[conic-gradient(from_0deg,transparent_0%,rgba(192,132,252,0.9)_12%,transparent_28%,transparent_55%,rgba(147,51,234,0.8)_68%,transparent_82%)]" />
+      <div
+        className="sps-ring absolute -inset-16"
+        style={{
+          background: `conic-gradient(from 0deg, transparent 0%, ${tint(p.rgb, 0.9)} 12%, transparent 28%, transparent 55%, ${tint(p.rgb, 0.8)} 68%, transparent 82%)`,
+        }}
+      />
     </div>
   );
 }
 
 /** Lightning wash + sheen; place INSIDE the cover's overflow-hidden frame. */
-export function AuraOverlays() {
+export function AuraOverlays({ p = PURPLE }: { p?: FeaturedPalette }) {
   return (
     <>
-      <div className="sps-flicker pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent_30%,rgba(216,180,254,0.55)_48%,rgba(147,51,234,0.35)_52%,transparent_70%)] mix-blend-screen" />
+      <div
+        className="sps-flicker pointer-events-none absolute inset-0 mix-blend-screen"
+        style={{
+          background: `linear-gradient(115deg, transparent 30%, ${tint(p.rgb, 0.55)} 48%, ${tint(p.rgb, 0.35)} 52%, transparent 70%)`,
+        }}
+      />
       <div className="sps-sheen pointer-events-none absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/25 to-transparent mix-blend-screen" />
     </>
   );
@@ -86,17 +118,41 @@ const EMBERS: Array<[string, string, string]> = [
   ["50%", "3.1s", "4px"],
 ];
 
-/** Violet embers drifting up; position relative to the cover's wrapper. */
-export function AuraEmbers() {
+/** Embers drifting up; position relative to the cover's wrapper. */
+export function AuraEmbers({ p = PURPLE }: { p?: FeaturedPalette }) {
   return (
     <>
       {EMBERS.map(([left, delay, size], i) => (
         <span
           key={i}
-          className="sps-ember pointer-events-none absolute bottom-2 rounded-full bg-purple-300"
-          style={{ left, width: size, height: size, animationDelay: delay, boxShadow: "0 0 8px rgba(192,132,252,0.9)" }}
+          className="sps-ember pointer-events-none absolute bottom-2 rounded-full"
+          style={{
+            left,
+            width: size,
+            height: size,
+            animationDelay: delay,
+            background: p.bright,
+            boxShadow: `0 0 8px ${tint(p.rgb, 0.9)}`,
+          }}
         />
       ))}
     </>
   );
+}
+
+/** The cover frame's glow, composed from the palette. */
+export function coverGlow(p: FeaturedPalette): string {
+  return `0 0 0 1px ${tint(p.rgb, 0.45)}, 0 0 34px ${tint(p.rgb, 0.6)}, 0 0 90px ${p.deep.replace("1)", "0.4)")}, 0 30px 80px rgba(0,0,0,.8)`;
+}
+
+/** Gradient-text + glow treatment for the featured title. */
+export function titleStyle(p: FeaturedPalette, font: string): React.CSSProperties {
+  return {
+    fontFamily: font,
+    backgroundImage: `linear-gradient(to bottom, ${p.bright}, ${p.mid}, ${p.deep})`,
+    WebkitBackgroundClip: "text",
+    backgroundClip: "text",
+    color: "transparent",
+    filter: `drop-shadow(0 0 14px ${tint(p.rgb, 0.55)}) drop-shadow(0 0 42px ${p.deep.replace("1)", "0.35)")}) drop-shadow(0 2px 2px rgba(0,0,0,0.9))`,
+  };
 }
