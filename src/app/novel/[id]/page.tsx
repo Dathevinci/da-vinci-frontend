@@ -15,6 +15,8 @@ import LoadingScreen from "@/components/ui/LoadingScreen";
 import { novelCover } from "@/lib/novelImage";
 import CommunityFeed from "@/components/community/CommunityFeed";
 import HeroBackdrop from "@/components/ui/HeroBackdrop";
+import { isFeaturedNovel } from "@/lib/novel/featured";
+import { PurpleAuraStyles, AuraPlumes, AuraRing, AuraOverlays, AuraEmbers } from "@/components/novel/PurpleAura";
 
 /**
  * NOVEL DETAIL — the reference layout: blurred cover stage, poster front
@@ -32,6 +34,9 @@ type Tab = "overview" | "chapters" | "discussions";
 export default function NovelDetailPage() {
   const params = useParams();
   const id = decodeURIComponent(String(params.id));
+  // The featured title wears its purple aura here too — same id the Must Read
+  // spotlight pins, from one shared constant so the surfaces cannot disagree.
+  const featured = isFeaturedNovel(id);
 
   const [novel, setNovel] = useState<NovelInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -108,25 +113,47 @@ export default function NovelDetailPage() {
         <HeroBackdrop src={(novel as any)?.bannerImage || cover} wide={!!(novel as any)?.bannerImage} />
 
         <div className="relative mx-auto flex max-w-4xl flex-col items-center px-4 pb-10 pt-20 text-center sm:pt-24">
-          {/* ambient bloom behind the poster — the reference's themed halo */}
+          {/* ambient bloom behind the poster — the reference's themed halo;
+              the featured title breathes violet instead of amber */}
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-6 h-[460px] bg-[radial-gradient(ellipse_45%_60%_at_50%_40%,rgba(251,191,36,0.14),transparent_70%)]"
+            className={`pointer-events-none absolute inset-x-0 top-6 h-[460px] ${
+              featured
+                ? "bg-[radial-gradient(ellipse_45%_60%_at_50%_40%,rgba(147,51,234,0.28),transparent_70%)]"
+                : "bg-[radial-gradient(ellipse_45%_60%_at_50%_40%,rgba(251,191,36,0.14),transparent_70%)]"
+            }`}
           />
+          {featured && <PurpleAuraStyles />}
           <motion.div
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="relative w-44 shrink-0 overflow-hidden rounded-xl sm:w-56"
-            style={{ boxShadow: "0 0 0 1px rgba(255,255,255,.14), 0 30px 80px rgba(0,0,0,.8)" }}
+            className="relative w-44 shrink-0 sm:w-56"
           >
-            {cover ? (
-              <img src={cover} alt={novel.title} className="aspect-[2/3] w-full object-cover" />
-            ) : (
-              <div className="grid aspect-[2/3] w-full place-items-center bg-[#101018]">
-                <BookOpen className="h-12 w-12 text-slate-700" />
-              </div>
+            {featured && (
+              <>
+                <AuraPlumes />
+                <AuraRing />
+              </>
             )}
+            <div
+              className="relative overflow-hidden rounded-xl"
+              style={
+                featured
+                  ? { boxShadow: "0 0 0 1px rgba(216,180,254,.45), 0 0 34px rgba(147,51,234,.6), 0 0 90px rgba(88,28,135,.4), 0 30px 80px rgba(0,0,0,.8)" }
+                  : { boxShadow: "0 0 0 1px rgba(255,255,255,.14), 0 30px 80px rgba(0,0,0,.8)" }
+              }
+            >
+              {cover ? (
+                <img src={cover} alt={novel.title} className="aspect-[2/3] w-full object-cover" />
+              ) : (
+                <div className="grid aspect-[2/3] w-full place-items-center bg-[#101018]">
+                  <BookOpen className="h-12 w-12 text-slate-700" />
+                </div>
+              )}
+              {featured && <AuraOverlays />}
+            </div>
+            {featured && <AuraEmbers />}
           </motion.div>
 
           <div className="mt-7 flex flex-wrap items-center justify-center gap-2 font-mono text-[11px] font-black uppercase tracking-wide">
@@ -153,12 +180,16 @@ export default function NovelDetailPage() {
               const words = novel.title.trim().split(/\s+/);
               const tail = words[words.length - 1];
               const head = words.slice(0, -1).join(" ");
+              // The featured title's lit word burns violet, not amber.
+              const emClass = featured
+                ? "italic text-fuchsia-300 drop-shadow-[0_0_18px_rgba(192,132,252,0.65)]"
+                : "italic text-amber-300";
               return head ? (
                 <>
-                  {head} <em className="italic text-amber-300">{tail}</em>
+                  {head} <em className={emClass}>{tail}</em>
                 </>
               ) : (
-                <em className="italic text-amber-300">{tail}</em>
+                <em className={emClass}>{tail}</em>
               );
             })()}
           </h1>
@@ -166,7 +197,14 @@ export default function NovelDetailPage() {
           {novel.genres.length > 0 && (
             <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
               {novel.genres.slice(0, 6).map((g) => (
-                <span key={g} className="rounded-lg border border-amber-400/25 bg-amber-400/[0.06] px-3 py-1 font-mono text-xs font-bold text-amber-100/90">
+                <span
+                  key={g}
+                  className={`rounded-lg border px-3 py-1 font-mono text-xs font-bold ${
+                    featured
+                      ? "border-purple-400/40 bg-purple-500/10 text-purple-100/90 shadow-[0_0_12px_rgba(147,51,234,0.25)]"
+                      : "border-amber-400/25 bg-amber-400/[0.06] text-amber-100/90"
+                  }`}
+                >
                   {g}
                 </span>
               ))}

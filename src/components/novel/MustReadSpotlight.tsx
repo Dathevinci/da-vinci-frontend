@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Crown, BookOpen, Sparkles } from "lucide-react";
 import { novelCover } from "@/lib/novelImage";
+import { FEATURED_NOVEL_ID } from "@/lib/novel/featured";
 
 /**
  * MUST READ — a single-title editorial spotlight on the novel home feed.
@@ -23,7 +24,9 @@ import { novelCover } from "@/lib/novelImage";
  * backtick in a comment, a trap this repo has already paid for twice.
  */
 const MUST_READ = {
-  id: "rr:142993",
+  // From lib/novel/featured — the same constant that puts the purple aura on
+  // this novel's detail page, so the two surfaces cannot disagree.
+  id: FEATURED_NOVEL_ID,
   title: "The Seventh Prince of Hell",
   author: "Dejavuh",
   source: "RoyalRoad",
