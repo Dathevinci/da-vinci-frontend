@@ -34,13 +34,22 @@ async function get(url: string, referer?: string) {
     maxRedirects: 3,
   });
   const body = typeof r.data === 'string' ? r.data : JSON.stringify(r.data ?? '');
+  // Say WHICH signal fired, not just that one did: a 200 with a stray phrase
+  // match is a different animal from a 403, and the first run conflated them.
+  const signals = {
+    s403: r.status === 403,
+    cfMitigated: Boolean(r.headers?.['cf-mitigated']),
+    phrase: /Just a moment/i.test(body.slice(0, 3000)),
+    ddosGuard: /ddos-guard|checking your browser/i.test(body.slice(0, 3000)),
+  };
   return {
     status: r.status,
     body,
     bytes: body.length,
     ms: Date.now() - started,
-    challenged:
-      r.status === 403 || Boolean(r.headers?.['cf-mitigated']) || /Just a moment/i.test(body.slice(0, 3000)),
+    challenged: signals.s403 || signals.cfMitigated || signals.phrase || signals.ddosGuard,
+    signals,
+    head: body.slice(0, 160).replace(/\s+/g, ' '),
   };
 }
 
@@ -48,8 +57,18 @@ async function probeDomain(base: string) {
   const out: Record<string, any> = {};
   try {
     const list = await get(`${base}/novels/`);
-    out.listing = { status: list.status, bytes: list.bytes, ms: list.ms, challenged: list.challenged };
-    if (list.challenged || list.status !== 200) return out;
+    out.listing = {
+      status: list.status,
+      bytes: list.bytes,
+      ms: list.ms,
+      challenged: list.challenged,
+      signals: list.signals,
+      head: list.head,
+    };
+    // Continue on ANY 200 — the flag alone stopped the first run on a page
+    // whose actual content was never examined. If the links parse, it was a
+    // false alarm; if they don't, the head tells us what the page really is.
+    if (list.status !== 200) return out;
 
     const links = [
       ...new Set([...list.body.matchAll(/href="(https?:\/\/[a-z.]+\/novels\/[^"]+\.html)"/g)].map((m) => m[1])),
