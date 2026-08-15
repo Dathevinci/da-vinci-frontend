@@ -21,10 +21,12 @@
  */
 
 import * as RNF from "./rnf";
+import * as RR from "./royalroad";
 import type { NovelResult, NovelInfo, ChapterContent } from "./types";
 
 const SOURCE_LABELS: Record<string, string> = {
-  "rnf:": "ReadNovelFull", // live
+  "rnf:": "ReadNovelFull", // live — translated CN/KR web novels
+  "rr:": "RoyalRoad", // live — original English fiction
   "fwn:": "FreeWebNovel",
   "rnb:": "Ranobes",
   "nf:": "NovelFull",
@@ -56,26 +58,50 @@ const GONE = () =>
 export async function getNovelInfo(id: string): Promise<NovelInfo> {
   const { source, slug } = resolveSource(id);
   if (source === "rnf") return RNF.getInfo(slug);
+  if (source === "rr") return RR.getInfo(slug);
   throw GONE();
 }
 
 export async function getChapterContent(id: string, chapterId: string): Promise<ChapterContent> {
-  const { source } = resolveSource(id);
+  const { source, slug } = resolveSource(id);
   if (source === "rnf") return RNF.getChapter(chapterId);
+  // RoyalRoad chapter URLs need the FICTION id as well as the chapter id, so
+  // the novel id is passed through rather than the chapter id alone.
+  if (source === "rr") return RR.getChapter(slug, chapterId);
   throw GONE();
 }
 
+/**
+ * Both sources searched together, each fault-tolerant. ReadNovelFull leads so
+ * its row wins a title collision — but the catalogues barely intersect
+ * (translated CN/KR web novels versus original English serials), so the merge
+ * mostly ADDS rather than dedupes.
+ */
 export async function searchAll(
   query: string,
   page = 1
 ): Promise<{ results: NovelResult[]; hasNextPage: boolean }> {
-  try {
-    const r = await RNF.searchNovels(query, page);
-    return { results: r.results, hasNextPage: r.hasNextPage };
-  } catch (e) {
-    console.error("[novel] search failed:", e);
-    return { results: [], hasNextPage: false };
+  const [a, b] = await Promise.allSettled([RNF.searchNovels(query, page), RR.searchFictions(query, page)]);
+  const rows = (r: PromiseSettledResult<{ results: NovelResult[]; hasNextPage: boolean }>) =>
+    r.status === "fulfilled" ? r.value : { results: [] as NovelResult[], hasNextPage: false };
+  const av = rows(a);
+  const bv = rows(b);
+  if (a.status === "rejected") console.error("[novel] rnf search failed:", a.reason);
+  if (b.status === "rejected") console.error("[novel] rr search failed:", b.reason);
+  return { results: mergeByTitle(av.results, bv.results), hasNextPage: av.hasNextPage || bv.hasNextPage };
+}
+
+/** Drop cross-source duplicate titles; the first list wins. */
+function mergeByTitle(...lists: NovelResult[][]): NovelResult[] {
+  const seen = new Set<string>();
+  const out: NovelResult[] = [];
+  for (const row of lists.flat()) {
+    const key = (row?.title || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(row);
   }
+  return out;
 }
 
 export interface NovelBrowseParams {
@@ -122,18 +148,39 @@ export async function browseNovels(
     status = paramsOrPage.status || "";
   }
 
-  const target =
-    status.toLowerCase() === "completed"
-      ? "completed-novel"
-      : LIST_MAP[list.toLowerCase()] || "most-popular-novel";
+  const completedWanted = status.toLowerCase() === "completed" || list.toLowerCase().startsWith("completed");
+  const target = completedWanted ? "completed-novel" : LIST_MAP[list.toLowerCase()] || "most-popular-novel";
+  const rrTarget = completedWanted
+    ? "complete"
+    : target === "latest-release-novel"
+      ? "latest-updates"
+      : "best-rated";
 
-  try {
-    const r = await RNF.listNovels(target, page);
-    return { results: r.results, hasNextPage: r.hasNextPage, totalPages: r.totalPages ?? 0 };
-  } catch (e) {
-    console.error("[novel] browse failed:", e);
-    return { results: [], hasNextPage: false, totalPages: 0 };
+  /**
+   * BOTH SOURCES PER BROWSE PAGE, interleaved. Page N means page N of each,
+   * merged — so the catalogue depth is the DEEPER of the two (RoyalRoad's
+   * pager reaches into the thousands) and a page is never half-empty because
+   * one source ran out. hasNextPage is true while EITHER has more, and the
+   * total is deliberately omitted: the two paginate independently, so any
+   * combined count would be invented — the rule in explorePaging.ts.
+   */
+  const [a, b] = await Promise.allSettled([RNF.listNovels(target, page), RR.listFictions(rrTarget, page)]);
+  if (a.status === "rejected") console.error("[novel] rnf browse failed:", a.reason);
+  if (b.status === "rejected") console.error("[novel] rr browse failed:", b.reason);
+  const av = a.status === "fulfilled" ? a.value : { results: [] as NovelResult[], hasNextPage: false };
+  const bv = b.status === "fulfilled" ? b.value : { results: [] as NovelResult[], hasNextPage: false };
+
+  const merged: NovelResult[] = [];
+  for (let i = 0; i < Math.max(av.results.length, bv.results.length); i++) {
+    if (av.results[i]) merged.push(av.results[i]);
+    if (bv.results[i]) merged.push(bv.results[i]);
   }
+
+  return {
+    results: mergeByTitle(merged),
+    hasNextPage: av.hasNextPage || bv.hasNextPage,
+    totalPages: 0,
+  };
 }
 
 /**
@@ -145,22 +192,43 @@ export async function browseNovels(
  * failing empties that shelf, not the page.
  */
 export async function homeShelves() {
-  const [pop, latest, done, hot] = await Promise.allSettled([
+  const [pop, latest, done, hot, rrPop, rrLatest, rrDone] = await Promise.allSettled([
     RNF.listNovels("most-popular-novel", 1),
     RNF.listNovels("latest-release-novel", 1),
     RNF.listNovels("completed-novel", 1),
     RNF.listNovels("hot-novel", 1),
+    RR.listFictions("best-rated", 1),
+    RR.listFictions("latest-updates", 1),
+    RR.listFictions("complete", 1),
   ]);
-  const rows = (r: PromiseSettledResult<RNF.RnfPage>) => (r.status === "fulfilled" ? r.value.results : []);
+  const rows = (r: PromiseSettledResult<{ results: NovelResult[] }>) =>
+    r.status === "fulfilled" ? r.value.results : [];
 
-  const trending = rows(pop);
+  /**
+   * TWO SOURCES PER SHELF, interleaved rather than concatenated — appending
+   * would bury every RoyalRoad row below twenty ReadNovelFull rows, which on a
+   * horizontally-scrolling shelf means nobody ever sees them.
+   *
+   * The two curated-era shelves that have no honest equivalent stay empty and
+   * the page hides them; `lightNovels` now has one, since original English
+   * serials are exactly what that shelf claims to hold.
+   */
+  const interleave = (a: NovelResult[], b: NovelResult[]) => {
+    const out: NovelResult[] = [];
+    for (let i = 0; i < Math.max(a.length, b.length); i++) {
+      if (a[i]) out.push(a[i]);
+      if (b[i]) out.push(b[i]);
+    }
+    return mergeByTitle(out);
+  };
+
   return {
-    featuredHero: rows(hot).slice(0, 6),
-    lightNovels: [] as NovelResult[],
+    featuredHero: mergeByTitle(rows(hot)).slice(0, 6),
+    lightNovels: mergeByTitle(rows(rrPop)).slice(0, 20),
     koreanMasterpieces: [] as NovelResult[],
     cultivationEpics: [] as NovelResult[],
-    trending,
-    latestUpdates: rows(latest),
-    completed: rows(done),
+    trending: interleave(rows(pop), rows(rrPop)),
+    latestUpdates: interleave(rows(latest), rows(rrLatest)),
+    completed: interleave(rows(done), rows(rrDone)),
   };
 }
