@@ -114,22 +114,60 @@ function parseTotalPages(html: string, pathPrefix: string): number | undefined {
   return max > 0 ? max : undefined;
 }
 
+/**
+ * LISTINGS ARE CACHED WITH SINGLE-FLIGHT, because FWN rate-limits bursts.
+ *
+ * Measured live: the same genre request succeeded once and fell back to the
+ * curated pool twice in three tries. FWN sits behind Cloudflare rate limiting
+ * (the fetch helper's own "Error 1015" check exists for it), and every home
+ * feed hit was firing three listing fetches uncached — from a shared serverless
+ * IP, that burst is exactly what trips the limit, and the trip is what made
+ * shelves flap between live and curated content request-to-request.
+ *
+ * One fetch per listing page per TTL, shared by concurrent callers through an
+ * in-flight promise so a cold cache cannot stampede. Failures are NOT cached:
+ * a null result returns empty for this request (the caller falls back to the
+ * curated pool) but leaves the next request free to try again — caching a
+ * failure would pin the fallback in place for the whole TTL, which is the
+ * mistake the Flame catalogue cache made once already.
+ */
+const LISTING_TTL = 10 * 60 * 1000;
+const listingCache = new Map<string, { at: number; data: FwnListing }>();
+const listingInflight = new Map<string, Promise<FwnListing>>();
+
+async function fetchListing(path: string, page: number): Promise<FwnListing> {
+  const key = `${path}/${page}`;
+  const hit = listingCache.get(key);
+  if (hit && Date.now() - hit.at < LISTING_TTL) return hit.data;
+
+  const running = listingInflight.get(key);
+  if (running) return running;
+
+  const run = (async (): Promise<FwnListing> => {
+    const html = await fetchWithProxyFallback(`${BASE_URL}${path}/${page}`);
+    if (!html) return { results: [], hasNextPage: false };
+    const results = parseListingCards(html);
+    const totalPages = parseTotalPages(html, path);
+    const data: FwnListing = {
+      results,
+      hasNextPage: totalPages ? page < totalPages : results.length >= 20,
+      totalPages,
+    };
+    if (results.length > 0) listingCache.set(key, { at: Date.now(), data });
+    return data;
+  })().finally(() => {
+    listingInflight.delete(key);
+  });
+
+  listingInflight.set(key, run);
+  return run;
+}
+
 export async function listFreeWebNovel(sort: FwnSort, page = 1): Promise<FwnListing> {
-  const p = Math.max(1, page);
-  const path = `/sort/${sort}`;
-  const html = await fetchWithProxyFallback(`${BASE_URL}${path}/${p}`);
-  if (!html) return { results: [], hasNextPage: false };
-  const results = parseListingCards(html);
-  const totalPages = parseTotalPages(html, path);
-  return {
-    results,
-    hasNextPage: totalPages ? p < totalPages : results.length >= 20,
-    totalPages,
-  };
+  return fetchListing(`/sort/${sort}`, Math.max(1, page));
 }
 
 export async function listFreeWebNovelGenre(genre: string, page = 1): Promise<FwnListing> {
-  const p = Math.max(1, page);
   // FWN capitalises genre slugs ("Fantasy", "Martial+Arts"); build that shape
   // from whatever the caller sends.
   const slug = genre
@@ -137,16 +175,7 @@ export async function listFreeWebNovelGenre(genre: string, page = 1): Promise<Fw
     .split(/[\s+]+/)
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
     .join("+");
-  const path = `/genre/${slug}`;
-  const html = await fetchWithProxyFallback(`${BASE_URL}${path}/${p}`);
-  if (!html) return { results: [], hasNextPage: false };
-  const results = parseListingCards(html);
-  const totalPages = parseTotalPages(html, path);
-  return {
-    results,
-    hasNextPage: totalPages ? p < totalPages : results.length >= 20,
-    totalPages,
-  };
+  return fetchListing(`/genre/${slug}`, Math.max(1, page));
 }
 
 export async function searchFreeWebNovel(query: string): Promise<NovelResult[]> {
