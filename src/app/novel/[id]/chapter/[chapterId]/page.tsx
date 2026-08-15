@@ -34,24 +34,30 @@ export default function NovelReaderPage() {
   const lineHeight = spacingById(prefs.spacing).value;
   const widthCls = widthById(prefs.width).cls;
 
-  const [loadedSections, setLoadedSections] = useState<{ id: string; title: string; content: string[] }[]>([]);
-  const [loadingNext, setLoadingNext] = useState(false);
-  const [autoLoad, setAutoLoad] = useState(true);
-  const bottomObserverRef = useRef<HTMLDivElement>(null);
+  /**
+   * CONTINUOUS AUTO-LOAD WAS REMOVED — it served OTHER NOVELS' CHAPTERS.
+   *
+   * When a novel's chapter list ran out, the next id was guessed as
+   * `String(parseInt(currentId) + 1)`. Chapter ids are not per-novel
+   * sequences: RoyalRoad's are global across the whole site, so id+1 is
+   * whichever unrelated fiction happens to own that number, and the reader
+   * silently appended a stranger's chapter to the one being read. The owner
+   * hit exactly that on a novel with no further chapters.
+   *
+   * The guess is what was broken, but the feature is gone with it at the
+   * owner's request. Navigation is now explicit, and every id it uses comes
+   * from the novel's OWN chapter list or the source's own prev/next links —
+   * never arithmetic on an id.
+   */
 
   // Fetch the chapter + save reading progress.
   useEffect(() => {
     setLoading(true);
     setChapter(null);
-    setLoadedSections([]);
     fetch(`/api/novels/${encodeURIComponent(id)}/chapter/${encodeURIComponent(chapterId)}`)
       .then((r) => r.json())
       .then((data) => {
-        const ch = data && data.error ? null : data;
-        setChapter(ch);
-        if (ch && ch.content?.length) {
-          setLoadedSections([{ id: chapterId, title: ch.title, content: ch.content }]);
-        }
+        setChapter(data && data.error ? null : data);
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -69,54 +75,18 @@ export default function NovelReaderPage() {
 
   const chapters = novel?.chapters || [];
   const idx = chapters.findIndex((c) => c.id === chapterId);
+
+  /**
+   * BOTH NEIGHBOURS COME FROM THIS NOVEL, OR FROM NOWHERE.
+   *
+   * The novel's own chapter list is the first authority; the source's prev/next
+   * links are the fallback for a chapter the list does not contain. When
+   * neither has an answer the button is simply disabled — the last chapter of a
+   * novel has no next, and saying so is the correct behaviour. Nothing here
+   * derives an id by arithmetic; see the note above for what that cost.
+   */
   const prevId = (idx > 0 ? chapters[idx - 1]?.id : null) || chapter?.prev || null;
-  
-  // Calculate next chapter based on the last loaded section
-  const lastSectionId = loadedSections.length > 0 ? loadedSections[loadedSections.length - 1].id : chapterId;
-  const lastIdx = chapters.findIndex((c) => c.id === lastSectionId);
-  const currentNextId = (lastIdx >= 0 && lastIdx < chapters.length - 1 ? chapters[lastIdx + 1]?.id : null) || 
-    (lastSectionId ? String(parseInt(lastSectionId) + 1) : null) || chapter?.next || null;
   const initialNextId = (idx >= 0 && idx < chapters.length - 1 ? chapters[idx + 1]?.id : null) || chapter?.next || null;
-
-  // Auto-load next chapter on scroll into view
-  useEffect(() => {
-    if (!autoLoad || loading || loadingNext || !currentNextId || loadedSections.length === 0) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && !loadingNext && currentNextId) {
-          setLoadingNext(true);
-          fetch(`/api/novels/${encodeURIComponent(id)}/chapter/${encodeURIComponent(currentNextId)}`)
-            .then((r) => r.json())
-            .then((nextData) => {
-              if (nextData && nextData.content?.length && !nextData.error) {
-                setLoadedSections((prev) => {
-                  // Prevent duplicate sections
-                  if (prev.some(s => s.id === currentNextId)) return prev;
-                  return [
-                    ...prev,
-                    { id: currentNextId, title: nextData.title, content: nextData.content }
-                  ];
-                });
-                if (novel?.title) {
-                  recordReading("novel", { id, title: novel.title, cover: novel.cover, chapterId: currentNextId, chapterTitle: nextData.title });
-                  writeLocalProgress("novel", id, currentNextId, Date.now());
-                }
-              }
-              setLoadingNext(false);
-            })
-            .catch(() => setLoadingNext(false));
-        }
-      },
-      { rootMargin: "200px" }
-    );
-
-    const el = bottomObserverRef.current;
-    if (el) observer.observe(el);
-    return () => {
-      if (el) observer.unobserve(el);
-    };
-  }, [autoLoad, loading, loadingNext, currentNextId, id, novel, loadedSections.length]);
 
   /**
    * ONE timestamp per (novel, chapter), held across re-renders.
@@ -255,49 +225,16 @@ export default function NovelReaderPage() {
         </div>
       ) : (
         <article className={`${widthCls} mx-auto px-5 sm:px-8 py-10`} style={{ fontFamily: fontCss }}>
-          {/* Render all loaded sections (initial chapter + auto-loaded continuous chapters) */}
-          {loadedSections.map((sec, secIdx) => (
-            <div key={sec.id} className={secIdx > 0 ? "mt-20 pt-12 border-t border-dashed" : ""} style={{ borderColor: t.border }}>
-              {secIdx > 0 && (
-                <div className="text-center mb-8">
-                  <span className="inline-block px-4 py-1.5 rounded-full border text-xs font-bold uppercase tracking-wider text-pink-400 bg-pink-500/10" style={{ borderColor: t.border }}>
-                    Next Chapter Auto-Loaded
-                  </span>
-                </div>
-              )}
-              <h1 className="text-2xl font-black mb-8 text-center" style={{ color: t.text }}>{sec.title}</h1>
-              <div className="space-y-5" style={{ fontSize: prefs.size, lineHeight, textAlign: prefs.justify ? "justify" : "left" }}>
-                {sec.content.map((p, i) => (
-                  <p key={i}>{p}</p>
-                ))}
-              </div>
-            </div>
-          ))}
-
-          {/* Auto-loading trigger sentinel */}
-          <div ref={bottomObserverRef} className="py-6 flex flex-col items-center justify-center">
-            {loadingNext && (
-              <div className="flex items-center gap-3 text-sm font-bold text-pink-400 py-4 animate-pulse">
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Auto-loading next chapter...
-              </div>
-            )}
+          {/* ONE chapter, the one that was asked for. */}
+          <h1 className="text-2xl font-black mb-8 text-center" style={{ color: t.text }}>{chapter.title}</h1>
+          <div className="space-y-5" style={{ fontSize: prefs.size, lineHeight, textAlign: prefs.justify ? "justify" : "left" }}>
+            {(chapter.content || []).map((p, i) => (
+              <p key={i}>{p}</p>
+            ))}
           </div>
 
-          {/* Bottom nav and Auto-load Toggle */}
+          {/* Bottom nav */}
           <div className="mt-8 flex flex-col gap-4">
-            <div className="flex items-center justify-between px-2 text-xs" style={{ color: t.muted }}>
-              <span>Continuous Reading:</span>
-              <button
-                onClick={() => setAutoLoad(!autoLoad)}
-                className={`px-3 py-1 rounded-full font-bold transition ${
-                  autoLoad ? "bg-pink-500/20 text-pink-400 border border-pink-500/40" : "bg-white/5 text-slate-400 border border-white/10"
-                }`}
-              >
-                Auto-Load Next: {autoLoad ? "ON" : "OFF"}
-              </button>
-            </div>
-
             <div className="flex items-center justify-between gap-3">
               <button
                 onClick={() => go(prevId)}
@@ -311,8 +248,8 @@ export default function NovelReaderPage() {
                 <List className="w-5 h-5" />
               </button>
               <button
-                onClick={() => go(currentNextId || initialNextId)}
-                disabled={!currentNextId && !initialNextId}
+                onClick={() => go(initialNextId)}
+                disabled={!initialNextId}
                 className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-pink-500 text-black disabled:opacity-30 hover:bg-pink-400 transition font-bold text-sm"
               >
                 Next Chapter <ChevronRight className="w-5 h-5" />
