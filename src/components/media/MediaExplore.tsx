@@ -18,6 +18,20 @@ import {
 } from "@/lib/pagingMode";
 
 /**
+ * The Asura genre list, fetched once per session and shared by every filter
+ * panel this module mounts. MODULE-LEVEL ON PURPOSE — the panel unmounts on
+ * every close, so component state would refetch on every open.
+ *
+ * This declaration is load-bearing in a way the build will not tell you about:
+ * the panel below reads and assigns `asuraGenreCache`, and with
+ * `ignoreBuildErrors: true` a missing declaration still SHIPS — it then throws
+ * "asuraGenreCache is not defined" at runtime the moment the Filters button is
+ * clicked, taking the whole explore page down to the error screen. That is not
+ * hypothetical: a refactor dropped this line once and exactly that happened.
+ */
+let asuraGenreCache: { name: string; slug: string }[] | null = null;
+
+/**
  * EXPLORE for comics and novels — the same page anime has, which these modes
  * never had: their only browse surface was the home page's "view=all" grid
  * with a filter box bolted onto a header card.
