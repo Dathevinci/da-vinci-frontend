@@ -48,6 +48,107 @@ async function fetchWithProxyFallback(targetUrl: string): Promise<string | null>
   return null;
 }
 
+/**
+ * FreeWebNovel's REAL listing pages — the catalogue behind the shelves.
+ *
+ * Until now nothing listed FWN at all: browse and every home shelf were slices
+ * of the hand-curated ~96-novel masterpieces file, which is why novel mode
+ * showed "not many novels" and why shelves overlapped almost completely
+ * (koreanMasterpieces and cultivationEpics were both 100% contained in
+ * latestUpdates, and lnwTop was literally an alias of lightNovels — measured
+ * on the live feed). FWN itself carries thousands of titles behind stable,
+ * server-rendered listing URLs (verified live, all 200):
+ *
+ *   /sort/latest-release/<page>    newest updates, 50+ pages
+ *   /sort/most-popular/<page>      popularity ranking
+ *   /sort/completed-novel/<page>   finished novels
+ *   /genre/<Name>/<page>           per-genre catalogues
+ *
+ * Every card is a `<div class="li-row">` block carrying the slug, the title,
+ * a cover (RELATIVE — /files/article/image/…), a star rating, genre links and
+ * the newest chapter with its number. Covers hotlink freely (measured 200 with
+ * no Referer and with a foreign one), so absolute URLs are usable as-is.
+ */
+export type FwnSort = "latest-release" | "most-popular" | "completed-novel";
+
+export interface FwnListing {
+  results: NovelResult[];
+  hasNextPage: boolean;
+  totalPages?: number;
+}
+
+function parseListingCards(html: string): NovelResult[] {
+  const rows: NovelResult[] = [];
+  const seen = new Set<string>();
+
+  for (const block of html.split('<div class="li-row">').slice(1)) {
+    const anchor = /<h3 class="tit"><a href="\/novel\/([a-z0-9-]+)"[^>]*title="([^"]+)"/i.exec(block);
+    if (!anchor) continue;
+    const [, slug, rawTitle] = anchor;
+    const id = `fwn:${slug}`;
+    if (seen.has(id)) continue;
+    seen.add(id);
+
+    // The cover is relative; the plain <img src> is the small stable variant.
+    const img = /<img[^>]+src="(\/[^"]+\.(?:jpg|jpeg|png|webp))"/i.exec(block);
+    // "Chapter 348: Fate Severed" — the anchor's title attribute carries it.
+    const chapter = /<a href="\/novel\/[a-z0-9-]+\/chapter-[^"]*"[^>]*title="(Chapter[^"]+)"/i.exec(block);
+    const genre = /<a href="\/genre\/([A-Za-z0-9+-]+)"/i.exec(block);
+
+    rows.push({
+      id,
+      title: rawTitle.replace(/&amp;/g, "&").replace(/&apos;/g, "'").replace(/&#039;/g, "'").trim(),
+      cover: img ? `${BASE_URL}${img[1]}` : "",
+      latestChapter: chapter ? chapter[1].replace(/&amp;/g, "&").trim() : undefined,
+      tag: genre ? genre[1].replace(/\+/g, " ") : "Web Novel",
+    });
+  }
+  return rows;
+}
+
+/** Max page number the listing's own pagination links to, or undefined. */
+function parseTotalPages(html: string, pathPrefix: string): number | undefined {
+  let max = 0;
+  const re = new RegExp(pathPrefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\/(\\d+)", "g");
+  for (const m of html.matchAll(re)) max = Math.max(max, Number(m[1]));
+  return max > 0 ? max : undefined;
+}
+
+export async function listFreeWebNovel(sort: FwnSort, page = 1): Promise<FwnListing> {
+  const p = Math.max(1, page);
+  const path = `/sort/${sort}`;
+  const html = await fetchWithProxyFallback(`${BASE_URL}${path}/${p}`);
+  if (!html) return { results: [], hasNextPage: false };
+  const results = parseListingCards(html);
+  const totalPages = parseTotalPages(html, path);
+  return {
+    results,
+    hasNextPage: totalPages ? p < totalPages : results.length >= 20,
+    totalPages,
+  };
+}
+
+export async function listFreeWebNovelGenre(genre: string, page = 1): Promise<FwnListing> {
+  const p = Math.max(1, page);
+  // FWN capitalises genre slugs ("Fantasy", "Martial+Arts"); build that shape
+  // from whatever the caller sends.
+  const slug = genre
+    .trim()
+    .split(/[\s+]+/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join("+");
+  const path = `/genre/${slug}`;
+  const html = await fetchWithProxyFallback(`${BASE_URL}${path}/${p}`);
+  if (!html) return { results: [], hasNextPage: false };
+  const results = parseListingCards(html);
+  const totalPages = parseTotalPages(html, path);
+  return {
+    results,
+    hasNextPage: totalPages ? p < totalPages : results.length >= 20,
+    totalPages,
+  };
+}
+
 export async function searchFreeWebNovel(query: string): Promise<NovelResult[]> {
   try {
     const rawUrl = `${BASE_URL}/search?keyword=${encodeURIComponent(query)}`;

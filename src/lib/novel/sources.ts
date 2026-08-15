@@ -6,6 +6,7 @@
 
 import * as Ranobes from "./ranobes";
 import * as FreeWebNovel from "./freewebnovel";
+import type { FwnListing } from "./freewebnovel";
 import type { NovelResult, NovelInfo, ChapterContent } from "./types";
 import {
   OFFICIAL_LIGHT_NOVELS,
@@ -184,6 +185,62 @@ export async function browseNovels(
     list = "";
   }
 
+  /**
+   * BROWSE READS FREEWEBNOVEL'S REAL CATALOGUE, NOT THE CURATED FILE.
+   *
+   * The curated masterpieces list is ~96 novels; pooling browse from it capped
+   * the whole mode at four pages and made every "category" a slice of the same
+   * small set — the owner's report was "not too many novels showing" and
+   * shelves not matching their labels. FWN's own listings carry thousands of
+   * titles behind real server-side paging (50+ pages measured on
+   * latest-release alone), so the generic paths go there:
+   *
+   *   genre=X              /genre/<X>/<page>     the genre's actual catalogue
+   *   completed            /sort/completed-novel  novels that actually ended
+   *   sort=popular|rating  /sort/most-popular     FWN's own ranking
+   *   default              /sort/latest-release   newest updates first
+   *
+   * The CURATED list keys keep the curated pools on purpose — "Light Novels",
+   * "Korean Masterpieces" and "Cultivation Epics" are hand-picked collections,
+   * which is their entire point. Only pools that CLAIM to be the catalogue
+   * (default browse, genre, completed, popular) must actually be the
+   * catalogue. Every FWN path falls back to the curated pool when the fetch
+   * fails, so browse can degrade but never empty.
+   */
+  const wantsCompleted =
+    list === "completed-novel" || list === "completed" || status.toLowerCase().trim() === "completed";
+  const isCuratedList =
+    list === "light-novels" || list === "korean-masterpieces" ||
+    list === "chinese-xianxia" || list === "cultivation-classics";
+
+  if (!isCuratedList) {
+    let live: FwnListing | null = null;
+    try {
+      if (genre) {
+        live = await FreeWebNovel.listFreeWebNovelGenre(genre, page);
+      } else if (wantsCompleted) {
+        live = await FreeWebNovel.listFreeWebNovel("completed-novel", page);
+      } else if (sort === "popular" || sort === "rating") {
+        live = await FreeWebNovel.listFreeWebNovel("most-popular", page);
+      } else {
+        live = await FreeWebNovel.listFreeWebNovel("latest-release", page);
+      }
+    } catch {
+      live = null;
+    }
+
+    if (live && live.results.length > 0) {
+      return {
+        results: live.results,
+        hasNextPage: live.hasNextPage,
+        // COUNTED from FWN's own pagination — the explorePaging contract. When
+        // the listing doesn't state one, report the page we can prove.
+        totalPages: live.totalPages ?? page,
+      };
+    }
+    // fall through to the curated pool below
+  }
+
   let pool = [...ALL_MASTERPIECES];
 
   // 1. Filter by source shelf / list
@@ -268,6 +325,24 @@ export async function browseNovels(
   };
 }
 
+/**
+ * THE SHELVES THAT CLAIM LIVE MEANING NOW HAVE IT.
+ *
+ * trending, latestUpdates and completed used to be relabelled slices of the
+ * same curated ~96: "trending" was the first ten of two lists, "latestUpdates"
+ * two lists concatenated with no dates anywhere, and both category shelves
+ * were 100% contained in it (measured on the live feed). A shelf whose label
+ * claims an ordering has to be fed by the thing it claims:
+ *
+ *   trending       FWN /sort/most-popular      an actual popularity ranking
+ *   latestUpdates  FWN /sort/latest-release    actually ordered by update
+ *   completed      FWN /sort/completed-novel   novels that actually ended
+ *
+ * The curated shelves (lightNovels, koreanMasterpieces, cultivationEpics,
+ * featuredHero) stay curated — hand-picked is their point. Each live shelf
+ * falls back to its old curated slice when FWN doesn't answer, so the page
+ * can degrade but never lose a shelf.
+ */
 export async function homeShelves() {
   const lightNovels: NovelResult[] = OFFICIAL_LIGHT_NOVELS.map(m => ({
     id: m.id,
@@ -310,20 +385,30 @@ export async function homeShelves() {
     lightNovels[3], // Re:Zero
   ];
 
+  const [pop, latest, done] = await Promise.allSettled([
+    FreeWebNovel.listFreeWebNovel("most-popular", 1),
+    FreeWebNovel.listFreeWebNovel("latest-release", 1),
+    FreeWebNovel.listFreeWebNovel("completed-novel", 1),
+  ]);
+  const rowsOf = (r: PromiseSettledResult<FwnListing>) =>
+    r.status === "fulfilled" && r.value.results.length > 0 ? r.value.results : null;
+
   return {
     featuredHero,
     lightNovels,
     koreanMasterpieces,
     cultivationEpics,
-    trending: [...lightNovels.slice(0, 10), ...koreanMasterpieces.slice(0, 10)],
-    latestUpdates: [...koreanMasterpieces, ...cultivationEpics],
-    completed: ALL_MASTERPIECES.filter(m => m.status === "Completed").map(m => ({
-      id: m.id,
-      title: m.title,
-      cover: m.cover,
-      latestChapter: m.latestChapter,
-      tag: m.tag
-    })),
+    trending: rowsOf(pop) ?? [...lightNovels.slice(0, 10), ...koreanMasterpieces.slice(0, 10)],
+    latestUpdates: rowsOf(latest) ?? [...koreanMasterpieces, ...cultivationEpics],
+    completed:
+      rowsOf(done) ??
+      ALL_MASTERPIECES.filter(m => m.status === "Completed").map(m => ({
+        id: m.id,
+        title: m.title,
+        cover: m.cover,
+        latestChapter: m.latestChapter,
+        tag: m.tag
+      })),
     lnwTop: lightNovels,
   };
 }
