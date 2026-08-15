@@ -43,6 +43,7 @@ import { useManhwaStatus } from "@/hooks/useManhwaStatus";
 import ManhwaTrackerButton from "@/components/manhwa/ManhwaTrackerButton";
 import { useNovelStatus } from "@/hooks/useNovelStatus";
 import NovelTrackerButton from "@/components/novel/NovelTrackerButton";
+import ClearTrackingButton from "@/components/profile/ClearTrackingButton";
 import { novelCover } from "@/lib/novelImage";
 import ShowcaseCards from "@/components/profile/ShowcaseCards";
 import TitleRack from "@/components/profile/TitleRack";
@@ -81,9 +82,9 @@ export default function PublicProfilePage() {
 
   // Live tracker for the current user, so status edits on your own profile
   // re-file cards into the right section immediately.
-  const { tracked: liveTracked } = useAnimeStatus();
-  const { tracked: liveTrackedManhwa } = useManhwaStatus();
-  const { tracked: liveTrackedNovel } = useNovelStatus();
+  const { tracked: liveTracked, wipeWatchlist } = useAnimeStatus();
+  const { tracked: liveTrackedManhwa, clearAllTracking: clearManhwaTracking } = useManhwaStatus();
+  const { tracked: liveTrackedNovel, clearAllTracking: clearNovelTracking } = useNovelStatus();
 
   // Manhwa/novel cards navigate straight to their detail pages now — the
   // quick-view popups are retired by the owner's ask.
@@ -727,6 +728,58 @@ export default function PublicProfilePage() {
 
         {/* ═══ COLLECTION — full width ═══ */}
         <div className="mx-auto w-full max-w-[1500px] px-4 pt-8 md:px-8">
+
+        {/*
+          CLEAR-ALL FOR THE ACTIVE TAB. Rendered per tab so the action can only
+          ever empty the library the reader is looking at — a single control
+          wired to "whatever is active" is one state bug away from clearing the
+          wrong shelf. `selfView` gates all three, and the button hides itself
+          when there is nothing to clear.
+
+          Each handler also empties this page's own list state, because these
+          shelves render from the profile fetch rather than from the live
+          tracking store; without it the rows would sit there looking untouched
+          until a reload.
+        */}
+        {selfView && (
+          <div className="mb-6 flex justify-end">
+            {activeTab === "anime" && (
+              <ClearTrackingButton
+                kind="anime"
+                count={watchlist.length}
+                selfView={selfView}
+                onClear={async () => {
+                  await wipeWatchlist();
+                  setWatchlist([]);
+                }}
+              />
+            )}
+            {activeTab === "manhwa" && (
+              <ClearTrackingButton
+                kind="manhwa"
+                count={manhwaWatchlist.length}
+                selfView={selfView}
+                onClear={async () => {
+                  const result = await clearManhwaTracking();
+                  setManhwaWatchlist([]);
+                  return result;
+                }}
+              />
+            )}
+            {activeTab === "novel" && (
+              <ClearTrackingButton
+                kind="novel"
+                count={novelWatchlist.length}
+                selfView={selfView}
+                onClear={async () => {
+                  const result = await clearNovelTracking();
+                  setNovelWatchlist([]);
+                  return result;
+                }}
+              />
+            )}
+          </div>
+        )}
 
         {activeTab === "anime" && (
           <>

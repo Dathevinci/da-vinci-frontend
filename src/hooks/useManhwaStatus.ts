@@ -268,5 +268,49 @@ export function useManhwaStatus() {
       .sort((a, b) => b.updatedAt - a.updatedAt);
   };
 
-  return { tracked, setStatus, getStatus, isTracked, toggleTracked, getTrackedList, isLoaded };
+  /**
+   * Empty the library in one action — the same thing as untracking every title
+   * by hand, done once.
+   *
+   * ONLY ROWS THE READER ACTUALLY TRACKED. A bookmark row is not proof of
+   * tracking: POST /progress upserts one for any title whose chapter is
+   * opened, so a `trackedAt`-less row is reading history, not library
+   * membership. Wiping those too would silently empty Continue Reading for
+   * titles the reader never put in their library and never asked to forget.
+   *
+   * DELETION IS PER-ROW, THROUGH THE ENDPOINT THE UI ALREADY USES. A bulk
+   * "delete everything for user X" route would be a far more attractive
+   * target than this, because the bookmark routes carry no auth and no
+   * ownership check — one unauthenticated call could empty a stranger's
+   * library. This adds no such primitive.
+   *
+   * The local store is cleared FIRST so the shelf empties instantly, and each
+   * delete is settled independently so one failure cannot abort the rest. The
+   * count of failures is returned rather than swallowed, so the caller can
+   * tell the reader the truth.
+   */
+  const clearAllTracking = async (): Promise<{ removed: number; failed: number }> => {
+    const rows = Object.values(globalTracked).filter((e) => !!e.trackedAt);
+    if (rows.length === 0) return { removed: 0, failed: 0 };
+
+    const keep: Record<string, TrackedManhwa> = {};
+    for (const [key, value] of Object.entries(globalTracked)) {
+      if (!value?.trackedAt) keep[key] = value;
+    }
+    globalTracked = keep;
+    if (!user) localStorage.setItem("davinci_manhwa_status", JSON.stringify(globalTracked));
+    emitChange();
+
+    if (!user) return { removed: rows.length, failed: 0 };
+
+    let failed = 0;
+    for (const row of rows) {
+      if (!row.id) continue;
+      const res = await fetch(`${API_URL}/api/manhwa-bookmarks/${row.id}`, { method: "DELETE" }).catch(() => null);
+      if (!res || !res.ok) failed++;
+    }
+    return { removed: rows.length - failed, failed };
+  };
+
+  return { tracked, setStatus, getStatus, isTracked, toggleTracked, getTrackedList, clearAllTracking, isLoaded };
 }

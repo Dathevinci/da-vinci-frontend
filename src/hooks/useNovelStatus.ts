@@ -268,5 +268,38 @@ export function useNovelStatus() {
       .sort((a, b) => b.updatedAt - a.updatedAt);
   };
 
-  return { tracked, setStatus, getStatus, isTracked, toggleTracked, getTrackedList, isLoaded };
+  /**
+   * Empty the library in one action — see useManhwaStatus.clearAllTracking for
+   * the reasoning; this is the same operation over novel bookmarks.
+   *
+   * Only rows with `trackedAt` go: a row without one is reading history left
+   * by opening a chapter, not library membership, and wiping it would empty
+   * Continue Reading for titles the reader never added. Deletion goes through
+   * the existing per-row endpoint rather than a new bulk route, because these
+   * routes carry no auth or ownership check.
+   */
+  const clearAllTracking = async (): Promise<{ removed: number; failed: number }> => {
+    const rows = Object.values(globalTracked).filter((e) => !!e.trackedAt);
+    if (rows.length === 0) return { removed: 0, failed: 0 };
+
+    const keep: Record<string, TrackedNovel> = {};
+    for (const [key, value] of Object.entries(globalTracked)) {
+      if (!value?.trackedAt) keep[key] = value;
+    }
+    globalTracked = keep;
+    if (!user) localStorage.setItem("davinci_novel_status", JSON.stringify(globalTracked));
+    emitChange();
+
+    if (!user) return { removed: rows.length, failed: 0 };
+
+    let failed = 0;
+    for (const row of rows) {
+      if (!row.id) continue;
+      const res = await fetch(`${API_URL}/api/novel-bookmarks/${row.id}`, { method: "DELETE" }).catch(() => null);
+      if (!res || !res.ok) failed++;
+    }
+    return { removed: rows.length - failed, failed };
+  };
+
+  return { tracked, setStatus, getStatus, isTracked, toggleTracked, getTrackedList, clearAllTracking, isLoaded };
 }
