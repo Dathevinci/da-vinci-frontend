@@ -1,49 +1,33 @@
 /**
- * NOVEL SOURCE ROUTER — CURRENTLY EMPTY, ON PURPOSE.
+ * NOVEL SOURCE ROUTER — fresh line-up, started 2026-08-13.
  *
- * Every novel source was removed at the owner's request on 2026-08-13 to start
- * the mode fresh. This file KEEPS the full routing surface — same exports, same
- * signatures — so the pages, API routes and search all compile and degrade to
- * their empty states instead of crashing, and so the next source line-up is a
- * registration here rather than a rebuild of everything that imports this.
+ *   "rnf:<slug>" → readnovelfull.com   (the only live source; see rnf.ts for
+ *                                       how it was chosen and what it survived)
  *
- * The line-ups that came and went, so nobody re-learns them the hard way:
+ * The previous line-ups (readnovelfull/novelfull first era; the five-source
+ * era; the fwn:/curated era) were removed the same day to start clean. Their
+ * prefixes keep labels below so an old bookmark still says where it came from,
+ * and opening one gets a NAMED error the reader shows verbatim rather than a
+ * mystery failure.
  *
- *   readnovelfull/novelfull era   original scrapers; replaced wholesale.
- *   Lnori/Wuxiaworld/Ranobes/LNW  a five-source era, removed by a parallel
- *                                 session ("safely remove … with legacy
- *                                 fallbacks") before this reset.
- *   fwn: freewebnovel.com         the last primary. Real catalogue (50+ pages
- *                                 per listing) but rate-limits bursts via
- *                                 Cloudflare ("Error 1015"), so its listings
- *                                 lived behind a TTL cache + single-flight.
- *                                 Its fetch path also cascaded through FOUR
- *                                 third-party proxies (goodproxy workers /
- *                                 allorigins / corsproxy.io / proxy.cors.sh)
- *                                 of unknown ownership — flagged repeatedly.
- *   masterpieces.ts               a ~96-title hand-curated catalogue with
- *                                 AniList/Kitsu covers that fed the curated
- *                                 shelves and every fallback.
+ * PREFIX REUSE RULE: reading progress and bookmarks are keyed by these ids
+ * (`rnf:<slug>`), so a prefix may be reused ONLY for the same site. rnf: was
+ * readnovelfull in the first era and is readnovelfull again now — same site,
+ * so surviving first-era rows come back to life instead of breaking, which is
+ * the reuse rule working as intended.
  *
- * WHAT THE CONSUMERS TOLERATE (measured, which is why the stub is safe):
- * the novel home guards every shelf with `|| []`; browse reads
- * `res.results || []`; the detail and chapter API routes catch and return
- * `{ error }`, which the reader surfaces as a readable sentence.
- *
- * Reading progress, bookmarks and Continue Reading live in localStorage and
- * the backend keyed by these SOURCE-PREFIXED ids (`fwn:<slug>` etc.), so a
- * future source that reuses a prefix inherits those rows — reuse a prefix
- * only for the SAME site, never for a different one.
+ * NO-MTL is a line-up requirement from the owner: candidates that aggregate
+ * machine translation (fanmtl, lnmtl) are out of consideration entirely.
  */
 
+import * as RNF from "./rnf";
 import type { NovelResult, NovelInfo, ChapterContent } from "./types";
 
-/** Prefixes that have existed. Kept so old rows can still say where they came from. */
 const SOURCE_LABELS: Record<string, string> = {
+  "rnf:": "ReadNovelFull", // live
   "fwn:": "FreeWebNovel",
   "rnb:": "Ranobes",
   "nf:": "NovelFull",
-  "rnf:": "ReadNovelFull",
   "fmtl:": "FanMTL",
   "lnw:": "LightNovelWorld",
 };
@@ -53,7 +37,9 @@ export function resolveSource(id: string) {
   for (const prefix of Object.keys(SOURCE_LABELS)) {
     if (raw.startsWith(prefix)) return { source: prefix.slice(0, -1), slug: raw.slice(prefix.length) };
   }
-  return { source: "none", slug: raw };
+  // First-era readnovelfull ids were BARE slugs; treat them as rnf so ancient
+  // bookmarks resolve instead of erroring.
+  return { source: "rnf", slug: raw };
 }
 
 export function getSourceName(id: string): string {
@@ -61,30 +47,35 @@ export function getSourceName(id: string): string {
   for (const [prefix, label] of Object.entries(SOURCE_LABELS)) {
     if (raw.startsWith(prefix)) return label;
   }
-  return "Unknown";
+  return "ReadNovelFull";
 }
 
-/**
- * The one sentence a reader sees when opening anything saved from the old
- * line-up. A named error rather than a generic failure: the API routes catch
- * it and return `{ error }`, and the detail page prints that sentence.
- */
-const NO_SOURCE = () =>
-  new Error("Novel sources are being rebuilt — this title will return when the new line-up ships.");
+const GONE = () =>
+  new Error("This title came from a removed source — it will return if its site joins the new line-up.");
 
-export async function getNovelInfo(_id: string): Promise<NovelInfo> {
-  throw NO_SOURCE();
+export async function getNovelInfo(id: string): Promise<NovelInfo> {
+  const { source, slug } = resolveSource(id);
+  if (source === "rnf") return RNF.getInfo(slug);
+  throw GONE();
 }
 
-export async function getChapterContent(_id: string, _chapterId: string): Promise<ChapterContent> {
-  throw NO_SOURCE();
+export async function getChapterContent(id: string, chapterId: string): Promise<ChapterContent> {
+  const { source } = resolveSource(id);
+  if (source === "rnf") return RNF.getChapter(chapterId);
+  throw GONE();
 }
 
 export async function searchAll(
-  _query: string,
-  _page = 1
+  query: string,
+  page = 1
 ): Promise<{ results: NovelResult[]; hasNextPage: boolean }> {
-  return { results: [], hasNextPage: false };
+  try {
+    const r = await RNF.searchNovels(query, page);
+    return { results: r.results, hasNextPage: r.hasNextPage };
+  } catch (e) {
+    console.error("[novel] search failed:", e);
+    return { results: [], hasNextPage: false };
+  }
 }
 
 export interface NovelBrowseParams {
@@ -95,28 +86,81 @@ export interface NovelBrowseParams {
   sort?: string;
 }
 
+/**
+ * The UI's list names predate this line-up (light-novels, korean-masterpieces,
+ * chinese-xianxia came from the curated era), so they are mapped to the lists
+ * the site actually publishes rather than 404ing or silently ignoring them.
+ * "completed" is the only one with a true equivalent; the rest land on the
+ * closest honest thing — the popularity listing — instead of pretending a
+ * curation exists.
+ */
+const LIST_MAP: Record<string, string> = {
+  completed: "completed-novel",
+  "completed-novel": "completed-novel",
+  latest: "latest-release-novel",
+  "latest-release-novel": "latest-release-novel",
+  hot: "hot-novel",
+  "hot-novel": "hot-novel",
+  "light-novels": "most-popular-novel",
+  "korean-masterpieces": "most-popular-novel",
+  "chinese-xianxia": "most-popular-novel",
+};
+
 export async function browseNovels(
-  _paramsOrPage: number | NovelBrowseParams = 1,
-  _legacyList?: string
+  paramsOrPage: number | NovelBrowseParams = 1,
+  legacyList?: string
 ): Promise<{ results: NovelResult[]; hasNextPage: boolean; totalPages: number }> {
-  // totalPages 0, not 1: "there are no pages" is true, "there is one page" is
-  // not, and the pager treats 0/absent as nothing-to-paginate.
-  return { results: [], hasNextPage: false, totalPages: 0 };
+  let page = 1;
+  let list = "";
+  let status = "";
+  if (typeof paramsOrPage === "number") {
+    page = paramsOrPage;
+    list = legacyList || "";
+  } else if (paramsOrPage && typeof paramsOrPage === "object") {
+    page = Number(paramsOrPage.page) || 1;
+    list = paramsOrPage.list || "";
+    status = paramsOrPage.status || "";
+  }
+
+  const target =
+    status.toLowerCase() === "completed"
+      ? "completed-novel"
+      : LIST_MAP[list.toLowerCase()] || "most-popular-novel";
+
+  try {
+    const r = await RNF.listNovels(target, page);
+    return { results: r.results, hasNextPage: r.hasNextPage, totalPages: r.totalPages ?? 0 };
+  } catch (e) {
+    console.error("[novel] browse failed:", e);
+    return { results: [], hasNextPage: false, totalPages: 0 };
+  }
 }
 
 /**
- * Every shelf key the novel home reads, all empty. The keys must stay even
- * while empty — the page destructures them by name (`res.featuredHero || []`),
- * and dropping one would be invisible today but a landmine for the rebuild.
+ * Every shelf key the novel home reads. The three curated-era shelves stay
+ * EMPTY — the page hides an empty shelf (`length > 0 &&`, verified), and
+ * filling "Korean Masterpieces" with a generic popularity list would be a
+ * shelf whose label lies. The four honest shelves map to the site's real
+ * listings, fetched concurrently and individually fault-tolerant: one listing
+ * failing empties that shelf, not the page.
  */
 export async function homeShelves() {
+  const [pop, latest, done, hot] = await Promise.allSettled([
+    RNF.listNovels("most-popular-novel", 1),
+    RNF.listNovels("latest-release-novel", 1),
+    RNF.listNovels("completed-novel", 1),
+    RNF.listNovels("hot-novel", 1),
+  ]);
+  const rows = (r: PromiseSettledResult<RNF.RnfPage>) => (r.status === "fulfilled" ? r.value.results : []);
+
+  const trending = rows(pop);
   return {
-    featuredHero: [] as NovelResult[],
+    featuredHero: rows(hot).slice(0, 6),
     lightNovels: [] as NovelResult[],
     koreanMasterpieces: [] as NovelResult[],
     cultivationEpics: [] as NovelResult[],
-    trending: [] as NovelResult[],
-    latestUpdates: [] as NovelResult[],
-    completed: [] as NovelResult[],
+    trending,
+    latestUpdates: rows(latest),
+    completed: rows(done),
   };
 }
