@@ -144,10 +144,14 @@ export default class Mangasee extends MangaParser {
   /**
    * Home Feed: Latest Chapter Updates
    */
+  /**
+   * Home Feed: Latest Chapter Updates
+   */
   async getLatestUpdates(page = 1): Promise<ISearch<IMangaResult>> {
     try {
+      const offset = (Math.max(1, page) - 1) * 32;
       const html = await this.fetchHtml(
-        `https://weebcentral.com/search/data?sort=Latest%20Updates&order=Descending&page=${page}`
+        `https://weebcentral.com/search/data?limit=32&offset=${offset}&sort=Latest%20Updates&order=Descending&display_mode=Full%20Display`
       );
       const blocks = html.split('<article class="bg-base-300').slice(1);
       const results: ManhwaRow[] = [];
@@ -200,7 +204,8 @@ export default class Mangasee extends MangaParser {
   async search(query: string, page = 1): Promise<ISearch<IMangaResult>> {
     try {
       const q = encodeURIComponent(query.trim());
-      const html = await this.fetchHtml(`https://weebcentral.com/search/data?text=${q}&page=${page}`);
+      const offset = (Math.max(1, page) - 1) * 32;
+      const html = await this.fetchHtml(`https://weebcentral.com/search/data?text=${q}&limit=32&offset=${offset}&display_mode=Full%20Display`);
       const blocks = html.split('<article class="bg-base-300').slice(1);
       const results: ManhwaRow[] = [];
       const seen = new Set<string>();

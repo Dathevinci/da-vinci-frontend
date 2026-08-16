@@ -194,12 +194,15 @@ export default class Manganato extends MangaParser {
    * Home Feed: Latest Chapter Updates
    */
   async getLatestUpdates(page = 1): Promise<ISearch<IMangaResult>> {
+    if (page > 1) {
+      return { currentPage: page, hasNextPage: false, results: [] };
+    }
     try {
       const html = await this.fetchHtml(`https://www.manganato.gg/manga-list/latest-manga?page=${page}`);
       const results = this.parseCards(html);
       return {
         currentPage: page,
-        hasNextPage: results.length >= 20,
+        hasNextPage: false,
         results,
       };
     } catch (e: any) {

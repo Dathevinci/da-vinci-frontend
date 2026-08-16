@@ -14,6 +14,26 @@ import { ManhwaRow } from "./recency";
 const BASE_URL = "https://weebcentral.com";
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
 
+function normalizeWeebTag(raw: string): string {
+  if (!raw) return "";
+  const s = raw.toLowerCase().trim().replace(/_/g, "-");
+  const map: Record<string, string> = {
+    "martial-arts": "Martial Arts",
+    "murim": "Martial Arts",
+    "sci-fi": "Sci-Fi",
+    "slice-of-life": "Slice of Life",
+    "school-life": "School Life",
+    "dark-fantasy": "Dark Fantasy",
+    "shounen-ai": "Shounen Ai",
+    "shoujo-ai": "Shoujo Ai",
+  };
+  if (map[s]) return map[s];
+  return s
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
 export default class WeebCentral extends MangaParser {
   override readonly name = "WeebCentral";
   protected override readonly baseUrl = BASE_URL;
@@ -76,7 +96,8 @@ export default class WeebCentral extends MangaParser {
    */
   override async search(query: string, page = 1): Promise<ISearch<IMangaResult>> {
     try {
-      const url = `${BASE_URL}/search/data?text=${encodeURIComponent(query)}&page=${page}&sort=Best+Match&order=Ascending&display_mode=Full+Display`;
+      const offset = (Math.max(1, page) - 1) * 32;
+      const url = `${BASE_URL}/search/data?text=${encodeURIComponent(query)}&limit=32&offset=${offset}&sort=Best+Match&order=Ascending&display_mode=Full+Display`;
       const html = await this.fetchHtml(url);
       const $ = cheerio.load(html);
       const results = this.parseArticleList($);
@@ -96,8 +117,10 @@ export default class WeebCentral extends MangaParser {
    */
   async getSeries(page = 1, filters?: any): Promise<ISearch<IMangaResult>> {
     try {
+      const offset = (Math.max(1, page) - 1) * 32;
       const params = new URLSearchParams();
-      params.set("page", String(page));
+      params.set("limit", "32");
+      params.set("offset", String(offset));
       params.set("display_mode", "Full Display");
 
       if (filters?.sort === "popular") {
@@ -121,7 +144,10 @@ export default class WeebCentral extends MangaParser {
       }
 
       if (filters?.genre) {
-        params.set("included_tag", filters.genre);
+        const normalized = normalizeWeebTag(filters.genre);
+        if (normalized) {
+          params.set("included_tag", normalized);
+        }
       }
 
       const url = `${BASE_URL}/search/data?${params.toString()}`;
