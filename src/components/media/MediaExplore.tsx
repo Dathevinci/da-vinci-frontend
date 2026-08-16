@@ -541,11 +541,12 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
         sort: sp.get("sort") || "",
         list: sp.get("list") || "",
         genre: sp.get("genre") || "",
+        source: sp.get("source") || "",
       };
       const normList = (v: string) => (v === "most-popular-novel" ? "" : v || "");
       if ((c.q || "") !== (sp.get("q") || "")) return;
       if (
-        (["status", "sort", "genre"] as const).some((k) => (c.filters[k] || "") !== seedFilters[k]) ||
+        (["status", "sort", "genre", "source"] as const).some((k) => (c.filters[k] || "") !== seedFilters[k]) ||
         normList(c.filters.list) !== normList(seedFilters.list)
       ) return;
       if (sp.get("page") && parsePageParam(sp.get("page")) !== (Number(c.page) || 1)) return;
@@ -898,7 +899,12 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />
             <input
               value={q}
-              onChange={(e) => setQ(e.target.value)}
+              onChange={(e) => {
+                setQ(e.target.value);
+                setPage(1);
+                setDeepest(1);
+                seededPage.current = 1;
+              }}
               placeholder={mode === "novel" ? "Search for novels..." : "Search for comics..."}
               aria-label="Search"
               /* 16px on mobile so iOS Safari does not zoom the page on focus
@@ -926,7 +932,13 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
                 mode={mode}
                 value={filters}
                 anchorRef={filtersWrapRef}
-                onApply={(f) => { setFilters(f); setFiltersOpen(false); }}
+                onApply={(f) => {
+                  setFilters(f);
+                  setPage(1);
+                  setDeepest(1);
+                  seededPage.current = 1;
+                  setFiltersOpen(false);
+                }}
                 onClose={() => setFiltersOpen(false)}
               />
             )}
@@ -971,7 +983,13 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
             <p className="font-mono text-sm text-slate-500">Nothing matched that.</p>
             {(q || activeCount > 0) && (
               <button
-                onClick={() => { setQ(""); setFilters({ status: "", sort: "", list: "", genre: "" }); }}
+                onClick={() => {
+                  setQ("");
+                  setFilters({ status: "", sort: "", list: "", genre: "", source: "" });
+                  setPage(1);
+                  setDeepest(1);
+                  seededPage.current = 1;
+                }}
                 className="mt-3 font-mono text-xs font-black text-violet-300 hover:text-violet-200"
               >
                 Clear search and filters
