@@ -88,6 +88,24 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
+  /**
+   * WINDOW-EVENT BRIDGE for code that lives outside the React tree. lib/earn
+   * is a plain module — it cannot call useToast — and its daily-cap notice
+   * was being swallowed for exactly that reason. Anything may dispatch
+   * `davinci_toast` with { message, type } and it lands here like any other
+   * toast, history rules included.
+   */
+  React.useEffect(() => {
+    const onEvent = (e: Event) => {
+      const d = (e as CustomEvent).detail;
+      if (d && typeof d.message === "string") addToast(d.message, d.type);
+    };
+    window.addEventListener("davinci_toast", onEvent);
+    return () => window.removeEventListener("davinci_toast", onEvent);
+    // addToast is stable (useCallback with no deps that change).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const addToast = useCallback((message: string, type: ToastType = "info") => {
     const id = Math.random().toString(36).substr(2, 9);
     setToasts((prev) => [...prev, { id, message, type }]);

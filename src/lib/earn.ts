@@ -18,6 +18,32 @@ export async function earnPoints(userId: string, action: "read" | "track", key: 
       body: JSON.stringify({ action, key }),
     });
     const data = await res.json();
+
+    /**
+     * THE CAP MUST SAY SO — ONCE. When the daily AP cap is reached the server
+     * pays nothing and explains why, but this client swallowed that message,
+     * so a capped afternoon was indistinguishable from a broken economy —
+     * which is exactly how it got reported. One notice per day: after the
+     * first, staying quiet is correct (a nag per chapter would be worse).
+     * Investigated against the live ledger before touching anything: earns
+     * for every mode and source were landing fine; the silence was the bug.
+     */
+    if (data?.success && data.capped) {
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+        if (localStorage.getItem("dv-ap-cap-notice") !== today) {
+          localStorage.setItem("dv-ap-cap-notice", today);
+          window.dispatchEvent(
+            new CustomEvent("davinci_toast", {
+              detail: { message: "Daily Arise Points cap reached — earning resumes tomorrow.", type: "info" },
+            })
+          );
+        }
+      } catch {
+        /* notice is best-effort */
+      }
+    }
+
     if (data?.success && data.awarded && data.data) {
       try {
         const stored = localStorage.getItem("davinci_user");

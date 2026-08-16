@@ -15,6 +15,7 @@ import LoadingScreen from "@/components/ui/LoadingScreen";
 import { novelCover } from "@/lib/novelImage";
 import CommunityFeed from "@/components/community/CommunityFeed";
 import HeroBackdrop from "@/components/ui/HeroBackdrop";
+import CloseViewButton from "@/components/ui/CloseViewButton";
 import { featuredFor } from "@/lib/novel/featured";
 import { PurpleAuraStyles, AuraPlumes, AuraRing, AuraOverlays, AuraEmbers, coverGlow, titleStyle } from "@/components/novel/PurpleAura";
 
@@ -108,6 +109,7 @@ export default function NovelDetailPage() {
 
   return (
     <div className="min-h-screen bg-[#070709] text-slate-200">
+      <CloseViewButton fallback="/novel" />
       {/* ═══ HERO ═══ overflow-hidden lives on the BACKDROP wrapper, not
           the hero itself — on the hero it clipped the tracker dropdown,
           which opens past the hero's bottom edge. */}

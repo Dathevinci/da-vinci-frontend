@@ -13,6 +13,7 @@ import { useManhwaStatus } from "@/hooks/useManhwaStatus";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 import CommunityFeed from "@/components/community/CommunityFeed";
 import HeroBackdrop from "@/components/ui/HeroBackdrop";
+import CloseViewButton from "@/components/ui/CloseViewButton";
 import { manhwaSourceLabel } from "@/lib/manhwa/ids";
 
 /**
@@ -147,6 +148,7 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="min-h-screen bg-[#070709] text-slate-200">
+      <CloseViewButton fallback="/manhwa" />
       {/* ═══ HERO ═══ overflow-hidden lives on the BACKDROP wrapper, not
           the hero itself — on the hero it clipped the Add to Library
           dropdown, which opens past the hero's bottom edge. */}
