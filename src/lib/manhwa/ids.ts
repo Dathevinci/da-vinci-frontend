@@ -28,13 +28,10 @@
  * sources.ts, or its rows will be mislabelled in exactly that way.
  */
 const SOURCE_LABELS: Record<string, string> = {
+  "wbc:": "WeebCentral", // live
   "vtx:": "VortexScans", // live
-  // mna: was ONCE legacy-Manganato-served-by-MangaRead; the prefix now belongs
-  // to the live Manganato source, so the label follows it. Old rows point at
-  // the same site either way, so nothing is mislabelled by the change —
-  // whereas keeping "MangaRead" put a wrong source name on every new row.
   "mna:": "Manganato", // live
-  "mse:": "Mangasee", // live (Mangasee / WeebCentral)
+  "mse:": "Mangasee", // live
   "flc:": "FlameComics",
   "rzc:": "RizzComics",
   "mpl:": "MangaPill",

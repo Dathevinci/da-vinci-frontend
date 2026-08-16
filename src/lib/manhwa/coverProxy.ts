@@ -61,6 +61,7 @@ export const MANHWA_IMAGE_HOSTS = [
   "planeptune.us", // WeebCentral reader CDN (hot.planeptune.us, etc.)
   "leanbox.us", // WeebCentral reader CDN (hot.leanbox.us, etc.)
   "lowee.us", // WeebCentral reader CDN (official.lowee.us, etc.)
+  "gamindustri.us", // WeebCentral reader CDN
   "epicstream.com", // WeebCentral reader CDN
 ] as const;
 
@@ -85,6 +86,7 @@ const REFERERS: Record<string, string> = {
   "planeptune.us": "https://weebcentral.com/",
   "leanbox.us": "https://weebcentral.com/",
   "lowee.us": "https://weebcentral.com/",
+  "gamindustri.us": "https://weebcentral.com/",
   "epicstream.com": "https://weebcentral.com/",
 };
 

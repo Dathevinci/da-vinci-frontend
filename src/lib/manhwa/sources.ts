@@ -43,8 +43,10 @@ import { ManhwaRow, recencyOf, sortByRecency } from "./recency";
 import VortexScans from "./VortexScans";
 import Manganato from "./Manganato";
 import Mangasee from "./Mangasee";
+import WeebCentral from "./WeebCentral";
 
 const asura = () => new AsuraScans();
+const wbc = () => new WeebCentral();
 const vtx = () => new VortexScans();
 const mna = () => new Manganato();
 const mse = () => new Mangasee();
@@ -55,6 +57,7 @@ const mse = () => new Mangasee();
  * Every prefix this app can resolve, and the adapter that owns it.
  */
 const ADAPTERS: Record<string, () => any> = {
+  "wbc:": wbc,
   "vtx:": vtx,
   "mna:": mna,
   "mse:": mse,
@@ -246,23 +249,25 @@ function withAsuraRecency(rows: ManhwaRow[]): ManhwaRow[] {
 
 
 export async function searchManhwa(query: string, page = 1, filters?: any): Promise<ISearch<IMangaResult>> {
-  const [a, v, s, m] = await Promise.allSettled([
+  const [a, w, v, s, m] = await Promise.allSettled([
     asura().search(query, page, filters),
+    wbc().search(query, page),
     vtx().search(query, page),
     mse().search(query, page),
     mna().search(query, page),
   ]);
   const emptyRes = { currentPage: page, hasNextPage: false, results: [] as ManhwaRow[] };
   const av = settled(a, emptyRes as any);
+  const wv = settled(w, emptyRes);
   const vv = settled(v, emptyRes);
   const sv = settled(s, emptyRes);
   const mv = settled(m, emptyRes);
 
   return {
     currentPage: page,
-    hasNextPage: av.hasNextPage || vv.hasNextPage || sv.hasNextPage || mv.hasNextPage,
-    // Asura leads, followed by Vortex, Mangasee, and Manganato
-    results: merge(av.results as ManhwaRow[], vv.results, sv.results, mv.results),
+    hasNextPage: av.hasNextPage || wv.hasNextPage || vv.hasNextPage || sv.hasNextPage || mv.hasNextPage,
+    // Asura leads, followed by WeebCentral, Vortex, Mangasee, and Manganato
+    results: merge(av.results as ManhwaRow[], wv.results, vv.results, sv.results, mv.results),
   };
 }
 
@@ -423,8 +428,8 @@ async function growCorpus(key: string, need: number, filters: any): Promise<Corp
       // ONE ENTRY PER SOURCE, and the arrays must stay the same length as the
       // fetcher list below — they are indexed together. Adding a source means
       // adding a cursor, a status, and a fetcher, in step.
-      cursors: [1, 1, 1, 1],
-      status: ["live", "live", "live", "live"],
+      cursors: [1, 1, 1, 1, 1],
+      status: ["live", "live", "live", "live", "live"],
     };
     corpusCache.set(key, cached);
   }
@@ -450,9 +455,10 @@ async function growCorpus(key: string, need: number, filters: any): Promise<Corp
     const dispatched = state.cursors.slice();
     const fetchers = [
       () => asura().getSeries(dispatched[0], filters),
-      () => vtx().getSeries(dispatched[1], filters),
-      () => mse().getLatestUpdates(dispatched[2]),
-      () => mna().getLatestUpdates(dispatched[3]),
+      () => wbc().fetchLatestUpdates(dispatched[1]),
+      () => vtx().getSeries(dispatched[2], filters),
+      () => mse().getLatestUpdates(dispatched[3]),
+      () => mna().getLatestUpdates(dispatched[4]),
     ];
     const settledRounds = await Promise.allSettled(
       fetchers.map((f, i) => (state.status[i] === "live" ? f() : Promise.resolve(empty)))
@@ -481,7 +487,7 @@ async function growCorpus(key: string, need: number, filters: any): Promise<Corp
     });
 
     const before = state.rows.length;
-    state.rows = merge(state.rows, batches[0] || [], batches[1] || [], batches[2] || []);
+    state.rows = merge(state.rows, batches[0] || [], batches[1] || [], batches[2] || [], batches[3] || [], batches[4] || []);
     if (state.rows.length === before) {
       // Nothing new survived the cross-source dedupe. Every source still in
       // play is repeating what we already hold, so the corpus cannot grow —
@@ -587,9 +593,11 @@ export async function asuraGenres(): Promise<{ id: number; name: string; slug: s
  * which is the point. It no longer contributes its back catalogue instead.
  */
 export async function manhwaHome(): Promise<{ trending: ManhwaRow[]; latestUpdates: ManhwaRow[] }> {
-  const [ap, al, vp, vl, sp, sl, mp, ml] = await Promise.allSettled([
+  const [ap, al, wp, wl, vp, vl, sp, sl, mp, ml] = await Promise.allSettled([
     asura().getPopularToday(),
     asura().getLatestUpdates(1),
+    wbc().fetchLatestUpdates(1),
+    wbc().fetchLatestUpdates(1),
     vtx().getPopularToday(),
     vtx().getLatestUpdates(1),
     mse().getPopularToday(),
@@ -601,6 +609,8 @@ export async function manhwaHome(): Promise<{ trending: ManhwaRow[]; latestUpdat
 
   const asuraPop = settled(ap, emptySearch).results;
   const asuraLat = settled(al, emptySearch).results;
+  const weebPop = settled(wp, emptySearch).results;
+  const weebLat = settled(wl, emptySearch).results;
   const vtxPop = settled(vp, emptySearch).results;
   const vtxLat = settled(vl, emptySearch).results;
   const seePop = settled(sp, emptySearch).results;
@@ -609,9 +619,10 @@ export async function manhwaHome(): Promise<{ trending: ManhwaRow[]; latestUpdat
   const natoLat = settled(ml, emptySearch).results;
 
   return {
-    trending: merge(asuraPop, vtxPop, seePop, natoPop),
+    trending: merge(asuraPop, weebPop, vtxPop, seePop, natoPop),
     latestUpdates: mergeLatest(
       withAsuraRecency(asuraLat),
+      weebLat,
       vtxLat,
       seeLat,
       natoLat
