@@ -43,6 +43,7 @@ export const DECOR_NAMES: Record<string, string> = {
   effect_dejavu: "Dejavu: Temporal Echo",
   effect_outergod: "Outer God: Abyssal Gaze",
   effect_portal: "Dimension C-137",
+  effect_bankai: "Bankai: Senbonzakura Kageyoshi",
 };
 
 // The full catalogs, for staff (who may equip anything) and future listings.

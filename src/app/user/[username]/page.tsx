@@ -351,6 +351,8 @@ export default function PublicProfilePage() {
   // Dimension C-137 dips the name in acid — keep in step with effectTheme.ts.
   const isPortal = effectiveEffect === "effect_portal";
   const portalName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#d9f99d,#39ff14,#22d3ee,#e879f9,#d9f99d)] bg-[length:200%_100%] animate-[web-shimmer_3.5s_linear_infinite] drop-shadow-[0_0_10px_rgba(57,255,20,0.55)]";
+  const isBankai = effectiveEffect === "effect_bankai";
+  const bankaiName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#ffffff,#ff9dcc,#ff1493,#cdd6e4,#ffffff)] bg-[length:200%_100%] animate-[web-shimmer_3.5s_linear_infinite] drop-shadow-[0_0_10px_rgba(255,20,147,0.55)]";
   // When a bought frame (or the Voltaic ring) is equipped, drop the rank/role
   // border + glow so it doesn't override the frame the user chose.
   const ringOverridesRank = hasFrameRing((profileUser as any).activeFrame, effectiveEffect);
@@ -487,7 +489,7 @@ export default function PublicProfilePage() {
             <h1 className={`min-w-0 break-words pb-1 text-4xl font-black leading-tight tracking-tight drop-shadow-lg md:text-5xl
               ${profileUser.activeFont === 'font_cyber' ? 'font-mono tracking-widest' : ''}
               ${profileUser.activeFont === 'font_pixel' ? 'font-serif tracking-tight' : ''}
-              ${isCrimson ? crimsonName : isDejaVu ? dejaVuName : isTempest ? tempestName : isFool ? foolName : isEvernight ? evernightName : isMahoraga ? mahoragaName : isRitual ? ritualName : isCanopy ? canopyName : isSamurai ? samuraiName : isHimalaya ? himalayaName : isLotus ? lotusName : isMango ? mangoName : isJungle ? jungleName : isUnblinking ? unblinkingName : isVoid ? voidName : isDejavuEcho ? dejavuEchoName : isHollow ? hollowName : isOuterGod ? outerGodName : isGateway ? gatewayName : isWebSlinger ? webSlingerName : isPortal ? portalName : (nameColorClass(profileUser.activeColor) || rankTheme.textGradient)}`}>
+              ${isCrimson ? crimsonName : isDejaVu ? dejaVuName : isTempest ? tempestName : isFool ? foolName : isEvernight ? evernightName : isMahoraga ? mahoragaName : isRitual ? ritualName : isCanopy ? canopyName : isSamurai ? samuraiName : isHimalaya ? himalayaName : isLotus ? lotusName : isMango ? mangoName : isJungle ? jungleName : isUnblinking ? unblinkingName : isVoid ? voidName : isDejavuEcho ? dejavuEchoName : isHollow ? hollowName : isOuterGod ? outerGodName : isGateway ? gatewayName : isWebSlinger ? webSlingerName : isPortal ? portalName : isBankai ? bankaiName : (nameColorClass(profileUser.activeColor) || rankTheme.textGradient)}`}>
               {profileUser.username}
             </h1>
             <GuildTag userId={profileUser.id} size="sm" />
