@@ -44,6 +44,7 @@ import ManhwaTrackerButton from "@/components/manhwa/ManhwaTrackerButton";
 import { useNovelStatus } from "@/hooks/useNovelStatus";
 import NovelTrackerButton from "@/components/novel/NovelTrackerButton";
 import ClearTrackingButton from "@/components/profile/ClearTrackingButton";
+import DailyQuests from "@/components/quests/DailyQuests";
 import { novelCover } from "@/lib/novelImage";
 import ShowcaseCards from "@/components/profile/ShowcaseCards";
 import TitleRack from "@/components/profile/TitleRack";
@@ -701,6 +702,16 @@ export default function PublicProfilePage() {
             layer behind it is the same #09090b, so 95% over that colour was
             already this exact colour: opaque costs nothing to look at and
             skips the per-frame readback entirely. */}
+        {/* Daily quests live on YOUR profile now (the /quests page redirects
+            here) — visible only to the owner, since progress and claims are
+            personal. Placed above the collection so a visit to claim never
+            requires scrolling past three shelves. */}
+        {selfView && (
+          <div className="mx-auto w-full max-w-[1500px] px-4 pb-8 md:px-8">
+            <DailyQuests />
+          </div>
+        )}
+
         <div className="sticky top-0 z-40 border-b border-white/10 bg-[#09090b]">
           <div className="mx-auto flex max-w-[1500px] items-center justify-center gap-1 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {([
