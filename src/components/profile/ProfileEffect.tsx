@@ -24,6 +24,7 @@ import { GatewayCardDomain } from "@/components/profile/Gateway";
 import { WebSlingerCardDomain } from "@/components/profile/WebSlinger";
 import { PortalCardDomain } from "@/components/profile/InterdimensionalPortal";
 import { BankaiCardDomain } from "@/components/profile/BankaiSenbonzakura";
+import { DandadanCardDomain } from "@/components/profile/DandadanClash";
 import { usePreferences } from "@/hooks/usePreferences";
 
 /**
@@ -79,6 +80,7 @@ export function ProfileEffect({ effect }: { effect?: string | null }) {
   if (effect === "effect_webslinger") return <WebSlingerCardDomain />;
   if (effect === "effect_portal") return <PortalCardDomain />;
   if (effect === "effect_bankai") return <BankaiCardDomain />;
+  if (effect === "effect_dandadan") return <DandadanCardDomain />;
   if (effect === "effect_froggie") return <FroggieCardPond />;
   if (effect === "effect_aura") return <AuraField />;
   const cfg = FIELD[effect as keyof typeof FIELD];

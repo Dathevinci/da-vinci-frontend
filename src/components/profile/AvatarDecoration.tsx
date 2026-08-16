@@ -23,6 +23,7 @@ import { GatewayAvatarMark } from "@/components/profile/Gateway";
 import { WebSlingerAvatarMark } from "@/components/profile/WebSlinger";
 import { PortalAvatarMark } from "@/components/profile/InterdimensionalPortal";
 import { BankaiAvatarMark } from "@/components/profile/BankaiSenbonzakura";
+import { DandadanAvatarMark } from "@/components/profile/DandadanClash";
 
 /**
  * Discord-style avatar decorations that overlay an avatar.
@@ -46,7 +47,7 @@ export const FRAMES: Record<string, { ring: string; glow: string; speed: number 
 
 // Effects rendered by this component. effect_sparkles is intentionally excluded —
 // it has its own legacy inline rendering elsewhere, so we don't double it up.
-export const DECOR_EFFECTS = new Set(["effect_snow", "effect_embers", "effect_aura", "effect_ascension", "effect_froggie", "effect_tempest", "effect_blackhole", "effect_fool", "effect_evernight", "effect_crimson", "effect_mahoraga", "effect_ritual", "effect_canopy", "effect_samurai", "effect_himalaya", "effect_lotus", "effect_mango", "effect_jungle", "effect_unblinking", "effect_void", "effect_dejavu", "effect_hollow", "effect_outergod", "effect_gateway", "effect_webslinger", "effect_portal", "effect_bankai"]);
+export const DECOR_EFFECTS = new Set(["effect_snow", "effect_embers", "effect_aura", "effect_ascension", "effect_froggie", "effect_tempest", "effect_blackhole", "effect_fool", "effect_evernight", "effect_crimson", "effect_mahoraga", "effect_ritual", "effect_canopy", "effect_samurai", "effect_himalaya", "effect_lotus", "effect_mango", "effect_jungle", "effect_unblinking", "effect_void", "effect_dejavu", "effect_hollow", "effect_outergod", "effect_gateway", "effect_webslinger", "effect_portal", "effect_bankai", "effect_dandadan"]);
 
 // The extreme-rare "Voltaic Ascension" gives its own crackling electric ring,
 // shown even when no frame is equipped — so the storm follows the avatar everywhere.
@@ -158,6 +159,7 @@ const HEAVY_EFFECTS = new Set([
   "effect_webslinger",
   "effect_portal",
   "effect_bankai",
+  "effect_dandadan",
 ]);
 
 const LITE_GLOW: Record<string, string[]> = {
@@ -184,6 +186,7 @@ const LITE_GLOW: Record<string, string[]> = {
   effect_webslinger: ["0 0 8px 1px rgba(255,255,255,0.4)", "0 0 18px 5px rgba(34,211,238,0.5)", "0 0 8px 1px rgba(220,38,38,0.4)"],
   effect_portal: ["0 0 8px 1px rgba(57,255,20,0.45)", "0 0 18px 5px rgba(34,211,238,0.4)", "0 0 8px 1px rgba(232,121,249,0.4)"],
   effect_bankai: ["0 0 8px 1px rgba(255,105,180,0.45)", "0 0 18px 5px rgba(205,214,228,0.4)", "0 0 8px 1px rgba(255,20,147,0.45)"],
+  effect_dandadan: ["0 0 8px 1px rgba(57,255,20,0.45)", "0 0 18px 5px rgba(255,0,255,0.4)", "0 0 8px 1px rgba(0,255,255,0.4)"],
 };
 
 import { BlackHoleEffect } from "./BlackHoleEffect";
@@ -355,6 +358,10 @@ function EffectLayer({ effect, size = "sm" }: { effect: string; size?: "sm" | "l
   if (effect === "effect_bankai") {
     // SSS: steel→sakura rim breath + scattered-light crescent + shed petals. BankaiSenbonzakura.tsx.
     return <BankaiAvatarMark />;
+  }
+  if (effect === "effect_dandadan") {
+    // SSS: dual-reality split ring + orbiting crosshair + zero-g orb. DandadanClash.tsx.
+    return <DandadanAvatarMark />;
   }
   if (effect === "effect_webslinger") {
     // SSS: white→cyan→crimson breathing glow + the web anchor. WebSlinger.tsx.

@@ -31,6 +31,7 @@ const EFFECTS: { id: string; name: string; tier?: string }[] = [
   { id: "effect_webslinger", name: "The Web-Slinger", tier: "SSS" },
   { id: "effect_portal", name: "Dimension C-137", tier: "SSS" },
   { id: "effect_bankai", name: "Bankai: Senbonzakura Kageyoshi", tier: "SSS" },
+  { id: "effect_dandadan", name: "Dandadan: The Turbo Clash", tier: "SSS" },
   { id: "effect_jungle", name: "The Ancient Jungle", tier: "Rare" },
   { id: "effect_mango", name: "Mango Loco", tier: "Rare" },
   { id: "effect_lotus", name: "The Sacred Lotus Pond", tier: "Rare" },

@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dandadan — The Turbo Clash</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #07040c;
+    font-family: "Segoe UI", system-ui, sans-serif;
+  }
+
+  /* gritty, over-saturated occult UI */
+  #domain {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(10, 5, 15, 0.95);
+    backdrop-filter: blur(8px) contrast(1.2);
+    -webkit-backdrop-filter: blur(8px) contrast(1.2);
+  }
+
+  #profile-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    will-change: transform;
+  }
+
+  #avatar {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    border: 3px solid #8f98a8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 56px;
+    color: rgba(255, 255, 255, 0.92);
+    text-shadow: 0 0 18px rgba(255, 0, 255, 0.8), 0 0 34px rgba(57, 255, 20, 0.5);
+    background:
+      radial-gradient(circle at 32% 28%, #3a2f4d 0%, #170f1f 55%, #08050c 100%);
+    user-select: none;
+  }
+
+  #profile-name {
+    color: #e8e0f0;
+    font-size: 13px;
+    letter-spacing: 0.42em;
+    text-transform: uppercase;
+    opacity: 0.8;
+  }
+
+  #replay {
+    position: fixed;
+    right: 18px;
+    bottom: 16px;
+    z-index: 10000;
+    background: rgba(255, 0, 255, 0.08);
+    border: 1px solid rgba(255, 0, 255, 0.35);
+    color: #ff8dff;
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    padding: 8px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  #replay:hover { background: rgba(255, 0, 255, 0.18); }
+</style>
+</head>
+<body>
+
+<div id="domain">
+  <div id="profile-card">
+    <div id="avatar">オカ</div>
+    <div id="profile-name">Okarun</div>
+  </div>
+</div>
+<button id="replay">Turbo</button>
+
+<script>
+"use strict";
+
+/* ════════════════════════════════════════════════════════════════════════
+   DANDADAN — THE TURBO CLASH. Four phases, looping, cut together with hard
+   whip-pan snaps (no gentle easing between states — the directing style):
+   1  BIFURCATED REALITY   sci-fi left (beams, saucers, pyramids, grids)
+                           vs occult right (ghost hands, viscous ink)
+   2  HYPER-KINETIC DASH   neon streaks at 100vw-per-2-frames + a 0.15s
+                           band-slice CRT tear with RGB channel offsets
+   3  PSYCHOKINETIC BLAST  22-point uneven starburst into a dual-tone
+                           roaring flame aura + violent screen shake
+   4  ZERO-G POP ART       surreal debris floats UP, the whole canvas
+                           tilts a few degrees off-balance… then snap.
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* ── the canvas escapes every stacking context ─────────────────────────── */
+const canvas = document.createElement("canvas");
+canvas.style.cssText =
+  "position:fixed;top:0;left:0;width:100vw;height:100vh;" +
+  "z-index:9999;pointer-events:none;mix-blend-mode:normal;";
+document.body.appendChild(canvas);
+const ctx = canvas.getContext("2d");
+
+const avatar = document.getElementById("avatar");
+const card = document.getElementById("profile-card");
+
+/* ── viewport / epicenter ──────────────────────────────────────────────── */
+let W = 0, H = 0, DPR = 1;
+let CX = 0, CY = 0, AR = 75;
+
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = Math.round(W * DPR);
+  canvas.height = Math.round(H * DPR);
+  snap.width = canvas.width;
+  snap.height = canvas.height;
+  tintR.width = tintB.width = canvas.width;
+  tintR.height = tintB.height = canvas.height;
+  const r = avatar.getBoundingClientRect();
+  CX = r.left + r.width / 2;
+  CY = r.top + r.height / 2;
+  AR = r.width / 2;
+}
+const snap = document.createElement("canvas");
+const snapCtx = snap.getContext("2d");
+const tintR = document.createElement("canvas");
+const tintB = document.createElement("canvas");
+resize();
+window.addEventListener("resize", resize);
+
+/* ── timeline (seconds, one loop) ──────────────────────────────────────── */
+const T_DASH = 4.2;          // phase 1 → 2, a hard cut
+const T_TEAR = 4.9;          // the 0.15s reality tear
+const TEAR_DUR = 0.15;
+const T_BLAST = 5.6;         // phase 3 impact
+const T_ZEROG = 7.4;         // phase 4
+const CYCLE = 12.5;
+
+const TAU = Math.PI * 2;
+const rand = (a, b) => a + Math.random() * (b - a);
+const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
+/* unhinged easing: snaps, overshoots, никогда smooth */
+const snapIn = (p) => (p < 0.85 ? p * 0.2 : (p - 0.85) / 0.15);
+const easeOutExpo = (p) => (p >= 1 ? 1 : 1 - Math.pow(2, -10 * p));
+
+/* ── PHASE 1 actors ────────────────────────────────────────────────────── */
+
+class Beam {
+  constructor() { this.reset(true); }
+  reset(scatter) {
+    this.x = rand(0.03, 0.47) * W;                 // sci-fi LEFT half
+    this.w = rand(26, 90);
+    this.y = scatter ? rand(-H, 0) : -rand(60, 300);
+    this.v = rand(700, 1600);
+    this.hue = Math.random() < 0.5 ? "57,255,20" : "0,255,255";
+    this.alpha = rand(0.14, 0.34);
+    this.len = rand(H * 0.5, H * 0.95);
+  }
+  update(dt) {
+    this.y += this.v * dt;
+    if (this.y - this.len > H) this.reset(false);
+  }
+  draw() {
+    /* abduction trapezoid: narrow at top, flaring at the ground */
+    const flare = this.w * 1.9;
+    const g = ctx.createLinearGradient(0, this.y - this.len, 0, this.y);
+    g.addColorStop(0, `rgba(${this.hue},0)`);
+    g.addColorStop(0.6, `rgba(${this.hue},${this.alpha})`);
+    g.addColorStop(1, `rgba(${this.hue},${this.alpha * 1.6})`);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(this.x - this.w / 2, this.y - this.len);
+    ctx.lineTo(this.x + this.w / 2, this.y - this.len);
+    ctx.lineTo(this.x + flare / 2, this.y);
+    ctx.lineTo(this.x - flare / 2, this.y);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+class Saucer {
+  constructor() { this.respawn(0); }
+  respawn(t) {
+    this.x = rand(0.05, 0.42) * W;
+    this.y = rand(0.08, 0.72) * H;
+    this.s = rand(18, 44);
+    this.bornAt = t + rand(0, 2.4);
+    this.life = rand(1.4, 3.2);
+    this.vx = rand(-40, 40);
+    this.kind = (Math.random() * 3) | 0;           // saucer | pyramid | grid
+    this.spin = rand(0.6, 2.2) * (Math.random() < 0.5 ? -1 : 1);
+  }
+  update(dt, t) {
+    this.x += this.vx * dt;
+    if (t > this.bornAt + this.life) this.respawn(t);
+  }
+  draw(t) {
+    const age = t - this.bornAt;
+    if (age < 0) return;
+    /* glitch into existence: first frames flicker + band-offset */
+    const flicker = age < 0.25 ? (Math.sin(age * 210) > -0.2 ? 1 : 0) : 1;
+    if (!flicker) return;
+    const jx = age < 0.25 ? rand(-6, 6) : 0;
+    const a = Math.min(1, age * 4) * Math.min(1, (this.bornAt + this.life - t) * 2);
+    ctx.save();
+    ctx.translate(this.x + jx, this.y);
+    ctx.globalAlpha = a * 0.9;
+    if (this.kind === 0) {
+      /* classic saucer: hull ellipse + dome + running lights */
+      ctx.strokeStyle = "#00FFFF";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, this.s, this.s * 0.34, 0, 0, TAU);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(0, -this.s * 0.18, this.s * 0.45, Math.PI, 0);
+      ctx.stroke();
+      ctx.fillStyle = "#39ff14";
+      for (let i = -2; i <= 2; i++) {
+        const lx = i * this.s * 0.38;
+        const on = Math.sin(t * 9 + i * 2) > 0;
+        if (on) ctx.fillRect(lx - 1.6, this.s * 0.1, 3.2, 3.2);
+      }
+    } else if (this.kind === 1) {
+      /* wireframe pyramid, hand-projected 3D */
+      const ang = t * this.spin;
+      const c = Math.cos(ang), s = Math.sin(ang);
+      const base = [[-1, 1, -1], [1, 1, -1], [1, 1, 1], [-1, 1, 1]];
+      const apex = [0, -1.2, 0];
+      const proj = ([x, y, z]) => {
+        const rx = x * c - z * s;
+        const rz = x * s + z * c;
+        const d = 3.2 / (3.2 + rz);
+        return [rx * this.s * d, y * this.s * 0.8 * d];
+      };
+      const P = base.map(proj);
+      const A = proj(apex);
+      ctx.strokeStyle = "#39ff14";
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      for (let i = 0; i < 4; i++) {
+        const [x1, y1] = P[i];
+        const [x2, y2] = P[(i + 1) % 4];
+        ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+        ctx.moveTo(x1, y1); ctx.lineTo(A[0], A[1]);
+      }
+      ctx.stroke();
+    } else {
+      /* mathematical grid patch, perspective-squashed */
+      ctx.strokeStyle = "rgba(0,255,255,0.75)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      const n = 5;
+      for (let i = 0; i <= n; i++) {
+        const f = i / n;
+        ctx.moveTo(-this.s + f * this.s * 2, -this.s * 0.5);
+        ctx.lineTo(-this.s * 1.6 + f * this.s * 3.2, this.s * 0.5);
+        ctx.moveTo(-this.s * (1 + 0.6 * f), -this.s * 0.5 + f * this.s);
+        ctx.lineTo(this.s * (1 + 0.6 * f), -this.s * 0.5 + f * this.s);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+}
+
+/* one occult ghost-hand: an arm bezier + five jagged tapered fingers,
+   re-rolled every few seconds so the right edge keeps tearing open */
+class GhostHand {
+  constructor(i) { this.i = i; this.roll(0); }
+  roll(t) {
+    this.bornAt = t + rand(0, 1.6);
+    this.life = rand(1.8, 3.4);
+    this.rootY = rand(0.08, 0.9) * H;
+    this.reach = rand(0.16, 0.4);                  // fraction of W it invades
+    this.size = rand(30, 70);
+    this.wob = rand(2, 5);
+    this.fingers = [];
+    for (let f = 0; f < 5; f++) {
+      this.fingers.push({
+        ang: rand(-1.1, 1.1),
+        len: this.size * rand(0.7, 1.5),
+        w: rand(4, 9),
+      });
+    }
+  }
+  update(t) {
+    if (t > this.bornAt + this.life) this.roll(t);
+  }
+  draw(t) {
+    const age = t - this.bornAt;
+    if (age < 0) return;
+    const out = Math.min(1, age * 3);              // lunge out, snap-fast
+    const die = Math.min(1, (this.bornAt + this.life - t) * 3);
+    const a = out * die;
+    if (a <= 0) return;
+    const wx = W - this.reach * W * out;
+    const wy = this.rootY + Math.sin(t * this.wob + this.i * 2.1) * 26;
+
+    /* the arm: thick viscous ink, jagged with high-frequency jitter */
+    ctx.strokeStyle = `rgba(20,2,10,${0.85 * a})`;
+    ctx.lineWidth = this.size * 0.5;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(W + 30, this.rootY);
+    ctx.bezierCurveTo(
+      W - this.reach * W * 0.3, this.rootY + Math.sin(t * 7 + this.i) * 40,
+      wx + this.size * 2, wy - 30,
+      wx, wy
+    );
+    ctx.stroke();
+    /* blood-red rim on the same path */
+    ctx.strokeStyle = `rgba(255,0,0,${0.5 * a})`;
+    ctx.lineWidth = this.size * 0.5 + 5;
+    ctx.globalCompositeOperation = "destination-over";
+    ctx.stroke();
+    ctx.globalCompositeOperation = "source-over";
+
+    /* five fingers, each a jagged tapered claw */
+    for (const f of this.fingers) {
+      const fx = wx + Math.cos(f.ang + Math.PI) * this.size * 0.2;
+      const fy = wy + Math.sin(f.ang) * this.size * 0.32;
+      const tx = wx - Math.cos(f.ang * 0.5) * f.len * (0.8 + 0.2 * Math.sin(t * 11 + f.ang * 5));
+      const ty = wy + Math.sin(f.ang) * f.len;
+      ctx.strokeStyle = `rgba(24,3,12,${0.9 * a})`;
+      ctx.lineWidth = f.w;
+      ctx.beginPath();
+      ctx.moveTo(fx, fy);
+      ctx.quadraticCurveTo(
+        (fx + tx) / 2 + Math.sin(t * 13 + f.ang * 7) * 8,
+        (fy + ty) / 2,
+        tx, ty
+      );
+      ctx.stroke();
+      ctx.strokeStyle = `rgba(255,0,255,${0.4 * a})`;
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+    }
+  }
+}
+
+/* manga scribble: a violent random-walk polyline off the right edge */
+function drawScribbles(t) {
+  ctx.lineCap = "round";
+  for (let sIdx = 0; sIdx < 6; sIdx++) {
+    const seed = sIdx * 37.7;
+    const phase = (t + seed) % 3;
+    if (phase > 1.4) continue;
+    const a = Math.min(1, phase * 6) * Math.min(1, (1.4 - phase) * 3);
+    let x = W + 10;
+    let y = ((seed * 971) % H);
+    ctx.strokeStyle = sIdx % 2
+      ? `rgba(255,0,0,${0.55 * a})`
+      : `rgba(30,4,16,${0.8 * a})`;
+    ctx.lineWidth = sIdx % 2 ? 2 : 4.5;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    for (let k = 0; k < 14; k++) {
+      x -= rand(8, 44) * (0.5 + phase);
+      y += Math.sin(k * 2.7 + seed + t * 21) * rand(10, 42);
+      ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+}
+
+/* ── PHASE 2 actors ────────────────────────────────────────────────────── */
+class Streak {
+  constructor(i, tStart) {
+    this.fromLeft = i % 2 === 0;
+    this.y = rand(0.05, 0.95) * H;
+    this.launch = tStart + i * 0.045;              // machine-gun cadence
+    this.v = (W / 2) * 60;                         // 100vw in 2 frames @60
+    this.x = this.fromLeft ? -W * 0.2 : W * 1.2;
+    this.hue = i % 2 ? "255,0,255" : "0,255,255";
+    this.done = false;
+  }
+  update(dt, t) {
+    if (t < this.launch || this.done) return;
+    this.x += (this.fromLeft ? 1 : -1) * this.v * dt;
+    if (this.fromLeft ? this.x > W * 1.3 : this.x < -W * 0.3) this.done = true;
+  }
+  draw(t) {
+    if (t < this.launch || this.done) return;
+    const len = W * 0.34;
+    const dir = this.fromLeft ? -1 : 1;
+    const g = ctx.createLinearGradient(this.x, 0, this.x + dir * len, 0);
+    g.addColorStop(0, `rgba(255,255,255,0.95)`);
+    g.addColorStop(0.12, `rgba(${this.hue},0.9)`);
+    g.addColorStop(1, `rgba(${this.hue},0)`);
+    ctx.fillStyle = g;
+    ctx.fillRect(this.fromLeft ? this.x + dir * len : this.x, this.y - 2.5, len, 5);
+  }
+}
+
+/* ── PHASE 3/4 actors ──────────────────────────────────────────────────── */
+let burstSpikes = [];
+function rollBurst() {
+  burstSpikes = [];
+  const n = 22;
+  for (let i = 0; i < n; i++) {
+    burstSpikes.push({
+      ang: (i / n) * TAU + rand(-0.09, 0.09),
+      rOut: rand(0.55, 1.55),
+      rIn: rand(0.16, 0.3),
+    });
+  }
+}
+
+class Debris {
+  constructor() { this.respawn(true); }
+  respawn(scatter) {
+    this.kind = (Math.random() * 3) | 0;           // crosshair | tooth | orb
+    this.x = rand(0.05, 0.95) * W;
+    this.y = scatter ? rand(0.1, 1.1) * H : H + rand(20, 160);
+    this.vy = -rand(16, 46);                       // gravity inverted
+    this.sway = rand(0.4, 1.4);
+    this.s = rand(8, 22);
+    this.rot = rand(0, TAU);
+    this.vr = rand(-0.7, 0.7);
+    this.seed = rand(0, TAU);
+  }
+  update(dt) {
+    this.y += this.vy * dt;
+    this.x += Math.sin(this.seed + this.y * 0.01) * this.sway * 18 * dt;
+    this.rot += this.vr * dt;
+    if (this.y < -40) this.respawn(false);
+  }
+  draw() {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.rot);
+    if (this.kind === 0) {
+      /* UFO crosshair: ring + four ticks + center dot */
+      ctx.strokeStyle = "rgba(0,255,255,0.85)";
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.arc(0, 0, this.s, 0, TAU);
+      ctx.stroke();
+      ctx.beginPath();
+      for (let q = 0; q < 4; q++) {
+        const a = (q / 4) * TAU;
+        ctx.moveTo(Math.cos(a) * this.s * 0.6, Math.sin(a) * this.s * 0.6);
+        ctx.lineTo(Math.cos(a) * this.s * 1.35, Math.sin(a) * this.s * 1.35);
+      }
+      ctx.stroke();
+      ctx.fillStyle = "#39ff14";
+      ctx.fillRect(-1.5, -1.5, 3, 3);
+    } else if (this.kind === 1) {
+      /* jagged tooth: uneven quad, white with a red root */
+      const g = ctx.createLinearGradient(0, -this.s, 0, this.s);
+      g.addColorStop(0, "rgba(255,60,60,0.9)");
+      g.addColorStop(0.35, "#fffdf5");
+      g.addColorStop(1, "#f0e8d8");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(-this.s * 0.5, -this.s * 0.6);
+      ctx.lineTo(this.s * 0.55, -this.s * 0.5);
+      ctx.lineTo(this.s * 0.3, this.s * 0.4);
+      ctx.lineTo(this.s * 0.05, this.s * 0.95);
+      ctx.lineTo(-this.s * 0.28, this.s * 0.45);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      /* red spirit orb: layered translucent discs, no shadowBlur */
+      ctx.fillStyle = "rgba(255,0,0,0.18)";
+      ctx.beginPath();
+      ctx.arc(0, 0, this.s * 1.6, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = "rgba(255,0,0,0.5)";
+      ctx.beginPath();
+      ctx.arc(0, 0, this.s * 0.85, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = "rgba(255,180,180,0.95)";
+      ctx.beginPath();
+      ctx.arc(-this.s * 0.2, -this.s * 0.2, this.s * 0.3, 0, TAU);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+/* ── engine state ──────────────────────────────────────────────────────── */
+const beams = Array.from({ length: 7 }, () => new Beam());
+const saucers = Array.from({ length: 6 }, () => new Saucer());
+const hands = Array.from({ length: 4 }, (_, i) => new GhostHand(i));
+const debris = Array.from({ length: 26 }, () => new Debris());
+let streaks = [];
+let tearBands = [];
+let t = 0;
+let last = performance.now();
+let cycleN = -1;
+let dashArmed = false;
+let tearArmed = false;
+let blastArmed = false;
+let shakeMag = 0;
+
+function newCycle() {
+  /* timer-based actors re-roll at the wrap — their respawn checks only run
+     inside Phase 1's window, so a rebirth scheduled past it is permanent
+     death (absorbing state) */
+  for (const s of saucers) s.respawn(0);
+  for (const h of hands) h.roll(0);
+  dashArmed = false;
+  tearArmed = false;
+  blastArmed = false;
+  streaks = [];
+  tearBands = [];
+  rollBurst();
+}
+document.getElementById("replay").addEventListener("click", () => { t = 0; cycleN = -1; });
+
+/* dual-tone roaring aura: layered sine flames, split at the avatar's x */
+function drawAura(ct) {
+  const born = clamp01((ct - T_BLAST - 0.12) / 0.1);   // snaps on
+  if (born <= 0) return;
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  for (let side = 0; side < 2; side++) {
+    const grad = ctx.createRadialGradient(CX, CY, AR * 0.7, CX, CY, AR * 2.6);
+    if (side === 0) {
+      grad.addColorStop(0, "rgba(57,255,20,0.5)");
+      grad.addColorStop(0.55, "rgba(0,255,255,0.28)");
+      grad.addColorStop(1, "rgba(0,255,255,0)");
+    } else {
+      grad.addColorStop(0, "rgba(255,0,0,0.5)");
+      grad.addColorStop(0.55, "rgba(255,0,255,0.28)");
+      grad.addColorStop(1, "rgba(255,0,255,0)");
+    }
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(CX, CY - AR);
+    const steps = 46;
+    for (let i = 0; i <= steps; i++) {
+      /* left half sweeps π/2→3π/2, right half π/2→-π/2 */
+      const th = Math.PI / 2 + (side === 0 ? 1 : -1) * Math.PI * (i / steps);
+      const roar =
+        Math.sin(i * 0.9 + t * 26) * 0.16 +
+        Math.sin(i * 2.3 - t * 31) * 0.1 +
+        Math.sin(i * 0.31 + t * 12) * 0.3;
+      const r = AR * (1.16 + Math.max(0, roar) * 1.5 * born);
+      ctx.lineTo(CX + Math.cos(th) * r, CY - Math.sin(th) * r);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/* ── frame ─────────────────────────────────────────────────────────────── */
+function frame(now) {
+  requestAnimationFrame(frame);
+  let dt = (now - last) / 1000;
+  last = now;
+  if (dt > 0.05) dt = 0.05;
+  t += dt;
+
+  const cyc = Math.floor(t / CYCLE);
+  if (cyc !== cycleN) { cycleN = cyc; newCycle(); }
+  const ct = t - cyc * CYCLE;
+
+  /* screen shake — the card and the world */
+  shakeMag = Math.max(0, shakeMag - dt * 30);
+  const shx = shakeMag ? rand(-shakeMag, shakeMag) : 0;
+  const shy = shakeMag ? rand(-shakeMag, shakeMag) : 0;
+  card.style.transform = shakeMag > 0.4 ? `translate(${shx * 0.6}px, ${shy * 0.6}px)` : "";
+
+  ctx.setTransform(DPR, 0, 0, DPR, DPR * shx, DPR * shy);
+
+  /* trail-fade clearing: full wipe normally; during the dash, a translucent
+     destination-out pass leaves burning motion trails without painting the
+     page black */
+  if (ct >= T_DASH && ct < T_BLAST) {
+    ctx.globalCompositeOperation = "destination-out";
+    ctx.fillStyle = "rgba(0,0,0,0.3)";
+    ctx.fillRect(-20, -20, W + 40, H + 40);
+    ctx.globalCompositeOperation = "source-over";
+  } else {
+    ctx.clearRect(-20, -20, W + 40, H + 40);
+  }
+
+  /* PHASE 4's off-balance world: rotate everything a few surreal degrees */
+  const zeroG = ct >= T_ZEROG;
+  if (zeroG) {
+    const tilt = Math.sin((ct - T_ZEROG) * 0.5) * 0.045;   // ±2.6°
+    ctx.translate(W / 2, H / 2);
+    ctx.rotate(tilt);
+    ctx.translate(-W / 2, -H / 2);
+  }
+
+  /* ── PHASE 1: bifurcated reality (halted instantly at the dash) ── */
+  if (ct < T_DASH) {
+    /* sci-fi left, additive light */
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, W / 2, H);
+    ctx.clip();
+    const pulse = 0.5 + 0.5 * Math.sin(ct * 7);
+    ctx.fillStyle = `rgba(57,255,20,${0.045 + 0.03 * pulse})`;
+    ctx.fillRect(0, 0, W / 2, H);
+    ctx.globalCompositeOperation = "screen";
+    for (const b of beams) { b.update(dt); b.draw(); }
+    ctx.globalCompositeOperation = "lighter";
+    for (const s of saucers) { s.update(dt, ct); s.draw(ct); }
+    ctx.restore();
+
+    /* occult right, viscous source-over ink */
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(W / 2, 0, W / 2, H);
+    ctx.clip();
+    const bleed = 0.5 + 0.5 * Math.sin(ct * 5 + 2);
+    ctx.fillStyle = `rgba(255,0,60,${0.05 + 0.035 * bleed})`;
+    ctx.fillRect(W / 2, 0, W / 2, H);
+    for (const h of hands) { h.update(ct); h.draw(ct); }
+    drawScribbles(ct);
+    ctx.restore();
+
+    /* the frontier: a crackling seam where realities meet */
+    ctx.globalCompositeOperation = "lighter";
+    ctx.strokeStyle = `rgba(255,255,255,${0.25 + 0.2 * Math.sin(ct * 23)})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let y = 0; y <= H; y += 14) {
+      const x = W / 2 + Math.sin(y * 0.05 + ct * 17) * 7;
+      y === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.globalCompositeOperation = "source-over";
+  }
+
+  /* ── PHASE 2: the dash ── */
+  if (!dashArmed && ct >= T_DASH) {
+    dashArmed = true;
+    streaks = Array.from({ length: 18 }, (_, i) => new Streak(i, ct));
+  }
+  if (ct >= T_DASH && ct < T_BLAST) {
+    ctx.globalCompositeOperation = "lighter";
+    for (const s of streaks) { s.update(dt, ct); s.draw(ct); }
+    ctx.globalCompositeOperation = "source-over";
+  }
+
+  /* the 0.15s reality tear */
+  if (!tearArmed && ct >= T_TEAR) {
+    tearArmed = true;
+    tearBands = [];
+    const n = 9;
+    for (let b = 0; b < n; b++) {
+      tearBands.push({ y: (b / n) * H, h: H / n + 1, dx: (b % 2 ? 50 : -50) * rand(0.6, 1.2) });
+    }
+  }
+  if (tearArmed && ct < T_TEAR + TEAR_DUR) {
+    snapCtx.setTransform(1, 0, 0, 1, 0, 0);
+    snapCtx.clearRect(0, 0, snap.width, snap.height);
+    snapCtx.drawImage(canvas, 0, 0);
+    const base = ctx.getTransform();
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    for (const b of tearBands) {
+      ctx.drawImage(snap,
+        0, b.y * DPR, snap.width, b.h * DPR,
+        b.dx, b.y, W, b.h);
+    }
+    /* aggressive RGB split: red and blue channel ghosts, offset apart */
+    for (const [tc, color, ox] of [[tintR, "#FF0000", 7], [tintB, "#00FFFF", -7]]) {
+      const g2 = tc.getContext("2d");
+      g2.setTransform(1, 0, 0, 1, 0, 0);
+      g2.clearRect(0, 0, tc.width, tc.height);
+      g2.drawImage(snap, 0, 0);
+      g2.globalCompositeOperation = "multiply";
+      g2.fillStyle = color;
+      g2.fillRect(0, 0, tc.width, tc.height);
+      g2.globalCompositeOperation = "destination-in";
+      g2.drawImage(snap, 0, 0);
+      g2.globalCompositeOperation = "source-over";
+      ctx.globalCompositeOperation = "lighter";
+      ctx.globalAlpha = 0.5;
+      ctx.drawImage(tc, 0, 0, tc.width, tc.height, ox, 0, W, H);
+    }
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = "source-over";
+    ctx.setTransform(base);
+    shakeMag = Math.max(shakeMag, 7);
+  }
+
+  /* ── PHASE 3: the psychokinetic blast ── */
+  if (!blastArmed && ct >= T_BLAST) {
+    blastArmed = true;
+    shakeMag = 16;
+  }
+  if (ct >= T_BLAST && ct < T_BLAST + 0.55) {
+    const p = (ct - T_BLAST) / 0.55;
+    const grow = easeOutExpo(Math.min(p * 2.2, 1));
+    const fade = 1 - snapIn(p);
+    const R = AR * 1.1 + grow * Math.max(W, H) * 0.24;
+    ctx.save();
+    ctx.globalAlpha = Math.max(fade, 0);
+    ctx.beginPath();
+    for (let i = 0; i < burstSpikes.length; i++) {
+      const sp = burstSpikes[i];
+      const ox = CX + Math.cos(sp.ang) * R * sp.rOut;
+      const oy = CY + Math.sin(sp.ang) * R * sp.rOut;
+      const next = burstSpikes[(i + 1) % burstSpikes.length];
+      const midAng = (sp.ang + (i + 1 === burstSpikes.length ? next.ang + TAU : next.ang)) / 2;
+      const ix = CX + Math.cos(midAng) * R * sp.rIn;
+      const iy = CY + Math.sin(midAng) * R * sp.rIn;
+      i === 0 ? ctx.moveTo(ox, oy) : ctx.lineTo(ox, oy);
+      ctx.lineTo(ix, iy);
+    }
+    ctx.closePath();
+    ctx.fillStyle = "rgba(255,255,255,0.96)";
+    ctx.fill();
+    ctx.lineWidth = 7;
+    ctx.strokeStyle = "#FF00FF";
+    ctx.stroke();
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = "#39ff14";
+    ctx.stroke();
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+  if (ct >= T_BLAST) drawAura(ct);
+
+  /* ── PHASE 4: zero-g pop art ── */
+  if (zeroG) {
+    for (const d of debris) { d.update(dt); d.draw(); }
+  }
+
+  if (zeroG) {
+    /* undo the tilt so the next frame's transforms stay clean */
+    ctx.setTransform(DPR, 0, 0, DPR, DPR * shx, DPR * shy);
+  }
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
