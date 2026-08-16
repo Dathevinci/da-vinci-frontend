@@ -15,6 +15,25 @@
 const SHAPE = 1;
 
 /**
+ * SYNCHRONOUS cache read, for pre-paint hydration. A useEffect fires after
+ * the browser has already painted, so serving the cache there still flashes
+ * the loading screen for a frame and lets the route transition play a full
+ * exit-and-enter — which reads as "it reloaded everything" no matter how
+ * fresh the data is. A useLayoutEffect calling this runs BEFORE paint, so the
+ * feed is on screen in the first frame the reader ever sees.
+ */
+export function readSwrCache(key: string): any | null {
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return null;
+    const c = JSON.parse(raw);
+    return c?.shape === SHAPE && c.data ? c.data : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * The same serve-cached-then-refresh, for endpoints that return a BARE JSON
  * object rather than the { success, data } wrapper — the manhwa and novel
  * home feeds. Exists for the close-X path: those details are PAGES, so

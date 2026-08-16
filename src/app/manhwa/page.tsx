@@ -1,7 +1,7 @@
 "use client";
 
-import { swrRawJson } from "@/lib/swrCache";
-import { useState, useEffect, Suspense } from "react";
+import { swrRawJson, readSwrCache } from "@/lib/swrCache";
+import { useState, useEffect, useLayoutEffect, useRef, Suspense } from "react";
 import ManhwaCard from "@/components/manhwa/ManhwaCard";
 import ManhwaFilters from "@/components/manhwa/ManhwaFilters";
 import ManhwaHeroCarousel from "@/components/manhwa/ManhwaHeroCarousel";
@@ -47,13 +47,32 @@ function ManhwaPageInner() {
   
   const [hasNext, setHasNext] = useState(false);
   const [loading, setLoading] = useState(true);
+  const restored = useRef(false);
 
   // A filter (status/sort) always means the browse grid, never the home shelves.
   const isHome = !query && page === 1 && sp.get("view") !== "all" && !status && !sort;
 
+  /**
+   * PRE-PAINT RESTORE — see the novel home for the reasoning. A layout effect
+   * runs before the browser paints, so a session-cached feed is on screen in
+   * the first frame after pressing a detail page's X, with no loader flash
+   * and no route transition. The network refresh below still corrects it.
+   */
+  useLayoutEffect(() => {
+    if (!isHome) return;
+    const cached = readSwrCache("dv-manhwa-home");
+    if (!cached) return;
+    restored.current = true;
+    setTrending(cached.trending || []);
+    setLatestUpdates(cached.latestUpdates || []);
+    setHasNext(true);
+    setLoading(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHome]);
+
   useEffect(() => {
-    setLoading(true);
-    
+    if (!restored.current) setLoading(true);
+
     if (isHome) {
       // Fetch home layout data (Trending & Latest)
       // Cached-then-refresh: closing a series' X remounts this page, and
@@ -129,13 +148,23 @@ function ManhwaPageInner() {
     <div className="bg-[#0b0b0c] min-h-screen pt-16 pb-16 text-white font-sans selection:bg-red-500/30">
       <AnimatePresence mode="wait">
         {loading ? (
-          <motion.div key="loader" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            {/* "Loading comics", not "Loading AsuraScans" — there are four
-                sources now and the page waits on all of them. */}
+          // Zero-duration exit: when the pre-paint restore flips `loading`
+          // before the first frame, mode="wait" must not hold the feed hostage
+          // to a loader fade the reader was never supposed to see.
+          <motion.div key="loader" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0 } }}>
             <LoadingScreen fullscreen={false} message="Loading comics" />
           </motion.div>
         ) : isHome ? (
-          <motion.div key="home" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }} className="w-full">
+          <motion.div
+            key="home"
+            // A restored feed must LOOK restored — animating it in reads as a
+            // reload, which is the exact report this exists to fix.
+            initial={restored.current ? false : { opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+            className="w-full"
+          >
             {/* Top Hero Carousel */}
             <ManhwaHeroCarousel items={trending.slice(0, 10)} />
 

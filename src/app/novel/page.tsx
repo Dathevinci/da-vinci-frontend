@@ -1,7 +1,7 @@
 "use client";
 
-import { swrRawJson } from "@/lib/swrCache";
-import { useEffect, useState, Suspense } from "react";
+import { swrRawJson, readSwrCache } from "@/lib/swrCache";
+import { useEffect, useLayoutEffect, useRef, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { BookOpen, Star, Sparkles, Flame, Clock, CheckCircle2, BookMarked, Compass } from "lucide-react";
@@ -37,9 +37,33 @@ function NovelInner() {
   const [trending, setTrending] = useState<NovelResult[]>([]);
   const [completed, setCompleted] = useState<NovelResult[]>([]);
   const [loading, setLoading] = useState(true);
+  const restored = useRef(false);
+
+  /**
+   * PRE-PAINT RESTORE. useEffect fires after the browser has painted, so a
+   * cached feed served there still flashed the loading screen and played the
+   * route transition — pressing X looked like a full reload even with the
+   * data in hand. A layout effect runs before paint: when a session copy
+   * exists, the shelves are on screen in the FIRST frame and the loader never
+   * becomes visible. The network refresh below still runs and corrects.
+   */
+  useLayoutEffect(() => {
+    if (!isHome) return;
+    const cached = readSwrCache("dv-novel-home");
+    if (!cached) return;
+    restored.current = true;
+    setFeaturedHero(cached.featuredHero || []);
+    setTranslatedNovels(cached.translatedNovels || []);
+    setOriginalFiction(cached.originalFiction || []);
+    setLatestUpdates(cached.latestUpdates || []);
+    setTrending(cached.trending || []);
+    setCompleted(cached.completed || []);
+    setLoading(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHome]);
 
   useEffect(() => {
-    setLoading(true);
+    if (!restored.current) setLoading(true);
     if (isHome) {
       // Cached-then-refresh: closing a novel's X remounts this page, and
       // without the session copy the whole feed visibly reloaded on every
@@ -88,11 +112,23 @@ function NovelInner() {
     <div className="bg-[#0b0b0c] min-h-screen pt-16 pb-16 text-white selection:bg-pink-500/30">
       <AnimatePresence mode="wait">
         {loading ? (
-          <motion.div key="loader" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          // Zero-duration exit: when the pre-paint restore flips `loading`
+          // before the first frame, mode="wait" must not hold the feed hostage
+          // to a loader fade the reader was never supposed to see.
+          <motion.div key="loader" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0 } }}>
             <LoadingScreen fullscreen={false} message="Loading light novels" />
           </motion.div>
         ) : isHome ? (
-          <motion.div key="home" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }} className="w-full">
+          <motion.div
+            key="home"
+            // A restored feed must LOOK restored — animating it in reads as a
+            // reload, which is the exact report this exists to fix.
+            initial={restored.current ? false : { opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+            className="w-full"
+          >
             <NovelHeroCarousel items={featuredHero.length > 0 ? featuredHero : trending.slice(0, 6)} />
 
             <HeroSearchBar
