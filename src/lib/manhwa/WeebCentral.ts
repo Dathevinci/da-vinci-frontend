@@ -268,6 +268,26 @@ export default class WeebCentral extends MangaParser {
   }
 
   /**
+   * The newest chapter's label, from ONE request. WeebCentral's listing
+   * markup carries no chapter information at all (verified live: zero
+   * "chapter" mentions across a whole Full Display page), so every listing
+   * card rendered "Chapter ?" — this is the cheapest true answer, used by the
+   * home feed's enrichment pass. Same anchor/title extraction as
+   * fetchMangaInfo, without paying for the series page too.
+   */
+  async fetchLatestChapterLabel(mangaId: string): Promise<string | undefined> {
+    const rawId = String(mangaId).replace(/^wbc:/, "");
+    const chHtml = await this.fetchHtml(`${BASE_URL}/series/${rawId}/full-chapter-list`);
+    const $c = cheerio.load(chHtml);
+    const el = $c("a[href*='/chapters/']").first();
+    if (!el.length) return undefined;
+    const rawText = el.find("span").first().text().trim() || el.text().trim();
+    const titleMatch = rawText.match(/(Chapter\s*\d+(\.\d+)?([^\n]*))/i);
+    const label = titleMatch ? titleMatch[1].trim() : rawText.split("Last Read")[0].trim();
+    return label || undefined;
+  }
+
+  /**
    * Fetch chapter pages
    */
   override async fetchChapterPages(chapterId: string): Promise<IMangaChapterPage[]> {

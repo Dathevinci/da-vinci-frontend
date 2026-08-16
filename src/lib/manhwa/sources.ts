@@ -874,6 +874,71 @@ export async function asuraGenres(): Promise<{ id: number; name: string; slug: s
  * and return empty. A source that returns nothing now contributes nothing —
  * which is the point. It no longer contributes its back catalogue instead.
  */
+/**
+ * LATEST-CHAPTER LABELS FOR WEEBCENTRAL ROWS. Its listing markup carries no
+ * chapter information at all, so every wbc card on the home rails printed
+ * "Chapter ?" — which reads as breakage, and was reported as such. The label
+ * costs one request per series (full-chapter-list), so the pass is bounded on
+ * every axis: cache first (30-min TTL, capped), at most 16 fetches per pass,
+ * four in flight, and a wall-clock budget — a slow WeebCentral must delay the
+ * home feed by seconds at most, and a row that misses simply keeps its honest
+ * card ("View series", not "Chapter ?"). Failures cache as unknown so a down
+ * source is not re-probed on every home load.
+ */
+const WBC_LATEST_TTL_MS = 30 * 60 * 1000;
+const WBC_LATEST_BUDGET_MS = 4000;
+const wbcLatestCache = new Map<string, { at: number; label?: string }>();
+
+async function enrichWbcLatest(rows: ManhwaRow[]): Promise<void> {
+  const now = Date.now();
+  for (const [k, v] of wbcLatestCache) {
+    if (now - v.at > WBC_LATEST_TTL_MS) wbcLatestCache.delete(k);
+  }
+  while (wbcLatestCache.size >= 500) {
+    const oldest = wbcLatestCache.keys().next().value;
+    if (oldest == null) break;
+    wbcLatestCache.delete(oldest);
+  }
+
+  const pending: ManhwaRow[] = [];
+  const seen = new Set<string>();
+  for (const row of rows) {
+    if (!row.id.startsWith("wbc:") || row.latestChapter) continue;
+    const hit = wbcLatestCache.get(row.id);
+    if (hit && now - hit.at < WBC_LATEST_TTL_MS) {
+      if (hit.label) row.latestChapter = hit.label;
+      continue;
+    }
+    if (!seen.has(row.id)) {
+      seen.add(row.id);
+      pending.push(row);
+    }
+  }
+
+  const targets = pending.slice(0, 16);
+  if (targets.length === 0) return;
+  const deadline = Date.now() + WBC_LATEST_BUDGET_MS;
+  let idx = 0;
+
+  const worker = async () => {
+    while (idx < targets.length && Date.now() < deadline) {
+      const row = targets[idx++];
+      try {
+        const label = await wbc().fetchLatestChapterLabel(row.id);
+        wbcLatestCache.set(row.id, { at: Date.now(), label });
+        if (label) {
+          // Every duplicate of this series gets the label — the rails can
+          // hold the same row in both trending and latest.
+          for (const r of rows) if (r.id === row.id && !r.latestChapter) r.latestChapter = label;
+        }
+      } catch {
+        wbcLatestCache.set(row.id, { at: Date.now() });
+      }
+    }
+  };
+  await Promise.all([worker(), worker(), worker(), worker()]);
+}
+
 export async function manhwaHome(): Promise<{ trending: ManhwaRow[]; latestUpdates: ManhwaRow[] }> {
   const [ap, al, wp, wl, vp, vl, sp, sl, mp, ml] = await Promise.allSettled([
     asura().getPopularToday(),
@@ -900,14 +965,16 @@ export async function manhwaHome(): Promise<{ trending: ManhwaRow[]; latestUpdat
   const natoPop = settled(mp, emptySearch).results;
   const natoLat = settled(ml, emptySearch).results;
 
-  return {
-    trending: merge(asuraPop, weebPop, vtxPop, seePop, natoPop),
-    latestUpdates: mergeLatest(
-      withAsuraRecency(asuraLat),
-      weebLat,
-      vtxLat,
-      seeLat,
-      natoLat
-    ),
-  };
+  const trending = merge(asuraPop, weebPop, vtxPop, seePop, natoPop);
+  const latestUpdates = mergeLatest(
+    withAsuraRecency(asuraLat),
+    weebLat,
+    vtxLat,
+    seeLat,
+    natoLat
+  );
+  // After the merges, so only rows that actually made the rails pay for a
+  // label fetch.
+  await enrichWbcLatest([...trending, ...latestUpdates]);
+  return { trending, latestUpdates };
 }

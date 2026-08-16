@@ -102,7 +102,10 @@ export default function ManhwaCard({ manhwa }: { manhwa: IMangaResult }) {
             </h3>
           </button>
           <Link href={chapterHref} className="mb-1 w-fit text-[11px] font-bold text-[#a3a3a3] transition-colors hover:text-[#dc2626]">
-            {chapterLabel || "Chapter ?"}
+            {/* "Chapter ?" looked like breakage and was reported as such —
+                some sources' listings (WeebCentral) publish no chapter at
+                all. When it's unknown, say what the link actually does. */}
+            {chapterLabel || "View series"}
           </Link>
           <div className="pointer-events-none mt-auto flex items-center gap-1">
             <div className="flex text-[10px] text-yellow-500">★★★★★</div>
