@@ -13,6 +13,7 @@ import { ManhwaRow } from "./recency";
 
 const BASE_URL = "https://weebcentral.com";
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
+const PROXY = "https://goodproxy.goodproxy.workers.dev/fetch?url=";
 
 function normalizeWeebTag(raw: string): string {
   if (!raw) return "";
@@ -41,15 +42,42 @@ export default class WeebCentral extends MangaParser {
   protected override readonly classPath = "MANGA.WeebCentral";
 
   private async fetchHtml(url: string): Promise<string> {
-    const res = await axios.get(url, {
-      headers: {
-        "User-Agent": UA,
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-        "Referer": "https://weebcentral.com/"
-      },
-      timeout: 8000
-    });
-    return res.data;
+    // Attempt 1: Direct fetch
+    try {
+      const res = await fetch(url, {
+        headers: {
+          "User-Agent": UA,
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "Referer": "https://weebcentral.com/",
+        },
+        signal: AbortSignal.timeout(7000),
+      });
+      if (res.ok) return await res.text();
+    } catch {}
+
+    // Attempt 2: Axios direct
+    try {
+      const aRes = await axios.get(url, {
+        headers: {
+          "User-Agent": UA,
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "Referer": "https://weebcentral.com/",
+        },
+        timeout: 7000,
+      });
+      if (aRes.data) return typeof aRes.data === "string" ? aRes.data : JSON.stringify(aRes.data);
+    } catch {}
+
+    // Attempt 3: Worker proxy fallback
+    try {
+      const pRes = await fetch(PROXY + encodeURIComponent(url), {
+        headers: { "User-Agent": UA },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (pRes.ok) return await pRes.text();
+    } catch {}
+
+    throw new Error(`WeebCentral failed to fetch "${url}" across direct and proxy channels`);
   }
 
   private parseArticleList($: cheerio.CheerioAPI): ManhwaRow[] {
@@ -127,10 +155,10 @@ export default class WeebCentral extends MangaParser {
         params.set("sort", "Popularity");
         params.set("order", "Descending");
       } else if (filters?.sort === "rating") {
-        params.set("sort", "Rating");
+        params.set("sort", "Subscribers");
         params.set("order", "Descending");
       } else if (filters?.sort === "title") {
-        params.set("sort", "A-Z");
+        params.set("sort", "Alphabet");
         params.set("order", "Ascending");
       } else {
         params.set("sort", "Latest Updates");
@@ -141,6 +169,10 @@ export default class WeebCentral extends MangaParser {
         params.set("status", "Ongoing");
       } else if (filters?.status === "completed") {
         params.set("status", "Complete");
+      } else if (filters?.status === "hiatus") {
+        params.set("status", "Hiatus");
+      } else if (filters?.status === "dropped" || filters?.status === "canceled") {
+        params.set("status", "Canceled");
       }
 
       if (filters?.genre) {
@@ -160,7 +192,8 @@ export default class WeebCentral extends MangaParser {
         hasNextPage: results.length >= 24,
         results
       };
-    } catch {
+    } catch (e: any) {
+      console.error("[WeebCentral.getSeries] Error:", e.message);
       return { currentPage: page, hasNextPage: false, results: [] };
     }
   }
