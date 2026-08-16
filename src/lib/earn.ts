@@ -44,6 +44,24 @@ export async function earnPoints(userId: string, action: "read" | "track", key: 
       }
     }
 
+    /**
+     * A DELIBERATE ADD THAT PAYS NOTHING SAYS WHY. The track bonus is per
+     * TITLE, once ever — the first status set on a never-tracked title pays,
+     * whatever that status is; re-adds and status changes never re-pay (and
+     * Clear All + re-add must not either, or the bonus is farmable). That
+     * dedupe was silent, and readers read the silence as "only Interested
+     * works" — whichever status they happened to pick first was the one that
+     * "worked". Track only: reads dedupe on every re-opened chapter and would
+     * nag constantly.
+     */
+    if (data?.success && !data.awarded && !data.capped && action === "track") {
+      window.dispatchEvent(
+        new CustomEvent("davinci_toast", {
+          detail: { message: "Already earned points for this title before — the add bonus pays once per title.", type: "info" },
+        })
+      );
+    }
+
     if (data?.success && data.awarded && data.data) {
       try {
         const stored = localStorage.getItem("davinci_user");
