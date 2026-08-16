@@ -12,7 +12,20 @@ export function useNovelCover(title: string | undefined, baseCoverUrl: string | 
     title && coverCache.has(title) ? coverCache.get(title) : undefined
   );
 
+  /**
+   * A COVER THE SOURCE PROVIDED IS NEVER OVERRIDDEN. The title-search
+   * enrichment below is a CURATED-ERA rescue: it asks an external database to
+   * find art BY NAME. For anything those databases don't hold — every original
+   * RoyalRoad serial, plenty of translated titles — the fuzzy match returns a
+   * DIFFERENT novel's art, and this hook was preferring that guess over the
+   * correct cover already in hand. That is how "God-Kin" wore Tomb Raider
+   * King's cover while the API served the right image the whole time.
+   *
+   * So: source cover present → use it, ask nobody. The lookup now runs only
+   * for rows with NO art at all, where a fuzzy guess beats an empty tile.
+   */
   useEffect(() => {
+    if (baseCoverUrl) return;
     if (!title || highResCover !== undefined) return;
     
     if (coverCache.has(title)) {
@@ -37,7 +50,8 @@ export function useNovelCover(title: string | undefined, baseCoverUrl: string | 
       });
   }, [title, highResCover]);
 
-  const cover = highResCover || baseCover;
+  // Source art wins outright; the fetched guess only fills a void.
+  const cover = baseCover || highResCover;
 
   const onError = () => {
     if (highResCover) setHighResCover(null);

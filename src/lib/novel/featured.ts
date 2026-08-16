@@ -76,6 +76,29 @@ export const FEATURED_NOVELS: FeaturedNovel[] = [
       rgb: "245,158,11",
     },
   },
+  {
+    id: "rr:186658",
+    title: "God-Kin",
+    author: "Dejavuh",
+    source: "RoyalRoad",
+    status: "Ongoing",
+    cover: "https://www.royalroadcdn.com/public/covers-large/god-kin-aaaa1wdvvbk.jpg",
+    genres: ["Anti-Hero", "Action", "Adventure", "Mystery"],
+    hook:
+      "Fate Valentine, a young man trapped in a small world, is struggling to pay his rent and piece together his past — until the divine blood in his veins refuses to stay quiet.",
+    // The engraved silver serif of its cover art — Garamond, already
+    // self-hosted, keeping all three featured faces distinct: Pirata, Cinzel,
+    // Garamond.
+    font: "var(--font-garamond), 'EB Garamond', Georgia, serif",
+    // Icy indigo-violet to match the crystal-lightning art — clearly apart
+    // from the Seventh Prince's royal purple and Eternal Malediction's ember.
+    palette: {
+      bright: "rgba(224,231,255,1)",
+      mid: "rgba(129,140,248,1)",
+      deep: "rgba(49,46,129,1)",
+      rgb: "129,140,248",
+    },
+  },
 ];
 
 export function featuredFor(id: string | null | undefined): FeaturedNovel | null {
