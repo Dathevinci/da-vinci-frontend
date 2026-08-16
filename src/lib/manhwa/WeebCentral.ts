@@ -32,6 +32,45 @@ export default class WeebCentral extends MangaParser {
     return res.data;
   }
 
+  private parseArticleList($: cheerio.CheerioAPI): ManhwaRow[] {
+    const results: ManhwaRow[] = [];
+    const seen = new Set<string>();
+
+    $("article").each((_, el) => {
+      const link = $(el).find("a[href*='/series/']").first().attr("href");
+      if (!link) return;
+
+      const match = link.match(/\/series\/([A-Z0-9]+)/);
+      if (!match) return;
+
+      const rawId = match[1];
+      const id = `wbc:${rawId}`;
+      if (seen.has(id)) return;
+      seen.add(id);
+
+      // Extract title cleanly from link or heading
+      const titleLink = $(el).find("a[href*='/series/']").last();
+      let title = titleLink.text().trim() || $(el).find("h2, .font-bold").first().text().trim();
+      title = title.replace(/^Official\s*/i, "").replace(/\s+/g, " ").trim();
+
+      const image = $(el).find("img").first().attr("src");
+      const description = $(el).find(".line-clamp-3, p").first().text().trim();
+
+      if (title && !title.toLowerCase().includes("hentai")) {
+        results.push({
+          id,
+          title,
+          image: image || undefined,
+          description: description || undefined,
+          type: "Manhwa",
+          status: MediaStatus.ONGOING
+        });
+      }
+    });
+
+    return results;
+  }
+
   /**
    * Search WeebCentral library
    */
@@ -40,33 +79,7 @@ export default class WeebCentral extends MangaParser {
       const url = `${BASE_URL}/search/data?text=${encodeURIComponent(query)}&page=${page}&sort=Best+Match&order=Ascending&display_mode=Full+Display`;
       const html = await this.fetchHtml(url);
       const $ = cheerio.load(html);
-
-      const results: ManhwaRow[] = [];
-      $("article").each((_, el) => {
-        const link = $(el).find("a[href*='/series/']").first().attr("href");
-        if (!link) return;
-
-        const match = link.match(/\/series\/([A-Z0-9]+)/);
-        if (!match) return;
-
-        const rawId = match[1];
-        const id = `wbc:${rawId}`;
-        const rawTitle = $(el).find("a[href*='/series/']").first().text().trim() || $(el).find("h2, .font-bold").first().text().trim();
-        const title = rawTitle.replace(/^Official\s*/i, '').replace(/\s+/g, ' ').trim();
-        const image = $(el).find("img").first().attr("src");
-        const description = $(el).find(".line-clamp-3, p").first().text().trim();
-
-        if (title && !title.toLowerCase().includes("hentai")) {
-          results.push({
-            id,
-            title,
-            image: image || undefined,
-            description: description || undefined,
-            type: "Manhwa",
-            status: MediaStatus.ONGOING
-          });
-        }
-      });
+      const results = this.parseArticleList($);
 
       return {
         currentPage: page,
@@ -79,40 +92,42 @@ export default class WeebCentral extends MangaParser {
   }
 
   /**
-   * Browse latest updates
+   * Filtered browse / explore for WeebCentral
    */
-  async fetchLatestUpdates(page = 1): Promise<ISearch<IMangaResult>> {
+  async getSeries(page = 1, filters?: any): Promise<ISearch<IMangaResult>> {
     try {
-      const url = `${BASE_URL}/search/data?page=${page}&sort=Latest+Updates&order=Descending&display_mode=Full+Display`;
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      params.set("display_mode", "Full Display");
+
+      if (filters?.sort === "popular") {
+        params.set("sort", "Popularity");
+        params.set("order", "Descending");
+      } else if (filters?.sort === "rating") {
+        params.set("sort", "Rating");
+        params.set("order", "Descending");
+      } else if (filters?.sort === "title") {
+        params.set("sort", "A-Z");
+        params.set("order", "Ascending");
+      } else {
+        params.set("sort", "Latest Updates");
+        params.set("order", "Descending");
+      }
+
+      if (filters?.status === "ongoing") {
+        params.set("status", "Ongoing");
+      } else if (filters?.status === "completed") {
+        params.set("status", "Complete");
+      }
+
+      if (filters?.genre) {
+        params.set("included_tag", filters.genre);
+      }
+
+      const url = `${BASE_URL}/search/data?${params.toString()}`;
       const html = await this.fetchHtml(url);
       const $ = cheerio.load(html);
-
-      const results: ManhwaRow[] = [];
-      $("article").each((_, el) => {
-        const link = $(el).find("a[href*='/series/']").first().attr("href");
-        if (!link) return;
-
-        const match = link.match(/\/series\/([A-Z0-9]+)/);
-        if (!match) return;
-
-        const rawId = match[1];
-        const id = `wbc:${rawId}`;
-        const rawTitle = $(el).find("a[href*='/series/']").first().text().trim() || $(el).find("h2, .font-bold").first().text().trim();
-        const title = rawTitle.replace(/^Official\s*/i, '').replace(/\s+/g, ' ').trim();
-        const image = $(el).find("img").first().attr("src");
-        const description = $(el).find(".line-clamp-3, p").first().text().trim();
-
-        if (title && !title.toLowerCase().includes("hentai")) {
-          results.push({
-            id,
-            title,
-            image: image || undefined,
-            description: description || undefined,
-            type: "Manhwa",
-            status: MediaStatus.ONGOING
-          });
-        }
-      });
+      const results = this.parseArticleList($);
 
       return {
         currentPage: page,
@@ -122,6 +137,20 @@ export default class WeebCentral extends MangaParser {
     } catch {
       return { currentPage: page, hasNextPage: false, results: [] };
     }
+  }
+
+  /**
+   * Top popular manhwa for the home carousel / trending shelf
+   */
+  async getPopularToday(): Promise<ISearch<IMangaResult>> {
+    return this.getSeries(1, { sort: "popular" });
+  }
+
+  /**
+   * Browse latest updates
+   */
+  async fetchLatestUpdates(page = 1): Promise<ISearch<IMangaResult>> {
+    return this.getSeries(page, { sort: "latest" });
   }
 
   /**
@@ -138,7 +167,7 @@ export default class WeebCentral extends MangaParser {
     const description = $("section p").text().trim();
 
     const genres: string[] = [];
-    $("a[href*='/search?tag='], a[href*='tag=']").each((_, el) => {
+    $("a[href*='/search?tag='], a[href*='tag='], a[href*='included_tag=']").each((_, el) => {
       const g = $(el).text().trim();
       if (g) genres.push(g);
     });

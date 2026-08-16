@@ -455,7 +455,7 @@ async function growCorpus(key: string, need: number, filters: any): Promise<Corp
     const dispatched = state.cursors.slice();
     const fetchers = [
       () => asura().getSeries(dispatched[0], filters),
-      () => wbc().fetchLatestUpdates(dispatched[1]),
+      () => wbc().getSeries(dispatched[1], filters),
       () => vtx().getSeries(dispatched[2], filters),
       () => mse().getLatestUpdates(dispatched[3]),
       () => mna().getLatestUpdates(dispatched[4]),
@@ -596,8 +596,8 @@ export async function manhwaHome(): Promise<{ trending: ManhwaRow[]; latestUpdat
   const [ap, al, wp, wl, vp, vl, sp, sl, mp, ml] = await Promise.allSettled([
     asura().getPopularToday(),
     asura().getLatestUpdates(1),
-    wbc().fetchLatestUpdates(1),
-    wbc().fetchLatestUpdates(1),
+    wbc().getPopularToday(),
+    wbc().getLatestUpdates(1),
     vtx().getPopularToday(),
     vtx().getLatestUpdates(1),
     mse().getPopularToday(),
