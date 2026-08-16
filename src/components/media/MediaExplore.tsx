@@ -79,9 +79,18 @@ const MANHWA_STATUS = [
  * keeps serving the last good deploy, so the wrong code looks live.
  */
 
+const MANHWA_SOURCES = [
+  { key: "", label: "All Sources (Unified)" },
+  { key: "wbc", label: "WeebCentral (40,000+ Titles)" },
+  { key: "asura", label: "AsuraScans" },
+  { key: "vtx", label: "VortexScans" },
+  { key: "mna", label: "Manganato" },
+  { key: "mse", label: "Mangasee" },
+];
+
 type Mode = "manhwa" | "novel";
 
-type Filters = { status: string; sort: string; list: string; genre: string };
+type Filters = { status: string; sort: string; list: string; genre: string; source?: string };
 
 /**
  * NovelFull's genre pages, slugs VERIFIED against the hrefs their own homepage
@@ -255,6 +264,15 @@ function FiltersPanel({
       >
       {mode === "manhwa" ? (
         <>
+          <Section Icon={Library} label="Source">
+            <div className="flex flex-col">
+              {MANHWA_SOURCES.map((s) => (
+                <Choice key={s.key || "all"} on={(staged.source || "") === s.key} label={s.label}
+                  onClick={() => setStaged({ ...staged, source: s.key })} />
+              ))}
+            </div>
+          </Section>
+
           <Section Icon={Clock} label="Sort By">
             <div className="flex flex-col">
               {MANHWA_SORTS.map((s) => (
@@ -388,6 +406,7 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
     sort: sp.get("sort") || "",
     list: sp.get("list") || "",
     genre: sp.get("genre") || "",
+    source: sp.get("source") || "",
   });
   const [filtersOpen, setFiltersOpen] = useState(false);
   // Shared with the panel's outside-click test — see the note in there.
@@ -451,6 +470,7 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
       sort: sp.get("sort") || "",
       list: sp.get("list") || "",
       genre: sp.get("genre") || "",
+      source: sp.get("source") || "",
     },
   });
   /** Latched when a snapshot write fails or outgrows the cap, so every later
@@ -596,6 +616,7 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
     if (filters.sort) u.set("sort", filters.sort);
     if (filters.genre) u.set("genre", filters.genre);
     if (filters.list) u.set("list", filters.list);
+    if (filters.source) u.set("source", filters.source);
     return `${cfg.path}?${u.toString()}`;
   }, [q, filters, cfg.path]);
 
@@ -731,6 +752,7 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
     if (filters.status) u.set("status", filters.status);
     if (filters.sort) u.set("sort", filters.sort);
     if (filters.genre) u.set("genre", filters.genre);
+    if (filters.source) u.set("source", filters.source);
     if (mode === "novel" && filters.list && filters.list !== "most-popular-novel") {
       u.set("list", filters.list);
     }
@@ -860,7 +882,7 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
   // to "" — so the novel Filters badge showed "1" on a pristine page — and
   // ignored status/sort/genre, which the novel panel offers.
   const activeCount =
-    [filters.status, filters.sort, filters.genre].filter(Boolean).length +
+    [filters.status, filters.sort, filters.genre, filters.source].filter(Boolean).length +
     (mode === "novel" && filters.list && filters.list !== "most-popular-novel" ? 1 : 0);
 
   return (

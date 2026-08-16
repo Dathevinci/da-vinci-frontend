@@ -9,9 +9,10 @@ export async function GET(request: Request) {
     const status = searchParams.get('status') || undefined;
     const sort = searchParams.get('sort') || undefined;
     const genre = searchParams.get('genre') || undefined;
-    const filters = { status, sort, genre };
+    const source = searchParams.get('source') || undefined;
+    const filters = { status, sort, genre, source };
 
-    // Merges AsuraScans + FlameComics + RizzComics + MangaPill (any of them
+    // Merges AsuraScans + WeebCentral + VortexScans + Mangasee + Manganato (any of them
     // being down still returns the rest — see sources.ts).
     const data = query ? await searchManhwa(query, page, filters) : await browseManhwa(page, filters);
 

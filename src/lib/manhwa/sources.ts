@@ -249,6 +249,23 @@ function withAsuraRecency(rows: ManhwaRow[]): ManhwaRow[] {
 
 
 export async function searchManhwa(query: string, page = 1, filters?: any): Promise<ISearch<IMangaResult>> {
+  const src = (filters?.source || "").toLowerCase().trim();
+  if (src === "wbc" || src === "weebcentral") {
+    return wbc().search(query, page);
+  }
+  if (src === "vtx" || src === "vortex" || src === "vortexscans") {
+    return vtx().search(query, page);
+  }
+  if (src === "asura" || src === "asurascans") {
+    return asura().search(query, page, filters);
+  }
+  if (src === "mse" || src === "mangasee") {
+    return mse().search(query, page);
+  }
+  if (src === "mna" || src === "manganato") {
+    return mna().search(query, page);
+  }
+
   const [a, w, v, s, m] = await Promise.allSettled([
     asura().search(query, page, filters),
     wbc().search(query, page),
@@ -489,12 +506,11 @@ async function growCorpus(key: string, need: number, filters: any): Promise<Corp
     const before = state.rows.length;
     state.rows = merge(state.rows, batches[0] || [], batches[1] || [], batches[2] || [], batches[3] || [], batches[4] || []);
     if (state.rows.length === before) {
-      // Nothing new survived the cross-source dedupe. Every source still in
-      // play is repeating what we already hold, so the corpus cannot grow —
-      // that IS exhaustion, and recording it as such is what stops the caller
-      // from asking again forever.
-      for (let i = 0; i < state.status.length; i++) if (state.status[i] === "live") state.status[i] = "spent";
-      break;
+      const anyBatchHasRows = batches.some((b) => b && b.length > 0);
+      if (!anyBatchHasRows) {
+        for (let i = 0; i < state.status.length; i++) if (state.status[i] === "live") state.status[i] = "spent";
+        break;
+      }
     }
   }
 
@@ -502,6 +518,23 @@ async function growCorpus(key: string, need: number, filters: any): Promise<Corp
 }
 
 export async function browseManhwa(page = 1, filters?: any): Promise<ISearch<IMangaResult>> {
+  const src = (filters?.source || "").toLowerCase().trim();
+  if (src === "wbc" || src === "weebcentral") {
+    return wbc().getSeries(page, filters);
+  }
+  if (src === "vtx" || src === "vortex" || src === "vortexscans") {
+    return vtx().getSeries(page, filters);
+  }
+  if (src === "asura" || src === "asurascans") {
+    return asura().getSeries(page, filters);
+  }
+  if (src === "mse" || src === "mangasee") {
+    return mse().getLatestUpdates(page);
+  }
+  if (src === "mna" || src === "manganato") {
+    return mna().getLatestUpdates(page);
+  }
+
   // Keyed by the filters alone. The key used to carry an "is this a
   // filtered, Asura-only browse" flag as well, because filters switched the
   // other sources off — with one source that distinction no longer exists,
