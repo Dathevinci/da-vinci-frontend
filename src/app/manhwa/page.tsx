@@ -1,5 +1,6 @@
 "use client";
 
+import { swrRawJson } from "@/lib/swrCache";
 import { useState, useEffect, Suspense } from "react";
 import ManhwaCard from "@/components/manhwa/ManhwaCard";
 import ManhwaFilters from "@/components/manhwa/ManhwaFilters";
@@ -55,18 +56,20 @@ function ManhwaPageInner() {
     
     if (isHome) {
       // Fetch home layout data (Trending & Latest)
-      fetch('/api/manhwa/home')
-        .then((res) => res.json())
-        .then((res) => {
+      // Cached-then-refresh: closing a series' X remounts this page, and
+      // without the session copy the whole feed visibly reloaded on every
+      // return. May apply twice (cache, then network) — setters are idempotent.
+      swrRawJson(
+        "dv-manhwa-home",
+        "/api/manhwa/home",
+        (res) => {
           setTrending(res.trending || []);
           setLatestUpdates(res.latestUpdates || []);
-          setHasNext(true); // Assuming home always has a next page
+          setHasNext(true);
           setLoading(false);
-        })
-        .catch((err) => {
-          console.error(err);
-          setLoading(false);
-        });
+        },
+        () => setLoading(false)
+      );
     } else {
       // Fetch regular search/pagination/filter data
       let url = `/api/manhwa?page=${page}`;

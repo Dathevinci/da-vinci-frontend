@@ -1,5 +1,6 @@
 "use client";
 
+import { swrRawJson } from "@/lib/swrCache";
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -40,9 +41,13 @@ function NovelInner() {
   useEffect(() => {
     setLoading(true);
     if (isHome) {
-      fetch("/api/novels/home")
-        .then((r) => r.json())
-        .then((res) => {
+      // Cached-then-refresh: closing a novel's X remounts this page, and
+      // without the session copy the whole feed visibly reloaded on every
+      // return. May apply twice (cache, then network) — setters are idempotent.
+      swrRawJson(
+        "dv-novel-home",
+        "/api/novels/home",
+        (res) => {
           setFeaturedHero(res.featuredHero || []);
           setTranslatedNovels(res.translatedNovels || []);
           setOriginalFiction(res.originalFiction || []);
@@ -50,8 +55,9 @@ function NovelInner() {
           setTrending(res.trending || []);
           setCompleted(res.completed || []);
           setLoading(false);
-        })
-        .catch(() => setLoading(false));
+        },
+        () => setLoading(false)
+      );
     } else {
       let url = `/api/novels?page=${page}`;
       if (query) url += `&q=${encodeURIComponent(query)}`;

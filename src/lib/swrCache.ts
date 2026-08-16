@@ -14,6 +14,46 @@
  */
 const SHAPE = 1;
 
+/**
+ * The same serve-cached-then-refresh, for endpoints that return a BARE JSON
+ * object rather than the { success, data } wrapper — the manhwa and novel
+ * home feeds. Exists for the close-X path: those details are PAGES, so
+ * closing one remounts the home, and without a cache the reader watched the
+ * whole feed reload on every X press — the anime modal never has this
+ * problem because its list never unmounts. With this, the return paints
+ * instantly from the session copy and corrects itself in the background.
+ */
+export async function swrRawJson(
+  key: string,
+  url: string,
+  onData: (data: any, fromCache: boolean) => void,
+  onError?: () => void
+): Promise<void> {
+  let served = false;
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (raw) {
+      const c = JSON.parse(raw);
+      if (c?.shape === SHAPE && c.data) {
+        served = true;
+        onData(c.data, true);
+      }
+    }
+  } catch { /* a bad blob is just a miss */ }
+
+  try {
+    const r = await fetch(url);
+    const j = await r.json();
+    if (!j || typeof j !== "object" || j.error) throw new Error("bad payload");
+    try {
+      sessionStorage.setItem(key, JSON.stringify({ shape: SHAPE, at: Date.now(), data: j }));
+    } catch { /* quota or private mode — every load just pays full price */ }
+    onData(j, false);
+  } catch {
+    if (!served) onError?.();
+  }
+}
+
 export async function swrJson(
   key: string,
   url: string,
