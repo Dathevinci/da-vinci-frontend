@@ -274,7 +274,18 @@ function useBankaiCanvas(canvasRef: RefObject<HTMLCanvasElement | null>) {
           aR = r.width / 2;
         }
       });
-      const floorY = Math.min(ay + aR + H * 0.2, H - 24);
+      /**
+       * The ground is the CARD'S base, not the avatar's shadow. The first cut
+       * anchored it to the avatar (ay + aR + margin) — correct-looking on the
+       * narrow card, but the full-bleed hero puts the avatar near the TOP of
+       * a ~700px surface, so the sword stabbed mid-air at half height, the
+       * pillar died beside the name, and the whole bottom half of the card
+       * stayed dark (owner-reported: "only half, not up to down"). The floor
+       * hugging the bottom makes the release span the full card everywhere:
+       * pillar top-to-ground through the avatar, blades rising the card's
+       * height, petals sealing into the true base.
+       */
+      const floorY = H - Math.max(24, H * 0.06);
       /* The forest must fit the card it's on. The profile hero centers the
          avatar, but the popout/preview surfaces LEFT-anchor it — a symmetric
          ±340px spread lost half the blades offscreen there (review-caught).
