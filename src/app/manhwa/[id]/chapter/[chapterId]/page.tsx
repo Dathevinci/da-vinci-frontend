@@ -24,6 +24,14 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
   const chapterId = decodeURIComponent(resolvedParams.chapterId);
 
   const [pages, setPages] = useState<IMangaChapterPage[]>([]);
+  /**
+   * Lock/rescue metadata rides the pages response's HEADERS (the body stays a
+   * bare array — see the API route). `rescuedFrom` set means these pages came
+   * from a DONOR source while the chapter is locked on its own; `lockedOn` +
+   * `unlockTime` arrive whenever the lock was proven, donor or not, so the
+   * wall can say when Asura reopens it.
+   */
+  const [pageMeta, setPageMeta] = useState<{ rescuedFrom?: string; lockedOn?: string; unlockTime?: string; donorsChecked?: boolean }>({});
   const [manhwa, setManhwa] = useState<IMangaInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const { user } = useUser();
@@ -117,21 +125,42 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
      * flashes: `loading` is true from the line above until the fetch settles.
      */
     setPages([]);
+    setPageMeta({});
+    /**
+     * A LATE ANSWER FOR A CHAPTER YOU LEFT MUST DIE ON ARRIVAL. The rescue
+     * path made this race real: a locked chapter's response can take many
+     * seconds (donor search + donor pages), and a reader who gives up and
+     * taps the next chapter would otherwise get chapter A's donor pages —
+     * ribbon and all — rendered under chapter B's URL, with progress and
+     * Arise Points stamped for B. The flag ties every handler to the chapter
+     * this effect was mounted for.
+     */
+    let active = true;
     fetch(`/api/manhwa/${encodeURIComponent(id)}/chapter/${encodeURIComponent(chapterId)}`)
-      .then(res => res.json())
-      .then((data: any) => {
+      .then(async (res) => {
+        const meta = {
+          rescuedFrom: res.headers.get("x-dv-rescued-from") || undefined,
+          lockedOn: res.headers.get("x-dv-locked-on") || undefined,
+          unlockTime: res.headers.get("x-dv-unlock-time") || undefined,
+          donorsChecked: res.headers.get("x-dv-donors-checked") === "1",
+        };
+        const data: any = await res.json();
+        if (!active) return;
         if (data.error) {
           console.error(data.error);
           setPages([]);
         } else {
           setPages(data);
+          setPageMeta(meta);
         }
         setLoading(false);
       })
       .catch(err => {
+        if (!active) return;
         console.error(err);
         setLoading(false);
       });
+    return () => { active = false; };
   }, [id, chapterId]);
 
   // Figure out prev/next chapter
@@ -280,7 +309,10 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
   useEffect(() => {
     if (loading || pages.length === 0) return;
     const cc = manhwa?.chapters?.find((c) => c.id === chapterId);
-    if ((cc as any)?.isLocked) return;
+    // No isLocked guard here: pages on screen ARE the truth. A locked chapter
+    // can now render in full via a donor source, and reading it must save
+    // progress like any other read; the wall case never gets past the
+    // pages.length check above.
     const at = Date.now();
     writeLocalProgress("manhwa", id, chapterId, at);
     if (manhwa?.title) {
@@ -397,13 +429,33 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
 
   const currentChapter = manhwa?.chapters?.find(c => c.id === chapterId);
 
-  if (currentChapter?.isLocked && !loading && pages.length === 0) {
+  // The wall renders on EITHER proof: the client-side chapter list's flag,
+  // or the server's x-dv-locked-on — the series-info request is a separate,
+  // documented-flaky fetch, and a reader whose info request failed was shown
+  // "Failed to load chapter" for a lock the pages route had already proven,
+  // unlock time and all.
+  if ((currentChapter?.isLocked || pageMeta.lockedOn) && !loading && pages.length === 0) {
+    const unlockAt = pageMeta.unlockTime || (currentChapter as any)?.earlyAccessUntil;
     return (
       <div className="bg-[#09090b] min-h-screen flex items-center justify-center text-white flex-col gap-6 px-4 text-center">
         <Lock className="w-16 h-16 text-red-500 mb-2" />
         <h1 className="text-3xl font-black">Chapter Locked</h1>
         <p className="text-slate-400 max-w-md text-lg">
-          This chapter is currently locked or in early access.
+          This chapter is in early access on {pageMeta.lockedOn || "its source"}.
+          {/* Only claimed when a donor actually ANSWERED: donorsChecked is
+              set by the server exclusively after a donor probe resolved
+              inside its budget. A route that failed earlier, or a probe that
+              timed out, must not pretend the donors were consulted. */}
+          {pageMeta.donorsChecked && (
+            <span className="mt-2 block text-sm text-slate-500">
+              We checked our other sources — none of them has it yet.
+            </span>
+          )}
+          {unlockAt && (
+            <span className="mt-2 block text-sm text-slate-500">
+              Unlocks {new Date(unlockAt).toLocaleString()}.
+            </span>
+          )}
         </p>
         <Link href={`/manhwa/${encodeURIComponent(id)}`} className="mt-4 px-6 py-3 bg-[#1e1e24] hover:bg-[#2a2a32] rounded-lg font-bold transition-colors border border-[#2a2a32] flex items-center gap-2">
           <ArrowLeft className="w-5 h-5" /> Back to details
@@ -413,7 +465,7 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
   }
 
   if (loading || !prefs) {
-    return <LoadingScreen message="Loading pages from Asura" />;
+    return <LoadingScreen message="Loading pages" />;
   }
 
   if (!pages || pages.length === 0) {
@@ -505,6 +557,15 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
             setUiVisible(!uiVisible);
           }}
         >
+          {pageMeta.rescuedFrom && (
+            /* Rescued pages say where they came from — quietly. The chapter IS
+               locked on its home source, and pretending otherwise would make
+               "why does quality look different" a mystery ticket. */
+            <div className="w-full rounded-lg border border-violet-500/25 bg-violet-500/10 px-4 py-2.5 text-center font-mono text-xs font-bold text-violet-300">
+              Locked on {pageMeta.lockedOn || "its source"} — reading from {pageMeta.rescuedFrom}
+              {pageMeta.unlockTime && ` · unlocks there ${new Date(pageMeta.unlockTime).toLocaleString()}`}
+            </div>
+          )}
           {displayedPages.map((page, index) => {
             const actualIndex = isSinglePage ? currentPageIndex : index + 1;
             

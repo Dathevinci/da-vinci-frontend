@@ -38,7 +38,8 @@
 // see the note there.
 
 import { AsuraScans } from "@/lib/asura";
-import { IMangaResult, IMangaInfo, IMangaChapterPage, ISearch } from "@/lib/asura/models";
+import { IMangaResult, IMangaInfo, IMangaChapter, IMangaChapterPage, ISearch } from "@/lib/asura/models";
+import { manhwaSourceLabel } from "./ids";
 import { ManhwaRow, recencyOf, sortByRecency } from "./recency";
 import VortexScans from "./VortexScans";
 import Manganato from "./Manganato";
@@ -129,6 +130,254 @@ export async function getChapterPages(chapterId: string): Promise<IMangaChapterP
  * because one request failed is not an empty list), and never accept a match
  * that is not a normalised exact/prefix title match.
  */
+
+// ── locked-chapter rescue ────────────────────────────────────────────────────
+
+export interface ChapterPagesResult {
+  pages: IMangaChapterPage[];
+  /** Label of the donor source the pages actually came from. */
+  rescuedFrom?: string;
+  /** Label of the source the chapter is locked on — set whenever the lock is
+   *  proven, so the reader's wall can name it even when no donor came through. */
+  lockedOn?: string;
+  /** The moment the primary reopens the chapter, when it says (Asura does). */
+  unlockTime?: string;
+  /** True only when at least one donor ANSWERED (a timed-out probe is not an
+   *  answer) — the wall's "we checked our other sources" may only cite this. */
+  donorsChecked?: boolean;
+}
+
+/**
+ * A RESCUE SOURCE, ADDED BACK — paying the fence's price of entry above.
+ *
+ * Asura and Vortex both sell early access: the newest chapter of a running
+ * series is coin-locked for hours or days while the aggregators often already
+ * carry it. The reader used to click a listed chapter and hit a wall that
+ * said, truthfully, "locked" — while the same chapter sat readable one source
+ * over. This asks the donors before showing the wall.
+ *
+ * Guard #1 — NEVER RESCUE A TRANSIENT FAILURE. A rescue happens only when the
+ * lock is PROVEN: either the primary's pages endpoint said so itself (Asura's
+ * decorated error), or the primary's own chapter list flags the chapter
+ * locked. Anything else — network error, empty answer, unknown series — is
+ * rethrown or returned exactly as before; a scraper hiccup must read as a
+ * hiccup, not silently serve another site's bytes.
+ *
+ * Guard #2 — NEVER ACCEPT A STRANGER. Donor series are accepted on normalised
+ * EXACT title equality only, verified on the donor's own detail answer even
+ * when a slug guess landed (Manganato mirrors Asura/Vortex kebab slugs for
+ * most series — probed 7/8 — but a colliding slug must not pass; Manganato's
+ * info fetch even has a fuzzy first-result search fallback inside it, which
+ * this equality check is what defuses). The old fuzzy rescue served a
+ * different series' chapters as though they were this one; exact-or-nothing
+ * is the lesson.
+ *
+ * Chapters match by NUMBER, dashed sub-chapters normalised ("chapter-188-5"
+ * is 188.5 — plain chapterNumberFromId truncates it to 188, which would pair
+ * a sub-chapter with its parent). Donor answers are cached ten minutes per
+ * series so a locked chapter binge doesn't re-search the donor every click.
+ *
+ * Survey at build time (Asura front page): 5 series had a locked newest
+ * chapter; Manganato already carried 1 of them (verified to real image
+ * bytes). That is the honest expectation — the rescue is opportunistic, and
+ * the wall stays for the rest. Manganato itself locks nothing, so it never
+ * rescues, only donates.
+ */
+const RESCUE_TTL_MS = 10 * 60 * 1000;
+/**
+ * Wall-clock ceiling for the whole donor phase — the corpus fill carries a
+ * budget for the same reason: these adapters retry through proxies for up to
+ * a minute EACH, and a reader staring at a spinner is worse than a wall. A
+ * donor that cannot answer inside the budget is treated as unknown, not "no".
+ */
+const RESCUE_DONOR_BUDGET_MS = 12_000;
+const donorInfoCache = new Map<string, { at: number; info: IMangaInfo | null }>();
+/** Single-flight per donor:series — N readers clicking the same locked
+ *  chapter must share one probe, not run N outage-priced ones. */
+const donorInfoInflight = new Map<string, Promise<IMangaInfo | null>>();
+
+/** TTL sweep + hard cap on write, same reasoning as evictCorpora: these
+ *  processes live long (paid tiers, no cold starts) and every entry holds a
+ *  full chapter list. Insertion order stands in for age. */
+function rememberDonorInfo(key: string, info: IMangaInfo | null) {
+  const now = Date.now();
+  for (const [k, v] of donorInfoCache) {
+    if (now - v.at > RESCUE_TTL_MS) donorInfoCache.delete(k);
+  }
+  while (donorInfoCache.size >= 300) {
+    const oldest = donorInfoCache.keys().next().value;
+    if (oldest == null) break;
+    donorInfoCache.delete(oldest);
+  }
+  donorInfoCache.set(key, { at: now, info });
+}
+
+/**
+ * "chapter-188-5" → 188.5, "slug|62.5" → 62.5, "Chapter 62" → 62.
+ * Only the segment AFTER the pipe is read on piped ids — a series slug that
+ * itself contains "chapter-3" must never outvote the chapter's own segment.
+ */
+function chapterNumberForMatch(raw: string | null | undefined): number | null {
+  const s = String(raw || "");
+  const target = (s.includes("|") ? s.split("|")[1] : s).trim();
+  const direct = /^(\d+)(?:\.(\d+))?$/.exec(target);
+  if (direct) return Number(direct[2] != null ? `${direct[1]}.${direct[2]}` : direct[1]);
+  const named = /chapter[-_\s]*(\d+)(?:[-.](\d+))?/i.exec(target);
+  if (named) return Number(named[2] != null ? `${named[1]}.${named[2]}` : named[1]);
+  return null;
+}
+
+function chapterNumberOf(c: IMangaChapter): number | null {
+  // Manganato writes 0 as its "couldn't parse" sentinel, so 0 falls through
+  // to id/title parsing (where a real chapter-0 prologue still resolves).
+  const n = (c as any).chapterNumber;
+  if (Number.isFinite(n) && n > 0) return n;
+  return chapterNumberForMatch(c.id) ?? chapterNumberForMatch(c.title);
+}
+
+type RescuePrimary = { src: "asura" | "vtx"; seriesId: string; slug: string };
+
+/** The sources with a lock economy. Every other prefix passes through. */
+function rescuePrimaryOf(chapterId: string): RescuePrimary | null {
+  const raw = String(chapterId || "");
+  if (raw.startsWith("vtx:")) {
+    const slug = raw.slice(4).split("|")[0];
+    return slug ? { src: "vtx", seriesId: `vtx:${slug}`, slug } : null;
+  }
+  if (PREFIX_RE.test(raw)) return null;
+  const slug = raw.split("|")[0];
+  return slug ? { src: "asura", seriesId: slug, slug } : null;
+}
+
+async function donorSeriesInfo(
+  donor: "mna" | "asura" | "vtx",
+  primary: RescuePrimary,
+  title: string
+): Promise<IMangaInfo | null> {
+  const key = `${donor}:${primary.src}:${primary.slug}`;
+  const hit = donorInfoCache.get(key);
+  if (hit && Date.now() - hit.at < RESCUE_TTL_MS) return hit.info;
+  const running = donorInfoInflight.get(key);
+  if (running) return running;
+
+  const work = (async () => {
+    let info: IMangaInfo | null = null;
+    try {
+      const want = normTitle(title);
+      if (want) {
+        if (donor === "mna") {
+          const guess = await mna().fetchMangaInfo(`mna:${primary.slug}`);
+          /**
+           * Guard #2 needs donor-AUTHORED evidence. Manganato's info fetch
+           * falls back to spacing out the slug when its <h1> parse misses —
+           * and since the primary slug IS the kebab of the primary title,
+           * comparing that fallback to the title passes BY CONSTRUCTION,
+           * verifying nothing. titleFromPage certifies the string was read
+           * off Manganato's own page; without it the slug guess is unproven
+           * and the donor is declined.
+           */
+          if (
+            (guess as any)?.titleFromPage === true &&
+            guess?.title && normTitle(guess.title) === want &&
+            (guess.chapters?.length || 0) > 0
+          ) {
+            info = guess;
+          }
+        } else {
+          const make = donor === "asura" ? asura : vtx;
+          const found = await make().search(title);
+          const row = (found?.results || []).find((r: any) => normTitle(r.title) === want);
+          if (row) {
+            const full = await make().fetchMangaInfo(row.id);
+            if (full?.title && normTitle(full.title) === want) info = full;
+          }
+        }
+      }
+    } catch {
+      info = null;
+    }
+    rememberDonorInfo(key, info);
+    return info;
+  })();
+
+  donorInfoInflight.set(key, work);
+  try {
+    return await work;
+  } finally {
+    donorInfoInflight.delete(key);
+  }
+}
+
+export async function getChapterPagesRescued(chapterId: string): Promise<ChapterPagesResult> {
+  let primaryErr: unknown = null;
+  try {
+    const pages = await getChapterPages(chapterId);
+    if (pages.length > 0) return { pages };
+  } catch (e) {
+    primaryErr = e;
+  }
+
+  const primary = rescuePrimaryOf(chapterId);
+  if (!primary) {
+    if (primaryErr) throw primaryErr;
+    return { pages: [] };
+  }
+
+  // Prove the lock (guard #1). The primary's own chapter list is the referee;
+  // Asura's decorated pages error corroborates and brings unlock_time.
+  let info: IMangaInfo | null = null;
+  try {
+    const make = adapterFor(primary.seriesId);
+    info = make ? await make().fetchMangaInfo(primary.seriesId) : await asura().fetchMangaInfo(primary.seriesId);
+  } catch {
+    info = null;
+  }
+  const chap = info?.chapters?.find((c) => c.id === chapterId);
+  const errSaysLocked = !!(primaryErr as any)?.isLocked;
+  if (!chap?.isLocked && !errSaysLocked) {
+    if (primaryErr) throw primaryErr;
+    return { pages: [] };
+  }
+
+  const lockedOn = manhwaSourceLabel(chapterId);
+  const unlockTime = (primaryErr as any)?.unlockTime || chap?.earlyAccessUntil || undefined;
+  const num = chapterNumberForMatch(chapterId) ?? (chap ? chapterNumberOf(chap) : null);
+  const title = info?.title || "";
+  if (num == null || !title) return { pages: [], lockedOn, unlockTime };
+
+  const donors: Array<"mna" | "asura" | "vtx"> = primary.src === "asura" ? ["mna", "vtx"] : ["mna", "asura"];
+  const deadline = Date.now() + RESCUE_DONOR_BUDGET_MS;
+  const timedOut = { timedOut: true } as const;
+  let donorsChecked = false;
+  for (const donor of donors) {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) break;
+    try {
+      const attempt = (async () => {
+        const donorInfo = await donorSeriesInfo(donor, primary, title);
+        const dChap = donorInfo?.chapters?.find((c) => !c.isLocked && chapterNumberOf(c) === num);
+        if (!dChap) return null;
+        const pages = await getChapterPages(dChap.id);
+        return pages.length > 0 ? { pages, label: manhwaSourceLabel(dChap.id) } : null;
+      })();
+      const won = await Promise.race([
+        attempt,
+        new Promise<typeof timedOut>((resolve) => setTimeout(() => resolve(timedOut), remaining)),
+      ]);
+      // A timeout is NOT an answer — the wall must not claim this donor was
+      // checked. The probe keeps running behind the single-flight map, so its
+      // eventual result still lands in the cache for the next click.
+      if (won === timedOut) break;
+      donorsChecked = true;
+      if (won) {
+        return { pages: won.pages, rescuedFrom: won.label, lockedOn, unlockTime, donorsChecked: true };
+      }
+    } catch {
+      /* a failing donor must never take down the wall */
+    }
+  }
+  return { pages: [], lockedOn, unlockTime, donorsChecked };
+}
 
 // ── merge helpers ────────────────────────────────────────────────────────────
 

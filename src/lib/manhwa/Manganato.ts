@@ -330,7 +330,15 @@ export default class Manganato extends MangaParser {
       description,
       status: MediaStatus.ONGOING,
       chapters,
-    };
+      /**
+       * PROVENANCE OF THE TITLE. The locked-chapter rescue verifies a donor
+       * by title equality, and the slug-fallback title above is our own
+       * guess spaced out — comparing it to a title whose kebab IS the slug
+       * passes by construction. True only when the string was read off
+       * Manganato's own page; the rescue declines the donor otherwise.
+       */
+      titleFromPage: !!titleMatch,
+    } as IMangaInfo;
   }
 
   /**
@@ -359,7 +367,10 @@ export default class Manganato extends MangaParser {
     // Fallback if rendered as standard img tags
     const readerBlock = chapHtml.match(/<div class="[^"]*container-chapter-reader[^"]*"[\s\S]*?<\/div>/i)?.[0];
     if (readerBlock) {
-      const imgs = Array.from(readerBlock.matchAll(/<img[^>]*src="([^"]+)"/gi)).map((m, idx) => ({
+      // Both quote styles: the live template emits src='...' single-quoted
+      // (probed 2026-08-16 — 105 imgs single-quoted, 0 double), and a
+      // double-only pattern made this whole fallback dormant.
+      const imgs = Array.from(readerBlock.matchAll(/<img[^>]*src=['"]([^'"]+)['"]/gi)).map((m, idx) => ({
         page: idx + 1,
         img: m[1],
       }));

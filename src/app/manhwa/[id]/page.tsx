@@ -131,7 +131,11 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
   }
 
   const cover = manhwa.image ? `/api/manhwa-image?url=${encodeURIComponent(manhwa.image)}` : null;
-  const cont = lastRead ? chapters.find((c) => c.id === lastRead && !c.isLocked) : null;
+  // No lock filter: a locked chapter is READABLE now (the rescue serves it
+  // from a donor source), so a reader whose last read WAS the locked newest
+  // chapter must keep their Continue button. Filtering it out demoted them to
+  // "Read Now" → chapter 1 — reading the newest chapter made the CTA worse.
+  const cont = lastRead ? chapters.find((c) => c.id === lastRead) : null;
   const firstChapter = chapters.length > 0 ? chapters[chapters.length - 1] : null;
   const latestUnlocked = chapters.find((c) => !c.isLocked) || null;
   const readTarget = cont || firstChapter;

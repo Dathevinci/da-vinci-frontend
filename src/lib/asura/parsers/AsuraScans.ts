@@ -360,7 +360,14 @@ class AsuraScans extends MangaParser {
         img: page.url,
       }));
     } catch (err) {
-      throw new Error((err as Error).message);
+      /**
+       * RETHROWN AS-IS, NOT RE-WRAPPED. The lock error above hands the source
+       * router everything a rescue needs — isLocked, unlockTime, the slug and
+       * number — and the old `throw new Error(err.message)` here flattened it
+       * into a plain Error one line later, stripping every field before the
+       * router ever saw it. The mechanism shipped severed from its consumer.
+       */
+      throw err;
     }
   };
 }

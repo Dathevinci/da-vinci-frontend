@@ -201,7 +201,11 @@ export default function ManhwaQuickViewModal({ manhwa, options, onClose, onBack 
                   {fullManhwa?.chapters && fullManhwa.chapters.length > 0 ? (() => {
                     const firstChapter = fullManhwa.chapters[fullManhwa.chapters.length - 1];
                     const latestUnlockedChapter = fullManhwa.chapters.find((c: any) => !c.isLocked) || fullManhwa.chapters[0];
-                    const continueChapter = lastRead ? fullManhwa.chapters.find((c: any) => c.id === lastRead && !c.isLocked) : null;
+                    // No lock filter — same reasoning as the detail page's
+                    // `cont`: locked chapters are readable via the rescue, and
+                    // filtering made reading the newest chapter demote the
+                    // Continue button to chapter 1.
+                    const continueChapter = lastRead ? fullManhwa.chapters.find((c: any) => c.id === lastRead) : null;
                     return (
                       <>
                         {continueChapter && (
