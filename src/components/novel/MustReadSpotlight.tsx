@@ -76,6 +76,10 @@ export default function MustReadSpotlight() {
       <div className="relative mx-auto max-w-[1500px]">
         {/* Slides stack in one grid cell and cross-fade; the tallest sets the
             height, so rotation never reflows the page below. */}
+        {/* COMPACT BANNER, not a hero: the cover sits beside the pitch on
+            EVERY screen size, so the section is one card tall on a phone
+            instead of a full-viewport column. Slides cross-fade with a slight
+            drift-and-settle in one grid cell, so height never jumps. */}
         <div className="grid">
           {FEATURED_NOVELS.map((novel, i) => {
             const active = i === index;
@@ -85,103 +89,107 @@ export default function MustReadSpotlight() {
             return (
               <div
                 key={novel.id}
-                className={`col-start-1 row-start-1 transition-opacity duration-700 ${
-                  active ? "opacity-100" : "pointer-events-none opacity-0"
+                className={`col-start-1 row-start-1 transition-all duration-700 ease-out ${
+                  active ? "translate-y-0 scale-100 opacity-100" : "pointer-events-none translate-y-1 scale-[0.99] opacity-0"
                 }`}
                 aria-hidden={!active}
               >
-                <div
-                  className="relative overflow-hidden rounded-3xl border bg-[#0b0713]"
+                <Link
+                  href={href}
+                  aria-label={`Read ${novel.title}`}
+                  className="group relative block overflow-hidden rounded-2xl border bg-[#0b0713]"
                   style={{ borderColor: `rgba(${p.rgb},0.28)` }}
                 >
                   <div
                     className="pointer-events-none absolute inset-0"
                     style={{
-                      background: `radial-gradient(60% 120% at 20% 50%, rgba(${p.rgb},0.2), transparent 60%), radial-gradient(40% 90% at 85% 20%, rgba(${p.rgb},0.16), transparent 65%)`,
+                      background: `radial-gradient(60% 140% at 12% 50%, rgba(${p.rgb},0.2), transparent 58%), radial-gradient(45% 100% at 90% 20%, rgba(${p.rgb},0.14), transparent 65%)`,
                     }}
                   />
 
-                  <div className="relative flex flex-col items-center gap-8 p-6 sm:p-10 md:flex-row md:items-stretch md:gap-12">
-                    {/* ── the art, wearing its aura ─────────────────────── */}
-                    <Link href={href} className="group relative block shrink-0" aria-label={`Read ${novel.title}`}>
+                  <div className="relative flex items-center gap-4 p-4 sm:gap-6 sm:p-5">
+                    {/* ── the art, aura intact but scaled down ──────────── */}
+                    <div className="relative shrink-0">
                       <AuraPlumes p={p} />
                       <AuraRing p={p} />
                       <div
-                        className="relative w-[190px] overflow-hidden rounded-2xl border sm:w-[220px]"
+                        className="relative w-[92px] overflow-hidden rounded-xl border sm:w-[120px] md:w-[136px]"
                         style={{ borderColor: `rgba(${p.rgb},0.4)`, boxShadow: coverGlow(p) }}
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={cover}
                           alt={`${novel.title} cover`}
-                          className="block aspect-[2/3] w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                          className="block aspect-[2/3] w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]"
                           loading="lazy"
                         />
                         <AuraOverlays p={p} />
                       </div>
                       <AuraEmbers p={p} />
-                    </Link>
+                    </div>
 
-                    {/* ── the pitch ─────────────────────────────────────── */}
-                    <div className="flex min-w-0 flex-1 flex-col items-center justify-center text-center md:items-start md:text-left">
-                      <div className="mb-3 flex flex-wrap items-center justify-center gap-2 md:justify-start">
+                    {/* ── the pitch, tightened ──────────────────────────── */}
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
                         <span
-                          className="flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em]"
+                          className="flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.18em]"
                           style={{
                             borderColor: `rgba(${p.rgb},0.5)`,
                             background: `rgba(${p.rgb},0.14)`,
                             color: p.bright,
-                            boxShadow: `0 0 18px rgba(${p.rgb},0.4)`,
+                            boxShadow: `0 0 14px rgba(${p.rgb},0.35)`,
                           }}
                         >
-                          <Crown className="h-3.5 w-3.5" /> Must Read
+                          <Crown className="h-3 w-3" /> Must Read
                         </span>
-                        <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        <span className="hidden rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-slate-400 sm:inline">
                           {novel.source}
                         </span>
-                        <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+                        <span className="hidden rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-300 sm:inline">
                           {novel.status}
                         </span>
                       </div>
 
-                      <h2 className="mb-1 text-4xl leading-tight sm:text-5xl" style={titleStyle(p, novel.font)}>
+                      <h2 className="truncate text-2xl leading-tight sm:text-3xl md:text-4xl" style={titleStyle(p, novel.font)}>
                         {novel.title}
                       </h2>
-                      <p className="mb-4 text-sm font-bold text-slate-400">
+                      <p className="mt-0.5 text-xs font-bold text-slate-400">
                         by <span style={{ color: p.bright }}>{novel.author}</span>
                       </p>
 
-                      <p className="mb-5 max-w-2xl text-sm leading-relaxed text-slate-300/90">{novel.hook}</p>
+                      <p className="mt-1.5 hidden max-w-2xl text-xs leading-relaxed text-slate-300/85 sm:line-clamp-2">
+                        {novel.hook}
+                      </p>
 
-                      <div className="mb-6 flex flex-wrap justify-center gap-2 md:justify-start">
-                        {novel.genres.map((g) => (
-                          <span
-                            key={g}
-                            className="rounded-full border px-3 py-1 text-[11px] font-bold"
-                            style={{ borderColor: `rgba(${p.rgb},0.28)`, background: `rgba(${p.rgb},0.1)`, color: p.bright }}
-                          >
-                            {g}
-                          </span>
-                        ))}
+                      <div className="mt-2.5 flex items-center gap-2">
+                        <span
+                          className="inline-flex items-center gap-1.5 rounded-lg border px-3.5 py-1.5 text-[11px] font-black uppercase tracking-wider transition group-hover:brightness-125"
+                          style={{
+                            borderColor: `rgba(${p.rgb},0.6)`,
+                            background: `rgba(${p.rgb},0.22)`,
+                            color: p.bright,
+                            boxShadow: `0 0 18px rgba(${p.rgb},0.4)`,
+                          }}
+                        >
+                          <BookOpen className="h-3.5 w-3.5 transition-transform group-hover:-rotate-6" />
+                          Read Now
+                          <Sparkles className="h-3.5 w-3.5" />
+                        </span>
+                        <span className="hidden flex-wrap gap-1.5 md:flex">
+                          {novel.genres.slice(0, 3).map((g) => (
+                            <span
+                              key={g}
+                              className="rounded-full border px-2.5 py-0.5 text-[10px] font-bold"
+                              style={{ borderColor: `rgba(${p.rgb},0.28)`, background: `rgba(${p.rgb},0.1)`, color: p.bright }}
+                            >
+                              {g}
+                            </span>
+                          ))}
+                        </span>
                       </div>
-
-                      <Link
-                        href={href}
-                        className="group inline-flex items-center gap-2 rounded-xl border px-6 py-3 text-sm font-black uppercase tracking-wider transition hover:brightness-125"
-                        style={{
-                          borderColor: `rgba(${p.rgb},0.6)`,
-                          background: `rgba(${p.rgb},0.22)`,
-                          color: p.bright,
-                          boxShadow: `0 0 24px rgba(${p.rgb},0.45)`,
-                        }}
-                      >
-                        <BookOpen className="h-4 w-4 transition-transform group-hover:-rotate-6" />
-                        Read Now
-                        <Sparkles className="h-4 w-4" />
-                      </Link>
                     </div>
                   </div>
-                </div>
+                </Link>
               </div>
             );
           })}
@@ -189,7 +197,7 @@ export default function MustReadSpotlight() {
 
         {/* Dots — manual navigation that also survives reduced-motion. */}
         {FEATURED_NOVELS.length > 1 && (
-          <div className="mt-4 flex items-center justify-center gap-2">
+          <div className="mt-2.5 flex items-center justify-center gap-2">
             {FEATURED_NOVELS.map((novel, i) => (
               <button
                 key={novel.id}
@@ -197,9 +205,9 @@ export default function MustReadSpotlight() {
                 onClick={() => choose(i)}
                 aria-label={`Show ${novel.title}`}
                 aria-current={i === index}
-                className="h-2.5 rounded-full transition-all"
+                className="h-2 rounded-full transition-all duration-300"
                 style={{
-                  width: i === index ? 26 : 10,
+                  width: i === index ? 22 : 8,
                   background:
                     i === index ? `rgba(${novel.palette.rgb},0.9)` : "rgba(255,255,255,0.18)",
                   boxShadow: i === index ? `0 0 10px rgba(${novel.palette.rgb},0.7)` : "none",

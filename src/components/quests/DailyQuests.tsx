@@ -161,7 +161,9 @@ export default function DailyQuests() {
               <Swords className="h-5 w-5 text-violet-300" />
             </div>
             <div>
-              <h2 className="bg-gradient-to-r from-violet-200 via-fuchsia-300 to-violet-400 bg-clip-text text-xl font-black uppercase tracking-wider text-transparent">
+              {/* Same face Activity History wears — the two panels sit in the
+                  same world and should read as siblings. */}
+              <h2 className="font-fell bg-gradient-to-r from-violet-200 via-fuchsia-300 to-violet-400 bg-clip-text text-2xl font-bold uppercase tracking-[0.08em] text-transparent">
                 Daily Quests
               </h2>
               <p className="text-xs font-bold text-slate-500">
@@ -228,7 +230,11 @@ export default function DailyQuests() {
 
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <h3 className={`font-black ${q.claimed ? "text-emerald-200/80 line-through" : "text-white"}`}>
+                      <h3
+                        className={`font-fell text-lg font-bold transition-colors duration-300 ${
+                          q.claimed ? "text-emerald-200/80 line-through" : "text-white"
+                        }`}
+                      >
                         {q.label}
                       </h3>
                       <p className="mt-0.5 text-xs text-slate-500">{q.hint}</p>
@@ -313,7 +319,7 @@ export default function DailyQuests() {
               <Gift className={`h-6 w-6 ${data.bonus.claimed ? "text-emerald-400" : "text-fuchsia-300"}`} />
             </motion.div>
             <div>
-              <div className="font-black text-white">All-clear bonus</div>
+              <div className="font-fell text-lg font-bold text-white">All-clear bonus</div>
               <div className="text-xs text-slate-500">Claim every quest today and this unlocks on top.</div>
             </div>
           </div>
