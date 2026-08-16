@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
+import { lastNavWasPop } from "@/lib/navType";
 
 /**
  * OPEN A PAGE AT THE TOP OF IT.
@@ -35,14 +36,7 @@ import { usePathname } from "next/navigation";
  */
 export default function ScrollReset() {
   const pathname = usePathname();
-  const popped = useRef(false);
   const first = useRef(true);
-
-  useEffect(() => {
-    const onPop = () => { popped.current = true; };
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
-  }, []);
 
   useEffect(() => {
     // The very first paint is a fresh load, not a navigation — the browser is
@@ -51,10 +45,12 @@ export default function ScrollReset() {
       first.current = false;
       return;
     }
-    if (popped.current) {
-      popped.current = false;
-      return;
-    }
+    // A return is left alone, an arrival is pinned — and the classification is
+    // navType's "which kind happened last", which earlier revisions got wrong
+    // twice here: a consumed-boolean leaked hash-only back-steps onto the next
+    // push, and a freshness window both exempted pushes made soon after a pop
+    // and fought traversals whose commit came late on a starved main thread.
+    if (lastNavWasPop()) return;
 
     /**
      * A PIN, NOT A POKE. The single one-frame reset this used to be kept
@@ -82,22 +78,96 @@ export default function ScrollReset() {
     window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
     if (wantsAnchor) return;
 
-    const PIN_MS = 1400;
-    const deadline = performance.now() + PIN_MS;
+    /**
+     * THE PIN ENDS ON EVIDENCE, NOT ON A CLOCK. The first version held for a
+     * flat 1.4s — and kept losing, because that number raced the network. The
+     * offset that drags a fresh page downward is the browser re-EXTENDING a
+     * clamped scroll (the old page's offset survives clamped to the short
+     * placeholder, then stretches back out as the document grows), and it
+     * fires when the content lands: 300ms on a warm cache, 4s on a phone
+     * pulling a chapter's images. Any fixed deadline is wrong on one side —
+     * so the release condition is the same event the attacker waits for: the
+     * pin holds until the document height has been QUIET for a stretch and a
+     * minimum courtesy window has passed, with a hard cap so a page whose
+     * height never settles cannot pin forever. Height is watched through a
+     * ResizeObserver rather than read per frame — polling scrollHeight from a
+     * rAF forces a synchronous layout on every frame of content churn, which
+     * is a tax on exactly the slow loads this exists to survive.
+     *
+     * EVERY input releases instantly, and the list is deliberately generous:
+     * `mousedown` is there for the classic desktop scrollbar, whose drags
+     * reach the page as NO wheel, pointer or touch event — without it a
+     * reader grabbing the scrollbar was rubber-banded to the top until the
+     * timers let go. An earlier revision ignored wheel events for the first
+     * 350ms as trackpad-momentum ghosts from the page you left; review
+     * killed it: real momentum trains outlive any plausible grace (1–2s), so
+     * it failed the case it existed for, while a reader's genuine first
+     * wheel-notch inside the window was swallowed AND actively reverted.
+     * Losing the pin to a ghost costs one mid-page landing on a rare timing;
+     * fighting a real reader costs trust on a common one.
+     */
+    const PIN_MIN_MS = 1400;
+    const HEIGHT_QUIET_MS = 700;
+    const PIN_MAX_MS = 6000;
+
+    const started = performance.now();
+    // A page already taller than the viewport when the pin starts has nothing
+    // left to fear: the scrollTo above was a REAL reset (nothing was clamped,
+    // so nothing can re-extend), and holding it to the cap would just burn
+    // ~360 rAF frames of battery per navigation and fight any scroll that
+    // reaches the page without an input event (a screen reader moving the
+    // viewport, say). Those pages release on the old minimum instead.
+    const tallAtStart = document.documentElement.scrollHeight > window.innerHeight + 2;
+    let lastGrowth = started;
+    let sawGrowth = false;
+    let roBaselined = false;
     let raf = 0;
     let released = false;
+    let ro: ResizeObserver | null = null;
 
     const release = () => {
       released = true;
       cancelAnimationFrame(raf);
+      if (ro) ro.disconnect();
       for (const ev of GESTURES) window.removeEventListener(ev, release);
     };
-    const GESTURES = ["wheel", "touchstart", "keydown", "pointerdown"] as const;
+    const GESTURES = ["wheel", "touchstart", "keydown", "pointerdown", "mousedown"] as const;
     for (const ev of GESTURES) window.addEventListener(ev, release, { passive: true });
+
+    /**
+     * "Quiet since the beginning" is NOT evidence of settling — a page whose
+     * body is min-h-screen reports no height change while its placeholder
+     * fills below one viewport, then grows once when the real content lands,
+     * which can be seconds out. Releasing on initial quiet degenerated to the
+     * old flat deadline in exactly the slow-load case this exists to survive;
+     * so quiet only counts AFTER at least one observed growth. A page whose
+     * height truly never changes pins to the cap, which is invisible: the pin
+     * is a no-op at rest, and every input releases it instantly. (The
+     * observer's first delivery reports the size it started with — that is
+     * the baseline, not growth. Sub-viewport growth stays invisible either
+     * way, and harmlessly so: an offset can only re-extend once content
+     * exceeds the viewport, and THAT growth does move the body's box.)
+     */
+    if (typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(() => {
+        if (!roBaselined) {
+          roBaselined = true;
+          return;
+        }
+        sawGrowth = true;
+        lastGrowth = performance.now();
+      });
+      ro.observe(document.body);
+    }
 
     const hold = () => {
       if (released) return;
-      if (performance.now() > deadline) {
+      const now = performance.now();
+      if (
+        now - started > PIN_MAX_MS ||
+        (tallAtStart && !sawGrowth && now - started > PIN_MIN_MS) ||
+        (sawGrowth && now - started > PIN_MIN_MS && now - lastGrowth > HEIGHT_QUIET_MS)
+      ) {
         release();
         return;
       }

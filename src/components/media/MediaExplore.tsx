@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { lastNavWasPop } from "@/lib/navType";
 import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Search, Filter, Clock, ListFilter, Library } from "lucide-react";
@@ -10,6 +11,7 @@ import LoadingScreen, { LoadingDot } from "@/components/ui/LoadingScreen";
 import { ExplorePager, PagingModeToggle } from "@/components/media/ExplorePaging";
 import {
   parsePageParam,
+  readPagingMode,
   scrollExploreToTop,
   sliceLoadedPage,
   totalPagesFrom,
@@ -431,10 +433,160 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
   const failedPage = useRef(1);
   const seededPage = useRef(parsePageParam(sp.get("page")));
   const lastUrl = useRef<string | null>(null);
+  /**
+   * The query that PRODUCED the items on screen — recorded by load() when a
+   * result lands, not read from live state. Between a keystroke and its
+   * debounced fetch the live q/filters describe the NEXT result set while
+   * items still hold the previous one; a snapshot labeled from live state in
+   * that window pairs the new query with the old grid, and if the new query
+   * then returns nothing (items empty, writer bails) the mislabeled entry
+   * survives the session and a back-nav restores the wrong grid under the
+   * new heading. Labeling from what was actually served makes every snapshot
+   * self-consistent by construction.
+   */
+  const servedQuery = useRef<{ q: string; filters: Filters }>({
+    q: (sp.get("q") || "").trim(),
+    filters: {
+      status: sp.get("status") || "",
+      sort: sp.get("sort") || "",
+      list: sp.get("list") || "",
+      genre: sp.get("genre") || "",
+    },
+  });
+  /** Latched when a snapshot write fails or outgrows the cap, so every later
+   *  append doesn't re-pay a doomed multi-hundred-KB stringify; a fresh
+   *  (smaller) result set un-latches it in load(). */
+  const snapshotDead = useRef(false);
 
   useEffect(() => {
     itemsRef.current = items;
   }, [items]);
+
+  /**
+   * THE X MUST RETURN YOU TO THE GRID YOU LEFT. Opening a title from this
+   * page and pressing its close button is a history back — and this component
+   * held everything in memory, so the return remounted it empty: loader,
+   * refetch, position gone. The home feeds already solved this (swrRawJson +
+   * pre-paint restore); this is the same move for a page whose state is too
+   * entangled for the generic cache — the accumulated pages, the paging
+   * bookkeeping refs and the flags all have to come back TOGETHER or the
+   * infinite-scroll observer resumes from a lie.
+   *
+   * Restored in a LAYOUT effect so the grid exists before first paint: that
+   * is also what lets the browser's own popstate scroll restoration succeed —
+   * it needs the page to already be tall enough when it fires. A plain
+   * effect runs after paint and produces a loader flash plus a landing at the
+   * top, which is precisely the report this fixes.
+   *
+   * THE SNAPSHOT ONLY ANSWERS RETURNS. A mount can be a history traversal
+   * (the X, the back button) or a fresh push (a nav link, a typed URL), and
+   * only popstate tells them apart — restoring on pushes froze the grid for a
+   * whole session (every visit resurrected the snapshot and skipped the fetch
+   * that would have shown new releases) and let a bare nav-link land a
+   * pages-mode reader on the mid-catalog page they left hours ago. An
+   * arrival loads fresh; only a return restores.
+   *
+   * THE URL STAYS AUTHORITATIVE. The snapshot only speaks when it answers the
+   * same query the URL asks for (q, all four filter keys, and — for a
+   * snapshot written in pages mode — the page itself, whether or not the URL
+   * carries one) — a shared or hand-edited link must never show another
+   * session's grid. `list` is compared through a normaliser because two
+   * spellings of the novel default coexist historically ("" and the legacy
+   * "most-popular-novel").
+   */
+  const exploreCacheKey = `dv-explore-${mode}`;
+  const restored = useRef(false);
+  useLayoutEffect(() => {
+    try {
+      // "Last navigation was a traversal" — not a freshness window, which
+      // review showed leaks in both directions (a push right after a pop
+      // inherited return-treatment; a slow traversal commit lost it).
+      if (!lastNavWasPop()) return;
+      const raw = sessionStorage.getItem(exploreCacheKey);
+      if (!raw) return;
+      const c = JSON.parse(raw);
+      if (!c || !Array.isArray(c.items) || c.items.length === 0 || !c.filters) return;
+      // The reader may have flipped the shared paging preference on another
+      // surface since this snapshot was written. Restoring across that flip
+      // paints one mode's data under the other mode's chrome — an infinite
+      // accumulation under a pager was the confirmed case — and the phantom
+      // slice that used to (accidentally) clean it up is gone. The stored
+      // preference is readable synchronously here; the snapshot must match
+      // it, and a snapshot that never recorded its mode (pre-deploy format)
+      // is unknown, not "infinite" — refusing it costs one cold reload,
+      // which is the stated worst case anyway.
+      if (c.paging !== readPagingMode()) return;
+      const seedFilters: Filters = {
+        status: sp.get("status") || "",
+        sort: sp.get("sort") || "",
+        list: sp.get("list") || "",
+        genre: sp.get("genre") || "",
+      };
+      const normList = (v: string) => (v === "most-popular-novel" ? "" : v || "");
+      if ((c.q || "") !== (sp.get("q") || "")) return;
+      if (
+        (["status", "sort", "genre"] as const).some((k) => (c.filters[k] || "") !== seedFilters[k]) ||
+        normList(c.filters.list) !== normList(seedFilters.list)
+      ) return;
+      if (sp.get("page") && parsePageParam(sp.get("page")) !== (Number(c.page) || 1)) return;
+      if (c.paging === "pages" && parsePageParam(sp.get("page")) !== (Number(c.page) || 1)) return;
+
+      restored.current = true;
+      servedQuery.current = { q: c.q || "", filters: { ...c.filters } };
+      itemsRef.current = c.items;
+      pageStarts.current = new Map(Array.isArray(c.pageStarts) ? c.pageStarts : []);
+      loadedCount.current = Number(c.loadedCount) || c.items.length;
+      requested.current = Number(c.requested) || Number(c.page) || 1;
+      setItems(c.items);
+      setPage(Number(c.page) || 1);
+      setDeepest(Number(c.deepest) || Number(c.page) || 1);
+      setHasNext(!!c.hasNext);
+      setTotalPages(typeof c.totalPages === "number" ? c.totalPages : null);
+      setTotalsApprox(!!c.totalsApprox);
+      setLoading(false);
+    } catch {
+      /* snapshot is best-effort — worst case is the old cold reload */
+    }
+    // Mount-only by design: the snapshot seeds the instance once; everything
+    // after that is the component's own state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /**
+   * The snapshot is written whenever a settled result set changes — never
+   * mid-load or mid-append (an in-flight append has already bumped
+   * `requested` past `page`, and persisting that pair permanently stalls the
+   * restored observer behind its own guard), never empty (a zero-hit search
+   * must not erase the browsable grid it replaced), and never before
+   * `pagingReady` (the paging field would record the hook's default, not the
+   * reader's mode). Labels come from servedQuery — see its declaration — so
+   * the debounce window between a keystroke and its fetch cannot mislabel
+   * the previous grid. A size cap plus the dead-latch keeps a very deep
+   * session from paying a doomed multi-MB stringify on every append.
+   */
+  useEffect(() => {
+    if (!pagingReady || loading || more || items.length === 0) return;
+    if (snapshotDead.current) return;
+    try {
+      const body = JSON.stringify({
+        q: servedQuery.current.q,
+        filters: servedQuery.current.filters,
+        paging,
+        page, deepest, hasNext, totalPages, totalsApprox, items,
+        pageStarts: Array.from(pageStarts.current.entries()),
+        loadedCount: loadedCount.current,
+        requested: requested.current,
+      });
+      if (body.length > 2_500_000) {
+        snapshotDead.current = true;
+        return;
+      }
+      sessionStorage.setItem(exploreCacheKey, body);
+    } catch {
+      /* quota or privacy mode — explore just reloads cold next time */
+      snapshotDead.current = true;
+    }
+  }, [items, page, deepest, hasNext, totalPages, totalsApprox, loading, more, paging, pagingReady, exploreCacheKey]);
 
   const buildUrl = useCallback((p: number) => {
     const u = new URLSearchParams();
@@ -467,6 +619,10 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
       // ok status is not on its own proof of a usable payload.
       if (d?.error) throw new Error(String(d.error));
       const rows: any[] = Array.isArray(d?.results) ? d.results : [];
+      // This closure's q/filters are the ones buildUrl sent — record them as
+      // the query the on-screen items now answer (see servedQuery).
+      servedQuery.current = { q: q.trim(), filters: { ...filters } };
+      if (!append) snapshotDead.current = false;
       emptyRun.current = rows.length > 0 ? 0 : emptyRun.current + 1;
       // Record where this page landed BEFORE the list grows, so a later switch
       // to numbered pages can slice it back out. An empty (skipped) page is not
@@ -524,6 +680,16 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
   }, [buildUrl]);
 
   useEffect(() => {
+    // A pre-paint restore already put the full accumulated result set on
+    // screen; the initial fetch would replace those pages with just one.
+    // Consumed here — not in the restorer — so exactly the first run skips,
+    // and a LATER search or filter change (new `load` identity) fetches
+    // normally.
+    if (restored.current) {
+      restored.current = false;
+      seededPage.current = 1;
+      return;
+    }
     const t = setTimeout(() => {
       // The seeded page is spent on the first load; a changed search or filter
       // is a new result set, and a new result set starts at page 1.
@@ -555,11 +721,17 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
     if (!pagingReady) return;
     const u = new URLSearchParams();
     if (q.trim()) u.set("q", q.trim());
-    if (mode === "manhwa") {
-      if (filters.status) u.set("status", filters.status);
-      if (filters.sort) u.set("sort", filters.sort);
-      if (filters.genre) u.set("genre", filters.genre);
-    } else if (filters.list !== "most-popular-novel") {
+    // ALL four filter keys are mirrored for BOTH modes. The novel branch used
+    // to write only `list`, though its panel offers status/sort/genre too —
+    // so those filters vanished from the URL, a refresh or back-nav silently
+    // dropped them, and the explore snapshot (which trusts the URL) could
+    // never restore a filtered novel grid. "most-popular-novel" is the legacy
+    // spelling of the novel default ("" everywhere now) and stays out of the
+    // URL like any other default.
+    if (filters.status) u.set("status", filters.status);
+    if (filters.sort) u.set("sort", filters.sort);
+    if (filters.genre) u.set("genre", filters.genre);
+    if (mode === "novel" && filters.list && filters.list !== "most-popular-novel") {
       u.set("list", filters.list);
     }
     if (paging === "pages" && page > 1) u.set("page", String(page));
@@ -593,7 +765,11 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
     // effect refuses to build one, so nothing can keep quietly loading pages
     // underneath a reader who asked for a pager. Hiding the sentinel would have
     // left it intersecting and firing.
-    if (paging !== "infinite") return;
+    // Held until pagingReady as well: before the stored preference is read
+    // the hook reports its "infinite" default, and a restored grid (loading
+    // already false, sentinel possibly in range) would let this attach an
+    // observer for a reader who actually asked for numbered pages.
+    if (!pagingReady || paging !== "infinite") return;
     const el = sentinel.current;
     if (!el || !hasNext || loading || more || error) return;
     const io = new IntersectionObserver(
@@ -608,7 +784,7 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [paging, hasNext, loading, more, error, page, load]);
+  }, [pagingReady, paging, hasNext, loading, more, error, page, load]);
 
   /**
    * SWITCHING MODES KEEPS THE READER WHERE THEY ARE.
@@ -631,11 +807,23 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
    * page-1 load is NOT cancelled — that one is the reader's actual query, and
    * it lands as exactly one page, which is already the right shape.
    */
-  const prevPaging = useRef(paging);
+  /**
+   * `null` until pagingReady, then baselined to the FIRST ready value: the
+   * hook mounts on its "infinite" default and reports the stored preference
+   * one commit later, so a pages-mode reader produces a phantom
+   * infinite→pages "toggle" on every mount. That was harmless while the grid
+   * was guaranteed empty at that moment — the pre-paint snapshot restore
+   * broke the guarantee, and the phantom flip re-sliced the restored grid
+   * and scrolled a reader who had just been put back mid-catalog straight to
+   * the top. Only a change AFTER the baseline is a reader actually toggling.
+   */
+  const prevPaging = useRef<typeof paging | null>(null);
   useEffect(() => {
+    if (!pagingReady) return;
     const from = prevPaging.current;
     if (from === paging) return;
     prevPaging.current = paging;
+    if (from === null) return;
     if (paging !== "pages") return;
     if (itemsRef.current.length === 0) return;
 
@@ -659,7 +847,7 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
     // Instant, not smooth: the content under the reader just shrank by several
     // pages, and animating a scroll through the gap is worse than being there.
     scrollExploreToTop(false);
-  }, [paging, page, more, loading, load]);
+  }, [pagingReady, paging, page, more, loading, load]);
 
   const goToPage = useCallback((p: number) => {
     if (p === page || p < 1 || loading || more) return;
@@ -667,9 +855,13 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
     scrollExploreToTop();
   }, [page, loading, more, load]);
 
-  const activeCount = mode === "manhwa"
-    ? [filters.status, filters.sort, filters.genre].filter(Boolean).length
-    : (filters.list !== "most-popular-novel" ? 1 : 0);
+  // Both modes count their real filters. The old novel arm compared `list`
+  // against the legacy default "most-popular-novel" while the seeds default
+  // to "" — so the novel Filters badge showed "1" on a pristine page — and
+  // ignored status/sort/genre, which the novel panel offers.
+  const activeCount =
+    [filters.status, filters.sort, filters.genre].filter(Boolean).length +
+    (mode === "novel" && filters.list && filters.list !== "most-popular-novel" ? 1 : 0);
 
   return (
     <div className="min-h-screen bg-[#070709] pb-24 text-white">
@@ -757,7 +949,7 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
             <p className="font-mono text-sm text-slate-500">Nothing matched that.</p>
             {(q || activeCount > 0) && (
               <button
-                onClick={() => { setQ(""); setFilters({ status: "", sort: "", list: "most-popular-novel", genre: "" }); }}
+                onClick={() => { setQ(""); setFilters({ status: "", sort: "", list: "", genre: "" }); }}
                 className="mt-3 font-mono text-xs font-black text-violet-300 hover:text-violet-200"
               >
                 Clear search and filters
