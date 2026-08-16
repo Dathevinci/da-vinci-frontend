@@ -939,18 +939,34 @@ async function enrichWbcLatest(rows: ManhwaRow[]): Promise<void> {
   await Promise.all([worker(), worker(), worker(), worker()]);
 }
 
+/**
+ * A SYNC THROW MUST COST ONE SOURCE, NOT THE FEED. Promise.allSettled only
+ * absorbs rejected PROMISES — an adapter whose method is missing (which
+ * ignoreBuildErrors will happily ship; it has) throws synchronously while the
+ * array literal is still being built, and the whole home feed 500s with every
+ * healthy source in it. Each call is fenced so any failure, sync or async,
+ * settles as that one source's rejection.
+ */
+const settledCall = <T>(fn: () => Promise<T>): Promise<T> => {
+  try {
+    return fn();
+  } catch (e) {
+    return Promise.reject(e);
+  }
+};
+
 export async function manhwaHome(): Promise<{ trending: ManhwaRow[]; latestUpdates: ManhwaRow[] }> {
   const [ap, al, wp, wl, vp, vl, sp, sl, mp, ml] = await Promise.allSettled([
-    asura().getPopularToday(),
-    asura().getLatestUpdates(1),
-    wbc().getPopularToday(),
-    wbc().getLatestUpdates(1),
-    vtx().getPopularToday(),
-    vtx().getLatestUpdates(1),
-    mse().getPopularToday(),
-    mse().getLatestUpdates(1),
-    mna().getPopularToday(),
-    mna().getLatestUpdates(1),
+    settledCall(() => asura().getPopularToday()),
+    settledCall(() => asura().getLatestUpdates(1)),
+    settledCall(() => wbc().getPopularToday()),
+    settledCall(() => wbc().getLatestUpdates(1)),
+    settledCall(() => vtx().getPopularToday()),
+    settledCall(() => vtx().getLatestUpdates(1)),
+    settledCall(() => mse().getPopularToday()),
+    settledCall(() => mse().getLatestUpdates(1)),
+    settledCall(() => mna().getPopularToday()),
+    settledCall(() => mna().getLatestUpdates(1)),
   ]);
   const emptySearch = { currentPage: 1, hasNextPage: false, results: [] as ManhwaRow[] };
 

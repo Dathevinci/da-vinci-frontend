@@ -199,6 +199,19 @@ export default class WeebCentral extends MangaParser {
   }
 
   /**
+   * Latest updates for the home rail. getSeries' DEFAULT sort is already
+   * "Latest Updates", so this is pure delegation — but the method itself is
+   * LOAD-BEARING: manhwaHome calls it, a refactor dropped it once, and with
+   * ignoreBuildErrors the missing method shipped and threw synchronously
+   * inside manhwaHome's Promise.allSettled array — which took the ENTIRE
+   * manhwa home feed to a 500, every source included, until this was
+   * restored. Do not remove without checking manhwaHome's call list.
+   */
+  async getLatestUpdates(page = 1): Promise<ISearch<IMangaResult>> {
+    return this.getSeries(page);
+  }
+
+  /**
    * Top popular manhwa for the home carousel / trending shelf
    */
   async getPopularToday(): Promise<ISearch<IMangaResult>> {
