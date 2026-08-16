@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, Flame, Gift, Swords, Sparkles, Trophy } from "lucide-react";
+import { Check, ChevronDown, Flame, Gift, Swords, Sparkles, Trophy } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { useToast } from "@/components/ui/Toast";
 import { authHeaders } from "@/lib/authToken";
@@ -96,6 +96,31 @@ export default function DailyQuests() {
   const [burst, setBurst] = useState<string | null>(null);
   const resetsIn = useCountdown(data?.resetsAt);
 
+  /**
+   * Collapsed by default; the choice sticks per device. Hydrated in an effect
+   * rather than the useState initializer so the server and first client paint
+   * agree (localStorage does not exist during SSR and an initializer mismatch
+   * is a hydration error).
+   */
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("dv-quests-open") === "1") setOpen(true);
+    } catch {
+      /* private mode — collapsed default stands */
+    }
+  }, []);
+  const toggleOpen = () => {
+    setOpen((o) => {
+      try {
+        localStorage.setItem("dv-quests-open", o ? "0" : "1");
+      } catch {
+        /* ignore */
+      }
+      return !o;
+    });
+  };
+
   const load = useCallback(async () => {
     if (!user?.id) return;
     try {
@@ -138,6 +163,9 @@ export default function DailyQuests() {
   if (!isLoaded || !user || !data) return null;
 
   const claimedCount = data.quests.filter((q) => q.claimed).length;
+  const claimableCount =
+    data.quests.filter((q) => q.claimable && !q.claimed).length +
+    (data.bonus.claimable && !data.bonus.claimed ? 1 : 0);
   const allClaimed = claimedCount === data.quests.length;
   const boardProgress =
     data.quests.reduce((a, q) => a + Math.min(q.progress, q.target) / q.target, 0) / Math.max(1, data.quests.length);
@@ -153,9 +181,20 @@ export default function DailyQuests() {
         transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
       />
 
-      <div className="relative p-5 sm:p-7">
-        {/* ── header ─────────────────────────────────────────────────── */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="relative p-4 sm:p-5">
+        {/* ── header: the whole row is the collapse toggle ────────────
+            The board is COLLAPSED BY DEFAULT — on the profile it sat above
+            the collection at full height, which is a lot of screen for a
+            panel most visits only glance at. The summary bar keeps every
+            signal that matters while closed (claimed count, reset clock,
+            streak, and an amber "N ready" pulse so collapsing can never
+            hide unclaimed AP), and the choice is remembered per device. */}
+        <button
+          type="button"
+          onClick={toggleOpen}
+          aria-expanded={open}
+          className="flex w-full flex-wrap items-center justify-between gap-3 text-left"
+        >
           <div className="flex items-center gap-3">
             <div className="grid h-11 w-11 place-items-center rounded-2xl border border-violet-400/40 bg-violet-500/15 shadow-[0_0_18px_rgba(139,92,246,0.35)]">
               <Swords className="h-5 w-5 text-violet-300" />
@@ -172,30 +211,53 @@ export default function DailyQuests() {
             </div>
           </div>
 
-          {/* Streak flame — burns brighter the longer it lives. */}
-          <div
-            className="flex items-center gap-2 rounded-2xl border px-4 py-2"
-            style={{
-              borderColor: data.streak > 0 ? "rgba(251,146,60,0.45)" : "rgba(255,255,255,0.1)",
-              background: data.streak > 0 ? "rgba(251,146,60,0.1)" : "rgba(255,255,255,0.04)",
-              boxShadow: data.streak > 2 ? "0 0 22px rgba(251,146,60,0.35)" : "none",
-            }}
-          >
-            <motion.div
-              animate={data.streak > 0 ? { scale: [1, 1.18, 1] } : {}}
-              transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-            >
-              <Flame className={`h-5 w-5 ${data.streak > 0 ? "text-orange-400" : "text-slate-600"}`} />
-            </motion.div>
-            <div className="leading-tight">
-              <div className={`text-lg font-black ${data.streak > 0 ? "text-orange-300" : "text-slate-500"}`}>
-                {data.streak}
-              </div>
-              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">day streak</div>
-            </div>
-          </div>
-        </div>
+          <div className="flex items-center gap-2">
+            {/* Money never hides: claimable quests pulse in the summary bar. */}
+            {claimableCount > 0 && (
+              <span className="flex animate-pulse items-center gap-1 rounded-full border border-amber-400/50 bg-amber-400/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-amber-300">
+                <Sparkles className="h-3 w-3" /> {claimableCount} ready
+              </span>
+            )}
 
+            {/* Streak flame — burns brighter the longer it lives. */}
+            <div
+              className="flex items-center gap-2 rounded-2xl border px-3 py-1.5"
+              style={{
+                borderColor: data.streak > 0 ? "rgba(251,146,60,0.45)" : "rgba(255,255,255,0.1)",
+                background: data.streak > 0 ? "rgba(251,146,60,0.1)" : "rgba(255,255,255,0.04)",
+                boxShadow: data.streak > 2 ? "0 0 22px rgba(251,146,60,0.35)" : "none",
+              }}
+            >
+              <motion.div
+                animate={data.streak > 0 ? { scale: [1, 1.18, 1] } : {}}
+                transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <Flame className={`h-4 w-4 ${data.streak > 0 ? "text-orange-400" : "text-slate-600"}`} />
+              </motion.div>
+              <div className="leading-tight">
+                <div className={`text-base font-black ${data.streak > 0 ? "text-orange-300" : "text-slate-500"}`}>
+                  {data.streak}
+                </div>
+                <div className="text-[9px] font-bold uppercase tracking-wider text-slate-500">day streak</div>
+              </div>
+            </div>
+
+            <ChevronDown
+              className={`h-5 w-5 text-slate-400 transition-transform duration-300 ${open ? "rotate-180" : ""}`}
+            />
+          </div>
+        </button>
+
+        <AnimatePresence initial={false}>
+        {open && (
+        <motion.div
+          key="board"
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: "auto", opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+          className="overflow-hidden"
+        >
         {/* ── board progress ──────────────────────────────────────────── */}
         <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/5">
           <motion.div
@@ -353,6 +415,9 @@ export default function DailyQuests() {
             <Trophy className="h-4 w-4" /> Board cleared — see you tomorrow
           </motion.div>
         )}
+        </motion.div>
+        )}
+        </AnimatePresence>
       </div>
     </section>
   );

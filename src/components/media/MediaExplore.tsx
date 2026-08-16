@@ -32,6 +32,30 @@ import {
 let asuraGenreCache: { name: string; slug: string }[] | null = null;
 
 /**
+ * The manhwa filter panel's option lists. LOAD-BEARING in the same invisible
+ * way as the cache above: the panel maps over these on open, and with
+ * `ignoreBuildErrors: true` a missing declaration still ships and only throws
+ * — "MANHWA_SORTS is not defined", the whole explore page down — when the
+ * Filters button is clicked. The refactor that lost the cache declaration
+ * lost BOTH of these too, and each was found one production crash at a time.
+ * Keys must stay what /api/manhwa's filter parsing accepts.
+ */
+const MANHWA_SORTS = [
+  { key: "", label: "Latest" },
+  { key: "popular", label: "Most Popular" },
+  { key: "rating", label: "Highest Rated" },
+  { key: "title", label: "A–Z" },
+];
+
+const MANHWA_STATUS = [
+  { key: "", label: "Any" },
+  { key: "ongoing", label: "Ongoing" },
+  { key: "completed", label: "Completed" },
+  { key: "hiatus", label: "Hiatus" },
+  { key: "dropped", label: "Dropped" },
+];
+
+/**
  * EXPLORE for comics and novels — the same page anime has, which these modes
  * never had: their only browse surface was the home page's "view=all" grid
  * with a filter box bolted onto a header card.
