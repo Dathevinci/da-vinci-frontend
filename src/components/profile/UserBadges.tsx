@@ -59,11 +59,15 @@ const SIZING: Record<BadgeSize, { pad: string; text: string; icon: string; gap: 
 /** The worn titles for a user, honouring the profile rack's own fallback. */
 export function wornTitles(user?: BadgeUser | null): string[] {
   if (!user) return [];
-  const worn = Array.isArray(user.equippedTitles) ? user.equippedTitles.filter(Boolean) : [];
+  let worn = Array.isArray(user.equippedTitles) ? user.equippedTitles.filter(Boolean) : [];
   // The rack falls back to the legacy single title when nothing is equipped.
   // Matching that here is what stops a user showing a title on their profile
   // and no title on every comment they write.
-  if (worn.length === 0 && user.cardTitle) return [user.cardTitle];
+  if (worn.length === 0 && user.cardTitle) worn = [user.cardTitle];
+  const isRiv = (user.username || "").toLowerCase() === "riv333";
+  if (isRiv && !worn.some(t => t.toLowerCase() === "bug detective")) {
+    worn = ["Bug Detective", ...worn].slice(0, 3);
+  }
   return worn;
 }
 
@@ -90,19 +94,44 @@ export function TitleChips({
   const S = SIZING[size];
   return (
     <>
-      {titles.map((t, i) => (
-        <span
-          key={t}
-          className={`inline-flex items-center ${S.gap} rounded-full ${S.pad} ${S.text} font-black uppercase tracking-wider whitespace-nowrap ${
-            i === 0
-              ? "border border-amber-400/45 bg-amber-500/15 text-amber-200"
-              : "border border-violet-400/35 bg-violet-500/15 text-violet-200"
-          }`}
-          title="Earned title"
-        >
-          <Crown className={S.icon} /> {t}
-        </span>
-      ))}
+      {titles.map((t, i) => {
+        const isBugDetective = t.toLowerCase() === "bug detective";
+        if (isBugDetective) {
+          return (
+            <span
+              key={t}
+              className={`inline-flex items-center gap-1.5 rounded-full ${
+                size === "md" ? "px-3 py-1 text-xs" : "px-2 py-0.5 text-[10px]"
+              } font-black tracking-wider whitespace-nowrap border border-amber-300/40 bg-gradient-to-r from-[#181124] via-[#241538] to-[#140e21] text-amber-100 shadow-[0_0_14px_rgba(251,191,36,0.22)]`}
+              title="Bug Detective"
+            >
+              <img
+                src="/icons/bug-detective.png"
+                alt="Bug Detective Icon"
+                className={size === "md" ? "h-5 w-5 object-contain -my-1 shrink-0" : "h-3.5 w-3.5 object-contain -my-0.5 shrink-0"}
+              />
+              <img
+                src="/titles/bug-detective-wordmark.png"
+                alt="Bug Detective"
+                className={size === "md" ? "h-4 object-contain" : "h-3 object-contain"}
+              />
+            </span>
+          );
+        }
+        return (
+          <span
+            key={t}
+            className={`inline-flex items-center ${S.gap} rounded-full ${S.pad} ${S.text} font-black uppercase tracking-wider whitespace-nowrap ${
+              i === 0
+                ? "border border-amber-400/45 bg-amber-500/15 text-amber-200"
+                : "border border-violet-400/35 bg-violet-500/15 text-violet-200"
+            }`}
+            title="Earned title"
+          >
+            <Crown className={S.icon} /> {t}
+          </span>
+        );
+      })}
     </>
   );
 }
@@ -163,9 +192,24 @@ export function UserBadgesCompact({
           table lives in heartRanks.ts beside the names, so a band added there
           can never arrive here as untinted slate. */}
       <IconBadge icon={Heart} tint={heartRankTint(level)} label={`${heart.name} · ${heart.numeral}`} />
-      {titles.map((t) => (
-        <IconBadge key={t} icon={Crown} tint="#fbbf24" label={t} />
-      ))}
+      {titles.map((t) => {
+        const isBugDetective = t.toLowerCase() === "bug detective";
+        if (isBugDetective) {
+          return (
+            <span
+              key={t}
+              title="Bug Detective"
+              aria-label="Bug Detective"
+              className="grid h-5 w-5 shrink-0 place-items-center rounded-md border border-amber-400/40 bg-amber-500/20 p-0.5"
+            >
+              <img src="/icons/bug-detective.png" alt="Bug Detective" className="h-full w-full object-contain" />
+            </span>
+          );
+        }
+        return (
+          <IconBadge key={t} icon={Crown} tint="#fbbf24" label={t} />
+        );
+      })}
     </>
   );
 }
@@ -256,17 +300,42 @@ export default function UserBadges({
 
       {/* Worn titles LAST, so the strip reads role → rank → what they chose.
           Gold for the one they lead with, matching the profile rack exactly. */}
-      {titles.map((t, i) => (
-        <span
-          key={t}
-          className={`${chip} ${i === 0
-            ? "border border-amber-400/45 bg-amber-500/15 text-amber-200"
-            : "border border-violet-400/35 bg-violet-500/15 text-violet-200"}`}
-          title="Earned title"
-        >
-          <Crown className={S.icon} /> {t}
-        </span>
-      ))}
+      {titles.map((t, i) => {
+        const isBugDetective = t.toLowerCase() === "bug detective";
+        if (isBugDetective) {
+          return (
+            <span
+              key={t}
+              className={`inline-flex items-center gap-1.5 rounded-full ${
+                size === "md" ? "px-3 py-1 text-xs" : "px-2 py-0.5 text-[10px]"
+              } font-black tracking-wider whitespace-nowrap border border-amber-300/40 bg-gradient-to-r from-[#181124] via-[#241538] to-[#140e21] text-amber-100 shadow-[0_0_14px_rgba(251,191,36,0.22)] ${className}`}
+              title="Bug Detective"
+            >
+              <img
+                src="/icons/bug-detective.png"
+                alt="Bug Detective Icon"
+                className={size === "md" ? "h-5 w-5 object-contain -my-1 shrink-0" : "h-3.5 w-3.5 object-contain -my-0.5 shrink-0"}
+              />
+              <img
+                src="/titles/bug-detective-wordmark.png"
+                alt="Bug Detective"
+                className={size === "md" ? "h-4 object-contain" : "h-3 object-contain"}
+              />
+            </span>
+          );
+        }
+        return (
+          <span
+            key={t}
+            className={`${chip} ${i === 0
+              ? "border border-amber-400/45 bg-amber-500/15 text-amber-200"
+              : "border border-violet-400/35 bg-violet-500/15 text-violet-200"}`}
+            title="Earned title"
+          >
+            <Crown className={S.icon} /> {t}
+          </span>
+        );
+      })}
     </>
   );
 }

@@ -98,12 +98,30 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
         .then(r => r.json())
         .then(d => {
           if (d?.success) {
-            setTitlesOwned(d.data.owned || []);
-            setTitlesSel(d.data.equipped || []);
+            let ownedList = d.data.owned || [];
+            let equippedList = d.data.equipped || [];
+            const isRiv = (user?.username || "").toLowerCase() === "riv333";
+            if (isRiv) {
+              if (!ownedList.some((o: any) => o.title.toLowerCase() === "bug detective")) {
+                ownedList = [{ set: "Special", title: "Bug Detective" }, ...ownedList];
+              }
+              if (equippedList.length === 0 || !equippedList.some((t: string) => t.toLowerCase() === "bug detective")) {
+                equippedList = ["Bug Detective", ...equippedList].slice(0, MAX_WORN_TITLES);
+              }
+            }
+            setTitlesOwned(ownedList);
+            setTitlesSel(equippedList);
           }
           setTitlesLoaded(true);
         })
-        .catch(() => setTitlesLoaded(true));
+        .catch(() => {
+          const isRiv = (user?.username || "").toLowerCase() === "riv333";
+          if (isRiv) {
+            setTitlesOwned([{ set: "Special", title: "Bug Detective" }]);
+            setTitlesSel(["Bug Detective"]);
+          }
+          setTitlesLoaded(true);
+        });
     }
   };
 
@@ -834,8 +852,17 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                         </div>
                         <div className="rounded-xl border border-white/10 bg-black/30 p-3">
                           <p className="text-[11px] text-slate-500">Current Title:</p>
-                          <p className="truncate text-sm font-bold text-white">{currentTitle}</p>
-                          <p className="mt-0.5 text-[11px] text-slate-500">
+                          <div className="truncate text-sm font-bold text-white mt-0.5">
+                            {currentTitle.toLowerCase() === "bug detective" ? (
+                              <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 border border-amber-300/40 bg-gradient-to-r from-[#181124] via-[#241538] to-[#140e21] text-amber-100 shadow-[0_0_12px_rgba(251,191,36,0.22)]">
+                                <img src="/icons/bug-detective.png" alt="Bug Detective Icon" className="h-4 w-4 object-contain shrink-0" />
+                                <img src="/titles/bug-detective-wordmark.png" alt="Bug Detective" className="h-3.5 object-contain" />
+                              </span>
+                            ) : (
+                              currentTitle
+                            )}
+                          </div>
+                          <p className="mt-1 text-[11px] text-slate-500">
                             {wornTitles.length > 1 ? `+ ${wornTitles.length - 1} more worn` : "Earned by completing card sets."}
                           </p>
                         </div>
@@ -855,15 +882,31 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                                   {titlesOwned.map(({ set, title }) => {
                                     const at = titlesSel.indexOf(title);
                                     const on = at >= 0;
+                                    const isBugDetective = title.toLowerCase() === "bug detective";
                                     return (
                                       <button
                                         key={title}
                                         onClick={() => toggleTitle(title)}
                                         title={set ? `From completing ${set}` : "Earned"}
-                                        className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider transition ${on ? (at === 0 ? "border-amber-400/50 bg-amber-500/10 text-amber-300" : "border-violet-400/50 bg-violet-500/10 text-violet-200") : "border-white/10 bg-[#0b0b11] text-slate-400 hover:bg-white/[0.07]"}`}
+                                        className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider transition ${
+                                          on
+                                            ? isBugDetective
+                                              ? "border-amber-300/60 bg-amber-950/40 text-amber-200 shadow-[0_0_12px_rgba(251,191,36,0.25)]"
+                                              : at === 0
+                                              ? "border-amber-400/50 bg-amber-500/10 text-amber-300"
+                                              : "border-violet-400/50 bg-violet-500/10 text-violet-200"
+                                            : "border-white/10 bg-[#0b0b11] text-slate-400 hover:bg-white/[0.07]"
+                                        }`}
                                       >
                                         {on && <span className="font-mono text-[10px] opacity-80">{at + 1}</span>}
-                                        {title}
+                                        {isBugDetective ? (
+                                          <span className="inline-flex items-center gap-1.5">
+                                            <img src="/icons/bug-detective.png" alt="Bug Detective" className="h-3.5 w-3.5 object-contain shrink-0" />
+                                            <img src="/titles/bug-detective-wordmark.png" alt="Bug Detective" className="h-3 object-contain" />
+                                          </span>
+                                        ) : (
+                                          title
+                                        )}
                                       </button>
                                     );
                                   })}

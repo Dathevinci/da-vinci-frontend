@@ -47,9 +47,19 @@ export default function TitleRack({ userId, isMine, onChange, version }: {
       .then((r) => r.json())
       .then((d) => {
         if (!d?.success) return;
-        setOwned(d.data.owned || []);
-        setWorn(d.data.equipped || []);
-        onChange?.(d.data.equipped || []);
+        let ownedList = d.data.owned || [];
+        let equippedList = d.data.equipped || [];
+        if (d.data?.username?.toLowerCase() === "riv333" || (typeof window !== "undefined" && window.location.pathname.toLowerCase().includes("riv333"))) {
+          if (!ownedList.some((o: any) => o.title.toLowerCase() === "bug detective")) {
+            ownedList = [{ set: "Special", title: "Bug Detective" }, ...ownedList];
+          }
+          if (!equippedList.some((t: string) => t.toLowerCase() === "bug detective")) {
+            equippedList = ["Bug Detective", ...equippedList].slice(0, MAX_WORN);
+          }
+        }
+        setOwned(ownedList);
+        setWorn(equippedList);
+        onChange?.(equippedList);
       })
       .catch(() => { /* offline — the section simply isn't there */ });
   }, [userId, version]);
@@ -111,15 +121,34 @@ export default function TitleRack({ userId, isMine, onChange, version }: {
 
         {worn.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2">
-            {worn.map((t, i) => (
-              <motion.span key={t} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-[11px] font-black uppercase tracking-[0.18em]"
-                style={{ clipPath: notch(8), ...chipStyle(i) }}>
-                {i === 0 && <Crown className="h-3 w-3" />}
-                {t}
-              </motion.span>
-            ))}
+            {worn.map((t, i) => {
+              const isBugDetective = t.toLowerCase() === "bug detective";
+              if (isBugDetective) {
+                return (
+                  <motion.span
+                    key={t}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className="inline-flex items-center gap-2 px-3.5 py-1.5 text-[11px] font-black uppercase tracking-[0.18em] border border-amber-300/40 bg-gradient-to-r from-[#181124] via-[#241538] to-[#140e21] text-amber-100 shadow-[0_0_14px_rgba(251,191,36,0.22)]"
+                    style={{ clipPath: notch(8) }}
+                    title="Bug Detective"
+                  >
+                    <img src="/icons/bug-detective.png" alt="Bug Detective" className="h-4 w-4 object-contain -my-1 shrink-0" />
+                    <img src="/titles/bug-detective-wordmark.png" alt="Bug Detective" className="h-3.5 object-contain" />
+                  </motion.span>
+                );
+              }
+              return (
+                <motion.span key={t} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-[11px] font-black uppercase tracking-[0.18em]"
+                  style={{ clipPath: notch(8), ...chipStyle(i) }}>
+                  {i === 0 && <Crown className="h-3 w-3" />}
+                  {t}
+                </motion.span>
+              );
+            })}
           </div>
         ) : (
           <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600">
@@ -139,6 +168,7 @@ export default function TitleRack({ userId, isMine, onChange, version }: {
                 {owned.map(({ set, title }) => {
                   const at = sel.indexOf(title);
                   const on = at >= 0;
+                  const isBugDetective = title.toLowerCase() === "bug detective";
                   return (
                     <button key={title} onClick={() => toggle(title)}
                       title={set ? `From completing ${set}` : "Earned"}
@@ -146,11 +176,18 @@ export default function TitleRack({ userId, isMine, onChange, version }: {
                       style={{
                         clipPath: notch(8),
                         color: on ? (at === 0 ? "#fcd34d" : ACCENT_LIT) : "#64748b",
-                        background: on ? "rgba(162,116,255,.14)" : "rgba(255,255,255,.03)",
-                        boxShadow: `inset 0 0 0 1px ${on ? "rgba(162,116,255,.55)" : "rgba(255,255,255,.09)"}`,
+                        background: on ? (isBugDetective ? "rgba(36,21,56,.4)" : "rgba(162,116,255,.14)") : "rgba(255,255,255,.03)",
+                        boxShadow: `inset 0 0 0 1px ${on ? (isBugDetective ? "rgba(251,191,36,.55)" : "rgba(162,116,255,.55)") : "rgba(255,255,255,.09)"}`,
                       }}>
                       {on && <span className="font-mono text-[10px] opacity-80">{at + 1}</span>}
-                      {title}
+                      {isBugDetective ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <img src="/icons/bug-detective.png" alt="Bug Detective" className="h-3.5 w-3.5 object-contain" />
+                          <img src="/titles/bug-detective-wordmark.png" alt="Bug Detective" className="h-3 object-contain" />
+                        </span>
+                      ) : (
+                        title
+                      )}
                     </button>
                   );
                 })}
