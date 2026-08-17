@@ -192,9 +192,9 @@ export default function CommunityPage() {
             sliding element — a slider has to be measured and repositioned on
             every resize, and this control sits above a feed that is already
             doing real work. */}
-        {/* ── TAB SWITCHER ────────────────────────────────────────────── */}
-        <div className="flex justify-center">
-          <div className="inline-flex gap-1.5 rounded-2xl border border-white/10 bg-[#0e0e14]/90 p-1.5 shadow-2xl backdrop-blur-xl">
+        {/* ── TAB SWITCHER (Activity History Pill Bar Style) ── */}
+        <div className="flex justify-center mb-8 font-mono">
+          <div className="inline-flex w-max items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] p-1.5 shadow-2xl backdrop-blur-xl">
             {([
               { key: 'forum' as const, label: 'Forum', hint: 'Discussions & Polls', Icon: MessagesSquare },
               { key: 'feed' as const, label: 'Global Comments', hint: 'All Chapter Feeds', Icon: Globe },
@@ -205,18 +205,18 @@ export default function CommunityPage() {
                 <button
                   key={key}
                   onClick={() => setActiveTab(key)}
-                  className={`group relative flex items-center gap-3 rounded-xl px-4 py-2.5 transition sm:px-6 ${
+                  className={`group relative flex items-center gap-2.5 rounded-full border px-4 py-2 text-xs font-bold tracking-wide transition sm:px-6 sm:py-2.5 ${
                     on
-                      ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
-                      : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                      ? 'border-violet-400/40 bg-violet-500/15 text-violet-200 shadow-sm'
+                      : 'border-transparent text-white/45 hover:bg-white/[0.06] hover:text-white/80'
                   }`}
                 >
-                  <Icon className={`h-4 w-4 shrink-0 transition ${on ? 'text-white' : 'text-slate-500 group-hover:text-slate-300'}`} />
+                  <Icon className={`h-4 w-4 shrink-0 transition ${on ? 'text-violet-300' : 'text-white/40 group-hover:text-white'}`} />
                   <span className="text-left font-mono">
-                    <span className="block text-xs sm:text-sm font-black uppercase tracking-wider">
+                    <span className="block text-xs sm:text-sm font-bold uppercase tracking-wider">
                       {label}
                     </span>
-                    <span className={`hidden text-[9px] font-bold uppercase tracking-wider sm:block ${on ? 'text-purple-200' : 'text-slate-500'}`}>
+                    <span className={`hidden text-[9px] font-bold uppercase tracking-wider sm:block ${on ? 'text-violet-300/70' : 'text-white/30'}`}>
                       {hint}
                     </span>
                   </span>
