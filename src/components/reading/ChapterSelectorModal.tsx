@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Search, Book, ArrowUpDown } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Search, Book, ArrowUpDown, BookOpen } from "lucide-react";
 import Link from "next/link";
 import { IMangaChapter } from "@/lib/asura/models";
 import { chapterNumberFromId } from "@/lib/manhwa/ids";
@@ -70,6 +70,23 @@ export default function ChapterSelectorModal({
   const currentIndex = chapters.findIndex(c => c.id === currentChapterId);
   const readCount = currentIndex >= 0 ? (chapters.length - currentIndex) : 1;
 
+  /**
+   * THE LIST OPENS ON WHERE YOU ARE. The current row's only marker was a
+   * whisper of background (bg-white/10 — indistinguishable from hover), and
+   * on a 300-chapter series it could sit far outside the initial viewport —
+   * "it should show which chapter we're on", as reported. The row now
+   * announces itself, and the list scrolls it into view on open.
+   */
+  const activeRowRef = useRef<HTMLAnchorElement | null>(null);
+  useEffect(() => {
+    if (!isOpen) return;
+    // After the 300ms open transition, so the scroll targets settled layout.
+    const t = setTimeout(() => {
+      activeRowRef.current?.scrollIntoView({ block: "center" });
+    }, 320);
+    return () => clearTimeout(t);
+  }, [isOpen, currentChapterId]);
+
   return (
     <>
       <div className={`fixed inset-0 z-[60] transition-opacity duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} onClick={onClose} aria-hidden />
@@ -115,6 +132,11 @@ export default function ChapterSelectorModal({
           ) : (
             filtered.map((chap) => {
               const isActive = chap.id === currentChapterId;
+              /* Position-based read state, consistent with the header's
+                 "N of M read": the list is newest-first, so everything at or
+                 below the current chapter's index has been passed through. */
+              const chapIndex = chapters.indexOf(chap);
+              const isRead = currentIndex >= 0 && chapIndex > currentIndex;
               /**
                * NUMBER AND TITLE ARE DIFFERENT THINGS.
                *
@@ -139,11 +161,22 @@ export default function ChapterSelectorModal({
               return (
                 <Link
                   key={chap.id}
+                  ref={isActive ? activeRowRef : undefined}
                   href={`/manhwa/${encodeURIComponent(mangaId)}/chapter/${encodeURIComponent(chap.id)}`}
                   onClick={onClose}
-                  className={`flex items-start gap-4 p-3 rounded-xl transition ${isActive ? 'bg-white/10' : 'hover:bg-white/5'}`}
+                  className={`flex items-start gap-4 p-3 rounded-xl transition ${
+                    isActive
+                      ? 'bg-pink-500/10 ring-1 ring-pink-500/50'
+                      : 'hover:bg-white/5'
+                  }`}
                 >
-                  <div className="w-9 h-9 shrink-0 bg-[#1a1c20] rounded-xl flex items-center justify-center text-[13px] font-bold font-mono text-white/80 border border-white/5 mt-0.5">
+                  <div className={`w-9 h-9 shrink-0 rounded-xl flex items-center justify-center text-[13px] font-bold font-mono mt-0.5 border ${
+                    isActive
+                      ? 'bg-pink-500/20 border-pink-500/40 text-pink-200'
+                      : isRead
+                        ? 'bg-[#14161a] border-emerald-500/20 text-emerald-400/60'
+                        : 'bg-[#1a1c20] border-white/5 text-white/80'
+                  }`}>
                     {numStr ?? "–"}
                   </div>
 
@@ -151,11 +184,18 @@ export default function ChapterSelectorModal({
                     {/* Number on top, title under it — and `truncate` so a long
                         title takes one line instead of wrapping around the
                         badge and pushing the next row off its own baseline. */}
-                    <div className="truncate text-[14px] font-bold font-mono text-white tracking-tight">
-                      {numStr ? `Ch. ${numStr}` : label || chap.title}
+                    <div className={`flex items-center gap-2 text-[14px] font-bold font-mono tracking-tight`}>
+                      <span className={`truncate ${isActive ? 'text-pink-100' : isRead ? 'text-white/50' : 'text-white'}`}>
+                        {numStr ? `Ch. ${numStr}` : label || chap.title}
+                      </span>
+                      {isActive && (
+                        <span className="flex shrink-0 items-center gap-1 rounded-full bg-pink-500/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-pink-300">
+                          <BookOpen className="h-2.5 w-2.5" /> Reading
+                        </span>
+                      )}
                     </div>
                     {numStr && label && (
-                      <div className="mt-0.5 truncate text-[12px] font-medium text-white/45">
+                      <div className={`mt-0.5 truncate text-[12px] font-medium ${isRead && !isActive ? 'text-white/30' : 'text-white/45'}`}>
                         {label}
                       </div>
                     )}

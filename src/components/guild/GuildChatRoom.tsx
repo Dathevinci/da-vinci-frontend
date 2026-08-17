@@ -1017,7 +1017,18 @@ export default function GuildChatRoom({
 
                               {m.mediaUrl && (
                                 <img src={m.mediaUrl} alt="" loading="lazy"
-                                  className="my-1 max-h-64 w-auto max-w-full rounded-xl object-contain" />
+                                  className="my-1 max-h-64 w-auto max-w-full rounded-xl object-contain"
+                                  /* A dead media URL used to collapse to nothing
+                                     (empty alt = invisible), which reads as the
+                                     GIF having vanished. A failure now shows its
+                                     face — and names itself for bug reports. */
+                                  onError={(e) => {
+                                    const img = e.currentTarget;
+                                    if (img.dataset.failed) return;
+                                    img.dataset.failed = "1";
+                                    console.debug("[dv-gif] media failed to load", m.mediaUrl);
+                                    img.outerHTML = '<span class="my-1 inline-block rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500">GIF unavailable</span>';
+                                  }} />
                               )}
 
                               {!coarse && !editing && (

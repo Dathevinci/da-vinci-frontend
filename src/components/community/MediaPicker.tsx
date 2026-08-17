@@ -191,16 +191,29 @@ function GifPanel({
 
   // Outside tap closes — outside the PANEL and outside the TOGGLE ROW
   // (the panel is portaled, so it isn't a DOM child of the row anymore).
-  // Any scroll closes too: the panel is viewport-fixed and its anchor
-  // lives inside scrollable composers, so it would drift off its button.
+  // A scroll closes ONLY when it actually moved the anchor button. The old
+  // any-scroll close existed so the viewport-fixed panel couldn't drift off
+  // its button — but the guild chat auto-scrolls its message list every time
+  // a message lands while the reader sits at the bottom (which is always,
+  // when composing), and each incoming message was silently killing an open
+  // picker ("the gif features keep on disappearing"). A list scrolling
+  // BESIDE the composer never moves the button, so the panel may stay; when
+  // the button truly moves, the close keeps the panel from floating loose.
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
       const t = e.target as Node;
       if (panelRef.current && !panelRef.current.contains(t) &&
           anchorRef.current && !anchorRef.current.contains(t)) onClose();
     };
+    const restRect = anchorRef.current?.getBoundingClientRect() ?? null;
     const onScroll = (e: Event) => {
       if (panelRef.current && e.target instanceof Node && panelRef.current.contains(e.target)) return;
+      const now = anchorRef.current?.getBoundingClientRect();
+      if (
+        restRect && now &&
+        Math.abs(now.top - restRect.top) < 2 &&
+        Math.abs(now.left - restRect.left) < 2
+      ) return;
       onClose();
     };
     document.addEventListener("mousedown", onDown);
