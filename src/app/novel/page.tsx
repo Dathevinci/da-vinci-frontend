@@ -1,6 +1,7 @@
 "use client";
 
 import { swrRawJson, readSwrCache } from "@/lib/swrCache";
+import { lastNavWasPop } from "@/lib/navType";
 import { useEffect, useLayoutEffect, useRef, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -38,6 +39,9 @@ function NovelInner() {
   const [completed, setCompleted] = useState<NovelResult[]>([]);
   const [loading, setLoading] = useState(true);
   const restored = useRef(false);
+  // Same guards as the manhwa page — see the comments there.
+  const servedQs = useRef("");
+  const browseSeq = useRef(0);
 
   /**
    * PRE-PAINT RESTORE. useEffect fires after the browser has painted, so a
@@ -48,22 +52,53 @@ function NovelInner() {
    * becomes visible. The network refresh below still runs and corrects.
    */
   useLayoutEffect(() => {
-    if (!isHome) return;
-    const cached = readSwrCache("dv-novel-home");
-    if (!cached) return;
-    restored.current = true;
-    setFeaturedHero(cached.featuredHero || []);
-    setTranslatedNovels(cached.translatedNovels || []);
-    setOriginalFiction(cached.originalFiction || []);
-    setLatestUpdates(cached.latestUpdates || []);
-    setTrending(cached.trending || []);
-    setCompleted(cached.completed || []);
-    setLoading(false);
+    if (isHome) {
+      const cached = readSwrCache("dv-novel-home");
+      if (!cached) return;
+      restored.current = true;
+      setFeaturedHero(cached.featuredHero || []);
+      setTranslatedNovels(cached.translatedNovels || []);
+      setOriginalFiction(cached.originalFiction || []);
+      setLatestUpdates(cached.latestUpdates || []);
+      setTrending(cached.trending || []);
+      setCompleted(cached.completed || []);
+      setLoading(false);
+      return;
+    }
+    // The browse grid restores too — same treatment and same guards as the
+    // manhwa page (owner-reported there): history returns only, exact query
+    // string match, snapshot written with the rows it labels.
+    try {
+      if (!lastNavWasPop()) return;
+      const raw = sessionStorage.getItem("dv-browse-novel");
+      if (!raw) return;
+      const c = JSON.parse(raw);
+      if (!c || c.qs !== sp.toString() || !Array.isArray(c.data) || c.data.length === 0) return;
+      restored.current = true;
+      servedQs.current = c.qs;
+      setData(c.data);
+      setLoading(false);
+    } catch {
+      /* snapshot is best-effort — worst case is the old cold reload */
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isHome]);
 
   useEffect(() => {
-    if (!restored.current) setLoading(true);
+    if (isHome || loading || data.length === 0) return;
+    try {
+      if (servedQs.current !== sp.toString()) return;
+      sessionStorage.setItem("dv-browse-novel", JSON.stringify({ qs: servedQs.current, data }));
+    } catch {
+      /* quota or privacy mode — browse just reloads cold next time */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHome, loading, data]);
+
+  useEffect(() => {
+    const wasRestored = restored.current;
+    restored.current = false;
+    if (!wasRestored) setLoading(true);
     if (isHome) {
       // Cached-then-refresh: closing a novel's X remounts this page, and
       // without the session copy the whole feed visibly reloaded on every
@@ -86,14 +121,18 @@ function NovelInner() {
       let url = `/api/novels?page=${page}`;
       if (query) url += `&q=${encodeURIComponent(query)}`;
       else url += `&list=${encodeURIComponent(list)}`;
+      const id = ++browseSeq.current;
+      const qsAtCall = sp.toString();
       fetch(url)
         .then((r) => r.json())
         .then((res) => {
+          if (id !== browseSeq.current) return;
+          servedQs.current = qsAtCall;
           setData(res.results || []);
           setLoading(false);
         })
         .catch(() => {
-          setData([]);
+          if (id !== browseSeq.current) return;
           setLoading(false);
         });
     }
@@ -226,7 +265,7 @@ function NovelInner() {
             </div>
           </motion.div>
         ) : (
-          <motion.div key="browse" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }} className="max-w-[1500px] mx-auto px-4 md:px-8">
+          <motion.div key="browse" initial={restored.current ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }} className="max-w-[1500px] mx-auto px-4 md:px-8">
             <div className="flex items-center gap-3 mb-8 pt-4">
               <div className="w-12 h-12 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400">
                 <BookOpen className="w-6 h-6" />

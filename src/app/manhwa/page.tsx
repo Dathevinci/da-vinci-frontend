@@ -1,6 +1,7 @@
 "use client";
 
 import { swrRawJson, readSwrCache } from "@/lib/swrCache";
+import { lastNavWasPop } from "@/lib/navType";
 import { useState, useEffect, useLayoutEffect, useRef, Suspense } from "react";
 import ManhwaCard from "@/components/manhwa/ManhwaCard";
 import ManhwaFilters from "@/components/manhwa/ManhwaFilters";
@@ -48,6 +49,13 @@ function ManhwaPageInner() {
   const [hasNext, setHasNext] = useState(false);
   const [loading, setLoading] = useState(true);
   const restored = useRef(false);
+  /** The query string whose fetch PRODUCED the rows on screen — recorded in
+   *  the fetch callback, never read live at write time. Labeling from live
+   *  state pairs a new URL with old rows during transitions (review-caught,
+   *  the same class MediaExplore's servedQuery exists for). */
+  const servedQs = useRef("");
+  // Only the newest browse request may render or be persisted.
+  const browseSeq = useRef(0);
 
   // A filter (status/sort) always means the browse grid, never the home shelves.
   const isHome = !query && page === 1 && sp.get("view") !== "all" && !status && !sort;
@@ -59,19 +67,69 @@ function ManhwaPageInner() {
    * and no route transition. The network refresh below still corrects it.
    */
   useLayoutEffect(() => {
-    if (!isHome) return;
-    const cached = readSwrCache("dv-manhwa-home");
-    if (!cached) return;
-    restored.current = true;
-    setTrending(cached.trending || []);
-    setLatestUpdates(cached.latestUpdates || []);
-    setHasNext(true);
-    setLoading(false);
+    if (isHome) {
+      const cached = readSwrCache("dv-manhwa-home");
+      if (!cached) return;
+      restored.current = true;
+      setTrending(cached.trending || []);
+      setLatestUpdates(cached.latestUpdates || []);
+      setHasNext(true);
+      setLoading(false);
+      return;
+    }
+    /**
+     * THE BROWSE GRID RESTORES TOO. The home shelves got the pre-paint
+     * restore months of reports ago, but "Browse all" (?view=all) still
+     * cold-fetched on every mount — so opening a title from the grid and
+     * pressing its X reloaded the whole page and dumped the reader at the
+     * top (owner-reported). Same rules the explore snapshot earned in
+     * review: restore ONLY on a history return (lastNavWasPop — a fresh
+     * push must load fresh), and only when the snapshot answers exactly
+     * this URL's query string, which the writer stores WITH the rows so a
+     * half-applied filter can never mislabel them.
+     */
+    try {
+      if (!lastNavWasPop()) return;
+      const raw = sessionStorage.getItem("dv-browse-manhwa");
+      if (!raw) return;
+      const c = JSON.parse(raw);
+      if (!c || c.qs !== sp.toString() || !Array.isArray(c.data) || c.data.length === 0) return;
+      restored.current = true;
+      servedQs.current = c.qs;
+      setData(c.data);
+      setHasNext(!!c.hasNext);
+      setLoading(false);
+    } catch {
+      /* snapshot is best-effort — worst case is the old cold reload */
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isHome]);
 
+  /* Written whenever a settled browse result changes — never mid-load, never
+     empty, and always carrying the query string that produced it. */
   useEffect(() => {
-    if (!restored.current) setLoading(true);
+    if (isHome || loading || data.length === 0) return;
+    try {
+      // servedQs is the string whose fetch produced these rows; when it
+      // differs from the address bar we are mid-transition and say nothing.
+      if (servedQs.current !== sp.toString()) return;
+      sessionStorage.setItem(
+        "dv-browse-manhwa",
+        JSON.stringify({ qs: servedQs.current, data, hasNext })
+      );
+    } catch {
+      /* quota or privacy mode — browse just reloads cold next time */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHome, loading, data, hasNext]);
+
+  useEffect(() => {
+    // Consumed on first use: exactly the restore's own background refresh is
+    // silent. Left set, every later query change skipped the loader, kept
+    // the pager clickable mid-flight, and raced fetches (review-caught).
+    const wasRestored = restored.current;
+    restored.current = false;
+    if (!wasRestored) setLoading(true);
 
     if (isHome) {
       // Fetch home layout data (Trending & Latest)
@@ -95,17 +153,23 @@ function ManhwaPageInner() {
       if (query) url += `&q=${encodeURIComponent(query)}`;
       if (status) url += `&status=${encodeURIComponent(status)}`;
       if (sort) url += `&sort=${encodeURIComponent(sort)}`;
+      const id = ++browseSeq.current;
+      const qsAtCall = sp.toString();
       fetch(url)
         .then((res) => res.json())
         .then((res: ISearch<IMangaResult>) => {
+          if (id !== browseSeq.current) return;
+          servedQs.current = qsAtCall;
           setData(res.results || []);
           setHasNext(res.hasNextPage || false);
           setLoading(false);
         })
         .catch((err) => {
+          if (id !== browseSeq.current) return;
           console.error(err);
-          setData([]);
-          setHasNext(false);
+          // A failed REFRESH keeps what the reader is looking at — the home
+          // shelves' error path does the same. Emptying here evicted freshly
+          // restored rows into "No Series Found" (review-caught).
           setLoading(false);
         });
     }
@@ -249,7 +313,7 @@ function ManhwaPageInner() {
             </div>
           </motion.div>
         ) : data.length > 0 ? (
-          <motion.div key="grid" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }} className="max-w-[1400px] mx-auto px-4 md:px-8">
+          <motion.div key="grid" initial={restored.current ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }} className="max-w-[1400px] mx-auto px-4 md:px-8">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 bg-[#151518] border border-[#2a2a32] p-6 rounded-xl shadow-lg relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#dc2626] to-red-600"></div>
               <div>
