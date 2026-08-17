@@ -130,12 +130,12 @@ export default function TitleRack({ userId, isMine, onChange, version }: {
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 }}
-                    className="inline-flex items-center gap-2 px-3.5 py-1.5 text-[11px] font-black uppercase tracking-[0.18em] border border-amber-300/40 bg-gradient-to-r from-[#181124] via-[#241538] to-[#140e21] text-amber-100 shadow-[0_0_14px_rgba(251,191,36,0.22)]"
+                    className="inline-flex items-center gap-2.5 px-4 py-2 min-h-[38px] text-[11px] font-black uppercase tracking-[0.18em] border border-amber-300/60 bg-gradient-to-r from-[#1c132c] via-[#2e1b48] to-[#180f26] text-amber-100 shadow-[0_0_20px_rgba(251,191,36,0.35)] rounded-lg transition-transform hover:scale-105"
                     style={{ clipPath: notch(8) }}
                     title="Bug Detective"
                   >
-                    <img src="/icons/bug-detective.png" alt="Bug Detective" className="h-4 w-4 object-contain -my-1 shrink-0" />
-                    <img src="/titles/bug-detective-wordmark.png" alt="Bug Detective" className="h-3.5 object-contain" />
+                    <img src="/icons/bug-detective.png" alt="Bug Detective" className="h-7 w-7 object-contain -my-1 shrink-0 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
+                    <img src="/titles/bug-detective-wordmark.png" alt="Bug Detective" className="h-5.5 object-contain brightness-110 drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]" />
                   </motion.span>
                 );
               }
@@ -172,18 +172,18 @@ export default function TitleRack({ userId, isMine, onChange, version }: {
                   return (
                     <button key={title} onClick={() => toggle(title)}
                       title={set ? `From completing ${set}` : "Earned"}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] transition hover:brightness-115"
+                      className="inline-flex items-center gap-2 px-3.5 py-2 text-[11px] font-black uppercase tracking-[0.16em] transition hover:brightness-115"
                       style={{
                         clipPath: notch(8),
                         color: on ? (at === 0 ? "#fcd34d" : ACCENT_LIT) : "#64748b",
-                        background: on ? (isBugDetective ? "rgba(36,21,56,.4)" : "rgba(162,116,255,.14)") : "rgba(255,255,255,.03)",
-                        boxShadow: `inset 0 0 0 1px ${on ? (isBugDetective ? "rgba(251,191,36,.55)" : "rgba(162,116,255,.55)") : "rgba(255,255,255,.09)"}`,
+                        background: on ? (isBugDetective ? "rgba(44,26,72,.6)" : "rgba(162,116,255,.14)") : "rgba(255,255,255,.03)",
+                        boxShadow: `inset 0 0 0 1px ${on ? (isBugDetective ? "rgba(251,191,36,.65)" : "rgba(162,116,255,.55)") : "rgba(255,255,255,.09)"}`,
                       }}>
                       {on && <span className="font-mono text-[10px] opacity-80">{at + 1}</span>}
                       {isBugDetective ? (
                         <span className="inline-flex items-center gap-1.5">
-                          <img src="/icons/bug-detective.png" alt="Bug Detective" className="h-3.5 w-3.5 object-contain" />
-                          <img src="/titles/bug-detective-wordmark.png" alt="Bug Detective" className="h-3 object-contain" />
+                          <img src="/icons/bug-detective.png" alt="Bug Detective" className="h-5 w-5 object-contain shrink-0" />
+                          <img src="/titles/bug-detective-wordmark.png" alt="Bug Detective" className="h-4 object-contain brightness-110 drop-shadow-[0_0_6px_rgba(255,255,255,0.35)]" />
                         </span>
                       ) : (
                         title

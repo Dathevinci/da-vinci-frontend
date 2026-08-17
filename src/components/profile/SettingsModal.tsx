@@ -852,11 +852,11 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                         </div>
                         <div className="rounded-xl border border-white/10 bg-black/30 p-3">
                           <p className="text-[11px] text-slate-500">Current Title:</p>
-                          <div className="truncate text-sm font-bold text-white mt-0.5">
+                          <div className="truncate text-sm font-bold text-white mt-1">
                             {currentTitle.toLowerCase() === "bug detective" ? (
-                              <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 border border-amber-300/40 bg-gradient-to-r from-[#181124] via-[#241538] to-[#140e21] text-amber-100 shadow-[0_0_12px_rgba(251,191,36,0.22)]">
-                                <img src="/icons/bug-detective.png" alt="Bug Detective Icon" className="h-4 w-4 object-contain shrink-0" />
-                                <img src="/titles/bug-detective-wordmark.png" alt="Bug Detective" className="h-3.5 object-contain" />
+                              <span className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 border border-amber-300/60 bg-gradient-to-r from-[#1c132c] via-[#2e1b48] to-[#180f26] text-amber-100 shadow-[0_0_16px_rgba(251,191,36,0.3)]">
+                                <img src="/icons/bug-detective.png" alt="Bug Detective Icon" className="h-6 w-6 object-contain shrink-0 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
+                                <img src="/titles/bug-detective-wordmark.png" alt="Bug Detective" className="h-4.5 object-contain brightness-110 drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]" />
                               </span>
                             ) : (
                               currentTitle
@@ -888,10 +888,10 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                                         key={title}
                                         onClick={() => toggleTitle(title)}
                                         title={set ? `From completing ${set}` : "Earned"}
-                                        className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider transition ${
+                                        className={`inline-flex items-center gap-2 rounded-lg border px-3.5 py-2 text-[11px] font-bold uppercase tracking-wider transition ${
                                           on
                                             ? isBugDetective
-                                              ? "border-amber-300/60 bg-amber-950/40 text-amber-200 shadow-[0_0_12px_rgba(251,191,36,0.25)]"
+                                              ? "border-amber-300/70 bg-amber-950/50 text-amber-200 shadow-[0_0_14px_rgba(251,191,36,0.35)]"
                                               : at === 0
                                               ? "border-amber-400/50 bg-amber-500/10 text-amber-300"
                                               : "border-violet-400/50 bg-violet-500/10 text-violet-200"
@@ -900,9 +900,9 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                                       >
                                         {on && <span className="font-mono text-[10px] opacity-80">{at + 1}</span>}
                                         {isBugDetective ? (
-                                          <span className="inline-flex items-center gap-1.5">
-                                            <img src="/icons/bug-detective.png" alt="Bug Detective" className="h-3.5 w-3.5 object-contain shrink-0" />
-                                            <img src="/titles/bug-detective-wordmark.png" alt="Bug Detective" className="h-3 object-contain" />
+                                          <span className="inline-flex items-center gap-2">
+                                            <img src="/icons/bug-detective.png" alt="Bug Detective" className="h-5 w-5 object-contain shrink-0" />
+                                            <img src="/titles/bug-detective-wordmark.png" alt="Bug Detective" className="h-4 object-contain brightness-110 drop-shadow-[0_0_6px_rgba(255,255,255,0.35)]" />
                                           </span>
                                         ) : (
                                           title

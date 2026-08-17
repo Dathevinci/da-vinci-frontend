@@ -566,7 +566,7 @@ export default function PublicProfilePage() {
                   rack has not answered yet — falling back to profileUser then
                   avoids a flash of no titles on load. */}
               <TitleChips
-                user={wornTitles ? { equippedTitles: wornTitles } : profileUser}
+                user={wornTitles ? { ...profileUser, equippedTitles: wornTitles } : profileUser}
                 size="md"
                 max={3}
               />

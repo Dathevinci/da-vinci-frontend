@@ -100,20 +100,20 @@ export function TitleChips({
           return (
             <span
               key={t}
-              className={`inline-flex items-center gap-1.5 rounded-full ${
-                size === "md" ? "px-3 py-1 text-xs" : "px-2 py-0.5 text-[10px]"
-              } font-black tracking-wider whitespace-nowrap border border-amber-300/40 bg-gradient-to-r from-[#181124] via-[#241538] to-[#140e21] text-amber-100 shadow-[0_0_14px_rgba(251,191,36,0.22)]`}
+              className={`inline-flex items-center gap-2 rounded-full ${
+                size === "md" ? "px-4 py-1.5 min-h-[34px]" : "px-2.5 py-1 min-h-[26px]"
+              } font-black tracking-wider whitespace-nowrap border border-amber-300/60 bg-gradient-to-r from-[#1c132c] via-[#2e1b48] to-[#180f26] text-amber-100 shadow-[0_0_18px_rgba(251,191,36,0.3)] transition-transform duration-200 hover:scale-105`}
               title="Bug Detective"
             >
               <img
                 src="/icons/bug-detective.png"
                 alt="Bug Detective Icon"
-                className={size === "md" ? "h-5 w-5 object-contain -my-1 shrink-0" : "h-3.5 w-3.5 object-contain -my-0.5 shrink-0"}
+                className={size === "md" ? "h-7 w-7 object-contain -my-1.5 shrink-0 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" : "h-5 w-5 object-contain -my-1 shrink-0"}
               />
               <img
                 src="/titles/bug-detective-wordmark.png"
                 alt="Bug Detective"
-                className={size === "md" ? "h-4 object-contain" : "h-3 object-contain"}
+                className={size === "md" ? "h-5 sm:h-5.5 object-contain brightness-110 drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]" : "h-3.5 sm:h-4 object-contain brightness-110 drop-shadow-[0_0_6px_rgba(255,255,255,0.35)]"}
               />
             </span>
           );
@@ -200,7 +200,7 @@ export function UserBadgesCompact({
               key={t}
               title="Bug Detective"
               aria-label="Bug Detective"
-              className="grid h-5 w-5 shrink-0 place-items-center rounded-md border border-amber-400/40 bg-amber-500/20 p-0.5"
+              className="grid h-6 w-6 shrink-0 place-items-center rounded-md border border-amber-400/50 bg-amber-500/25 p-0.5 shadow-[0_0_10px_rgba(251,191,36,0.3)]"
             >
               <img src="/icons/bug-detective.png" alt="Bug Detective" className="h-full w-full object-contain" />
             </span>
@@ -306,20 +306,20 @@ export default function UserBadges({
           return (
             <span
               key={t}
-              className={`inline-flex items-center gap-1.5 rounded-full ${
-                size === "md" ? "px-3 py-1 text-xs" : "px-2 py-0.5 text-[10px]"
-              } font-black tracking-wider whitespace-nowrap border border-amber-300/40 bg-gradient-to-r from-[#181124] via-[#241538] to-[#140e21] text-amber-100 shadow-[0_0_14px_rgba(251,191,36,0.22)] ${className}`}
+              className={`inline-flex items-center gap-2 rounded-full ${
+                size === "md" ? "px-4 py-1.5 min-h-[34px]" : "px-2.5 py-1 min-h-[26px]"
+              } font-black tracking-wider whitespace-nowrap border border-amber-300/60 bg-gradient-to-r from-[#1c132c] via-[#2e1b48] to-[#180f26] text-amber-100 shadow-[0_0_18px_rgba(251,191,36,0.3)] transition-transform duration-200 hover:scale-105 ${className}`}
               title="Bug Detective"
             >
               <img
                 src="/icons/bug-detective.png"
                 alt="Bug Detective Icon"
-                className={size === "md" ? "h-5 w-5 object-contain -my-1 shrink-0" : "h-3.5 w-3.5 object-contain -my-0.5 shrink-0"}
+                className={size === "md" ? "h-7 w-7 object-contain -my-1.5 shrink-0 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" : "h-5 w-5 object-contain -my-1 shrink-0"}
               />
               <img
                 src="/titles/bug-detective-wordmark.png"
                 alt="Bug Detective"
-                className={size === "md" ? "h-4 object-contain" : "h-3 object-contain"}
+                className={size === "md" ? "h-5 sm:h-5.5 object-contain brightness-110 drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]" : "h-3.5 sm:h-4 object-contain brightness-110 drop-shadow-[0_0_6px_rgba(255,255,255,0.35)]"}
               />
             </span>
           );
