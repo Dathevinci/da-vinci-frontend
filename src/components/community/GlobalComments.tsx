@@ -143,10 +143,7 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
   const { user } = useUser();
   const [rows, setRows] = useState<Row[]>([]);
   const [source, setSource] = useState<Source>("all");
-  // Defaults to most-loved, not newest. The ranking was always loves minus
-  // dislikes server-side, but landing on pure chronology meant nobody ever
-  // saw it unless they went looking for the toggle.
-  const [sort, setSort] = useState<"newest" | "top">("top");
+  const [sort, setSort] = useState<"newest" | "top">("newest");
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -174,7 +171,7 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
           : []
       );
     } catch {
-      /* offline */
+      // offline / cold backend — empty list is fine
     } finally {
       setLoading(false);
     }
@@ -217,7 +214,7 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
             })}
           </div>
           <div className="flex items-center gap-2">
-            {([["top", "Most Loved"], ["newest", "Recent"]] as const).map(([k, label]) => (
+            {([["newest", "Recent"], ["top", "Most Loved"]] as const).map(([k, label]) => (
               <button key={k} onClick={() => setSort(k)}
                 className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] transition ${
                   sort === k ? "text-white" : "text-slate-500 hover:text-slate-300"}`}

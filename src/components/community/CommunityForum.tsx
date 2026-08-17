@@ -263,7 +263,7 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
   const [topics, setTopics] = useState<{ tag: string; count: number }[]>([]);
   const [total, setTotal] = useState(0);
   const [tag, setTag] = useState<string>("All");
-  const [sort, setSort] = useState<"top" | "newest">("top");
+  const [sort, setSort] = useState<"top" | "newest">("newest");
   const [loading, setLoading] = useState(true);
   const [composing, setComposing] = useState(false);
 
@@ -609,7 +609,7 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
             {/* sort */}
             <div className="mb-4 flex items-center justify-end gap-2">
               <span className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-600">Sort</span>
-              {([["top", "Top"], ["newest", "Recent"]] as const).map(([k, label]) => (
+              {([["newest", "Recent"], ["top", "Top"]] as const).map(([k, label]) => (
                 <button key={k} onClick={() => setSort(k)}
                   className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] transition ${
                     sort === k ? "text-white" : "text-slate-500 hover:text-slate-300"}`}
