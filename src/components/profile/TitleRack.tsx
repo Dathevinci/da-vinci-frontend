@@ -130,7 +130,7 @@ export default function TitleRack({ userId, isMine, onChange, version }: {
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 }}
-                    className="inline-flex items-center gap-2.5 px-4 py-2 min-h-[38px] text-[11px] font-black uppercase tracking-[0.18em] border border-pink-400/60 bg-gradient-to-r from-[#210617] via-[#330925] to-[#1a0413] text-pink-100 shadow-[0_0_22px_rgba(244,63,94,0.4),0_0_40px_rgba(219,39,119,0.25)] rounded-lg transition-transform hover:scale-105"
+                    className="inline-flex items-center gap-2.5 px-4 py-2 min-h-[38px] text-[11px] font-black uppercase tracking-[0.18em] border border-pink-400/40 bg-pink-950/20 backdrop-blur-md text-pink-100 shadow-[0_0_18px_rgba(244,63,94,0.25)] rounded-lg transition-transform hover:scale-105"
                     style={{ clipPath: notch(8) }}
                     title="Bug Detective"
                   >
@@ -176,8 +176,8 @@ export default function TitleRack({ userId, isMine, onChange, version }: {
                       style={{
                         clipPath: notch(8),
                         color: on ? (at === 0 ? "#fcd34d" : ACCENT_LIT) : "#64748b",
-                        background: on ? (isBugDetective ? "rgba(51,9,37,.65)" : "rgba(162,116,255,.14)") : "rgba(255,255,255,.03)",
-                        boxShadow: `inset 0 0 0 1px ${on ? (isBugDetective ? "rgba(244,63,94,.7)" : "rgba(162,116,255,.55)") : "rgba(255,255,255,.09)"}`,
+                        background: on ? (isBugDetective ? "rgba(219,39,119,.15)" : "rgba(162,116,255,.14)") : "rgba(255,255,255,.03)",
+                        boxShadow: `inset 0 0 0 1px ${on ? (isBugDetective ? "rgba(244,63,94,.5)" : "rgba(162,116,255,.55)") : "rgba(255,255,255,.09)"}`,
                       }}>
                       {on && <span className="font-mono text-[10px] opacity-80">{at + 1}</span>}
                       {isBugDetective ? (

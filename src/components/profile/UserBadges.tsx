@@ -102,7 +102,7 @@ export function TitleChips({
               key={t}
               className={`inline-flex items-center gap-2 rounded-full ${
                 size === "md" ? "px-4 py-1.5 min-h-[34px]" : "px-2.5 py-1 min-h-[26px]"
-              } font-black tracking-wider whitespace-nowrap border border-pink-400/50 bg-gradient-to-r from-[#210617] via-[#330925] to-[#1a0413] text-pink-100 shadow-[0_0_20px_rgba(244,63,94,0.35),0_0_35px_rgba(219,39,119,0.2)] transition-transform duration-200 hover:scale-105 hover:border-pink-300/80`}
+              } font-black tracking-wider whitespace-nowrap border border-pink-400/40 bg-pink-950/20 backdrop-blur-md text-pink-100 shadow-[0_0_16px_rgba(244,63,94,0.25)] transition-all duration-200 hover:scale-105 hover:bg-pink-950/30 hover:border-pink-300/70`}
               title="Bug Detective"
             >
               <img
@@ -200,7 +200,7 @@ export function UserBadgesCompact({
               key={t}
               title="Bug Detective"
               aria-label="Bug Detective"
-              className="grid h-6 w-6 shrink-0 place-items-center rounded-md border border-pink-400/50 bg-pink-500/25 p-0.5 shadow-[0_0_10px_rgba(244,63,94,0.35)]"
+              className="grid h-6 w-6 shrink-0 place-items-center rounded-md border border-pink-400/40 bg-pink-950/20 backdrop-blur-md p-0.5 shadow-[0_0_10px_rgba(244,63,94,0.25)]"
             >
               <img src="/icons/bug-detective.png" alt="Bug Detective" className="h-full w-full object-contain" />
             </span>
@@ -308,7 +308,7 @@ export default function UserBadges({
               key={t}
               className={`inline-flex items-center gap-2 rounded-full ${
                 size === "md" ? "px-4 py-1.5 min-h-[34px]" : "px-2.5 py-1 min-h-[26px]"
-              } font-black tracking-wider whitespace-nowrap border border-pink-400/50 bg-gradient-to-r from-[#210617] via-[#330925] to-[#1a0413] text-pink-100 shadow-[0_0_20px_rgba(244,63,94,0.35),0_0_35px_rgba(219,39,119,0.2)] transition-transform duration-200 hover:scale-105 hover:border-pink-300/80 ${className}`}
+              } font-black tracking-wider whitespace-nowrap border border-pink-400/40 bg-pink-950/20 backdrop-blur-md text-pink-100 shadow-[0_0_16px_rgba(244,63,94,0.25)] transition-all duration-200 hover:scale-105 hover:bg-pink-950/30 hover:border-pink-300/70 ${className}`}
               title="Bug Detective"
             >
               <img
