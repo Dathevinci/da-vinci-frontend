@@ -45,11 +45,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, [preferences.reducedMotion]);
 
-  useEffect(() => {
-    // Data Saver → a body flag any component can read via CSS, plus it gates the
-    // heavy autoplay trailer (see AnimeBackgroundTrailer). Universal across modes.
-    document.body.classList.toggle("data-saver", preferences.dataSaver);
-  }, [preferences.dataSaver]);
+  // No body flag for Data Saver: a `data-saver` class used to be toggled here
+  // for CSS to read, but no rule or component ever consumed it (and the
+  // trailer component its comment pointed at is long deleted). Data Saver is
+  // enforced where images and trailers are actually chosen — components read
+  // preferences.dataSaver via usePreferences directly.
 
   useEffect(() => {
     // Clear any existing theme classes

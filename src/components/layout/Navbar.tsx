@@ -6,6 +6,9 @@ import Link from 'next/link';
 import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut, Users, Palette, ShoppingBag, Menu, X, Settings, Heart, ChevronDown, Tv, BookMarked, BookOpen, Swords, Terminal, Layers, Gavel, Trophy, Gamepad2 } from 'lucide-react';
 import { isAdmin, isLeadDev } from "@/lib/admin";
 import { warmBackend } from "@/lib/warmBackend";
+// The nav avatar is 24px; serve it at that scale instead of the original
+// upload (animated uploads pass through untouched — see cloudinary.ts).
+import { cloudinaryFit } from "@/lib/cloudinary";
 import BottomDock from "@/components/layout/BottomDock";
 import SearchModal from './SearchModal';
 import ArisePointPopup from '../ui/ArisePointPopup';
@@ -19,27 +22,6 @@ import NavIsland from "./NavIsland";
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
-  const [hidden, setHidden] = useState(false);
-  // `peek` is hover-reveal: the bar is out of the way, but reaching for the top
-  // of the screen brings it straight back without needing to scroll up first.
-  const [peek, setPeek] = useState(false);
-  /**
-   * The island is DESKTOP ONLY. It is built on hover, and a touch screen has
-   * no hover — auto-hiding there would take the nav away with no gesture to
-   * bring it back except scrolling up, which is strictly worse than the bar
-   * simply staying put. Mobile keeps the behaviour it always had.
-   *
-   * Starts false so the server render and the first client render agree; the
-   * effect below is what turns it on, after mount.
-   */
-  const [isDesktop, setIsDesktop] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(hover: hover) and (pointer: fine) and (min-width: 1024px)");
-    const apply = () => setIsDesktop(mq.matches);
-    apply();
-    mq.addEventListener("change", apply);
-    return () => mq.removeEventListener("change", apply);
-  }, []);
   // The nav is on every page, so this is the earliest moment of any visit:
   // knock on the Render dyno once per session so it's awake by the time a
   // game page actually needs an answer.
@@ -72,7 +54,6 @@ export default function Navbar() {
     // boolean actually flips — the old handler called setState on every
     // scroll event, re-rendering the blur-heavy header and causing jank.
     let ticking = false;
-    let lastY = typeof window !== "undefined" ? window.scrollY : 0;
     const handleScroll = () => {
       if (ticking) return;
       ticking = true;
@@ -80,23 +61,6 @@ export default function Navbar() {
         const y = window.scrollY;
         setIsScrolled((prev) => {
           const next = y > 20;
-          return prev === next ? prev : next;
-        });
-        /**
-         * Hide on the way DOWN, come back on the way UP. Reading is the thing
-         * this site is for, and a fixed bar costs 64-96px of every screen.
-         * Direction-based rather than position-based so the bar is always one
-         * small upward scroll away instead of a trip to the top of the page.
-         *
-         * The 6px deadzone stops trackpad jitter flickering it, and it never
-         * hides in the first 90px so it is present when a page opens. The bar
-         * animates with translateY only — a transform, so it composites on the
-         * GPU and never reflows the page beneath it.
-         */
-        setHidden((prev) => {
-          if (Math.abs(y - lastY) < 6) return prev;
-          const next = y > lastY && y > 90;
-          lastY = y;
           return prev === next ? prev : next;
         });
         ticking = false;
@@ -194,7 +158,7 @@ export default function Navbar() {
       <header
         className={`fixed top-0 w-full z-50 transition-all duration-300 ${user ? "hidden" : "lg:hidden"} ${
         isScrolled 
-          ? `bg-[#030305]/90 backdrop-blur-lg border-b ${isDejavuh ? 'border-purple-500/30 shadow-[0_4px_30px_rgba(168,85,247,0.15)]' : 'border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.5)]'}`
+          ? `bg-[#030305] border-b ${isDejavuh ? 'border-purple-500/30 shadow-[0_4px_30px_rgba(168,85,247,0.15)]' : 'border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.5)]'}`
           : 'bg-gradient-to-b from-[#030305]/80 to-transparent'
       }`}>
         <div className={`container mx-auto px-4 sm:px-6 flex justify-between items-center transition-all duration-300 ${isScrolled ? 'h-16' : 'h-20 lg:h-24'}`}>
@@ -300,7 +264,7 @@ export default function Navbar() {
                 <div className="hidden lg:flex items-center gap-3 xl:gap-4 relative shrink-0">
                   <UserLink username={user.username} className="flex items-center gap-2 text-sm font-bold bg-white/10 hover:bg-white/20 px-3 py-2 xl:px-4 xl:py-2 border border-white/10 rounded-full transition shadow-lg text-white whitespace-nowrap group">
                     <span className="relative inline-flex shrink-0">
-                      <img src={user.avatar || 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=100&q=80'} className="relative z-10 w-6 h-6 rounded-full object-cover" />
+                      <img src={cloudinaryFit(user.avatar || 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=100&q=80', 80)} className="relative z-10 w-6 h-6 rounded-full object-cover" />
                       <AvatarDecoration frame={(user as any).activeFrame} />
                     </span>
                     <span className={`hidden xl:inline transition

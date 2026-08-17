@@ -11,6 +11,9 @@ import GuildTag from "@/components/guild/GuildTag";
 import MentionText from "@/components/ui/MentionText";
 import { ACCENT, notch } from "@/components/cards/gacha";
 import { chapterNumberFromId } from "@/lib/manhwa/ids";
+// Comment avatars are 36px; serve them at that scale instead of the original
+// upload (animated uploads pass through untouched — see cloudinary.ts).
+import { cloudinaryFit } from "@/lib/cloudinary";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -272,7 +275,7 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
 
                   <div className="flex items-start gap-3">
                     {c.user?.avatar ? (
-                      <img src={c.user.avatar} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+                      <img src={cloudinaryFit(c.user.avatar, 80)} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
                     ) : (
                       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-purple-700 text-xs font-black">
                         {(c.user?.username || "?")[0]?.toUpperCase()}

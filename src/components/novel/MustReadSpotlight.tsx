@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Crown, BookOpen, Sparkles } from "lucide-react";
 import { novelCover } from "@/lib/novelImage";
+import { usePreferences } from "@/hooks/usePreferences";
 import { FEATURED_NOVELS } from "@/lib/novel/featured";
 import {
   PurpleAuraStyles,
@@ -27,8 +28,9 @@ import {
  *    link out from under an in-flight click.
  *  · A MANUAL CHOICE STICKS. Tapping a dot resets the timer rather than being
  *    overridden three seconds later by the rotation.
- *  · REDUCED MOTION DISABLES IT ENTIRELY — the reader said so; the dots still
- *    navigate by hand.
+ *  · REDUCED MOTION DISABLES IT ENTIRELY — whether the reader said so via the
+ *    OS setting or the app's own Performance Mode toggle (same contract as
+ *    DeckHero); the dots still navigate by hand.
  *
  * Slides cross-fade in place rather than sliding a track, so the section's
  * height never jumps and nothing below it reflows on each advance.
@@ -39,9 +41,12 @@ export default function MustReadSpotlight() {
   const [index, setIndex] = useState(0);
   const pausedRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { preferences, isLoaded: prefsLoaded } = usePreferences();
+  const reduce = prefsLoaded && preferences.reducedMotion;
 
   useEffect(() => {
     if (FEATURED_NOVELS.length < 2) return;
+    if (reduce) return;
     if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     timerRef.current = setInterval(() => {
@@ -49,8 +54,12 @@ export default function MustReadSpotlight() {
     }, INTERVAL_MS);
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      // Null the ref too — choose() restarts the clock off it, and a stale
+      // (already-cleared) id would let a dot click resurrect the rotation
+      // after a mid-session Performance Mode toggle disarmed it.
+      timerRef.current = null;
     };
-  }, []);
+  }, [reduce]);
 
   const choose = (i: number) => {
     setIndex(i);

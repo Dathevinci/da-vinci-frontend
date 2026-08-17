@@ -239,7 +239,7 @@ export default function NotificationsMenu({ openUp = false, onOpenChange }: { op
               ) : (
                 groups.map((group) => (
                 <div key={group.label}>
-                  <div className="sticky top-0 z-10 bg-[#0f0f13]/95 px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 backdrop-blur">
+                  <div className="sticky top-0 z-10 bg-[#0f0f13] px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
                     {group.label}
                   </div>
                 <div className="divide-y divide-white/5">

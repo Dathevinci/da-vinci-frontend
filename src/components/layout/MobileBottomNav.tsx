@@ -140,7 +140,7 @@ export default function MobileBottomNav() {
 
       <nav
         id="mobile-bottom-nav"
-        className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/10 bg-[#09090b]/90 backdrop-blur-xl pb-safe md:hidden"
+        className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/10 bg-[#09090b] pb-safe md:hidden"
       >
         <div className="flex h-16 items-center justify-around px-1">
           {navItems.map((item) => {

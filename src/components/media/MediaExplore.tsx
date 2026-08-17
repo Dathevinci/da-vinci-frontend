@@ -222,14 +222,32 @@ function FiltersPanel({
         return;
       }
       const r = anchorRef.current?.getBoundingClientRect();
-      if (r) setDropdownPos({ top: r.bottom + 8, right: Math.max(8, window.innerWidth - r.right) });
+      // Bail on unchanged positions: scroll fires this per event (capture
+      // catches the panel's own inner scroller too), and a fresh {top,right}
+      // object every time re-rendered the whole multi-section panel even when
+      // the bar hadn't moved a pixel.
+      if (r) {
+        const top = r.bottom + 8;
+        const right = Math.max(8, window.innerWidth - r.right);
+        setDropdownPos((prev) => (prev && prev.top === top && prev.right === right ? prev : { top, right }));
+      }
+    };
+    // rAF-coalesced (HoverPreview's cancel/schedule pattern) so a scroll burst
+    // costs one layout read per frame. The first call stays synchronous —
+    // dropdownPos starts null, and a deferred initial placement would flash
+    // the desktop panel as a bottom sheet for a frame.
+    let raf = 0;
+    const schedule = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(place);
     };
     place();
-    window.addEventListener("resize", place);
-    window.addEventListener("scroll", place, true);
+    window.addEventListener("resize", schedule);
+    window.addEventListener("scroll", schedule, true);
     return () => {
-      window.removeEventListener("resize", place);
-      window.removeEventListener("scroll", place, true);
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", schedule);
+      window.removeEventListener("scroll", schedule, true);
     };
   }, [anchorRef]);
 
@@ -615,26 +633,52 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
   useEffect(() => {
     if (!pagingReady || loading || more || items.length === 0) return;
     if (snapshotDead.current) return;
-    try {
-      const body = JSON.stringify({
-        writtenAt: Date.now(),
-        q: servedQuery.current.q,
-        filters: servedQuery.current.filters,
-        paging,
-        page, deepest, hasNext, totalPages, totalsApprox, items,
-        pageStarts: Array.from(pageStarts.current.entries()),
-        loadedCount: loadedCount.current,
-        requested: requested.current,
-      });
-      if (body.length > 2_500_000) {
+    /**
+     * THE REF VALUES ARE CAPTURED NOW, THE HEAVY WORK RUNS AT IDLE. The
+     * stringify of a deep accumulation costs real main-thread milliseconds
+     * per settle on a weak phone, so it's deferred — but the refs must be
+     * read at SETTLE time, while the guards above hold: an append can start
+     * inside the idle window, and it bumps `requested` past `page` before
+     * any state change could cancel this callback. Persisting that pair is
+     * the exact observer-stall the `more` guard exists to prevent. The
+     * capture is cheap (a handful of entries, not the items); only the
+     * items serialize is deferred. A newer settle cancels and reschedules,
+     * so only the latest state ever writes.
+     */
+    const captured = {
+      writtenAt: Date.now(),
+      q: servedQuery.current.q,
+      filters: servedQuery.current.filters,
+      paging,
+      page, deepest, hasNext, totalPages, totalsApprox, items,
+      pageStarts: Array.from(pageStarts.current.entries()),
+      loadedCount: loadedCount.current,
+      requested: requested.current,
+    };
+    const write = () => {
+      try {
+        const body = JSON.stringify(captured);
+        if (body.length > 2_500_000) {
+          snapshotDead.current = true;
+          return;
+        }
+        sessionStorage.setItem(exploreCacheKey, body);
+      } catch {
+        /* quota or privacy mode — explore just reloads cold next time */
         snapshotDead.current = true;
-        return;
       }
-      sessionStorage.setItem(exploreCacheKey, body);
-    } catch {
-      /* quota or privacy mode — explore just reloads cold next time */
-      snapshotDead.current = true;
+    };
+    let idleId: number | null = null;
+    let timerId: ReturnType<typeof setTimeout> | null = null;
+    if (typeof window.requestIdleCallback === "function") {
+      idleId = window.requestIdleCallback(write, { timeout: 800 });
+    } else {
+      timerId = setTimeout(write, 200);
     }
+    return () => {
+      if (idleId !== null) window.cancelIdleCallback(idleId);
+      if (timerId !== null) clearTimeout(timerId);
+    };
   }, [items, page, deepest, hasNext, totalPages, totalsApprox, loading, more, paging, pagingReady, exploreCacheKey]);
 
   const buildUrl = useCallback((p: number) => {
@@ -917,7 +961,7 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
   return (
     <div className="min-h-screen bg-[#070709] pb-24 text-white">
       {/* ── control bar ── */}
-      <div className="sticky top-0 z-30 border-b border-white/10 bg-[#070709]/95 px-4 py-3 backdrop-blur">
+      <div className="sticky top-0 z-30 border-b border-white/10 bg-[#070709] px-4 py-3">
         {/* Same wrap as the anime explore bar: the search takes a full row on a
             phone rather than splitting one with the buttons beside it. This
             page has fewer controls than anime, so it was less cramped — but

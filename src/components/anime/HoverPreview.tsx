@@ -29,9 +29,9 @@ export default function HoverPreview({ anime, children }: { anime: Anime; childr
   const [trailerOn, setTrailerOn] = useState(false);
   const { preferences } = usePreferences();
   const reduce = preferences.reducedMotion;
-  // Same gate as AnimeBackgroundTrailer: the user's Autoplay Trailers and
-  // Data Saver toggles apply HERE too — a setting that silently skips a
-  // surface isn't a setting.
+  // The user's Autoplay Trailers and Data Saver toggles apply HERE too — a
+  // setting that silently skips a surface isn't a setting. (This used to cite
+  // AnimeBackgroundTrailer as the sibling gate; that component is deleted.)
   const trailerAllowed = !reduce && preferences.autoplayTrailers && !preferences.dataSaver;
 
   const panelRef = useRef<HTMLDivElement>(null);

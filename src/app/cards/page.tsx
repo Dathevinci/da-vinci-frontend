@@ -19,6 +19,7 @@ import CountUp from "@/components/ui/CountUp";
 import PackReveal from "@/components/cards/PackReveal";
 import { Panel, CornerTicks, Stars, SegBar, GachaButton, Heading, StatRow, notch, ACCENT, ACCENT_LIT, GachaAmbience, Rise, Twinkles } from "@/components/cards/gacha";
 import { DIMENSIONS, DIMENSION_ORDER, CARD_LORE } from "@/data/cardLore";
+import { warnUnknownArtKeys } from "@/data/cardArt";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -146,7 +147,15 @@ export default function CardsPage() {
     // Session-cached, refreshed in the background — the binder paints its
     // sets instantly on every visit after the first instead of waiting out
     // a Render cold start. loadCatalog already refuses card-less payloads.
-    loadCatalog(API_URL, (data) => setCatalog(data));
+    loadCatalog(API_URL, (data) => {
+      setCatalog(data);
+      // An art key that matches no catalog card fails completely silently —
+      // the card keeps its drawn motif and the painting looks "never built".
+      // This tripwire makes the typo loud the moment the live catalog is
+      // known; it self-gates to development and only ever warns once, so the
+      // double onData fire (cache + network) costs nothing.
+      warnUnknownArtKeys((data?.cards || []).map((c: CardDef) => c.id));
+    });
   }, []);
 
   // One parser for both the cached and the fresh payload — SWR calls it twice.

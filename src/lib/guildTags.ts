@@ -62,11 +62,6 @@ export function subscribeGuildTags(fn: Listener): () => void {
   return () => { listeners.delete(fn); };
 }
 
-/** The cached answer, or `undefined` when nobody has asked yet. */
-export function getCachedGuildTag(userId: string): GuildTagInfo | null | undefined {
-  return cache.get(userId);
-}
-
 /** Drop every answer so the next render re-asks. Called nowhere, for now. */
 export function clearGuildTagCache() {
   cache.clear();

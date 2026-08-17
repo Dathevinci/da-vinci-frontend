@@ -156,11 +156,6 @@ export function subscribeGuildEmojis(fn: Listener): () => void {
   };
 }
 
-/** The cached catalog, or `undefined` when nobody has asked yet. */
-export function getCachedGuildEmojis(guildId: string): GuildEmojiCatalog | undefined {
-  return cache.get(guildId);
-}
-
 /**
  * Drop a guild's catalog so the next read re-asks. Call after an upload or a
  * delete — nothing polls, so this is the only thing that makes a new emoji
@@ -279,26 +274,6 @@ export function fetchGuildEmojis(guildId: string): Promise<GuildEmojiCatalog | n
     if (c) broadcast();
   });
   return request;
-}
-
-/**
- * `:name:` -> the emoji, or null.
- *
- * Takes either a whole catalog or a bare `byName` map, and lowercases the
- * lookup so a stray `:Sparkle:` still resolves — the shortcode is
- * case-insensitive by construction, which is what makes "one :sparkle: per
- * guild" true rather than one per capitalisation.
- */
-export function lookupGuildEmoji(
-  source: GuildEmojiCatalog | Record<string, GuildEmoji> | null | undefined,
-  name: string
-): GuildEmoji | null {
-  if (!source) return null;
-  const key = normalizeEmojiName(name);
-  if (!key) return null;
-  const map = (source as GuildEmojiCatalog).byName ?? (source as Record<string, GuildEmoji>);
-  const found = map?.[key];
-  return found ?? null;
 }
 
 /**

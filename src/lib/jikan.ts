@@ -423,10 +423,6 @@ export async function getAnimeRelations(id: number): Promise<AnimeRelation[]> {
   }
 }
 
-export async function getAnimeTrailer(id: number): Promise<string | null> {
-  return null;
-}
-
 // Search + Explore, served by AniList (same reliable source as the dashboard).
 // Maps the app's filter names to AniList enums, and falls back to Kitsu.
 export async function searchAnime(variables: any) {

@@ -52,6 +52,41 @@ function fmtLeft(ms: number) {
   return `${m}m ${sec}s`;
 }
 
+/**
+ * The per-second countdown, deliberately its own component: ticking a clock in
+ * page state re-rendered every auction card once a second for as long as the
+ * page was open. Scoped here, the tick re-renders one small chip — and it
+ * stops entirely while the tab is hidden (the guild-chat poll's visibility
+ * contract), with a catch-up on refocus so the time is right the moment it's
+ * visible again. Starts null so SSR and the first client render match.
+ */
+function CountdownChip({ endsAt }: { endsAt: string }) {
+  const [nowTs, setNowTs] = useState<number | null>(null);
+  useEffect(() => {
+    setNowTs(Date.now());
+    let t: ReturnType<typeof setInterval> | null = null;
+    const start = () => { if (t === null) t = setInterval(() => setNowTs(Date.now()), 1000); };
+    const stop = () => { if (t !== null) { clearInterval(t); t = null; } };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") { setNowTs(Date.now()); start(); }
+      else stop();
+    };
+    if (document.visibilityState === "visible") start();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => { stop(); document.removeEventListener("visibilitychange", onVisibility); };
+  }, []);
+  const msLeft = nowTs !== null ? new Date(endsAt).getTime() - nowTs : null;
+  const closing = msLeft !== null && msLeft < 120000;
+  return (
+    <div className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-black tabular-nums ${
+      closing ? "border-amber-500/40 bg-amber-500/10 text-amber-300" : "border-white/10 bg-white/5 text-slate-200"
+    }`}>
+      <Clock className="h-3.5 w-3.5" />
+      {msLeft === null ? "—" : fmtLeft(msLeft)}
+    </div>
+  );
+}
+
 export default function AuctionsPage() {
   const { user } = useUser();
   const { toast } = useToast();
@@ -61,7 +96,11 @@ export default function AuctionsPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [bidInput, setBidInput] = useState<Record<string, string>>({});
   const [showCreate, setShowCreate] = useState(false);
-  // nowTs ticks the countdowns; starts null so SSR and first client render match.
+  // Page-level clock for the card border's "closing" flip. It does NOT tick —
+  // it advances only on mount, at each auction's closing/end boundary, and on
+  // refocus (the per-second countdown text lives in CountdownChip, so its tick
+  // re-renders one chip instead of every card). Starts null so SSR and the
+  // first client render match.
   const [nowTs, setNowTs] = useState<number | null>(null);
 
   const canManage = isLeadDev(user);
@@ -84,16 +123,50 @@ export default function AuctionsPage() {
   useEffect(() => {
     load();
     // Poll so a bid from someone else shows up without a manual refresh. Gentle
-    // interval — this is a bidding board, not a trading floor.
-    const poll = setInterval(load, 15000);
-    return () => clearInterval(poll);
+    // interval — this is a bidding board, not a trading floor — and it only
+    // runs while the tab is visible (the guild-chat poll's contract), with an
+    // immediate refresh on refocus so nothing shown is 15s-stale.
+    let poll: ReturnType<typeof setInterval> | null = null;
+    const start = () => { if (poll === null) poll = setInterval(load, 15000); };
+    const stop = () => { if (poll !== null) { clearInterval(poll); poll = null; } };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") { load(); start(); }
+      else stop();
+    };
+    if (document.visibilityState === "visible") start();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => { stop(); document.removeEventListener("visibilitychange", onVisibility); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     setNowTs(Date.now());
-    const t = setInterval(() => setNowTs(Date.now()), 1000);
-    return () => clearInterval(t);
+  }, []);
+
+  // One-shot re-render at the next closing (T-2:00) or end boundary across the
+  // active auctions — each fired boundary advances nowTs, which re-arms this
+  // effect for the boundary after it. Hidden tabs throttle timers, so refocus
+  // also advances the clock to catch any boundary that slid by while away.
+  useEffect(() => {
+    if (nowTs === null) return;
+    const now = Date.now();
+    const boundaries = active
+      .flatMap((a) => {
+        const end = new Date(a.endsAt).getTime();
+        return [end - 120000, end];
+      })
+      .filter((t) => t > now);
+    if (boundaries.length === 0) return;
+    const t = setTimeout(() => setNowTs(Date.now()), Math.min(...boundaries) - now + 50);
+    return () => clearTimeout(t);
+  }, [active, nowTs]);
+
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") setNowTs(Date.now());
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
   }, []);
 
   const placeBid = async (a: Auction) => {
@@ -222,12 +295,7 @@ export default function AuctionsPage() {
                               <span>{a.bidCount} bid{a.bidCount === 1 ? "" : "s"}</span>
                             </div>
                           </div>
-                          <div className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-black tabular-nums ${
-                            closing ? "border-amber-500/40 bg-amber-500/10 text-amber-300" : "border-white/10 bg-white/5 text-slate-200"
-                          }`}>
-                            <Clock className="h-3.5 w-3.5" />
-                            {msLeft === null ? "—" : fmtLeft(msLeft)}
-                          </div>
+                          <CountdownChip endsAt={a.endsAt} />
                         </div>
 
                         <div className="mt-4 flex flex-wrap items-end justify-between gap-4">

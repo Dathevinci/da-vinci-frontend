@@ -44,14 +44,6 @@ export function resolveSource(id: string) {
   return { source: "rnf", slug: raw };
 }
 
-export function getSourceName(id: string): string {
-  const raw = String(id || "");
-  for (const [prefix, label] of Object.entries(SOURCE_LABELS)) {
-    if (raw.startsWith(prefix)) return label;
-  }
-  return "ReadNovelFull";
-}
-
 const GONE = () =>
   new Error("This title came from a removed source — it will return if its site joins the new line-up.");
 

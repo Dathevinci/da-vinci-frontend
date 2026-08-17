@@ -12,6 +12,9 @@ import { useUser } from "@/hooks/useUser";
 import { isLeadDev } from "@/lib/admin";
 import { useToast } from "@/components/ui/Toast";
 import { consoleApi } from "@/lib/consoleApi";
+// Roster avatars are 24-48px; serve them at that scale instead of the
+// original upload (animated uploads pass through untouched — see cloudinary.ts).
+import { cloudinaryFit } from "@/lib/cloudinary";
 import ConsoleDangerDialog from "@/components/console/ConsoleDangerDialog";
 
 /**
@@ -272,7 +275,7 @@ function UsersTab({ toast, meId }: { toast: any; meId?: string }) {
                 onClick={() => setSelected(u)}
                 className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-white/[0.04]"
               >
-                <img src={u.avatar || "/logo.png"} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+                <img src={cloudinaryFit(u.avatar || "/logo.png", 80)} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-2">
                     <span className="truncate text-sm font-bold text-white">{u.username}</span>
@@ -369,7 +372,7 @@ function UserDrawer({ user, meId, toast, onClose, onChanged, onDanger }: any) {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={CARD + " space-y-5"}>
       <div className="flex items-start gap-3">
-        <img src={user.avatar || "/logo.png"} alt="" className="h-12 w-12 rounded-full object-cover" />
+        <img src={cloudinaryFit(user.avatar || "/logo.png", 120)} alt="" className="h-12 w-12 rounded-full object-cover" />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h3 className="truncate text-base font-black text-white">{user.username}</h3>
@@ -517,7 +520,7 @@ function EconomyTab({ toast }: { toast: any }) {
             {ov.topHolders.map((u: any, i: number) => (
               <div key={u.id} className="flex items-center gap-3">
                 <span className="w-5 shrink-0 text-center text-[11px] font-black text-slate-600">{i + 1}</span>
-                <img src={u.avatar || "/logo.png"} alt="" className="h-6 w-6 shrink-0 rounded-full object-cover" />
+                <img src={cloudinaryFit(u.avatar || "/logo.png", 80)} alt="" className="h-6 w-6 shrink-0 rounded-full object-cover" />
                 <span className="min-w-0 flex-1 truncate text-sm font-bold text-slate-200">{u.username}</span>
                 <RoleChip role={u.role} />
                 <span className="shrink-0 text-sm font-black tabular-nums text-amber-300">{u.arisePoints.toLocaleString()}</span>

@@ -227,7 +227,7 @@ export default function NavIsland({ onSearch, onSettings }: { onSearch: () => vo
         }}
       >
         <HoverContext.Provider value={{ hoverId, setHoverId }}>
-        <nav onMouseLeave={() => setHoverId(null)} className="pointer-events-auto relative flex items-center gap-1 rounded-full border border-white/10 bg-[#0b0b12]/90 px-2.5 py-1.5 shadow-[0_14px_50px_rgba(0,0,0,.7)] backdrop-blur-xl">
+        <nav onMouseLeave={() => setHoverId(null)} className="pointer-events-auto relative flex items-center gap-1 rounded-full border border-white/10 bg-[#0b0b12] px-2.5 py-1.5 shadow-[0_14px_50px_rgba(0,0,0,.7)]">
           {/* ── mode ── opens UPWARD, with a padding bridge rather than a
               margin. A margin leaves dead space between the button and the
               menu, and crossing it fires mouseleave — which is exactly why

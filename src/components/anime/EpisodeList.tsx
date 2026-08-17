@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { searchAnikotoAnime, getAnikotoEpisodes, AnikotoEpisode } from "@/lib/anikoto";
 import { Loader2, Tv, AlertCircle, ChevronDown, Clock, Sparkles, Search } from "lucide-react";
 import WatchOverlay from "./WatchOverlay";
-import AnikotoPlayer from "./AnikotoPlayer";
 import { Anime } from "@tutkli/jikan-ts";
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useAnimeModal } from "@/components/providers/AnimeModalProvider";
@@ -42,8 +41,6 @@ export default function EpisodeList({
   // Overlay state
   const [watchEpisodeId, setWatchEpisodeId] = useState<string | null>(null);
   const [watchEpisodeNo, setWatchEpisodeNo] = useState<number | null>(null);
-  // Toggle between legacy WatchOverlay and new AnikotoPlayer
-  const [useCustomPlayer, setUseCustomPlayer] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -483,8 +480,8 @@ export default function EpisodeList({
         })()}
       </div>
 
-      {/* Fullscreen Watch Overlay (legacy) */}
-      {watchEpisodeId !== null && !useCustomPlayer && (
+      {/* Fullscreen Watch Overlay */}
+      {watchEpisodeId !== null && (
         <WatchOverlay
           anime={anime as any}
           consumetAnimeId={consumetId}
@@ -492,18 +489,6 @@ export default function EpisodeList({
           initialEpisodeNo={watchEpisodeNo || 1}
           initialSeconds={resumeSecondsProp ?? null}
           allEpisodes={episodes}
-          onClose={() => { setWatchEpisodeId(null); setWatchEpisodeNo(null); }}
-        />
-      )}
-
-      {/* New AnikotoPlayer */}
-      {watchEpisodeId !== null && useCustomPlayer && consumetId && (
-        <AnikotoPlayer
-          animeId={consumetId}
-          title={anime.title_english || anime.title || ""}
-          startEp={watchEpisodeNo || 1}
-          episodes={episodes}
-          posterUrl={anime.images?.webp?.large_image_url || anime.images?.jpg?.large_image_url}
           onClose={() => { setWatchEpisodeId(null); setWatchEpisodeNo(null); }}
         />
       )}

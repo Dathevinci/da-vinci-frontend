@@ -12,6 +12,9 @@ import { useUser } from "@/hooks/useUser";
 import { isAdmin, isLeadDev, displayArisePoints } from "@/lib/admin";
 import { calculateLevel, calculateProgressPercent, MAX_LEVEL } from "@/lib/levels";
 import { getHeartRank } from "@/lib/heartRanks";
+// The welcome-card avatar is 48px; serve it at that scale instead of the
+// original upload (animated uploads pass through untouched — see cloudinary.ts).
+import { cloudinaryFit } from "@/lib/cloudinary";
 import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
 
 /**
@@ -112,7 +115,7 @@ export default function HubPage() {
               <div className="flex items-center gap-3">
                 <span className="relative h-12 w-12 shrink-0">
                   {user.avatar ? (
-                    <img src={user.avatar} alt="" className="relative z-10 h-12 w-12 rounded-full object-cover ring-1 ring-white/20" />
+                    <img src={cloudinaryFit(user.avatar, 120)} alt="" className="relative z-10 h-12 w-12 rounded-full object-cover ring-1 ring-white/20" />
                   ) : (
                     <span className="relative z-10 grid h-12 w-12 place-items-center rounded-full bg-violet-700 text-lg font-black text-white">
                       {(user.username || "?")[0]?.toUpperCase()}

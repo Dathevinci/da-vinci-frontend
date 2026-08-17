@@ -137,9 +137,8 @@ export const ACCENT = "#a274ff";
 export const ACCENT_LIT = "#e2d0ff";
 export const ACCENT_DEEP = "#3b2168";
 
-/** @deprecated Kept so older imports keep compiling; both point at the accent. */
+/** @deprecated Kept so older imports keep compiling; points at the accent. */
 export const GOLD = ACCENT;
-export const GOLD_LIT = ACCENT_LIT;
 
 /**
  * A framed panel. The metallic edge is a parent whose background shows through
@@ -333,16 +332,5 @@ export function StatRow({ label, value, tint }: { label: string; value: ReactNod
       <span aria-hidden className="min-w-4 flex-1 translate-y-[-3px] border-b border-dotted border-white/15" />
       <span className="shrink-0 font-black tabular-nums" style={{ color: tint || "#e8e6ef" }}>{value}</span>
     </div>
-  );
-}
-
-/** Rotated rail label down the side of a panel. */
-export function SideLabel({ text, color = GOLD }: { text: string; color?: string }) {
-  return (
-    <span aria-hidden
-      className="pointer-events-none absolute left-[-1px] top-1/2 origin-center -translate-y-1/2 -rotate-90 whitespace-nowrap text-[9px] font-black uppercase tracking-[0.45em]"
-      style={{ color, opacity: 0.5, transformOrigin: "center", left: -22 }}>
-      {text}
-    </span>
   );
 }

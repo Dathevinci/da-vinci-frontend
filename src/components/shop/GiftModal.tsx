@@ -6,6 +6,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Gift, Search, Check } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { authHeaders } from "@/lib/authToken";
+// Recipient avatars are 32px; serve them at that scale instead of the
+// original upload (animated uploads pass through untouched — see cloudinary.ts).
+import { cloudinaryFit } from "@/lib/cloudinary";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -155,7 +158,7 @@ export default function GiftModal({
                     }`}
                   >
                     {u.avatar ? (
-                      <img src={u.avatar} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+                      <img src={cloudinaryFit(u.avatar, 80)} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
                     ) : (
                       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-purple-600 text-xs font-bold text-white">
                         {(u.username || "?").charAt(0).toUpperCase()}

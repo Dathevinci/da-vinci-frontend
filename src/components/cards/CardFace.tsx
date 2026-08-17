@@ -141,11 +141,6 @@ export const RARITY_META: Record<CardRarity, { label: string; frame: string; gem
   mythic:    { label: "Mythic",    frame: "#e11d48", gem: "#fda4af", glow: "rgba(225,29,72,0.70)",   order: 5 },
 };
 
-/** Rarity as a star count, drawn on the card itself. Mirrors STARS in gacha.tsx. */
-export const STAR_COUNT: Record<CardRarity, number> = {
-  common: 1, rare: 2, epic: 3, legendary: 4, event: 5, mythic: 5,
-};
-
 /** The five legendaries the Synthesis Lab accepts — display-only mirror of
  *  FUSION_ELIGIBLE on the server; the machine itself is the gate. */
 const FUSABLE = new Set([
@@ -162,21 +157,6 @@ function rnd(id: string, salt: number): number {
 }
 
 /** The scene. Drawn on a 100x86 art panel starting at y=0. */
-/** Stable hash of a card id — art must not reshuffle between renders. */
-function seedFrom(s: string) {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
-  return h >>> 0;
-}
-/** xorshift — deterministic, and far cheaper than anything that allocates. */
-function rng(seed: number) {
-  let x = seed || 1;
-  return () => {
-    x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
-    return ((x >>> 0) % 10000) / 10000;
-  };
-}
-
 function Motif({ card, dim }: { card: CardDef; dim: boolean }) {
   const h = card.hue;
   const R = (n: number) => rnd(card.id, n);

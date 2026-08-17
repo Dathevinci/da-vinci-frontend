@@ -158,7 +158,9 @@ export default function NovelReaderPage() {
   return (
     <div className="min-h-screen selection:bg-pink-500/30" style={{ backgroundColor: t.bg, color: t.text }}>
       {/* Top bar */}
-      <div className="sticky top-0 z-30 backdrop-blur-md border-b" style={{ backgroundColor: t.panel + "e6", borderColor: t.border }}>
+      {/* Solid panel bg, no backdrop-filter: a blur on a sticky bar re-blurs on
+          every scrolled frame of the chapter — the one workload this page is for. */}
+      <div className="sticky top-0 z-30 border-b" style={{ backgroundColor: t.panel, borderColor: t.border }}>
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
           <div className="flex items-center gap-1 min-w-0">
             <button

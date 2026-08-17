@@ -12,6 +12,9 @@ import {
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { isLeadDev } from "@/lib/admin";
+// The dock avatar is 36px; serve it at that scale instead of the original
+// upload (animated uploads pass through untouched — see cloudinary.ts).
+import { cloudinaryFit } from "@/lib/cloudinary";
 import NotificationsMenu from "./NotificationsMenu";
 import GuildChatDock from "@/components/guild/GuildChatDock";
 
@@ -255,7 +258,7 @@ export default function BottomDock({
               className="ml-0.5 grid h-9 w-9 place-items-center overflow-hidden rounded-full transition active:scale-90"
               style={{ boxShadow: "inset 0 0 0 1.5px rgba(162,116,255,.6)" }}>
               {user.avatar
-                ? <img src={user.avatar} alt="" className="h-full w-full object-cover" />
+                ? <img src={cloudinaryFit(user.avatar, 80)} alt="" className="h-full w-full object-cover" />
                 : <span className="text-xs font-black text-purple-200">{user.username?.[0]?.toUpperCase()}</span>}
             </button>
           )}

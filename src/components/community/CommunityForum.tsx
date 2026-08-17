@@ -22,6 +22,9 @@ import MentionsInput from "@/components/ui/MentionsInput";
 import MentionText from "@/components/ui/MentionText";
 import { PollBuilder, PollCard, EMPTY_POLL, pollIsValid, type PollDraft, type PollData } from "@/components/community/Poll";
 import { effectNameClass } from "@/lib/effectTheme";
+// Forum avatars are 40-44px; serve them at that scale instead of the original
+// upload (animated uploads pass through untouched — see cloudinary.ts).
+import { cloudinaryFit } from "@/lib/cloudinary";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 /**
@@ -130,7 +133,7 @@ function AuthorLine({ user, blessed }: { user?: Author; blessed?: boolean }) {
           not run thirty loops at once. */}
       <div className="relative mr-1.5 h-11 w-11 shrink-0">
         {user.avatar ? (
-          <img src={user.avatar} alt=""
+          <img src={cloudinaryFit(user.avatar, 120)} alt=""
             className="relative z-10 h-11 w-11 rounded-full object-cover ring-1 ring-black/60" />
         ) : (
           <span className="relative z-10 grid h-11 w-11 place-items-center rounded-full bg-purple-700 text-sm font-black ring-1 ring-black/60">
@@ -593,7 +596,7 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
               className="mb-6 flex w-full items-center gap-3 px-4 py-4 text-left transition hover:brightness-125"
               style={{ borderRadius: 14, background: "rgba(255,255,255,.03)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.09)" }}>
               {user?.avatar ? (
-                <img src={user.avatar} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
+                <img src={cloudinaryFit(user.avatar, 80)} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
               ) : (
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-purple-700 text-sm font-black">
                   {(user?.username || "?")[0]?.toUpperCase()}

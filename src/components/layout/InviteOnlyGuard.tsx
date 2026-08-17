@@ -11,16 +11,6 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Shared amethyst-purple text fill, matching the splash wordmark + site theme.
-const AMETHYST: React.CSSProperties = {
-  backgroundImage:
-    "linear-gradient(100deg, #6d28d9 0%, #a78bfa 18%, #f5f3ff 32%, #c4b5fd 46%, #8b5cf6 62%, #a78bfa 82%, #6d28d9 100%)",
-  backgroundSize: "200% 100%",
-  WebkitBackgroundClip: "text",
-  backgroundClip: "text",
-  color: "transparent",
-};
-
 const easeCine: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
 /** The keepers, by handle. Their avatars, frames and effects come from the

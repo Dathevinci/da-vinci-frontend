@@ -4,11 +4,21 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { getAnikotoStreamUrl, getAnikotoStreamUrlFast, AnikotoEpisode, AnikotoStreamResult } from "@/lib/anikoto";
 import { X, ChevronLeft, ChevronRight, Loader2, AlertCircle, Server, PlayCircle, List, ChevronDown, Play, Pause, Volume2, VolumeX, Maximize, Minimize, Tv, ArrowLeft, Flag, RotateCcw, RotateCw } from "lucide-react";
-import Hls from "hls.js";
+import type Hls from "hls.js";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUser } from "@/hooks/useUser";
 import { useAnimeStatus } from "@/hooks/useAnimeStatus";
 import { authHeaders } from "@/lib/authToken";
+
+// hls.js is ~0.5MB minified and this file sits in the root layout's client
+// graph (AnimeModalProvider → QuickViewModal → AnimeDetailView → EpisodeList),
+// so a static import shipped the whole library to every page before any video
+// existed. Only the m3u8/MSE branch of playSource ever touches it, so it
+// arrives via dynamic import there; the promise is cached so episode and
+// server switches never re-await the module. The type-only import above is
+// erased at compile time and costs nothing.
+let hlsLoader: Promise<typeof import("hls.js")["default"]> | null = null;
+const loadHls = () => (hlsLoader ??= import("hls.js").then((m) => m.default));
 
 function formatTime(seconds: number): string {
   if (!isFinite(seconds) || seconds < 0) return "0:00";
@@ -518,11 +528,29 @@ export default function WatchOverlay({
     }
 
     // Use a small timeout to ensure the <video> element is mounted if we just switched from an iframe
-    setTimeout(() => {
+    setTimeout(async () => {
+      // Shadows the type-only import: past this point `Hls` is the real
+      // dynamically-loaded class, and it is fetched only on the m3u8 path.
+      let Hls: Awaited<ReturnType<typeof loadHls>> | null = null;
+      if (isM3U8) {
+        try {
+          Hls = await loadHls();
+        } catch {
+          // The hls.js chunk failed to download (flaky network). NOT a dead
+          // end: Safari plays HLS natively with no library at all, and the
+          // branch below already handles Hls === null by falling through to
+          // a plain src assignment. Erroring here blocked exactly the
+          // browsers that never needed the chunk (review-caught).
+          Hls = null;
+        }
+      }
+
+      // Read the ref AFTER the await: if the overlay unmounted while the
+      // chunk downloaded, bail instead of attaching to a dead element.
       const video = videoRef.current;
       if (!video) return;
 
-      if (isM3U8 && Hls.isSupported()) {
+      if (Hls && Hls.isSupported()) {
         const hls = new Hls({
           xhrSetup: (xhr: XMLHttpRequest) => {
             if (headers) {
@@ -990,7 +1018,7 @@ export default function WatchOverlay({
       {showEpisodePanel && (
         <>
           <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm" onClick={() => setShowEpisodePanel(false)} />
-          <div className="fixed top-0 right-0 bottom-0 z-[70] w-full sm:w-[420px] bg-[#141414]/98 backdrop-blur-xl border-l border-white/10 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+          <div className="fixed top-0 right-0 bottom-0 z-[70] w-full sm:w-[420px] bg-[#141414] border-l border-white/10 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
             {/* Panel Header */}
             <div className="p-5 border-b border-white/10 flex items-center justify-between flex-shrink-0">
               <h3 className="text-xl font-black text-white">Episodes</h3>

@@ -34,7 +34,14 @@ export default function ContinueWatchingCard({
   const router = useRouter();
 
   const title = anime.title_english || anime.title || "Unknown Anime";
-  const image = anime.trailer?.images?.maximum_image_url || anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url;
+  // Data Saver drops the trailer still one tier (hqdefault instead of
+  // maxresdefault on raw-Jikan data; the AniList-enhanced path sets both to
+  // the same URL, so nothing changes there) — the card is only ~340px wide.
+  // Still a trailer frame either way, so the card's composition is unchanged;
+  // toggle OFF keeps the original tier order exactly.
+  const image = preferences.dataSaver
+    ? anime.trailer?.images?.large_image_url || anime.trailer?.images?.maximum_image_url || anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url
+    : anime.trailer?.images?.maximum_image_url || anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url;
 
   const [progressPercent, setProgressPercent] = useState(0);
   const [savedEpisodeNo, setSavedEpisodeNo] = useState<number | null>(null);

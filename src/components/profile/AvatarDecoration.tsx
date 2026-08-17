@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { usePreferences } from "@/hooks/usePreferences";
 import { FroggieAvatarPond } from "@/components/profile/FroggiePond";
 import { TempestAvatarStorm } from "@/components/profile/StormOverlay";
 import { FoolAvatarAura } from "@/components/profile/FoolMist";
@@ -82,6 +83,16 @@ export function AvatarDecoration({
   // glow so a page full of avatars stays smooth.
   size?: "sm" | "lg";
 }) {
+  // Performance Mode gate. MotionConfig reducedMotion="always" only stops
+  // framer's transform/layout tweens — box-shadow/opacity keyframe loops keep
+  // their rAF alive and repaint every frame, one per decorated avatar on dense
+  // surfaces. Under the toggle, each loop below freezes to a static span at
+  // its mid keyframe: the paid cosmetic stays fully visible, only the
+  // animation stops. Normal mode (toggle OFF) renders exactly as before.
+  // Hook runs before the early return per the Rules of Hooks.
+  const { preferences } = usePreferences();
+  const still = preferences.reducedMotion;
+
   // Voltaic Ascension brings its own electric ring; otherwise use the frame's ring.
   const ring = effect === "effect_ascension" ? ASCENSION_RING : frame ? FRAMES[frame] : null;
   const showEffect = !!effect && DECOR_EFFECTS.has(effect);
@@ -128,7 +139,7 @@ export function AvatarDecoration({
           />
         </>
       )}
-      {showEffect && <EffectLayer effect={effect!} size={size} />}
+      {showEffect && <EffectLayer effect={effect!} size={size} still={still} />}
     </>
   );
 }
@@ -217,15 +228,27 @@ const tighten = (shadow: string) =>
 const glowFor = (frames: string[], size: "sm" | "lg") =>
   size === "lg" ? frames : frames.map(tighten);
 
-function EffectLayer({ effect, size = "sm" }: { effect: string; size?: "sm" | "lg" }) {
+function EffectLayer({ effect, size = "sm", still = false }: { effect: string; size?: "sm" | "lg"; still?: boolean }) {
   // On any small/dense surface, a heavy effect becomes a single cheap glow —
   // no canvas, no blur, no per-avatar animation loop.
   if (size !== "lg" && HEAVY_EFFECTS.has(effect)) {
+    const frames = glowFor(LITE_GLOW[effect] || [], "sm");
+    // Performance Mode: freeze the pulse at its mid (brightest) keyframe so
+    // the cosmetic stays visible without the per-frame box-shadow repaint.
+    if (still) {
+      return (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -inset-px rounded-full z-0"
+          style={{ boxShadow: frames[1] }}
+        />
+      );
+    }
     return (
       <motion.span
         aria-hidden
         className="pointer-events-none absolute -inset-px rounded-full z-0"
-        animate={{ boxShadow: glowFor(LITE_GLOW[effect] || [], "sm") }}
+        animate={{ boxShadow: frames }}
         transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
       />
     );
@@ -237,22 +260,31 @@ function EffectLayer({ effect, size = "sm" }: { effect: string; size?: "sm" | "l
 
   if (effect === "effect_ascension") {
     // A crackling electric amethyst aura that flickers around the avatar.
+    const frames = glowFor(
+      [
+        "0 0 10px 2px rgba(124,58,237,0.5)",
+        "0 0 30px 9px rgba(216,180,254,0.85)",
+        "0 0 14px 3px rgba(168,85,247,0.6)",
+        "0 0 26px 7px rgba(217,70,239,0.8)",
+        "0 0 10px 2px rgba(124,58,237,0.5)",
+      ],
+      size
+    );
+    // Performance Mode: hold the middle keyframe instead of flickering.
+    if (still) {
+      return (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -inset-1 rounded-full z-0"
+          style={{ boxShadow: frames[2] }}
+        />
+      );
+    }
     return (
       <motion.span
         aria-hidden
         className="pointer-events-none absolute -inset-1 rounded-full z-0"
-        animate={{
-          boxShadow: glowFor(
-            [
-              "0 0 10px 2px rgba(124,58,237,0.5)",
-              "0 0 30px 9px rgba(216,180,254,0.85)",
-              "0 0 14px 3px rgba(168,85,247,0.6)",
-              "0 0 26px 7px rgba(217,70,239,0.8)",
-              "0 0 10px 2px rgba(124,58,237,0.5)",
-            ],
-            size
-          ),
-        }}
+        animate={{ boxShadow: frames }}
         transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
       />
     );
@@ -376,20 +408,29 @@ function EffectLayer({ effect, size = "sm" }: { effect: string; size?: "sm" | "l
   }
 
   if (effect === "effect_aura") {
+    const frames = glowFor(
+      [
+        "0 0 10px 2px rgba(168,85,247,0.45)",
+        "0 0 22px 6px rgba(217,70,239,0.65)",
+        "0 0 10px 2px rgba(168,85,247,0.45)",
+      ],
+      size
+    );
+    // Performance Mode: hold the middle keyframe instead of pulsing.
+    if (still) {
+      return (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -inset-0.5 rounded-full z-0"
+          style={{ boxShadow: frames[1] }}
+        />
+      );
+    }
     return (
       <motion.span
         aria-hidden
         className="pointer-events-none absolute -inset-0.5 rounded-full z-0"
-        animate={{
-          boxShadow: glowFor(
-            [
-              "0 0 10px 2px rgba(168,85,247,0.45)",
-              "0 0 22px 6px rgba(217,70,239,0.65)",
-              "0 0 10px 2px rgba(168,85,247,0.45)",
-            ],
-            size
-          ),
-        }}
+        animate={{ boxShadow: frames }}
         transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
       />
     );
@@ -401,6 +442,31 @@ function EffectLayer({ effect, size = "sm" }: { effect: string; size?: "sm" | "l
   const glow = isSnow ? "rgba(224,242,254,0.9)" : "rgba(251,146,60,0.9)";
   const top: [string, string] = isSnow ? ["-14%", "114%"] : ["114%", "-14%"];
   const xs = [12, 30, 48, 66, 84, 22, 58];
+
+  // Performance Mode: a frozen snapshot of the particle field. The travel
+  // (top/x) is transform-gated by MotionConfig, but the opacity loop would keep
+  // tweening forever — so render plain dots scattered mid-fall instead.
+  if (still) {
+    const stillTops = [18, 64, 36, 78, 52, 8, 70];
+    return (
+      <span aria-hidden className="pointer-events-none absolute -inset-2 z-20">
+        {xs.map((x, i) => (
+          <span
+            key={i}
+            className="absolute rounded-full"
+            style={{
+              left: `${x}%`,
+              top: `${stillTops[i]}%`,
+              width: isSnow ? 4 : 3,
+              height: isSnow ? 4 : 3,
+              background: color,
+              boxShadow: `0 0 5px ${glow}`,
+            }}
+          />
+        ))}
+      </span>
+    );
+  }
 
   return (
     <span aria-hidden className="pointer-events-none absolute -inset-2 z-20">

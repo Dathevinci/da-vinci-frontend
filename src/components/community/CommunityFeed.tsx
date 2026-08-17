@@ -8,6 +8,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, Heart, Trash2, Send, CornerDownRight, Zap, Flame, Crown, Code2, Sparkles, Feather, Leaf, User as UserIcon, Image as ImageIcon, Edit, Shield, Star, ShieldAlert, Eye, Compass, ArrowUpRight, Pin, Search, Filter, ChevronDown, ChevronUp, X, Clock, TrendingUp, ThumbsDown, Flag } from 'lucide-react';
 import { isAdmin, isLeadDev } from "@/lib/admin";
 import { nameColorClass } from "@/lib/cosmetics";
+// Avatars here render at 32-40px; cloudinaryFit serves them at that scale
+// instead of the multi-megapixel original (animated uploads pass through
+// untouched — see cloudinary.ts).
+import { cloudinaryFit } from "@/lib/cloudinary";
 import { AvatarDecoration, hasFrameRing } from "@/components/profile/AvatarDecoration";
 import UserLink from "@/components/profile/UserLink";
 import { TitleChips } from "@/components/profile/UserBadges";
@@ -266,7 +270,7 @@ const CommentThread = ({
                   <div className="absolute w-1 h-1 bg-white rounded-full animate-pulse right-1 bottom-0"></div>
                 </div>
               )}
-              <img src={node.user?.avatar || 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=100&q=80'} className={`relative z-10 w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover ${isDejavuh && !nodeHasRing ? 'ring-2 ring-fuchsia-500 ring-offset-1 ring-offset-[#0f0f11] shadow-[0_0_15px_rgba(217,70,239,0.5)]' : ''}`} />
+              <img src={cloudinaryFit(node.user?.avatar || 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=100&q=80', 80)} loading="lazy" decoding="async" className={`relative z-10 w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover ${isDejavuh && !nodeHasRing ? 'ring-2 ring-fuchsia-500 ring-offset-1 ring-offset-[#0f0f11] shadow-[0_0_15px_rgba(217,70,239,0.5)]' : ''}`} />
               <AvatarDecoration frame={(node.user as any)?.activeFrame} effect={node.user?.activeEffect} />
             </div>
             <div className="flex flex-col min-w-0">
@@ -494,16 +498,31 @@ const CommentThread = ({
           </div>
         )}
 
-        {/* Media / GIF rendering */}
+        {/* Media / GIF rendering. Lazy + async: without them a 30-post feed
+            fired every attachment's full fetch+decode the moment it mounted,
+            all on the main thread. The wrapper's min-h is a pre-decode
+            skeleton — the height is unknown until the image arrives, and a
+            late decode used to shove the whole feed down. */}
         {node.mediaUrl && (
-          <div className="mb-4 rounded-xl overflow-hidden border border-white/10 bg-black/50 self-start max-w-full">
-            <img 
-              src={node.mediaUrl} 
-              alt="Community attached media" 
+          <div className="mb-4 rounded-xl overflow-hidden border border-white/10 bg-black/50 self-start max-w-full min-h-[120px]">
+            <img
+              src={node.mediaUrl}
+              alt="Community attached media"
+              loading="lazy"
+              decoding="async"
               className="max-h-[350px] w-auto object-contain hover:scale-[1.02] transition-transform duration-300"
+              onLoad={(e) => {
+                // Real dimensions exist now, so the reservation must go — kept,
+                // it would letterbox images shorter than the skeleton.
+                const wrap = (e.target as HTMLImageElement).parentElement;
+                if (wrap) wrap.style.minHeight = '0';
+              }}
               onError={(e) => {
-                // If it fails to load (e.g. invalid URL), hide it gracefully
-                (e.target as HTMLImageElement).style.display = 'none';
+                // If it fails to load (e.g. invalid URL), hide it gracefully —
+                // and drop the skeleton too, or it lingers as an empty box.
+                const img = e.target as HTMLImageElement;
+                img.style.display = 'none';
+                if (img.parentElement) img.parentElement.style.minHeight = '0';
               }}
             />
           </div>
@@ -1322,8 +1341,10 @@ export default function CommunityFeed({
           <div className="flex gap-3 p-4">
             <div className="relative h-10 w-10 shrink-0">
               <img
-                src={user.avatar || "https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=100&q=80"}
+                src={cloudinaryFit(user.avatar || "https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=100&q=80", 80)}
                 alt=""
+                loading="lazy"
+                decoding="async"
                 className="relative z-10 h-10 w-10 rounded-full object-cover"
               />
               <AvatarDecoration frame={(user as any)?.activeFrame} effect={(user as any)?.activeEffect} />

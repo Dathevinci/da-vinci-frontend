@@ -119,7 +119,7 @@ export default function CreateUpdateModal({ onClose, onCreated }: CreateUpdateMo
           className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(ellipse_60%_100%_at_50%_0%,rgba(139,92,246,0.14),transparent_70%)]"
         />
 
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/[0.07] bg-[#0b0b11]/95 px-6 py-4 backdrop-blur">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/[0.07] bg-[#0b0b11] px-6 py-4">
           <h2 className="font-fell text-2xl text-white">Create Update</h2>
           <button onClick={onClose} className="grid h-9 w-9 place-items-center rounded-lg text-slate-400 transition hover:bg-white/[0.06] hover:text-white">
             <X className="h-5 w-5" />

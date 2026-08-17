@@ -49,16 +49,6 @@ export default function ForgePage() {
   const [busy, setBusy] = useState<string | null>(null);
 
   const [bench, setBench] = useState<string | null>(null);
-  // Three full-size chambers are ~360px of glass before gaps — wider than a
-  // phone. Small screens get a scaled-down machine that actually fits.
-  const [smallScr, setSmallScr] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 560px)");
-    const sync = () => setSmallScr(mq.matches);
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, []);
 
   const loadCollection = async (useCache = false) => {
     if (!user?.id) return;

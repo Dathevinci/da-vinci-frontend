@@ -409,7 +409,7 @@ function ExploreInner() {
   return (
     <div className="min-h-screen bg-[#070709] pb-24 text-white">
       {/* ── control bar ── */}
-      <div className="sticky top-0 z-30 border-b border-white/10 bg-[#070709]/95 px-4 py-3 backdrop-blur">
+      <div className="sticky top-0 z-30 border-b border-white/10 bg-[#070709] px-4 py-3">
         {/* WRAPS ON A PHONE. Four things shared one row — the input and three
             shrink-0 buttons — so the buttons took their full width and the
             search got whatever was left, which on a narrow screen was a sliver
@@ -687,14 +687,32 @@ function FiltersPanel({
         return;
       }
       const r = anchorRef.current?.getBoundingClientRect();
-      if (r) setDropdownPos({ top: r.bottom + 8, right: Math.max(8, window.innerWidth - r.right) });
+      // Bail on unchanged positions: scroll fires this per event (capture
+      // catches the panel's own inner scroller too), and a fresh {top,right}
+      // object every time re-rendered the whole multi-section panel even when
+      // the bar hadn't moved a pixel.
+      if (r) {
+        const top = r.bottom + 8;
+        const right = Math.max(8, window.innerWidth - r.right);
+        setDropdownPos((prev) => (prev && prev.top === top && prev.right === right ? prev : { top, right }));
+      }
+    };
+    // rAF-coalesced (HoverPreview's cancel/schedule pattern) so a scroll burst
+    // costs one layout read per frame. The first call stays synchronous —
+    // dropdownPos starts null, and a deferred initial placement would flash
+    // the desktop panel as a bottom sheet for a frame.
+    let raf = 0;
+    const schedule = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(place);
     };
     place();
-    window.addEventListener("resize", place);
-    window.addEventListener("scroll", place, true);
+    window.addEventListener("resize", schedule);
+    window.addEventListener("scroll", schedule, true);
     return () => {
-      window.removeEventListener("resize", place);
-      window.removeEventListener("scroll", place, true);
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", schedule);
+      window.removeEventListener("scroll", schedule, true);
     };
   }, [anchorRef]);
 

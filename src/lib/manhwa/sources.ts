@@ -3,9 +3,19 @@
 // existing bookmark / reading-progress key), and any other source carries a
 // three-letter prefix. The frontend treats ids as opaque.
 //
-// ASURASCANS IS CURRENTLY THE ONLY SOURCE. FlameComics, RizzComics, MangaPill
-// and the MangaRead rescue parser were all removed at the owner's request on
-// 2026-08-13. Each had earned its way off:
+// FIVE SOURCES ARE LIVE: AsuraScans (bare ids) plus WeebCentral (wbc:),
+// VortexScans (vtx:), Manganato (mna:) and Mangasee (mse:). All four prefixes
+// are registered in ADAPTERS below, and every fan-out — searchManhwa, the
+// corpus fetchers (fillCorpus/growCorpus), browseManhwa's per-source branches
+// and manhwaHome — queries all five. None of this is dead code: the merge
+// machinery (corpus, dedupe, per-source paging) is load-bearing for every
+// prefixed source, and "simplifying" a merge path away ships broken under
+// ignoreBuildErrors.
+//
+// The roster has churned before, which is why adapters come and go by
+// registration rather than by rebuilding browse/search/rails. FlameComics,
+// RizzComics, MangaPill and the MangaRead rescue parser were removed at the
+// owner's request on 2026-08-13. Each had earned its way off:
 //
 //   FlameComics  Cloudflare answers Vercel with 403 + cf-mitigated=challenge,
 //                so it returned ZERO rows in production while working fine
@@ -18,21 +28,18 @@
 //   MangaRead    a rescue parser that twice substituted a DIFFERENT series'
 //                shorter chapter list for a real one.
 //
-// THE MERGE MACHINERY IS DELIBERATELY LEFT IN PLACE even though one source
-// cannot merge with anything. It is what makes adding a source a matter of
-// registering it rather than rebuilding browse, search and the rails — and
-// VortexScans has already been verified end-to-end from production (browse,
-// chapter list, and a real 2MB page image all served to Vercel), so a second
-// source is a live possibility rather than a hypothetical.
-//
 // THE ID SHAPES, which are persisted and therefore frozen:
 //   <slug>                  AsuraScans      chapters "<slug>|<number>"
+//   wbc:<rest>              WeebCentral     remainder owned by the adapter
+//   vtx:<rest>              VortexScans     remainder owned by the adapter
+//   mna:<rest>              Manganato       remainder owned by the adapter
+//   mse:<rest>              Mangasee        remainder owned by the adapter
 //
 // Bookmarks and reading-progress keys embed these verbatim
 // (`dv-progress:<owner>:manhwa:<id>`), so a change of SHAPE orphans existing
 // rows. Add sources by adding a prefix; never by re-shaping an existing one.
 //
-// Rows saved under a REMOVED prefix (flc:, rzc:, mpl:, mrd:, mna:) still exist
+// Rows saved under a REMOVED prefix (flc:, rzc:, mpl:, mrd:) still exist
 // in people's libraries. adapterFor throws a named error for them, which the
 // API surfaces as a readable sentence rather than a bare "Series Not Found" —
 // see the note there.

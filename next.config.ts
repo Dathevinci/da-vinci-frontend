@@ -5,7 +5,6 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  serverExternalPackages: ["unzipper"],
 
   images: {
     unoptimized: true,

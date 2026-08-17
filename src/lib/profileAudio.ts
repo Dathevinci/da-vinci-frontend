@@ -9,8 +9,6 @@
  * Keep the two lists in step with the backend allow-list if either changes.
  */
 
-// Shown to the user in the settings helper text — the friendly host name.
-export const PROFILE_AUDIO_HOSTS = ["catbox.moe"];
 export const PROFILE_AUDIO_EXTS = ["mp3", "wav", "ogg", "m4a", "flac", "opus"];
 
 // The exact hostnames accepted. catbox is the one host that reliably serves a

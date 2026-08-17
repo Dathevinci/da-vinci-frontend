@@ -8,6 +8,9 @@ import { usePreferences } from "@/hooks/usePreferences";
 import { useToast } from "@/components/ui/Toast";
 import { authHeaders } from "@/lib/authToken";
 import { loadCatalog } from "@/lib/catalogCache";
+// Standings avatars are 20-32px; serve them at that scale instead of the
+// original upload (animated uploads pass through untouched — see cloudinary.ts).
+import { cloudinaryFit } from "@/lib/cloudinary";
 import PageTransition from "@/components/layout/PageTransition";
 import CardFace, { CardDef, RARITY_META, CardRarity } from "@/components/cards/CardFace";
 import {
@@ -1005,7 +1008,7 @@ export default function RaidPage() {
                                   className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.02] px-3 py-2">
                                   <span className="w-7 shrink-0 text-center text-sm font-black tabular-nums text-slate-600">{i + 1}</span>
                                   {g.avatar ? (
-                                    <img src={g.avatar} alt="" className="h-5 w-5 shrink-0 rounded-full object-cover ring-1 ring-white/15" />
+                                    <img src={cloudinaryFit(g.avatar, 80)} alt="" className="h-5 w-5 shrink-0 rounded-full object-cover ring-1 ring-white/15" />
                                   ) : (
                                     <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-violet-700 text-[9px] font-black">
                                       {g.username?.[0]?.toUpperCase()}
@@ -1068,7 +1071,7 @@ export default function RaidPage() {
                                     }`}>
                                     <span className="w-7 shrink-0 text-center text-sm font-black tabular-nums text-slate-600">{i + 1}</span>
                                     {s.avatar ? (
-                                      <img src={s.avatar} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-white/15" />
+                                      <img src={cloudinaryFit(s.avatar, 80)} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-white/15" />
                                     ) : (
                                       <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-violet-700 text-[10px] font-black">
                                         {s.username?.[0]?.toUpperCase()}
@@ -1098,7 +1101,7 @@ export default function RaidPage() {
                               }`}>
                               <span className="w-7 shrink-0 text-center text-sm font-black tabular-nums text-slate-600">{i + 1}</span>
                               {s.avatar ? (
-                                <img src={s.avatar} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-white/15" />
+                                <img src={cloudinaryFit(s.avatar, 80)} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-white/15" />
                               ) : (
                                 <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-violet-700 text-[10px] font-black">
                                   {s.username?.[0]?.toUpperCase()}

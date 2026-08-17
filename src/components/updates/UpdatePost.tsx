@@ -8,12 +8,13 @@ import { useUser } from "@/hooks/useUser";
 import { useToast } from "@/components/ui/Toast";
 import Link from "next/link";
 import { getRankTheme } from "@/lib/ranks";
-import { Code2 as IconCode2, ShieldAlert, Sparkles as IconSparkles, Crown as IconCrown, Flame as IconFlame, Zap as IconZap, Compass as IconCompass, Leaf as IconLeaf, ArrowUpRight, Feather as IconFeather, Eye as IconEye } from "lucide-react";
-const ICON_MAP: Record<string, any> = { Code2: IconCode2, ShieldAlert, Sparkles: IconSparkles, Crown: IconCrown, Flame: IconFlame, Zap: IconZap, Compass: IconCompass, Leaf: IconLeaf, ArrowUpRight, Feather: IconFeather, Eye: IconEye };
 import { AvatarDecoration, hasFrameRing } from "@/components/profile/AvatarDecoration";
 import UserLink from "@/components/profile/UserLink";
 import GuildTag from "@/components/guild/GuildTag";
 import { authHeaders } from "@/lib/authToken";
+// Commenter avatars are 32px; serve them at that scale instead of the original
+// upload (animated uploads pass through untouched — see cloudinary.ts).
+import { cloudinaryFit } from "@/lib/cloudinary";
 
 interface Comment {
   id: string;
@@ -429,7 +430,7 @@ export default function UpdatePost({ post, onDelete }: UpdatePostProps) {
           <UserLink username={post.author.username} className="group flex items-center gap-2.5">
             <div className="relative shrink-0">
               {post.author.avatar ? (
-                <img src={post.author.avatar} alt="" className={`relative z-10 h-8 w-8 rounded-full object-cover border-2 ${hasFrameRing(post.author.activeFrame, post.author.activeEffect) ? "border-[#0b0b11]" : authorRank?.borderClass}`} />
+                <img src={cloudinaryFit(post.author.avatar, 80)} alt="" className={`relative z-10 h-8 w-8 rounded-full object-cover border-2 ${hasFrameRing(post.author.activeFrame, post.author.activeEffect) ? "border-[#0b0b11]" : authorRank?.borderClass}`} />
               ) : (
                 <div className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-black ${authorRank?.borderClass} ${authorRank?.bgCardClass}`}>
                   {(post.author.username || "U").charAt(0).toUpperCase()}

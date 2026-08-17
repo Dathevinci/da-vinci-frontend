@@ -187,7 +187,6 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
 
   // Integrations State
   const [anilistUsername, setAnilistUsername] = useState("");
-  const [syncingAnilist, setSyncingAnilist] = useState(false);
 
   // Invites State
   const [invites, setInvites] = useState<any[]>([]);
@@ -376,7 +375,6 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
 
   const handleMALSync = async () => {
     if (!anilistUsername) return toast("Please enter a MyAnimeList username.", "error");
-    setSyncingAnilist(true);
     try {
       const entries = await fetchUserMAL(anilistUsername);
       if (!entries || entries.length === 0) throw new Error("Could not fetch data for this user or list is empty.");
@@ -387,7 +385,6 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
 
       if (entriesToSync.length === 0) {
          toast("No entries found to import.", "error");
-         setSyncingAnilist(false);
          return;
       }
 
@@ -395,8 +392,6 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
       toast(`Successfully imported ${entriesToSync.length} anime!`, "success");
     } catch (e: any) {
       toast(e.message || "Failed to sync MAL", "error");
-    } finally {
-      setSyncingAnilist(false);
     }
   };
 

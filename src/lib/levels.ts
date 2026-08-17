@@ -118,8 +118,3 @@ export function calculateProgressPercent(xp: number = 0): number {
 
   return Math.min(100, Math.max(0, ((x - base) / span) * 100));
 }
-
-/** True only for a genuinely maxed account — the only thing allowed to say MAX. */
-export function isMaxLevel(level: number): boolean {
-  return clampLevel(level) >= MAX_LEVEL;
-}

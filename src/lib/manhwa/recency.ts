@@ -35,30 +35,6 @@ export interface ManhwaRow extends IMangaResult {
   updatedAt?: string;
 }
 
-/** Sources publishing epoch SECONDS (FlameComics, RizzComics). */
-export function isoFromEpochSeconds(seconds: unknown): string | undefined {
-  const n = Number(seconds);
-  if (!Number.isFinite(n) || n <= 0) return undefined;
-  /**
-   * PLAUSIBILITY CLAMP, and it is not paranoia. If a source ever switches
-   * these ids from seconds to MILLISECONDS, n * 1000 still lands inside the
-   * legal Date range — so the NaN check below passes, toISOString() succeeds,
-   * and every row from that source gets a year-57576 timestamp that pins the
-   * top of the newest-first rail permanently. 4e10 seconds is the year 3237:
-   * comfortably past anything real, comfortably short of a millisecond value.
-   */
-  if (n > 4e10) return undefined;
-  const d = new Date(n * 1000);
-  return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
-}
-
-/** Sources publishing an ISO/parseable date string (MangaPill, AsuraScans). */
-export function isoFromDateString(value: unknown): string | undefined {
-  if (typeof value !== "string" || !value.trim()) return undefined;
-  const ms = Date.parse(value);
-  return Number.isFinite(ms) ? new Date(ms).toISOString() : undefined;
-}
-
 /**
  * A row's recency as a sortable number; 0 when the source never said.
  *

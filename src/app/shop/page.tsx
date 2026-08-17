@@ -13,6 +13,10 @@ import { authHeaders } from "@/lib/authToken";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
+// Preview avatars render at 64-112px; serve each at its display scale instead
+// of the original upload. The cosmetics themselves are untouched — this only
+// resizes the wearer's photo (animated uploads pass through, see cloudinary.ts).
+import { cloudinaryFit } from "@/lib/cloudinary";
 import { ProfileEffect } from "@/components/profile/ProfileEffect";
 import { isCrimsonChosen, isCrimsonActive, CRIMSON_OFF } from "@/components/profile/CrimsonRealm";
 
@@ -87,6 +91,50 @@ const fmtLeft = (ms: number) => {
   return d > 0 ? `${d}d ${hms}` : hms;
 };
 
+/**
+ * 1-second clock for the live "vanishes in" text, deliberately scoped to the
+ * two small components below that render it: ticking a page-level clock
+ * re-rendered the entire grid — dozens of cosmetic cards with live previews —
+ * once a second for the whole multi-day window. The tick also stops while the
+ * tab is hidden (the guild-chat poll's visibility contract) and catches up on
+ * refocus. Starts null so SSR and the first client render match.
+ */
+function useLiveClock(): number | null {
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    setNow(Date.now());
+    let t: ReturnType<typeof setInterval> | null = null;
+    const start = () => { if (t === null) t = setInterval(() => setNow(Date.now()), 1000); };
+    const stop = () => { if (t !== null) { clearInterval(t); t = null; } };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") { setNow(Date.now()); start(); }
+      else stop();
+    };
+    if (document.visibilityState === "visible") start();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => { stop(); document.removeEventListener("visibilitychange", onVisibility); };
+  }, []);
+  return now;
+}
+
+// The card strip's live countdown ("Vanishes in 2d 13:45:09").
+function DropCountdown({ endsAt }: { endsAt: number }) {
+  const now = useLiveClock();
+  return now !== null ? (
+    <span>
+      Vanishes in <span className="font-mono tabular-nums text-red-200">{fmtLeft(endsAt - now)}</span>
+    </span>
+  ) : (
+    <span>Limited drop — 3 days only</span>
+  );
+}
+
+// The preview modal's chip countdown — same clock, tighter markup.
+function DropCountdownChip({ endsAt }: { endsAt: number }) {
+  const now = useLiveClock();
+  return now !== null ? <span className="font-mono tabular-nums">{fmtLeft(endsAt - now)}</span> : <>Limited</>;
+}
+
 // Per-item sale: `price` stays the list price (for the strikethrough); this is
 // what the buyer actually pays. MUST mirror the backend's priceOf() in
 // shopCatalog.ts — the server is the real authority on the charge.
@@ -150,16 +198,33 @@ export default function ShopPage() {
   // throw "rendered fewer hooks than expected".
   const [bundleBusy, setBundleBusy] = useState<string | null>(null);
   const [owned, setOwned] = useState<"all" | "unowned" | "owned">("all");
-  // Live clock for limited-drop countdowns. Starts null and is set on mount so
-  // the SSR/prerender markup never bakes in a build-time Date.now() (hydration
-  // mismatch); ticks once a second only while a live window exists.
+  // Page-level clock for isExpired gating (buy/gift walls, sealed strips,
+  // collection membership). Starts null and is set on mount so the
+  // SSR/prerender markup never bakes in a build-time Date.now() (hydration
+  // mismatch). It does NOT tick: a 1s tick here re-rendered the whole grid —
+  // the per-second countdown text lives in DropCountdown/DropCountdownChip —
+  // so it advances only at each drop's closing instant, and on refocus, since
+  // hidden tabs throttle timers and a window can seal while you're away.
   const [nowTs, setNowTs] = useState<number | null>(null);
   useEffect(() => {
-    const hasLiveWindow = SHOP_ITEMS.some((it) => (it as any).endsAt && Date.now() <= (it as any).endsAt);
     setNowTs(Date.now());
-    if (!hasLiveWindow) return;
-    const iv = setInterval(() => setNowTs(Date.now()), 1000);
-    return () => clearInterval(iv);
+  }, []);
+  useEffect(() => {
+    if (nowTs === null) return;
+    const now = Date.now();
+    const ends = SHOP_ITEMS
+      .map((it) => (it as any).endsAt as number | undefined)
+      .filter((t): t is number => !!t && t > now);
+    if (ends.length === 0) return;
+    const t = setTimeout(() => setNowTs(Date.now()), Math.min(...ends) - now + 50);
+    return () => clearTimeout(t);
+  }, [nowTs]);
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") setNowTs(Date.now());
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
   }, []);
   useEffect(() => {
     if (isLoaded && !user) {
@@ -342,7 +407,7 @@ export default function ShopPage() {
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="relative h-20 w-20">
               <div className="relative z-10 flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-white/20 bg-violet-700 text-2xl font-black text-white">
-                {user.avatar ? <img src={user.avatar} alt="" className="h-full w-full object-cover" /> : (user.username?.[0]?.toUpperCase() || "?")}
+                {user.avatar ? <img src={cloudinaryFit(user.avatar, 240)} alt="" className="h-full w-full object-cover" /> : (user.username?.[0]?.toUpperCase() || "?")}
               </div>
               {isPreviewable && (
                 // size="sm" ON PURPOSE: at "lg" every SSS/heavy tile ran its
@@ -371,10 +436,8 @@ export default function ShopPage() {
             <Hourglass className={`h-3 w-3 ${isExpired ? "" : "animate-pulse"}`} />
             {isExpired ? (
               <span>Window closed — gone forever</span>
-            ) : msLeft !== null ? (
-              <span>
-                Vanishes in <span className="font-mono tabular-nums text-red-200">{fmtLeft(msLeft)}</span>
-              </span>
+            ) : endsAt ? (
+              <DropCountdown endsAt={endsAt} />
             ) : (
               <span>Limited drop — 3 days only</span>
             )}
@@ -726,7 +789,7 @@ export default function ShopPage() {
                   {/* the epicenter — the tear opens on this avatar's rim */}
                   <div className="relative h-24 w-24 shrink-0 md:h-28 md:w-28">
                     <div className="relative z-10 flex h-full w-full items-center justify-center overflow-hidden rounded-full border-2 border-teal-500/40 bg-gradient-to-br from-teal-900 to-fuchsia-950 text-3xl font-black text-white">
-                      {user.avatar ? <img src={user.avatar} alt="" className="h-full w-full object-cover" /> : (user.username?.[0]?.toUpperCase() || "?")}
+                      {user.avatar ? <img src={cloudinaryFit(user.avatar, 320)} alt="" className="h-full w-full object-cover" /> : (user.username?.[0]?.toUpperCase() || "?")}
                     </div>
                     <AvatarDecoration frame={null} effect={hero.id} size="lg" />
                   </div>
@@ -838,7 +901,7 @@ export default function ShopPage() {
               <div className="relative z-10 flex flex-col sm:flex-row sm:items-center gap-6">
                 <div className="relative w-16 h-16 shrink-0">
                   <div className="relative z-10 w-16 h-16 rounded-full overflow-hidden border-2 border-white/10 bg-gradient-to-br from-red-700 to-black">
-                    {user.avatar && <img src={user.avatar} alt="" className="w-full h-full object-cover" />}
+                    {user.avatar && <img src={cloudinaryFit(user.avatar, 160)} alt="" className="w-full h-full object-cover" />}
                   </div>
                   <AvatarDecoration effect="effect_crimson" size="lg" />
                 </div>
@@ -873,7 +936,7 @@ export default function ShopPage() {
               behind it. It pins to the top edge instead, and carries a solid
               backdrop so cards pass cleanly underneath. ── */}
           <div className="z-30 mb-6 md:sticky md:top-3">
-            <div className="flex flex-col gap-2.5 rounded-2xl border border-white/10 bg-[#0b0b11]/95 backdrop-blur-xl p-3 shadow-[0_8px_30px_rgba(0,0,0,0.45)]">
+            <div className="flex flex-col gap-2.5 rounded-2xl border border-white/10 bg-[#0b0b11] p-3 shadow-[0_8px_30px_rgba(0,0,0,0.45)]">
               <div className="flex flex-col gap-3 md:flex-row md:items-center">
                 {/* search */}
                 <div className="relative min-w-0 flex-1">
@@ -1106,7 +1169,7 @@ export default function ShopPage() {
                       <div className="relative z-[10] -mt-12 px-6">
                         <div className="relative h-24 w-24">
                           <div className="relative z-10 flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-4 border-[#0b0b11] bg-violet-700 text-3xl font-black text-white">
-                            {user.avatar ? <img src={user.avatar} alt="" className="h-full w-full object-cover" /> : user.username?.[0]?.toUpperCase() || "?"}
+                            {user.avatar ? <img src={cloudinaryFit(user.avatar, 240)} alt="" className="h-full w-full object-cover" /> : user.username?.[0]?.toUpperCase() || "?"}
                           </div>
                           <AvatarDecoration frame={pv.type === "frame" ? pv.id : null} effect={pv.type === "effect" ? pv.id : null} size="lg" />
                         </div>
@@ -1138,7 +1201,7 @@ export default function ShopPage() {
                               : "border-red-700/60 bg-red-950/70 text-red-300"
                           }`}>
                             <Hourglass className={`h-3 w-3 ${pExpired ? "" : "animate-pulse"}`} />
-                            {pExpired ? "Window closed" : pMsLeft !== null ? <span className="font-mono tabular-nums">{fmtLeft(pMsLeft)}</span> : "Limited"}
+                            {pExpired ? "Window closed" : pEndsAt ? <DropCountdownChip endsAt={pEndsAt} /> : "Limited"}
                           </span>
                         )}
                         {pOff ? (

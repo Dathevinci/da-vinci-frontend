@@ -16,6 +16,9 @@ import MentionText from "@/components/ui/MentionText";
 import { emojiNodes } from "@/components/ui/EmojiText";
 import { useGuildEmojis } from "@/lib/guildEmoji";
 import { usePreferences } from "@/hooks/usePreferences";
+// Chat avatars are 36px; serve them at that scale instead of the original
+// upload (animated uploads pass through untouched — see cloudinary.ts).
+import { cloudinaryFit } from "@/lib/cloudinary";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -881,7 +884,7 @@ export default function GuildChatRoom({
                   <div key={row.key} className="mt-3 flex items-start gap-3 first:mt-0">
                     <div className="relative mt-0.5 h-9 w-9 shrink-0">
                       {row.author?.avatar ? (
-                        <img src={row.author.avatar} alt="" className="relative z-10 h-9 w-9 rounded-full object-cover ring-1 ring-black/60" />
+                        <img src={cloudinaryFit(row.author.avatar, 80)} alt="" className="relative z-10 h-9 w-9 rounded-full object-cover ring-1 ring-black/60" />
                       ) : (
                         <span className="relative z-10 grid h-9 w-9 place-items-center rounded-full bg-emerald-800 text-xs font-black ring-1 ring-black/60">
                           {(row.author?.username || "?")[0]?.toUpperCase()}

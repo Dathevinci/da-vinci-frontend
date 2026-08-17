@@ -2,6 +2,9 @@
 
 import React, { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+// Suggestion avatars are 28px; serve them at that scale instead of the
+// original upload (animated uploads pass through untouched — see cloudinary.ts).
+import { cloudinaryFit } from "@/lib/cloudinary";
 
 /**
  * MENTION AUTOCOMPLETE — the shared engine behind MentionsTextarea and
@@ -408,7 +411,7 @@ export function useMentionAutocomplete<T extends HTMLTextAreaElement | HTMLInput
               style={{ minHeight: ROW_H }}
             >
               {u.avatar ? (
-                <img src={u.avatar} alt="" className="h-7 w-7 shrink-0 rounded-full border border-white/10 object-cover" />
+                <img src={cloudinaryFit(u.avatar, 80)} alt="" className="h-7 w-7 shrink-0 rounded-full border border-white/10 object-cover" />
               ) : (
                 <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-purple-600 text-[11px] font-black text-white">
                   {(u.username[0] || "?").toUpperCase()}

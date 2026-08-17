@@ -105,10 +105,3 @@ export function featuredFor(id: string | null | undefined): FeaturedNovel | null
   const raw = String(id || "");
   return FEATURED_NOVELS.find((n) => n.id === raw) || null;
 }
-
-export function isFeaturedNovel(id: string | null | undefined): boolean {
-  return featuredFor(id) !== null;
-}
-
-/** Back-compat for the original single-pin import. */
-export const FEATURED_NOVEL_ID = FEATURED_NOVELS[0].id;

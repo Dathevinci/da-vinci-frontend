@@ -229,7 +229,11 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
   useEffect(() => {
     if (!prefs?.autoScroll) return;
     const interval = setInterval(() => {
-      window.scrollBy({ top: 2, behavior: "smooth" });
+      // "auto", not "smooth": each smooth call starts a browser scroll
+      // animation that the next tick preempts 30ms later, so the main thread
+      // ran a perpetually-restarting animation at 33Hz over the long image
+      // page. A 2px instant nudge at the same rate reads identically.
+      window.scrollBy({ top: 2, behavior: "auto" });
     }, 30);
     return () => clearInterval(interval);
   }, [prefs?.autoScroll]);

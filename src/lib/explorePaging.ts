@@ -1,8 +1,7 @@
 /**
  * ONE definition of "how many pages are there", shared by every explore/browse
- * source — anime (AniList), manhwa (AsuraScans + FlameComics + RizzComics +
- * MangaPill, with MangaRead as a rescue parser) and novels (ReadNovelFull /
- * NovelFull / LightNovelWorld / Lnori).
+ * source — anime (AniList), the manhwa sources behind src/lib/manhwa/sources.ts
+ * and the novel sources behind src/lib/novel/sources.ts.
  *
  * It exists so the numbered pager the reader can switch to is fed by ONE rule
  * instead of three hand-rolled ones, and so that rule can be stated once:
@@ -23,7 +22,8 @@ export interface PageTotals {
   totalPages?: number;
   /**
    * How many items exist across all pages. Absent = unknown, OR knowable
-   * upstream but meaningless after our own filtering (see combineTotals).
+   * upstream but meaningless after our own filtering — summed per-source
+   * counts double-count cross-source duplicates and ignore filtered rows.
    */
   totalItems?: number;
   /**
@@ -34,66 +34,11 @@ export interface PageTotals {
   totalsApproximate?: boolean;
 }
 
-/** What one upstream told us about its own pagination. */
-export interface SourcePaging extends PageTotals {
-  hasNextPage: boolean;
-}
-
 /** Pages needed to hold `totalItems` at `perPage`, or undefined if unknowable. */
 export function pagesForItems(totalItems: unknown, perPage: number): number | undefined {
   const n = Number(totalItems);
   if (!Number.isFinite(n) || n <= 0 || perPage <= 0) return undefined;
   return Math.ceil(n / perPage);
-}
-
-/**
- * Fold several sources' pagination into one answer for a MERGED list.
- *
- * The merged view pages 1:1 with its sources — our page N asks each source for
- * its page N — so the last page the reader can reach is the deepest last page
- * any contributing source has. That part is arithmetic, not estimation.
- *
- * THE BLIND-SOURCE RULE is what keeps it honest. If a source says "there is
- * another page" but never says how many it has, then the page space is
- * genuinely unbounded as far as we know, and any number we printed would be a
- * floor dressed up as a total. So we report NOTHING and let the client fall
- * back to its degraded pager. Reporting `hasNextPage` beyond a stated
- * `totalPages` is the one combination that must never ship: it makes the pager
- * and the scroller contradict each other.
- *
- * Two manhwa sources are blind in exactly this way, and both were checked
- * rather than assumed: MangaPill's pager renders a lone "Next" link and no
- * last page, and MangaRead publishes no count at all. Whenever either of them
- * has more to give, manhwa search correctly reports no total. The sources that
- * DO report one either publish it (AsuraScans' meta.total) or hand over their
- * whole catalogue so it can be counted (FlameComics, RizzComics).
- *
- * `totalItems` is dropped for merges on purpose — see the manhwa note in
- * src/lib/manhwa/sources.ts. Summing per-source counts double-counts every
- * cross-source duplicate and ignores every row our filters drop.
- */
-export function combineTotals(
-  parts: SourcePaging[],
-  currentPage: number,
-  opts: { approximate?: boolean } = {}
-): PageTotals {
-  const blind = parts.some((p) => p.hasNextPage && typeof p.totalPages !== "number");
-  if (blind) return {};
-
-  const known = parts
-    .map((p) => p.totalPages)
-    .filter((n): n is number => typeof n === "number" && Number.isFinite(n) && n > 0);
-  if (known.length === 0) return {};
-
-  const reported = Math.max(...known);
-  // NEVER manufacture a total out of the reader's own page number. Clamping
-  // with Math.max(currentPage, ...) was there to avoid printing the
-  // self-contradictory "Page 30 of 17", but it bought that by asserting 30
-  // pages exist — over an empty grid, on an out-of-range deep link. When the
-  // reader is past everything the sources claim, we simply do not know the
-  // shape any more: report nothing and let the degraded pager say so.
-  if (currentPage > reported) return {};
-  return opts.approximate ? { totalPages: reported, totalsApproximate: true } : { totalPages: reported };
 }
 
 /**

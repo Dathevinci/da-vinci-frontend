@@ -12,6 +12,9 @@ import { fetchGuilds, type GuildRow } from "@/lib/guild";
 import { SegBar, ACCENT, ACCENT_LIT } from "@/components/cards/gacha";
 import VideoTitle from "@/components/ui/VideoTitle";
 import GuildTag from "@/components/guild/GuildTag";
+// Board avatars are 32-40px; serve them at that scale instead of the original
+// upload (animated uploads pass through untouched — see cloudinary.ts).
+import { cloudinaryFit } from "@/lib/cloudinary";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -247,7 +250,7 @@ function GuildBoard({ rows, loading, sort }: { rows: GuildRow[]; loading: boolea
                   #{i + 4}
                 </span>
                 {g.avatar ? (
-                  <img src={g.avatar} alt="" loading="lazy"
+                  <img src={cloudinaryFit(g.avatar, 80)} alt="" loading="lazy"
                     className="h-10 w-10 shrink-0 rounded-xl object-cover ring-1 ring-white/15" />
                 ) : (
                   <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-emerald-900/70 text-xs font-black text-emerald-200 ring-1 ring-white/10">
@@ -458,7 +461,7 @@ export default function LeaderboardPage() {
                 <span key={k.userId} className="inline-flex min-w-0 items-center gap-1.5">
                   <Link href={`/user/${k.username}`} className="group inline-flex min-w-0 items-center gap-2">
                     {k.avatar ? (
-                      <img src={k.avatar} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-amber-400/50" />
+                      <img src={cloudinaryFit(k.avatar, 80)} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-amber-400/50" />
                     ) : (
                       <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-violet-700 text-[10px] font-black">
                         {k.username?.[0]?.toUpperCase()}
@@ -523,7 +526,7 @@ export default function LeaderboardPage() {
                       </span>
                       <Link href={`/user/${r.username}`} className="shrink-0">
                         {r.avatar ? (
-                          <img src={r.avatar} alt="" className="h-10 w-10 rounded-full object-cover ring-1 ring-white/15" />
+                          <img src={cloudinaryFit(r.avatar, 80)} alt="" className="h-10 w-10 rounded-full object-cover ring-1 ring-white/15" />
                         ) : (
                           <span className="grid h-10 w-10 place-items-center rounded-full bg-violet-700 text-xs font-black">
                             {r.username?.[0]?.toUpperCase()}

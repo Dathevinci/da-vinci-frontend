@@ -9,9 +9,13 @@ import { usePreferences } from "@/hooks/usePreferences";
  *
  * The `.reduced-motion` body class only ever killed CSS keyframes/transitions —
  * framer-motion drives its animations in JS, so it ignored that class entirely
- * and kept sliding/scaling at full cost. With `reducedMotion="always"`, every
- * <motion.*> below skips transform & layout animations (opacity still fades),
- * so toggling Performance Mode genuinely calms the app instead of doing nothing.
+ * and kept sliding/scaling at full cost. `reducedMotion="always"` makes every
+ * <motion.*> below skip transform & layout animations — but ONLY those:
+ * framer still runs keyframe tweens on non-positional values (box-shadow,
+ * opacity, color) at full rate, inline-style write + repaint per frame.
+ * Components that loop such values forever (e.g. AvatarDecoration's glow
+ * pulses) must read the preference themselves and render a static frame;
+ * this config alone does not stop them.
  * Reacts live: usePreferences listens for the preference-updated event.
  */
 export default function AppMotionConfig({ children }: { children: React.ReactNode }) {

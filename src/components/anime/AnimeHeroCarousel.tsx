@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import DeckHero, { DeckItem } from "@/components/ui/DeckHero";
+import { usePreferences } from "@/hooks/usePreferences";
 
 /**
  * The anime home's featured deck — the same fanned-cards hero the manhwa and
@@ -17,6 +18,15 @@ import DeckHero, { DeckItem } from "@/components/ui/DeckHero";
  */
 export default function AnimeHeroCarousel({ animes }: { animes: any[] }) {
   const router = useRouter();
+  // Data Saver drops the hero to AniList's `large` cover tier — the deck's
+  // full-viewport background is the anime home's single biggest image cost,
+  // and `large` is already fetched as the fallback so no query changes. With
+  // the toggle OFF the tier order is exactly what it always was.
+  const { preferences } = usePreferences();
+  const coverOf = (a: any) =>
+    preferences.dataSaver
+      ? a.coverImage?.large || a.coverImage?.extraLarge
+      : a.coverImage?.extraLarge || a.coverImage?.large;
 
   const href = (a: any) => `/anime/${encodeURIComponent(String(a.mal_id ?? a.id))}`;
 
@@ -26,8 +36,7 @@ export default function AnimeHeroCarousel({ animes }: { animes: any[] }) {
     // bannerImage is a wide still and reads badly in a portrait card, so the
     // cover is preferred and the banner is only a last resort.
     image:
-      a.coverImage?.extraLarge ||
-      a.coverImage?.large ||
+      coverOf(a) ||
       a.images?.jpg?.large_image_url ||
       a.images?.jpg?.image_url ||
       a.bannerImage ||

@@ -45,3 +45,6 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# written by the prebuild deploy-stamp script on every build
+public/deploy-stamp.txt

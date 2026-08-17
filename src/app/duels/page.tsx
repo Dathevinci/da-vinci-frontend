@@ -13,6 +13,9 @@ import DeckBuilder, { loadSavedDeck, saveDeck } from "@/components/cards/DeckBui
 import Arena, { duelPayout } from "@/components/cards/Arena";
 import { notch, ACCENT } from "@/components/cards/gacha";
 import { loadCatalog } from "@/lib/catalogCache";
+// Opponent-picker avatars are 24px; serve them at that scale instead of the
+// original upload (animated uploads pass through untouched — see cloudinary.ts).
+import { cloudinaryFit } from "@/lib/cloudinary";
 import GuildTag from "@/components/guild/GuildTag";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -290,8 +293,20 @@ export default function DuelsPage() {
         });
       } catch { /* offline */ }
     };
-    const t = setInterval(tick, 2000);
-    return () => clearInterval(t);
+    // Visibility-gated like the guild chat poll: a backgrounded tab at 2s is
+    // 1,800 requests an hour against the same rate budget the comment above
+    // worries about, for a board nobody is looking at. Refocus fires an
+    // immediate catch-up tick so the duel is current the moment you're back.
+    let t: ReturnType<typeof setInterval> | null = null;
+    const start = () => { if (t === null) t = setInterval(tick, 2000); };
+    const stop = () => { if (t !== null) { clearInterval(t); t = null; } };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") { tick(); start(); }
+      else stop();
+    };
+    if (document.visibilityState === "visible") start();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => { stop(); document.removeEventListener("visibilitychange", onVisibility); };
   }, [active?.id, active?.status]);
 
   /**
@@ -872,7 +887,7 @@ function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats
               <div className="mt-1 flex items-center gap-2 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2">
                 <span className="grid h-6 w-6 shrink-0 place-items-center overflow-hidden rounded-full bg-purple-600 text-[10px] font-black">
                   {people.find((p) => p.id === picked.id)?.avatar
-                    ? <img src={people.find((p) => p.id === picked.id)!.avatar!} alt="" className="h-full w-full object-cover" />
+                    ? <img src={cloudinaryFit(people.find((p) => p.id === picked.id)!.avatar!, 80)} alt="" className="h-full w-full object-cover" />
                     : picked.username[0]?.toUpperCase()}
                 </span>
                 <span className="flex-1 truncate text-sm font-black text-white">{picked.username}</span>
@@ -897,7 +912,7 @@ function ChallengeModal({ myCards, onClose, onSend, busy, meId, foils, cardStats
                     <button key={p.id} onClick={() => { setPicked(p); setOpp(p.username); }}
                       className="flex w-full items-center gap-2 px-3 py-2 text-left transition hover:bg-white/10">
                       <span className="grid h-6 w-6 shrink-0 place-items-center overflow-hidden rounded-full bg-purple-600 text-[10px] font-black">
-                        {p.avatar ? <img src={p.avatar} alt="" className="h-full w-full object-cover" /> : p.username[0]?.toUpperCase()}
+                        {p.avatar ? <img src={cloudinaryFit(p.avatar, 80)} alt="" className="h-full w-full object-cover" /> : p.username[0]?.toUpperCase()}
                       </span>
                       <span className="truncate text-sm font-bold text-white">{p.username}</span>
                     </button>

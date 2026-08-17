@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { MessageSquare, Clock, Star, ChevronUp, ChevronDown, CornerDownRight } from "lucide-react";
 import { chapterNumberFromId } from "@/lib/manhwa/ids";
+// Commenter avatars are 36px; serve them at that scale instead of the original
+// upload (animated uploads pass through untouched — see cloudinary.ts).
+import { cloudinaryFit } from "@/lib/cloudinary";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -172,7 +175,7 @@ export default function RecentMediaComments({
                     className="flex gap-3 rounded-xl px-2 py-2.5 transition hover:bg-white/[0.04]"
                   >
                     {c.user?.avatar ? (
-                      <img src={c.user.avatar} alt="" loading="lazy" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+                      <img src={cloudinaryFit(c.user.avatar, 80)} alt="" loading="lazy" className="h-9 w-9 shrink-0 rounded-full object-cover" />
                     ) : (
                       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-purple-700 text-xs font-black text-white">
                         {(c.user?.username || "?")[0]?.toUpperCase()}

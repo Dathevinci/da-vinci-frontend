@@ -21,6 +21,10 @@ import {
 } from "@/lib/guildEmoji";
 import { cacheGuildId, cachedGuildId, loanTimeLeft, GUILD_CREATE } from "@/lib/guild";
 import { loadCatalog } from "@/lib/catalogCache";
+// Hall avatars render between 20px chips and the 112px crest; serve each at
+// its display scale instead of the original upload (animated uploads pass
+// through untouched — see cloudinary.ts).
+import { cloudinaryFit } from "@/lib/cloudinary";
 import PageTransition from "@/components/layout/PageTransition";
 import CardFace, { CardDef, RARITY_META, CardRarity } from "@/components/cards/CardFace";
 import UserLink from "@/components/profile/UserLink";
@@ -1066,7 +1070,7 @@ export default function GuildHomePage() {
                 <div className="relative p-6 sm:p-10">
                   <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
                     {guild.avatar ? (
-                      <img src={guild.avatar} alt=""
+                      <img src={cloudinaryFit(guild.avatar, 320)} alt=""
                         className="h-24 w-24 shrink-0 rounded-3xl object-cover ring-1 ring-emerald-400/30 sm:h-28 sm:w-28" />
                     ) : (
                       <span className="grid h-24 w-24 shrink-0 place-items-center rounded-3xl bg-emerald-900/60 font-fell text-4xl text-emerald-200 ring-1 ring-emerald-400/20 sm:h-28 sm:w-28">
@@ -1224,7 +1228,7 @@ export default function GuildHomePage() {
                           me ? "border-emerald-400/30 bg-emerald-500/[0.06]" : "border-white/10 bg-white/[0.02]"
                         }`}>
                         {m.avatar ? (
-                          <img src={m.avatar} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-white/15" />
+                          <img src={cloudinaryFit(m.avatar, 80)} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-white/15" />
                         ) : (
                           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-emerald-800 text-xs font-black">
                             {m.username?.[0]?.toUpperCase()}
@@ -1809,7 +1813,7 @@ function GuildSideRail({ guild, isMember }: {
                   <div key={`${t.username}-${i}`} className="flex items-center gap-2">
                     <span className="w-4 shrink-0 text-center font-mono text-[10px] font-black tabular-nums text-slate-500">{i + 1}</span>
                     {t.avatar ? (
-                      <img src={t.avatar} alt="" className="h-5 w-5 shrink-0 rounded-full object-cover ring-1 ring-white/15" />
+                      <img src={cloudinaryFit(t.avatar, 80)} alt="" className="h-5 w-5 shrink-0 rounded-full object-cover ring-1 ring-white/15" />
                     ) : (
                       <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-emerald-800 text-[8px] font-black">
                         {(t.username || "?")[0]?.toUpperCase()}
@@ -1903,7 +1907,7 @@ function GuildSideRail({ guild, isMember }: {
           </div>
           <div className="mt-3 flex items-center gap-3">
             {top.avatar ? (
-              <img src={top.avatar} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover ring-1 ring-amber-400/40" />
+              <img src={cloudinaryFit(top.avatar, 120)} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover ring-1 ring-amber-400/40" />
             ) : (
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-amber-900/60 text-sm font-black text-amber-100 ring-1 ring-amber-400/30">
                 {(top.username || "?")[0]?.toUpperCase()}
@@ -2588,7 +2592,7 @@ function InviteSheet({ guild, invites, loaded, busy, onClose, onInvite, onRevoke
                   <div key={inv.id}
                     className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.02] px-3 py-2.5">
                     {inv.avatar ? (
-                      <img src={inv.avatar} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-white/15" />
+                      <img src={cloudinaryFit(inv.avatar, 80)} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-white/15" />
                     ) : (
                       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-emerald-800 text-xs font-black">
                         {(inv.username || "?")[0]?.toUpperCase()}
@@ -2927,7 +2931,7 @@ function EditGuildSheet({ guild, onClose, onSaved }: {
             <label className="text-xs font-black text-white">Crest</label>
             <div className="mt-2 flex items-center gap-4">
               {avatar ? (
-                <img src={avatar} alt="" className="h-20 w-20 rounded-2xl object-cover ring-1 ring-emerald-400/30" />
+                <img src={cloudinaryFit(avatar, 240)} alt="" className="h-20 w-20 rounded-2xl object-cover ring-1 ring-emerald-400/30" />
               ) : (
                 <span className="grid h-20 w-20 place-items-center rounded-2xl bg-emerald-900/60 font-fell text-3xl text-emerald-200 ring-1 ring-white/10">
                   {guild.name?.[0]?.toUpperCase()}
@@ -3178,7 +3182,7 @@ function LendSheet({ guild, userId, onClose, onLent }: {
                     on ? "border-emerald-400/40 bg-emerald-500/10" : "border-transparent hover:bg-white/[0.05]"
                   }`}>
                   {m.avatar ? (
-                    <img src={m.avatar} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-white/15" />
+                    <img src={cloudinaryFit(m.avatar, 80)} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-white/15" />
                   ) : (
                     <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-emerald-800 text-[10px] font-black">
                       {m.username?.[0]?.toUpperCase()}
