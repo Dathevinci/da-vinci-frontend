@@ -62,6 +62,9 @@ export interface ReaderPrefs {
   spacing: string;
   width: string;
   justify: boolean;
+  customBg?: string | null;
+  customBgOpacity?: number;
+  customBgBlur?: number;
 }
 
 export const READER_DEFAULTS: ReaderPrefs = {
@@ -71,6 +74,9 @@ export const READER_DEFAULTS: ReaderPrefs = {
   spacing: "normal",
   width: "normal",
   justify: false,
+  customBg: null,
+  customBgOpacity: 0.25,
+  customBgBlur: 0,
 };
 
 export const themeById = (id: string) => READER_THEMES.find((t) => t.id === id) || READER_THEMES[0];

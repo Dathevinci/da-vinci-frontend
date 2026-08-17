@@ -189,6 +189,116 @@ export default function ReaderSettings({
             </button>
           </div>
         </div>
+
+        {/* Custom Background Photo / Wallpaper */}
+        <div className="border-t pt-4" style={{ borderColor: t.border }}>
+          <div className="flex items-center justify-between mb-2">
+            <Label>Custom Background Photo</Label>
+            {prefs.customBg && (
+              <button
+                onClick={() => update({ customBg: null })}
+                className="flex items-center gap-1 text-[11px] font-bold text-rose-400 hover:text-rose-300 transition"
+              >
+                <Trash2 className="w-3.5 h-3.5" /> Remove
+              </button>
+            )}
+          </div>
+
+          {!prefs.customBg ? (
+            <label
+              className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl border-2 border-dashed cursor-pointer transition hover:opacity-80"
+              style={{ borderColor: t.border, color: t.muted }}
+            >
+              <ImagePlus className="w-4 h-4 text-pink-500" />
+              <span className="text-xs font-bold">Upload Custom Photo / Wallpaper</span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file || !file.type.startsWith("image/")) return;
+                  const reader = new FileReader();
+                  reader.onload = () => {
+                    if (reader.result) update({ customBg: String(reader.result) });
+                  };
+                  reader.readAsDataURL(file);
+                }}
+                className="hidden"
+              />
+            </label>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="relative w-16 h-12 rounded-lg overflow-hidden border" style={{ borderColor: t.border }}>
+                  <img
+                    src={prefs.customBg}
+                    alt="Custom Wallpaper"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold cursor-pointer transition hover:opacity-80"
+                    style={{ borderColor: t.border, color: t.text }}
+                  >
+                    <Upload className="w-3.5 h-3.5 text-pink-500" />
+                    <span>Change Photo</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file || !file.type.startsWith("image/")) return;
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          if (reader.result) update({ customBg: String(reader.result) });
+                        };
+                        reader.readAsDataURL(file);
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* Opacity slider */}
+              <div>
+                <div className="flex items-center justify-between text-xs font-bold mb-1" style={{ color: t.muted }}>
+                  <span>Photo Opacity</span>
+                  <span className="tabular-nums font-mono">{Math.round((prefs.customBgOpacity ?? 0.25) * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={5}
+                  max={95}
+                  step={5}
+                  value={Math.round((prefs.customBgOpacity ?? 0.25) * 100)}
+                  onChange={(e) => update({ customBgOpacity: Number(e.target.value) / 100 })}
+                  className="w-full accent-pink-500"
+                  aria-label="Background Opacity"
+                />
+              </div>
+
+              {/* Blur slider */}
+              <div>
+                <div className="flex items-center justify-between text-xs font-bold mb-1" style={{ color: t.muted }}>
+                  <span>Background Blur</span>
+                  <span className="tabular-nums font-mono">{prefs.customBgBlur ?? 0}px</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={16}
+                  step={1}
+                  value={prefs.customBgBlur ?? 0}
+                  onChange={(e) => update({ customBgBlur: Number(e.target.value) })}
+                  className="w-full accent-pink-500"
+                  aria-label="Background Blur"
+                />
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </>
   );

@@ -1,142 +1,133 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { User, useUser } from "@/hooks/useUser";
-import { Users, UserPlus, UserMinus, Search, Globe, MessagesSquare } from "lucide-react";
+import { Users, UserPlus, UserMinus, Search, Globe, MessagesSquare, Sparkles, Flame, Check } from "lucide-react";
 import UserLink from "@/components/profile/UserLink";
 import GuildTag from "@/components/guild/GuildTag";
 import { useToast } from "@/components/ui/Toast";
 import CommunityForum from "@/components/community/CommunityForum";
 import GlobalComments from "@/components/community/GlobalComments";
-import { notch } from "@/components/cards/gacha";
 import { motion, AnimatePresence } from "framer-motion";
 import PageTransition from "@/components/layout/PageTransition";
-import BioRenderer from '@/components/profile/BioRenderer';
+import BioRenderer from "@/components/profile/BioRenderer";
 import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
 import { parseBio } from "@/lib/bioUtils";
+import { cloudinaryFit } from "@/lib/cloudinary";
 
-function UserCard({ user, currentUser, handleFollowToggle }: { user: User, currentUser: any, handleFollowToggle: (u: User, e: React.MouseEvent) => void }) {
-  const [isHovered, setIsHovered] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  const handleMouseEnter = () => {
-    if (typeof window !== 'undefined' && window.matchMedia('(hover: hover)').matches) {
-      timeoutRef.current = setTimeout(() => setIsHovered(true), 400);
-    }
-  };
-
-  const handleMouseLeave = () => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    setIsHovered(false);
-  };
-
+function UserCard({
+  user,
+  currentUser,
+  handleFollowToggle,
+}: {
+  user: User;
+  currentUser: any;
+  handleFollowToggle: (u: User, e: React.MouseEvent) => void;
+}) {
   const isFollowing = currentUser?.following?.some((f: any) => f.followingId === user.id);
-  const { cleanBio, backgroundUrl } = parseBio(user.bio || "", user.arisePoints || 0, user.username);
-
-  const cardContent = (
-    <>
-      {backgroundUrl && (
-        <>
-          <div className="absolute inset-0 z-0 bg-cover bg-center" style={{ backgroundImage: `url(${backgroundUrl})` }} />
-          <div className="absolute inset-0 z-0 bg-black/75 pointer-events-none" />
-        </>
-      )}
-
-      {user.bannerUrl ? (
-        <div className="absolute top-0 left-0 right-0 h-20 z-0 opacity-60">
-          <img src={user.bannerUrl} alt="Banner" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#18181b] to-transparent"></div>
-        </div>
-      ) : (
-        <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-br from-purple-600/20 to-purple-600/10 z-0"></div>
-      )}
-      
-      <div className="relative z-10 flex flex-col pt-4 h-full">
-        <UserLink username={user.username} className="flex items-center gap-4 px-6 w-full text-left">
-          <div className="relative shrink-0">
-            {user.avatar ? (
-              <img src={user.avatar} alt="Avatar" className="relative z-10 w-16 h-16 rounded-full object-cover border-2 border-[#18181b] shadow-lg" />
-            ) : (
-              <div className="relative z-10 w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center text-xl font-black border-2 border-[#18181b] shadow-lg">
-                {(user.username || 'U').charAt(0).toUpperCase()}
-              </div>
-            )}
-            <AvatarDecoration frame={(user as any).activeFrame} effect={user.activeEffect} />
-          </div>
-          <div className="flex-1 min-w-0 mt-2">
-            {/* min-w-0 + truncate: the guild chip holds its width (shrink-0),
-                so a long username is what gives way inside the tile. */}
-            <div className="flex items-center gap-1.5">
-              <h3 className="min-w-0 truncate font-bold text-lg text-white group-hover:text-purple-400 transition">{user.username || 'Unknown User'}</h3>
-              <GuildTag userId={user.id} size="sm" asLink={false} />
-            </div>
-            <p className="text-xs text-slate-400 font-medium">{(user.followers || []).length} Followers</p>
-          </div>
-        </UserLink>
-        
-        <div className="px-6 pb-6 mt-4 min-h-[60px] flex-1 flex flex-col">
-          <BioRenderer bio={cleanBio || "No bio set."} className="text-sm text-slate-300 line-clamp-2" />
-
-          {currentUser && (
-            <button 
-              onClick={(e) => handleFollowToggle(user, e)}
-              className={`mt-auto flex w-full items-center justify-center gap-2 py-2.5 text-[11px] font-black uppercase tracking-[0.14em] transition ${isFollowing ? "text-slate-300 hover:text-red-300" : "text-white"}`}
-              style={{
-                clipPath: notch(10),
-                background: isFollowing ? "rgba(255,255,255,.05)" : "linear-gradient(100deg, #7c3aed, #a274ff)",
-                boxShadow: isFollowing ? "inset 0 0 0 1px rgba(255,255,255,.12)" : "none",
-              }}
-            >
-              {isFollowing ? <><UserMinus className="w-4 h-4" /> Unfollow</> : <><UserPlus className="w-4 h-4" /> Follow</>}
-            </button>
-          )}
-        </div>
-      </div>
-    </>
-  );
+  const { cleanBio } = parseBio(user.bio || "", user.arisePoints || 0, user.username);
+  const followersCount = (user.followers || []).length;
 
   return (
-    <div 
-      className="relative group h-full"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-    >
-      {/* Base Card — notched to match the rest of the site, and the purple
-          wash is dialled back so the avatar and name carry the tile rather
-          than competing with a flat block of colour behind them. */}
-      <div className="relative h-full overflow-hidden backdrop-blur-md"
-        style={{
-          clipPath: notch(18),
-          background: "linear-gradient(165deg, rgba(162,116,255,.09), rgba(255,255,255,.03) 55%, rgba(0,0,0,.25))",
-          boxShadow: "inset 0 0 0 1px rgba(255,255,255,.09)",
-        }}>
-        {cardContent}
+    <div className="group relative flex flex-col rounded-2xl border border-white/10 bg-[#0b0b11] overflow-hidden shadow-xl transition-all duration-300 hover:border-violet-400/40 hover:bg-[#0e0e16] hover:shadow-2xl hover:shadow-violet-500/10 font-mono">
+      {/* Banner */}
+      <div className="relative h-20 w-full overflow-hidden bg-gradient-to-r from-violet-900/40 via-purple-900/20 to-black/60">
+        {user.bannerUrl ? (
+          <img
+            src={user.bannerUrl}
+            alt=""
+            className="h-full w-full object-cover opacity-70 transition-transform duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className="h-full w-full bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-violet-600/20 via-transparent to-transparent" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0b0b11] via-transparent to-transparent" />
       </div>
 
-      {/* Pop-out Card */}
-      <AnimatePresence>
-        {isHovered && (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1.15, zIndex: 50 }}
-            exit={{ opacity: 0, scale: 0.95, zIndex: 50 }}
-            transition={{ type: "spring", stiffness: 400, damping: 25 }}
-            className="absolute inset-0 bg-white/10 backdrop-blur-2xl rounded-2xl overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)] border border-white/20 z-50 flex flex-col"
-            style={{ transformOrigin: 'center center' }}
+      {/* Profile Info Header */}
+      <div className="relative -mt-8 flex items-end justify-between px-5">
+        <div className="relative h-16 w-16 shrink-0">
+          <UserLink username={user.username}>
+            {user.avatar ? (
+              <img
+                src={cloudinaryFit(user.avatar, 140)}
+                alt=""
+                className="h-16 w-16 rounded-full object-cover ring-4 ring-[#0b0b11] shadow-lg"
+              />
+            ) : (
+              <span className="grid h-16 w-16 place-items-center rounded-full bg-violet-700 font-mono text-xl font-black text-white ring-4 ring-[#0b0b11] shadow-lg">
+                {(user.username || "U")[0]?.toUpperCase()}
+              </span>
+            )}
+          </UserLink>
+          <AvatarDecoration frame={(user as any).activeFrame} effect={user.activeEffect} size="lg" />
+        </div>
+
+        <div className="pb-1 text-right">
+          <span className="inline-block rounded-full border border-white/5 bg-white/[0.03] px-2.5 py-0.5 text-[11px] font-bold text-white/50">
+            {followersCount} {followersCount === 1 ? "Follower" : "Followers"}
+          </span>
+        </div>
+      </div>
+
+      {/* Username & Guild */}
+      <div className="px-5 pt-3">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <UserLink
+            username={user.username}
+            className="truncate font-mono text-base font-bold text-white group-hover:text-violet-300 transition-colors"
           >
-            {cardContent}
-          </motion.div>
+            {user.username || "Anonymous"}
+          </UserLink>
+          <GuildTag userId={user.id} size="sm" />
+        </div>
+      </div>
+
+      {/* Bio */}
+      <div className="px-5 py-3 min-h-[58px] flex-1">
+        <BioRenderer bio={cleanBio || "No bio set."} className="text-xs text-white/50 line-clamp-2 leading-relaxed" />
+      </div>
+
+      {/* Follow Action Button */}
+      <div className="px-5 pb-5 pt-1 mt-auto">
+        {currentUser && currentUser.id !== user.id ? (
+          <button
+            onClick={(e) => handleFollowToggle(user, e)}
+            className={`flex w-full items-center justify-center gap-2 rounded-full border py-2 text-xs font-bold uppercase tracking-wider transition ${
+              isFollowing
+                ? "border-white/10 bg-white/[0.04] text-white/60 hover:border-rose-500/40 hover:bg-rose-500/10 hover:text-rose-300"
+                : "border-violet-400/40 bg-violet-600 text-white shadow-lg shadow-violet-600/25 hover:bg-violet-500 hover:scale-[1.02] active:scale-[0.98]"
+            }`}
+          >
+            {isFollowing ? (
+              <>
+                <UserMinus className="w-3.5 h-3.5" /> Following
+              </>
+            ) : (
+              <>
+                <UserPlus className="w-3.5 h-3.5" /> Follow
+              </>
+            )}
+          </button>
+        ) : (
+          <UserLink
+            username={user.username}
+            className="flex w-full items-center justify-center rounded-full border border-white/10 bg-white/[0.03] py-2 text-xs font-bold uppercase tracking-wider text-white/50 transition hover:bg-white/[0.07] hover:text-white"
+          >
+            View Profile
+          </UserLink>
         )}
-      </AnimatePresence>
+      </div>
     </div>
   );
 }
 
 export default function CommunityPage() {
-  const [activeTab, setActiveTab] = useState<'forum' | 'feed' | 'directory'>('forum');
+  const [activeTab, setActiveTab] = useState<"forum" | "feed" | "directory">("forum");
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [directoryFilter, setDirectoryFilter] = useState<"all" | "popular" | "following">("all");
   const { user: currentUser, followUser, unfollowUser } = useUser();
   const { toast } = useToast();
 
@@ -159,159 +150,182 @@ export default function CommunityPage() {
   }, []);
 
   const handleFollowToggle = async (targetUser: User, e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent navigating to profile when clicking follow
+    e.preventDefault();
     if (!currentUser) return toast("Please log in to follow users!", "error");
-    
+
     const isFollowing = currentUser.following?.some((f: any) => f.followingId === targetUser.id);
     if (isFollowing) {
       await unfollowUser(targetUser.id);
-      setUsers(users.map(u => u.id === targetUser.id ? { ...u, followers: u.followers?.slice(0, -1) } : u));
+      setUsers(users.map((u) => (u.id === targetUser.id ? { ...u, followers: u.followers?.slice(0, -1) } : u)));
     } else {
       await followUser(targetUser.id);
-      setUsers(users.map(u => u.id === targetUser.id ? { ...u, followers: [...(u.followers || []), { followerId: currentUser.id }] } : u));
+      setUsers(
+        users.map((u) =>
+          u.id === targetUser.id ? { ...u, followers: [...(u.followers || []), { followerId: currentUser.id }] } : u
+        )
+      );
     }
   };
 
-  const filteredUsers = users.filter(u => 
-    (u.username || '').toLowerCase().includes(search.toLowerCase()) && 
-    u.id !== currentUser?.id
-  );
+  const filteredUsers = useMemo(() => {
+    let list = users.filter((u) => u.id !== currentUser?.id);
+
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter((u) => (u.username || "").toLowerCase().includes(q));
+    }
+
+    if (directoryFilter === "popular") {
+      list = [...list].sort((a, b) => (b.followers?.length || 0) - (a.followers?.length || 0));
+    } else if (directoryFilter === "following" && currentUser) {
+      const followingIds = new Set((currentUser.following || []).map((f: any) => f.followingId));
+      list = list.filter((u) => followingIds.has(u.id));
+    }
+
+    return list;
+  }, [users, search, directoryFilter, currentUser]);
 
   return (
     <PageTransition>
-      <div className="bg-[#09090b] min-h-screen pt-24 pb-12 px-4 md:px-12 text-white">
-      <div className="max-w-5xl mx-auto space-y-8">
-        
-        {/* ── TAB SWITCHER ──────────────────────────────────────────────
-            Three destinations, not three states of one thing: posting, reading
-            what's said elsewhere, and finding people. Each carries an icon so
-            they're told apart by shape before the label is read, and the active
-            one is filled rather than merely tinted.
+      <div className="bg-[#09090b] min-h-screen pt-24 pb-36 px-4 md:px-12 text-white">
+        <div className="max-w-6xl mx-auto space-y-8">
+          
+          {/* ── TAB SWITCHER (Activity History Pill Bar Style) ── */}
+          <div className="flex justify-center mb-8 font-mono">
+            <div className="inline-flex w-max items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] p-1.5 shadow-2xl backdrop-blur-xl">
+              {[
+                { key: "forum" as const, label: "Forum", hint: "Discussions & Polls", Icon: MessagesSquare },
+                { key: "feed" as const, label: "Global Comments", hint: "All Chapter Feeds", Icon: Globe },
+                { key: "directory" as const, label: "User Directory", hint: "Find Creators & Readers", Icon: Users },
+              ].map(({ key, label, hint, Icon }) => {
+                const on = activeTab === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setActiveTab(key)}
+                    className={`group relative flex items-center gap-2.5 rounded-full border px-4 py-2 text-xs font-bold tracking-wide transition sm:px-6 sm:py-2.5 ${
+                      on
+                        ? "border-violet-400/40 bg-violet-500/15 text-violet-200 shadow-sm"
+                        : "border-transparent text-white/45 hover:bg-white/[0.06] hover:text-white/80"
+                    }`}
+                  >
+                    <Icon className={`h-4 w-4 shrink-0 transition ${on ? "text-violet-300" : "text-white/40 group-hover:text-white"}`} />
+                    <span className="text-left font-mono">
+                      <span className="block text-xs sm:text-sm font-bold uppercase tracking-wider">{label}</span>
+                      <span className={`hidden text-[9px] font-bold uppercase tracking-wider sm:block ${on ? "text-violet-300/70" : "text-white/30"}`}>
+                        {hint}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-            The indicator moves by re-tinting each button, not by animating a
-            sliding element — a slider has to be measured and repositioned on
-            every resize, and this control sits above a feed that is already
-            doing real work. */}
-        {/* ── TAB SWITCHER (Activity History Pill Bar Style) ── */}
-        <div className="flex justify-center mb-8 font-mono">
-          <div className="inline-flex w-max items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] p-1.5 shadow-2xl backdrop-blur-xl">
-            {([
-              { key: 'forum' as const, label: 'Forum', hint: 'Discussions & Polls', Icon: MessagesSquare },
-              { key: 'feed' as const, label: 'Global Comments', hint: 'All Chapter Feeds', Icon: Globe },
-              { key: 'directory' as const, label: 'User Directory', hint: 'Find Creators & Readers', Icon: Users },
-            ]).map(({ key, label, hint, Icon }) => {
-              const on = activeTab === key;
-              return (
-                <button
-                  key={key}
-                  onClick={() => setActiveTab(key)}
-                  className={`group relative flex items-center gap-2.5 rounded-full border px-4 py-2 text-xs font-bold tracking-wide transition sm:px-6 sm:py-2.5 ${
-                    on
-                      ? 'border-violet-400/40 bg-violet-500/15 text-violet-200 shadow-sm'
-                      : 'border-transparent text-white/45 hover:bg-white/[0.06] hover:text-white/80'
-                  }`}
+          {/* Tab Content */}
+          <div className="relative">
+            <AnimatePresence mode="wait">
+              {activeTab === "forum" ? (
+                <motion.div
+                  key="forum"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
                 >
-                  <Icon className={`h-4 w-4 shrink-0 transition ${on ? 'text-violet-300' : 'text-white/40 group-hover:text-white'}`} />
-                  <span className="text-left font-mono">
-                    <span className="block text-xs sm:text-sm font-bold uppercase tracking-wider">
-                      {label}
-                    </span>
-                    <span className={`hidden text-[9px] font-bold uppercase tracking-wider sm:block ${on ? 'text-violet-300/70' : 'text-white/30'}`}>
-                      {hint}
-                    </span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+                  <CommunityForum embedded />
+                </motion.div>
+              ) : activeTab === "feed" ? (
+                <motion.div
+                  key="feed"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <GlobalComments embedded />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="directory"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {/* ── USER DIRECTORY HEADER ── */}
+                  <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-white/10 pb-6 font-mono">
+                    <div>
+                      <h1 className="flex items-center gap-3 font-fell text-3xl sm:text-4xl font-bold uppercase tracking-[0.08em] text-white">
+                        <Users className="h-7 w-7 shrink-0 text-violet-400" />
+                        User Directory
+                      </h1>
+                      <p className="mt-1 text-[11px] leading-relaxed text-white/40 sm:text-xs">
+                        Find other readers, see their collections, and follow community members.
+                      </p>
+                    </div>
 
-        {/* Tab Content */}
-        <div className="relative">
-          <AnimatePresence mode="wait">
-            {activeTab === 'forum' ? (
-              <motion.div
-                key="forum"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-              >
-                <CommunityForum embedded />
-              </motion.div>
-            ) : activeTab === 'feed' ? (
-              <motion.div 
-                key="feed"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-              >
-                <GlobalComments embedded />
-              </motion.div>
-            ) : (
-              <motion.div 
-                key="directory"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-                className="pt-4"
-              >
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.42em] text-purple-400/80">Da Vinci · People</p>
-              <h1 className="mt-1 flex items-center gap-3 font-fell text-4xl font-bold uppercase tracking-[0.1em] md:text-5xl">
-                <Users className="h-8 w-8 shrink-0 text-purple-400" />
-                <span style={{
-                  background: "linear-gradient(100deg, #fff 10%, #e2d0ff 55%, #a274ff 92%)",
-                  WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent",
-                  filter: "drop-shadow(0 2px 18px rgba(162,116,255,.35))",
-                }}>User Directory</span>
-              </h1>
-              <p className="mt-2 max-w-md text-sm leading-relaxed text-slate-400">
-                Find other readers and watchers, and look through what they&rsquo;re following.
-              </p>
-            </div>
-            <div className="relative w-full md:w-80">
-              <Search className="absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-slate-500 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Search users..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                style={{ clipPath: notch(12), boxShadow: "inset 0 0 0 1px rgba(255,255,255,.11)" }}
-                className="w-full bg-black/50 pl-10 pr-4 py-3 text-sm outline-none placeholder:text-slate-600 transition"
-              />
-            </div>
-          </div>
+                    <div className="relative w-full sm:w-80">
+                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40 w-4 h-4" />
+                      <input
+                        type="text"
+                        placeholder="Search members by username..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="w-full rounded-full border border-white/10 bg-white/[0.03] pl-10 pr-4 py-2.5 text-xs font-bold text-white outline-none placeholder:text-white/30 focus:border-violet-500 transition shadow-inner"
+                      />
+                    </div>
+                  </div>
 
-          {loading ? (
-            <div className="text-center py-20 text-slate-400">Loading community...</div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredUsers.map(user => (
-                <UserCard 
-                  key={user.id} 
-                  user={user} 
-                  currentUser={currentUser} 
-                  handleFollowToggle={handleFollowToggle} 
-                />
-              ))}
-              
-              {filteredUsers.length === 0 && (
-                <div className="col-span-full text-center py-10 text-slate-500 bg-white/5 rounded-xl border border-white/10">
-                  No users found.
-                </div>
+                  {/* ── FILTER PILLS ── */}
+                  <div className="mb-6 flex flex-wrap items-center gap-2 font-mono">
+                    {[
+                      { key: "all" as const, label: `All Members (${users.length})` },
+                      { key: "popular" as const, label: "Most Followed" },
+                      ...(currentUser ? [{ key: "following" as const, label: `Following (${currentUser.following?.length || 0})` }] : []),
+                    ].map((f) => {
+                      const on = directoryFilter === f.key;
+                      return (
+                        <button
+                          key={f.key}
+                          onClick={() => setDirectoryFilter(f.key)}
+                          className={`rounded-full border px-3.5 py-1.5 text-xs font-bold tracking-wide transition ${
+                            on
+                              ? "border-violet-400/40 bg-violet-500/15 text-violet-200"
+                              : "border-transparent text-white/45 hover:bg-white/[0.06] hover:text-white/80"
+                          }`}
+                        >
+                          {f.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* ── USERS GRID ── */}
+                  {loading ? (
+                    <div className="py-24 text-center font-mono text-xs text-white/40">Loading community directory...</div>
+                  ) : filteredUsers.length === 0 ? (
+                    <div className="py-20 text-center rounded-2xl border border-white/10 bg-[#0b0b11] font-mono">
+                      <Users className="mx-auto h-8 w-8 text-white/20" />
+                      <p className="mt-3 text-sm font-bold text-white/50">No users found matching your search</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {filteredUsers.map((u) => (
+                        <UserCard
+                          key={u.id}
+                          user={u}
+                          currentUser={currentUser}
+                          handleFollowToggle={handleFollowToggle}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
               )}
-            </div>
-          )}
-              </motion.div>
-            )}
-          </AnimatePresence>
+            </AnimatePresence>
+          </div>
         </div>
-
-      </div>
       </div>
     </PageTransition>
   );

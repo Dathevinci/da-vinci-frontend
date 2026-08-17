@@ -156,11 +156,36 @@ export default function NovelReaderPage() {
   };
 
   return (
-    <div className="min-h-screen selection:bg-pink-500/30" style={{ backgroundColor: t.bg, color: t.text }}>
+    <div
+      className="relative min-h-screen selection:bg-pink-500/30 transition-colors"
+      style={{
+        backgroundColor: prefs.customBg ? "transparent" : t.bg,
+        color: t.text,
+      }}
+    >
+      {/* Custom wallpaper background layer */}
+      {prefs.customBg && (
+        <>
+          <div
+            className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center bg-no-repeat transition-all duration-300"
+            style={{
+              backgroundImage: `url(${prefs.customBg})`,
+              opacity: prefs.customBgOpacity ?? 0.25,
+              filter: prefs.customBgBlur ? `blur(${prefs.customBgBlur}px)` : undefined,
+              transform: prefs.customBgBlur ? "scale(1.05)" : undefined,
+            }}
+          />
+          <div
+            className="fixed inset-0 pointer-events-none z-0 transition-colors"
+            style={{ backgroundColor: t.bg, opacity: 0.75 }}
+          />
+        </>
+      )}
+
       {/* Top bar */}
       {/* Solid panel bg, no backdrop-filter: a blur on a sticky bar re-blurs on
           every scrolled frame of the chapter — the one workload this page is for. */}
-      <div className="sticky top-0 z-30 border-b" style={{ backgroundColor: t.panel, borderColor: t.border }}>
+      <div className="sticky top-0 z-30 border-b relative" style={{ backgroundColor: t.panel, borderColor: t.border }}>
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
           <div className="flex items-center gap-1 min-w-0">
             <button
