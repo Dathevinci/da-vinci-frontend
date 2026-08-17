@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, use } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
-  BookOpen, Star, ShieldAlert, Lock, Play, Info, MessagesSquare, Search,
+  BookOpen, Star, ShieldAlert, Lock, Play, Info, MessagesSquare, Search, Layers, Sparkles,
 } from "lucide-react";
 import { IMangaInfo } from "@/lib/asura/models";
 import ManhwaTrackerButton from "@/components/manhwa/ManhwaTrackerButton";
@@ -43,6 +43,14 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
   const [loading, setLoading] = useState(!cached);
   const [tab, setTab] = useState<Tab>("overview");
   const [chapterFilter, setChapterFilter] = useState("");
+  const [altSources, setAltSources] = useState<{
+    source: string;
+    id: string;
+    title: string;
+    latestChapter?: string;
+    isCurrent?: boolean;
+  }[]>([]);
+  const [loadingSources, setLoadingSources] = useState(false);
 
   /**
    * Where this reader left off — the ACCOUNT's answer, not just this browser's.
@@ -56,6 +64,27 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
   const lastRead = useReadingProgress("manhwa", id);
   // Subscribes this page to the bookmark fetch that performs the reconcile.
   useManhwaStatus();
+
+  // Fetch alternative sources across WeebCentral, MangaSee, Manganato, Vortex, Asura
+  useEffect(() => {
+    if (!manhwa?.title) return;
+    let alive = true;
+    setLoadingSources(true);
+    fetch(`/api/manhwa/sources?title=${encodeURIComponent(manhwa.title)}&id=${encodeURIComponent(id)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (alive && Array.isArray(data?.sources)) {
+          setAltSources(data.sources);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (alive) setLoadingSources(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [manhwa?.title, id]);
 
   useEffect(() => {
     const existing = detailCache.get(id);
@@ -291,6 +320,55 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
 
             {tab === "chapters" && (
               <div>
+                {/* Alternative sources switcher */}
+                {altSources.length > 1 && (
+                  <div className="mb-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-white/5">
+                      <div className="flex items-center gap-2">
+                        <Layers className="h-4 w-4 text-purple-400" />
+                        <span className="font-mono text-xs font-black uppercase tracking-wider text-slate-300">
+                          Scanlation Sources
+                        </span>
+                        <span className="rounded-full bg-purple-500/20 px-2 py-0.5 font-mono text-[10px] font-black text-purple-300">
+                          {altSources.length} available
+                        </span>
+                      </div>
+                      <span className="font-mono text-[11px] text-slate-500">
+                        Current: <strong className="text-white">{manhwaSourceLabel(id)}</strong>
+                      </span>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {altSources.map((src) => {
+                        const isCurrent = src.id === id || src.isCurrent;
+                        return (
+                          <Link
+                            key={src.id}
+                            href={`/manhwa/${encodeURIComponent(src.id)}`}
+                            className={`group flex items-center gap-2 rounded-xl border px-3 py-2 font-mono text-xs font-bold transition ${
+                              isCurrent
+                                ? "border-purple-500 bg-purple-500/20 text-white shadow-lg shadow-purple-500/10"
+                                : "border-white/10 bg-white/[0.04] text-slate-400 hover:border-white/25 hover:bg-white/10 hover:text-white"
+                            }`}
+                          >
+                            <span className={isCurrent ? "text-purple-300" : "group-hover:text-purple-300"}>
+                              {src.source}
+                            </span>
+                            {src.latestChapter && (
+                              <span className="rounded bg-black/40 px-1.5 py-0.5 text-[10px] text-slate-400">
+                                {src.latestChapter}
+                              </span>
+                            )}
+                            {isCurrent && (
+                              <span className="h-1.5 w-1.5 rounded-full bg-purple-400" />
+                            )}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <div className="mb-4 flex flex-wrap items-center gap-3">
                   <div className="relative min-w-0 flex-1">
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />

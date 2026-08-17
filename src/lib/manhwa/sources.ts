@@ -1007,3 +1007,73 @@ export async function manhwaHome(): Promise<{ trending: ManhwaRow[]; latestUpdat
   await enrichWbcLatest([...trending, ...latestUpdates]);
   return { trending, latestUpdates };
 }
+
+export interface AlternativeSource {
+  source: string;
+  id: string;
+  title: string;
+  latestChapter?: string;
+  chapterCount?: number;
+  image?: string;
+  isCurrent?: boolean;
+}
+
+export async function getAlternativeSources(title: string, currentId?: string): Promise<AlternativeSource[]> {
+  const q = String(title || "").trim();
+  if (!q) return [];
+
+  const norm = (str?: string) => (str || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const target = norm(q);
+
+  const [a, w, s, m, v] = await Promise.allSettled([
+    settledCall(() => asura().search(q)),
+    settledCall(() => wbc().search(q)),
+    settledCall(() => mse().search(q)),
+    settledCall(() => mna().search(q)),
+    settledCall(() => vtx().search(q)),
+  ]);
+
+  const extractMatch = (
+    settledRes: PromiseSettledResult<{ results?: ManhwaRow[] }>,
+    sourceName: string
+  ): AlternativeSource | null => {
+    if (settledRes.status !== "fulfilled" || !settledRes.value?.results?.length) return null;
+    const list = settledRes.value.results;
+    const hit =
+      list.find((x) => norm(x.title) === target) ||
+      list.find((x) => norm(x.title).includes(target) || target.includes(norm(x.title))) ||
+      list[0];
+    if (!hit || !hit.id) return null;
+    return {
+      source: sourceName,
+      id: hit.id,
+      title: hit.title || q,
+      latestChapter: hit.latestChapter,
+      image: hit.image,
+      isCurrent: currentId ? hit.id === currentId : false,
+    };
+  };
+
+  const sources: AlternativeSource[] = [
+    extractMatch(a, "AsuraScans"),
+    extractMatch(w, "WeebCentral"),
+    extractMatch(s, "Mangasee"),
+    extractMatch(m, "Manganato"),
+    extractMatch(v, "VortexScans"),
+  ].filter((x): x is AlternativeSource => x !== null);
+
+  if (currentId && !sources.some((s) => s.id === currentId)) {
+    sources.unshift({
+      source: manhwaSourceLabel(currentId),
+      id: currentId,
+      title: q,
+      isCurrent: true,
+    });
+  } else if (currentId) {
+    for (const s of sources) {
+      if (s.id === currentId) s.isCurrent = true;
+    }
+  }
+
+  return sources;
+}
