@@ -725,13 +725,19 @@ async function growCorpus(key: string, need: number, filters: any): Promise<Corp
     // The pages we are about to consume. The cursor is advanced FROM THIS
     // SNAPSHOT rather than by incrementing whatever it holds when the round
     // resolves, so the write can never count a page nobody read.
+    // When a specific genre filter is active, only sources with true genre filtering
+    // (AsuraScans and WeebCentral) are queried, preventing unfiltered latest releases
+    // from polluting the genre results.
+    const hasGenre = !!filters?.genre?.trim();
+    const hasStatus = !!filters?.status?.trim();
+
     const dispatched = state.cursors.slice();
     const fetchers = [
       () => asura().getSeries(dispatched[0], filters),
       () => wbc().getSeries(dispatched[1], filters),
-      () => vtx().getSeries(dispatched[2], filters),
-      () => mse().getLatestUpdates(dispatched[3]),
-      () => mna().getLatestUpdates(dispatched[4]),
+      () => (hasGenre ? Promise.resolve(empty) : vtx().getSeries(dispatched[2], filters)),
+      () => (hasGenre || hasStatus ? Promise.resolve(empty) : mse().getLatestUpdates(dispatched[3])),
+      () => (hasGenre || hasStatus ? Promise.resolve(empty) : mna().getLatestUpdates(dispatched[4])),
     ];
     const settledRounds = await Promise.allSettled(
       fetchers.map((f, i) => (state.status[i] === "live" ? f() : Promise.resolve(empty)))

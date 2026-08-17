@@ -145,6 +145,7 @@ export async function browseNovels(
   let page = 1;
   let list = "";
   let status = "";
+  let genre = "";
   if (typeof paramsOrPage === "number") {
     page = paramsOrPage;
     list = legacyList || "";
@@ -152,6 +153,31 @@ export async function browseNovels(
     page = Number(paramsOrPage.page) || 1;
     list = paramsOrPage.list || "";
     status = paramsOrPage.status || "";
+    genre = paramsOrPage.genre || "";
+  }
+
+  // A genre filter takes priority — route to genre-filtered queries on RNF and RR
+  if (genre.trim()) {
+    const [a, b] = await Promise.allSettled([
+      RNF.listNovels(genre.trim(), page, true),
+      RR.listFictionsByGenre(genre.trim(), page),
+    ]);
+    if (a.status === "rejected") console.error("[novel] rnf genre browse failed:", a.reason);
+    if (b.status === "rejected") console.error("[novel] rr genre browse failed:", b.reason);
+    const av = a.status === "fulfilled" ? a.value : { results: [] as NovelResult[], hasNextPage: false, totalPages: 0 };
+    const bv = b.status === "fulfilled" ? b.value : { results: [] as NovelResult[], hasNextPage: false, totalPages: 0 };
+
+    const merged: NovelResult[] = [];
+    for (let i = 0; i < Math.max(av.results.length, bv.results.length); i++) {
+      if (av.results[i]) merged.push(av.results[i]);
+      if (bv.results[i]) merged.push(bv.results[i]);
+    }
+
+    return {
+      results: mergeByTitle(merged),
+      hasNextPage: av.hasNextPage || bv.hasNextPage,
+      totalPages: Math.max(av.totalPages || 0, bv.totalPages || 0),
+    };
   }
 
   const key = list.toLowerCase();

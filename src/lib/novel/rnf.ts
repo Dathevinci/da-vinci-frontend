@@ -103,10 +103,27 @@ export interface RnfPage {
   totalPages?: number;
 }
 
-export async function listNovels(list: string, page = 1): Promise<RnfPage> {
-  const slug = RNF_LISTS[list] || "most-popular-novel";
+export function rnfGenreSlug(genre: string): string {
+  const s = genre.toLowerCase().trim().replace(/[\s_]+/g, "+");
+  const map: Record<string, string> = {
+    "dark+fantasy": "fantasy",
+    "isekai": "reincarnation",
+    "magic": "fantasy",
+    "murim": "martial+arts",
+    "system": "game",
+    "urban": "modern+life",
+    "xianxia": "eastern",
+    "xuanhuan": "eastern"
+  };
+  return map[s] || s;
+}
+
+export async function listNovels(list: string, page = 1, isGenre = false): Promise<RnfPage> {
   const p = Math.max(1, page);
-  const html = await fetchHtml(`${BASE}/novel-list/${slug}?page=${p}`);
+  const url = isGenre
+    ? `${BASE}/genres/${rnfGenreSlug(list)}?page=${p}`
+    : `${BASE}/novel-list/${RNF_LISTS[list] || "most-popular-novel"}?page=${p}`;
+  const html = await fetchHtml(url);
   const results = parseRows(html);
   // pagerTotalPages was written against THIS template family — it reads the
   // "Last" link and data-page attributes, both verified live on this site.

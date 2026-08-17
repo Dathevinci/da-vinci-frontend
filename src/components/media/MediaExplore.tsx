@@ -102,9 +102,9 @@ type Filters = { status: string; sort: string; list: string; genre: string; sour
  * markup ("Martial", "Traged", "Supernatur") are left out.
  */
 const NOVEL_GENRES = [
-  "Action", "Adventure", "Comedy", "Dark Fantasy", "Drama", "Fantasy", "Isekai", "Magic",
+  "Action", "Adventure", "Comedy", "Dark Fantasy", "Drama", "Eastern", "Fantasy", "Harem", "Horror", "Isekai", "Magic",
   "Martial Arts", "Murim", "Mystery", "Psychological", "Reincarnation", "Romance", "School Life",
-  "Sci-Fi", "Slice of Life", "Supernatural", "System", "Urban", "Xianxia", "Xuanhuan"
+  "Sci-Fi", "Seinen", "Slice of Life", "Supernatural", "System", "Urban", "Xianxia", "Xuanhuan"
 ].map((g) => ({ key: g.toLowerCase(), label: g }));
 
 const NOVEL_SORTS = [
@@ -328,7 +328,7 @@ function FiltersPanel({
                 {asuraGenres.map((g) => (
                   <button
                     key={g.slug}
-                    onClick={() => setStaged({ ...staged, genre: g.slug })}
+                    onClick={() => setStaged({ ...staged, genre: staged.genre === g.slug ? "" : g.slug })}
                     className={`rounded-lg border px-2 py-1.5 font-mono text-[11px] font-bold transition ${
                       staged.genre === g.slug
                         ? "border-white bg-white text-black"

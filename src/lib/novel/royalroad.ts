@@ -117,10 +117,36 @@ function pagerTotal(html: string): number | undefined {
   return max > 0 ? max : undefined;
 }
 
+export function rrTagSlug(genre: string): string {
+  const s = genre.toLowerCase().trim().replace(/[\s-]+/g, "_");
+  const map: Record<string, string> = {
+    "eastern": "martial_arts",
+    "xianxia": "martial_arts",
+    "xuanhuan": "martial_arts",
+    "murim": "martial_arts",
+    "school_life": "school",
+    "dark_fantasy": "dark_fantasy",
+  };
+  return map[s] || s;
+}
+
 export async function listFictions(list: string, page = 1): Promise<RrPage> {
   const slug = RR_LISTS[list] || "best-rated";
   const p = Math.max(1, page);
   const html = await fetchHtml(`${BASE}/fictions/${slug}?page=${p}`);
+  const results = parseRows(html);
+  const totalPages = pagerTotal(html);
+  return {
+    results,
+    hasNextPage: totalPages ? p < totalPages : results.length >= 20,
+    totalPages,
+  };
+}
+
+export async function listFictionsByGenre(genre: string, page = 1): Promise<RrPage> {
+  const tag = rrTagSlug(genre);
+  const p = Math.max(1, page);
+  const html = await fetchHtml(`${BASE}/fictions/search?tagsAdd=${encodeURIComponent(tag)}&page=${p}`);
   const results = parseRows(html);
   const totalPages = pagerTotal(html);
   return {
