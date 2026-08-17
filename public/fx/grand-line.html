@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Grand Line</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #0a1526;
+    font-family: Georgia, "Times New Roman", serif;
+  }
+
+  #domain {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    background: rgba(15, 30, 50, 0.4);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+  }
+
+  #profile-card {
+    margin-top: 7vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  #avatar {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    border: 3px solid #c9a96b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 54px;
+    color: rgba(255, 244, 214, 0.95);
+    text-shadow: 0 0 16px rgba(255, 190, 80, 0.9);
+    background:
+      radial-gradient(circle at 32% 28%, #4a3620 0%, #241708 55%, #0d0803 100%);
+    user-select: none;
+  }
+
+  #profile-name {
+    color: #f4e3b8;
+    font-size: 15px;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.8);
+  }
+
+  #bounty {
+    color: #ffd700;
+    font-size: 12px;
+    letter-spacing: 0.24em;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.8);
+  }
+</style>
+</head>
+<body>
+
+<div id="domain">
+  <div id="profile-card">
+    <div id="avatar">王</div>
+    <div id="profile-name">Pirate King</div>
+    <div id="bounty">฿ 3,000,000,000</div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ════════════════════════════════════════════════════════════════════════
+   THE GRAND LINE — an HD procedural seascape. No phases: one continuous
+   cinematic — four-layer trigonometric ocean, a mahogany galleon with real
+   buoyancy (y + slope of the wave under its keel), bow-splash particles on
+   downward pitch, seagulls, sunset speed-lines, and a WANTED-poster
+   treatment punched around the DOM avatar.
+   ════════════════════════════════════════════════════════════════════════ */
+
+const canvas = document.createElement("canvas");
+canvas.style.cssText =
+  "position:fixed;top:0;left:0;width:100vw;height:100vh;" +
+  "z-index:9999;pointer-events:none;mix-blend-mode:normal;";
+document.body.appendChild(canvas);
+const ctx = canvas.getContext("2d");
+
+const avatar = document.getElementById("avatar");
+const card = document.getElementById("profile-card");
+
+let W = 0, H = 0, DPR = 1;
+let AX = 0, AY = 0, AR = 75;         // avatar epicenter
+let CARD = { x: 0, y: 0, w: 0, h: 0 };
+let HORIZON = 0;
+
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = Math.round(W * DPR);
+  canvas.height = Math.round(H * DPR);
+  const r = avatar.getBoundingClientRect();
+  AX = r.left + r.width / 2;
+  AY = r.top + r.height / 2;
+  AR = r.width / 2;
+  const c = card.getBoundingClientRect();
+  CARD = { x: c.left, y: c.top, w: c.width, h: c.height };
+  HORIZON = H * 0.52;
+}
+resize();
+window.addEventListener("resize", resize);
+
+const TAU = Math.PI * 2;
+const rand = (a, b) => a + Math.random() * (b - a);
+const lerp = (a, b, f) => a + (b - a) * f;
+
+/* ── THE OCEAN: four trigonometric layers, back to front ───────────────── */
+class WaveLayer {
+  /**
+   * Each layer is a sum of three sines. y(x) and dy/dx are both analytic, so
+   * the ship's buoyancy reads exact height AND slope — no sampling error.
+   */
+  constructor(depth) {
+    this.depth = depth;                          // 0 back … 3 front
+    const d = depth;
+    this.base = 0.06 + d * 0.115;                // fraction below horizon
+    this.speed = 0.35 + d * 0.5;                 // phase speed
+    this.amp1 = 9 + d * 12;
+    this.k1 = 0.006 - d * 0.0008;
+    this.amp2 = 5 + d * 7;
+    this.k2 = 0.013 + d * 0.002;
+    this.amp3 = 3 + d * 4;
+    this.k3 = 0.024 - d * 0.003;
+    this.p = d * 1.7;
+  }
+  baseY() { return HORIZON + this.base * (H - HORIZON) * 2; }
+  y(x, t) {
+    return this.baseY()
+      - this.amp1 * Math.sin(this.k1 * x + t * this.speed + this.p)
+      - this.amp2 * Math.sin(this.k2 * x - t * this.speed * 1.4 + this.p * 2)
+      - this.amp3 * Math.sin(this.k3 * x + t * this.speed * 2.2 + this.p * 3);
+  }
+  slope(x, t) {
+    /* exact dy/dx of y(x,t) above — canvas coords, y grows downward. The
+       time argument never touches the x-derivative, so every term is just
+       -A·k·cos(k·x + phase). Verified against the numeric central difference
+       to < 1e-3 (an earlier hand-derivation was sign-mangled, which made the
+       ship lean AGAINST the surface and the foam break in the troughs). */
+    return -this.amp1 * this.k1 * Math.cos(this.k1 * x + t * this.speed + this.p)
+      - this.amp2 * this.k2 * Math.cos(this.k2 * x - t * this.speed * 1.4 + this.p * 2)
+      - this.amp3 * this.k3 * Math.cos(this.k3 * x + t * this.speed * 2.2 + this.p * 3);
+  }
+  draw(t, fillTop, fillBottom) {
+    const g = ctx.createLinearGradient(0, this.baseY() - 60, 0, H);
+    g.addColorStop(0, fillTop);
+    g.addColorStop(1, fillBottom);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(-10, this.y(-10, t));
+    for (let x = 0; x <= W + 10; x += 8) ctx.lineTo(x, this.y(x, t));
+    ctx.lineTo(W + 10, H + 10);
+    ctx.lineTo(-10, H + 10);
+    ctx.closePath();
+    ctx.fill();
+  }
+  /* seafoam: quadratic curls over local crests (where slope crosses zero
+     downward and height is high) */
+  drawFoam(t, alpha) {
+    ctx.strokeStyle = `rgba(240,255,255,${alpha})`;
+    ctx.lineWidth = 2.4;
+    ctx.lineCap = "round";
+    for (let x = 20; x <= W - 20; x += 12) {
+      const s1 = this.slope(x - 9, t);
+      const s2 = this.slope(x + 9, t);
+      /* canvas y grows DOWN: a crest is a minimum of y, so the surface falls
+         (slope < 0) before it and rises (slope > 0) after it */
+      if (s1 < -0.025 && s2 > 0.025) {
+        const y = this.y(x, t);
+        const curl = 7 + 5 * Math.sin(t * 3 + x);
+        ctx.beginPath();
+        ctx.moveTo(x - curl * 1.4, y + 3);
+        ctx.quadraticCurveTo(x - curl * 0.3, y - curl, x + curl * 0.8, y - curl * 0.35);
+        ctx.quadraticCurveTo(x + curl * 0.3, y + 1, x + curl * 1.1, y + 3.5);
+        ctx.stroke();
+        /* spray flecks */
+        ctx.fillStyle = `rgba(220,250,255,${alpha * 0.8})`;
+        ctx.fillRect(x - curl + ((x * 7) % 9), y - curl - 3, 2, 2);
+        ctx.fillRect(x + ((x * 13) % 7), y - curl * 1.25, 1.6, 1.6);
+      }
+    }
+  }
+}
+const layers = [new WaveLayer(0), new WaveLayer(1), new WaveLayer(2), new WaveLayer(3)];
+
+/* ── THE GALLEON ───────────────────────────────────────────────────────── */
+class Galleon {
+  constructor() {
+    this.x = 0;             // resolved per frame (fraction of W)
+    this.yS = 0;            // smoothed waterline y
+    this.tilt = 0;          // smoothed pitch
+    this.prevY = 0;
+    this.vy = 0;
+    this.splash = [];       // bow-splash particles
+    this.splashClock = 0;
+  }
+
+  update(dt, t) {
+    const wave = layers[2];
+    this.x = W * 0.56 + Math.sin(t * 0.11) * W * 0.03;
+    const targetY = wave.y(this.x, t);
+    /* pitch = the true surface angle, geared down: a galleon has keel and
+       ballast, it rides swells rather than mirroring every ripple. atan of
+       the real slope caps naturally; 0.6 keeps the worst pitch ~±20°. */
+    const targetTilt = Math.atan(wave.slope(this.x, t)) * 0.6;
+    /* buoyancy smoothing: the hull has mass — it chases the water, it does
+       not teleport to it. Violent but smooth. */
+    const prevY = this.yS || targetY;
+    this.yS = lerp(prevY, targetY, Math.min(1, dt * 3.4));
+    this.tilt = lerp(this.tilt, targetTilt, Math.min(1, dt * 2.8));
+    this.vy = (this.yS - prevY) / Math.max(dt, 1e-4);
+
+    /* crashing downward into a trough → bow splash */
+    this.splashClock -= dt;
+    if (this.vy > 14 && this.splashClock <= 0) {
+      this.splashClock = 0.28;
+      const scl = this.scale();
+      const bowX = this.x + Math.cos(this.tilt) * 150 * scl;
+      const bowY = this.yS + Math.sin(this.tilt) * 150 * scl;
+      for (let i = 0; i < 22; i++) {
+        this.splash.push({
+          x: bowX + rand(-8, 14) * scl,
+          y: bowY + rand(-4, 6) * scl,
+          vx: rand(30, 170) * scl,
+          vy: rand(-190, -60) * scl,
+          r: rand(1.4, 4) * scl,
+          life: rand(0.45, 0.95),
+          age: 0,
+          cyan: Math.random() < 0.4,
+        });
+      }
+    }
+    for (const p of this.splash) {
+      p.age += dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += 420 * dt;              // splash water falls
+    }
+    this.splash = this.splash.filter((p) => p.age < p.life);
+  }
+
+  scale() { return Math.min(W, H) / 950; }
+
+  draw(t) {
+    const scl = this.scale();
+    ctx.save();
+    ctx.translate(this.x, this.yS + 6 * scl);
+    ctx.rotate(this.tilt);
+    ctx.scale(scl, scl);
+
+    /* ── hull: mahogany beziers, stern castle high, bow sweeping up ── */
+    const hullG = ctx.createLinearGradient(0, -30, 0, 55);
+    hullG.addColorStop(0, "#8b5a2b");
+    hullG.addColorStop(0.45, "#5a3420");
+    hullG.addColorStop(1, "#2e1a0e");
+    ctx.fillStyle = hullG;
+    ctx.beginPath();
+    ctx.moveTo(-165, -38);                                   // stern castle top
+    ctx.bezierCurveTo(-150, -8, -158, 8, -148, 22);          // stern face
+    ctx.bezierCurveTo(-95, 52, 60, 54, 118, 30);             // keel run
+    ctx.bezierCurveTo(140, 20, 148, 6, 152, -12);            // bow rise
+    ctx.lineTo(138, -16);                                    // bow inner
+    ctx.bezierCurveTo(90, 6, -60, 8, -128, -14);             // deck line
+    ctx.bezierCurveTo(-138, -20, -146, -28, -165, -38);
+    ctx.closePath();
+    ctx.fill();
+    /* plank seams */
+    ctx.strokeStyle = "rgba(30,16,8,0.55)";
+    ctx.lineWidth = 1.4;
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(-150 + i * 6, 6 + i * 13);
+      ctx.bezierCurveTo(-80, 26 + i * 12, 50, 28 + i * 12, 128 - i * 10, 8 + i * 9);
+      ctx.stroke();
+    }
+    /* gunports */
+    ctx.fillStyle = "rgba(20,10,5,0.85)";
+    for (let i = 0; i < 4; i++) {
+      ctx.fillRect(-104 + i * 52, 12, 12, 9);
+    }
+    /* gold trim along the deck line */
+    ctx.strokeStyle = "#d4a017";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-140, -16);
+    ctx.bezierCurveTo(-60, 6, 90, 4, 140, -15);
+    ctx.stroke();
+
+    /* ── golden lion figurehead at the bow ── */
+    const goldG = ctx.createRadialGradient(158, -26, 2, 158, -26, 26);
+    goldG.addColorStop(0, "#ffe680");
+    goldG.addColorStop(0.55, "#ffd700");
+    goldG.addColorStop(1, "#8a6508");
+    ctx.fillStyle = goldG;
+    /* mane: petal arcs around the head */
+    for (let i = 0; i < 8; i++) {
+      const a = -Math.PI * 0.75 + (i / 7) * Math.PI * 1.5;
+      ctx.beginPath();
+      ctx.ellipse(158 + Math.cos(a) * 13, -26 + Math.sin(a) * 13, 8.5, 4.5, a, 0, TAU);
+      ctx.fill();
+    }
+    /* head */
+    ctx.beginPath();
+    ctx.arc(158, -26, 11.5, 0, TAU);
+    ctx.fill();
+    /* snout */
+    ctx.beginPath();
+    ctx.ellipse(167, -22, 7, 5, 0.35, 0, TAU);
+    ctx.fill();
+    /* eye */
+    ctx.fillStyle = "#3d2214";
+    ctx.beginPath();
+    ctx.arc(156, -29, 2, 0, TAU);
+    ctx.fill();
+    /* neck scroll joining hull */
+    ctx.strokeStyle = "#d4a017";
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(150, -12);
+    ctx.quadraticCurveTo(155, -16, 157, -17);
+    ctx.stroke();
+
+    /* ── masts, yards, bowsprit ── */
+    ctx.strokeStyle = "#3d2214";
+    ctx.lineCap = "round";
+    ctx.lineWidth = 7;
+    ctx.beginPath(); ctx.moveTo(-12, -2); ctx.lineTo(-12, -196); ctx.stroke();   // main
+    ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.moveTo(-96, -8); ctx.lineTo(-96, -150); ctx.stroke();   // mizzen
+    ctx.beginPath(); ctx.moveTo(74, -4); ctx.lineTo(74, -140); ctx.stroke();     // fore
+    ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(128, -14); ctx.lineTo(190, -52); ctx.stroke();   // bowsprit
+    /* yards */
+    ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(-70, -186); ctx.lineTo(46, -186); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-64, -104); ctx.lineTo(40, -104); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-140, -142); ctx.lineTo(-52, -142); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(30, -132); ctx.lineTo(118, -132); ctx.stroke();
+
+    /* ── three billowing sails (wind blows toward +x) ── */
+    const billow = 1 + 0.1 * Math.sin(t * 1.9);
+    const sail = (x1, yTop, x2, yBot, bulge) => {
+      const sailG = ctx.createLinearGradient(x1, yTop, x1, yBot);
+      sailG.addColorStop(0, "#fdf8ec");
+      sailG.addColorStop(0.6, "#efe6d2");
+      sailG.addColorStop(1, "#d9ccae");
+      ctx.fillStyle = sailG;
+      ctx.beginPath();
+      ctx.moveTo(x1, yTop);
+      ctx.lineTo(x2, yTop);
+      /* leeward edge bows deeply forward */
+      ctx.bezierCurveTo(x2 + bulge * billow, yTop + (yBot - yTop) * 0.3,
+                        x2 + bulge * billow, yBot - (yBot - yTop) * 0.24,
+                        x2, yBot);
+      ctx.lineTo(x1, yBot);
+      ctx.bezierCurveTo(x1 + bulge * 0.72 * billow, yBot - (yBot - yTop) * 0.26,
+                        x1 + bulge * 0.72 * billow, yTop + (yBot - yTop) * 0.3,
+                        x1, yTop);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = "rgba(90,70,45,0.5)";
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+    };
+    sail(-70, -186, 46, -108, 34);              // main sail
+    sail(-140, -142, -52, -78, 26);             // mizzen sail
+    sail(30, -132, 118, -72, 24);               // fore sail
+
+    /* ── the Jolly Roger on the main sail ── */
+    const jx = 0, jy = -150;
+    ctx.fillStyle = "#141210";
+    /* crossbones behind the skull: two round-capped bars */
+    ctx.strokeStyle = "#141210";
+    ctx.lineWidth = 5.5;
+    ctx.lineCap = "round";
+    for (const a of [Math.PI / 4, -Math.PI / 4]) {
+      ctx.beginPath();
+      ctx.moveTo(jx - Math.cos(a) * 21, jy - Math.sin(a) * 21 + 4);
+      ctx.lineTo(jx + Math.cos(a) * 21, jy + Math.sin(a) * 21 + 4);
+      ctx.stroke();
+    }
+    /* cranium */
+    ctx.beginPath();
+    ctx.arc(jx, jy, 12.5, Math.PI * 0.96, Math.PI * 0.04, false);
+    ctx.closePath();
+    ctx.fill();
+    /* jaw */
+    ctx.fillRect(jx - 7, jy + 6.5, 14, 7.5);
+    /* eyes + nose punched in sail color */
+    ctx.fillStyle = "#efe6d2";
+    ctx.beginPath(); ctx.arc(jx - 5, jy - 2.5, 3.4, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(jx + 5, jy - 2.5, 3.4, 0, TAU); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(jx, jy + 2); ctx.lineTo(jx - 2.4, jy + 6.4); ctx.lineTo(jx + 2.4, jy + 6.4);
+    ctx.closePath(); ctx.fill();
+    /* teeth gaps */
+    ctx.fillRect(jx - 5.4, jy + 8.5, 1.8, 5);
+    ctx.fillRect(jx - 0.9, jy + 8.5, 1.8, 5);
+    ctx.fillRect(jx + 3.6, jy + 8.5, 1.8, 5);
+
+    /* ── black pennant snapping at the masthead ── */
+    ctx.fillStyle = "#141210";
+    const flap = Math.sin(t * 7) * 7;
+    ctx.beginPath();
+    ctx.moveTo(-12, -196);
+    ctx.quadraticCurveTo(28, -204 + flap * 0.4, 52, -196 + flap);
+    ctx.quadraticCurveTo(30, -190 + flap * 0.5, -12, -184);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+
+    /* bow splash particles live in WORLD space */
+    for (const p of this.splash) {
+      const f = 1 - p.age / p.life;
+      ctx.fillStyle = p.cyan
+        ? `rgba(110,235,255,${0.85 * f})`
+        : `rgba(245,252,255,${0.9 * f})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r * (0.6 + 0.4 * f), 0, TAU);
+      ctx.fill();
+    }
+  }
+}
+const ship = new Galleon();
+
+/* ── SEAGULLS: flapping V beziers drifting through the sunset ──────────── */
+class Gull {
+  constructor(i) {
+    this.x = rand(0, 1);
+    this.y = rand(0.1, 0.42);
+    this.s = rand(8, 15);
+    this.v = rand(0.012, 0.03);
+    this.f = rand(4, 7);
+    this.ph = i * 1.7;
+  }
+  update(dt) {
+    this.x -= this.v * dt;
+    if (this.x < -0.06) { this.x = 1.06; this.y = rand(0.1, 0.42); }
+  }
+  draw(t) {
+    const x = this.x * W;
+    const y = this.y * HORIZON + Math.sin(t * 0.8 + this.ph) * 8;
+    const flap = Math.sin(t * this.f + this.ph) * this.s * 0.55;
+    ctx.strokeStyle = "rgba(255,250,240,0.85)";
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(x - this.s, y - flap * 0.6);
+    ctx.quadraticCurveTo(x - this.s * 0.4, y + flap * 0.5, x, y);
+    ctx.quadraticCurveTo(x + this.s * 0.4, y + flap * 0.5, x + this.s, y - flap * 0.6);
+    ctx.stroke();
+  }
+}
+const gulls = [new Gull(0), new Gull(1), new Gull(2), new Gull(3), new Gull(4)];
+
+/* ── SPEED LINES: the wind of full sail ────────────────────────────────── */
+class SpeedLine {
+  constructor() { this.reset(true); }
+  reset(scatter) {
+    this.x = scatter ? rand(0, 1.2) : 1.15;
+    this.y = rand(0.06, 0.48);
+    this.len = rand(0.05, 0.16);
+    this.v = rand(0.5, 1.1);
+    this.a = rand(0.1, 0.3);
+  }
+  update(dt) {
+    this.x -= this.v * dt;
+    if (this.x + this.len < -0.05) this.reset(false);
+  }
+  draw() {
+    const y = this.y * HORIZON;
+    const g = ctx.createLinearGradient(this.x * W, 0, (this.x + this.len) * W, 0);
+    g.addColorStop(0, "rgba(255,240,210,0)");
+    g.addColorStop(0.5, `rgba(255,240,210,${this.a})`);
+    g.addColorStop(1, "rgba(255,240,210,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(this.x * W, y, this.len * W, 1.6);
+  }
+}
+const speedLines = Array.from({ length: 9 }, () => new SpeedLine());
+
+/* ── frame ─────────────────────────────────────────────────────────────── */
+let last = performance.now();
+let t = 0;
+
+function frame(now) {
+  requestAnimationFrame(frame);
+  let dt = (now - last) / 1000;
+  last = now;
+  if (dt > 0.05) dt = 0.05;
+  t += dt;
+
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+  /* ── SKY: golden-hour gradient ── */
+  const sky = ctx.createLinearGradient(0, 0, 0, HORIZON * 1.15);
+  sky.addColorStop(0, "#1c2c54");
+  sky.addColorStop(0.45, "#4f4a7a");
+  sky.addColorStop(0.75, "#c96f35");
+  sky.addColorStop(1, "#ffb347");
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, W, HORIZON * 1.02);
+
+  /* the low sun, haloed */
+  const sunX = W * 0.24, sunY = HORIZON * 0.86;
+  const sun = ctx.createRadialGradient(sunX, sunY, 4, sunX, sunY, HORIZON * 0.6);
+  sun.addColorStop(0, "rgba(255,238,170,0.95)");
+  sun.addColorStop(0.12, "rgba(255,196,90,0.75)");
+  sun.addColorStop(0.5, "rgba(255,150,60,0.2)");
+  sun.addColorStop(1, "rgba(255,150,60,0)");
+  ctx.fillStyle = sun;
+  ctx.fillRect(0, 0, W, HORIZON * 1.05);
+
+  for (const s of speedLines) { s.update(dt); s.draw(); }
+  for (const g of gulls) { g.update(dt); g.draw(t); }
+
+  /* ── OCEAN, back to front, ship between layers 1 and 2 ── */
+  layers[0].draw(t, "#16305c", "#0c1c38");
+  layers[1].draw(t, "#1c4a7c", "#102748");
+  ship.update(dt, t);
+  ship.draw(t);
+  layers[2].draw(t, "#1f6f9e", "#123a5e");
+  layers[2].drawFoam(t, 0.5);
+  layers[3].draw(t, "#2ba3c9", "#155377");
+  layers[3].drawFoam(t, 0.8);
+
+  /* sun glitter road on the water */
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  for (let y = HORIZON + 14; y < H; y += 26) {
+    const w = 30 + (y - HORIZON) * 0.5;
+    const gx = sunX + Math.sin(y * 0.11 + t * 2.2) * w * 0.35;
+    const a = Math.max(0, 0.16 - (y - HORIZON) / (H - HORIZON) * 0.14);
+    ctx.fillStyle = `rgba(255,214,120,${a})`;
+    ctx.fillRect(gx - w / 2, y, w, 2.2);
+  }
+  ctx.restore();
+
+  /* ── THE WANTED WINDOW: punch the profile through the scene ── */
+  ctx.save();
+  ctx.globalCompositeOperation = "destination-out";
+  ctx.beginPath();
+  ctx.arc(AX, AY, AR + 4, 0, TAU);               // the avatar itself
+  ctx.fill();
+  /* soft window for the name + bounty below the avatar */
+  const nameG = ctx.createRadialGradient(AX, AY + AR + 34, 6, AX, AY + AR + 34, CARD.w * 0.7);
+  nameG.addColorStop(0, "rgba(0,0,0,0.98)");
+  nameG.addColorStop(0.55, "rgba(0,0,0,0.85)");
+  nameG.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = nameG;
+  ctx.fillRect(AX - CARD.w, AY + AR - 12, CARD.w * 2, 110);
+  ctx.restore();
+
+  /* sunburst: warm light cast from the avatar across sky and sea */
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  const burst = ctx.createRadialGradient(AX, AY, AR, AX, AY, AR * 5.2);
+  burst.addColorStop(0, "rgba(255,205,100,0.22)");
+  burst.addColorStop(0.4, "rgba(255,170,60,0.1)");
+  burst.addColorStop(1, "rgba(255,150,40,0)");
+  ctx.fillStyle = burst;
+  ctx.fillRect(AX - AR * 5.5, AY - AR * 5.5, AR * 11, AR * 11);
+  /* slow god-rays */
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * TAU + t * 0.12;
+    const rayA = 0.05 + 0.03 * Math.sin(t * 0.9 + i * 2.2);
+    ctx.fillStyle = `rgba(255,214,130,${rayA})`;
+    ctx.beginPath();
+    ctx.moveTo(AX + Math.cos(a - 0.05) * (AR + 6), AY + Math.sin(a - 0.05) * (AR + 6));
+    ctx.lineTo(AX + Math.cos(a) * AR * 4.4, AY + Math.sin(a) * AR * 4.4);
+    ctx.lineTo(AX + Math.cos(a + 0.05) * (AR + 6), AY + Math.sin(a + 0.05) * (AR + 6));
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+
+  /* ── distressed parchment bounty border, tight around the avatar ── */
+  const pg = ctx.createRadialGradient(AX, AY, AR + 2, AX, AY, AR + 22);
+  pg.addColorStop(0, "#efe0b4");
+  pg.addColorStop(0.55, "#d9bd85");
+  pg.addColorStop(1, "#a8813f");
+  ctx.fillStyle = pg;
+  ctx.beginPath();
+  /* outer edge: torn — radius wobbles with two sine octaves */
+  for (let i = 0; i <= 64; i++) {
+    const a = (i / 64) * TAU;
+    const wob = Math.sin(a * 9 + 1.3) * 2.6 + Math.sin(a * 17 + t * 0.35) * 1.4;
+    const r = AR + 17 + wob;
+    const px = AX + Math.cos(a) * r;
+    const py = AY + Math.sin(a) * r;
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  /* inner circle cut */
+  ctx.arc(AX, AY, AR + 4, 0, TAU, true);
+  ctx.fill("evenodd");
+  /* age blotches */
+  ctx.strokeStyle = "rgba(122,84,32,0.5)";
+  ctx.lineWidth = 1.4;
+  for (let i = 0; i < 5; i++) {
+    const a0 = i * 1.5 + 0.4;
+    ctx.beginPath();
+    ctx.arc(AX, AY, AR + 9 + (i % 3) * 4, a0, a0 + 0.7);
+    ctx.stroke();
+  }
+  /* WANTED stamp arc-text drawn as strokes: short dashes above */
+  ctx.strokeStyle = "rgba(90,50,14,0.85)";
+  ctx.lineWidth = 2.6;
+  for (let i = 0; i < 9; i++) {
+    const a = -Math.PI / 2 - 0.5 + i * 0.125;
+    ctx.beginPath();
+    ctx.moveTo(AX + Math.cos(a) * (AR + 9), AY + Math.sin(a) * (AR + 9));
+    ctx.lineTo(AX + Math.cos(a) * (AR + 14), AY + Math.sin(a) * (AR + 14));
+    ctx.stroke();
+  }
+
+  /* ── glowing golden Berri symbols orbiting the poster ── */
+  for (let i = 0; i < 5; i++) {
+    const a = t * 0.5 + (i / 5) * TAU;
+    const or = AR + 38 + Math.sin(t * 1.3 + i) * 6;
+    const bx = AX + Math.cos(a) * or;
+    const by = AY + Math.sin(a) * or * 0.85;
+    const glow = 0.65 + 0.35 * Math.sin(t * 2.1 + i * 1.9);
+    ctx.save();
+    ctx.translate(bx, by);
+    ctx.strokeStyle = `rgba(255,215,0,${glow})`;
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    /* ฿ drawn procedurally: B strokes + the center bar */
+    ctx.beginPath();
+    ctx.moveTo(-3, -7); ctx.lineTo(-3, 7);                       // spine
+    ctx.moveTo(-3, -7); ctx.quadraticCurveTo(5, -6, 4.6, -1.8);  // top bowl
+    ctx.quadraticCurveTo(4.4, 0, -3, 0);
+    ctx.moveTo(-3, 0); ctx.quadraticCurveTo(6, 0.6, 5.4, 4);     // bottom bowl
+    ctx.quadraticCurveTo(5, 7.4, -3, 7);
+    ctx.moveTo(0.4, -9.4); ctx.lineTo(0.4, 9.4);                 // the baht bar
+    ctx.stroke();
+    /* halo dot */
+    ctx.fillStyle = `rgba(255,215,0,${glow * 0.22})`;
+    ctx.beginPath();
+    ctx.arc(0, 0, 13, 0, TAU);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
