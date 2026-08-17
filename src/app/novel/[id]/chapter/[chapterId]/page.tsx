@@ -120,6 +120,20 @@ export default function NovelReaderPage() {
   // Window the drawer list around the current chapter to keep the DOM light.
   const drawerChapters = idx >= 0 ? chapters.slice(Math.max(0, idx - 150), idx + 150) : chapters.slice(0, 300);
 
+  /**
+   * The drawer OPENS ON where you are. It windows ±150 chapters around the
+   * current one, so the current row could still sit 150 rows deep — same
+   * report as the manhwa selector: "it should show which chapter we're on".
+   */
+  const activeDrawerRowRef = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    if (!showChapters) return;
+    const t2 = setTimeout(() => {
+      activeDrawerRowRef.current?.scrollIntoView({ block: "center" });
+    }, 60);
+    return () => clearTimeout(t2);
+  }, [showChapters, chapterId]);
+
   const retryChapter = () => {
     setLoading(true);
     setChapter(null);
@@ -304,6 +318,7 @@ export default function NovelReaderPage() {
                 return (
                   <button
                     key={c.id}
+                    ref={active ? activeDrawerRowRef : undefined}
                     onClick={() => {
                       setShowChapters(false);
                       go(c.id);
@@ -311,7 +326,14 @@ export default function NovelReaderPage() {
                     className={`w-full text-left px-5 py-3 border-b text-sm transition ${active ? "bg-pink-500/15 text-pink-300 font-bold" : "hover:bg-pink-500/5"}`}
                     style={{ borderColor: t.border, color: active ? undefined : t.muted }}
                   >
-                    {c.title}
+                    <span className="flex items-center gap-2">
+                      <span className="min-w-0 flex-1 truncate">{c.title}</span>
+                      {active && (
+                        <span className="shrink-0 rounded-full bg-pink-500/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-pink-300">
+                          Reading
+                        </span>
+                      )}
+                    </span>
                   </button>
                 );
               })}

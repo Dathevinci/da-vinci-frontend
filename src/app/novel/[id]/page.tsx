@@ -45,6 +45,10 @@ export default function NovelDetailPage() {
   const [loading, setLoading] = useState(true);
   const [chapterFilter, setChapterFilter] = useState("");
   const [chapterPage, setChapterPage] = useState(0);
+  // One-shot: the chapter list opens on the RANGE holding the last-read
+  // chapter (novels here run to thousands), then manual paging is the
+  // reader's own and never fought.
+  const jumpedToLastRead = useRef(false);
   const [tab, setTab] = useState<Tab>("chapters");
   const [serverOpen, setServerOpen] = useState(false);
   const serverRef = useRef<HTMLDivElement>(null);
@@ -90,6 +94,15 @@ export default function NovelDetailPage() {
   const cover = novelCover(novel?.cover);
   const chapters = novel?.chapters || [];
   const PAGE_SIZE = 100;
+
+  useEffect(() => {
+    if (jumpedToLastRead.current || !lastRead) return;
+    const idx = chapters.findIndex((c) => c.id === lastRead);
+    if (idx < 0) return;
+    jumpedToLastRead.current = true;
+    setChapterPage(Math.floor(idx / PAGE_SIZE));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastRead, chapters]);
   const filtered = chapterFilter
     ? chapters.filter((c) => c.title.toLowerCase().includes(chapterFilter.toLowerCase()) || String(c.number).includes(chapterFilter))
     : chapters;
@@ -381,8 +394,15 @@ export default function NovelDetailPage() {
                           : "border-white/5 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06]"
                       }`}
                     >
-                      <span className="line-clamp-1 font-mono text-sm text-slate-300 group-hover:text-white">{ch.title}</span>
-                      <ChevronRight className="h-4 w-4 shrink-0 text-slate-600 group-hover:text-white" />
+                      <span className={`line-clamp-1 font-mono text-sm ${lastRead === ch.id ? "text-pink-100" : "text-slate-300 group-hover:text-white"}`}>{ch.title}</span>
+                      <span className="flex shrink-0 items-center gap-2">
+                        {lastRead === ch.id && (
+                          <span className="rounded-full bg-pink-500/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-pink-300">
+                            You&rsquo;re here
+                          </span>
+                        )}
+                        <ChevronRight className="h-4 w-4 text-slate-600 group-hover:text-white" />
+                      </span>
                     </Link>
                   ))}
                 </div>
