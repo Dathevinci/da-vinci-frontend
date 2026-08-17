@@ -45,6 +45,7 @@ export const DECOR_NAMES: Record<string, string> = {
   effect_portal: "Dimension C-137",
   effect_bankai: "Bankai: Senbonzakura Kageyoshi",
   effect_dandadan: "Dandadan: The Turbo Clash",
+  effect_grandline: "The Grand Line",
 };
 
 // The full catalogs, for staff (who may equip anything) and future listings.

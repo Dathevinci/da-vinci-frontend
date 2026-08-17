@@ -32,6 +32,7 @@ const EFFECTS: { id: string; name: string; tier?: string }[] = [
   { id: "effect_portal", name: "Dimension C-137", tier: "SSS" },
   { id: "effect_bankai", name: "Bankai: Senbonzakura Kageyoshi", tier: "SSS" },
   { id: "effect_dandadan", name: "Dandadan: The Turbo Clash", tier: "SSS" },
+  { id: "effect_grandline", name: "The Grand Line", tier: "SSS" },
   { id: "effect_jungle", name: "The Ancient Jungle", tier: "Rare" },
   { id: "effect_mango", name: "Mango Loco", tier: "Rare" },
   { id: "effect_lotus", name: "The Sacred Lotus Pond", tier: "Rare" },
@@ -51,8 +52,8 @@ const EFFECTS: { id: string; name: string; tier?: string }[] = [
 ];
 
 export default function EffectGalleryPage() {
-  // Solo mode is the honest way to judge one effect: 25 canvases animating at
-  // once is not the load any real page produces.
+  // Solo mode is the honest way to judge one effect: dozens of canvases
+  // animating at once is not the load any real page produces.
   const [solo, setSolo] = useState<string | null>(null);
   const shown = solo ? EFFECTS.filter((e) => e.id === solo) : EFFECTS;
 
@@ -67,8 +68,8 @@ export default function EffectGalleryPage() {
           <p className="mt-2 max-w-[70ch] text-sm leading-relaxed text-slate-400">
             Every effect in the real profile-card shell at its production width (420px),
             so a card-geometry change can be reviewed across all of them at once.
-            Click a card to isolate it — 25 live canvases at once is not a fair
-            performance read.
+            Click a card to isolate it — {EFFECTS.length} live canvases at once
+            is not a fair performance read.
           </p>
           {solo && (
             <button
