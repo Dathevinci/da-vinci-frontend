@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { lastNavWasPop } from "@/lib/navType";
+import { scrollClaimedRecently } from "@/lib/scrollMemory";
 
 /**
  * OPEN A PAGE AT THE TOP OF IT.
@@ -51,6 +52,12 @@ export default function ScrollReset() {
     // push, and a freshness window both exempted pushes made soon after a pop
     // and fought traversals whose commit came late on a starved main thread.
     if (lastNavWasPop()) return;
+    // A page that restored its own content AND its own scroll has claimed
+    // this navigation (scrollMemory.claimScroll in its layout effect, which
+    // runs before this one). Pinning it to the top would undo exactly the
+    // restoration the reader asked for — the "takes me all the way to the
+    // front" report. Classification-independent, like the restores.
+    if (scrollClaimedRecently()) return;
 
     /**
      * A PIN, NOT A POKE. The single one-frame reset this used to be kept

@@ -1,6 +1,7 @@
 "use client";
 
 import { swrRawJson, readSwrCache } from "@/lib/swrCache";
+import { attachScrollMemory, restoreRememberedScroll } from "@/lib/scrollMemory";
 import { useEffect, useLayoutEffect, useRef, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -81,9 +82,17 @@ function NovelInner() {
       servedQs.current = c.qs;
       setData(c.data);
       setLoading(false);
+      restoreRememberedScroll("dv-browse-novel:scroll", sp.toString());
     } catch {
       /* snapshot is best-effort — worst case is the old cold reload */
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHome]);
+
+  // Rolling scroll record for the browse grid, for the restore above.
+  useEffect(() => {
+    if (isHome) return;
+    return attachScrollMemory("dv-browse-novel:scroll", () => sp.toString());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isHome]);
 

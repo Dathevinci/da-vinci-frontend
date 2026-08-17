@@ -1,6 +1,7 @@
 "use client";
 
 import { swrRawJson, readSwrCache } from "@/lib/swrCache";
+import { attachScrollMemory, restoreRememberedScroll } from "@/lib/scrollMemory";
 import { useState, useEffect, useLayoutEffect, useRef, Suspense } from "react";
 import ManhwaCard from "@/components/manhwa/ManhwaCard";
 import ManhwaFilters from "@/components/manhwa/ManhwaFilters";
@@ -106,9 +107,19 @@ function ManhwaPageInner() {
       setData(c.data);
       setHasNext(!!c.hasNext);
       setLoading(false);
+      // Same-frame scroll restore + claim, so the pin stands down — implicit
+      // browser restoration kept losing to misclassified traversals.
+      restoreRememberedScroll("dv-browse-manhwa:scroll", sp.toString());
     } catch {
       /* snapshot is best-effort — worst case is the old cold reload */
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHome]);
+
+  // Rolling scroll record for the browse grid, for the restore above.
+  useEffect(() => {
+    if (isHome) return;
+    return attachScrollMemory("dv-browse-manhwa:scroll", () => sp.toString());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isHome]);
 

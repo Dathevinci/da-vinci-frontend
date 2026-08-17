@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { lastNavWasPop } from "@/lib/navType";
+import { attachScrollMemory, restoreRememberedScroll } from "@/lib/scrollMemory";
 import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Search, Filter, Clock, ListFilter, Library } from "lucide-react";
@@ -579,6 +580,11 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
       setTotalPages(typeof c.totalPages === "number" ? c.totalPages : null);
       setTotalsApprox(!!c.totalsApprox);
       setLoading(false);
+      // The grid is tall again BEFORE first paint — put the reader back at
+      // their own offset and claim the navigation so the scroll pin stands
+      // down. Implicit browser restoration kept losing to misclassified
+      // traversals; this depends on nothing but our own record.
+      restoreRememberedScroll(`dv-explore-scroll:${mode}`, sp.toString());
     } catch {
       /* snapshot is best-effort — worst case is the old cold reload */
     }
@@ -586,6 +592,13 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
     // after that is the component's own state.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Rolling record of where the reader is in THIS grid, for the restore
+  // above. qs read live so a filter change relabels the record immediately.
+  useEffect(() => {
+    return attachScrollMemory(`dv-explore-scroll:${mode}`, () => sp.toString());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
 
   /**
    * The snapshot is written whenever a settled result set changes — never
