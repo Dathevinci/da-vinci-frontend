@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Crown, Check } from "lucide-react";
+import { Crown, Check, Sparkles, X, Edit2 } from "lucide-react";
 import { authHeaders } from "@/lib/authToken";
 import { Panel, Heading, GachaButton, notch, ACCENT_LIT } from "@/components/cards/gacha";
 
