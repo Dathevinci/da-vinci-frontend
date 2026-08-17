@@ -518,14 +518,25 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
   const restored = useRef(false);
   useLayoutEffect(() => {
     try {
-      // "Last navigation was a traversal" — not a freshness window, which
-      // review showed leaks in both directions (a push right after a pop
-      // inherited return-treatment; a slow traversal commit lost it).
-      if (!lastNavWasPop()) return;
       const raw = sessionStorage.getItem(exploreCacheKey);
       if (!raw) return;
       const c = JSON.parse(raw);
       if (!c || !Array.isArray(c.items) || c.items.length === 0 || !c.filters) return;
+      /**
+       * A RETURN restores; so does ANY arrival within a short freshness
+       * window. The traversal signal is the primary gate, but it depends on
+       * wrapping the router's pushState — and the owner kept seeing cold
+       * reloads on returns the classifier apparently missed. The fallback
+       * covers exactly the open-a-title-then-X flow (seconds old) without
+       * reviving either reviewed harm: a minutes-fresh snapshot cannot be
+       * session-stale, and the pages-mode page guard below still rejects
+       * bare-URL deep landings regardless of which gate admitted us.
+       */
+      const freshMs = Date.now() - (Number(c.writtenAt) || 0);
+      if (!lastNavWasPop() && !(freshMs >= 0 && freshMs < 3 * 60_000)) {
+        console.debug("[dv-restore] explore rejected: not a return, snapshot stale", { freshMs });
+        return;
+      }
       // The reader may have flipped the shared paging preference on another
       // surface since this snapshot was written. Restoring across that flip
       // paints one mode's data under the other mode's chrome — an infinite
@@ -535,7 +546,10 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
       // it, and a snapshot that never recorded its mode (pre-deploy format)
       // is unknown, not "infinite" — refusing it costs one cold reload,
       // which is the stated worst case anyway.
-      if (c.paging !== readPagingMode()) return;
+      if (c.paging !== readPagingMode()) {
+        console.debug("[dv-restore] explore rejected: paging mode changed", { snap: c.paging, now: readPagingMode() });
+        return;
+      }
       const seedFilters: Filters = {
         status: sp.get("status") || "",
         sort: sp.get("sort") || "",
@@ -590,6 +604,7 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
     if (snapshotDead.current) return;
     try {
       const body = JSON.stringify({
+        writtenAt: Date.now(),
         q: servedQuery.current.q,
         filters: servedQuery.current.filters,
         paging,

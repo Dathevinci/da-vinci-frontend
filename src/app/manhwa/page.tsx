@@ -1,7 +1,6 @@
 "use client";
 
 import { swrRawJson, readSwrCache } from "@/lib/swrCache";
-import { lastNavWasPop } from "@/lib/navType";
 import { useState, useEffect, useLayoutEffect, useRef, Suspense } from "react";
 import ManhwaCard from "@/components/manhwa/ManhwaCard";
 import ManhwaFilters from "@/components/manhwa/ManhwaFilters";
@@ -89,11 +88,19 @@ function ManhwaPageInner() {
      * half-applied filter can never mislabel them.
      */
     try {
-      if (!lastNavWasPop()) return;
+      /* No pop gate here, deliberately: this grid ALWAYS background-refreshes
+         after a restore (the fetch below runs regardless), so restoring on
+         any arrival is the home shelves' accepted serve-cached-then-refresh —
+         and it keeps working even where navigation-type detection lies
+         (owner-reported reloads survived the pop-gated version). The
+         exact-qs match stays the authority on WHAT may restore. */
       const raw = sessionStorage.getItem("dv-browse-manhwa");
       if (!raw) return;
       const c = JSON.parse(raw);
-      if (!c || c.qs !== sp.toString() || !Array.isArray(c.data) || c.data.length === 0) return;
+      if (!c || c.qs !== sp.toString() || !Array.isArray(c.data) || c.data.length === 0) {
+        console.debug("[dv-restore] browse-manhwa rejected", { hasSnap: !!c, qsMatch: c?.qs === sp.toString(), rows: c?.data?.length ?? 0 });
+        return;
+      }
       restored.current = true;
       servedQs.current = c.qs;
       setData(c.data);

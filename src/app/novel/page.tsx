@@ -1,7 +1,6 @@
 "use client";
 
 import { swrRawJson, readSwrCache } from "@/lib/swrCache";
-import { lastNavWasPop } from "@/lib/navType";
 import { useEffect, useLayoutEffect, useRef, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -69,11 +68,15 @@ function NovelInner() {
     // manhwa page (owner-reported there): history returns only, exact query
     // string match, snapshot written with the rows it labels.
     try {
-      if (!lastNavWasPop()) return;
+      // No pop gate — same reasoning as the manhwa grid: the background
+      // refresh below always runs, so this is serve-cached-then-refresh.
       const raw = sessionStorage.getItem("dv-browse-novel");
       if (!raw) return;
       const c = JSON.parse(raw);
-      if (!c || c.qs !== sp.toString() || !Array.isArray(c.data) || c.data.length === 0) return;
+      if (!c || c.qs !== sp.toString() || !Array.isArray(c.data) || c.data.length === 0) {
+        console.debug("[dv-restore] browse-novel rejected", { hasSnap: !!c, qsMatch: c?.qs === sp.toString(), rows: c?.data?.length ?? 0 });
+        return;
+      }
       restored.current = true;
       servedQs.current = c.qs;
       setData(c.data);
