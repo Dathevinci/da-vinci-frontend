@@ -11,10 +11,11 @@ interface NovelTrackerButtonProps {
 }
 
 const STATUS_COLORS: Record<Exclude<NovelUserStatus, "None">, string> = {
-  Interested: "bg-pink-500 hover:bg-pink-600",
   Reading: "bg-green-500 hover:bg-green-600",
+  Interested: "bg-pink-500 hover:bg-pink-600",
   Waiting: "bg-yellow-500 hover:bg-yellow-600",
-  Finished: "bg-red-500 hover:bg-red-600",
+  "On-Hold": "bg-amber-600 hover:bg-amber-700",
+  Finished: "bg-purple-500 hover:bg-purple-600",
   Dropped: "bg-red-500 hover:bg-red-600",
 };
 

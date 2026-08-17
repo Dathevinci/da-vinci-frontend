@@ -54,6 +54,18 @@ import ActivityHistory from "@/components/profile/ActivityHistory";
 import GuildCard from "@/components/profile/GuildCard";
 import GuildTag from "@/components/guild/GuildTag";
 
+function formatTrackerStatus(status?: string): string {
+  if (!status) return "Reading";
+  const s = String(status).toUpperCase().replace(/_/g, "-");
+  if (s === "ON-HOLD" || s === "ONHOLD" || s === "PAUSED" || s === "HOLD") return "On-Hold";
+  if (s === "READING") return "Reading";
+  if (s === "WAITING") return "Waiting";
+  if (s === "FINISHED" || s === "COMPLETED") return "Finished";
+  if (s === "DROPPED") return "Dropped";
+  if (s === "INTERESTED" || s === "PLAN-TO-READ") return "Interested";
+  return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+}
+
 export default function PublicProfilePage() {
   const { username } = useParams();
   const { user: currentUser, isLoaded: currentUserLoaded, followUser, unfollowUser } = useUser();
@@ -181,17 +193,18 @@ export default function PublicProfilePage() {
   const groupedManhwaItems = useMemo(() => {
     const SECTION_FOR_MANHWA: Record<string, string> = {
       READING: "Reading", COMPLETED: "Completed", FINISHED: "Completed",
-      WAITING: "Waiting", INTERESTED: "Interested", DROPPED: "Dropped", PLAN_TO_READ: "Plan to Read"
+      WAITING: "Waiting", "ON-HOLD": "On-Hold", ON_HOLD: "On-Hold", ONHOLD: "On-Hold",
+      INTERESTED: "Interested", DROPPED: "Dropped", PLAN_TO_READ: "Plan to Read"
     };
     const groups: Record<string, typeof activeManhwaItems> = {};
     activeManhwaItems.forEach(item => {
       const raw = (selfView && liveTrackedManhwa[item.mangaId]?.status) || item.status || "READING";
-      const section = SECTION_FOR_MANHWA[String(raw).toUpperCase()] || "Other";
+      const section = SECTION_FOR_MANHWA[String(raw).toUpperCase().replace(/_/g, "-")] || SECTION_FOR_MANHWA[String(raw).toUpperCase()] || "Other";
       if (!groups[section]) groups[section] = [];
       groups[section].push(item);
     });
 
-    const order = ["Reading", "Completed", "Waiting", "Interested", "Plan to Read", "Dropped", "Other"];
+    const order = ["Reading", "Completed", "Waiting", "On-Hold", "Interested", "Plan to Read", "Dropped", "Other"];
     const rank = (s: string) => { const i = order.indexOf(s); return i === -1 ? 99 : i; };
     return Object.entries(groups).sort((a, b) => rank(a[0]) - rank(b[0]));
   }, [activeManhwaItems, liveTrackedManhwa, selfView]);
@@ -200,17 +213,18 @@ export default function PublicProfilePage() {
   const groupedNovelItems = useMemo(() => {
     const SECTION_FOR_NOVEL: Record<string, string> = {
       READING: "Reading", FINISHED: "Finished", COMPLETED: "Finished",
-      WAITING: "Waiting", INTERESTED: "Interested", DROPPED: "Dropped",
+      WAITING: "Waiting", "ON-HOLD": "On-Hold", ON_HOLD: "On-Hold", ONHOLD: "On-Hold",
+      INTERESTED: "Interested", DROPPED: "Dropped",
     };
     const groups: Record<string, typeof activeNovelItems> = {};
     activeNovelItems.forEach(item => {
       const raw = (selfView && liveTrackedNovel[item.novelId]?.status) || item.status || "READING";
-      const section = SECTION_FOR_NOVEL[String(raw).toUpperCase()] || "Other";
+      const section = SECTION_FOR_NOVEL[String(raw).toUpperCase().replace(/_/g, "-")] || SECTION_FOR_NOVEL[String(raw).toUpperCase()] || "Other";
       if (!groups[section]) groups[section] = [];
       groups[section].push(item);
     });
 
-    const order = ["Reading", "Finished", "Waiting", "Interested", "Dropped", "Other"];
+    const order = ["Reading", "Finished", "Waiting", "On-Hold", "Interested", "Dropped", "Other"];
     const rank = (s: string) => { const i = order.indexOf(s); return i === -1 ? 99 : i; };
     return Object.entries(groups).sort((a, b) => rank(a[0]) - rank(b[0]));
   }, [activeNovelItems, liveTrackedNovel, selfView]);
@@ -998,7 +1012,7 @@ export default function PublicProfilePage() {
                                       />
                                     ) : (
                                       <span className="px-1.5 py-0.5 text-[10px] font-bold tracking-wider rounded shadow-md border border-white/10 bg-white/10 text-white">
-                                        {String(item.status || "Reading").charAt(0).toUpperCase() + String(item.status || "Reading").slice(1).toLowerCase()}
+                                        {formatTrackerStatus(item.status)}
                                       </span>
                                     )}
                                   </div>
@@ -1106,7 +1120,7 @@ export default function PublicProfilePage() {
                                       />
                                     ) : (
                                       <span className="px-1.5 py-0.5 text-[10px] font-bold tracking-wider rounded shadow-md border border-white/10 bg-white/10 text-white">
-                                        {String(item.status || "Reading").charAt(0).toUpperCase() + String(item.status || "Reading").slice(1).toLowerCase()}
+                                        {formatTrackerStatus(item.status)}
                                       </span>
                                     )}
                                   </div>

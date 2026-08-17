@@ -6,7 +6,19 @@ import { earnPoints } from "@/lib/earn";
 import { reconcileProgress } from "@/lib/readingProgress";
 import { mergeServerReading } from "@/lib/readingHistory";
 
-export type ManhwaUserStatus = "Interested" | "Reading" | "Waiting" | "Finished" | "Dropped" | "None";
+export type ManhwaUserStatus = "Interested" | "Reading" | "Waiting" | "On-Hold" | "Finished" | "Dropped" | "None";
+
+function normalizeManhwaStatus(raw?: string): ManhwaUserStatus {
+  if (!raw) return "None";
+  const s = raw.toUpperCase().replace(/_/g, "-");
+  if (s === "ON-HOLD" || s === "ONHOLD" || s === "PAUSED" || s === "HOLD") return "On-Hold";
+  if (s === "READING") return "Reading";
+  if (s === "INTERESTED" || s === "PLAN-TO-READ" || s === "PLANTOREAD") return "Interested";
+  if (s === "WAITING") return "Waiting";
+  if (s === "FINISHED" || s === "COMPLETED") return "Finished";
+  if (s === "DROPPED") return "Dropped";
+  return (raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase()) as ManhwaUserStatus;
+}
 
 export interface TrackedManhwa {
   id: string; // Backend UUID
@@ -250,9 +262,7 @@ export function useManhwaStatus() {
   const getStatus = (mangaId: string): ManhwaUserStatus => {
     const entry = tracked[mangaId];
     if (!entry?.trackedAt) return "None";
-    const raw = entry.status;
-    if (!raw) return "None";
-    return (raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase()) as ManhwaUserStatus;
+    return normalizeManhwaStatus(entry.status);
   };
 
   const isTracked = (mangaId: string): boolean => !!tracked[mangaId]?.trackedAt;

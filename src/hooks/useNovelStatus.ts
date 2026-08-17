@@ -7,7 +7,19 @@ import { reconcileProgress } from "@/lib/readingProgress";
 import { mergeServerReading } from "@/lib/readingHistory";
 
 // Single-source status enum for tracked novels (mirrors useManhwaStatus).
-export type NovelUserStatus = "Interested" | "Reading" | "Waiting" | "Finished" | "Dropped" | "None";
+export type NovelUserStatus = "Interested" | "Reading" | "Waiting" | "On-Hold" | "Finished" | "Dropped" | "None";
+
+function normalizeNovelStatus(raw?: string): NovelUserStatus {
+  if (!raw) return "None";
+  const s = raw.toUpperCase().replace(/_/g, "-");
+  if (s === "ON-HOLD" || s === "ONHOLD" || s === "PAUSED" || s === "HOLD") return "On-Hold";
+  if (s === "READING") return "Reading";
+  if (s === "INTERESTED" || s === "PLAN-TO-READ" || s === "PLANTOREAD") return "Interested";
+  if (s === "WAITING") return "Waiting";
+  if (s === "FINISHED" || s === "COMPLETED") return "Finished";
+  if (s === "DROPPED") return "Dropped";
+  return (raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase()) as NovelUserStatus;
+}
 
 export interface TrackedNovel {
   id: string; // Backend UUID
@@ -250,9 +262,7 @@ export function useNovelStatus() {
   const getStatus = (novelId: string): NovelUserStatus => {
     const entry = tracked[novelId];
     if (!entry?.trackedAt) return "None";
-    const raw = entry.status;
-    if (!raw) return "None";
-    return (raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase()) as NovelUserStatus;
+    return normalizeNovelStatus(entry.status);
   };
 
   const isTracked = (novelId: string): boolean => !!tracked[novelId]?.trackedAt;
