@@ -505,10 +505,16 @@ export default function PublicProfilePage() {
                   isAdmin() but their XP level by getRankTheme(), so the
                   equality check passed and printed a stale lower title beside
                   the correct one. Any Opening name belongs to the heart chip. */}
-              {rankTheme.title && !isHeartRankName(rankTheme.title) && (
-                <div className={`shrink-0 px-3 py-1 rounded-full flex items-center gap-1 ${rankTheme.badgeClass}`}>
-                  {RankIcon && <RankIcon className="w-4 h-4" />}
-                  <span className="text-xs font-black tracking-wider uppercase">{rankTheme.title}</span>
+              {rankTheme.title && !isHeartRankName(rankTheme.title) && (!isProfileLeadDev || !(profileUser as any).hideLeadRole) && (
+                <div className={`shrink-0 ${isProfileLeadDev ? "px-4 py-1.5 min-h-[34px]" : "px-3 py-1"} rounded-full flex items-center gap-2 ${rankTheme.badgeClass} transition-all duration-200 hover:scale-105`}>
+                  {isProfileLeadDev ? (
+                    <img src="/icons/lucifer-gojo.png" alt="Lucifer, the fallen angel" className="h-7 w-7 object-contain -my-1.5 shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
+                  ) : (
+                    RankIcon && <RankIcon className="w-4 h-4" />
+                  )}
+                  <span className={`${isProfileLeadDev ? "text-xs md:text-sm text-transparent bg-clip-text bg-gradient-to-r from-[#f3e8ff] via-[#d8b4fe] to-[#c084fc] drop-shadow-[0_0_14px_rgba(192,132,252,0.9)]" : "text-xs"} font-black tracking-wider uppercase`}>
+                    {rankTheme.title}
+                  </span>
                 </div>
               )}
               {(() => {

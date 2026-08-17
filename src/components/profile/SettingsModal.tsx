@@ -109,6 +109,12 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                 equippedList = ["Bug Detective", ...equippedList].slice(0, MAX_WORN_TITLES);
               }
             }
+            const isLead = isLeadDev(user);
+            if (isLead) {
+              if (!ownedList.some((o: any) => o.title.toLowerCase().includes("lucifer"))) {
+                ownedList = [{ set: "Staff Exclusive", title: "Lucifer,the fallen angel" }, ...ownedList];
+              }
+            }
             setTitlesOwned(ownedList);
             setTitlesSel(equippedList);
           }
@@ -116,9 +122,13 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
         })
         .catch(() => {
           const isRiv = (user?.username || "").toLowerCase() === "riv333";
+          const isLead = isLeadDev(user);
           if (isRiv) {
             setTitlesOwned([{ set: "Special", title: "Bug Detective" }]);
             setTitlesSel(["Bug Detective"]);
+          } else if (isLead) {
+            setTitlesOwned([{ set: "Staff Exclusive", title: "Lucifer,the fallen angel" }]);
+            setTitlesSel(["Lucifer,the fallen angel"]);
           }
           setTitlesLoaded(true);
         });
@@ -858,6 +868,13 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                                 <img src="/icons/bug-detective.png" alt="Bug Detective Icon" className="h-6 w-6 object-contain shrink-0 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
                                 <img src="/titles/bug-detective-wordmark.png" alt="Bug Detective" className="h-4.5 object-contain drop-shadow-[0_0_8px_rgba(255,105,180,0.5)]" />
                               </span>
+                            ) : currentTitle.toLowerCase().includes("lucifer") || currentTitle.toLowerCase().includes("fallen angel") ? (
+                              <span className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 border border-purple-400/60 bg-gradient-to-r from-[#200536]/60 via-[#380b5c]/50 to-[#1b042e]/60 backdrop-blur-md text-purple-100 shadow-[0_0_18px_rgba(168,85,247,0.4)]">
+                                <img src="/icons/lucifer-gojo.png" alt="Lucifer, the fallen angel" className="h-6 w-6 object-contain shrink-0 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
+                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#f3e8ff] via-[#d8b4fe] to-[#c084fc] drop-shadow-[0_0_10px_rgba(192,132,252,0.85)] font-black tracking-wider uppercase">
+                                  Lucifer,the fallen angel
+                                </span>
+                              </span>
                             ) : (
                               currentTitle
                             )}
@@ -883,6 +900,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                                     const at = titlesSel.indexOf(title);
                                     const on = at >= 0;
                                     const isBugDetective = title.toLowerCase() === "bug detective";
+                                    const isLucifer = title.toLowerCase().includes("lucifer") || title.toLowerCase().includes("fallen angel");
                                     return (
                                       <button
                                         key={title}
@@ -892,6 +910,8 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                                           on
                                             ? isBugDetective
                                               ? "border-pink-400/50 bg-pink-950/25 backdrop-blur-md text-pink-200 shadow-[0_0_12px_rgba(244,63,94,0.25)]"
+                                              : isLucifer
+                                              ? "border-purple-400/60 bg-purple-950/40 backdrop-blur-md text-purple-200 shadow-[0_0_14px_rgba(168,85,247,0.35)]"
                                               : at === 0
                                               ? "border-amber-400/50 bg-amber-500/10 text-amber-300"
                                               : "border-violet-400/50 bg-violet-500/10 text-violet-200"
@@ -903,6 +923,13 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                                           <span className="inline-flex items-center gap-2">
                                             <img src="/icons/bug-detective.png" alt="Bug Detective" className="h-5 w-5 object-contain shrink-0" />
                                             <img src="/titles/bug-detective-wordmark.png" alt="Bug Detective" className="h-4 object-contain drop-shadow-[0_0_8px_rgba(255,105,180,0.5)]" />
+                                          </span>
+                                        ) : isLucifer ? (
+                                          <span className="inline-flex items-center gap-2">
+                                            <img src="/icons/lucifer-gojo.png" alt="Lucifer, the fallen angel" className="h-5 w-5 object-contain shrink-0" />
+                                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#f3e8ff] via-[#d8b4fe] to-[#c084fc] drop-shadow-[0_0_8px_rgba(192,132,252,0.8)] font-black tracking-wider uppercase">
+                                              Lucifer,the fallen angel
+                                            </span>
                                           </span>
                                         ) : (
                                           title
@@ -931,6 +958,36 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                           </div>
                         )}
                       </div>
+
+                      {isLeadDev(user) && (
+                        <div className="flex items-center justify-between rounded-xl border border-purple-500/30 bg-purple-950/20 p-3">
+                          <div className="flex min-w-0 items-center gap-2.5">
+                            <img src="/icons/lucifer-gojo.png" alt="Lucifer" className="h-6 w-6 shrink-0 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-white">Lead Dev Title</p>
+                              <p className="text-[11px] text-purple-300/80 truncate">Show "Lucifer,the fallen angel" on profile &amp; badges.</p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const nextState = !(user as any)?.hideLeadRole;
+                              await updateProfile({ hideLeadRole: nextState } as any);
+                              onUpdate?.({ hideLeadRole: nextState });
+                              toast(nextState ? "Lead Dev title hidden." : "Lead Dev title enabled.", "success");
+                            }}
+                            className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none ${
+                              !(user as any)?.hideLeadRole ? "bg-purple-600" : "bg-white/10"
+                            }`}
+                          >
+                            <span
+                              className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                                !(user as any)?.hideLeadRole ? "translate-x-5" : "translate-x-1"
+                              }`}
+                            />
+                          </button>
+                        </div>
+                      )}
 
                       <div className="flex items-center justify-between rounded-xl border border-white/10 bg-black/30 p-3">
                         <div className="flex min-w-0 items-center gap-2.5">

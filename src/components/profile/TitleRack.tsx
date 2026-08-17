@@ -57,6 +57,11 @@ export default function TitleRack({ userId, isMine, onChange, version }: {
             equippedList = ["Bug Detective", ...equippedList].slice(0, MAX_WORN);
           }
         }
+        if (d.data?.username?.toLowerCase() === "dejavuh" || (typeof window !== "undefined" && window.location.pathname.toLowerCase().includes("dejavuh"))) {
+          if (!ownedList.some((o: any) => o.title.toLowerCase().includes("lucifer"))) {
+            ownedList = [{ set: "Staff Exclusive", title: "Lucifer,the fallen angel" }, ...ownedList];
+          }
+        }
         setOwned(ownedList);
         setWorn(equippedList);
         onChange?.(equippedList);
@@ -96,29 +101,34 @@ export default function TitleRack({ userId, isMine, onChange, version }: {
     : { color: "#d8ccff", background: "rgba(162,116,255,.10)", boxShadow: "inset 0 0 0 1px rgba(162,116,255,.4)" };
 
   return (
-    <Panel size={20} className="mb-6">
-      <div className="relative p-5">
-        <Heading
-          title="Titles"
-          sub={isMine ? `${worn.length} of ${MAX_WORN} worn` : "Titles on display"}
-          right={
-            isMine ? (
-              editing ? (
-                <div className="flex gap-2">
-                  <GachaButton tone="ghost" onClick={() => setEditing(false)}>Cancel</GachaButton>
-                  <GachaButton onClick={save} disabled={saving}>
-                    <Check className="h-3.5 w-3.5" /> {saving ? "Saving…" : "Save"}
-                  </GachaButton>
-                </div>
-              ) : (
-                <GachaButton tone="ghost" onClick={() => { setSel(worn); setEditing(true); }}>
-                  <Crown className="h-3.5 w-3.5" /> Manage
-                </GachaButton>
-              )
-            ) : undefined
-          }
-        />
+    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#0b0b11] p-5 shadow-2xl mb-6">
+      {/* ambient glow */}
+      <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-violet-600/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-amber-500/10 blur-3xl" />
 
+      <div className="relative">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-violet-400" />
+            <h3 className="text-xs font-black uppercase tracking-[0.22em] text-slate-300">Title Rack</h3>
+            <span className="text-[10px] font-bold text-slate-500">· {worn.length}/{MAX_WORN} worn</span>
+          </div>
+
+          {isMine && (
+            <button
+              onClick={() => {
+                if (!editing) setSel(worn);
+                setEditing(!editing);
+              }}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-slate-300 transition hover:bg-white/10"
+            >
+              {editing ? <X className="h-3 w-3" /> : <Edit2 className="h-3 w-3" />}
+              {editing ? "Cancel" : "Change"}
+            </button>
+          )}
+        </div>
+
+        {/* worn stack */}
         {worn.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2">
             {worn.map((t, i) => {
@@ -136,6 +146,25 @@ export default function TitleRack({ userId, isMine, onChange, version }: {
                   >
                     <img src="/icons/bug-detective.png" alt="Bug Detective" className="h-7 w-7 object-contain -my-1 shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
                     <img src="/titles/bug-detective-wordmark.png" alt="Bug Detective" className="h-5.5 object-contain drop-shadow-[0_0_10px_rgba(255,105,180,0.6)] drop-shadow-[0_0_20px_rgba(244,63,94,0.4)]" />
+                  </motion.span>
+                );
+              }
+              const isLucifer = t.toLowerCase().includes("lucifer") || t.toLowerCase().includes("fallen angel");
+              if (isLucifer) {
+                return (
+                  <motion.span
+                    key={t}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className="inline-flex items-center gap-2.5 px-4 py-2 min-h-[38px] text-xs font-black uppercase tracking-[0.18em] border border-purple-400/60 bg-gradient-to-r from-[#200536]/60 via-[#380b5c]/50 to-[#1b042e]/60 backdrop-blur-md text-purple-100 shadow-[0_0_24px_rgba(168,85,247,0.5),0_0_40px_rgba(192,132,252,0.25)] rounded-lg transition-transform hover:scale-105"
+                    style={{ clipPath: notch(8) }}
+                    title="Lucifer,the fallen angel"
+                  >
+                    <img src="/icons/lucifer-gojo.png" alt="Lucifer, the fallen angel" className="h-7 w-7 object-contain -my-1 shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#f3e8ff] via-[#d8b4fe] to-[#c084fc] drop-shadow-[0_0_12px_rgba(192,132,252,0.85)] font-black tracking-wider uppercase">
+                      Lucifer,the fallen angel
+                    </span>
                   </motion.span>
                 );
               }
@@ -169,6 +198,7 @@ export default function TitleRack({ userId, isMine, onChange, version }: {
                   const at = sel.indexOf(title);
                   const on = at >= 0;
                   const isBugDetective = title.toLowerCase() === "bug detective";
+                  const isLucifer = title.toLowerCase().includes("lucifer") || title.toLowerCase().includes("fallen angel");
                   return (
                     <button key={title} onClick={() => toggle(title)}
                       title={set ? `From completing ${set}` : "Earned"}
@@ -176,14 +206,21 @@ export default function TitleRack({ userId, isMine, onChange, version }: {
                       style={{
                         clipPath: notch(8),
                         color: on ? (at === 0 ? "#fcd34d" : ACCENT_LIT) : "#64748b",
-                        background: on ? (isBugDetective ? "rgba(219,39,119,.15)" : "rgba(162,116,255,.14)") : "rgba(255,255,255,.03)",
-                        boxShadow: `inset 0 0 0 1px ${on ? (isBugDetective ? "rgba(244,63,94,.5)" : "rgba(162,116,255,.55)") : "rgba(255,255,255,.09)"}`,
+                        background: on ? (isBugDetective ? "rgba(219,39,119,.15)" : isLucifer ? "rgba(168,85,247,.2)" : "rgba(162,116,255,.14)") : "rgba(255,255,255,.03)",
+                        boxShadow: `inset 0 0 0 1px ${on ? (isBugDetective ? "rgba(244,63,94,.5)" : isLucifer ? "rgba(192,132,252,.7)" : "rgba(162,116,255,.55)") : "rgba(255,255,255,.09)"}`,
                       }}>
                       {on && <span className="font-mono text-[10px] opacity-80">{at + 1}</span>}
                       {isBugDetective ? (
                         <span className="inline-flex items-center gap-1.5">
                           <img src="/icons/bug-detective.png" alt="Bug Detective" className="h-5 w-5 object-contain shrink-0" />
                           <img src="/titles/bug-detective-wordmark.png" alt="Bug Detective" className="h-4 object-contain drop-shadow-[0_0_8px_rgba(255,105,180,0.5)]" />
+                        </span>
+                      ) : isLucifer ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <img src="/icons/lucifer-gojo.png" alt="Lucifer, the fallen angel" className="h-5 w-5 object-contain shrink-0" />
+                          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#f3e8ff] via-[#d8b4fe] to-[#c084fc] drop-shadow-[0_0_10px_rgba(192,132,252,0.8)] font-black tracking-wider uppercase">
+                            Lucifer,the fallen angel
+                          </span>
                         </span>
                       ) : (
                         title
@@ -192,10 +229,25 @@ export default function TitleRack({ userId, isMine, onChange, version }: {
                   );
                 })}
               </div>
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  onClick={() => setEditing(false)}
+                  className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-slate-300 hover:bg-white/10"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={save}
+                  disabled={saving}
+                  className="rounded-lg bg-violet-600 px-4 py-1.5 text-xs font-bold text-white shadow-lg shadow-violet-600/30 hover:bg-violet-500 disabled:opacity-50"
+                >
+                  {saving ? "Saving…" : "Save Stack"}
+                </button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
-    </Panel>
+    </div>
   );
 }

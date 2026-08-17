@@ -312,15 +312,15 @@ export function getRankTheme(xp: number = 0, username: string = ""): RankTheme {
   //    at render time — the badge checks activeRole/activeTag first).
   if (isLeadDev(name)) {
     return {
-      title: "LEAD DEV",
-      textGradient: "text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-fuchsia-500 to-indigo-400 drop-shadow-[0_0_15px_rgba(217,70,239,0.8)]",
-      badgeClass: "bg-gradient-to-r from-indigo-500 to-purple-600 border border-indigo-400 shadow-lg shadow-indigo-500/20 text-white",
+      title: "Lucifer,the fallen angel",
+      textGradient: "text-transparent bg-clip-text bg-gradient-to-r from-purple-300 via-fuchsia-400 to-indigo-300 drop-shadow-[0_0_18px_rgba(217,70,239,0.9)]",
+      badgeClass: "border border-purple-400/60 bg-gradient-to-r from-[#200536]/60 via-[#380b5c]/50 to-[#1b042e]/60 backdrop-blur-md text-purple-100 shadow-[0_0_24px_rgba(168,85,247,0.5),0_0_40px_rgba(192,132,252,0.25)]",
       badgeIcon: "Code2",
       borderClass: "border-purple-500",
-      glowClass: "shadow-[0_0_30px_rgba(168,85,247,0.6)]",
+      glowClass: "shadow-[0_0_35px_rgba(168,85,247,0.7)]",
       bgCardClass: "bg-black/40 backdrop-blur-xl border-purple-500/30",
       tabUnderlineClass: "bg-purple-500",
-      textColorClass: "text-purple-400",
+      textColorClass: "text-purple-300",
     };
   }
 

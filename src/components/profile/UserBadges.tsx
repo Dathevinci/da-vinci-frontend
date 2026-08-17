@@ -118,6 +118,27 @@ export function TitleChips({
             </span>
           );
         }
+        const isLucifer = t.toLowerCase().includes("lucifer") || t.toLowerCase().includes("fallen angel");
+        if (isLucifer) {
+          return (
+            <span
+              key={t}
+              className={`inline-flex items-center gap-2 rounded-full ${
+                size === "md" ? "px-4 py-1.5 min-h-[34px] text-xs" : "px-2.5 py-1 min-h-[26px] text-[10px]"
+              } font-black tracking-wider whitespace-nowrap border border-purple-400/60 bg-gradient-to-r from-[#200536]/60 via-[#380b5c]/50 to-[#1b042e]/60 backdrop-blur-md text-purple-100 shadow-[0_0_22px_rgba(168,85,247,0.5),0_0_40px_rgba(192,132,252,0.25)] transition-all duration-200 hover:scale-105 hover:border-purple-300 hover:shadow-[0_0_30px_rgba(168,85,247,0.7)]`}
+              title="Lucifer,the fallen angel"
+            >
+              <img
+                src="/icons/lucifer-gojo.png"
+                alt="Lucifer, the fallen angel"
+                className={size === "md" ? "h-7 w-7 object-contain -my-1.5 shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" : "h-5 w-5 object-contain -my-1 shrink-0"}
+              />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#f3e8ff] via-[#d8b4fe] to-[#c084fc] drop-shadow-[0_0_12px_rgba(192,132,252,0.85)] font-black tracking-wider uppercase">
+                Lucifer,the fallen angel
+              </span>
+            </span>
+          );
+        }
         return (
           <span
             key={t}
@@ -180,8 +201,16 @@ export function UserBadgesCompact({
 
   return (
     <>
-      {lead && <IconBadge icon={Crown} tint="#a78bfa" label="Lead Dev" />}
-      {admin && <IconBadge icon={Shield} tint="#fbbf24" label="Staff" />}
+      {lead && !(user as any)?.hideLeadRole && (
+        <span
+          title="Lucifer,the fallen angel"
+          aria-label="Lucifer,the fallen angel"
+          className="grid h-6 w-6 shrink-0 place-items-center rounded-md border border-purple-400/50 bg-purple-950/40 backdrop-blur-md p-0.5 shadow-[0_0_12px_rgba(168,85,247,0.4)]"
+        >
+          <img src="/icons/lucifer-gojo.png" alt="Lucifer,the fallen angel" className="h-full w-full object-contain" />
+        </span>
+      )}
+      {admin && !lead && <IconBadge icon={Shield} tint="#fbbf24" label="Staff" />}
       {user.activeRole === "role_watcher" && <IconBadge icon={Shield} tint="#c084fc" label="The Watcher" />}
       {user.activeRole === "role_elite" && <IconBadge icon={Star} tint="#facc15" label="Elite" />}
       {user.activeTag === "tag_og" && <IconBadge icon={Zap} tint="#f87171" label="OG" />}
@@ -203,6 +232,19 @@ export function UserBadgesCompact({
               className="grid h-6 w-6 shrink-0 place-items-center rounded-md border border-pink-400/40 bg-pink-950/20 backdrop-blur-md p-0.5 shadow-[0_0_10px_rgba(244,63,94,0.25)]"
             >
               <img src="/icons/bug-detective.png" alt="Bug Detective" className="h-full w-full object-contain" />
+            </span>
+          );
+        }
+        const isLucifer = t.toLowerCase().includes("lucifer") || t.toLowerCase().includes("fallen angel");
+        if (isLucifer) {
+          return (
+            <span
+              key={t}
+              title="Lucifer,the fallen angel"
+              aria-label="Lucifer,the fallen angel"
+              className="grid h-6 w-6 shrink-0 place-items-center rounded-md border border-purple-400/50 bg-purple-950/40 backdrop-blur-md p-0.5 shadow-[0_0_12px_rgba(168,85,247,0.4)]"
+            >
+              <img src="/icons/lucifer-gojo.png" alt="Lucifer,the fallen angel" className="h-full w-full object-contain" />
             </span>
           );
         }
@@ -255,9 +297,21 @@ export default function UserBadges({
 
   return (
     <>
-      {lead ? (
-        <span className={`${chip} bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-[0_0_14px_rgba(168,85,247,.55)] ${className}`}>
-          <Crown className={S.icon} /> Lead Dev
+      {lead && !(user as any)?.hideLeadRole ? (
+        <span
+          className={`inline-flex items-center gap-2 rounded-full ${
+            size === "md" ? "px-4 py-1.5 min-h-[34px] text-xs" : "px-2.5 py-1 min-h-[26px] text-[10px]"
+          } font-black tracking-wider whitespace-nowrap border border-purple-400/60 bg-gradient-to-r from-[#200536]/60 via-[#380b5c]/50 to-[#1b042e]/60 backdrop-blur-md text-purple-100 shadow-[0_0_22px_rgba(168,85,247,0.5),0_0_40px_rgba(192,132,252,0.25)] transition-all duration-200 hover:scale-105 hover:border-purple-300 hover:shadow-[0_0_30px_rgba(168,85,247,0.7)] ${className}`}
+          title="Lead Dev · Lucifer,the fallen angel"
+        >
+          <img
+            src="/icons/lucifer-gojo.png"
+            alt="Lucifer, the fallen angel"
+            className={size === "md" ? "h-7 w-7 object-contain -my-1.5 shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" : "h-5 w-5 object-contain -my-1 shrink-0"}
+          />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#f3e8ff] via-[#d8b4fe] to-[#c084fc] drop-shadow-[0_0_12px_rgba(192,132,252,0.85)] font-black tracking-wider uppercase">
+            Lucifer,the fallen angel
+          </span>
         </span>
       ) : admin ? (
         <span className={`${chip} border border-amber-400/40 bg-amber-500/15 text-amber-300 ${className}`}>
@@ -321,6 +375,27 @@ export default function UserBadges({
                 alt="Bug Detective"
                 className={size === "md" ? "h-5 sm:h-5.5 object-contain drop-shadow-[0_0_10px_rgba(255,105,180,0.6)] drop-shadow-[0_0_20px_rgba(244,63,94,0.4)]" : "h-3.5 sm:h-4 object-contain drop-shadow-[0_0_8px_rgba(255,105,180,0.5)]"}
               />
+            </span>
+          );
+        }
+        const isLucifer = t.toLowerCase().includes("lucifer") || t.toLowerCase().includes("fallen angel");
+        if (isLucifer) {
+          return (
+            <span
+              key={t}
+              className={`inline-flex items-center gap-2 rounded-full ${
+                size === "md" ? "px-4 py-1.5 min-h-[34px] text-xs" : "px-2.5 py-1 min-h-[26px] text-[10px]"
+              } font-black tracking-wider whitespace-nowrap border border-purple-400/60 bg-gradient-to-r from-[#200536]/60 via-[#380b5c]/50 to-[#1b042e]/60 backdrop-blur-md text-purple-100 shadow-[0_0_22px_rgba(168,85,247,0.5),0_0_40px_rgba(192,132,252,0.25)] transition-all duration-200 hover:scale-105 hover:border-purple-300 hover:shadow-[0_0_30px_rgba(168,85,247,0.7)] ${className}`}
+              title="Lucifer,the fallen angel"
+            >
+              <img
+                src="/icons/lucifer-gojo.png"
+                alt="Lucifer, the fallen angel"
+                className={size === "md" ? "h-7 w-7 object-contain -my-1.5 shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" : "h-5 w-5 object-contain -my-1 shrink-0"}
+              />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#f3e8ff] via-[#d8b4fe] to-[#c084fc] drop-shadow-[0_0_12px_rgba(192,132,252,0.85)] font-black tracking-wider uppercase">
+                Lucifer,the fallen angel
+              </span>
             </span>
           );
         }
