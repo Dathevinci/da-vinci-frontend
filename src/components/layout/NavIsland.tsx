@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Home, Compass, Activity, Calendar, Users, Layers, Swords, Trophy, Gavel,
+  Home, Compass, Activity, Calendar, Users, Layers, Swords, Trophy,
   ShoppingBag, Search, Bell, Settings, LogOut, Terminal, BookMarked, BookOpen, Tv,
   ChevronDown, Store, Newspaper, ScrollText, Clock, HelpCircle, LifeBuoy, MoreHorizontal, Gamepad2,
 } from "lucide-react";

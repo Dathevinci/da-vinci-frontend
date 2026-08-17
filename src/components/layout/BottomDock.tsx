@@ -7,7 +7,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   ArrowLeft, ArrowRight, RotateCw, Home, X, Search, LogOut, SlidersHorizontal,
   Tv, BookOpen, Feather, Layers, Swords,
-  Store, Gavel, Users, Trophy, ShoppingBag, Megaphone,
+  Store, Users, Trophy, ShoppingBag, Megaphone,
   Compass, Activity, Calendar, Clock, HelpCircle, Heart, Terminal, LayoutGrid,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
@@ -49,7 +49,6 @@ const PAGES: { href: string; label: string; Icon: any; tint: string }[] = [
   { href: "/raid",        label: "World Raid",       Icon: Swords,       tint: "#f87171" },
   { href: "/guilds",      label: "Guilds",           Icon: Users,        tint: "#10b981" },
   { href: "/marketplace", label: "Marketplace",      Icon: Store,        tint: "#22d3ee" },
-  { href: "/auctions",    label: "Auction House",    Icon: Gavel,        tint: "#f59e0b" },
   { href: "/community",   label: "Community",        Icon: Users,        tint: "#34d399" },
   { href: "/quests",      label: "Daily Quests",     Icon: Trophy,       tint: "#fb923c" },
   { href: "/shop",        label: "Shop",             Icon: ShoppingBag,  tint: "#e879f9" },

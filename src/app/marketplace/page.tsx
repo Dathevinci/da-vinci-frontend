@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
-  ArrowUpDown, Tag, Layers, X, Sparkles, Gavel, ArrowUpRight, Loader2,
+  ArrowUpDown, Tag, Layers, X, Sparkles, ArrowUpRight, Loader2,
   Store, Trash2, ShieldAlert, Heart, Swords,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
@@ -198,12 +198,6 @@ export default function MarketplacePage() {
 
           {/* ── filters ── */}
           <div className="mb-6 flex flex-wrap items-center gap-2">
-            <Link href="/auctions"
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-amber-200 transition hover:brightness-125"
-              style={{ clipPath: "polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%)", background: "rgba(251,191,36,.12)", boxShadow: "inset 0 0 0 1px rgba(251,191,36,.45)" }}>
-              <Gavel className="h-3 w-3" /> Auction House <ArrowUpRight className="h-3 w-3" />
-            </Link>
-            <span aria-hidden className="mx-1 h-5 w-px bg-white/10" />
             {([["browse", "Browse"], ["mine", `My listings${activeMine.length ? ` (${activeMine.length})` : ""}`]] as const).map(([k, label]) => (
               <button key={k} onClick={() => setTab(k as any)}
                 className="px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] transition"

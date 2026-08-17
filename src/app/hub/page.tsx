@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   Tv, BookOpen, Feather, Compass, Users, Layers, Swords,
-  Store, Gavel, Trophy, ShoppingBag, Crown, Megaphone,
+  Store, Trophy, ShoppingBag, Crown, Megaphone,
   Terminal, ArrowUpRight, Sparkles, Diamond, Zap, Gem, X,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
@@ -43,7 +43,6 @@ const SECTIONS: Section[] = [
   { href: "/raid",        label: "Raid",             desc: "This week's world boss — everyone's damage counts.", Icon: Swords,       tint: "#f87171" },
   { href: "/guilds",      label: "Guilds",           desc: "Found one, raid together — board, lending, banner.", Icon: Users,        tint: "#10b981" },
   { href: "/marketplace", label: "Marketplace",      desc: "Trade cards, serials and wears.",                  Icon: Store,        tint: "#22d3ee" },
-  { href: "/auctions",    label: "Auction House",    desc: "Bid on the rarest prints.",                        Icon: Gavel,        tint: "#f59e0b" },
   { href: "/quests",      label: "Daily Quests",     desc: "Earn Arise Points every day.",                     Icon: Trophy,       tint: "#fb923c" },
   { href: "/shop",        label: "Shop",             desc: "Frames, effects and flair for your profile.",      Icon: ShoppingBag,  tint: "#e879f9" },
   { href: "/leaderboard", label: "Leaderboard",      desc: "See who tops the community rankings.",             Icon: Crown,        tint: "#7dd3fc" },
