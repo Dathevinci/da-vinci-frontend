@@ -11,6 +11,7 @@ import { calculateLevel, MAX_LEVEL } from "@/lib/levels";
 import { fetchGuilds, type GuildRow } from "@/lib/guild";
 import { SegBar, ACCENT, ACCENT_LIT } from "@/components/cards/gacha";
 import GuildTag from "@/components/guild/GuildTag";
+import VideoTitle from "@/components/ui/VideoTitle";
 import { cloudinaryFit } from "@/lib/cloudinary";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -399,13 +400,14 @@ export default function LeaderboardPage() {
 
         <div className="relative mx-auto max-w-4xl space-y-8">
           
-          {/* ── HEADER WITH DISPLAY TYPOGRAPHY ── */}
+          {/* ── HEADER WITH VIDEO DISPLAY TYPOGRAPHY ── */}
           <div className="text-center font-mono">
-            <p className="text-[10px] font-bold uppercase tracking-[0.42em] text-violet-400/80">Da Vinci · Hall of Fame</p>
-            <h1 className="mt-2 flex items-center justify-center gap-3 font-fell text-4xl sm:text-5xl md:text-6xl font-bold uppercase tracking-[0.08em] text-white">
-              <Trophy className="h-8 w-8 sm:h-10 sm:w-10 shrink-0 text-amber-400 drop-shadow-[0_0_20px_rgba(251,191,36,0.4)]" />
-              Leaderboard
-            </h1>
+            <p className="text-[10px] font-bold uppercase tracking-[0.42em] text-violet-400/80 mb-2">
+              Da Vinci · Hall of Fame
+            </p>
+            <div className="mx-auto w-full max-w-2xl px-2">
+              <VideoTitle text="Leaderboard" />
+            </div>
             <p className="mt-2 text-xs sm:text-sm text-white/50">{blurb}</p>
           </div>
 
