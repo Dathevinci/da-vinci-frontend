@@ -52,6 +52,7 @@ export default function NotificationsMenu({ openUp = false, onOpenChange }: { op
   const { notifications, unreadCount, markAllAsRead, clearAll, removeNotification, markAsRead } = useNotifications();
   const { user } = useUser();
   const [isOpen, setIsOpen] = useState(false);
+  const [releasesCount, setReleasesCount] = useState<number>(0);
   // The reference panel's three rooms: everything unread, the conversation
   // (replies/mentions/likes), and fresh drops for tracked titles.
   const [tab, setTab] = useState<"unread" | "chat" | "releases">("unread");
@@ -143,12 +144,16 @@ export default function NotificationsMenu({ openUp = false, onOpenChange }: { op
           <Bell className="h-5 w-5" />
         </motion.span>
 
-        {unreadCount > 0 && (
+        {unreadCount > 0 ? (
           <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-purple-600 px-1 text-[10px] font-black text-white ring-2 ring-[#030305]">
             {unreadCount > 9 ? "9+" : unreadCount}
             <span className="absolute inset-0 -z-10 animate-ping rounded-full bg-purple-500/60" />
           </span>
-        )}
+        ) : releasesCount > 0 ? (
+          <span className="absolute right-0 top-0 flex h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-[#030305]">
+            <span className="absolute inset-0 -z-10 animate-ping rounded-full bg-emerald-400/60" />
+          </span>
+        ) : null}
       </button>
 
       <AnimatePresence>
@@ -203,18 +208,24 @@ export default function NotificationsMenu({ openUp = false, onOpenChange }: { op
             <div className="border-b border-white/10 px-3 py-2.5">
               <div className="inline-flex gap-1 rounded-xl border border-white/10 bg-white/[0.04] p-1">
                 {([
-                  { key: "unread" as const, label: "Unread", Icon: Inbox },
-                  { key: "chat" as const, label: "Chat", Icon: MessageSquare },
-                  { key: "releases" as const, label: "New Episodes", Icon: PlayCircle },
-                ]).map(({ key, label, Icon }) => (
+                  { key: "unread" as const, label: "Unread", Icon: Inbox, count: unreadCount },
+                  { key: "chat" as const, label: "Chat", Icon: MessageSquare, count: 0 },
+                  { key: "releases" as const, label: "Releases", Icon: PlayCircle, count: releasesCount },
+                ]).map(({ key, label, Icon, count }) => (
                   <button
                     key={key}
                     onClick={() => setTab(key)}
-                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-mono text-[11px] font-bold transition ${
-                      tab === key ? "bg-white/15 text-white" : "text-slate-500 hover:text-slate-300"
+                    className={`flex items-center gap-1.5 rounded-lg px-2.5 sm:px-3 py-1.5 font-mono text-[11px] font-bold transition ${
+                      tab === key ? "bg-white/15 text-white" : "text-slate-400 hover:text-slate-200"
                     }`}
                   >
-                    <Icon className="h-3.5 w-3.5" /> {label}
+                    <Icon className="h-3.5 w-3.5" />
+                    <span>{label}</span>
+                    {count > 0 && (
+                      <span className={`rounded-full px-1.5 py-0.2 text-[9px] font-black ${key === "releases" ? "bg-emerald-500/80 text-white" : "bg-purple-600 text-white"}`}>
+                        {count > 9 ? "9+" : count}
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -223,7 +234,7 @@ export default function NotificationsMenu({ openUp = false, onOpenChange }: { op
             {/* Content */}
             <div className="flex-1 overflow-y-auto overscroll-contain max-h-[400px] custom-scrollbar">
               {tab === "releases" ? (
-                <ReleaseRadar onClose={() => setIsOpen(false)} />
+                <ReleaseRadar onClose={() => setIsOpen(false)} onCountChange={setReleasesCount} />
               ) : shown.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
                   <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-3">
