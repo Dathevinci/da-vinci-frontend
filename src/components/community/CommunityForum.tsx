@@ -6,7 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Pin, Plus, X, ImagePlus, Hash, Heart, ThumbsDown, MessageSquare, Loader2,
   CornerDownRight, Send, MoreHorizontal, Pencil, Trash2,
-  BarChart3,
+  BarChart3, Sparkles, Clock, Flame, Search, BookOpen, Users, ShieldCheck,
+  Share2, Check, HelpCircle
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { authHeaders } from "@/lib/authToken";
@@ -22,64 +23,30 @@ import MentionsInput from "@/components/ui/MentionsInput";
 import MentionText from "@/components/ui/MentionText";
 import { PollBuilder, PollCard, EMPTY_POLL, pollIsValid, type PollDraft, type PollData } from "@/components/community/Poll";
 import { effectNameClass } from "@/lib/effectTheme";
-// Forum avatars are 40-44px; serve them at that scale instead of the original
-// upload (animated uploads pass through untouched — see cloudinary.ts).
 import { cloudinaryFit } from "@/lib/cloudinary";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
-/**
- * THE FORUM HAS ITS OWN PALETTE AND ITS OWN CORNERS.
- *
- * It used to import ACCENT from the card game's gacha kit and cut every
- * surface with notch() — angled polygon corners in violet. That is the right
- * language for a summon screen and the wrong one for a place people read and
- * argue in: the notches make every card look like a ticket stub, and the
- * violet fights the per-topic tag colours that are supposed to be the only
- * hues on the page.
- *
- * Indigo and plain rounded corners instead. Defined HERE rather than added to
- * the shared kit, because the card game should keep its own look — this is a
- * deliberate divergence, not a global restyle.
- */
-const F_ACCENT = "#6366f1";
-const F_ACCENT_LIT = "#c7d2fe";
-
-/**
- * COMMUNITY FORUM.
- *
- * Standalone posts — the ones not attached to an anime, manhwa or novel — with
- * a headline, a topic and a vote rail. It reads `?forum=true` so the feed is
- * the forum and not every chapter comment on the site.
- *
- * Reels are deliberately absent. Polls are too: they need their own model
- * (options, one vote per user, a close time) rather than being faked in the
- * post body, so they are a separate piece of work rather than a button that
- * lies.
- */
 
 export const TAGS = ["General", "Discussion", "Art", "Theory", "News", "Question", "Spoiler", "Meme"] as const;
 
-/** Each topic gets its own colour so the feed is scannable by shape and hue. */
-const TAG_TINT: Record<string, string> = {
-  General: "#94a3b8",
-  Discussion: "#60a5fa",
-  Art: "#f472b6",
-  Theory: "#a78bfa",
-  News: "#fbbf24",
-  Question: "#34d399",
-  Spoiler: "#f87171",
-  Meme: "#fb923c",
+/** Topic color definitions */
+const TAG_STYLE: Record<string, { bg: string; border: string; text: string; dot: string }> = {
+  General: { bg: "bg-slate-500/10", border: "border-slate-500/20", text: "text-slate-300", dot: "bg-slate-400" },
+  Discussion: { bg: "bg-sky-500/10", border: "border-sky-500/20", text: "text-sky-300", dot: "bg-sky-400" },
+  Art: { bg: "bg-pink-500/10", border: "border-pink-500/20", text: "text-pink-300", dot: "bg-pink-400" },
+  Theory: { bg: "bg-purple-500/10", border: "border-purple-500/20", text: "text-purple-300", dot: "bg-purple-400" },
+  News: { bg: "bg-amber-500/10", border: "border-amber-500/20", text: "text-amber-300", dot: "bg-amber-400" },
+  Question: { bg: "bg-emerald-500/10", border: "border-emerald-500/20", text: "text-emerald-300", dot: "bg-emerald-400" },
+  Spoiler: { bg: "bg-rose-500/10", border: "border-rose-500/20", text: "text-rose-300", dot: "bg-rose-400" },
+  Meme: { bg: "bg-orange-500/10", border: "border-orange-500/20", text: "text-orange-300", dot: "bg-orange-400" },
 };
 
 type Author = {
   id: string; username: string; avatar?: string | null;
   activeRole?: string | null; activeTag?: string | null;
   activeEffect?: string | null; activeFrame?: string | null;
-  /** The account's real role column — authoritative over the username list. */
   role?: string | null;
-  /** Drives the Heart Cultivation rank chip. */
   xp?: number | null;
-  /** Worn titles, wearer-ordered, plus the legacy single-title fallback. */
   equippedTitles?: string[] | null;
   cardTitle?: string | null;
 };
@@ -95,9 +62,6 @@ type Post = {
   blessed?: boolean;
   createdAt: string;
   score?: number;
-  /** Loves and dislikes, tallied separately from the net score. The server has
-   *  always sent both (shapeComment computes them); the forum simply never
-   *  declared them, so the rail could show a net number and nothing else. */
   upvotes?: number;
   downvotes?: number;
   userVote?: number;
@@ -105,146 +69,118 @@ type Post = {
   poll?: PollData;
 };
 
-/**
- * The author line, with the cosmetics people actually paid for.
- *
- * The forum looked bland partly because it threw all of that away: everyone
- * rendered as a plain grey name regardless of frame, effect, role or tag. Those
- * are the whole point of the shop, and a feed is where they get seen.
- */
-function AuthorLine({ user, blessed }: { user?: Author; blessed?: boolean }) {
-  if (!user) return <span className="text-sm font-black text-slate-400">someone</span>;
-  return (
-    <>
-      {/* EffectLayer draws at NEGATIVE insets (-inset-1 to -inset-2), so it
-          deliberately bleeds outside the avatar. On a 36px avatar that spilled
-          roughly 8px past the edge and landed on the username. The wrapper is
-          sized with that bleed budgeted in — mr-1 gives the effect its own
-          room instead of borrowing the name's. */}
-      {/* The avatar MUST sit above the effect. Several effects render at z-20
-          (the particle ones especially), so an image with no stacking context
-          of its own gets painted straight over — which is why faces vanished
-          behind a coloured disc. `relative z-10` is what every other avatar on
-          the site already does; this one was missing it.
+function ago(iso: string) {
+  const d = new Date(iso);
+  const now = new Date();
+  const diffSec = Math.floor((now.getTime() - d.getTime()) / 1000);
+  if (diffSec < 60) return "just now";
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour}h ago`;
+  const diffDay = Math.floor(diffHour / 24);
+  if (diffDay < 30) return `${diffDay}d ago`;
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
 
-          size="lg" asks for the REAL effect rather than the cheap single-glow
-          stand-in. They carry their own rAF pause on an IntersectionObserver,
-          so avatars scrolled out of view stop animating and a long feed does
-          not run thirty loops at once. */}
-      <div className="relative mr-1.5 h-11 w-11 shrink-0">
-        {user.avatar ? (
-          <img src={cloudinaryFit(user.avatar, 120)} alt=""
-            className="relative z-10 h-11 w-11 rounded-full object-cover ring-1 ring-black/60" />
-        ) : (
-          <span className="relative z-10 grid h-11 w-11 place-items-center rounded-full bg-purple-700 text-sm font-black ring-1 ring-black/60">
-            {(user.username || "?")[0]?.toUpperCase()}
-          </span>
-        )}
-        <AvatarDecoration frame={user.activeFrame} effect={user.activeEffect} size="lg" />
-      </div>
-      {/* Guild first, decorations after: the tag says who someone stands with,
-          which reads before the things they've equipped. min-w-0 + truncate on
-          the name because the chip is shrink-0 — the name is what yields when
-          the row runs out of width. */}
-      <span className="flex min-w-0 items-center gap-1.5">
-        <UserLink username={user.username}
-          className={`min-w-0 truncate text-[15px] font-black hover:underline ${effectNameClass(user.activeEffect) || "text-white"}`}>
-          {user.username}
-        </UserLink>
-        <GuildTag userId={user.id} size="sm" />
-      </span>
-      {/* Role, rank and worn titles as icon squares. The full wording lives in
-          each badge's tooltip — spelled out, "KEEPER OF THE FOUNDATION" beside
-          every post pushed the timestamp onto its own line and made the badge
-          strip louder than the post. */}
-      <UserBadgesCompact user={user} blessed={blessed} />
-    </>
+function TagChip({ tag, size = "sm" }: { tag: string; size?: "xs" | "sm" }) {
+  const style = TAG_STYLE[tag] || TAG_STYLE.General;
+  const sizeClasses = size === "xs" ? "px-2 py-0.5 text-[10px]" : "px-2.5 py-1 text-xs";
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-lg border font-mono font-bold uppercase tracking-wider ${style.bg} ${style.border} ${style.text} ${sizeClasses}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
+      {tag}
+    </span>
   );
 }
 
-/**
- * The per-post menu. Staff see the same two actions on anyone's post, with a
- * line saying so — moderating quietly, in a UI identical to editing your own,
- * is how someone deletes a member's post thinking it was theirs.
- */
-function PostMenu({ isOwn, isPinned, canPin, onEdit, onDelete, onPin }: {
+function AuthorLine({ user, blessed }: { user?: Author; blessed?: boolean }) {
+  if (!user) return <span className="font-mono text-sm font-bold text-slate-400">Anonymous</span>;
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="relative h-10 w-10 shrink-0">
+        {user.avatar ? (
+          <img
+            src={cloudinaryFit(user.avatar, 100)}
+            alt=""
+            className="relative z-10 h-10 w-10 rounded-full object-cover ring-1 ring-white/10"
+          />
+        ) : (
+          <span className="relative z-10 grid h-10 w-10 place-items-center rounded-full bg-purple-700 text-sm font-black text-white ring-1 ring-white/10">
+            {(user.username || "?")[0]?.toUpperCase()}
+          </span>
+        )}
+        <AvatarDecoration frame={user.activeFrame} effect={user.activeEffect} size="md" />
+      </div>
+
+      <div className="flex min-w-0 items-center gap-1.5">
+        <UserLink
+          username={user.username}
+          className="truncate font-mono text-sm font-black text-white hover:text-purple-300 transition-colors"
+        />
+        <GuildTag userId={user.id} size="sm" />
+        <UserBadgesCompact user={user as any} />
+      </div>
+    </div>
+  );
+}
+
+function PostMenu({
+  isOwn,
+  isPinned,
+  canPin,
+  onEdit,
+  onDelete,
+  onPin,
+}: {
   isOwn: boolean;
   isPinned?: boolean;
-  /** Staff only. The server gates this too — this just decides whether to draw it. */
-  canPin: boolean;
+  canPin?: boolean;
   onEdit: () => void;
   onDelete: () => void;
   onPin: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  useEffect(() => {
-    if (!open) return;
-    const close = () => setOpen(false);
-    // Deferred so the click that OPENED it doesn't immediately close it.
-    const t = setTimeout(() => document.addEventListener("click", close), 0);
-    return () => { clearTimeout(t); document.removeEventListener("click", close); };
-  }, [open]);
-
   return (
-    <span className="relative ml-auto">
+    <div className="relative">
       <button
-        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
-        aria-label="Post options"
-        className={`grid h-7 w-7 place-items-center rounded-full transition ${
-          open ? "bg-white/10 text-white" : "text-slate-500 hover:bg-white/5 hover:text-white"}`}
+        onClick={() => setOpen(!open)}
+        aria-label="Post actions"
+        className="rounded-lg p-1.5 text-slate-500 transition hover:bg-white/10 hover:text-white"
       >
         <MoreHorizontal className="h-4 w-4" />
       </button>
       {open && (
-        <span className="absolute right-0 top-full z-30 mt-1.5 block w-44 overflow-hidden rounded-xl border border-white/10 bg-[#0f0f16] py-1 shadow-2xl">
-          {!isOwn && (
-            <span className="block px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.18em] text-amber-300/80">
-              Moderating
-            </span>
-          )}
-          {canPin && (
-            <button onClick={(e) => { e.stopPropagation(); setOpen(false); onPin(); }}
-              className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-bold transition hover:bg-amber-400/10 ${
-                isPinned ? "text-amber-300" : "text-slate-300 hover:text-amber-200"}`}>
-              <Pin className={`h-3.5 w-3.5 ${isPinned ? "fill-current" : ""}`} />
-              {isPinned ? "Unpin post" : "Pin post"}
+        <>
+          <div className="fixed inset-0 z-20" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full z-30 mt-1 w-36 rounded-xl border border-white/10 bg-[#12121a] p-1 shadow-2xl backdrop-blur-xl">
+            {canPin && (
+              <button
+                onClick={() => { setOpen(false); onPin(); }}
+                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left font-mono text-xs font-bold text-slate-300 transition hover:bg-white/10 hover:text-white"
+              >
+                <Pin className="h-3.5 w-3.5 text-amber-400" />
+                {isPinned ? "Unpin Post" : "Pin to Top"}
+              </button>
+            )}
+            {isOwn && (
+              <button
+                onClick={() => { setOpen(false); onEdit(); }}
+                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left font-mono text-xs font-bold text-slate-300 transition hover:bg-white/10 hover:text-white"
+              >
+                <Pencil className="h-3.5 w-3.5 text-sky-400" /> Edit
+              </button>
+            )}
+            <button
+              onClick={() => { setOpen(false); onDelete(); }}
+              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left font-mono text-xs font-bold text-rose-400 transition hover:bg-rose-500/15"
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Delete
             </button>
-          )}
-          <button onClick={(e) => { e.stopPropagation(); setOpen(false); onEdit(); }}
-            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-bold text-slate-300 transition hover:bg-white/5 hover:text-white">
-            <Pencil className="h-3.5 w-3.5" /> Edit
-          </button>
-          <button onClick={(e) => { e.stopPropagation(); setOpen(false); onDelete(); }}
-            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-bold text-rose-300 transition hover:bg-rose-500/10 hover:text-rose-200">
-            <Trash2 className="h-3.5 w-3.5" /> Delete
-          </button>
-        </span>
+          </div>
+        </>
       )}
-    </span>
-  );
-}
-
-const ago = (iso: string) => {
-  const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
-  if (s < 60) return "just now";
-  const m = s / 60;
-  if (m < 60) return `${Math.floor(m)}m ago`;
-  const h = m / 60;
-  if (h < 24) return `${Math.floor(h)}h ago`;
-  const d = h / 24;
-  if (d < 30) return `${Math.floor(d)}d ago`;
-  return `${Math.floor(d / 30)}mo ago`;
-};
-
-function TagChip({ tag, size = "sm" }: { tag: string; size?: "sm" | "xs" }) {
-  const tint = TAG_TINT[tag] || F_ACCENT;
-  return (
-    <span
-      className={`inline-block font-black uppercase tracking-[0.16em] ${size === "xs" ? "px-2 py-0.5 text-[10px]" : "px-2.5 py-1 text-[11px]"}`}
-      style={{ borderRadius: 5, background: `${tint}1f`, boxShadow: `inset 0 0 0 1px ${tint}66`, color: tint }}
-    >
-      {tag}
-    </span>
+    </div>
   );
 }
 
@@ -253,52 +189,43 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
   const { toast } = useToast();
 
   const [posts, setPosts] = useState<Post[]>([]);
-  const [replies, setReplies] = useState<Record<string, Post[]>>({});
+  const [loading, setLoading] = useState(true);
+  const [tag, setTag] = useState<string>("All");
+  const [sort, setSort] = useState<"newest" | "top">("newest");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [topics, setTopics] = useState<{ tag: string; count: number }[]>([]);
+  const [total, setTotal] = useState(0);
+
+  const [composing, setComposing] = useState(false);
   const [openThread, setOpenThread] = useState<string | null>(null);
+  const [replies, setReplies] = useState<Record<string, Post[]>>({});
+
   const [editing, setEditing] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
   const [draftBody, setDraftBody] = useState("");
-  const [draftTag, setDraftTag] = useState<string>("General");
+  const [draftTag, setDraftTag] = useState("General");
   const [savingEdit, setSavingEdit] = useState(false);
-  const [topics, setTopics] = useState<{ tag: string; count: number }[]>([]);
-  const [total, setTotal] = useState(0);
-  const [tag, setTag] = useState<string>("All");
-  const [sort, setSort] = useState<"top" | "newest">("newest");
-  const [loading, setLoading] = useState(true);
-  const [composing, setComposing] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const url = new URL(`${API_URL}/api/comments`);
       url.searchParams.set("forum", "true");
-      url.searchParams.set("sort", sort);
-      url.searchParams.set("limit", "30");
       if (tag !== "All") url.searchParams.set("tag", tag);
+      url.searchParams.set("sort", sort);
       if (user?.id) url.searchParams.set("userId", user.id);
-      const r = await fetch(url.toString());
-      const d = await r.json();
-      const list = Array.isArray(d?.data) ? d.data : d?.data?.comments;
-      // Replies arrive in the same payload as their roots. Keep BOTH and split
-      // them here — the thread is the point of a forum, and dropping the
-      // children was why posts looked like a wall nobody could answer.
-      const all: Post[] = Array.isArray(list) ? list : [];
-      setPosts(all.filter((p) => !p.parentId));
-      const map: Record<string, Post[]> = {};
-      for (const c of all) {
-        if (!c.parentId) continue;
-        (map[c.parentId] ||= []).push(c);
+
+      const res = await fetch(url.toString());
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setPosts(data.data.filter((p: Post) => !p.parentId));
       }
-      for (const k of Object.keys(map)) {
-        map[k].sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
-      }
-      setReplies(map);
     } catch {
-      /* offline */
+      toast("Couldn't load forum posts.", "error");
     } finally {
       setLoading(false);
     }
-  }, [tag, sort, user?.id]);
+  }, [tag, sort, user?.id, toast]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -313,16 +240,7 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
       .catch(() => {});
   }, [posts.length]);
 
-  /**
-   * PINNED POSTS come from their own request, not from whatever landed in
-   * page one. Filtering the loaded page meant a pin that fell outside the
-   * first 30 rows — or that the active tag filtered out — silently vanished
-   * from the shelf, and pinned posts also rendered TWICE, once on the shelf
-   * and again in the feed below.
-   */
   const [pinned, setPinned] = useState<Post[]>([]);
-  // Bumped after a pin/unpin so the shelf refetches — the feed's own reload
-  // doesn't necessarily change posts.length, so nothing else would.
   const [pinRefresh, setPinRefresh] = useState(0);
   useEffect(() => {
     const url = new URL(`${API_URL}/api/comments`);
@@ -331,33 +249,16 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
     if (user?.id) url.searchParams.set("userId", user.id);
     fetch(url.toString())
       .then((r) => r.json())
-      .then((d) => { if (d?.success && Array.isArray(d.data)) setPinned(d.data.filter((p: Post) => !p.parentId)); })
+      .then((d) => {
+        if (d?.success && Array.isArray(d.data)) {
+          setPinned(d.data.filter((p: Post) => !p.parentId));
+        }
+      })
       .catch(() => {});
   }, [user?.id, posts.length, pinRefresh]);
 
-  /**
-   * Rank by NET score — upvotes minus downvotes — with pinned posts held on top
-   * and recency breaking ties.
-   *
-   * Ordering is recomputed only when the SET of posts changes, never when a
-   * score changes. That distinction is the whole point: votes here are
-   * optimistic, so sorting on score directly would rip the post out from under
-   * your cursor the instant you clicked it, and a second click would land on
-   * whatever slid into its place. This way your vote shows immediately, the
-   * number moves, and the list re-ranks on the next load.
-   */
   const idKey = posts.map((p) => p.id).join(",");
   const order = useMemo(() => {
-    /**
-     * PINNED LEADS EVERY SORT. Not just Top — that is what pinning means
-     * here, and it is also the only way to reach a pinned post's menu:
-     * the shelf cards are links, so the Unpin action lives on the feed
-     * card. Drop pinned posts out of the feed and a pin becomes permanent.
-     *
-     * Sort is stable in JS, so on Recent this preserves the server's
-     * chronological order underneath the pinned block rather than
-     * re-ranking it — an explicit "Recent" still reads as recent.
-     */
     const pinFirst = (a: Post, b: Post) =>
       !!a.isPinned !== !!b.isPinned ? (a.isPinned ? -1 : 1) : 0;
 
@@ -371,23 +272,22 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
         return +new Date(b.createdAt) - +new Date(a.createdAt);
       })
       .map((p) => p.id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idKey, sort]);
+  }, [idKey, sort, posts]);
 
-  // Render in ranked order but read LIVE post objects, so an optimistic score
-  // updates in place without moving anything.
   const ranked = useMemo(() => {
     const byId = new Map(posts.map((p) => [p.id, p]));
-    return order.map((id) => byId.get(id)).filter((p): p is Post => !!p);
-  }, [order, posts]);
+    let list = order.map((id) => byId.get(id)).filter((p): p is Post => !!p);
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(p => (p.title || "").toLowerCase().includes(q) || p.content.toLowerCase().includes(q));
+    }
+    return list;
+  }, [order, posts, searchQuery]);
 
-  /**
-   * Who may edit or delete a post. Mirrors the server, which decides from the
-   * VERIFIED token — this only decides whether to draw the button, so a wrong
-   * answer here is a cosmetic bug rather than a hole.
-   */
   const canManage = (p: Post) =>
     !!user && (p.user?.id === user.id || isAdmin(user.username) || isLeadDev(user));
+
+  const canPin = !!user && (isAdmin(user.username) || isLeadDev(user));
 
   const startEdit = (p: Post) => {
     setEditing(p.id);
@@ -422,14 +322,24 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
     }
   };
 
-  /** Staff only, and the server checks the token independently. */
-  const canPin = !!user && (isAdmin(user.username) || isLeadDev(user));
+  const removePost = async (p: Post) => {
+    if (!confirm("Delete this post? This cannot be undone.")) return;
+    setPosts((list) => list.filter((x) => x.id !== p.id));
+    try {
+      const r = await fetch(`${API_URL}/api/comments/${p.id}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) throw new Error(d.message || "Couldn't delete.");
+      toast("Post removed.", "success");
+      setPinRefresh((n) => n + 1);
+    } catch (err: any) {
+      toast(err?.message || "Couldn't delete that.", "error");
+      load();
+    }
+  };
 
-  /**
-   * Pin or unpin. The forum could SHOW pinned posts but never had a control
-   * to create one — the only pin toggle in the app lived on media comment
-   * threads, so a forum post could only be pinned from outside the forum.
-   */
   const togglePin = async (p: Post) => {
     if (!user) return;
     const wasPinned = !!p.isPinned;
@@ -441,511 +351,581 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
         body: JSON.stringify({ userId: user.id }),
       });
       const d = await r.json();
-      if (!r.ok || !d.success) throw new Error(d.message || "Couldn't change the pin.");
+      if (!r.ok || !d.success) throw new Error(d.message || "Couldn't change pin status.");
       toast(wasPinned ? "Unpinned." : "Pinned to the top.", "success");
-      load();          // refresh the feed ordering
-      setPinRefresh((n) => n + 1); // and the shelf
+      load();
+      setPinRefresh((n) => n + 1);
     } catch (err: any) {
       setPosts((list) => list.map((x) => (x.id === p.id ? { ...x, isPinned: wasPinned } : x)));
-      toast(err?.message || "Couldn't change the pin.", "error");
+      toast(err?.message || "Couldn't change pin status.", "error");
     }
   };
 
-  const removePost = async (p: Post) => {
-    if (!user) return;
-    // A delete takes the replies with it and cannot be undone, so it asks.
-    const count = replies[p.id]?.length || 0;
-    const warn = count > 0
-      ? `Delete this post and its ${count} ${count === 1 ? "reply" : "replies"}? This can't be undone.`
-      : "Delete this post? This can't be undone.";
-    if (!window.confirm(warn)) return;
-    try {
-      const r = await fetch(`${API_URL}/api/comments/${p.id}`, {
-        method: "DELETE",
-        headers: authHeaders(),
-      });
-      const d = await r.json();
-      if (!r.ok || !d.success) return toast(d.message || "Couldn't delete that.", "error");
-      toast("Post deleted.", "success");
-      await load();
-    } catch {
-      toast("Couldn't delete that.", "error");
-    }
-  };
+  const vote = async (p: Post, dir: 1 | -1) => {
+    if (!user) return toast("Sign in to vote on discussions.", "error");
+    const current = p.userVote || 0;
+    const next = current === dir ? 0 : dir;
+    const delta = next - current;
 
-  const vote = async (post: Post, value: number) => {
-    if (!user) return toast("Sign in to vote.", "error");
-    // Optimistic: a vote that waits for a round trip feels broken.
-    const next = post.userVote === value ? 0 : value;
-    setPosts((ps) =>
-      ps.map((p) => {
-        if (p.id !== post.id) return p;
-        const was = p.userVote || 0;
-        // The two tallies move independently of the net score, because the rail
-        // now shows all three. Each is adjusted by whether THAT side was held
-        // before and is held after — a switch from love to dislike has to
-        // decrement one and increment the other, not just shift the net.
-        const step = (side: number) => (next === side ? 1 : 0) - (was === side ? 1 : 0);
+    setPosts((list) =>
+      list.map((x) => {
+        if (x.id !== p.id) return x;
+        const upDelta = (next === 1 ? 1 : 0) - (current === 1 ? 1 : 0);
+        const downDelta = (next === -1 ? 1 : 0) - (current === -1 ? 1 : 0);
         return {
-          ...p,
+          ...x,
+          score: (x.score || 0) + delta,
+          upvotes: Math.max(0, (x.upvotes || 0) + upDelta),
+          downvotes: Math.max(0, (x.downvotes || 0) + downDelta),
           userVote: next,
-          score: (p.score || 0) - was + next,
-          upvotes: Math.max(0, (p.upvotes || 0) + step(1)),
-          downvotes: Math.max(0, (p.downvotes || 0) + step(-1)),
         };
       })
     );
+
     try {
-      const r = await fetch(`${API_URL}/api/comments/${post.id}/vote`, {
+      const r = await fetch(`${API_URL}/api/comments/${p.id}/vote`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({ userId: user.id, value: next }),
       });
-      // The response was never read, so a REJECTED vote looked exactly like a
-      // successful one: the optimistic state stayed on screen until something
-      // reloaded, and then silently undid itself. A vote that un-votes itself
-      // a minute later is the worst version of this to debug from the outside.
       const d = await r.json().catch(() => null);
       if (!r.ok || !d?.success) {
-        toast(d?.message || "That vote didn't save.", "error");
+        toast(d?.message || "Vote failed to save.", "error");
         load();
       }
     } catch {
-      toast("That vote didn't save.", "error");
-      load(); // put the truth back
+      toast("Vote failed to save.", "error");
+      load();
     }
   };
 
+  const loadReplies = async (postId: string) => {
+    try {
+      const r = await fetch(`${API_URL}/api/comments?parentId=${postId}`);
+      const d = await r.json();
+      if (d.success && Array.isArray(d.data)) {
+        setReplies((prev) => ({ ...prev, [postId]: d.data }));
+      }
+    } catch {}
+  };
+
   return (
-    // `embedded` drops the page chrome so this can sit inside the existing
-    // community page's container without stacking a second full-height
-    // background and a second lot of top padding under the navbar.
-    <div className={`relative text-white ${embedded ? "" : "min-h-screen px-4 pb-24 pt-24"}`}
-      style={embedded ? undefined : {
-        background:
-          "radial-gradient(80% 45% at 15% -5%, rgba(120,86,196,.18), transparent 60%)," +
-          "linear-gradient(#0a0713, #06040e 60%, #050309)",
-      }}>
+    <div className={`relative text-white pb-32 ${embedded ? "" : "min-h-screen px-4 pt-24"}`}>
       <div className={embedded ? "" : "mx-auto max-w-6xl"}>
-        {/* ── header ── */}
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            {/* font-fell is the site's display face — the one the logo uses.
-                A plain sans heading read as a form label rather than a place. */}
-            <h1 className="font-fell text-4xl font-bold uppercase tracking-[0.14em] md:text-5xl"
-              style={{
-                background: `linear-gradient(100deg, #fff 10%, ${F_ACCENT_LIT} 55%, ${F_ACCENT} 90%)`,
-                WebkitBackgroundClip: "text",
-                backgroundClip: "text",
-                color: "transparent",
-                filter: `drop-shadow(0 2px 18px ${F_ACCENT}55)`,
-              }}>
-              Community
-            </h1>
-            <span className="px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.24em]"
-              style={{ borderRadius: 6, background: `${F_ACCENT}22`, boxShadow: `inset 0 0 0 1px ${F_ACCENT}66`, color: F_ACCENT_LIT }}>
-              Forum
-            </span>
+        
+        {/* ══ HEADER ══ */}
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-6">
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="font-mono text-3xl sm:text-4xl font-black tracking-tight text-white">
+                COMMUNITY FORUM
+              </h1>
+              <span className="rounded-lg border border-purple-500/30 bg-purple-500/10 px-2.5 py-1 font-mono text-[10px] font-black uppercase tracking-wider text-purple-300">
+                Live Feed
+              </span>
+            </div>
+            <p className="mt-1.5 font-mono text-xs text-slate-400">
+              Join discussions, share theories, vote on polls, and chat with fellow readers.
+            </p>
           </div>
-          <button onClick={() => (user ? setComposing(true) : toast("Sign in to post.", "error"))}
-            className="inline-flex items-center gap-2 px-5 py-2.5 text-[12px] font-black uppercase tracking-[0.16em] text-white transition hover:brightness-115"
-            style={{ clipPath: "polygon(11px 0, 100% 0, calc(100% - 11px) 100%, 0 100%)", background: `linear-gradient(100deg, #7c3aed, ${F_ACCENT})` }}>
-            <Plus className="h-4 w-4" /> Create
+
+          <button
+            onClick={() => (user ? setComposing(true) : toast("Sign in to post.", "error"))}
+            className="flex items-center gap-2 rounded-xl bg-purple-600 px-5 py-3 font-mono text-xs font-black uppercase tracking-wider text-white shadow-lg shadow-purple-600/25 transition hover:bg-purple-500 hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <Plus className="h-4 w-4" /> New Discussion
           </button>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
-          {/* ══ MAIN COLUMN ══ */}
-          <div className="min-w-0">
-            {/* pinned */}
+        <div className="grid gap-8 lg:grid-cols-[1fr_310px]">
+          
+          {/* ══ MAIN FEED COLUMN ══ */}
+          <div className="min-w-0 space-y-6">
+            
+            {/* ── PINNED HIGHLIGHTS ── */}
             {pinned.length > 0 && (
-              <>
-                <p className="mb-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">
-                  <Pin className="h-3 w-3" /> Pinned posts
-                </p>
-                <div className="mb-7 grid gap-3 sm:grid-cols-2">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Pin className="h-3.5 w-3.5 text-amber-400" />
+                  <span className="font-mono text-xs font-black uppercase tracking-wider text-amber-300">
+                    Pinned Announcements
+                  </span>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
                   {pinned.map((p) => (
-                    <Link key={p.id} href={`/community/post/${p.id}`}
-                      className="relative block overflow-hidden px-5 py-5 text-left transition hover:brightness-125"
-                      style={{ borderRadius: 16, background: "rgba(255,255,255,.028)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.08)" }}>
-                      {/* the headline ghosted huge behind itself — cheap depth,
-                          and it fills a card that would otherwise be mostly air */}
-                      <span aria-hidden
-                        className="pointer-events-none absolute right-2 top-3 select-none whitespace-nowrap text-4xl font-black uppercase tracking-tight text-white/[0.045]">
-                        {p.title || "Post"}
-                      </span>
-                      <div className="relative flex items-center gap-2">
+                    <Link
+                      key={p.id}
+                      href={`/community/post/${p.id}`}
+                      className="group relative overflow-hidden rounded-2xl border border-amber-500/30 bg-amber-500/[0.04] p-5 transition hover:border-amber-400/60 hover:bg-amber-500/[0.08]"
+                    >
+                      <div className="flex items-center justify-between gap-2">
                         {p.tag && <TagChip tag={p.tag} size="xs" />}
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.16em]"
-                          style={{ borderRadius: 4, background: "rgba(251,191,36,.14)", boxShadow: "inset 0 0 0 1px rgba(251,191,36,.5)", color: "#fcd34d" }}>
+                        <span className="inline-flex items-center gap-1 rounded-md bg-amber-400/20 px-2 py-0.5 font-mono text-[9px] font-black uppercase tracking-wider text-amber-300">
                           <Pin className="h-2.5 w-2.5" /> Pinned
                         </span>
                       </div>
-                      <h3 className="relative mt-3 truncate text-lg font-black">{p.title || "Untitled"}</h3>
-                      <p className="relative mt-1 text-xs text-slate-500">
-                        by <span className="font-bold text-slate-300">{p.user?.username || "someone"}</span>
+                      <h3 className="mt-3 truncate font-mono text-base font-black text-white group-hover:text-amber-200 transition-colors">
+                        {p.title || "Untitled Announcement"}
+                      </h3>
+                      <p className="mt-1.5 font-mono text-xs text-slate-400">
+                        by <span className="font-bold text-slate-200">{p.user?.username || "Admin"}</span> • {ago(p.createdAt)}
                       </p>
                     </Link>
                   ))}
                 </div>
-              </>
+              </div>
             )}
 
-            {/* composer bar */}
-            <button onClick={() => (user ? setComposing(true) : toast("Sign in to post.", "error"))}
-              className="mb-6 flex w-full items-center gap-3 px-4 py-4 text-left transition hover:brightness-125"
-              style={{ borderRadius: 14, background: "rgba(255,255,255,.03)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.09)" }}>
-              {user?.avatar ? (
-                <img src={cloudinaryFit(user.avatar, 80)} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
-              ) : (
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-purple-700 text-sm font-black">
-                  {(user?.username || "?")[0]?.toUpperCase()}
-                </span>
-              )}
-              <span className="flex-1 text-sm text-slate-500">Create a post…</span>
-              <ImagePlus className="h-4 w-4 text-slate-600" />
-            </button>
+            {/* ── QUICK COMPOSER BAR ── */}
+            <div className="rounded-2xl border border-white/10 bg-[#0e0e14] p-4 shadow-xl">
+              <div className="flex items-center gap-3">
+                <div className="relative h-10 w-10 shrink-0">
+                  {user?.avatar ? (
+                    <img src={cloudinaryFit(user.avatar, 100)} alt="" className="h-10 w-10 rounded-full object-cover ring-1 ring-white/10" />
+                  ) : (
+                    <span className="grid h-10 w-10 place-items-center rounded-full bg-purple-700 font-mono text-sm font-black text-white">
+                      {(user?.username || "?")[0]?.toUpperCase()}
+                    </span>
+                  )}
+                  {user && <AvatarDecoration frame={user.activeFrame} effect={user.activeEffect} size="md" />}
+                </div>
 
-            {/* sort */}
-            <div className="mb-4 flex items-center justify-end gap-2">
-              <span className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-600">Sort</span>
-              {([["newest", "Recent"], ["top", "Top"]] as const).map(([k, label]) => (
-                <button key={k} onClick={() => setSort(k)}
-                  className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] transition ${
-                    sort === k ? "text-white" : "text-slate-500 hover:text-slate-300"}`}
-                  style={{
-                    clipPath: "polygon(7px 0, 100% 0, calc(100% - 7px) 100%, 0 100%)",
-                    background: sort === k ? `${F_ACCENT}33` : "rgba(255,255,255,.04)",
-                    boxShadow: `inset 0 0 0 1px ${sort === k ? `${F_ACCENT}99` : "rgba(255,255,255,.08)"}`,
-                  }}>
-                  {label}
+                <button
+                  onClick={() => (user ? setComposing(true) : toast("Sign in to post.", "error"))}
+                  className="flex-1 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-left font-mono text-xs font-medium text-slate-400 transition hover:border-white/20 hover:bg-white/[0.07] hover:text-slate-200"
+                >
+                  Start a discussion, share art, or create a poll…
                 </button>
-              ))}
+
+                <button
+                  onClick={() => (user ? setComposing(true) : toast("Sign in to post.", "error"))}
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-400 transition hover:bg-white/10 hover:text-white"
+                  title="Attach Media"
+                >
+                  <ImagePlus className="h-4 w-4" />
+                </button>
+              </div>
             </div>
 
-            {/* tag pills */}
-            <div className="mb-6 flex flex-wrap gap-2">
-              {["All", ...TAGS].map((t) => {
-                const on = tag === t;
-                const tint = t === "All" ? F_ACCENT : TAG_TINT[t];
-                return (
-                  <button key={t} onClick={() => setTag(t)}
-                    className="px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] transition"
-                    style={{
-                      borderRadius: 7,
-                      background: on ? `${tint}30` : "rgba(255,255,255,.03)",
-                      boxShadow: `inset 0 0 0 1px ${on ? tint : "rgba(255,255,255,.08)"}`,
-                      color: on ? "#fff" : "#64748b",
-                    }}>
-                    {t}
+            {/* ── UNIFIED FILTER & SORT TOOLBAR ── */}
+            <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-[#0e0e14] p-3 shadow-lg">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                
+                {/* Horizontal topic categories */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {["All", ...TAGS].map((t) => {
+                    const on = tag === t;
+                    return (
+                      <button
+                        key={t}
+                        onClick={() => setTag(t)}
+                        className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 font-mono text-xs font-bold transition ${
+                          on
+                            ? "border-purple-500 bg-purple-500/20 text-white shadow-sm"
+                            : "border-white/5 bg-white/[0.02] text-slate-400 hover:border-white/15 hover:bg-white/[0.05] hover:text-slate-200"
+                        }`}
+                      >
+                        {t !== "All" && (
+                          <span className={`h-1.5 w-1.5 rounded-full ${TAG_STYLE[t]?.dot || "bg-slate-400"}`} />
+                        )}
+                        <span>{t === "All" ? "All Posts" : t}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Sort segmented toggle */}
+                <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-black/40 p-1">
+                  <button
+                    onClick={() => setSort("newest")}
+                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1 font-mono text-xs font-bold transition ${
+                      sort === "newest"
+                        ? "bg-white/15 text-white shadow-sm"
+                        : "text-slate-500 hover:text-slate-300"
+                    }`}
+                  >
+                    <Clock className="h-3 w-3" /> Recent
                   </button>
-                );
-              })}
+                  <button
+                    onClick={() => setSort("top")}
+                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1 font-mono text-xs font-bold transition ${
+                      sort === "top"
+                        ? "bg-purple-600 text-white shadow-sm"
+                        : "text-slate-500 hover:text-slate-300"
+                    }`}
+                  >
+                    <Flame className="h-3 w-3" /> Top
+                  </button>
+                </div>
+              </div>
             </div>
 
-            {/* feed */}
+            {/* ── FEED POSTS LIST ── */}
             {loading ? (
-              <div className="grid place-items-center py-20 text-slate-600">
-                <Loader2 className="h-6 w-6 animate-spin" />
+              <div className="flex flex-col items-center justify-center py-20 text-slate-500">
+                <Loader2 className="h-8 w-8 animate-spin text-purple-400" />
+                <p className="mt-3 font-mono text-xs font-bold text-slate-400">Loading discussions…</p>
               </div>
             ) : ranked.length === 0 ? (
-              <div className="py-20 text-center"
-                style={{ borderRadius: 16, background: "rgba(255,255,255,.02)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.06)" }}>
-                <MessageSquare className="mx-auto h-8 w-8 text-slate-700" />
-                <p className="mt-3 text-sm text-slate-500">
-                  {tag === "All" ? "Nothing posted yet. Start it." : `No posts tagged ${tag} yet.`}
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-white/10 bg-[#0e0e14] py-20 text-center">
+                <MessageSquare className="h-10 w-10 text-white/20" />
+                <p className="mt-4 font-mono text-base font-bold text-slate-300">
+                  {tag === "All" ? "No discussions yet" : `No posts in ${tag} yet`}
                 </p>
+                <p className="mt-1 font-mono text-xs text-slate-500">Be the first to start a conversation!</p>
+                <button
+                  onClick={() => (user ? setComposing(true) : toast("Sign in to post.", "error"))}
+                  className="mt-5 rounded-xl bg-purple-600 px-5 py-2.5 font-mono text-xs font-bold text-white transition hover:bg-purple-500"
+                >
+                  Create Post
+                </button>
               </div>
             ) : (
-              <div className="space-y-3">
-                {ranked.map((p) => (
-                  <motion.article key={p.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                    className="flex gap-4 p-5"
-                    style={{ borderRadius: 16, background: "rgba(255,255,255,.028)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.075)" }}>
-                    {/* vote rail */}
-                    <div className="flex w-14 shrink-0 flex-col items-center gap-1">
-                      <button onClick={() => vote(p, 1)} aria-label="Upvote"
-                        className="grid h-10 w-10 place-items-center transition hover:brightness-150"
-                        style={{
-                          borderRadius: 7,
-                          background: p.userVote === 1 ? `${F_ACCENT}33` : "rgba(255,255,255,.04)",
-                          boxShadow: `inset 0 0 0 1px ${p.userVote === 1 ? F_ACCENT : "rgba(255,255,255,.09)"}`,
-                          color: p.userVote === 1 ? F_ACCENT_LIT : "#64748b",
-                        }}>
-                        {/* A LOVE, not an upvote. The arrow said "is this
-                            useful"; the heart says "I liked this", which is the
-                            reaction this community actually gives. Filled once
-                            you've given it, so the rail reads at a glance. */}
-                        <Heart className="h-4 w-4" fill={p.userVote === 1 ? "currentColor" : "none"} />
-                      </button>
-                      {/* ONE number. Showing the love count here as well as the
-                          net score printed "2" twice above the word SCORE, which
-                          reads as a rendering bug. The separate tallies moved to
-                          the footer, where they say something the score cannot. */}
-                      <span className="text-base font-black tabular-nums" style={{ color: (p.score || 0) > 0 ? F_ACCENT_LIT : "#64748b" }}>
-                        {p.score ?? 0}
-                      </span>
-                      <span className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-700">Score</span>
-                      <button onClick={() => vote(p, -1)} aria-label="Dislike"
-                        className="mt-0.5 grid h-10 w-10 place-items-center transition hover:brightness-150"
-                        style={{
-                          borderRadius: 7,
-                          background: p.userVote === -1 ? "rgba(244,63,94,.22)" : "rgba(255,255,255,.04)",
-                          boxShadow: `inset 0 0 0 1px ${p.userVote === -1 ? "#f43f5e" : "rgba(255,255,255,.09)"}`,
-                          color: p.userVote === -1 ? "#fda4af" : "#64748b",
-                        }}>
-                        <ThumbsDown className="h-4 w-4" fill={p.userVote === -1 ? "currentColor" : "none"} />
-                      </button>
-                    </div>
+              <div className="space-y-4">
+                {ranked.map((p) => {
+                  const up = p.upvotes || 0;
+                  const down = p.downvotes || 0;
+                  const totalVotes = up + down;
+                  const positivePercent = totalVotes > 0 ? Math.round((up / totalVotes) * 100) : 0;
 
-                    {/* body */}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <AuthorLine user={p.user} blessed={p.blessed} />
-                        {p.isPinned && (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.14em]"
-                            style={{ borderRadius: 4, background: "rgba(251,191,36,.14)", boxShadow: "inset 0 0 0 1px rgba(251,191,36,.5)", color: "#fcd34d" }}>
-                            <Pin className="h-2.5 w-2.5" /> Pinned
-                          </span>
-                        )}
-                        {p.tag && <TagChip tag={p.tag} size="xs" />}
-                        <span className="text-[11px] font-bold text-slate-500">{ago(p.createdAt)}</span>
-                        {canManage(p) && (
-                          <PostMenu
-                            isOwn={p.user?.id === user?.id}
-                            isPinned={p.isPinned}
-                            canPin={canPin}
-                            onEdit={() => startEdit(p)}
-                            onDelete={() => removePost(p)}
-                            onPin={() => togglePin(p)}
-                          />
-                        )}
+                  return (
+                    <motion.article
+                      key={p.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex flex-col sm:flex-row gap-4 rounded-2xl border border-white/10 bg-[#0e0e14] p-5 shadow-xl transition hover:border-white/20"
+                    >
+                      {/* Left Vote Column */}
+                      <div className="flex sm:flex-col items-center justify-between sm:justify-start gap-1 rounded-xl border border-white/5 bg-black/40 p-1.5 sm:w-12 sm:shrink-0">
+                        <button
+                          onClick={() => vote(p, 1)}
+                          aria-label="Upvote"
+                          className={`flex h-8 w-8 items-center justify-center rounded-lg transition ${
+                            p.userVote === 1
+                              ? "bg-rose-500/20 text-rose-400"
+                              : "text-slate-500 hover:bg-white/10 hover:text-white"
+                          }`}
+                        >
+                          <Heart className="h-4 w-4" fill={p.userVote === 1 ? "currentColor" : "none"} />
+                        </button>
+
+                        <span className={`font-mono text-xs font-black tabular-nums ${
+                          (p.score || 0) > 0 ? "text-purple-300" : (p.score || 0) < 0 ? "text-rose-400" : "text-slate-400"
+                        }`}>
+                          {p.score ?? 0}
+                        </span>
+
+                        <button
+                          onClick={() => vote(p, -1)}
+                          aria-label="Dislike"
+                          className={`flex h-8 w-8 items-center justify-center rounded-lg transition ${
+                            p.userVote === -1
+                              ? "bg-rose-500/20 text-rose-400"
+                              : "text-slate-500 hover:bg-white/10 hover:text-white"
+                          }`}
+                        >
+                          <ThumbsDown className="h-4 w-4" fill={p.userVote === -1 ? "currentColor" : "none"} />
+                        </button>
                       </div>
 
-                      {/* ── EDITING ── in place, not in a modal. A post is
-                          already a block of text on the page; lifting it into a
-                          dialog to change a word loses the thread around it. */}
-                      {editing === p.id ? (
-                        <div className="mt-3 space-y-2">
-                          <input
-                            value={draftTitle}
-                            onChange={(e) => setDraftTitle(e.target.value.slice(0, 30))}
-                            placeholder="Title (optional)"
-                            className="w-full bg-black/50 px-3.5 py-2 text-sm font-black text-white outline-none placeholder:text-slate-600"
-                            style={{ borderRadius: 9, boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }}
-                          />
-                          <MentionsTextarea
-                            value={draftBody}
-                            onChange={(e) => setDraftBody(e.target.value.slice(0, 1500))}
-                            rows={4}
-                            className="w-full resize-y bg-black/50 px-3.5 py-2.5 text-[15px] leading-relaxed text-white outline-none"
-                            style={{ borderRadius: 10, boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }}
-                          />
-                          <div className="flex flex-wrap gap-1.5">
-                            {TAGS.map((t) => (
-                              <button key={t} onClick={() => setDraftTag(t)}
-                                className="px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] transition"
-                                style={{
-                                  borderRadius: 5,
-                                  background: draftTag === t ? `${TAG_TINT[t]}30` : "rgba(255,255,255,.04)",
-                                  boxShadow: `inset 0 0 0 1px ${draftTag === t ? TAG_TINT[t] : "rgba(255,255,255,.1)"}`,
-                                  color: draftTag === t ? "#fff" : "#64748b",
-                                }}>
-                                {t}
-                              </button>
-                            ))}
-                          </div>
-                          <div className="flex justify-end gap-2 pt-1">
-                            <button onClick={() => setEditing(null)}
-                              className="px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-300 transition hover:brightness-125"
-                              style={{ borderRadius: 8, background: "rgba(255,255,255,.05)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }}>
-                              Cancel
-                            </button>
-                            <button onClick={() => saveEdit(p)} disabled={!draftBody.trim() || savingEdit}
-                              className="px-5 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white transition hover:brightness-115 disabled:opacity-35"
-                              style={{ clipPath: "polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%)", background: `linear-gradient(100deg, #7c3aed, ${F_ACCENT})` }}>
-                              {savingEdit ? "Saving…" : "Save"}
-                            </button>
+                      {/* Main Post Content */}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <AuthorLine user={p.user} blessed={p.blessed} />
+
+                          <div className="flex items-center gap-2">
+                            {p.isPinned && (
+                              <span className="inline-flex items-center gap-1 rounded-md bg-amber-400/20 px-2 py-0.5 font-mono text-[9px] font-black uppercase tracking-wider text-amber-300">
+                                <Pin className="h-2.5 w-2.5" /> Pinned
+                              </span>
+                            )}
+                            {p.tag && <TagChip tag={p.tag} size="xs" />}
+                            <span className="font-mono text-[11px] text-slate-500">{ago(p.createdAt)}</span>
+                            {canManage(p) && (
+                              <PostMenu
+                                isOwn={p.user?.id === user?.id}
+                                isPinned={p.isPinned}
+                                canPin={canPin}
+                                onEdit={() => startEdit(p)}
+                                onDelete={() => removePost(p)}
+                                onPin={() => togglePin(p)}
+                              />
+                            )}
                           </div>
                         </div>
-                      ) : (
-                        <>
-                          {/* the headline opens the post's own page — the
-                              whole card isn't a link because it already
-                              contains votes, menus and a poll */}
-                          {p.title && (
-                            <Link href={`/community/post/${p.id}`}
-                              className="mt-3 block text-2xl font-black leading-tight transition hover:text-violet-300">
-                              {p.title}
-                            </Link>
-                          )}
-                          {p.content && (
-                            <p className="mt-2 whitespace-pre-wrap break-words text-[15px] leading-[1.65] text-slate-200">
-                              <MentionText text={p.content} />
-                            </p>
-                          )}
-                        </>
-                      )}
-                      {p.mediaUrl && (
-                        <img src={p.mediaUrl} alt="" loading="lazy"
-                          className="mt-3 max-h-[420px] w-auto max-w-full object-contain"
-                          style={{ borderRadius: 12 }} />
-                      )}
 
-                      {p.poll && (
-                        <PollCard
-                          poll={p.poll}
-                          onUpdate={(next) =>
-                            setPosts((list) => list.map((x) => (x.id === p.id ? { ...x, poll: { ...x.poll!, ...next } } : x)))
-                          }
-                        />
-                      )}
-
-                      {/* ── HOW IT LANDED ── the tallies, said in words.
-                          The rail can only show a net score, which hides its own
-                          ingredients: 0 looks identical whether nobody voted or
-                          fifty people split evenly. Total engagement plus the
-                          share that was positive tells both halves in one line,
-                          and only appears once somebody has actually voted. */}
-                      {(() => {
-                        const up = p.upvotes || 0;
-                        const down = p.downvotes || 0;
-                        const total = up + down;
-                        if (total === 0) return null;
-                        return (
-                          <div className="mt-3.5 font-mono text-[11px] text-slate-600">
-                            {total} interaction{total === 1 ? "" : "s"}
-                            <span className="mx-1.5 text-slate-700">•</span>
-                            {Math.round((up / total) * 100)}% positive
+                        {/* In-place Editing Form */}
+                        {editing === p.id ? (
+                          <div className="mt-4 space-y-3 rounded-xl border border-white/10 bg-black/50 p-4">
+                            <input
+                              value={draftTitle}
+                              onChange={(e) => setDraftTitle(e.target.value.slice(0, 80))}
+                              placeholder="Title (optional)"
+                              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 font-mono text-sm font-bold text-white outline-none focus:border-purple-500"
+                            />
+                            <MentionsTextarea
+                              value={draftBody}
+                              onChange={(e) => setDraftBody(e.target.value.slice(0, 2000))}
+                              rows={4}
+                              className="w-full resize-y rounded-lg border border-white/10 bg-white/5 p-3 font-mono text-sm text-white outline-none focus:border-purple-500"
+                            />
+                            <div className="flex flex-wrap gap-1.5">
+                              {TAGS.map((t) => (
+                                <button
+                                  key={t}
+                                  onClick={() => setDraftTag(t)}
+                                  className={`rounded-lg border px-2.5 py-1 font-mono text-[10px] font-bold uppercase transition ${
+                                    draftTag === t
+                                      ? "border-purple-500 bg-purple-500/20 text-white"
+                                      : "border-white/10 bg-white/5 text-slate-400 hover:text-white"
+                                  }`}
+                                >
+                                  {t}
+                                </button>
+                              ))}
+                            </div>
+                            <div className="flex justify-end gap-2 pt-2">
+                              <button
+                                onClick={() => setEditing(null)}
+                                className="rounded-lg border border-white/10 bg-white/5 px-4 py-1.5 font-mono text-xs font-bold text-slate-300 transition hover:bg-white/10"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                onClick={() => saveEdit(p)}
+                                disabled={!draftBody.trim() || savingEdit}
+                                className="rounded-lg bg-purple-600 px-5 py-1.5 font-mono text-xs font-black uppercase text-white transition hover:bg-purple-500 disabled:opacity-40"
+                              >
+                                {savingEdit ? "Saving…" : "Save Changes"}
+                              </button>
+                            </div>
                           </div>
-                        );
-                      })()}
+                        ) : (
+                          <>
+                            {p.title && (
+                              <Link
+                                href={`/community/post/${p.id}`}
+                                className="mt-3 block font-mono text-lg sm:text-xl font-black text-white hover:text-purple-300 transition-colors"
+                              >
+                                {p.title}
+                              </Link>
+                            )}
+                            {p.content && (
+                              <p className="mt-2 whitespace-pre-wrap break-words font-mono text-sm leading-relaxed text-slate-200">
+                                <MentionText text={p.content} />
+                              </p>
+                            )}
+                          </>
+                        )}
 
-                      {/* ── THREAD ── a forum post you can't answer is a notice board */}
-                      <div className="mt-3.5 flex flex-wrap items-center gap-4">
-                        <button
-                          onClick={() => setOpenThread(openThread === p.id ? null : p.id)}
-                          className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-slate-400 transition hover:text-white">
-                          <MessageSquare className="h-3 w-3" />
-                          {(replies[p.id]?.length || 0) === 0
-                            ? "Reply"
-                            : `${replies[p.id].length} ${replies[p.id].length === 1 ? "reply" : "replies"}`}
-                        </button>
-                        <Link href={`/community/post/${p.id}`}
-                          className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-slate-500 transition hover:text-white">
-                          Open post
-                        </Link>
-                      </div>
+                        {/* Media Attachment */}
+                        {p.mediaUrl && (
+                          <div className="mt-3 overflow-hidden rounded-xl border border-white/10 bg-black/40">
+                            <img
+                              src={p.mediaUrl}
+                              alt=""
+                              loading="lazy"
+                              className="max-h-[440px] w-full object-contain"
+                            />
+                          </div>
+                        )}
 
-                      <AnimatePresence initial={false}>
-                        {openThread === p.id && (
-                          <motion.div
-                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                            transition={{ duration: 0.15 }}
-                            className="mt-3 space-y-2.5 border-l pl-3"
-                            style={{ borderColor: `${F_ACCENT}44` }}>
-                            {(replies[p.id] || []).map((r) => (
-                              <div key={r.id} className="flex items-start gap-2.5">
-                                <CornerDownRight className="mt-1.5 h-3 w-3 shrink-0 text-slate-700" />
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <AuthorLine user={r.user} blessed={r.blessed} />
-                                    <span className="text-[10px] font-bold text-slate-600">{ago(r.createdAt)}</span>
-                                    {/* A reply is someone's post too — same
-                                        rights, same controls. */}
-                                    {canManage(r) && (
-                                      <PostMenu
-                                        isOwn={r.user?.id === user?.id}
-                                        canPin={false} /* pinning a reply would put it on a shelf of posts */
-                                        onEdit={() => startEdit(r)}
-                                        onDelete={() => removePost(r)}
-                                        onPin={() => {}}
-                                      />
-                                    )}
-                                  </div>
-                                  {/* Replies edit inline too, body only — they
-                                      carry no title or topic of their own. */}
-                                  {editing === r.id ? (
-                                    <div className="mt-1.5 space-y-2">
-                                      <MentionsTextarea
-                                        value={draftBody}
-                                        onChange={(e) => setDraftBody(e.target.value.slice(0, 800))}
-                                        rows={3}
-                                        className="w-full resize-y bg-black/50 px-3 py-2 text-sm leading-relaxed text-white outline-none"
-                                        style={{ borderRadius: 8, boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }}
-                                      />
-                                      <div className="flex justify-end gap-2">
-                                        <button onClick={() => setEditing(null)}
-                                          className="px-3.5 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-slate-300 transition hover:brightness-125"
-                                          style={{ borderRadius: 7, background: "rgba(255,255,255,.05)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }}>
-                                          Cancel
-                                        </button>
-                                        <button onClick={() => saveEdit(r)} disabled={!draftBody.trim() || savingEdit}
-                                          className="px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-white transition hover:brightness-115 disabled:opacity-35"
-                                          style={{ clipPath: "polygon(7px 0, 100% 0, calc(100% - 7px) 100%, 0 100%)", background: `linear-gradient(100deg, #7c3aed, ${F_ACCENT})` }}>
-                                          {savingEdit ? "Saving…" : "Save"}
-                                        </button>
-                                      </div>
+                        {/* Poll Widget */}
+                        {p.poll && (
+                          <div className="mt-3">
+                            <PollCard
+                              poll={p.poll}
+                              onUpdate={(next) =>
+                                setPosts((list) =>
+                                  list.map((x) => (x.id === p.id ? { ...x, poll: { ...x.poll!, ...next } } : x))
+                                )
+                              }
+                            />
+                          </div>
+                        )}
+
+                        {/* Footer Interactions */}
+                        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/5 pt-3">
+                          <div className="flex items-center gap-4">
+                            <button
+                              onClick={() => {
+                                const next = openThread === p.id ? null : p.id;
+                                setOpenThread(next);
+                                if (next && !replies[p.id]) loadReplies(p.id);
+                              }}
+                              className="flex items-center gap-1.5 font-mono text-xs font-bold text-slate-400 hover:text-purple-300 transition-colors"
+                            >
+                              <MessageSquare className="h-3.5 w-3.5" />
+                              <span>
+                                {(replies[p.id]?.length || 0) === 0
+                                  ? "Reply"
+                                  : `${replies[p.id].length} replies`}
+                              </span>
+                            </button>
+
+                            <Link
+                              href={`/community/post/${p.id}`}
+                              className="font-mono text-xs font-bold text-slate-500 hover:text-slate-300 transition-colors"
+                            >
+                              Open Thread
+                            </Link>
+                          </div>
+
+                          {totalVotes > 0 && (
+                            <span className="font-mono text-[11px] text-slate-500">
+                              {totalVotes} vote{totalVotes === 1 ? "" : "s"} • {positivePercent}% positive
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Inline Thread Replies */}
+                        <AnimatePresence>
+                          {openThread === p.id && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              className="mt-4 space-y-3 border-l-2 border-purple-500/30 pl-4"
+                            >
+                              {(replies[p.id] || []).map((r) => (
+                                <div key={r.id} className="flex items-start gap-2.5 rounded-xl border border-white/5 bg-black/30 p-3">
+                                  <CornerDownRight className="mt-1 h-3.5 w-3.5 shrink-0 text-purple-400" />
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <AuthorLine user={r.user} blessed={r.blessed} />
+                                      <span className="font-mono text-[10px] text-slate-500">{ago(r.createdAt)}</span>
+                                      {canManage(r) && (
+                                        <PostMenu
+                                          isOwn={r.user?.id === user?.id}
+                                          canPin={false}
+                                          onEdit={() => startEdit(r)}
+                                          onDelete={() => removePost(r)}
+                                          onPin={() => {}}
+                                        />
+                                      )}
                                     </div>
-                                  ) : (
-                                    <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-300">
+                                    <p className="mt-1.5 whitespace-pre-wrap break-words font-mono text-sm leading-relaxed text-slate-300">
                                       <MentionText text={r.content} />
                                     </p>
-                                  )}
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
-                            <ReplyBox postId={p.id} onDone={load} />
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  </motion.article>
-                ))}
+                              ))}
+                              <ReplyBox postId={p.id} onDone={() => loadReplies(p.id)} />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    </motion.article>
+                  );
+                })}
               </div>
             )}
           </div>
 
-          {/* ══ TOPICS SIDEBAR ══ */}
-          <aside className="lg:sticky lg:top-24 lg:self-start">
-            <div className="p-4" style={{ borderRadius: 18, background: "rgba(255,255,255,.028)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.08)" }}>
-              <div className="mb-3 flex items-center justify-between">
-                <span className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.24em] text-slate-300">
-                  <Hash className="h-3.5 w-3.5" style={{ color: F_ACCENT }} /> Topics
+          {/* ══ RIGHT SIDEBAR ══ */}
+          <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+            
+            {/* Topic Channels Box */}
+            <div className="rounded-2xl border border-white/10 bg-[#0e0e14] p-5 shadow-xl">
+              <div className="mb-4 flex items-center justify-between border-b border-white/5 pb-3">
+                <span className="flex items-center gap-2 font-mono text-xs font-black uppercase tracking-wider text-white">
+                  <Hash className="h-4 w-4 text-purple-400" /> Topics & Channels
                 </span>
-                <span className="text-[11px] font-black tabular-nums text-slate-600">{TAGS.length + 1}</span>
+                <span className="rounded-full bg-white/5 px-2 py-0.5 font-mono text-[10px] font-black text-slate-400">
+                  {TAGS.length + 1}
+                </span>
               </div>
+
               <div className="space-y-1">
                 {[{ tag: "All", count: total }, ...topics].map((t) => {
                   const on = tag === t.tag || (t.tag === "All" && tag === "All");
-                  const tint = t.tag === "All" ? F_ACCENT : TAG_TINT[t.tag];
+                  const dotColor = t.tag === "All" ? "bg-purple-400" : TAG_STYLE[t.tag]?.dot || "bg-slate-400";
                   return (
-                    <button key={t.tag} onClick={() => setTag(t.tag)}
-                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left transition"
-                      style={{
-                        borderRadius: 9,
-                        background: on ? `${tint}22` : "transparent",
-                        boxShadow: on ? `inset 0 0 0 1px ${tint}88` : "none",
-                      }}>
-                      <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: tint }} />
-                      <span className={`flex-1 truncate text-sm font-bold ${on ? "text-white" : "text-slate-400"}`}>
-                        {t.tag === "All" ? "All Posts" : t.tag}
+                    <button
+                      key={t.tag}
+                      onClick={() => setTag(t.tag)}
+                      className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 font-mono text-xs font-bold transition ${
+                        on
+                          ? "border border-purple-500/40 bg-purple-500/15 text-white shadow-sm"
+                          : "text-slate-400 hover:bg-white/[0.04] hover:text-white"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span className={`h-2 w-2 rounded-full ${dotColor}`} />
+                        <span>{t.tag === "All" ? "All Discussions" : t.tag}</span>
+                      </div>
+                      <span className="font-mono text-[11px] font-black text-slate-500 tabular-nums">
+                        {t.count}
                       </span>
-                      <span className="shrink-0 text-xs font-black tabular-nums text-slate-600">{t.count}</span>
                     </button>
                   );
                 })}
+              </div>
+            </div>
+
+            {/* Community Rules & Guidelines */}
+            <div className="rounded-2xl border border-white/10 bg-[#0e0e14] p-5 shadow-xl">
+              <div className="flex items-center gap-2 font-mono text-xs font-black uppercase tracking-wider text-purple-300">
+                <ShieldCheck className="h-4 w-4 text-purple-400" /> Community Guidelines
+              </div>
+              <ul className="mt-3 space-y-2 font-mono text-xs text-slate-400">
+                <li className="flex items-start gap-2">
+                  <span className="text-purple-400 font-bold">•</span>
+                  <span>Be respectful to other readers and creators.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-purple-400 font-bold">•</span>
+                  <span>Tag spoilers appropriately to avoid ruining plotlines.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-purple-400 font-bold">•</span>
+                  <span>No spamming, advertising, or toxic behavior.</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Quick Links */}
+            <div className="rounded-2xl border border-white/10 bg-[#0e0e14] p-5 shadow-xl font-mono text-xs">
+              <div className="flex items-center gap-2 font-black uppercase tracking-wider text-slate-400 mb-3">
+                <Sparkles className="h-3.5 w-3.5 text-purple-400" /> Da Vinci Hub
+              </div>
+              <div className="space-y-2">
+                <Link
+                  href="/leaderboard"
+                  className="flex items-center justify-between rounded-lg p-2 text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
+                >
+                  <span>Leaderboards</span>
+                  <span className="text-slate-500">→</span>
+                </Link>
+                <Link
+                  href="/guilds"
+                  className="flex items-center justify-between rounded-lg p-2 text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
+                >
+                  <span>Guilds & Teams</span>
+                  <span className="text-slate-500">→</span>
+                </Link>
+                <Link
+                  href="/marketplace"
+                  className="flex items-center justify-between rounded-lg p-2 text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
+                >
+                  <span>Marketplace</span>
+                  <span className="text-slate-500">→</span>
+                </Link>
               </div>
             </div>
           </aside>
         </div>
       </div>
 
+      {/* ══ COMPOSER MODAL ══ */}
       <AnimatePresence>
         {composing && (
           <Composer
             onClose={() => setComposing(false)}
-            onPosted={() => { setComposing(false); load(); }}
+            onPosted={() => {
+              setComposing(false);
+              load();
+            }}
           />
         )}
       </AnimatePresence>
@@ -953,7 +933,7 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
   );
 }
 
-/** Inline reply. Kept small on purpose — a thread reply isn't a new post. */
+/** Inline Reply Box */
 function ReplyBox({ postId, onDone }: { postId: string; onDone: () => void }) {
   const { user } = useUser();
   const { toast } = useToast();
@@ -982,27 +962,27 @@ function ReplyBox({ postId, onDone }: { postId: string; onDone: () => void }) {
   };
 
   return (
-    <div className="flex items-center gap-2 pt-1">
-      {/* Enter still sends — MentionsInput only intercepts it while the
-          suggestion list is open, where it picks the highlighted name. */}
+    <div className="flex items-center gap-2 pt-2">
       <MentionsInput
         value={text}
         onChange={(v) => setText(v.slice(0, 800))}
         onSubmit={send}
         placeholder="Write a reply…"
-        className="w-full min-w-0 bg-black/45 px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600"
-        style={{ borderRadius: 8, boxShadow: "inset 0 0 0 1px rgba(255,255,255,.11)" }}
+        className="w-full min-w-0 rounded-xl border border-white/10 bg-black/60 px-4 py-2.5 font-mono text-sm text-white outline-none placeholder:text-slate-600 focus:border-purple-500"
       />
-      <button onClick={send} disabled={!text.trim() || busy} aria-label="Send reply"
-        className="grid h-9 w-9 shrink-0 place-items-center text-white transition hover:brightness-115 disabled:opacity-30"
-        style={{ borderRadius: 7, background: `linear-gradient(100deg, #7c3aed, ${F_ACCENT})` }}>
-        <Send className="h-3.5 w-3.5" />
+      <button
+        onClick={send}
+        disabled={!text.trim() || busy}
+        aria-label="Send reply"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-600 text-white transition hover:bg-purple-500 disabled:opacity-30"
+      >
+        <Send className="h-4 w-4" />
       </button>
     </div>
   );
 }
 
-/** Create New Post — text, an image, and optionally a poll. */
+/** Full Post Composer Modal */
 function Composer({ onClose, onPosted }: { onClose: () => void; onPosted: () => void }) {
   const { user } = useUser();
   const { toast } = useToast();
@@ -1013,7 +993,6 @@ function Composer({ onClose, onPosted }: { onClose: () => void; onPosted: () => 
   const [busy, setBusy] = useState(false);
   const [poll, setPoll] = useState<PollDraft | null>(null);
 
-  // A poll alone is a post — the question is the content.
   const canPost = (content.trim().length > 0 || mediaUrl.trim().length > 0 || pollIsValid(poll)) && !busy;
 
   const submit = async () => {
@@ -1044,7 +1023,7 @@ function Composer({ onClose, onPosted }: { onClose: () => void; onPosted: () => 
       });
       const d = await r.json();
       if (!r.ok || !d.success) return toast(d.message || "Couldn't post.", "error");
-      toast("Posted.", "success");
+      toast("Discussion created.", "success");
       onPosted();
     } catch {
       toast("Couldn't post.", "error");
@@ -1054,98 +1033,96 @@ function Composer({ onClose, onPosted }: { onClose: () => void; onPosted: () => 
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[130] grid place-items-center bg-black/85 p-4 backdrop-blur" onClick={onClose}>
-      <motion.div initial={{ scale: 0.95, y: 14 }} animate={{ scale: 1, y: 0 }}
-        className="flex max-h-[92dvh] w-full max-w-xl flex-col p-6"
-        style={{ borderRadius: 22, background: "linear-gradient(165deg, #16102b, #0c0818)", boxShadow: "inset 0 0 0 1px rgba(162,116,255,.35)" }}
-        onClick={(e) => e.stopPropagation()}>
-        <div className="mb-5 flex shrink-0 items-center justify-between">
-          <h2 className="text-xl font-black">Create New Post</h2>
-          <button onClick={onClose} aria-label="Close" className="text-slate-500 transition hover:text-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={onClose} />
+
+      <div className="relative w-full max-w-xl overflow-hidden rounded-3xl border border-white/10 bg-[#0e0e14] p-6 shadow-2xl">
+        <div className="flex items-center justify-between border-b border-white/10 pb-4">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-purple-400" />
+            <h3 className="font-mono text-lg font-black text-white">Create New Discussion</h3>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white transition"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-          <div className="mb-1 flex items-baseline justify-between">
-            <label className="text-sm font-black">Title <span className="font-bold text-slate-600">(optional)</span></label>
-            <span className="text-[11px] tabular-nums text-slate-600">{title.length}/30</span>
-          </div>
-          <input value={title} onChange={(e) => setTitle(e.target.value.slice(0, 30))}
-            placeholder="Enter post title…"
-            className="mb-4 w-full bg-black/50 px-3.5 py-2.5 text-sm text-white outline-none placeholder:text-slate-600"
-            style={{ borderRadius: 10, boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }} />
-
-          <div className="mb-1 flex items-baseline justify-between">
-            <label className="text-sm font-black">Content</label>
-            <span className="text-[11px] tabular-nums text-slate-600">{content.length}/1500</span>
-          </div>
-          <MentionsTextarea value={content} onChange={(e) => setContent(e.target.value.slice(0, 1500))}
-            placeholder="What's on your mind? @mention someone…" rows={6}
-            className="mb-3 w-full resize-y bg-black/50 px-3.5 py-2.5 text-sm leading-relaxed text-white outline-none placeholder:text-slate-600"
-            style={{ borderRadius: 10, boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }} />
-
-          <input value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)}
-            placeholder="Image URL (optional)"
-            className="mb-3 w-full bg-black/50 px-3.5 py-2.5 text-sm text-white outline-none placeholder:text-slate-600"
-            style={{ borderRadius: 10, boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }} />
-
-          {/* or bring your own: PC upload (Cloudinary) / KLIPY GIF search —
-              both just fill the same mediaUrl the input above edits */}
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <MediaPicker value={mediaUrl} onChange={setMediaUrl} userId={user?.id} />
-            {!poll && (
-              <button
-                type="button"
-                onClick={() => setPoll({ ...EMPTY_POLL })}
-                className="flex items-center gap-1.5 rounded-lg border border-indigo-400/40 bg-indigo-500/10 px-3 py-1.5 font-mono text-[11px] font-bold text-indigo-200 transition hover:bg-indigo-500/20"
-              >
-                <BarChart3 className="h-3.5 w-3.5" /> Add Poll
-              </button>
-            )}
-          </div>
-
-          {poll && (
-            <div className="mb-5">
-              <PollBuilder value={poll} onChange={setPoll} onRemove={() => setPoll(null)} />
-            </div>
-          )}
-
-          <label className="mb-2 block text-sm font-black">Tag</label>
-          <div className="flex flex-wrap gap-2">
-            {TAGS.map((t) => {
-              const on = tag === t;
-              const tint = TAG_TINT[t];
-              return (
-                <button key={t} onClick={() => setTag(t)}
-                  className="px-3.5 py-1.5 text-[11px] font-black uppercase tracking-[0.12em] transition"
-                  style={{
-                    borderRadius: 6,
-                    background: on ? `${tint}30` : "rgba(255,255,255,.04)",
-                    boxShadow: `inset 0 0 0 1px ${on ? tint : "rgba(255,255,255,.1)"}`,
-                    color: on ? "#fff" : "#64748b",
-                  }}>
+        <div className="mt-4 space-y-4 max-h-[75vh] overflow-y-auto pr-1">
+          {/* Topic Picker */}
+          <div>
+            <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+              Select Category
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {TAGS.map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setTag(t)}
+                  className={`rounded-xl border px-3 py-1.5 font-mono text-xs font-bold transition ${
+                    tag === t
+                      ? "border-purple-500 bg-purple-500/20 text-white shadow-sm"
+                      : "border-white/10 bg-white/5 text-slate-400 hover:text-white"
+                  }`}
+                >
                   {t}
                 </button>
-              );
-            })}
+              ))}
+            </div>
           </div>
+
+          {/* Title */}
+          <div>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value.slice(0, 100))}
+              placeholder="Discussion Title"
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 font-mono text-base font-bold text-white placeholder:text-slate-600 outline-none focus:border-purple-500"
+            />
+          </div>
+
+          {/* Content Body */}
+          <div>
+            <MentionsTextarea
+              value={content}
+              onChange={(e) => setContent(e.target.value.slice(0, 3000))}
+              placeholder="What are your thoughts? Use @ to mention users…"
+              rows={5}
+              className="w-full rounded-xl border border-white/10 bg-white/5 p-4 font-mono text-sm text-white placeholder:text-slate-600 outline-none focus:border-purple-500"
+            />
+          </div>
+
+          {/* Media Attach */}
+          <MediaPicker url={mediaUrl} onChange={setMediaUrl} />
+
+          {/* Poll Builder */}
+          <PollBuilder value={poll} onChange={setPoll} />
         </div>
 
-        <div className="mt-6 flex shrink-0 justify-end gap-2">
-          <button onClick={onClose}
-            className="px-5 py-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-slate-300 transition hover:brightness-125"
-            style={{ borderRadius: 9, background: "rgba(255,255,255,.05)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }}>
-            Cancel
-          </button>
-          <button onClick={submit} disabled={!canPost}
-            className="px-6 py-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-white transition hover:brightness-115 disabled:opacity-35"
-            style={{ clipPath: "polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%)", background: `linear-gradient(100deg, #7c3aed, ${F_ACCENT})` }}>
-            {busy ? "Posting…" : "Create Post"}
-          </button>
+        <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-4">
+          <span className="font-mono text-xs text-slate-500">
+            {content.length}/3000 chars
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={onClose}
+              className="rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 font-mono text-xs font-bold text-slate-300 hover:bg-white/10 transition"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={submit}
+              disabled={!canPost}
+              className="flex items-center gap-2 rounded-xl bg-purple-600 px-6 py-2.5 font-mono text-xs font-black uppercase tracking-wider text-white shadow-lg shadow-purple-600/30 transition hover:bg-purple-500 disabled:opacity-40"
+            >
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Publish Post"}
+            </button>
+          </div>
         </div>
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 }

@@ -192,36 +192,31 @@ export default function CommunityPage() {
             sliding element — a slider has to be measured and repositioned on
             every resize, and this control sits above a feed that is already
             doing real work. */}
+        {/* ── TAB SWITCHER ────────────────────────────────────────────── */}
         <div className="flex justify-center">
-          <div className="flex gap-1.5 p-1.5 backdrop-blur-xl"
-            style={{
-              clipPath: notch(16),
-              background: "rgba(255,255,255,.04)",
-              boxShadow: "inset 0 0 0 1px rgba(255,255,255,.10), 0 10px 30px rgba(0,0,0,.5)",
-            }}>
+          <div className="inline-flex gap-1.5 rounded-2xl border border-white/10 bg-[#0e0e14]/90 p-1.5 shadow-2xl backdrop-blur-xl">
             {([
-              { key: 'forum' as const, label: 'Forum', hint: 'Post & discuss', Icon: MessagesSquare },
-              { key: 'feed' as const, label: 'Global Comments', hint: 'Read-only', Icon: Globe },
-              { key: 'directory' as const, label: 'User Directory', hint: 'Find people', Icon: Users },
+              { key: 'forum' as const, label: 'Forum', hint: 'Discussions & Polls', Icon: MessagesSquare },
+              { key: 'feed' as const, label: 'Global Comments', hint: 'All Chapter Feeds', Icon: Globe },
+              { key: 'directory' as const, label: 'User Directory', hint: 'Find Creators & Readers', Icon: Users },
             ]).map(({ key, label, hint, Icon }) => {
               const on = activeTab === key;
               return (
                 <button
                   key={key}
                   onClick={() => setActiveTab(key)}
-                  className="group relative flex items-center gap-2.5 px-4 py-2.5 transition md:px-6"
-                  style={{
-                    clipPath: notch(12),
-                    background: on ? 'linear-gradient(100deg, #7c3aed, #a274ff)' : 'transparent',
-                    boxShadow: on ? '0 6px 22px rgba(124,58,237,.45)' : 'none',
-                  }}
+                  className={`group relative flex items-center gap-3 rounded-xl px-4 py-2.5 transition sm:px-6 ${
+                    on
+                      ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
+                      : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                  }`}
                 >
                   <Icon className={`h-4 w-4 shrink-0 transition ${on ? 'text-white' : 'text-slate-500 group-hover:text-slate-300'}`} />
-                  <span className="text-left leading-none">
-                    <span className={`block text-sm font-black transition md:text-[15px] ${on ? 'text-white' : 'text-slate-400 group-hover:text-white'}`}>
+                  <span className="text-left font-mono">
+                    <span className="block text-xs sm:text-sm font-black uppercase tracking-wider">
                       {label}
                     </span>
-                    <span className={`mt-0.5 hidden text-[9px] font-bold uppercase tracking-[0.16em] sm:block ${on ? 'text-white/70' : 'text-slate-600'}`}>
+                    <span className={`hidden text-[9px] font-bold uppercase tracking-wider sm:block ${on ? 'text-purple-200' : 'text-slate-500'}`}>
                       {hint}
                     </span>
                   </span>
