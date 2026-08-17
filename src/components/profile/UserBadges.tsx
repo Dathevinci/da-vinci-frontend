@@ -59,16 +59,11 @@ const SIZING: Record<BadgeSize, { pad: string; text: string; icon: string; gap: 
 /** The worn titles for a user, honouring the profile rack's own fallback. */
 export function wornTitles(user?: BadgeUser | null): string[] {
   if (!user) return [];
-  let worn = Array.isArray(user.equippedTitles) ? user.equippedTitles.filter(Boolean) : [];
-  // The rack falls back to the legacy single title when nothing is equipped.
-  // Matching that here is what stops a user showing a title on their profile
-  // and no title on every comment they write.
-  if (worn.length === 0 && user.cardTitle) worn = [user.cardTitle];
-  const isRiv = (user.username || "").toLowerCase() === "riv333";
-  if (isRiv && !worn.some(t => t.toLowerCase() === "bug detective")) {
-    worn = ["Bug Detective", ...worn].slice(0, 3);
+  if (Array.isArray(user.equippedTitles)) {
+    return user.equippedTitles.filter(Boolean);
   }
-  return worn;
+  if (user.cardTitle) return [user.cardTitle];
+  return [];
 }
 
 /**

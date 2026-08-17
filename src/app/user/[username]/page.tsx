@@ -64,7 +64,7 @@ export default function PublicProfilePage() {
   /** Worn titles, owned by TitleRack. `null` until it has answered — the hero
    *  falls back to the profile payload in the meantime rather than flashing
    *  an empty strip on every load. */
-  const [wornTitles, setWornTitles] = useState<string[] | null>(null);
+  const [activeWornTitles, setActiveWornTitles] = useState<string[] | null>(null);
   /** Bumped when settings equips titles, so the rack below refetches too. */
   const [titleVersion, setTitleVersion] = useState(0);
   const [watchlist, setWatchlist] = useState<any[]>([]);
@@ -572,7 +572,7 @@ export default function PublicProfilePage() {
                   rack has not answered yet — falling back to profileUser then
                   avoids a flash of no titles on load. */}
               <TitleChips
-                user={wornTitles ? { ...profileUser, equippedTitles: wornTitles } : profileUser}
+                user={activeWornTitles !== null ? { ...profileUser, equippedTitles: activeWornTitles } : profileUser}
                 size="md"
                 max={3}
               />
@@ -689,7 +689,7 @@ export default function PublicProfilePage() {
           {/* onChange keeps the hero strip and this rack in agreement. The
               rack is the one that actually knows — it fetches the titles
               endpoint — so it feeds the page rather than the other way round. */}
-          <TitleRack userId={profileUser.id} isMine={isSelf} onChange={setWornTitles} version={titleVersion} />
+          <TitleRack userId={profileUser.id} isMine={isSelf} onChange={setActiveWornTitles} version={titleVersion} />
           <ShowcaseCards
             userId={profileUser.id}
             isMine={isSelf}
@@ -1210,7 +1210,7 @@ export default function PublicProfilePage() {
             // Titles equipped from settings: update the hero strip immediately
             // and nudge the rack below to refetch, so all three views agree.
             if (Array.isArray(data.equippedTitles)) {
-              setWornTitles(data.equippedTitles);
+              setActiveWornTitles(data.equippedTitles);
               setTitleVersion(v => v + 1);
             }
             setProfileUser(prev => (prev ? { ...prev, ...data } : prev));

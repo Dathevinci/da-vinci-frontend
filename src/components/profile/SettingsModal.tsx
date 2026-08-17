@@ -67,7 +67,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
   const [equipping, setEquipping] = useState(false);
 
   const wornTitles: string[] = (user as any)?.equippedTitles || [];
-  const currentTitle = wornTitles[0] || (user as any)?.cardTitle || "None";
+  const currentTitle = wornTitles.length > 0 ? wornTitles[0] : ((user as any)?.cardTitle || "None");
   const MAX_WORN_TITLES = 3;
   const [showTitlePicker, setShowTitlePicker] = useState(false);
   const [titlesOwned, setTitlesOwned] = useState<{ set: string; title: string }[]>([]);
@@ -105,9 +105,6 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
               if (!ownedList.some((o: any) => o.title.toLowerCase() === "bug detective")) {
                 ownedList = [{ set: "Special", title: "Bug Detective" }, ...ownedList];
               }
-              if (equippedList.length === 0 || !equippedList.some((t: string) => t.toLowerCase() === "bug detective")) {
-                equippedList = ["Bug Detective", ...equippedList].slice(0, MAX_WORN_TITLES);
-              }
             }
             const isLead = isLeadDev(user);
             if (isLead) {
@@ -125,10 +122,8 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
           const isLead = isLeadDev(user);
           if (isRiv) {
             setTitlesOwned([{ set: "Special", title: "Bug Detective" }]);
-            setTitlesSel(["Bug Detective"]);
           } else if (isLead) {
             setTitlesOwned([{ set: "Staff Exclusive", title: "Lucifer,the fallen angel" }]);
-            setTitlesSel(["Lucifer,the fallen angel"]);
           }
           setTitlesLoaded(true);
         });
@@ -137,6 +132,31 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
 
   const toggleTitle = (t: string) =>
     setTitlesSel(p => (p.includes(t) ? p.filter(x => x !== t) : p.length < MAX_WORN_TITLES ? [...p, t] : p));
+
+  const removeTitle = async () => {
+    setSavingTitles(true);
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      const r = await fetch(`${API_URL}/api/cards/titles`, {
+        method: "PUT",
+        headers: authHeaders(),
+        body: JSON.stringify({ userId: user?.id, titles: [] }),
+      });
+      const d = await r.json();
+      if (d?.success) {
+        setTitlesSel([]);
+        onUpdate?.({ equippedTitles: [], cardTitle: null });
+        toast("Title removed.", "success");
+        setShowTitlePicker(false);
+      } else {
+        toast(d?.message || "Couldn't remove title.", "error");
+      }
+    } catch {
+      toast("Couldn't remove title.", "error");
+    } finally {
+      setSavingTitles(false);
+    }
+  };
 
   const saveTitles = async () => {
     setSavingTitles(true);
@@ -149,8 +169,8 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
       });
       const d = await r.json();
       if (d?.success) {
-        onUpdate?.({ equippedTitles: d.data.equipped || [] });
-        toast("Titles updated.", "success");
+        onUpdate?.({ equippedTitles: d.data.equipped || [], cardTitle: (d.data.equipped || [])[0] || null });
+        toast(titlesSel.length > 0 ? "Titles updated." : "Title removed.", "success");
         setShowTitlePicker(false);
       } else {
         toast(d?.message || "Couldn't save titles.", "error");
@@ -853,12 +873,23 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
                           <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Title</label>
-                          <button
-                            onClick={toggleTitlePicker}
-                            className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-bold text-slate-200 transition hover:bg-white/10"
-                          >
-                            {showTitlePicker ? "Close" : "Change Title"}
-                          </button>
+                          <div className="flex items-center gap-2">
+                            {currentTitle !== "None" && (
+                              <button
+                                onClick={removeTitle}
+                                disabled={savingTitles}
+                                className="rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-[11px] font-bold text-red-300 transition hover:bg-red-500/20 disabled:opacity-40"
+                              >
+                                Remove
+                              </button>
+                            )}
+                            <button
+                              onClick={toggleTitlePicker}
+                              className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-bold text-slate-200 transition hover:bg-white/10"
+                            >
+                              {showTitlePicker ? "Close" : "Change Title"}
+                            </button>
+                          </div>
                         </div>
                         <div className="rounded-xl border border-white/10 bg-black/30 p-3">
                           <p className="text-[11px] text-slate-500">Current Title:</p>
@@ -892,9 +923,20 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                               <p className="text-[11px] text-slate-500">Nothing earned yet — complete a card set to earn its title.</p>
                             ) : (
                               <>
-                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
-                                  Tap up to {MAX_WORN_TITLES} — tap order is wear order
-                                </p>
+                                <div className="flex items-center justify-between">
+                                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                                    Tap up to {MAX_WORN_TITLES} — tap order is wear order
+                                  </p>
+                                  {titlesSel.length > 0 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setTitlesSel([])}
+                                      className="text-[10px] font-bold text-red-400 hover:text-red-300 transition"
+                                    >
+                                      Clear
+                                    </button>
+                                  )}
+                                </div>
                                 <div className="flex flex-wrap gap-2">
                                   {titlesOwned.map(({ set, title }) => {
                                     const at = titlesSel.indexOf(title);

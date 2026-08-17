@@ -13,26 +13,13 @@ const MAX_WORN = 3;
 /**
  * TITLE RACK — the set-completion titles a profile WEARS, stacked up to
  * three in the wearer's own order.
- *
- * Self-contained on the ShowcaseCards pattern: it fetches its own data,
- * renders nothing at all when there is nothing to show, and the profile
- * page's edit stays a single line. The server re-derives ownership from
- * claimedSets on every save, so this picker is a convenience, not the check.
  */
 export default function TitleRack({ userId, isMine, onChange, version }: {
   userId: string;
   isMine: boolean;
   /** Bump to make the rack refetch — settings can now equip titles too. */
   version?: number;
-  /**
-   * Fires whenever the worn set changes — on load and after a save.
-   *
-   * The rack owns this data (it fetches /api/cards/titles itself), but the
-   * profile HERO now renders the same titles from its own `profileUser`
-   * object. Without this the two disagree the moment you change anything:
-   * the rack updates, the strip beside your name keeps showing the old
-   * titles, and only a reload settles it.
-   */
+  /** Fires whenever the worn set changes — on load and after a save. */
   onChange?: (worn: string[]) => void;
 }) {
   const [owned, setOwned] = useState<{ set: string; title: string }[]>([]);
@@ -53,9 +40,6 @@ export default function TitleRack({ userId, isMine, onChange, version }: {
           if (!ownedList.some((o: any) => o.title.toLowerCase() === "bug detective")) {
             ownedList = [{ set: "Special", title: "Bug Detective" }, ...ownedList];
           }
-          if (!equippedList.some((t: string) => t.toLowerCase() === "bug detective")) {
-            equippedList = ["Bug Detective", ...equippedList].slice(0, MAX_WORN);
-          }
         }
         if (d.data?.username?.toLowerCase() === "dejavuh" || (typeof window !== "undefined" && window.location.pathname.toLowerCase().includes("dejavuh"))) {
           if (!ownedList.some((o: any) => o.title.toLowerCase().includes("lucifer"))) {
@@ -66,7 +50,7 @@ export default function TitleRack({ userId, isMine, onChange, version }: {
         setWorn(equippedList);
         onChange?.(equippedList);
       })
-      .catch(() => { /* offline — the section simply isn't there */ });
+      .catch(() => { /* offline */ });
   }, [userId, version]);
 
   // A visitor sees the stack or nothing; the owner also sees the rack when
@@ -190,9 +174,20 @@ export default function TitleRack({ userId, isMine, onChange, version }: {
           {editing && (
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
               className="overflow-hidden">
-              <p className="mb-2 mt-5 text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">
-                Your titles — tap up to {MAX_WORN}, in the order you want them worn
-              </p>
+              <div className="mb-2 mt-5 flex items-center justify-between">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">
+                  Your titles — tap up to {MAX_WORN}, in the order you want them worn
+                </p>
+                {sel.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setSel([])}
+                    className="text-[10px] font-bold text-red-400 hover:text-red-300 transition"
+                  >
+                    Clear All
+                  </button>
+                )}
+              </div>
               <div className="flex flex-wrap gap-2">
                 {owned.map(({ set, title }) => {
                   const at = sel.indexOf(title);
@@ -229,20 +224,29 @@ export default function TitleRack({ userId, isMine, onChange, version }: {
                   );
                 })}
               </div>
-              <div className="mt-4 flex justify-end gap-2">
+              <div className="mt-4 flex items-center justify-between gap-2">
                 <button
-                  onClick={() => setEditing(false)}
-                  className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-slate-300 hover:bg-white/10"
+                  type="button"
+                  onClick={() => setSel([])}
+                  className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-xs font-bold text-red-300 hover:bg-red-500/20 transition"
                 >
-                  Cancel
+                  Remove All
                 </button>
-                <button
-                  onClick={save}
-                  disabled={saving}
-                  className="rounded-lg bg-violet-600 px-4 py-1.5 text-xs font-bold text-white shadow-lg shadow-violet-600/30 hover:bg-violet-500 disabled:opacity-50"
-                >
-                  {saving ? "Saving…" : "Save Stack"}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setEditing(false)}
+                    className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-slate-300 hover:bg-white/10"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={save}
+                    disabled={saving}
+                    className="rounded-lg bg-violet-600 px-4 py-1.5 text-xs font-bold text-white shadow-lg shadow-violet-600/30 hover:bg-violet-500 disabled:opacity-50"
+                  >
+                    {saving ? "Saving…" : "Save Stack"}
+                  </button>
+                </div>
               </div>
             </motion.div>
           )}
