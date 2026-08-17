@@ -47,15 +47,15 @@ function UserCard({
       {/* Profile Info Header */}
       <div className="relative -mt-8 flex items-end justify-between px-5">
         <div className="relative h-16 w-16 shrink-0">
-          <UserLink username={user.username}>
+          <UserLink username={user.username} className="relative z-10 block h-16 w-16">
             {user.avatar ? (
               <img
                 src={cloudinaryFit(user.avatar, 140)}
                 alt=""
-                className="h-16 w-16 rounded-full object-cover ring-4 ring-[#0b0b11] shadow-lg"
+                className="relative z-10 h-16 w-16 rounded-full object-cover ring-4 ring-[#0b0b11] shadow-lg"
               />
             ) : (
-              <span className="grid h-16 w-16 place-items-center rounded-full bg-violet-700 font-mono text-xl font-black text-white ring-4 ring-[#0b0b11] shadow-lg">
+              <span className="relative z-10 grid h-16 w-16 place-items-center rounded-full bg-violet-700 font-mono text-xl font-black text-white ring-4 ring-[#0b0b11] shadow-lg">
                 {(user.username || "U")[0]?.toUpperCase()}
               </span>
             )}
