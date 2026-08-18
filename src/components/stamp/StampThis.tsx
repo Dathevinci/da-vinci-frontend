@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Stamp, X, Check, Trash2, BookOpen, LogIn } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
@@ -73,6 +74,10 @@ export default function StampThis({ mediaType, mediaId, title, cover, className 
    * read during render without the two paints disagreeing.
    */
   const [needsSignIn, setNeedsSignIn] = useState(false);
+  /** Portals need a DOM. False through SSR and the first client render, so
+   *  server and client agree on what they emitted. */
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     setNeedsSignIn(!!userId && !hasStampSession());
@@ -192,7 +197,23 @@ export default function StampThis({ mediaType, mediaId, title, cover, className 
         {mine ? "Stamped" : "Stamp this"}
       </button>
 
-      {open && (
+      {/**
+        * PORTALLED TO document.body, AND THAT IS THE WHOLE FIX FOR MOBILE.
+        *
+        * A position:fixed element inside an ancestor carrying a CSS transform
+        * is positioned against THAT ANCESTOR, not the viewport — and the
+        * detail pages animate their content with framer-motion (y: 18 -> 0),
+        * so this sheet was a fixed overlay living inside a transformed box.
+        * The panel still LOOKED right, which is why this read as "the button
+        * does nothing": the visual and the hit area no longer agreed, so taps
+        * landed somewhere the button was not. Desktops mostly got away with
+        * it; a phone's viewport (and its collapsing browser chrome, which
+        * keeps changing the containing block) did not.
+        *
+        * Escaping to document.body puts the sheet back in the viewport's own
+        * coordinate space, the same escape MediaPicker already uses.
+        */}
+      {open && mounted && createPortal(
         <div className="fixed inset-0 z-[120] flex items-end justify-center font-mono sm:items-center">
           <div className="absolute inset-0 bg-black/70" onClick={() => setOpen(false)} />
 
@@ -378,7 +399,14 @@ export default function StampThis({ mediaType, mediaId, title, cover, className 
             </div>
 
             {/* ── footer ── */}
-            <div className="flex items-center justify-between gap-2 border-t border-white/10 px-4 py-3">
+            {/* pb + safe-area: the action row sat flush in the iPhone
+                home-indicator strip, where the SYSTEM takes the touch before
+                the page ever sees it. (The repo's own pb-safe class is not
+                defined anywhere, so this states the inset directly.) */}
+            <div
+              className="flex items-center justify-between gap-2 border-t border-white/10 px-4 py-3"
+              style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px))" }}
+            >
               <Link
                 href="/stamps"
                 className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500 transition hover:text-violet-300"
@@ -422,7 +450,8 @@ export default function StampThis({ mediaType, mediaId, title, cover, className 
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );
