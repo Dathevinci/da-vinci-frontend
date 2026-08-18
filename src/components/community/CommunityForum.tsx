@@ -496,81 +496,79 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
               </div>
             </div>
 
-            {/* ── UNIFIED FILTER & SORT TOOLBAR (Activity History Segmented Pills) ── */}
-            <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-[#0b0b11] p-3 shadow-lg">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                
-                {/* Horizontal topic categories */}
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {["All", ...TAGS].map((t) => {
-                    const on = tag === t;
-                    return (
-                      <button
-                        key={t}
-                        onClick={() => setTag(t)}
-                        className={`flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-bold tracking-wide transition ${
-                          on
-                            ? "border-violet-400/40 bg-violet-500/15 text-violet-200"
-                            : "border-transparent text-white/45 hover:bg-white/[0.06] hover:text-white/80"
-                        }`}
-                      >
-                        {t !== "All" && (
-                          <span className={`h-1.5 w-1.5 rounded-full ${TAG_STYLE[t]?.dot || "bg-slate-400"}`} />
-                        )}
-                        <span>{t === "All" ? "All Posts" : t}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+            {/* ── UNIFIED FILTER & SORT TOOLBAR ── */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[#0b0b11]/90 p-3 sm:p-3.5 shadow-xl backdrop-blur-xl">
+              
+              {/* Horizontal swipeable topic categories */}
+              <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-0.5 max-w-full">
+                {["All", ...TAGS].map((t) => {
+                  const on = tag === t;
+                  return (
+                    <button
+                      key={t}
+                      onClick={() => setTag(t)}
+                      className={`shrink-0 flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-bold tracking-wide transition-all touch-manipulation min-h-[34px] ${
+                        on
+                          ? "border-violet-400/50 bg-violet-500/20 text-violet-200 shadow-sm"
+                          : "border-white/10 bg-white/[0.02] text-slate-400 hover:bg-white/[0.06] hover:text-white"
+                      }`}
+                    >
+                      {t !== "All" && (
+                        <span className={`h-1.5 w-1.5 rounded-full ${TAG_STYLE[t]?.dot || "bg-slate-400"}`} />
+                      )}
+                      <span>{t === "All" ? "All Posts" : t}</span>
+                    </button>
+                  );
+                })}
+              </div>
 
-                {/* Sort segmented toggle */}
-                <div className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] p-1">
-                  <button
-                    onClick={() => setSort("newest")}
-                    className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition ${
-                      sort === "newest"
-                        ? "bg-violet-500/20 text-violet-200 border border-violet-400/30"
-                        : "text-white/40 hover:text-white"
-                    }`}
-                  >
-                    <Clock className="h-3 w-3" /> Recent
-                  </button>
-                  <button
-                    onClick={() => setSort("top")}
-                    className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition ${
-                      sort === "top"
-                        ? "bg-violet-500/20 text-violet-200 border border-violet-400/30"
-                        : "text-white/40 hover:text-white"
-                    }`}
-                  >
-                    <Flame className="h-3 w-3" /> Top
-                  </button>
-                </div>
+              {/* Sort segmented toggle */}
+              <div className="inline-flex items-center justify-center gap-1 rounded-full border border-white/10 bg-black/40 p-1 shrink-0 self-end sm:self-auto">
+                <button
+                  onClick={() => setSort("newest")}
+                  className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition-all ${
+                    sort === "newest"
+                      ? "bg-violet-500/20 text-violet-200 border border-violet-400/40 shadow-sm"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  <Clock className="h-3 w-3" /> Recent
+                </button>
+                <button
+                  onClick={() => setSort("top")}
+                  className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition-all ${
+                    sort === "top"
+                      ? "bg-violet-500/20 text-violet-200 border border-violet-400/40 shadow-sm"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  <Flame className="h-3 w-3" /> Top
+                </button>
               </div>
             </div>
 
             {/* ── FEED POSTS LIST ── */}
             {loading ? (
-              <div className="flex flex-col items-center justify-center py-20 text-white/40">
+              <div className="flex flex-col items-center justify-center py-20 text-slate-400">
                 <Loader2 className="h-8 w-8 animate-spin text-violet-400" />
-                <p className="mt-3 text-xs font-bold text-white/50">Loading discussions…</p>
+                <p className="mt-3 text-xs font-bold text-slate-400">Loading discussions…</p>
               </div>
             ) : ranked.length === 0 ? (
-              <div className="flex flex-col items-center justify-center rounded-2xl border border-white/10 bg-[#0b0b11] py-20 text-center">
+              <div className="flex flex-col items-center justify-center rounded-3xl border border-white/10 bg-[#0b0b11] py-20 text-center shadow-xl">
                 <MessageSquare className="h-10 w-10 text-white/20" />
                 <p className="mt-4 font-fell text-xl font-bold uppercase text-white/80">
                   {tag === "All" ? "No discussions yet" : `No posts in ${tag} yet`}
                 </p>
-                <p className="mt-1 text-xs text-white/40">Be the first to start a conversation!</p>
+                <p className="mt-1 text-xs text-slate-400">Be the first to start a conversation!</p>
                 <button
                   onClick={() => (user ? setComposing(true) : toast("Sign in to post.", "error"))}
-                  className="mt-5 rounded-full border border-violet-400/40 bg-violet-500/20 px-5 py-2 text-xs font-bold text-violet-200 transition hover:bg-violet-500/30"
+                  className="mt-5 rounded-full border border-violet-400/40 bg-gradient-to-r from-violet-600 to-purple-700 px-6 py-2.5 text-xs font-bold text-white shadow-lg transition hover:scale-105"
                 >
                   Create Post
                 </button>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-4 sm:space-y-5">
                 {ranked.map((p) => {
                   const up = p.upvotes || 0;
                   const down = p.downvotes || 0;
@@ -582,81 +580,51 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                       key={p.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="flex flex-col sm:flex-row gap-4 rounded-2xl border border-white/10 bg-[#0b0b11] p-5 shadow-xl transition hover:border-white/20"
+                      className="flex flex-col rounded-3xl border border-white/10 bg-[#0b0b11]/90 p-5 sm:p-6 shadow-xl transition-all duration-200 hover:border-violet-500/30 hover:bg-[#0e0e16] backdrop-blur-xl"
                     >
-                      {/* Left Vote Column */}
-                      <div className="flex sm:flex-col items-center justify-between sm:justify-start gap-1 rounded-xl border border-white/5 bg-white/[0.02] p-1.5 sm:w-12 sm:shrink-0">
-                        <button
-                          onClick={() => vote(p, 1)}
-                          aria-label="Upvote"
-                          className={`flex h-8 w-8 items-center justify-center rounded-lg transition ${
-                            p.userVote === 1
-                              ? "bg-violet-500/25 text-violet-300"
-                              : "text-white/40 hover:bg-white/10 hover:text-white"
-                          }`}
-                        >
-                          <Heart className="h-4 w-4" fill={p.userVote === 1 ? "currentColor" : "none"} />
-                        </button>
-
-                        <span className={`text-xs font-bold tabular-nums ${
-                          (p.score || 0) > 0 ? "text-violet-300" : (p.score || 0) < 0 ? "text-rose-400" : "text-white/50"
-                        }`}>
-                          {p.score ?? 0}
-                        </span>
-
-                        <button
-                          onClick={() => vote(p, -1)}
-                          aria-label="Dislike"
-                          className={`flex h-8 w-8 items-center justify-center rounded-lg transition ${
-                            p.userVote === -1
-                              ? "bg-rose-500/25 text-rose-300"
-                              : "text-white/40 hover:bg-white/10 hover:text-white"
-                          }`}
-                        >
-                          <ThumbsDown className="h-4 w-4" fill={p.userVote === -1 ? "currentColor" : "none"} />
-                        </button>
-                      </div>
-
-                      {/* Main Post Content */}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
+                      {/* Post Header */}
+                      <div className="flex items-center justify-between gap-3 border-b border-white/5 pb-3">
+                        <div className="flex items-center gap-3 min-w-0">
                           <AuthorLine user={p.user} blessed={p.blessed} />
-
-                          <div className="flex items-center gap-2">
-                            {p.isPinned && (
-                              <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-400/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-300">
-                                <Pin className="h-2.5 w-2.5" /> Pinned
-                              </span>
-                            )}
-                            {p.tag && <TagChip tag={p.tag} size="xs" />}
-                            <span className="text-[11px] text-white/40">{ago(p.createdAt)}</span>
-                            {canManage(p) && (
-                              <PostMenu
-                                isOwn={p.user?.id === user?.id}
-                                isPinned={p.isPinned}
-                                canPin={canPin}
-                                onEdit={() => startEdit(p)}
-                                onDelete={() => removePost(p)}
-                                onPin={() => togglePin(p)}
-                              />
-                            )}
-                          </div>
                         </div>
 
+                        <div className="flex items-center gap-2 shrink-0">
+                          {p.isPinned && (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-400/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-300">
+                              <Pin className="h-2.5 w-2.5" /> Pinned
+                            </span>
+                          )}
+                          {p.tag && <TagChip tag={p.tag} size="xs" />}
+                          <span className="text-[11px] text-slate-400 font-mono">{ago(p.createdAt)}</span>
+                          {canManage(p) && (
+                            <PostMenu
+                              isOwn={p.user?.id === user?.id}
+                              isPinned={p.isPinned}
+                              canPin={canPin}
+                              onEdit={() => startEdit(p)}
+                              onDelete={() => removePost(p)}
+                              onPin={() => togglePin(p)}
+                            />
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Post Content */}
+                      <div className="pt-3">
                         {/* In-place Editing Form */}
                         {editing === p.id ? (
-                          <div className="mt-4 space-y-3 rounded-xl border border-white/10 bg-black/50 p-4">
+                          <div className="space-y-3 rounded-2xl border border-white/10 bg-black/50 p-4">
                             <input
                               value={draftTitle}
                               onChange={(e) => setDraftTitle(e.target.value.slice(0, 80))}
                               placeholder="Title (optional)"
-                              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-bold text-white outline-none focus:border-violet-500"
+                              className="w-full rounded-xl border border-white/10 bg-white/5 px-3.5 py-2 text-sm font-bold text-white outline-none focus:border-violet-500"
                             />
                             <MentionsTextarea
                               value={draftBody}
                               onChange={(e) => setDraftBody(e.target.value.slice(0, 2000))}
                               rows={4}
-                              className="w-full resize-y rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-white outline-none focus:border-violet-500 font-sans"
+                              className="w-full resize-y rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white outline-none focus:border-violet-500 font-sans"
                             />
                             <div className="flex flex-wrap gap-1.5">
                               {TAGS.map((t) => (
@@ -666,7 +634,7 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                                   className={`rounded-full border px-3 py-1 text-[10px] font-bold uppercase transition ${
                                     draftTag === t
                                       ? "border-violet-400/50 bg-violet-500/20 text-violet-200"
-                                      : "border-white/10 bg-white/5 text-white/50 hover:text-white"
+                                      : "border-white/10 bg-white/5 text-slate-400 hover:text-white"
                                   }`}
                                 >
                                   {t}
@@ -676,14 +644,14 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                             <div className="flex justify-end gap-2 pt-2">
                               <button
                                 onClick={() => setEditing(null)}
-                                className="rounded-lg border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-bold text-white/70 transition hover:bg-white/10"
+                                className="rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-bold text-slate-300 transition hover:bg-white/10"
                               >
                                 Cancel
                               </button>
                               <button
                                 onClick={() => saveEdit(p)}
                                 disabled={!draftBody.trim() || savingEdit}
-                                className="rounded-lg bg-violet-600 px-5 py-1.5 text-xs font-bold uppercase text-white transition hover:bg-violet-500 disabled:opacity-40"
+                                className="rounded-full bg-violet-600 px-5 py-1.5 text-xs font-bold uppercase text-white transition hover:bg-violet-500 disabled:opacity-40 shadow-md"
                               >
                                 {savingEdit ? "Saving…" : "Save Changes"}
                               </button>
@@ -694,7 +662,7 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                             {p.title && (
                               <Link
                                 href={`/community/post/${p.id}`}
-                                className="mt-3 block font-fell text-xl sm:text-2xl font-bold uppercase tracking-[0.04em] text-white hover:text-violet-300 transition-colors"
+                                className="block font-fell text-xl sm:text-2xl font-bold uppercase tracking-[0.04em] text-white hover:text-violet-300 transition-colors"
                               >
                                 {p.title}
                               </Link>
@@ -709,19 +677,19 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
 
                         {/* Media Attachment */}
                         {p.mediaUrl && (
-                          <div className="mt-3 overflow-hidden rounded-xl border border-white/10 bg-black/40">
+                          <div className="mt-3.5 overflow-hidden rounded-2xl border border-white/10 bg-black/40 shadow-lg">
                             <img
                               src={p.mediaUrl}
                               alt=""
                               loading="lazy"
-                              className="max-h-[440px] w-full object-contain"
+                              className="max-h-[460px] w-full object-contain"
                             />
                           </div>
                         )}
 
                         {/* Poll Widget */}
                         {p.poll && (
-                          <div className="mt-3">
+                          <div className="mt-3.5">
                             <PollCard
                               poll={p.poll}
                               onUpdate={(next) =>
@@ -732,78 +700,142 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                             />
                           </div>
                         )}
+                      </div>
 
-                        {/* Footer Interactions */}
-                        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/5 pt-3">
-                          <div className="flex items-center gap-4">
+                      {/* Footer Actions Dock */}
+                      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/5 pt-3 font-mono">
+                        <div className="flex items-center gap-3">
+                          {/* Vote Group */}
+                          <div className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] p-1">
                             <button
-                              onClick={() => {
-                                const next = openThread === p.id ? null : p.id;
-                                setOpenThread(next);
-                                if (next && !replies[p.id]) loadReplies(p.id);
-                              }}
-                              className="flex items-center gap-1.5 text-xs font-bold text-white/50 hover:text-violet-300 transition-colors"
+                              onClick={() => vote(p, 1)}
+                              aria-label="Upvote"
+                              className={`flex h-7 w-7 items-center justify-center rounded-full transition ${
+                                p.userVote === 1
+                                  ? "bg-violet-500/30 text-violet-200"
+                                  : "text-slate-400 hover:bg-white/10 hover:text-white"
+                              }`}
                             >
-                              <MessageSquare className="h-3.5 w-3.5" />
-                              <span>
-                                {(replies[p.id]?.length || 0) === 0
-                                  ? "Reply"
-                                  : `${replies[p.id].length} replies`}
-                              </span>
+                              <Heart className="h-3.5 w-3.5" fill={p.userVote === 1 ? "currentColor" : "none"} />
                             </button>
 
-                            <Link
-                              href={`/community/post/${p.id}`}
-                              className="text-xs font-bold text-white/35 hover:text-white/70 transition-colors"
+                            <span
+                              className={`px-1.5 text-xs font-bold tabular-nums ${
+                                (p.score || 0) > 0 ? "text-violet-300" : (p.score || 0) < 0 ? "text-rose-400" : "text-slate-400"
+                              }`}
                             >
-                              Open Thread
-                            </Link>
+                              {p.score ?? 0}
+                            </span>
+
+                            <button
+                              onClick={() => vote(p, -1)}
+                              aria-label="Dislike"
+                              className={`flex h-7 w-7 items-center justify-center rounded-full transition ${
+                                p.userVote === -1
+                                  ? "bg-rose-500/30 text-rose-200"
+                                  : "text-slate-400 hover:bg-white/10 hover:text-white"
+                              }`}
+                            >
+                              <ThumbsDown className="h-3.5 w-3.5" fill={p.userVote === -1 ? "currentColor" : "none"} />
+                            </button>
                           </div>
 
+                          {/* Reply Button */}
+                          <button
+                            onClick={() => {
+                              const next = openThread === p.id ? null : p.id;
+                              setOpenThread(next);
+                              if (next && !replies[p.id]) loadReplies(p.id);
+                            }}
+                            className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-xs font-bold text-slate-300 hover:border-violet-400/40 hover:bg-violet-500/10 hover:text-white transition-all shadow-sm"
+                          >
+                            <MessageSquare className="h-3.5 w-3.5 text-violet-300" />
+                            <span>
+                              {(replies[p.id]?.length || 0) === 0 ? "Reply" : `${replies[p.id].length} replies`}
+                            </span>
+                          </button>
+                        </div>
+
+                        <div className="flex items-center gap-3">
                           {totalVotes > 0 && (
-                            <span className="text-[11px] text-white/35">
+                            <span className="hidden sm:inline text-[11px] text-slate-500">
                               {totalVotes} vote{totalVotes === 1 ? "" : "s"} • {positivePercent}% positive
                             </span>
                           )}
-                        </div>
 
-                        {/* Inline Thread Replies */}
-                        <AnimatePresence>
-                          {openThread === p.id && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: "auto" }}
-                              exit={{ opacity: 0, height: 0 }}
-                              className="mt-4 space-y-3 border-l-2 border-violet-500/30 pl-4"
-                            >
-                              {(replies[p.id] || []).map((r) => (
-                                <div key={r.id} className="flex items-start gap-2.5 rounded-xl border border-white/5 bg-black/30 p-3">
-                                  <CornerDownRight className="mt-1 h-3.5 w-3.5 shrink-0 text-violet-400" />
-                                  <div className="min-w-0 flex-1">
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <AuthorLine user={r.user} blessed={r.blessed} />
-                                      <span className="text-[10px] text-white/40">{ago(r.createdAt)}</span>
-                                      {canManage(r) && (
-                                        <PostMenu
-                                          isOwn={r.user?.id === user?.id}
-                                          canPin={false}
-                                          onEdit={() => startEdit(r)}
-                                          onDelete={() => removePost(r)}
-                                          onPin={() => {}}
-                                        />
-                                      )}
-                                    </div>
-                                    <p className="mt-1.5 whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-slate-300">
-                                      <MentionText text={r.content} />
-                                    </p>
-                                  </div>
-                                </div>
-                              ))}
-                              <ReplyBox postId={p.id} onDone={() => loadReplies(p.id)} />
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
+                          <Link
+                            href={`/community/post/${p.id}`}
+                            className="flex items-center gap-1 text-xs font-bold text-violet-300 hover:text-violet-200 transition-colors"
+                          >
+                            <span>Open Thread</span>
+                            <span aria-hidden="true">&rarr;</span>
+                          </Link>
+                        </div>
                       </div>
+
+                      {/* Inline Thread Replies */}
+                      <AnimatePresence>
+                        {openThread === p.id && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="mt-4 space-y-3 border-l-2 border-violet-500/40 pl-3 sm:pl-4"
+                          >
+                            {(replies[p.id] || []).map((r) => (
+                              <div
+                                key={r.id}
+                                className="flex items-start gap-3 rounded-2xl border border-white/10 bg-black/40 p-3.5 shadow-sm"
+                              >
+                                <CornerDownRight className="mt-1 h-4 w-4 shrink-0 text-violet-400" />
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <AuthorLine user={r.user} blessed={r.blessed} />
+                                    <span className="text-[10px] text-slate-500 font-mono">{ago(r.createdAt)}</span>
+                                    {canManage(r) && (
+                                      <PostMenu
+                                        isOwn={r.user?.id === user?.id}
+                                        canPin={false}
+                                        onEdit={() => startEdit(r)}
+                                        onDelete={() => removePost(r)}
+                                        onPin={() => {}}
+                                      />
+                                    )}
+                                  </div>
+                                  <p className="mt-2 whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-slate-200">
+                                    <MentionText text={r.content} />
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+
+                            {/* Reply Box */}
+                            {user && (
+                              <div className="flex items-center gap-2 pt-2">
+                                <MentionsInput
+                                  value={replyText[p.id] || ""}
+                                  onChange={(val) => setReplyText((prev) => ({ ...prev, [p.id]: val }))}
+                                  placeholder="Write a reply..."
+                                  className="w-full rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs text-white placeholder:text-slate-500 outline-none focus:border-violet-500 transition"
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" && !e.shiftKey) {
+                                      e.preventDefault();
+                                      submitReply(p.id);
+                                    }
+                                  }}
+                                />
+                                <button
+                                  onClick={() => submitReply(p.id)}
+                                  disabled={!replyText[p.id]?.trim()}
+                                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-600 text-white transition hover:bg-violet-500 disabled:opacity-40 shadow-md"
+                                >
+                                  <Send className="h-4 w-4" />
+                                </button>
+                              </div>
+                            )}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </motion.article>
                   );
                 })}

@@ -154,40 +154,38 @@ export default function PostPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#070709] px-4 pb-32 pt-8 sm:px-6">
+    <div className="min-h-screen bg-[#070709] px-3 sm:px-6 md:px-12 pb-36 pt-20 sm:pt-24 text-white">
       <div className="mx-auto max-w-5xl">
         <button
           onClick={() => router.back()}
-          className="mb-5 inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 font-mono text-xs font-bold text-slate-300 transition hover:bg-white/10 hover:text-white"
+          className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 font-mono text-xs font-bold text-slate-300 transition hover:bg-white/10 hover:text-white"
         >
-          <ArrowLeft className="h-3.5 w-3.5" /> Back
+          <ArrowLeft className="h-3.5 w-3.5" /> Back to Discussions
         </button>
 
-        <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
+        <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
           {/* ── THE POST ── */}
           <motion.article
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-            className="min-w-0 rounded-2xl border border-white/10 bg-[#0b0b11] p-5 sm:p-6"
+            className="min-w-0 rounded-3xl border border-white/10 bg-[#0b0b11]/90 p-5 sm:p-7 shadow-xl backdrop-blur-xl"
           >
-            <div className="flex items-start gap-3">
-              <span className="relative h-11 w-11 shrink-0">
+            <div className="flex items-start gap-3.5">
+              <span className="relative h-12 w-12 shrink-0">
                 {post.user?.avatar ? (
-                  <img src={post.user.avatar} alt="" className="relative z-10 h-11 w-11 rounded-full object-cover" />
+                  <img src={cloudinaryFit(post.user.avatar, 100)} alt="" className="relative z-10 h-12 w-12 rounded-full object-cover ring-2 ring-white/10 shadow-md" />
                 ) : (
-                  <span className="relative z-10 grid h-11 w-11 place-items-center rounded-full bg-violet-700 font-black text-white">
+                  <span className="relative z-10 grid h-12 w-12 place-items-center rounded-full bg-violet-700 font-mono text-sm font-black text-white ring-2 ring-white/10">
                     {(post.user?.username || "?")[0]?.toUpperCase()}
                   </span>
                 )}
-                <AvatarDecoration frame={post.user?.activeFrame} effect={post.user?.activeEffect} />
+                <AvatarDecoration frame={post.user?.activeFrame} effect={post.user?.activeEffect} size="md" />
               </span>
               <div className="min-w-0 flex-1">
-                {/* The name truncates so the shrink-0 guild chip beside it can
-                    never widen this column past the card on a phone. */}
-                <div className="flex min-w-0 items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                   {post.user ? (
-                    <UserLink username={post.user.username} className="min-w-0 truncate font-mono text-sm font-black text-white hover:text-violet-300">
+                    <UserLink username={post.user.username} className="min-w-0 truncate font-mono text-sm font-black text-white hover:text-violet-300 transition-colors">
                       {post.user.username}
                     </UserLink>
                   ) : (
@@ -196,92 +194,113 @@ export default function PostPage() {
                   {post.user ? <GuildTag userId={post.user.id} size="sm" /> : null}
                   {post.user ? <UserBadges user={post.user as any} size="sm" showHeart={false} maxTitles={1} /> : null}
                 </div>
-                <div className="mt-1 flex flex-wrap items-center gap-2">
+                <div className="mt-1 flex flex-wrap items-center gap-2 font-mono">
                   {post.isPinned && (
-                    <span className="inline-flex items-center gap-1 rounded border border-amber-400/50 bg-amber-400/10 px-1.5 py-0.5 font-mono text-[9px] font-black uppercase tracking-wide text-amber-300">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-400/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-amber-300">
                       <Pin className="h-2.5 w-2.5" /> Pinned
                     </span>
                   )}
-                  <span className="font-mono text-[11px] text-slate-500">{ago(post.createdAt)}</span>
+                  {post.tag && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-violet-400/30 bg-violet-500/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-violet-300">
+                      {post.tag}
+                    </span>
+                  )}
+                  <span className="text-[11px] text-slate-400">{ago(post.createdAt)}</span>
                 </div>
               </div>
             </div>
 
-            {post.title && <h1 className="mt-4 text-2xl font-black leading-tight text-white">{post.title}</h1>}
+            {post.title && (
+              <h1 className="mt-5 font-fell text-2xl sm:text-3xl font-bold uppercase tracking-[0.04em] text-white">
+                {post.title}
+              </h1>
+            )}
             {post.content && (
-              <p className="mt-3 whitespace-pre-wrap break-words font-mono text-sm leading-relaxed text-slate-200">
+              <p className="mt-3.5 whitespace-pre-wrap break-words font-sans text-sm sm:text-base leading-relaxed text-slate-200">
                 <MentionText text={post.content} />
               </p>
             )}
             {post.mediaUrl && (
-              <img src={post.mediaUrl} alt="" className="mt-4 max-h-[520px] w-auto max-w-full rounded-xl object-contain" />
+              <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-black/40 shadow-lg">
+                <img src={post.mediaUrl} alt="" className="max-h-[520px] w-full object-contain" />
+              </div>
             )}
             {post.poll && (
-              <PollCard poll={post.poll} onUpdate={(p) => setPost((cur) => (cur ? { ...cur, poll: { ...cur.poll!, ...p } } : cur))} />
+              <div className="mt-4">
+                <PollCard poll={post.poll} onUpdate={(p) => setPost((cur) => (cur ? { ...cur, poll: { ...cur.poll!, ...p } } : cur))} />
+              </div>
             )}
 
-            <div className="mt-5 flex items-center gap-1 border-t border-white/10 pt-3.5">
-              <button
-                onClick={() => vote(1)}
-                className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 transition hover:bg-red-500/10 ${
-                  post.userVote === 1 ? "text-red-500" : "text-slate-400 hover:text-red-400"
-                }`}
-              >
-                <Heart className={`h-[18px] w-[18px] ${post.userVote === 1 ? "fill-red-500" : ""}`} />
-                <span className="text-sm font-bold tabular-nums">{post.upvotes ?? Math.max(0, post.score || 0)}</span>
-              </button>
-              <button
-                onClick={() => vote(-1)}
-                className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 transition hover:bg-slate-500/10 ${
-                  post.userVote === -1 ? "text-slate-200" : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                <ThumbsDown className={`h-[17px] w-[17px] ${post.userVote === -1 ? "fill-slate-300" : ""}`} />
-                <span className="text-sm font-bold tabular-nums">{post.downvotes ?? 0}</span>
-              </button>
-              <span className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-slate-400">
-                <MessageSquare className="h-[18px] w-[18px]" />
-                <span className="text-sm font-bold tabular-nums">{replyCount}</span>
-              </span>
+            <div className="mt-6 flex items-center justify-between border-t border-white/5 pt-4 font-mono">
+              <div className="flex items-center gap-2">
+                <div className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] p-1">
+                  <button
+                    onClick={() => vote(1)}
+                    className={`flex h-8 w-8 items-center justify-center rounded-full transition ${
+                      post.userVote === 1 ? "bg-rose-500/30 text-rose-300" : "text-slate-400 hover:bg-white/10 hover:text-white"
+                    }`}
+                  >
+                    <Heart className={`h-4 w-4 ${post.userVote === 1 ? "fill-current" : ""}`} />
+                  </button>
+                  <span className="px-1.5 text-xs font-bold tabular-nums text-slate-200">
+                    {post.upvotes ?? Math.max(0, post.score || 0)}
+                  </span>
+                  <button
+                    onClick={() => vote(-1)}
+                    className={`flex h-8 w-8 items-center justify-center rounded-full transition ${
+                      post.userVote === -1 ? "bg-slate-500/30 text-slate-200" : "text-slate-400 hover:bg-white/10 hover:text-white"
+                    }`}
+                  >
+                    <ThumbsDown className={`h-4 w-4 ${post.userVote === -1 ? "fill-current" : ""}`} />
+                  </button>
+                </div>
+
+                <span className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-xs font-bold text-slate-300">
+                  <MessageSquare className="h-3.5 w-3.5 text-violet-300" />
+                  <span className="tabular-nums">{replyCount} replies</span>
+                </span>
+              </div>
+
               <button
                 onClick={share}
                 aria-label="Share this post"
-                className="ml-auto rounded-lg px-2.5 py-1.5 text-slate-400 transition hover:bg-white/5 hover:text-white"
+                className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-xs font-bold text-slate-300 transition hover:bg-white/10 hover:text-white"
               >
-                <Share2 className="h-[17px] w-[17px]" />
+                <Share2 className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Share</span>
               </button>
             </div>
           </motion.article>
 
           {/* ── SIDEBAR ── */}
-          <aside className="lg:sticky lg:top-6 lg:self-start">
-            <div className="rounded-2xl border border-white/10 bg-[#0b0b11] p-5">
+          <aside className="lg:sticky lg:top-24 lg:self-start space-y-4 font-mono">
+            <div className="rounded-3xl border border-white/10 bg-[#0b0b11]/90 p-5 shadow-xl backdrop-blur-xl">
               {post.tag && (
-                <>
-                  <p className="font-mono text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Topic</p>
-                  <p className="mt-1 font-mono text-lg font-black text-violet-300">{post.tag}</p>
-                </>
+                <div className="mb-4 pb-4 border-b border-white/5">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Topic</p>
+                  <p className="mt-1 text-base font-black text-violet-300">{post.tag}</p>
+                </div>
               )}
 
-              <p className={`font-mono text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 ${post.tag ? "mt-5" : ""}`}>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
                 Engagement
               </p>
               <div className="mt-2 grid grid-cols-3 gap-2">
                 {[
                   ["Likes", post.upvotes ?? Math.max(0, post.score || 0)],
                   ["Dislikes", post.downvotes ?? 0],
-                  ["Comments", replyCount],
+                  ["Replies", replyCount],
                 ].map(([label, n]) => (
-                  <div key={label as string} className="rounded-xl border border-white/10 bg-white/[0.04] px-2 py-3 text-center">
-                    <p className="font-mono text-lg font-black text-white">{n as number}</p>
-                    <p className="mt-0.5 font-mono text-[9px] font-bold uppercase tracking-wide text-slate-500">{label}</p>
+                  <div key={label as string} className="rounded-2xl border border-white/10 bg-white/[0.03] px-2 py-3 text-center">
+                    <p className="text-lg font-black text-white">{n as number}</p>
+                    <p className="mt-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-500">{label}</p>
                   </div>
                 ))}
               </div>
 
               <Link
                 href="/community"
-                className="mt-4 flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] py-2.5 font-mono text-xs font-bold text-slate-300 transition hover:bg-white/10 hover:text-white"
+                className="mt-4 flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] py-2.5 text-xs font-bold text-slate-300 transition hover:bg-white/10 hover:text-white"
               >
                 <ArrowLeft className="h-3.5 w-3.5" /> Back to Community
               </Link>

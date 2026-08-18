@@ -258,48 +258,48 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
         </div>
 
         {/* ── CONTROLS TOOLBAR: CATEGORIES, SEARCH & SORT ── */}
-        <div className="mb-6 space-y-3">
+        <div className="mb-6 space-y-3 font-mono">
           {/* Top Row: Category Pills & Sort Toggle */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-            {/* Category Pills */}
-            <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            {/* Category Pills - Horizontal Swipeable on Mobile */}
+            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-0.5 max-w-full">
               {SOURCES.map(({ key, label, Icon, tint, bg, border }) => {
                 const on = source === key;
                 return (
                   <button
                     key={key}
                     onClick={() => setSource(key)}
-                    className={`flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-bold tracking-wide transition ${
+                    className={`shrink-0 flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold tracking-wide transition-all touch-manipulation min-h-[36px] ${
                       on
-                        ? `${border} ${bg} ${tint} shadow-lg shadow-violet-500/10`
-                        : "border-white/10 bg-white/[0.02] text-white/50 hover:bg-white/[0.06] hover:text-white"
+                        ? `${border} ${bg} ${tint} shadow-md shadow-violet-500/10`
+                        : "border-white/10 bg-white/[0.03] text-slate-400 hover:bg-white/[0.06] hover:text-white"
                     }`}
                   >
                     <Icon className="h-3.5 w-3.5" />
-                    <span>{label}</span>
+                    <span className="whitespace-nowrap">{label}</span>
                   </button>
                 );
               })}
             </div>
 
             {/* Segmented Sort Controls */}
-            <div className="inline-flex items-center gap-1 self-start md:self-auto rounded-full border border-white/10 bg-white/[0.03] p-1">
+            <div className="inline-flex items-center gap-1 self-end sm:self-auto rounded-full border border-white/10 bg-black/40 p-1 shrink-0">
               <button
                 onClick={() => setSort("newest")}
-                className={`flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-bold transition ${
+                className={`flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-bold transition-all ${
                   sort === "newest"
-                    ? "bg-violet-500/20 text-violet-200 border border-violet-400/30"
-                    : "text-white/40 hover:text-white"
+                    ? "bg-violet-500/20 text-violet-200 border border-violet-400/40 shadow-sm"
+                    : "text-slate-400 hover:text-white"
                 }`}
               >
                 <Clock className="h-3 w-3" /> Recent
               </button>
               <button
                 onClick={() => setSort("top")}
-                className={`flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-bold transition ${
+                className={`flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-bold transition-all ${
                   sort === "top"
-                    ? "bg-violet-500/20 text-violet-200 border border-violet-400/30"
-                    : "text-white/40 hover:text-white"
+                    ? "bg-violet-500/20 text-violet-200 border border-violet-400/40 shadow-sm"
+                    : "text-slate-400 hover:text-white"
                 }`}
               >
                 <Flame className="h-3 w-3" /> Most Loved
@@ -309,17 +309,17 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
 
           {/* Bottom Row: Realtime Search Filter Input */}
           <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
             <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search comments by keyword, user, anime, or chapter..."
-              className="w-full rounded-2xl border border-white/10 bg-white/[0.03] py-2.5 pl-10 pr-10 text-xs font-bold text-white placeholder:text-white/30 outline-none transition focus:border-violet-500/50 focus:bg-white/[0.05]"
+              placeholder="Search comments by keyword, user, series, or chapter..."
+              className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-2.5 pl-10 pr-10 text-xs font-bold text-white placeholder:text-slate-500 outline-none transition focus:border-violet-500/50 focus:bg-white/[0.06] shadow-inner"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-white/40 hover:bg-white/10 hover:text-white"
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:bg-white/10 hover:text-white"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -329,30 +329,30 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
 
         {/* ── COMMENTS FEED ── */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-24 text-white/40">
+          <div className="flex flex-col items-center justify-center py-24 text-slate-400 font-mono">
             <Loader2 className="h-8 w-8 animate-spin text-violet-400" />
-            <p className="mt-3 text-xs font-bold text-white/50">Fetching live comments…</p>
+            <p className="mt-3 text-xs font-bold text-slate-400">Fetching live comments…</p>
           </div>
         ) : filteredRows.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-3xl border border-white/10 bg-[#0b0b11] py-20 text-center">
+          <div className="flex flex-col items-center justify-center rounded-3xl border border-white/10 bg-[#0b0b11] py-20 text-center shadow-xl">
             <MessagesSquare className="h-10 w-10 text-white/20" />
             <p className="mt-4 font-fell text-xl font-bold uppercase text-white/80">
               {searchQuery ? "No matching comments found" : "No comments recorded yet"}
             </p>
-            <p className="mt-1 text-xs text-white/40">
+            <p className="mt-1 text-xs text-slate-400 font-mono">
               {searchQuery ? "Try clearing your search query." : "Watch anime or read chapters to join the live discussion!"}
             </p>
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="mt-4 rounded-full border border-violet-400/40 bg-violet-500/20 px-4 py-1.5 text-xs font-bold text-violet-200 transition hover:bg-violet-500/30"
+                className="mt-4 rounded-full border border-violet-400/40 bg-violet-500/20 px-5 py-2 text-xs font-bold text-violet-200 transition hover:bg-violet-500/30 font-mono"
               >
                 Clear Search
               </button>
             )}
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4 sm:space-y-5">
             {filteredRows.map((c) => {
               const o = origin(c);
               return (
@@ -361,19 +361,19 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.2 }}
-                  className="group relative overflow-hidden rounded-2xl sm:rounded-3xl border border-white/10 bg-[#0b0b11]/90 p-5 sm:p-6 shadow-xl transition-all duration-200 hover:border-violet-500/30 hover:bg-[#0e0e16]"
+                  className="group relative overflow-hidden rounded-3xl border border-white/10 bg-[#0b0b11]/90 p-5 sm:p-6 shadow-xl transition-all duration-200 hover:border-violet-500/30 hover:bg-[#0e0e16] font-mono backdrop-blur-xl"
                 >
                   {/* Top Origin Ribbon: Which Series & Episode/Chapter */}
                   {o && (
                     <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-3">
                       <Link
                         href={o.href}
-                        className="group/origin inline-flex max-w-full items-center gap-2 rounded-xl border border-white/10 bg-white/[0.02] px-3 py-1.5 transition-all hover:border-violet-400/40 hover:bg-violet-500/10"
+                        className="group/origin inline-flex max-w-full items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3.5 py-1.5 transition-all hover:border-violet-400/40 hover:bg-violet-500/10 shadow-sm"
                       >
                         <span
-                          className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${o.badgeColor}`}
+                          className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider ${o.badgeColor}`}
                         >
-                          <o.Icon className="h-2.5 w-2.5" />
+                          <o.Icon className="h-3 w-3" />
                           <span>{o.kind}</span>
                         </span>
 
@@ -390,28 +390,28 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
                           </>
                         )}
 
-                        <ArrowRight className="h-3 w-3 shrink-0 text-white/40 transition-transform group-hover/origin:translate-x-0.5 group-hover/origin:text-white" />
+                        <ArrowRight className="h-3 w-3 shrink-0 text-slate-400 transition-transform group-hover/origin:translate-x-0.5 group-hover/origin:text-white" />
                       </Link>
 
-                      <span className="text-[11px] font-bold text-white/40">
+                      <span className="text-[11px] text-slate-500">
                         {ago(c.createdAt)}
                       </span>
                     </div>
                   )}
 
                   {/* Main Comment Card Body */}
-                  <div className="flex items-start gap-3.5">
+                  <div className="flex items-start gap-3 sm:gap-4">
                     {/* User Avatar with Frame/Decoration */}
-                    <div className="relative h-10 w-10 shrink-0">
+                    <div className="relative h-10 w-10 sm:h-11 sm:w-11 shrink-0">
                       <UserLink username={c.user?.username || "unknown"}>
                         {c.user?.avatar ? (
                           <img
-                            src={cloudinaryFit(c.user.avatar, 90)}
+                            src={cloudinaryFit(c.user.avatar, 100)}
                             alt=""
-                            className="relative z-10 h-10 w-10 rounded-full object-cover ring-1 ring-white/10"
+                            className="relative z-10 h-10 w-10 sm:h-11 sm:w-11 rounded-full object-cover ring-2 ring-white/10"
                           />
                         ) : (
-                          <span className="relative z-10 grid h-10 w-10 place-items-center rounded-full bg-violet-700 text-xs font-black text-white ring-1 ring-white/10">
+                          <span className="relative z-10 grid h-10 w-10 sm:h-11 sm:w-11 place-items-center rounded-full bg-violet-700 text-xs sm:text-sm font-black text-white ring-2 ring-white/10">
                             {(c.user?.username || "?")[0]?.toUpperCase()}
                           </span>
                         )}
@@ -425,7 +425,7 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
 
                     {/* Author Meta & Content */}
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-1.5">
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                         {c.user?.username ? (
                           <UserLink
                             username={c.user.username}
@@ -448,48 +448,68 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
 
                       {/* Comment Message Text */}
                       {c.content && (
-                        <p className="mt-2.5 whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-200 font-sans">
+                        <p className="mt-2.5 whitespace-pre-wrap break-words font-sans text-sm sm:text-[15px] leading-relaxed text-slate-200">
                           <MentionText text={c.content} />
                         </p>
                       )}
 
-                      {/* Attached Media / GIF Image */}
+                      {/* Media Image */}
                       {c.mediaUrl && (
-                        <div className="mt-3 overflow-hidden rounded-2xl border border-white/10 bg-black/40 max-w-fit">
+                        <div className="mt-3 overflow-hidden rounded-2xl border border-white/10 bg-black/40 shadow-lg">
                           <img
                             src={c.mediaUrl}
                             alt=""
                             loading="lazy"
-                            className="max-h-72 w-auto max-w-full object-contain"
+                            className="max-h-[400px] w-full object-contain"
                           />
                         </div>
                       )}
 
-                      {/* Bottom Action Ribbon: Reaction score & Direct Chapter/Episode CTA */}
-                      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-white/5">
-                        {/* Vote / Reactions Pill */}
+                      {/* Action Bar */}
+                      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/5 pt-3">
                         <div className="flex items-center gap-2">
-                          <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-500/20 bg-rose-500/10 px-2.5 py-0.5 text-[11px] font-black text-rose-300">
-                            <Heart className="h-3 w-3 fill-current text-rose-400" />
-                            <span>{c.upvotes ?? Math.max(0, c.score ?? 0)}</span>
-                          </span>
+                          <div className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] p-1">
+                            <button
+                              onClick={() => vote(c, 1)}
+                              aria-label="Upvote"
+                              className={`flex h-7 w-7 items-center justify-center rounded-full transition ${
+                                userVote === 1
+                                  ? "bg-violet-500/30 text-violet-200"
+                                  : "text-slate-400 hover:bg-white/10 hover:text-white"
+                              }`}
+                            >
+                              <Heart className="h-3.5 w-3.5" fill={userVote === 1 ? "currentColor" : "none"} />
+                            </button>
 
-                          {(c.downvotes ?? 0) > 0 && (
-                            <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.02] px-2 py-0.5 text-[10px] font-bold text-slate-400">
-                              <ThumbsDown className="h-2.5 w-2.5" />
-                              <span>{c.downvotes}</span>
+                            <span
+                              className={`px-1.5 text-xs font-bold tabular-nums ${
+                                score > 0 ? "text-violet-300" : score < 0 ? "text-rose-400" : "text-slate-400"
+                              }`}
+                            >
+                              {score}
                             </span>
-                          )}
+
+                            <button
+                              onClick={() => vote(c, -1)}
+                              aria-label="Dislike"
+                              className={`flex h-7 w-7 items-center justify-center rounded-full transition ${
+                                userVote === -1
+                                  ? "bg-rose-500/30 text-rose-200"
+                                  : "text-slate-400 hover:bg-white/10 hover:text-white"
+                              }`}
+                            >
+                              <ThumbsDown className="h-3.5 w-3.5" fill={userVote === -1 ? "currentColor" : "none"} />
+                            </button>
+                          </div>
                         </div>
 
-                        {/* Direct Navigation CTA */}
                         {o && (
                           <Link
                             href={o.href}
-                            className="inline-flex items-center gap-1.5 rounded-full border border-violet-400/30 bg-violet-500/15 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-violet-200 transition-all hover:bg-violet-500/25 hover:border-violet-400/60 hover:text-white"
+                            className="flex items-center gap-1.5 text-xs font-bold text-violet-300 hover:text-violet-200 transition-colors"
                           >
-                            <span>{o.ctaText}</span>
-                            <ArrowRight className="h-3 w-3" />
+                            <span>Join Discussion</span>
+                            <ArrowRight className="h-3.5 w-3.5" />
                           </Link>
                         )}
                       </div>

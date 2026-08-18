@@ -29,9 +29,9 @@ function UserCard({
   const followersCount = (user.followers || []).length;
 
   return (
-    <div className="group relative flex flex-col rounded-2xl border border-white/10 bg-[#0b0b11] overflow-hidden shadow-xl transition-all duration-300 hover:border-violet-400/40 hover:bg-[#0e0e16] hover:shadow-2xl hover:shadow-violet-500/10 font-mono">
+    <div className="group relative flex flex-col rounded-3xl border border-white/10 bg-[#0b0b11]/90 overflow-hidden shadow-xl transition-all duration-300 hover:border-violet-400/40 hover:bg-[#0e0e16] hover:shadow-2xl hover:shadow-violet-500/10 font-mono backdrop-blur-xl">
       {/* Banner */}
-      <div className="relative h-20 w-full overflow-hidden bg-gradient-to-r from-violet-900/40 via-purple-900/20 to-black/60">
+      <div className="relative h-24 sm:h-28 w-full overflow-hidden bg-gradient-to-r from-violet-900/40 via-purple-900/20 to-black/60">
         {user.bannerUrl ? (
           <img
             src={user.bannerUrl}
@@ -45,17 +45,17 @@ function UserCard({
       </div>
 
       {/* Profile Info Header */}
-      <div className="relative -mt-8 flex items-end justify-between px-5">
-        <div className="relative h-16 w-16 shrink-0">
-          <UserLink username={user.username} className="relative z-10 block h-16 w-16">
+      <div className="relative -mt-10 flex items-end justify-between px-5">
+        <div className="relative h-18 w-18 shrink-0">
+          <UserLink username={user.username} className="relative z-10 block h-18 w-18">
             {user.avatar ? (
               <img
-                src={cloudinaryFit(user.avatar, 140)}
+                src={cloudinaryFit(user.avatar, 160)}
                 alt=""
-                className="relative z-10 h-16 w-16 rounded-full object-cover ring-4 ring-[#0b0b11] shadow-lg"
+                className="relative z-10 h-16 w-16 sm:h-18 sm:w-18 rounded-full object-cover ring-4 ring-[#0b0b11] shadow-xl"
               />
             ) : (
-              <span className="relative z-10 grid h-16 w-16 place-items-center rounded-full bg-violet-700 font-mono text-xl font-black text-white ring-4 ring-[#0b0b11] shadow-lg">
+              <span className="relative z-10 grid h-16 w-16 sm:h-18 sm:w-18 place-items-center rounded-full bg-violet-700 font-mono text-xl sm:text-2xl font-black text-white ring-4 ring-[#0b0b11] shadow-xl">
                 {(user.username || "U")[0]?.toUpperCase()}
               </span>
             )}
@@ -64,18 +64,18 @@ function UserCard({
         </div>
 
         <div className="pb-1 text-right">
-          <span className="inline-block rounded-full border border-white/5 bg-white/[0.03] px-2.5 py-0.5 text-[11px] font-bold text-white/50">
-            {followersCount} {followersCount === 1 ? "Follower" : "Followers"}
+          <span className="inline-block rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-bold text-slate-300 shadow-sm">
+            {followersCount.toLocaleString()} {followersCount === 1 ? "Follower" : "Followers"}
           </span>
         </div>
       </div>
 
       {/* Username & Guild */}
       <div className="px-5 pt-3">
-        <div className="flex items-center gap-1.5 min-w-0">
+        <div className="flex items-center gap-2 min-w-0">
           <UserLink
             username={user.username}
-            className="truncate font-mono text-base font-bold text-white group-hover:text-violet-300 transition-colors"
+            className="truncate font-fell text-lg sm:text-xl font-bold uppercase tracking-wider text-white group-hover:text-violet-300 transition-colors"
           >
             {user.username || "Anonymous"}
           </UserLink>
@@ -84,35 +84,35 @@ function UserCard({
       </div>
 
       {/* Bio */}
-      <div className="px-5 py-3 min-h-[58px] flex-1">
-        <BioRenderer bio={cleanBio || "No bio set."} className="text-xs text-white/50 line-clamp-2 leading-relaxed" />
+      <div className="px-5 py-3 min-h-[60px] flex-1">
+        <BioRenderer bio={cleanBio || "No bio set."} className="text-xs sm:text-sm text-slate-400 line-clamp-2 leading-relaxed italic" />
       </div>
 
       {/* Follow Action Button */}
-      <div className="px-5 pb-5 pt-1 mt-auto">
+      <div className="px-5 pb-5 pt-2 mt-auto">
         {currentUser && currentUser.id !== user.id ? (
           <button
             onClick={(e) => handleFollowToggle(user, e)}
-            className={`flex w-full items-center justify-center gap-2 rounded-full border py-2 text-xs font-bold uppercase tracking-wider transition ${
+            className={`flex w-full items-center justify-center gap-2 rounded-full border py-2.5 text-xs font-bold uppercase tracking-wider transition-all duration-200 touch-manipulation min-h-[40px] ${
               isFollowing
-                ? "border-white/10 bg-white/[0.04] text-white/60 hover:border-rose-500/40 hover:bg-rose-500/10 hover:text-rose-300"
-                : "border-violet-400/40 bg-violet-600 text-white shadow-lg shadow-violet-600/25 hover:bg-violet-500 hover:scale-[1.02] active:scale-[0.98]"
+                ? "border-white/10 bg-white/[0.04] text-slate-300 hover:border-rose-500/40 hover:bg-rose-500/10 hover:text-rose-300"
+                : "border-violet-400/40 bg-gradient-to-r from-violet-600 to-purple-700 text-white shadow-lg shadow-violet-600/25 hover:scale-[1.02] active:scale-[0.98]"
             }`}
           >
             {isFollowing ? (
               <>
-                <UserMinus className="w-3.5 h-3.5" /> Following
+                <UserMinus className="w-4 h-4" /> Following
               </>
             ) : (
               <>
-                <UserPlus className="w-3.5 h-3.5" /> Follow
+                <UserPlus className="w-4 h-4" /> Follow
               </>
             )}
           </button>
         ) : (
           <UserLink
             username={user.username}
-            className="flex w-full items-center justify-center rounded-full border border-white/10 bg-white/[0.03] py-2 text-xs font-bold uppercase tracking-wider text-white/50 transition hover:bg-white/[0.07] hover:text-white"
+            className="flex w-full items-center justify-center rounded-full border border-white/10 bg-white/[0.04] py-2.5 text-xs font-bold uppercase tracking-wider text-slate-300 transition hover:bg-white/[0.08] hover:text-white min-h-[40px]"
           >
             View Profile
           </UserLink>
@@ -187,32 +187,32 @@ export default function CommunityPage() {
 
   return (
     <PageTransition>
-      <div className="bg-[#09090b] min-h-screen pt-24 pb-36 px-4 md:px-12 text-white">
-        <div className="max-w-6xl mx-auto space-y-8">
+      <div className="bg-[#070709] min-h-screen pt-20 sm:pt-24 pb-40 px-3 sm:px-6 md:px-12 text-white">
+        <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8">
           
-          {/* ── TAB SWITCHER (Activity History Pill Bar Style) ── */}
-          <div className="flex justify-center mb-8 font-mono">
-            <div className="inline-flex w-max items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] p-1.5 shadow-2xl backdrop-blur-xl">
+          {/* ── RESPONSIVE TAB NAVIGATION DOCK ── */}
+          <div className="flex justify-center mb-6 sm:mb-8 font-mono">
+            <div className="flex w-full sm:w-auto items-center justify-between sm:justify-center gap-1 sm:gap-2 rounded-2xl sm:rounded-full border border-white/10 bg-[#0b0b11]/90 p-1.5 shadow-2xl backdrop-blur-xl overflow-x-auto [scrollbar-width:none]">
               {[
                 { key: "forum" as const, label: "Forum", hint: "Discussions & Polls", Icon: MessagesSquare },
                 { key: "feed" as const, label: "Global Comments", hint: "All Chapter Feeds", Icon: Globe },
-                { key: "directory" as const, label: "User Directory", hint: "Find Creators & Readers", Icon: Users },
+                { key: "directory" as const, label: "Directory", hint: "Find Creators", Icon: Users },
               ].map(({ key, label, hint, Icon }) => {
                 const on = activeTab === key;
                 return (
                   <button
                     key={key}
                     onClick={() => setActiveTab(key)}
-                    className={`group relative flex items-center gap-2.5 rounded-full border px-4 py-2 text-xs font-bold tracking-wide transition sm:px-6 sm:py-2.5 ${
+                    className={`group relative flex-1 sm:flex-initial flex items-center justify-center gap-2 rounded-xl sm:rounded-full border px-3 sm:px-6 py-2 sm:py-2.5 text-xs font-bold tracking-wide transition-all touch-manipulation min-h-[38px] ${
                       on
-                        ? "border-violet-400/40 bg-violet-500/15 text-violet-200 shadow-sm"
-                        : "border-transparent text-white/45 hover:bg-white/[0.06] hover:text-white/80"
+                        ? "border-violet-400/40 bg-violet-500/20 text-violet-200 shadow-md shadow-violet-500/10"
+                        : "border-transparent text-slate-400 hover:bg-white/[0.04] hover:text-white"
                     }`}
                   >
-                    <Icon className={`h-4 w-4 shrink-0 transition ${on ? "text-violet-300" : "text-white/40 group-hover:text-white"}`} />
+                    <Icon className={`h-4 w-4 shrink-0 transition ${on ? "text-violet-300" : "text-slate-500 group-hover:text-white"}`} />
                     <span className="text-left font-mono">
-                      <span className="block text-xs sm:text-sm font-bold uppercase tracking-wider">{label}</span>
-                      <span className={`hidden text-[9px] font-bold uppercase tracking-wider sm:block ${on ? "text-violet-300/70" : "text-white/30"}`}>
+                      <span className="block text-xs sm:text-sm font-bold uppercase tracking-wider whitespace-nowrap">{label}</span>
+                      <span className={`hidden text-[9px] font-bold uppercase tracking-wider md:block ${on ? "text-violet-300/70" : "text-white/30"}`}>
                         {hint}
                       </span>
                     </span>
@@ -254,25 +254,25 @@ export default function CommunityPage() {
                   transition={{ duration: 0.2 }}
                 >
                   {/* ── USER DIRECTORY HEADER ── */}
-                  <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-white/10 pb-6 font-mono">
+                  <div className="mb-6 sm:mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-white/10 pb-5 sm:pb-6 font-mono">
                     <div>
-                      <h1 className="flex items-center gap-3 font-fell text-3xl sm:text-4xl font-bold uppercase tracking-[0.08em] text-white">
-                        <Users className="h-7 w-7 shrink-0 text-violet-400" />
+                      <h1 className="flex items-center gap-3 font-fell text-2xl sm:text-4xl font-bold uppercase tracking-[0.08em] text-white">
+                        <Users className="h-6 w-6 sm:h-8 sm:w-8 shrink-0 text-violet-400" />
                         User Directory
                       </h1>
-                      <p className="mt-1 text-[11px] leading-relaxed text-white/40 sm:text-xs">
-                        Find other readers, see their collections, and follow community members.
+                      <p className="mt-1 text-xs leading-relaxed text-slate-400">
+                        Discover other readers, view public profiles, and follow creators.
                       </p>
                     </div>
 
                     <div className="relative w-full sm:w-80">
-                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40 w-4 h-4" />
+                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
                       <input
                         type="text"
                         placeholder="Search members by username..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full rounded-full border border-white/10 bg-white/[0.03] pl-10 pr-4 py-2.5 text-xs font-bold text-white outline-none placeholder:text-white/30 focus:border-violet-500 transition shadow-inner"
+                        className="w-full rounded-full border border-white/10 bg-white/[0.04] pl-10 pr-4 py-2.5 text-xs font-bold text-white outline-none placeholder:text-slate-500 focus:border-violet-500 transition shadow-inner"
                       />
                     </div>
                   </div>
@@ -289,10 +289,10 @@ export default function CommunityPage() {
                         <button
                           key={f.key}
                           onClick={() => setDirectoryFilter(f.key)}
-                          className={`rounded-full border px-3.5 py-1.5 text-xs font-bold tracking-wide transition ${
+                          className={`rounded-full border px-4 py-1.5 text-xs font-bold tracking-wide transition-all touch-manipulation ${
                             on
-                              ? "border-violet-400/40 bg-violet-500/15 text-violet-200"
-                              : "border-transparent text-white/45 hover:bg-white/[0.06] hover:text-white/80"
+                              ? "border-violet-400/40 bg-violet-500/20 text-violet-200 shadow-sm"
+                              : "border-transparent text-slate-400 hover:bg-white/[0.04] hover:text-white"
                           }`}
                         >
                           {f.label}
@@ -303,14 +303,14 @@ export default function CommunityPage() {
 
                   {/* ── USERS GRID ── */}
                   {loading ? (
-                    <div className="py-24 text-center font-mono text-xs text-white/40">Loading community directory...</div>
+                    <div className="py-24 text-center font-mono text-xs text-slate-500">Loading community directory...</div>
                   ) : filteredUsers.length === 0 ? (
-                    <div className="py-20 text-center rounded-2xl border border-white/10 bg-[#0b0b11] font-mono">
+                    <div className="py-20 text-center rounded-3xl border border-white/10 bg-[#0b0b11] font-mono">
                       <Users className="mx-auto h-8 w-8 text-white/20" />
-                      <p className="mt-3 text-sm font-bold text-white/50">No users found matching your search</p>
+                      <p className="mt-3 text-sm font-bold text-slate-400">No users found matching your search</p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                       {filteredUsers.map((u) => (
                         <UserCard
                           key={u.id}
