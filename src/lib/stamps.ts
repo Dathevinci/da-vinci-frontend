@@ -1,4 +1,4 @@
-import { authHeaders, getAuthToken } from "@/lib/authToken";
+import { authHeaders, getAuthToken, setAuthToken } from "@/lib/authToken";
 import { manhwaCoverSrc } from "@/lib/manhwa/coverProxy";
 import { novelCover } from "@/lib/novelImage";
 
@@ -486,10 +486,30 @@ async function write<T>(
     });
     const d = await r.json().catch(() => null);
     if (!r.ok || !d?.success) {
+      const code = normalizeCode(d?.code, r.status);
+      /**
+       * A REJECTED TOKEN MUST BE THROWN AWAY, NOT KEPT AND RE-SENT.
+       *
+       * hasStampSession() only asks whether a token EXISTS, so a stored
+       * credential the server refuses — expired, signed with a retired
+       * secret, or a value from the legacy `Bearer <rawUserId>` scheme that
+       * was never a JWT — left the UI showing a working form that failed
+       * every time, and "sign in again" appeared to change nothing because
+       * the dead token was still sitting there being re-sent.
+       *
+       * Clearing it here makes the very next render tell the truth ("sign in
+       * again to stamp") and makes signing in actually resolve it, since the
+       * fresh token replaces nothing instead of losing a race with a stale
+       * one. Nothing else is touched: the cached user stays, so this is a
+       * credential reset, not a logout.
+       */
+      if (code === "AUTH_REQUIRED" || code === "IDENTITY_MISMATCH") {
+        setAuthToken(null);
+      }
       return {
         ok: false,
         status: r.status,
-        code: normalizeCode(d?.code, r.status),
+        code,
         message: str(d?.message) || "That didn't go through.",
       };
     }
