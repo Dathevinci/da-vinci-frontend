@@ -257,9 +257,9 @@ const CommentThread = ({
         )}
 
         {/* Header */}
-        <div className="flex items-center justify-between gap-2 mb-3">
-          <UserLink username={node.user?.username || 'unknown'} className="flex items-center gap-3 group min-w-0">
-            <div className="relative shrink-0">
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <div className="flex items-start gap-2.5 sm:gap-3 min-w-0 flex-1">
+            <UserLink username={node.user?.username || 'unknown'} className="relative shrink-0 block mt-0.5">
               {node.user?.activeEffect === 'effect_sparkles' && (
                 <div className="absolute -inset-3 z-0 pointer-events-none overflow-hidden">
                   <div className="absolute w-1.5 h-1.5 bg-yellow-300 rounded-full animate-ping left-1 top-0"></div>
@@ -268,28 +268,41 @@ const CommentThread = ({
                   <div className="absolute w-1 h-1 bg-white rounded-full animate-pulse right-1 bottom-0"></div>
                 </div>
               )}
-              <img src={cloudinaryFit(node.user?.avatar || 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=100&q=80', 80)} loading="lazy" decoding="async" className={`relative z-10 w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover ring-1 ring-white/10 ${isDejavuh && !nodeHasRing ? 'ring-2 ring-fuchsia-500 ring-offset-1 ring-offset-[#0f0f11] shadow-[0_0_15px_rgba(217,70,239,0.5)]' : ''}`} />
+              <img
+                src={cloudinaryFit(node.user?.avatar || 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=100&q=80', 80)}
+                loading="lazy"
+                decoding="async"
+                className={`relative z-10 w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover ring-1 ring-white/10 ${
+                  isDejavuh && !nodeHasRing ? 'ring-2 ring-fuchsia-500 ring-offset-1 ring-offset-[#0f0f11] shadow-[0_0_15px_rgba(217,70,239,0.5)]' : ''
+                }`}
+              />
               <AvatarDecoration frame={(node.user as any)?.activeFrame} effect={node.user?.activeEffect} size="md" />
-            </div>
-            <div className="flex flex-col min-w-0">
-              <div className="flex flex-wrap items-center gap-1.5 min-w-0">
-                <span className={`min-w-0 truncate font-bold text-sm sm:text-base transition
-                  ${node.user?.activeFont === 'font_cyber' ? 'font-mono tracking-widest' : ''}
-                  ${node.user?.activeFont === 'font_pixel' ? 'font-serif tracking-tight' : ''}
-                  ${nameColorClass(node.user?.activeColor) || (isDejavuh ? 'text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-fuchsia-400 drop-shadow-[0_0_8px_rgba(192,132,252,0.8)]' : 'text-purple-300 group-hover:text-purple-400')}`}>
-                  {node.user?.username || 'Unknown User'}
-                </span>
+            </UserLink>
 
-                {/* Guild identity leads the chip group; roles, ranks and worn
-                    titles are decoration and follow it. */}
+            <div className="flex flex-col min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-1.5 min-w-0 max-w-full">
+                <UserLink
+                  username={node.user?.username || 'unknown'}
+                  className={`min-w-0 truncate font-bold text-sm sm:text-base transition hover:text-violet-300 ${
+                    node.user?.activeFont === 'font_cyber' ? 'font-mono tracking-widest' : ''
+                  } ${node.user?.activeFont === 'font_pixel' ? 'font-serif tracking-tight' : ''} ${
+                    nameColorClass(node.user?.activeColor) ||
+                    (isDejavuh
+                      ? 'text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-fuchsia-400 drop-shadow-[0_0_8px_rgba(192,132,252,0.8)]'
+                      : 'text-purple-300')
+                  }`}
+                >
+                  <span className="truncate max-w-[110px] sm:max-w-[180px] inline-block">
+                    {node.user?.username || 'Unknown User'}
+                  </span>
+                </UserLink>
+
                 <GuildTag userId={node.user?.id} size="sm" />
-
-                {/* Badges, Staff/Lead Dev custom titles (e.g. Lucifer,the fallen angel), and worn titles */}
                 <UserBadges user={node.user} blessed={node.blessed} size="sm" showHeart={false} maxTitles={1} />
               </div>
-              <span className="text-[10px] sm:text-xs text-white/40 font-mono">{timeAgo(node.createdAt)}</span>
+              <span className="text-[10px] sm:text-xs text-white/40 font-mono mt-0.5">{timeAgo(node.createdAt)}</span>
             </div>
-          </UserLink>
+          </div>
           
           <div className="flex items-center gap-1 shrink-0">
             {isViewerDev && !isDejavuh && !node.blessed && (

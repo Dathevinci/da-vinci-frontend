@@ -5,32 +5,6 @@ import { isLeadDev, isAdmin } from "@/lib/admin";
 import { calculateLevel, MAX_LEVEL } from "@/lib/levels";
 import { getHeartRank, heartRankTint } from "@/lib/heartRanks";
 
-/**
- * WHO SOMEBODY IS, in one strip, in one place.
- *
- * This markup used to be copy-pasted into four files — the profile hero, the
- * profile popout, the forum's AuthorLine and CommunityFeed — at four different
- * sizes with four slightly different rules. They had already drifted: the two
- * community copies decided Lead Dev from the USERNAME STRING alone, so a Lead
- * Dev who renamed, or an admin promoted by role rather than by being on the
- * hardcoded list, simply lost their badge on every comment they wrote. Roles
- * live in a database column precisely so they survive a rename; reading the
- * name instead threw that away.
- *
- * Three separate systems land here, which is worth naming because they are
- * easy to mistake for one another:
- *
- *   ROLE   — Lead Dev / Staff / Watcher / Elite. From the account's `role`
- *            column, or a shop-bought `activeRole`. Not chosen from a wardrobe.
- *   RANK   — the Heart Cultivation rank ("The All-Bearing · X"). Derived from
- *            XP. Cannot be worn or removed; you are whatever your XP says.
- *   TITLES — the only genuinely WEARABLE thing: earned by completing a card
- *            set, chosen and ordered in the profile's title rack, capped at 3.
- *
- * Only the third is manageable, which is why the title manager cannot offer to
- * hide the first two.
- */
-
 export type BadgeUser = {
   id?: string;
   username?: string;
@@ -44,16 +18,11 @@ export type BadgeUser = {
   cardTitle?: string | null;
 };
 
-/**
- * `sm` is for comment and forum author lines, where the badges share a row with
- * a name and a timestamp and must not wrap it. `md` is for profile surfaces
- * that have a row to themselves.
- */
 export type BadgeSize = "sm" | "md";
 
 const SIZING: Record<BadgeSize, { pad: string; text: string; icon: string; gap: string }> = {
-  sm: { pad: "px-1.5 py-0.5", text: "text-[9px]", icon: "h-2.5 w-2.5", gap: "gap-1" },
-  md: { pad: "px-2.5 py-1", text: "text-[11px]", icon: "h-3 w-3", gap: "gap-1.5" },
+  sm: { pad: "px-2 py-0.5", text: "text-[9px] sm:text-[10px]", icon: "h-2.5 w-2.5 shrink-0", gap: "gap-1" },
+  md: { pad: "px-3.5 py-1", text: "text-[11px] sm:text-xs", icon: "h-3.5 w-3.5 shrink-0", gap: "gap-1.5" },
 };
 
 /** The worn titles for a user, honouring the profile rack's own fallback. */
@@ -69,11 +38,6 @@ export function wornTitles(user?: BadgeUser | null): string[] {
 /**
  * JUST the worn titles, for surfaces that already draw their own role and rank
  * badges and only need the missing piece.
- *
- * CommunityFeed is the reason this exists: its cascade is richer than the
- * forum's — it renders the XP rank theme with its own icon — so replacing it
- * wholesale would trade a real feature for consistency. It gets the titles
- * appended instead.
  */
 export function TitleChips({
   user,
@@ -87,6 +51,7 @@ export function TitleChips({
   const titles = wornTitles(user).slice(0, Math.max(0, max));
   if (titles.length === 0) return null;
   const S = SIZING[size];
+
   return (
     <>
       {titles.map((t, i) => {
@@ -95,20 +60,20 @@ export function TitleChips({
           return (
             <span
               key={t}
-              className={`inline-flex items-center gap-2 rounded-full ${
-                size === "md" ? "px-4 py-1.5 min-h-[34px]" : "px-2.5 py-1 min-h-[26px]"
+              className={`inline-flex max-w-full items-center gap-1.5 sm:gap-2 rounded-full ${
+                size === "md" ? "px-3.5 sm:px-4 py-1 sm:py-1.5 min-h-[30px] sm:min-h-[34px]" : "px-2 sm:px-2.5 py-0.5 sm:py-1 min-h-[22px] sm:min-h-[26px]"
               } font-black tracking-wider whitespace-nowrap border border-pink-400/40 bg-pink-950/20 backdrop-blur-md text-pink-100 shadow-[0_0_16px_rgba(244,63,94,0.25)] transition-all duration-200 hover:scale-105 hover:bg-pink-950/30 hover:border-pink-300/70`}
               title="Bug Detective"
             >
               <img
                 src="/icons/bug-detective.png"
                 alt="Bug Detective Icon"
-                className={size === "md" ? "h-7 w-7 object-contain -my-1.5 shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" : "h-5 w-5 object-contain -my-1 shrink-0"}
+                className={size === "md" ? "h-6 w-6 sm:h-7 sm:w-7 object-contain -my-1.5 shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" : "h-4 w-4 sm:h-5 sm:w-5 object-contain -my-1 shrink-0"}
               />
               <img
                 src="/titles/bug-detective-wordmark.png"
                 alt="Bug Detective"
-                className={size === "md" ? "h-5 sm:h-5.5 object-contain drop-shadow-[0_0_10px_rgba(255,105,180,0.6)] drop-shadow-[0_0_20px_rgba(244,63,94,0.4)]" : "h-3.5 sm:h-4 object-contain drop-shadow-[0_0_8px_rgba(255,105,180,0.5)]"}
+                className={size === "md" ? "h-4 sm:h-5.5 max-w-[120px] sm:max-w-none object-contain drop-shadow-[0_0_10px_rgba(255,105,180,0.6)]" : "h-3 sm:h-4 max-w-[90px] sm:max-w-none object-contain drop-shadow-[0_0_8px_rgba(255,105,180,0.5)]"}
               />
             </span>
           );
@@ -118,17 +83,17 @@ export function TitleChips({
           return (
             <span
               key={t}
-              className={`inline-flex items-center gap-2 rounded-full ${
-                size === "md" ? "px-4 py-1.5 min-h-[34px] text-xs" : "px-2.5 py-1 min-h-[26px] text-[10px]"
+              className={`inline-flex max-w-full items-center gap-1.5 sm:gap-2 rounded-full ${
+                size === "md" ? "px-3.5 sm:px-4 py-1 sm:py-1.5 min-h-[30px] sm:min-h-[34px] text-xs" : "px-2 sm:px-2.5 py-0.5 sm:py-1 min-h-[22px] sm:min-h-[26px] text-[9px] sm:text-[10px]"
               } font-black tracking-wider whitespace-nowrap border border-purple-400/60 bg-gradient-to-r from-[#200536]/60 via-[#380b5c]/50 to-[#1b042e]/60 backdrop-blur-md text-purple-100 shadow-[0_0_22px_rgba(168,85,247,0.5),0_0_40px_rgba(192,132,252,0.25)] transition-all duration-200 hover:scale-105 hover:border-purple-300 hover:shadow-[0_0_30px_rgba(168,85,247,0.7)]`}
               title="Lucifer,the fallen angel"
             >
               <img
                 src="/icons/lucifer-gojo.png"
                 alt="Lucifer, the fallen angel"
-                className={size === "md" ? "h-7 w-7 object-contain -my-1.5 shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" : "h-5 w-5 object-contain -my-1 shrink-0"}
+                className={size === "md" ? "h-6 w-6 sm:h-7 sm:w-7 object-contain -my-1.5 shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" : "h-4 w-4 sm:h-5 sm:w-5 object-contain -my-1 shrink-0"}
               />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#f3e8ff] via-[#d8b4fe] to-[#c084fc] drop-shadow-[0_0_12px_rgba(192,132,252,0.85)] font-black tracking-wider uppercase">
+              <span className="truncate max-w-[120px] sm:max-w-none text-transparent bg-clip-text bg-gradient-to-r from-[#f3e8ff] via-[#d8b4fe] to-[#c084fc] drop-shadow-[0_0_12px_rgba(192,132,252,0.85)] font-black tracking-wider uppercase">
                 Lucifer,the fallen angel
               </span>
             </span>
@@ -137,14 +102,15 @@ export function TitleChips({
         return (
           <span
             key={t}
-            className={`inline-flex items-center ${S.gap} rounded-full ${S.pad} ${S.text} font-black uppercase tracking-wider whitespace-nowrap ${
+            className={`inline-flex max-w-full items-center ${S.gap} rounded-full ${S.pad} ${S.text} font-black uppercase tracking-wider whitespace-nowrap ${
               i === 0
                 ? "border border-amber-400/45 bg-amber-500/15 text-amber-200"
                 : "border border-violet-400/35 bg-violet-500/15 text-violet-200"
             }`}
             title="Earned title"
           >
-            <Crown className={S.icon} /> {t}
+            <Crown className={S.icon} />
+            <span className="truncate max-w-[110px] sm:max-w-none">{t}</span>
           </span>
         );
       })}
@@ -154,15 +120,6 @@ export function TitleChips({
 
 /**
  * ICON-ONLY BADGES, for dense author lines.
- *
- * A feed row has room for a name, a time and a few pixels. Spelling out
- * "KEEPER OF THE FOUNDATION" beside every post pushes the timestamp onto a
- * second line and turns the strip into the loudest thing on the card — which
- * is backwards, because the post is what people came for.
- *
- * Each badge collapses to a coloured square holding just its icon, with the
- * full wording moved to the tooltip. Nothing is lost: the same badges, the
- * same colours, the same order, a tenth of the width.
  */
 function IconBadge({ icon: Icon, tint, label }: { icon: any; tint: string; label: string }) {
   return (
@@ -211,10 +168,6 @@ export function UserBadgesCompact({
       {user.activeTag === "tag_og" && <IconBadge icon={Zap} tint="#f87171" label="OG" />}
       {user.activeTag === "tag_weeb" && <IconBadge icon={Sparkles} tint="#f472b6" label="Weeb Lord" />}
       {blessed && <IconBadge icon={Sparkles} tint="#fcd34d" label="Blessed" />}
-      {/* The rank keeps its own hue so the tiers stay distinguishable at a
-          glance — that is the one thing a shared tint would destroy. The tint
-          table lives in heartRanks.ts beside the names, so a band added there
-          can never arrive here as untinted slate. */}
       <IconBadge icon={Heart} tint={heartRankTint(level)} label={`${heart.name} · ${heart.numeral}`} />
       {titles.map((t) => {
         const isBugDetective = t.toLowerCase() === "bug detective";
@@ -257,11 +210,6 @@ export default function UserBadges({
   size = "sm",
   showHeart = true,
   showTitles = true,
-  /**
-   * How many titles to draw. An author line has far less room than a profile
-   * panel, so comment surfaces show only the title the wearer leads with —
-   * their index 0, the same one the rack renders in gold.
-   */
   maxTitles = 1,
   className = "",
 }: {
@@ -275,17 +223,11 @@ export default function UserBadges({
 }) {
   if (!user) return null;
   const S = SIZING[size];
-  const chip = `inline-flex items-center ${S.gap} rounded-full ${S.pad} ${S.text} font-black uppercase tracking-wider whitespace-nowrap`;
+  const chip = `inline-flex max-w-full items-center ${S.gap} rounded-full ${S.pad} ${S.text} font-black uppercase tracking-wider whitespace-nowrap`;
 
-  // OBJECT form, not the username string. These helpers read the role column
-  // first and only fall back to the hardcoded name list — passing a bare name
-  // (which the forum did) discards the authoritative half of the check.
   const lead = isLeadDev(user);
   const admin = !lead && isAdmin(user);
 
-  // Staff sit at the top of the rank ladder regardless of XP, matching how the
-  // profile hero and the popout already compute it. MAX_LEVEL, not a literal:
-  // the cap moved from 10 to 100 with the new XP curve (lib/levels.ts).
   const level = lead || admin ? MAX_LEVEL : calculateLevel(user.xp || 0);
   const heart = getHeartRank(level);
   const titles = showTitles ? wornTitles(user).slice(0, Math.max(0, maxTitles)) : [];
@@ -294,81 +236,76 @@ export default function UserBadges({
     <>
       {lead && !(user as any)?.hideLeadRole ? (
         <span
-          className={`inline-flex items-center gap-2 rounded-full ${
-            size === "md" ? "px-4 py-1.5 min-h-[34px] text-xs" : "px-2.5 py-1 min-h-[26px] text-[10px]"
+          className={`inline-flex max-w-full items-center gap-1.5 sm:gap-2 rounded-full ${
+            size === "md" ? "px-3.5 sm:px-4 py-1 sm:py-1.5 min-h-[30px] sm:min-h-[34px] text-xs" : "px-2 sm:px-2.5 py-0.5 sm:py-1 min-h-[22px] sm:min-h-[26px] text-[9px] sm:text-[10px]"
           } font-black tracking-wider whitespace-nowrap border border-purple-400/60 bg-gradient-to-r from-[#200536]/60 via-[#380b5c]/50 to-[#1b042e]/60 backdrop-blur-md text-purple-100 shadow-[0_0_22px_rgba(168,85,247,0.5),0_0_40px_rgba(192,132,252,0.25)] transition-all duration-200 hover:scale-105 hover:border-purple-300 hover:shadow-[0_0_30px_rgba(168,85,247,0.7)] ${className}`}
           title="Lead Dev · Lucifer,the fallen angel"
         >
           <img
             src="/icons/lucifer-gojo.png"
             alt="Lucifer, the fallen angel"
-            className={size === "md" ? "h-7 w-7 object-contain -my-1.5 shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" : "h-5 w-5 object-contain -my-1 shrink-0"}
+            className={size === "md" ? "h-6 w-6 sm:h-7 sm:w-7 object-contain -my-1.5 shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" : "h-4 w-4 sm:h-5 sm:w-5 object-contain -my-1 shrink-0"}
           />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#f3e8ff] via-[#d8b4fe] to-[#c084fc] drop-shadow-[0_0_12px_rgba(192,132,252,0.85)] font-black tracking-wider uppercase">
+          <span className="truncate max-w-[120px] sm:max-w-none text-transparent bg-clip-text bg-gradient-to-r from-[#f3e8ff] via-[#d8b4fe] to-[#c084fc] drop-shadow-[0_0_12px_rgba(192,132,252,0.85)] font-black tracking-wider uppercase">
             Lucifer,the fallen angel
           </span>
         </span>
       ) : admin ? (
         <span className={`${chip} border border-amber-400/40 bg-amber-500/15 text-amber-300 ${className}`}>
-          <Shield className={S.icon} /> Staff
+          <Shield className={S.icon} /> <span>Staff</span>
         </span>
       ) : user.activeRole === "role_watcher" ? (
         <span className={`${chip} border border-purple-500/30 bg-purple-500/20 text-purple-300 ${className}`}>
-          <Shield className={S.icon} /> Watcher
+          <Shield className={S.icon} /> <span>Watcher</span>
         </span>
       ) : user.activeRole === "role_elite" ? (
         <span className={`${chip} border border-yellow-500/30 bg-yellow-500/20 text-yellow-300 ${className}`}>
-          <Star className={S.icon} /> Elite
+          <Star className={S.icon} /> <span>Elite</span>
         </span>
       ) : null}
 
       {user.activeTag === "tag_og" && (
         <span className={`${chip} bg-red-500/20 text-red-300`}>
-          <Zap className={S.icon} /> OG
+          <Zap className={S.icon} /> <span>OG</span>
         </span>
       )}
       {user.activeTag === "tag_weeb" && (
         <span className={`${chip} bg-pink-500/20 text-pink-300`}>
-          <Sparkles className={S.icon} /> Weeb Lord
+          <Sparkles className={S.icon} /> <span>Weeb Lord</span>
         </span>
       )}
       {blessed && (
         <span className={`${chip} border border-amber-400/40 bg-amber-400/20 text-amber-300`}>
-          <Sparkles className={S.icon} /> Blessed
+          <Sparkles className={S.icon} /> <span>Blessed</span>
         </span>
       )}
 
-      {/* The Heart rank carries its own gradient per tier, so it is styled from
-          the rank rather than from this file — a rank that looked the same at
-          every tier would defeat the point of having ten of them. */}
       {showHeart && (
         <span className={`${chip} ${heart.badgeClass}`} title={`${heart.name} — ${heart.stage}`}>
-          {heart.name} · {heart.numeral}
+          <span className="truncate max-w-[100px] sm:max-w-none">{heart.name} · {heart.numeral}</span>
         </span>
       )}
 
-      {/* Worn titles LAST, so the strip reads role → rank → what they chose.
-          Gold for the one they lead with, matching the profile rack exactly. */}
       {titles.map((t, i) => {
         const isBugDetective = t.toLowerCase() === "bug detective";
         if (isBugDetective) {
           return (
             <span
               key={t}
-              className={`inline-flex items-center gap-2 rounded-full ${
-                size === "md" ? "px-4 py-1.5 min-h-[34px]" : "px-2.5 py-1 min-h-[26px]"
+              className={`inline-flex max-w-full items-center gap-1.5 sm:gap-2 rounded-full ${
+                size === "md" ? "px-3.5 sm:px-4 py-1 sm:py-1.5 min-h-[30px] sm:min-h-[34px]" : "px-2 sm:px-2.5 py-0.5 sm:py-1 min-h-[22px] sm:min-h-[26px]"
               } font-black tracking-wider whitespace-nowrap border border-pink-400/40 bg-pink-950/20 backdrop-blur-md text-pink-100 shadow-[0_0_16px_rgba(244,63,94,0.25)] transition-all duration-200 hover:scale-105 hover:bg-pink-950/30 hover:border-pink-300/70 ${className}`}
               title="Bug Detective"
             >
               <img
                 src="/icons/bug-detective.png"
                 alt="Bug Detective Icon"
-                className={size === "md" ? "h-7 w-7 object-contain -my-1.5 shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" : "h-5 w-5 object-contain -my-1 shrink-0"}
+                className={size === "md" ? "h-6 w-6 sm:h-7 sm:w-7 object-contain -my-1.5 shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" : "h-4 w-4 sm:h-5 sm:w-5 object-contain -my-1 shrink-0"}
               />
               <img
                 src="/titles/bug-detective-wordmark.png"
                 alt="Bug Detective"
-                className={size === "md" ? "h-5 sm:h-5.5 object-contain drop-shadow-[0_0_10px_rgba(255,105,180,0.6)] drop-shadow-[0_0_20px_rgba(244,63,94,0.4)]" : "h-3.5 sm:h-4 object-contain drop-shadow-[0_0_8px_rgba(255,105,180,0.5)]"}
+                className={size === "md" ? "h-4 sm:h-5.5 max-w-[120px] sm:max-w-none object-contain drop-shadow-[0_0_10px_rgba(255,105,180,0.6)]" : "h-3 sm:h-4 max-w-[90px] sm:max-w-none object-contain drop-shadow-[0_0_8px_rgba(255,105,180,0.5)]"}
               />
             </span>
           );
@@ -378,17 +315,17 @@ export default function UserBadges({
           return (
             <span
               key={t}
-              className={`inline-flex items-center gap-2 rounded-full ${
-                size === "md" ? "px-4 py-1.5 min-h-[34px] text-xs" : "px-2.5 py-1 min-h-[26px] text-[10px]"
+              className={`inline-flex max-w-full items-center gap-1.5 sm:gap-2 rounded-full ${
+                size === "md" ? "px-3.5 sm:px-4 py-1 sm:py-1.5 min-h-[30px] sm:min-h-[34px] text-xs" : "px-2 sm:px-2.5 py-0.5 sm:py-1 min-h-[22px] sm:min-h-[26px] text-[9px] sm:text-[10px]"
               } font-black tracking-wider whitespace-nowrap border border-purple-400/60 bg-gradient-to-r from-[#200536]/60 via-[#380b5c]/50 to-[#1b042e]/60 backdrop-blur-md text-purple-100 shadow-[0_0_22px_rgba(168,85,247,0.5),0_0_40px_rgba(192,132,252,0.25)] transition-all duration-200 hover:scale-105 hover:border-purple-300 hover:shadow-[0_0_30px_rgba(168,85,247,0.7)] ${className}`}
               title="Lucifer,the fallen angel"
             >
               <img
                 src="/icons/lucifer-gojo.png"
                 alt="Lucifer, the fallen angel"
-                className={size === "md" ? "h-7 w-7 object-contain -my-1.5 shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" : "h-5 w-5 object-contain -my-1 shrink-0"}
+                className={size === "md" ? "h-6 w-6 sm:h-7 sm:w-7 object-contain -my-1.5 shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" : "h-4 w-4 sm:h-5 sm:w-5 object-contain -my-1 shrink-0"}
               />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#f3e8ff] via-[#d8b4fe] to-[#c084fc] drop-shadow-[0_0_12px_rgba(192,132,252,0.85)] font-black tracking-wider uppercase">
+              <span className="truncate max-w-[120px] sm:max-w-none text-transparent bg-clip-text bg-gradient-to-r from-[#f3e8ff] via-[#d8b4fe] to-[#c084fc] drop-shadow-[0_0_12px_rgba(192,132,252,0.85)] font-black tracking-wider uppercase">
                 Lucifer,the fallen angel
               </span>
             </span>
@@ -402,7 +339,8 @@ export default function UserBadges({
               : "border border-violet-400/35 bg-violet-500/15 text-violet-200"}`}
             title="Earned title"
           >
-            <Crown className={S.icon} /> {t}
+            <Crown className={S.icon} />
+            <span className="truncate max-w-[110px] sm:max-w-none">{t}</span>
           </span>
         );
       })}
