@@ -1,7 +1,37 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Moon, Sun, Lock, Unlock, Save, PlayCircle, EyeOff, Zap, Wifi, Key, User as UserIcon, Link as LinkIcon, Image as ImageIcon, Copy, Camera, UploadCloud, AlertCircle, RefreshCw, Database, Trash2, ShieldCheck, SlidersHorizontal, Music } from "lucide-react";
+import {
+  X,
+  Moon,
+  Sun,
+  Lock,
+  Unlock,
+  Save,
+  PlayCircle,
+  Eye,
+  EyeOff,
+  Zap,
+  Wifi,
+  Key,
+  User as UserIcon,
+  Link as LinkIcon,
+  Image as ImageIcon,
+  Copy,
+  Camera,
+  UploadCloud,
+  AlertCircle,
+  RefreshCw,
+  Database,
+  Trash2,
+  ShieldCheck,
+  SlidersHorizontal,
+  Music,
+  Check,
+  Sparkles,
+  ChevronRight,
+  Info
+} from "lucide-react";
 import { validateProfileAudio } from "@/lib/profileAudio";
 import { useRouter } from "next/navigation";
 import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
@@ -30,11 +60,12 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
   const { preferences, updatePreference } = usePreferences();
   const { user: authUser, updateProfile, changeUsername } = useUser();
   const { batchSetStatus, wipeWatchlist } = useAnimeStatus();
-  
+  const router = useRouter();
+
   const user = initialUser || authUser;
 
   const [activeTab, setActiveTab] = useState<'profile' | 'account' | 'preferences' | 'integrations' | 'invites'>('profile');
-  
+
   // Profile State
   const [isPrivate, setIsPrivate] = useState(user?.isPrivate || false);
   const [bio, setBio] = useState(user?.bio || "");
@@ -43,26 +74,23 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
-  const [cropModalData, setCropModalData] = useState<{ src: string, isBanner: boolean, isGif?: boolean } | null>(null);
+  const [cropModalData, setCropModalData] = useState<{ src: string; isBanner: boolean; isGif?: boolean } | null>(null);
   const [bannerPos, setBannerPos] = useState<number>(user?.bannerPosition ?? 50);
   const [bannerStyle, setBannerStyle] = useState<string>(user?.bannerStyle || "full");
 
-  // Profile audio — one track that plays on the profile. Saved on its own
-  // (like the banner style) so it's independent of the Save Profile button.
+  // Profile Audio
   const [profileSong, setProfileSong] = useState<string>(user?.profileSong || "");
   const [savingSong, setSavingSong] = useState(false);
   const songCheck = validateProfileAudio(profileSong);
 
-  // ── Decoration & Title pickers — equip IN settings, like the reference.
-  // The server stays the authority: non-staff equips of unowned items are
-  // silently dropped there, and titles are re-derived from claimedSets.
-  const router = useRouter();
+  // Decoration & Title Pickers
   const staffUser = isAdmin(user) || isLeadDev(user);
   const ownedFrames: string[] = staffUser ? ALL_FRAME_IDS : (user?.purchasedFrames || []);
   const ownedEffects: string[] = staffUser ? ALL_EFFECT_IDS : (user?.purchasedEffects || []);
   const activeDecorLabel =
     [user?.activeFrame ? decorName(user.activeFrame) : null, user?.activeEffect ? decorName(user.activeEffect) : null]
-      .filter(Boolean).join("  ·  ") || "None";
+      .filter(Boolean)
+      .join("  ·  ") || "None";
   const [showDecorPicker, setShowDecorPicker] = useState(false);
   const [equipping, setEquipping] = useState(false);
 
@@ -74,6 +102,41 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
   const [titlesSel, setTitlesSel] = useState<string[]>([]);
   const [titlesLoaded, setTitlesLoaded] = useState(false);
   const [savingTitles, setSavingTitles] = useState(false);
+
+  // Account Security State
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPass, setShowCurrentPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  // Username Change
+  const [newUsername, setNewUsername] = useState("");
+  const [isChangingUsername, setIsChangingUsername] = useState(false);
+  const USERNAME_COST = 500;
+  const usernameIsFree = isLeadDev(user) || isAdmin(user) || (user?.usernameChanges || 0) === 0;
+
+  // Integrations State
+  const [anilistUsername, setAnilistUsername] = useState("");
+
+  // Invites State
+  const [invites, setInvites] = useState<any[]>([]);
+  const [isGeneratingInvite, setIsGeneratingInvite] = useState(false);
+  const [buyingInvite, setBuyingInvite] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const INVITE_COST = 1000;
+
+  // Danger Zone Confirmation
+  const [showWipeConfirm, setShowWipeConfirm] = useState(false);
+
+  useLockBodyScroll();
+
+  useEffect(() => {
+    if (activeTab === 'invites') {
+      fetchInvites();
+    }
+  }, [activeTab]);
 
   const equipDecor = async (patch: { activeFrame?: string | null; activeEffect?: string | null }) => {
     setEquipping(true);
@@ -221,40 +284,9 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
     }
   };
 
-  // Security State
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
-
-  // Username change: first is free, then it costs Arise Points (staff = free).
-  const [newUsername, setNewUsername] = useState("");
-  const [isChangingUsername, setIsChangingUsername] = useState(false);
-  const USERNAME_COST = 500;
-  const usernameIsFree = isLeadDev(user) || isAdmin(user) || (user?.usernameChanges || 0) === 0;
-
-  // Integrations State
-  const [anilistUsername, setAnilistUsername] = useState("");
-
-  // Invites State
-  const [invites, setInvites] = useState<any[]>([]);
-  const [isGeneratingInvite, setIsGeneratingInvite] = useState(false);
-  const [buyingInvite, setBuyingInvite] = useState(false);
-  const INVITE_COST = 1000;
-
-  useLockBodyScroll();
-
-  useEffect(() => {
-    if (activeTab === 'invites') {
-      fetchInvites();
-    }
-  }, [activeTab]);
-
   const fetchInvites = async () => {
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-      // Prefer the signed token (verified server-side); fall back to the raw id
-      // for pre-JWT sessions. The invite routes accept either.
       const token = localStorage.getItem("davinci_token");
       const res = await fetch(`${API_URL}/api/invites`, {
         headers: { Authorization: `Bearer ${token || user?.id}` }
@@ -317,8 +349,6 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
               window.dispatchEvent(new Event("davinci_user_updated"));
             } catch {}
           }
-          // The modal renders from the initialUser prop, so patch the parent too
-          // or the "you have N AP" line keeps showing the pre-purchase balance.
           onUpdate?.({ arisePoints: data.arisePoints });
         }
       } else {
@@ -335,10 +365,8 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
     setIsSaving(true);
     try {
       const payload: any = { isPrivate, bio };
-      // Fallback for standalone API save if updateProfile isn't available
       if (updateProfile) {
         const result: any = await updateProfile(payload);
-        // it resolves with { success: false } rather than throwing
         if (result && result.success === false) {
           toast(result.message || "Error saving profile", "error");
           return;
@@ -351,7 +379,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
           body: JSON.stringify(payload)
         });
       }
-      
+
       if (onUpdate) onUpdate(payload);
       toast("Profile saved successfully!", "success");
     } catch (err) {
@@ -421,31 +449,9 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
     }
   };
 
-  const handleMALSync = async () => {
-    if (!anilistUsername) return toast("Please enter a MyAnimeList username.", "error");
-    try {
-      const entries = await fetchUserMAL(anilistUsername);
-      if (!entries || entries.length === 0) throw new Error("Could not fetch data for this user or list is empty.");
-      
-      const entriesToSync = entries
-        .filter((entry: any) => entry.anime)
-        .map((entry: any) => ({ anime: entry.anime, status: "Watching" as AnimeUserStatus }));
-
-      if (entriesToSync.length === 0) {
-         toast("No entries found to import.", "error");
-         return;
-      }
-
-      await batchSetStatus(entriesToSync);
-      toast(`Successfully imported ${entriesToSync.length} anime!`, "success");
-    } catch (e: any) {
-      toast(e.message || "Failed to sync MAL", "error");
-    }
-  };
-
   const handleWipe = async () => {
-    if (!confirm("Are you sure you want to completely wipe your Da Vinci watchlist? This action cannot be undone.")) return;
     setIsSaving(true);
+    setShowWipeConfirm(false);
     try {
       await wipeWatchlist();
       toast("Watchlist completely wiped.", "success");
@@ -461,7 +467,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
     const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
     if (!CLOUD_NAME || !UPLOAD_PRESET) {
-      return toast("Missing Cloudinary environment variables!", "error");
+      return toast("Missing Cloudinary configuration in .env.local", "error");
     }
 
     if (isBanner) setUploadingBanner(true);
@@ -486,7 +492,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
         } else if (isGif) {
           finalUrl = finalUrl.replace(/\.[^/.]+$/, ".gif");
         }
-        
+
         if (updateProfile) {
           if (isBanner) await updateProfile({ bannerUrl: finalUrl });
           else await updateProfile({ avatar: finalUrl });
@@ -511,7 +517,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
 
     e.target.value = '';
     const isGif = file.type === 'image/gif';
-    
+
     if (isGif) {
       const isUserAdmin = isAdmin(user);
       if (!isUserAdmin && (user?.arisePoints || 0) < 500) {
@@ -519,14 +525,11 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
       }
     }
 
-    // Banners are shown as a full-width cover strip, so cropping here would only
-    // get re-cropped by the cover and never match the preview. Upload as-is.
     if (isBanner) {
       handleImageUpload(file, true, isGif);
       return;
     }
 
-    // Avatars still use the circular cropper.
     const reader = new FileReader();
     reader.onload = () => {
       setCropModalData({ src: reader.result as string, isBanner, isGif });
@@ -538,7 +541,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
     if (!cropModalData) return;
     const { src, isBanner, isGif } = cropModalData;
     setCropModalData(null);
-    
+
     try {
       if (isGif) {
         const response = await fetch(src);
@@ -555,6 +558,14 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
     }
   };
 
+  const tabs = [
+    { key: "profile", label: "Profile", Icon: UserIcon },
+    { key: "account", label: "Account", Icon: ShieldCheck },
+    { key: "preferences", label: "Preferences", Icon: SlidersHorizontal },
+    { key: "integrations", label: "Integrations", Icon: Database },
+    { key: "invites", label: "Invite Keys", Icon: Key },
+  ] as const;
+
   return (
     <>
       <AnimatePresence>
@@ -562,242 +573,315 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] bg-[#070709]"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-0 sm:p-4 backdrop-blur-xl"
         >
-          {/* The Lunar top glow — same radial as the hub and updates pages. */}
+          {/* Ambient top light */}
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 h-[400px] bg-[radial-gradient(ellipse_50%_80%_at_50%_-20%,rgba(139,92,246,0.22),transparent_70%)]"
+            className="pointer-events-none absolute inset-x-0 top-0 h-[450px] bg-[radial-gradient(ellipse_60%_80%_at_50%_-20%,rgba(139,92,246,0.28),transparent_75%)]"
           />
-          {/* Full-screen, page-like — the reference's edit view, not a dialog. */}
-          <motion.div
-            initial={{ scale: 0.98, opacity: 0, y: 12 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.98, opacity: 0, y: 12 }}
-            onClick={e => e.stopPropagation()}
-            className="relative mx-auto flex h-full w-full max-w-6xl flex-col overflow-hidden md:flex-row"
-          >
-            <button
-              onClick={onClose}
-              className="absolute right-4 top-4 z-20 rounded-full bg-white/5 p-2 text-slate-500 transition hover:bg-white/10 hover:text-white"
-            >
-              <X className="h-5 w-5" />
-            </button>
 
-            {/* ── Sidebar nav — five cramped pills on one scrolling row made it
-                   easy to miss whole sections; icons + labels down the side are
-                   scannable. Collapses to a horizontal rail on mobile. ── */}
-            <aside className="shrink-0 border-b border-white/10 bg-white/[0.02] p-4 md:w-56 md:border-b-0 md:border-r md:p-5">
-              <h2 className="mb-4 pr-10 font-fell text-2xl text-white md:mb-5">Settings</h2>
-              <nav className="flex gap-1.5 overflow-x-auto scrollbar-none md:flex-col md:overflow-visible">
-                {([
-                  { key: "profile", label: "Profile", Icon: UserIcon },
-                  { key: "account", label: "Account", Icon: ShieldCheck },
-                  { key: "preferences", label: "Preferences", Icon: SlidersHorizontal },
-                  { key: "integrations", label: "Integrations", Icon: Database },
-                  { key: "invites", label: "Invite Keys", Icon: Key },
-                ] as const).map(({ key, label, Icon }) => (
-                  <button
-                    key={key}
-                    onClick={() => setActiveTab(key)}
-                    className={`flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-xl border px-3.5 py-2.5 font-mono text-xs font-bold transition-colors md:w-full ${
-                      activeTab === key
-                        ? "border-violet-400/40 bg-violet-500/15 text-violet-200"
-                        : "border-transparent text-slate-400 hover:bg-white/5 hover:text-white"
-                    }`}
-                  >
-                    <Icon className="h-4 w-4 shrink-0" />
-                    {label}
-                  </button>
-                ))}
-              </nav>
+          {/* Modal Container */}
+          <motion.div
+            initial={{ scale: 0.96, opacity: 0, y: 15 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.96, opacity: 0, y: 15 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            onClick={e => e.stopPropagation()}
+            className="relative flex h-full w-full max-w-5xl flex-col overflow-hidden bg-[#070709] border border-white/10 sm:h-[90vh] sm:rounded-3xl sm:shadow-2xl md:flex-row"
+          >
+            {/* ══ MOBILE HEADER ══ */}
+            <div className="flex shrink-0 items-center justify-between border-b border-white/10 bg-[#0c0c14] px-4 py-3.5 md:hidden">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-violet-500/15 text-violet-400 border border-violet-500/30">
+                  <SlidersHorizontal className="h-4 w-4" />
+                </div>
+                <span className="font-fell text-lg font-bold uppercase tracking-wider text-white">Settings</span>
+              </div>
+              <button
+                onClick={onClose}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-slate-300 transition hover:bg-white/20 hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* ══ DESKTOP SIDEBAR / MOBILE NAV RAIL ══ */}
+            <aside className="shrink-0 border-b border-white/10 bg-[#0a0a10]/80 p-2.5 sm:p-3 md:w-60 md:border-b-0 md:border-r md:p-5 flex flex-col justify-between">
+              <div>
+                <div className="hidden md:flex items-center justify-between mb-6 pb-2 border-b border-white/5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/20 text-violet-300 border border-violet-400/30 shadow-[0_0_15px_rgba(139,92,246,0.2)]">
+                      <SlidersHorizontal className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h2 className="font-fell text-xl font-bold uppercase tracking-wider text-white">Settings</h2>
+                      <p className="text-[10px] font-mono text-slate-500">Preferences & Profile</p>
+                    </div>
+                  </div>
+                </div>
+
+                <nav className="flex gap-1.5 overflow-x-auto scrollbar-none pb-1 md:flex-col md:overflow-visible md:pb-0">
+                  {tabs.map(({ key, label, Icon }) => {
+                    const active = activeTab === key;
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => setActiveTab(key)}
+                        className={`group relative flex shrink-0 items-center gap-2.5 rounded-xl px-3.5 py-2.5 font-mono text-xs font-bold transition-all md:w-full ${
+                          active
+                            ? "bg-violet-600/20 text-violet-200 border border-violet-500/40 shadow-[0_0_15px_rgba(139,92,246,0.15)]"
+                            : "border border-transparent text-slate-400 hover:bg-white/[0.04] hover:text-slate-200"
+                        }`}
+                      >
+                        <Icon className={`h-4 w-4 shrink-0 transition-transform group-hover:scale-110 ${active ? "text-violet-400" : "text-slate-500"}`} />
+                        <span className="truncate">{label}</span>
+                        {active && (
+                          <span className="hidden md:block absolute right-3 h-1.5 w-1.5 rounded-full bg-violet-400 shadow-[0_0_8px_rgba(167,139,250,1)]" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </nav>
+              </div>
+
+              {/* User Quick Info in Sidebar Footer (Desktop) */}
+              <div className="hidden md:block pt-4 border-t border-white/10 mt-auto">
+                <div className="flex items-center gap-3 rounded-2xl bg-white/[0.03] p-2.5 border border-white/5">
+                  <div className="relative h-9 w-9 shrink-0">
+                    {user?.avatar ? (
+                      <img src={user.avatar} alt="" className="h-full w-full rounded-full object-cover ring-1 ring-white/20" />
+                    ) : (
+                      <div className="grid h-full w-full place-items-center rounded-full bg-violet-700 text-xs font-bold text-white">
+                        {(user?.username || "U")[0]?.toUpperCase()}
+                      </div>
+                    )}
+                    <AvatarDecoration frame={user?.activeFrame} effect={user?.activeEffect} size="sm" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-bold text-white">{user?.username || "User"}</p>
+                    <p className="text-[10px] font-mono text-violet-400">{(user?.arisePoints || 0).toLocaleString()} AP</p>
+                  </div>
+                </div>
+              </div>
             </aside>
 
-            {/* Scrollable Content Area */}
-            <div className="min-w-0 flex-1 space-y-6 overflow-y-auto p-5 scrollbar-thin scrollbar-thumb-white/10 sm:p-6">
-              
-              {activeTab === 'profile' && (
-                <div className="space-y-5 font-mono animate-in fade-in slide-in-from-bottom-2">
-                  {!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME && (
-                    <div className="bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 p-4 rounded-xl mb-4 flex items-start gap-3">
-                      <AlertCircle className="w-6 h-6 flex-shrink-0" />
-                      <p className="text-sm">
-                        <strong>Missing Cloudinary Config:</strong> To upload avatars, you must add <code className="bg-black/30 px-1 rounded">NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME</code> and <code className="bg-black/30 px-1 rounded">NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET</code> to your .env.local file!
-                      </p>
-                    </div>
-                  )}
+            {/* Close Button Desktop */}
+            <button
+              onClick={onClose}
+              title="Close Settings (Esc)"
+              className="hidden md:flex absolute right-5 top-5 z-30 h-9 w-9 items-center justify-center rounded-full bg-white/5 border border-white/10 text-slate-400 transition hover:bg-white/15 hover:text-white hover:scale-105"
+            >
+              <X className="h-4 w-4" />
+            </button>
 
-                  {/* Live previews — the old dashed boxes never showed what you
-                      currently HAVE, so you couldn't tell if an upload landed. */}
-                  <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0b0b11]">
+            {/* ══ SCROLLABLE CONTENT BODY ══ */}
+            <div className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 scrollbar-thin scrollbar-thumb-white/10 pb-32 sm:pb-12">
+              
+              {/* ──────────────── TAB: PROFILE ──────────────── */}
+              {activeTab === 'profile' && (
+                <div className="space-y-6 animate-in fade-in duration-200">
+                  
+                  {/* Hero Identity Banner & Avatar Card */}
+                  <div className="overflow-hidden rounded-2xl sm:rounded-3xl border border-white/10 bg-[#0c0c14] shadow-xl relative">
                     <input type="file" accept="image/*" className="hidden" ref={bannerInputRef} onChange={(e) => handleFileSelect(e, true)} />
                     <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={(e) => handleFileSelect(e, false)} />
 
-                    <button
-                      onClick={() => bannerInputRef.current?.click()}
-                      disabled={uploadingBanner}
-                      title="Change banner"
-                      className="group relative block h-28 w-full overflow-hidden disabled:opacity-60"
-                    >
+                    {/* Banner Strip */}
+                    <div className="relative h-32 sm:h-40 w-full overflow-hidden bg-gradient-to-r from-violet-900/40 via-purple-900/30 to-[#0c0c14]">
                       {user?.bannerUrl ? (
                         <img
                           src={user.bannerUrl}
-                          alt=""
+                          alt="Profile Banner"
                           style={{ objectPosition: `center ${bannerPos}%` }}
                           className="h-full w-full object-cover"
                         />
                       ) : (
-                        <div className="h-full w-full bg-gradient-to-br from-violet-600/40 to-fuchsia-600/25" />
+                        <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-violet-800/30 via-[#0c0c14] to-black" />
                       )}
-                      <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/45 text-sm font-bold text-white opacity-0 transition group-hover:opacity-100">
-                        {uploadingBanner ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
-                        {uploadingBanner ? "Uploading…" : user?.bannerUrl ? "Change banner" : "Add a banner"}
-                      </div>
-                    </button>
 
-                    <div className="flex items-end gap-4 px-4 pb-4">
                       <button
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={uploadingImage}
-                        title="Change avatar"
-                        className="group relative -mt-9 h-20 w-20 shrink-0 overflow-hidden rounded-full border-4 border-[#0b0b11] bg-[#141418] disabled:opacity-60"
+                        onClick={() => bannerInputRef.current?.click()}
+                        disabled={uploadingBanner}
+                        className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur-md px-3 py-1.5 text-xs font-mono font-bold text-white border border-white/20 shadow-lg hover:bg-black/80 hover:border-violet-400/50 transition disabled:opacity-50"
                       >
-                        {user?.avatar ? (
-                          <img src={user.avatar} alt="" className="h-full w-full object-cover" />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-violet-500 to-fuchsia-600 text-2xl font-black text-white">
-                            {(user?.username || "U").charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/55 opacity-0 transition group-hover:opacity-100">
-                          {uploadingImage ? <RefreshCw className="h-5 w-5 animate-spin text-white" /> : <Camera className="h-5 w-5 text-white" />}
-                        </div>
+                        {uploadingBanner ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5 text-violet-300" />}
+                        <span>{uploadingBanner ? "Uploading…" : user?.bannerUrl ? "Change Banner" : "Add Banner"}</span>
                       </button>
-                      <div className="min-w-0 pb-1">
-                        <p className="truncate text-sm font-bold text-white">{user?.username || "your name"}</p>
-                        <p className="text-xs text-slate-500">Click the avatar or banner to change it.</p>
+                    </div>
+
+                    {/* Avatar & User Details */}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 p-4 sm:p-6 -mt-12 sm:-mt-14 relative z-10">
+                      <div className="flex items-end gap-3.5 sm:gap-4">
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={uploadingImage}
+                          title="Change Avatar"
+                          className="group relative h-20 w-20 sm:h-24 sm:w-24 shrink-0 rounded-full border-4 border-[#0c0c14] bg-[#141418] shadow-2xl overflow-hidden disabled:opacity-60"
+                        >
+                          {user?.avatar ? (
+                            <img src={user.avatar} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-violet-600 to-purple-800 text-2xl sm:text-3xl font-black text-white">
+                              {(user?.username || "U").charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 transition group-hover:opacity-100 backdrop-blur-xs">
+                            {uploadingImage ? <RefreshCw className="h-5 w-5 animate-spin text-white" /> : <Camera className="h-5 w-5 text-white" />}
+                          </div>
+                          <AvatarDecoration frame={user?.activeFrame} effect={user?.activeEffect} size="md" />
+                        </button>
+
+                        <div className="min-w-0 pb-1">
+                          <h3 className="truncate font-fell text-xl sm:text-2xl font-bold uppercase tracking-wider text-white">
+                            {user?.username || "Your Name"}
+                          </h3>
+                          <p className="text-[11px] font-mono text-slate-400">Click avatar or banner above to change imagery.</p>
+                        </div>
                       </div>
+
+                      {/* Primary Save Button */}
+                      <button
+                        onClick={handleSaveProfile}
+                        disabled={isSaving}
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl border border-violet-400/40 bg-gradient-to-r from-violet-600 to-purple-600 px-6 py-2.5 font-mono text-xs font-bold text-white shadow-[0_0_20px_rgba(139,92,246,0.3)] transition hover:brightness-110 hover:scale-[1.02] disabled:opacity-50"
+                      >
+                        {isSaving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        <span>{isSaving ? "Saving…" : "Save Changes"}</span>
+                      </button>
                     </div>
                   </div>
 
+                  {/* Banner Controls & Styling */}
                   {user?.bannerUrl && (
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Banner Style</label>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => saveBannerStyle("full")}
-                          className={`flex-1 px-4 py-3 rounded-xl font-bold text-sm border transition ${bannerStyle !== "cover" ? "border-violet-400/40 bg-violet-500/15 text-violet-200" : "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10"}`}
-                        >
-                          Full screen
-                        </button>
-                        <button
-                          onClick={() => saveBannerStyle("cover")}
-                          className={`flex-1 px-4 py-3 rounded-xl font-bold text-sm border transition ${bannerStyle === "cover" ? "border-violet-400/40 bg-violet-500/15 text-violet-200" : "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10"}`}
-                        >
-                          Cover header
-                        </button>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-2xl border border-white/10 bg-[#0c0c14] p-4 sm:p-5">
+                      {/* Banner Mode */}
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-400">Banner Display Mode</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => saveBannerStyle("full")}
+                            className={`px-3 py-2.5 rounded-xl font-mono text-xs font-bold border transition ${
+                              bannerStyle !== "cover"
+                                ? "border-violet-400/50 bg-violet-500/20 text-violet-200 shadow-[0_0_12px_rgba(139,92,246,0.2)]"
+                                : "bg-white/[0.03] border-white/10 text-slate-400 hover:bg-white/5 hover:text-white"
+                            }`}
+                          >
+                            Full Screen
+                          </button>
+                          <button
+                            onClick={() => saveBannerStyle("cover")}
+                            className={`px-3 py-2.5 rounded-xl font-mono text-xs font-bold border transition ${
+                              bannerStyle === "cover"
+                                ? "border-violet-400/50 bg-violet-500/20 text-violet-200 shadow-[0_0_12px_rgba(139,92,246,0.2)]"
+                                : "bg-white/[0.03] border-white/10 text-slate-400 hover:bg-white/5 hover:text-white"
+                            }`}
+                          >
+                            Cover Header
+                          </button>
+                        </div>
+                        <p className="text-[10px] text-slate-500 font-mono">Full screen fills background; cover header keeps it on top.</p>
                       </div>
-                      <p className="text-xs text-slate-500">Full screen fills the whole background; cover shows it as a header strip.</p>
-                    </div>
-                  )}
 
-                  {user?.bannerUrl && (
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Reposition Banner</label>
-                      <div className="relative w-full h-24 rounded-xl overflow-hidden border border-white/10 bg-[#141414]">
-                        <img
-                          src={user.bannerUrl}
-                          alt="Banner preview"
-                          style={{ objectPosition: `center ${bannerPos}%` }}
-                          className="w-full h-full object-cover"
+                      {/* Reposition Banner Slider */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-400">Banner Vertical Offset</label>
+                          <span className="text-[10px] font-mono text-violet-300">{bannerPos}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          value={bannerPos}
+                          onChange={e => setBannerPos(Number(e.target.value))}
+                          onMouseUp={() => { updateProfile({ bannerPosition: bannerPos } as any); onUpdate?.({ bannerPosition: bannerPos }); }}
+                          onTouchEnd={() => { updateProfile({ bannerPosition: bannerPos } as any); onUpdate?.({ bannerPosition: bannerPos }); }}
+                          className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-violet-500"
                         />
-                        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[#0b0b0f] to-transparent" />
+                        <p className="text-[10px] text-slate-500 font-mono">Drag slider to center key art in the profile header.</p>
                       </div>
-                      <input
-                        type="range"
-                        min={0}
-                        max={100}
-                        value={bannerPos}
-                        onChange={e => setBannerPos(Number(e.target.value))}
-                        onMouseUp={() => { updateProfile({ bannerPosition: bannerPos } as any); onUpdate?.({ bannerPosition: bannerPos }); }}
-                        onTouchEnd={() => { updateProfile({ bannerPosition: bannerPos } as any); onUpdate?.({ bannerPosition: bannerPos }); }}
-                        onKeyUp={() => { updateProfile({ bannerPosition: bannerPos } as any); onUpdate?.({ bannerPosition: bannerPos }); }}
-                        onBlur={() => { updateProfile({ bannerPosition: bannerPos } as any); onUpdate?.({ bannerPosition: bannerPos }); }}
-                        className="w-full accent-violet-500 cursor-pointer"
-                      />
-                      <p className="text-xs text-slate-500">Drag to choose which part of the banner shows in the cover.</p>
                     </div>
                   )}
 
-                  <div className="grid gap-5 md:grid-cols-2">
-                    {/* Edit Profile — identity, plus who can see the profile */}
-                    <div className="space-y-4 rounded-2xl border border-white/10 bg-[#0b0b11] p-5">
-                      <h3 className="text-base font-bold text-white">Edit Profile</h3>
+                  {/* 2-Column Customization Grid */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
+                    
+                    {/* Left Column: Identity & Badges */}
+                    <div className="space-y-4 rounded-2xl sm:rounded-3xl border border-white/10 bg-[#0c0c14] p-4 sm:p-6">
+                      <div className="flex items-center gap-2 border-b border-white/10 pb-3">
+                        <Sparkles className="h-4 w-4 text-violet-400" />
+                        <h4 className="font-fell text-base font-bold uppercase tracking-wider text-white">Identity &amp; Titles</h4>
+                      </div>
 
+                      {/* Username input */}
                       <div className="space-y-1.5">
-                        <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Username</label>
+                        <label className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-400">Username</label>
                         <div className="flex gap-2">
                           <input
                             value={newUsername}
                             onChange={e => setNewUsername(e.target.value)}
                             placeholder={user?.username || "username"}
                             maxLength={20}
-                            className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-white placeholder:text-slate-600 focus:border-violet-400/50 focus:outline-none"
+                            className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 font-mono text-xs text-white placeholder:text-slate-600 focus:border-violet-400/50 focus:outline-none"
                           />
                           <button
                             onClick={handleChangeUsername}
                             disabled={isChangingUsername || !newUsername.trim()}
-                            className="shrink-0 rounded-xl border border-violet-400/30 bg-violet-500/15 px-3 py-2.5 font-mono text-xs font-bold text-violet-200 transition hover:border-violet-400/60 hover:bg-violet-500/25 disabled:opacity-40"
+                            className="shrink-0 rounded-xl border border-violet-400/40 bg-violet-500/20 px-4 py-2.5 font-mono text-xs font-bold text-violet-200 transition hover:bg-violet-500/30 disabled:opacity-40"
                           >
-                            {isChangingUsername ? "…" : "Save"}
+                            {isChangingUsername ? "…" : "Change"}
                           </button>
                         </div>
-                        <p className="text-[11px] text-slate-500">
+                        <p className="text-[10px] font-mono text-slate-500">
                           {usernameIsFree ? "Your first change is free." : `Changing again costs ${USERNAME_COST} AP.`}
                         </p>
                       </div>
 
-                      <div className="space-y-1.5">
+                      {/* Avatar Decoration Equipper */}
+                      <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Decoration</label>
+                          <label className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-400">Avatar Decoration</label>
                           <button
                             onClick={() => setShowDecorPicker(v => !v)}
-                            className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-bold text-slate-200 transition hover:bg-white/10"
+                            className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-mono font-bold text-slate-200 transition hover:bg-white/10"
                           >
-                            {showDecorPicker ? "Close" : "Change Decoration"}
+                            {showDecorPicker ? "Close Picker" : "Select Frame / FX"}
                           </button>
                         </div>
-                        <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/30 p-3">
-                          <div className="relative h-11 w-11 shrink-0">
+
+                        <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/40 p-3">
+                          <div className="relative h-10 w-10 shrink-0">
                             {user?.avatar ? (
-                              <img src={user.avatar} alt="" className="relative z-10 h-full w-full rounded-full object-cover" />
+                              <img src={user.avatar} alt="" className="h-full w-full rounded-full object-cover ring-1 ring-white/10" />
                             ) : (
-                              <div className="relative z-10 grid h-full w-full place-items-center rounded-full bg-violet-600 text-sm font-black text-white">
-                                {(user?.username || "U").charAt(0).toUpperCase()}
+                              <div className="grid h-full w-full place-items-center rounded-full bg-violet-700 text-xs font-bold text-white">
+                                {(user?.username || "U")[0]?.toUpperCase()}
                               </div>
                             )}
                             <AvatarDecoration frame={user?.activeFrame} effect={user?.activeEffect} size="sm" />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-xs text-white">Current: {activeDecorLabel}</p>
-                            <p className="text-[11px] text-slate-500">{showDecorPicker ? "Tap one below to wear it." : "Click the button to change."}</p>
+                            <p className="truncate text-xs font-bold text-white">{activeDecorLabel}</p>
+                            <p className="text-[10px] font-mono text-slate-500">{showDecorPicker ? "Pick item below" : "Equipped cosmetic"}</p>
                           </div>
                         </div>
 
                         {showDecorPicker && (
-                          <div className="space-y-3 rounded-xl border border-white/10 bg-black/30 p-3">
+                          <div className="space-y-4 rounded-xl border border-white/10 bg-black/60 p-3.5">
+                            {/* Frames */}
                             <div>
-                              <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Frames</p>
+                              <p className="mb-2 text-[10px] font-mono font-black uppercase tracking-wider text-slate-400">Avatar Frames</p>
                               <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                                 <button
                                   onClick={() => equipDecor({ activeFrame: null })}
                                   disabled={equipping}
-                                  className={`flex flex-col items-center gap-1.5 rounded-xl border p-2 transition disabled:opacity-50 ${!user?.activeFrame ? "border-violet-400/60 bg-violet-500/10" : "border-white/10 bg-[#0b0b11] hover:bg-white/[0.07]"}`}
+                                  className={`flex flex-col items-center gap-1 rounded-xl border p-2 transition disabled:opacity-50 ${!user?.activeFrame ? "border-violet-400/60 bg-violet-500/15 text-violet-200" : "border-white/10 bg-[#0c0c14] text-slate-400 hover:bg-white/5"}`}
                                 >
-                                  <div className="grid h-11 w-11 place-items-center rounded-full border border-dashed border-white/20 text-slate-500">
-                                    <X className="h-4 w-4" />
+                                  <div className="grid h-9 w-9 place-items-center rounded-full border border-dashed border-white/20 text-slate-500">
+                                    <X className="h-3.5 w-3.5" />
                                   </div>
-                                  <span className="w-full truncate text-center text-[10px] text-slate-300">None</span>
+                                  <span className="w-full truncate text-center text-[9px] font-mono">None</span>
                                 </button>
                                 {ownedFrames.map(id => (
                                   <button
@@ -805,36 +889,37 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                                     onClick={() => equipDecor({ activeFrame: id })}
                                     disabled={equipping}
                                     title={decorName(id)}
-                                    className={`flex flex-col items-center gap-1.5 rounded-xl border p-2 transition disabled:opacity-50 ${user?.activeFrame === id ? "border-violet-400/60 bg-violet-500/10" : "border-white/10 bg-[#0b0b11] hover:bg-white/[0.07]"}`}
+                                    className={`flex flex-col items-center gap-1 rounded-xl border p-2 transition disabled:opacity-50 ${user?.activeFrame === id ? "border-violet-400/60 bg-violet-500/15 text-violet-200" : "border-white/10 bg-[#0c0c14] text-slate-400 hover:bg-white/5"}`}
                                   >
-                                    <div className="relative h-11 w-11">
+                                    <div className="relative h-9 w-9">
                                       {user?.avatar ? (
-                                        <img src={user.avatar} alt="" className="relative z-10 h-full w-full rounded-full object-cover" />
+                                        <img src={user.avatar} alt="" className="h-full w-full rounded-full object-cover" />
                                       ) : (
-                                        <div className="relative z-10 grid h-full w-full place-items-center rounded-full bg-violet-600 text-sm font-black text-white">
-                                          {(user?.username || "U").charAt(0).toUpperCase()}
+                                        <div className="grid h-full w-full place-items-center rounded-full bg-violet-700 text-xs font-bold text-white">
+                                          {(user?.username || "U")[0]?.toUpperCase()}
                                         </div>
                                       )}
                                       <AvatarDecoration frame={id} size="sm" />
                                     </div>
-                                    <span className="w-full truncate text-center text-[10px] text-slate-300">{decorName(id)}</span>
+                                    <span className="w-full truncate text-center text-[9px] font-mono">{decorName(id)}</span>
                                   </button>
                                 ))}
                               </div>
                             </div>
 
+                            {/* Effects */}
                             <div>
-                              <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Profile Effects</p>
+                              <p className="mb-2 text-[10px] font-mono font-black uppercase tracking-wider text-slate-400">Profile Auras &amp; FX</p>
                               <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                                 <button
                                   onClick={() => equipDecor({ activeEffect: null })}
                                   disabled={equipping}
-                                  className={`flex flex-col items-center gap-1.5 rounded-xl border p-2 transition disabled:opacity-50 ${!user?.activeEffect ? "border-violet-400/60 bg-violet-500/10" : "border-white/10 bg-[#0b0b11] hover:bg-white/[0.07]"}`}
+                                  className={`flex flex-col items-center gap-1 rounded-xl border p-2 transition disabled:opacity-50 ${!user?.activeEffect ? "border-violet-400/60 bg-violet-500/15 text-violet-200" : "border-white/10 bg-[#0c0c14] text-slate-400 hover:bg-white/5"}`}
                                 >
-                                  <div className="grid h-11 w-11 place-items-center rounded-full border border-dashed border-white/20 text-slate-500">
-                                    <X className="h-4 w-4" />
+                                  <div className="grid h-9 w-9 place-items-center rounded-full border border-dashed border-white/20 text-slate-500">
+                                    <X className="h-3.5 w-3.5" />
                                   </div>
-                                  <span className="w-full truncate text-center text-[10px] text-slate-300">None</span>
+                                  <span className="w-full truncate text-center text-[9px] font-mono">None</span>
                                 </button>
                                 {ownedEffects.map(id => (
                                   <button
@@ -842,19 +927,19 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                                     onClick={() => equipDecor({ activeEffect: id })}
                                     disabled={equipping}
                                     title={decorName(id)}
-                                    className={`flex flex-col items-center gap-1.5 rounded-xl border p-2 transition disabled:opacity-50 ${user?.activeEffect === id ? "border-violet-400/60 bg-violet-500/10" : "border-white/10 bg-[#0b0b11] hover:bg-white/[0.07]"}`}
+                                    className={`flex flex-col items-center gap-1 rounded-xl border p-2 transition disabled:opacity-50 ${user?.activeEffect === id ? "border-violet-400/60 bg-violet-500/15 text-violet-200" : "border-white/10 bg-[#0c0c14] text-slate-400 hover:bg-white/5"}`}
                                   >
-                                    <div className="relative h-11 w-11">
+                                    <div className="relative h-9 w-9">
                                       {user?.avatar ? (
-                                        <img src={user.avatar} alt="" className="relative z-10 h-full w-full rounded-full object-cover" />
+                                        <img src={user.avatar} alt="" className="h-full w-full rounded-full object-cover" />
                                       ) : (
-                                        <div className="relative z-10 grid h-full w-full place-items-center rounded-full bg-violet-600 text-sm font-black text-white">
-                                          {(user?.username || "U").charAt(0).toUpperCase()}
+                                        <div className="grid h-full w-full place-items-center rounded-full bg-violet-700 text-xs font-bold text-white">
+                                          {(user?.username || "U")[0]?.toUpperCase()}
                                         </div>
                                       )}
                                       <AvatarDecoration effect={id} size="sm" />
                                     </div>
-                                    <span className="w-full truncate text-center text-[10px] text-slate-300">{decorName(id)}</span>
+                                    <span className="w-full truncate text-center text-[9px] font-mono">{decorName(id)}</span>
                                   </button>
                                 ))}
                               </div>
@@ -862,78 +947,80 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
 
                             <button
                               onClick={() => { onClose(); router.push("/shop"); }}
-                              className="w-full rounded-lg border border-white/10 bg-white/5 py-2 text-[11px] font-bold text-slate-300 transition hover:bg-white/10"
+                              className="w-full rounded-xl border border-violet-400/20 bg-violet-600/10 py-2 font-mono text-[11px] font-bold text-violet-300 transition hover:bg-violet-600/20"
                             >
-                              Get more in the Shop →
+                              Explore Shop for more FX →
                             </button>
                           </div>
                         )}
                       </div>
 
-                      <div className="space-y-1.5">
+                      {/* Title Selector */}
+                      <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Title</label>
+                          <label className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-400">Card Titles</label>
                           <div className="flex items-center gap-2">
                             {currentTitle !== "None" && (
                               <button
                                 onClick={removeTitle}
                                 disabled={savingTitles}
-                                className="rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-[11px] font-bold text-red-300 transition hover:bg-red-500/20 disabled:opacity-40"
+                                className="rounded-lg border border-red-500/30 bg-red-500/10 px-2 py-1 text-[10px] font-mono font-bold text-red-300 transition hover:bg-red-500/20 disabled:opacity-40"
                               >
                                 Remove
                               </button>
                             )}
                             <button
                               onClick={toggleTitlePicker}
-                              className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-bold text-slate-200 transition hover:bg-white/10"
+                              className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-mono font-bold text-slate-200 transition hover:bg-white/10"
                             >
-                              {showTitlePicker ? "Close" : "Change Title"}
+                              {showTitlePicker ? "Close" : "Change Titles"}
                             </button>
                           </div>
                         </div>
-                        <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-                          <p className="text-[11px] text-slate-500">Current Title:</p>
-                          <div className="truncate text-sm font-bold text-white mt-1">
+
+                        <div className="rounded-xl border border-white/10 bg-black/40 p-3">
+                          <p className="text-[10px] font-mono text-slate-500">Current Equipped Title:</p>
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5">
                             {currentTitle.toLowerCase() === "bug detective" ? (
-                              <span className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 border border-pink-400/40 bg-pink-950/20 backdrop-blur-md text-pink-100 shadow-[0_0_15px_rgba(244,63,94,0.25)]">
-                                <img src="/icons/bug-detective.png" alt="Bug Detective Icon" className="h-6 w-6 object-contain shrink-0 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
-                                <img src="/titles/bug-detective-wordmark.png" alt="Bug Detective" className="h-4.5 object-contain drop-shadow-[0_0_8px_rgba(255,105,180,0.5)]" />
+                              <span className="inline-flex items-center gap-2 rounded-full px-3 py-1 border border-pink-400/40 bg-pink-950/30 text-pink-100 shadow-[0_0_12px_rgba(244,63,94,0.25)]">
+                                <img src="/icons/bug-detective.png" alt="Bug Detective" className="h-5 w-5 object-contain shrink-0" />
+                                <img src="/titles/bug-detective-wordmark.png" alt="Bug Detective" className="h-4 object-contain" />
                               </span>
                             ) : currentTitle.toLowerCase().includes("lucifer") || currentTitle.toLowerCase().includes("fallen angel") ? (
-                              <span className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 border border-purple-400/60 bg-gradient-to-r from-[#200536]/60 via-[#380b5c]/50 to-[#1b042e]/60 backdrop-blur-md text-purple-100 shadow-[0_0_18px_rgba(168,85,247,0.4)]">
-                                <img src="/icons/lucifer-gojo.png" alt="Lucifer, the fallen angel" className="h-6 w-6 object-contain shrink-0 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
-                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#f3e8ff] via-[#d8b4fe] to-[#c084fc] drop-shadow-[0_0_10px_rgba(192,132,252,0.85)] font-black tracking-wider uppercase">
+                              <span className="inline-flex items-center gap-2 rounded-full px-3.5 py-1 border border-purple-400/60 bg-purple-950/40 text-purple-100 shadow-[0_0_15px_rgba(168,85,247,0.35)]">
+                                <img src="/icons/lucifer-gojo.png" alt="Lucifer" className="h-5 w-5 object-contain shrink-0" />
+                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#f3e8ff] via-[#d8b4fe] to-[#c084fc] font-black font-mono text-xs tracking-wider uppercase">
                                   Lucifer,the fallen angel
                                 </span>
                               </span>
                             ) : (
-                              currentTitle
+                              <span className="font-mono text-xs font-bold text-amber-200">{currentTitle}</span>
                             )}
                           </div>
-                          <p className="mt-1 text-[11px] text-slate-500">
-                            {wornTitles.length > 1 ? `+ ${wornTitles.length - 1} more worn` : "Earned by completing card sets."}
-                          </p>
+                          {wornTitles.length > 1 && (
+                            <p className="mt-1 text-[10px] font-mono text-slate-500">+{wornTitles.length - 1} more worn in badges</p>
+                          )}
                         </div>
 
                         {showTitlePicker && (
-                          <div className="space-y-3 rounded-xl border border-white/10 bg-black/30 p-3">
+                          <div className="space-y-3 rounded-xl border border-white/10 bg-black/60 p-3.5">
                             {!titlesLoaded ? (
-                              <p className="text-[11px] text-slate-500">Loading your titles…</p>
+                              <p className="text-[11px] font-mono text-slate-500">Loading your titles…</p>
                             ) : titlesOwned.length === 0 ? (
-                              <p className="text-[11px] text-slate-500">Nothing earned yet — complete a card set to earn its title.</p>
+                              <p className="text-[11px] font-mono text-slate-500">Complete card sets to earn titles.</p>
                             ) : (
                               <>
                                 <div className="flex items-center justify-between">
-                                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
-                                    Tap up to {MAX_WORN_TITLES} — tap order is wear order
+                                  <p className="text-[10px] font-mono font-black uppercase tracking-wider text-slate-400">
+                                    Pick up to {MAX_WORN_TITLES}
                                   </p>
                                   {titlesSel.length > 0 && (
                                     <button
                                       type="button"
                                       onClick={() => setTitlesSel([])}
-                                      className="text-[10px] font-bold text-red-400 hover:text-red-300 transition"
+                                      className="text-[10px] font-mono font-bold text-red-400 hover:text-red-300"
                                     >
-                                      Clear
+                                      Clear All
                                     </button>
                                   )}
                                 </div>
@@ -947,31 +1034,28 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                                       <button
                                         key={title}
                                         onClick={() => toggleTitle(title)}
-                                        title={set ? `From completing ${set}` : "Earned"}
-                                        className={`inline-flex items-center gap-2 rounded-lg border px-3.5 py-2 text-[11px] font-bold uppercase tracking-wider transition ${
+                                        className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[10px] font-mono font-bold uppercase transition ${
                                           on
                                             ? isBugDetective
-                                              ? "border-pink-400/50 bg-pink-950/25 backdrop-blur-md text-pink-200 shadow-[0_0_12px_rgba(244,63,94,0.25)]"
+                                              ? "border-pink-400/50 bg-pink-950/40 text-pink-200 shadow-[0_0_10px_rgba(244,63,94,0.3)]"
                                               : isLucifer
-                                              ? "border-purple-400/60 bg-purple-950/40 backdrop-blur-md text-purple-200 shadow-[0_0_14px_rgba(168,85,247,0.35)]"
+                                              ? "border-purple-400/60 bg-purple-950/50 text-purple-200 shadow-[0_0_12px_rgba(168,85,247,0.4)]"
                                               : at === 0
-                                              ? "border-amber-400/50 bg-amber-500/10 text-amber-300"
-                                              : "border-violet-400/50 bg-violet-500/10 text-violet-200"
-                                            : "border-white/10 bg-[#0b0b11] text-slate-400 hover:bg-white/[0.07]"
+                                              ? "border-amber-400/50 bg-amber-500/20 text-amber-200 shadow-[0_0_10px_rgba(251,191,36,0.2)]"
+                                              : "border-violet-400/50 bg-violet-500/20 text-violet-200"
+                                            : "border-white/10 bg-[#0c0c14] text-slate-400 hover:bg-white/5"
                                         }`}
                                       >
-                                        {on && <span className="font-mono text-[10px] opacity-80">{at + 1}</span>}
+                                        {on && <span className="font-mono text-[9px] text-white/80">{at + 1}</span>}
                                         {isBugDetective ? (
-                                          <span className="inline-flex items-center gap-2">
-                                            <img src="/icons/bug-detective.png" alt="Bug Detective" className="h-5 w-5 object-contain shrink-0" />
-                                            <img src="/titles/bug-detective-wordmark.png" alt="Bug Detective" className="h-4 object-contain drop-shadow-[0_0_8px_rgba(255,105,180,0.5)]" />
+                                          <span className="inline-flex items-center gap-1.5">
+                                            <img src="/icons/bug-detective.png" alt="Bug" className="h-4 w-4 object-contain" />
+                                            <span>Bug Detective</span>
                                           </span>
                                         ) : isLucifer ? (
-                                          <span className="inline-flex items-center gap-2">
-                                            <img src="/icons/lucifer-gojo.png" alt="Lucifer, the fallen angel" className="h-5 w-5 object-contain shrink-0" />
-                                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#f3e8ff] via-[#d8b4fe] to-[#c084fc] drop-shadow-[0_0_8px_rgba(192,132,252,0.8)] font-black tracking-wider uppercase">
-                                              Lucifer,the fallen angel
-                                            </span>
+                                          <span className="inline-flex items-center gap-1.5">
+                                            <img src="/icons/lucifer-gojo.png" alt="Lucifer" className="h-4 w-4 object-contain" />
+                                            <span>Lucifer,the fallen angel</span>
                                           </span>
                                         ) : (
                                           title
@@ -980,17 +1064,17 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                                     );
                                   })}
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 pt-1">
                                   <button
                                     onClick={saveTitles}
                                     disabled={savingTitles}
-                                    className="flex-1 rounded-lg border border-violet-400/30 bg-violet-500/15 py-2 font-mono text-[11px] font-bold text-violet-200 transition hover:border-violet-400/60 hover:bg-violet-500/25 disabled:opacity-40"
+                                    className="flex-1 rounded-xl border border-violet-400/30 bg-violet-500/20 py-2 font-mono text-xs font-bold text-violet-200 transition hover:bg-violet-500/30 disabled:opacity-40"
                                   >
                                     {savingTitles ? "Saving…" : "Save Titles"}
                                   </button>
                                   <button
                                     onClick={() => setShowTitlePicker(false)}
-                                    className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-bold text-slate-300 transition hover:bg-white/10"
+                                    className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 font-mono text-xs font-bold text-slate-300 transition hover:bg-white/10"
                                   >
                                     Cancel
                                   </button>
@@ -1001,13 +1085,14 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                         )}
                       </div>
 
+                      {/* Staff Role Options */}
                       {isLeadDev(user) && (
                         <div className="flex items-center justify-between rounded-xl border border-purple-500/30 bg-purple-950/20 p-3">
-                          <div className="flex min-w-0 items-center gap-2.5">
-                            <img src="/icons/lucifer-gojo.png" alt="Lucifer" className="h-6 w-6 shrink-0 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
-                            <div className="min-w-0">
+                          <div className="flex items-center gap-2.5">
+                            <img src="/icons/lucifer-gojo.png" alt="Lucifer" className="h-6 w-6 object-contain" />
+                            <div>
                               <p className="text-xs font-bold text-white">Lead Dev Title</p>
-                              <p className="text-[11px] text-purple-300/80 truncate">Show "Lucifer,the fallen angel" on profile &amp; badges.</p>
+                              <p className="text-[10px] font-mono text-purple-300/80">Display Lucifer on badge &amp; comments</p>
                             </div>
                           </div>
                           <button
@@ -1018,8 +1103,8 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                               onUpdate?.({ hideLeadRole: nextState });
                               toast(nextState ? "Lead Dev title hidden." : "Lead Dev title enabled.", "success");
                             }}
-                            className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none ${
-                              !(user as any)?.hideLeadRole ? "bg-purple-600" : "bg-white/10"
+                            className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
+                              !(user as any)?.hideLeadRole ? "bg-purple-600 shadow-[0_0_10px_rgba(168,85,247,0.5)]" : "bg-white/10"
                             }`}
                           >
                             <span
@@ -1031,343 +1116,475 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between rounded-xl border border-white/10 bg-black/30 p-3">
-                        <div className="flex min-w-0 items-center gap-2.5">
-                          {isPrivate ? <Lock className="h-4 w-4 shrink-0 text-red-400" /> : <Unlock className="h-4 w-4 shrink-0 text-green-400" />}
-                          <div className="min-w-0">
+                      {/* Privacy Switch */}
+                      <div className="flex items-center justify-between rounded-xl border border-white/10 bg-black/40 p-3">
+                        <div className="flex items-center gap-2.5">
+                          {isPrivate ? <Lock className="h-4 w-4 text-amber-400" /> : <Unlock className="h-4 w-4 text-emerald-400" />}
+                          <div>
                             <p className="text-xs font-bold text-white">Private Profile</p>
-                            <p className="text-[11px] text-slate-500">Hide bio, banner &amp; watchlist from non-mutuals.</p>
+                            <p className="text-[10px] font-mono text-slate-500">Hide watchlist and profile details from public</p>
                           </div>
                         </div>
-                        <button onClick={() => setIsPrivate(!isPrivate)} className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none ${isPrivate ? "bg-violet-500" : "bg-white/10"}`}>
-                          <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${isPrivate ? "translate-x-5" : "translate-x-1"}`} />
-                        </button>
-                      </div>
-
-                      <div className="flex gap-2 pt-1">
                         <button
-                          onClick={handleSaveProfile}
-                          disabled={isSaving}
-                          className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-violet-400/30 bg-violet-500/15 py-2.5 font-mono text-xs font-bold text-violet-200 transition hover:border-violet-400/60 hover:bg-violet-500/25 disabled:opacity-40"
+                          onClick={() => setIsPrivate(!isPrivate)}
+                          className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
+                            isPrivate ? "bg-violet-600 shadow-[0_0_10px_rgba(139,92,246,0.5)]" : "bg-white/10"
+                          }`}
                         >
-                          <Save className="h-4 w-4" />
-                          {isSaving ? "Saving…" : "Save"}
-                        </button>
-                        <button
-                          onClick={onClose}
-                          className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-bold text-slate-300 transition hover:bg-white/10"
-                        >
-                          Cancel
+                          <span
+                            className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                              isPrivate ? "translate-x-5" : "translate-x-1"
+                            }`}
+                          />
                         </button>
                       </div>
                     </div>
 
-                    {/* Bio — a column of its own, mirroring the reference */}
-                    <div className="flex flex-col space-y-2 rounded-2xl border border-white/10 bg-[#0b0b11] p-5">
-                      <h3 className="text-base font-bold text-white">Bio</h3>
-                      <textarea
-                        value={bio}
-                        onChange={e => setBio(e.target.value)}
-                        placeholder="Tell us about yourself…"
-                        className="min-h-[160px] flex-1 resize-none rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:border-violet-400/50 focus:outline-none"
-                      />
-                      <p className="text-[11px] leading-relaxed text-slate-500">
-                        Paste a direct image link (gif, png, jpg, webp) on its own line to embed it. Saved with the Save button on the left.
-                      </p>
+                    {/* Right Column: Bio & Profile Audio */}
+                    <div className="space-y-4">
+                      
+                      {/* Bio Card */}
+                      <div className="flex flex-col space-y-2 rounded-2xl sm:rounded-3xl border border-white/10 bg-[#0c0c14] p-4 sm:p-6">
+                        <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                          <h4 className="font-fell text-base font-bold uppercase tracking-wider text-white">About &amp; Bio</h4>
+                          <span className="text-[10px] font-mono text-slate-500">{bio.length} characters</span>
+                        </div>
+                        <textarea
+                          value={bio}
+                          onChange={e => setBio(e.target.value)}
+                          placeholder="Write a custom bio, favorite quotes, or paste direct image links (.gif, .png, .jpg)..."
+                          rows={6}
+                          className="w-full resize-none rounded-xl border border-white/10 bg-white/[0.03] p-3.5 font-sans text-xs sm:text-sm leading-relaxed text-white placeholder:text-slate-600 focus:border-violet-400/50 focus:outline-none"
+                        />
+                        <p className="text-[10px] font-mono text-slate-500">
+                          Direct image links on a new line will automatically embed as artwork on your profile.
+                        </p>
+                      </div>
+
+                      {/* Profile Audio Player Card */}
+                      <div className="space-y-3 rounded-2xl sm:rounded-3xl border border-white/10 bg-[#0c0c14] p-4 sm:p-6">
+                        <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                          <div className="flex items-center gap-2">
+                            <Music className="h-4 w-4 text-violet-400" />
+                            <h4 className="font-fell text-base font-bold uppercase tracking-wider text-white">Profile Soundtrack</h4>
+                          </div>
+                          <span className="text-[10px] font-mono text-violet-400">catbox.moe</span>
+                        </div>
+                        <p className="text-[11px] font-mono text-slate-400">
+                          Paste a direct audio link from <strong className="text-white">files.catbox.moe</strong> (mp3, ogg, wav, m4a, flac).
+                        </p>
+                        <input
+                          value={profileSong}
+                          onChange={e => setProfileSong(e.target.value)}
+                          placeholder="https://files.catbox.moe/abc123.mp3"
+                          className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 font-mono text-xs text-white placeholder:text-slate-600 focus:border-violet-400/50 focus:outline-none"
+                        />
+                        {profileSong.trim() !== "" && (
+                          songCheck.ok ? (
+                            <audio controls preload="none" src={songCheck.value} className="w-full mt-2 h-8" />
+                          ) : (
+                            <p className="text-[10px] font-mono text-red-400">{songCheck.message}</p>
+                          )
+                        )}
+                        <div className="flex gap-2 pt-1">
+                          <button
+                            onClick={handleSaveSong}
+                            disabled={savingSong}
+                            className="flex-1 rounded-xl border border-violet-400/40 bg-violet-500/20 py-2.5 font-mono text-xs font-bold text-violet-200 transition hover:bg-violet-500/30 disabled:opacity-40"
+                          >
+                            {savingSong ? "Saving…" : "Save Audio"}
+                          </button>
+                          {user?.profileSong && (
+                            <button
+                              onClick={handleRemoveSong}
+                              disabled={savingSong}
+                              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 font-mono text-xs font-bold text-slate-400 transition hover:bg-white/10 hover:text-white"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
                     </div>
                   </div>
-
-                  {/* ── Profile Audio — one track that plays on your profile.
-                         Audio only; the server re-checks the host and format. ── */}
-                  <div className="space-y-3 rounded-2xl border border-white/10 bg-[#0b0b11] p-5">
-                    <div className="flex items-center gap-2.5">
-                      <div className="grid h-8 w-8 place-items-center rounded-full bg-violet-500/15 text-violet-300">
-                        <Music className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-bold text-white">Profile Audio</h3>
-                        <p className="text-[11px] text-slate-500">One track that plays on your profile.</p>
-                      </div>
-                    </div>
-                    <p className="text-xs leading-relaxed text-slate-500">
-                      Upload your track to <span className="text-slate-300">catbox.moe</span> and paste the direct
-                      {" "}<span className="text-slate-300">files.catbox.moe</span> link. Formats: mp3, wav, ogg, m4a, flac, opus.
-                    </p>
-                    <input
-                      value={profileSong}
-                      onChange={e => setProfileSong(e.target.value)}
-                      placeholder="https://files.catbox.moe/abc.mp3"
-                      className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 font-mono text-sm text-white placeholder:text-slate-600 focus:border-violet-400/50 focus:outline-none"
-                    />
-                    {profileSong.trim() !== "" && (
-                      songCheck.ok ? (
-                        <audio controls preload="none" src={songCheck.value} className="w-full" />
-                      ) : (
-                        <p className="text-[11px] text-red-400">{songCheck.message}</p>
-                      )
-                    )}
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleSaveSong}
-                        disabled={savingSong}
-                        className="flex-1 rounded-xl border border-violet-400/30 bg-violet-500/15 py-2.5 font-mono text-xs font-bold text-violet-200 transition hover:border-violet-400/60 hover:bg-violet-500/25 disabled:opacity-40"
-                      >
-                        {savingSong ? "Saving…" : "Save Audio"}
-                      </button>
-                      <button
-                        onClick={handleRemoveSong}
-                        disabled={savingSong || !user?.profileSong}
-                        className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-bold text-slate-300 transition hover:bg-white/10 disabled:opacity-40"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-
                 </div>
               )}
 
+              {/* ──────────────── TAB: ACCOUNT ──────────────── */}
               {activeTab === 'account' && (
-                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-                  {/* Change Username — first change free, then costs Arise Points */}
-                  <div className="bg-[#0b0b11] border border-white/10 p-6 rounded-2xl space-y-3">
-                    <h3 className="font-bold flex items-center gap-2 text-white"><UserIcon className="w-5 h-5 text-violet-400" /> Change Username</h3>
-                    <p className="text-sm text-slate-400">
-                      {usernameIsFree
-                        ? "Your first username change is free."
-                        : <>Changing again costs <span className="font-bold text-violet-300">{USERNAME_COST} Arise Points</span> — you have <span className="font-semibold text-white">{(user?.arisePoints || 0).toLocaleString()}</span>.</>}
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <input
-                        value={newUsername}
-                        onChange={e => setNewUsername(e.target.value)}
-                        placeholder={user?.username || "New username"}
-                        maxLength={20}
-                        className="flex-1 bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-violet-400/50"
-                      />
-                      <button
-                        onClick={handleChangeUsername}
-                        disabled={isChangingUsername || !newUsername.trim()}
-                        className="rounded-xl border border-violet-400/30 bg-violet-500/15 px-6 py-3 font-mono text-xs font-bold text-violet-200 transition hover:border-violet-400/60 hover:bg-violet-500/25 disabled:opacity-40 whitespace-nowrap"
-                      >
-                        {isChangingUsername ? "Saving…" : usernameIsFree ? "Change · Free" : `Change · ${USERNAME_COST} AP`}
-                      </button>
+                <div className="space-y-6 animate-in fade-in duration-200">
+                  {/* Change Password Card */}
+                  <div className="rounded-2xl sm:rounded-3xl border border-white/10 bg-[#0c0c14] p-5 sm:p-7 space-y-4 shadow-xl">
+                    <div className="flex items-center gap-2.5 border-b border-white/10 pb-4">
+                      <Key className="h-5 w-5 text-violet-400" />
+                      <div>
+                        <h4 className="font-fell text-lg font-bold uppercase tracking-wider text-white">Change Password</h4>
+                        <p className="text-[11px] font-mono text-slate-500">Update your account login security</p>
+                      </div>
                     </div>
-                    <p className="text-xs text-slate-500">3–20 characters — letters, numbers, or underscores.</p>
-                  </div>
 
-                  <div className="bg-[#0b0b11] border border-white/10 p-6 rounded-2xl space-y-4">
-                    <h3 className="font-bold flex items-center gap-2 text-white"><Key className="w-5 h-5 text-violet-400" /> Change Password</h3>
-                    <input type="password" placeholder="Current Password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-violet-400/50" />
-                    <input type="password" placeholder="New Password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-violet-400/50" />
-                    <input type="password" placeholder="Confirm New Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-violet-400/50" />
-                    <button onClick={handleChangePassword} disabled={isChangingPassword} className="flex w-full items-center justify-center gap-2 rounded-xl border border-violet-400/30 bg-violet-500/15 px-6 py-2.5 font-mono text-xs font-bold text-violet-200 transition hover:border-violet-400/60 hover:bg-violet-500/25 disabled:opacity-40">
-                      {isChangingPassword ? "Updating..." : "Update Password"}
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-400">Current Password</label>
+                        <div className="relative mt-1">
+                          <input
+                            type={showCurrentPass ? "text" : "password"}
+                            placeholder="Enter current password"
+                            value={currentPassword}
+                            onChange={e => setCurrentPassword(e.target.value)}
+                            className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 font-mono text-xs text-white placeholder:text-slate-600 focus:border-violet-400/50 focus:outline-none pr-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowCurrentPass(!showCurrentPass)}
+                            className="absolute right-3 top-3 text-slate-500 hover:text-white transition"
+                          >
+                            {showCurrentPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-400">New Password</label>
+                          <div className="relative mt-1">
+                            <input
+                              type={showNewPass ? "text" : "password"}
+                              placeholder="At least 6 characters"
+                              value={newPassword}
+                              onChange={e => setNewPassword(e.target.value)}
+                              className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 font-mono text-xs text-white placeholder:text-slate-600 focus:border-violet-400/50 focus:outline-none pr-10"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowNewPass(!showNewPass)}
+                              className="absolute right-3 top-3 text-slate-500 hover:text-white transition"
+                            >
+                              {showNewPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-400">Confirm Password</label>
+                          <input
+                            type={showNewPass ? "text" : "password"}
+                            placeholder="Re-enter new password"
+                            value={confirmPassword}
+                            onChange={e => setConfirmPassword(e.target.value)}
+                            className="w-full mt-1 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 font-mono text-xs text-white placeholder:text-slate-600 focus:border-violet-400/50 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={handleChangePassword}
+                      disabled={isChangingPassword}
+                      className="w-full flex items-center justify-center gap-2 rounded-xl border border-violet-400/40 bg-gradient-to-r from-violet-600 to-purple-600 py-3 font-mono text-xs font-bold text-white shadow-lg transition hover:brightness-110 disabled:opacity-40"
+                    >
+                      {isChangingPassword ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Key className="h-4 w-4" />}
+                      <span>{isChangingPassword ? "Updating Password…" : "Update Password"}</span>
                     </button>
                   </div>
 
-                  <div className="bg-red-500/10 border border-red-500/20 p-6 rounded-2xl">
-                    <h3 className="text-red-400 font-bold mb-2 flex items-center gap-2"><AlertCircle className="w-5 h-5" /> Danger Zone</h3>
-                    <p className="text-red-300/70 text-sm mb-4">Wiping your watchlist will permanently delete all your tracked anime, scores, and progress. This cannot be undone.</p>
-                    <button onClick={handleWipe} disabled={isSaving} className="bg-red-600/20 hover:bg-red-600/40 text-red-400 border border-red-500/30 px-6 py-2.5 rounded-xl font-bold transition flex items-center gap-2">
-                      <Trash2 className="w-4 h-4" /> Wipe Watchlist
+                  {/* Danger Zone */}
+                  <div className="rounded-2xl sm:rounded-3xl border border-red-500/30 bg-red-950/15 p-5 sm:p-7 space-y-4 shadow-xl">
+                    <div className="flex items-center gap-2.5 border-b border-red-500/20 pb-3">
+                      <AlertCircle className="h-5 w-5 text-red-400" />
+                      <div>
+                        <h4 className="font-fell text-lg font-bold uppercase tracking-wider text-red-400">Danger Zone</h4>
+                        <p className="text-[11px] font-mono text-red-300/70">Irreversible actions on your library</p>
+                      </div>
+                    </div>
+                    <p className="text-xs font-mono leading-relaxed text-red-200/80">
+                      Wiping your watchlist will permanently delete all tracked anime entries, scores, and watching history. This action cannot be reversed.
+                    </p>
+                    <button
+                      onClick={() => setShowWipeConfirm(true)}
+                      disabled={isSaving}
+                      className="flex items-center gap-2 rounded-xl border border-red-500/40 bg-red-600/20 px-5 py-2.5 font-mono text-xs font-bold text-red-300 transition hover:bg-red-600/30 disabled:opacity-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span>Wipe Watchlist Data</span>
                     </button>
                   </div>
                 </div>
               )}
 
+              {/* ──────────────── TAB: PREFERENCES ──────────────── */}
               {activeTab === 'preferences' && (
-                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-                  <div className="bg-[#0b0b11] border border-white/10 rounded-2xl divide-y divide-white/5 overflow-hidden">
-                    <div className="flex items-center justify-between p-4 hover:bg-white/[0.02] transition">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
-                          {theme === 'dark' ? <Zap className="w-4 h-4 text-violet-400" /> : <Moon className="w-4 h-4 text-slate-400" />}
+                <div className="space-y-4 animate-in fade-in duration-200">
+                  <div className="rounded-2xl sm:rounded-3xl border border-white/10 bg-[#0c0c14] divide-y divide-white/5 overflow-hidden shadow-xl">
+                    
+                    {/* Theme Mode */}
+                    <div className="flex items-center justify-between p-4 sm:p-5 hover:bg-white/[0.02] transition">
+                      <div className="flex items-center gap-3.5">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/15 text-violet-400 border border-violet-500/30">
+                          {theme === 'dark' ? <Zap className="h-5 w-5" /> : <Moon className="h-5 w-5 text-slate-400" />}
                         </div>
                         <div>
-                          <h3 className="font-bold text-white text-sm">App Theme</h3>
-                          <p className="text-[11px] text-slate-500 mt-0.5">Switch between Neon Purple and Pure Black mode.</p>
+                          <h4 className="text-sm font-bold text-white">App Atmosphere</h4>
+                          <p className="text-[11px] font-mono text-slate-500">Toggle Neon Violet / Obsidian Black mode</p>
                         </div>
                       </div>
-                      <button onClick={toggleTheme} className="px-3 py-1.5 rounded-lg font-bold text-xs bg-white/10 hover:bg-white/20 transition text-white">
+                      <button
+                        onClick={toggleTheme}
+                        className="rounded-xl border border-violet-400/30 bg-violet-500/15 px-3.5 py-2 font-mono text-xs font-bold text-violet-200 transition hover:bg-violet-500/25"
+                      >
                         {theme === 'dark' ? 'Neon Purple' : 'Pure Black'}
                       </button>
                     </div>
 
-                    <div className="flex items-center justify-between p-4 hover:bg-white/[0.02] transition">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
-                          <PlayCircle className={`w-4 h-4 ${preferences.autoplayTrailers ? 'text-violet-400' : 'text-slate-400'}`} />
+                    {/* Cinematic Autoplay */}
+                    <div className="flex items-center justify-between p-4 sm:p-5 hover:bg-white/[0.02] transition">
+                      <div className="flex items-center gap-3.5">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/5 text-slate-400">
+                          <PlayCircle className={`h-5 w-5 ${preferences.autoplayTrailers ? 'text-violet-400' : 'text-slate-400'}`} />
                         </div>
                         <div>
-                          <h3 className="font-bold text-white text-sm">Cinematic Autoplay</h3>
-                          <p className="text-[11px] text-slate-500 mt-0.5 max-w-[200px]">Auto-play the background trailer on anime pages.</p>
+                          <h4 className="text-sm font-bold text-white">Cinematic Autoplay</h4>
+                          <p className="text-[11px] font-mono text-slate-500">Auto-play background video trailers on anime pages</p>
                         </div>
                       </div>
-                      <button onClick={() => updatePreference('autoplayTrailers', !preferences.autoplayTrailers)} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${preferences.autoplayTrailers ? 'bg-violet-500' : 'bg-white/10'}`}>
-                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${preferences.autoplayTrailers ? 'translate-x-5' : 'translate-x-1'}`} />
-                      </button>
-                    </div>
-
-                    <div className="flex items-center justify-between p-4 hover:bg-white/[0.02] transition">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
-                          <EyeOff className={`w-4 h-4 ${preferences.blurSensitiveContent ? 'text-red-400' : 'text-slate-400'}`} />
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-white text-sm">Safe Browsing</h3>
-                          <p className="text-[11px] text-slate-500 mt-0.5 max-w-[200px]">Blur mature anime covers.</p>
-                        </div>
-                      </div>
-                      <button onClick={() => updatePreference('blurSensitiveContent', !preferences.blurSensitiveContent)} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${preferences.blurSensitiveContent ? 'bg-red-500' : 'bg-white/10'}`}>
-                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${preferences.blurSensitiveContent ? 'translate-x-5' : 'translate-x-1'}`} />
-                      </button>
-                    </div>
-
-                    <div className="flex items-center justify-between p-4 hover:bg-white/[0.02] transition">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
-                          <Zap className={`w-4 h-4 ${preferences.reducedMotion ? 'text-yellow-400' : 'text-slate-400'}`} />
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-white text-sm">Performance Mode</h3>
-                          <p className="text-[11px] text-slate-500 mt-0.5 max-w-[200px]">Turns off profile 3D effects & heavy motion.</p>
-                        </div>
-                      </div>
-                      <button onClick={() => updatePreference('reducedMotion', !preferences.reducedMotion)} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${preferences.reducedMotion ? 'bg-yellow-500' : 'bg-white/10'}`}>
-                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${preferences.reducedMotion ? 'translate-x-5' : 'translate-x-1'}`} />
-                      </button>
-                    </div>
-
-                    <div className="flex items-center justify-between p-4 hover:bg-white/[0.02] transition">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
-                          <Wifi className={`w-4 h-4 ${preferences.dataSaver ? 'text-green-400' : 'text-slate-400'}`} />
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-white text-sm">Data Saver</h3>
-                          <p className="text-[11px] text-slate-500 mt-0.5 max-w-[200px]">Skip autoplaying trailers to save bandwidth.</p>
-                        </div>
-                      </div>
-                      <button onClick={() => updatePreference('dataSaver', !preferences.dataSaver)} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${preferences.dataSaver ? 'bg-green-500' : 'bg-white/10'}`}>
-                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${preferences.dataSaver ? 'translate-x-5' : 'translate-x-1'}`} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'integrations' && (
-                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-                  {/* MAL killed the public list feed in May 2022, so this can no
-                      longer work for anyone. Say so plainly instead of leaving a
-                      button that always fails and reads as the user's fault. */}
-                  <div className="rounded-2xl border border-white/10 bg-[#0b0b11] p-6">
-                    <div className="mb-2 flex flex-wrap items-center gap-2">
-                      <h3 className="flex items-center gap-2 font-bold text-white">
-                        <Database className="h-5 w-5 text-blue-400" /> MyAnimeList Import
-                      </h3>
-                      <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-300">
-                        Unavailable
-                      </span>
-                    </div>
-                    <p className="mb-4 text-sm leading-relaxed text-slate-400">
-                      MyAnimeList shut off the public list feed this used to read, so importing isn&apos;t possible
-                      right now. Bringing it back needs an official MAL sign-in flow — it&apos;s on the list.
-                    </p>
-                    <div className="flex gap-2 opacity-50">
-                      <input
-                        type="text"
-                        disabled
-                        placeholder="MAL Username"
-                        value={anilistUsername}
-                        onChange={e => setAnilistUsername(e.target.value)}
-                        className="flex-1 cursor-not-allowed rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-white"
-                      />
                       <button
-                        disabled
-                        title="MyAnimeList no longer exposes user lists publicly"
-                        className="flex cursor-not-allowed items-center gap-2 whitespace-nowrap rounded-xl bg-white/10 px-4 py-2.5 font-bold text-slate-400"
+                        onClick={() => updatePreference('autoplayTrailers', !preferences.autoplayTrailers)}
+                        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                          preferences.autoplayTrailers ? "bg-violet-600 shadow-[0_0_12px_rgba(139,92,246,0.5)]" : "bg-white/10"
+                        }`}
                       >
-                        <UploadCloud className="h-4 w-4" /> Sync List
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            preferences.autoplayTrailers ? "translate-x-6" : "translate-x-1"
+                          }`}
+                        />
                       </button>
+                    </div>
+
+                    {/* Safe Browsing */}
+                    <div className="flex items-center justify-between p-4 sm:p-5 hover:bg-white/[0.02] transition">
+                      <div className="flex items-center gap-3.5">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/5 text-slate-400">
+                          <EyeOff className={`h-5 w-5 ${preferences.blurSensitiveContent ? 'text-red-400' : 'text-slate-400'}`} />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold text-white">Safe Browsing</h4>
+                          <p className="text-[11px] font-mono text-slate-500">Blur mature covers and 18+ content</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => updatePreference('blurSensitiveContent', !preferences.blurSensitiveContent)}
+                        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                          preferences.blurSensitiveContent ? "bg-red-600 shadow-[0_0_12px_rgba(239,68,68,0.5)]" : "bg-white/10"
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            preferences.blurSensitiveContent ? "translate-x-6" : "translate-x-1"
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                    {/* Performance Mode */}
+                    <div className="flex items-center justify-between p-4 sm:p-5 hover:bg-white/[0.02] transition">
+                      <div className="flex items-center gap-3.5">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/5 text-slate-400">
+                          <Zap className={`h-5 w-5 ${preferences.reducedMotion ? 'text-amber-400' : 'text-slate-400'}`} />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold text-white">Performance Mode</h4>
+                          <p className="text-[11px] font-mono text-slate-500">Disables 3D canvas particles &amp; heavy animations</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => updatePreference('reducedMotion', !preferences.reducedMotion)}
+                        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                          preferences.reducedMotion ? "bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.5)]" : "bg-white/10"
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            preferences.reducedMotion ? "translate-x-6" : "translate-x-1"
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                    {/* Data Saver */}
+                    <div className="flex items-center justify-between p-4 sm:p-5 hover:bg-white/[0.02] transition">
+                      <div className="flex items-center gap-3.5">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/5 text-slate-400">
+                          <Wifi className={`h-5 w-5 ${preferences.dataSaver ? 'text-emerald-400' : 'text-slate-400'}`} />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold text-white">Data Saver</h4>
+                          <p className="text-[11px] font-mono text-slate-500">Skip loading high-res banners and trailers</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => updatePreference('dataSaver', !preferences.dataSaver)}
+                        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                          preferences.dataSaver ? "bg-emerald-600 shadow-[0_0_12px_rgba(16,185,129,0.5)]" : "bg-white/10"
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            preferences.dataSaver ? "translate-x-6" : "translate-x-1"
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                  </div>
+                </div>
+              )}
+
+              {/* ──────────────── TAB: INTEGRATIONS ──────────────── */}
+              {activeTab === 'integrations' && (
+                <div className="space-y-4 animate-in fade-in duration-200">
+                  <div className="rounded-2xl sm:rounded-3xl border border-white/10 bg-[#0c0c14] p-5 sm:p-7 shadow-xl">
+                    <div className="flex items-center gap-3 border-b border-white/10 pb-4 mb-4">
+                      <Database className="h-6 w-6 text-blue-400" />
+                      <div>
+                        <h4 className="font-fell text-lg font-bold uppercase tracking-wider text-white">External Sync</h4>
+                        <p className="text-[11px] font-mono text-slate-500">MyAnimeList &amp; AniList import integrations</p>
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 mb-4">
+                      <div className="flex items-center gap-2 text-amber-300 font-bold text-xs font-mono">
+                        <Info className="h-4 w-4 shrink-0" />
+                        <span>Public API Status</span>
+                      </div>
+                      <p className="mt-1 text-xs text-amber-200/80 leading-relaxed font-mono">
+                        MyAnimeList retired its public XML feed. Official OAuth 2.0 automatic account sync is scheduled for the next major release.
+                      </p>
                     </div>
                   </div>
                 </div>
               )}
 
+              {/* ──────────────── TAB: INVITES ──────────────── */}
               {activeTab === 'invites' && (
-                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-                  <div className="bg-violet-500/10 border border-violet-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+                <div className="space-y-5 animate-in fade-in duration-200">
+                  {/* Header Banner */}
+                  <div className="rounded-2xl sm:rounded-3xl border border-violet-500/30 bg-violet-950/20 p-5 sm:p-7 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
                     <div>
-                      <h3 className="font-bold text-violet-300">Invite Keys</h3>
-                      <p className="text-xs text-violet-300/70 mt-1">
-                        {isAdmin(user) ? "Staff overrides enabled — generate unlimited invite keys." : "Generate your free invite key, or buy more with Arise Points."}
+                      <div className="flex items-center gap-2 text-violet-300 font-bold">
+                        <Key className="h-5 w-5" />
+                        <h4 className="font-fell text-lg uppercase tracking-wider">Invite Keys</h4>
+                      </div>
+                      <p className="text-xs font-mono text-violet-300/70 mt-1">
+                        {isAdmin(user)
+                          ? "Staff Override Active — generate unlimited registration keys."
+                          : "Generate invite keys for your friends to join Da Vinci."}
                       </p>
                     </div>
                     <button
                       onClick={generateInvite}
                       disabled={isGeneratingInvite || (!isAdmin(user) && invites.length >= 1)}
-                      className="flex items-center gap-2 whitespace-nowrap rounded-xl border border-violet-400/30 bg-violet-500/15 px-4 py-2 font-mono text-xs font-bold text-violet-200 transition hover:border-violet-400/60 hover:bg-violet-500/25 disabled:opacity-40"
+                      className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl border border-violet-400/40 bg-gradient-to-r from-violet-600 to-purple-600 px-5 py-2.5 font-mono text-xs font-bold text-white shadow-lg transition hover:brightness-110 disabled:opacity-40 whitespace-nowrap"
                     >
-                      <Key className="w-4 h-4" />
-                      {isGeneratingInvite ? "Generating..." : "Generate Key"}
+                      <Key className="h-4 w-4" />
+                      <span>{isGeneratingInvite ? "Generating…" : "Generate Free Key"}</span>
                     </button>
                   </div>
 
+                  {/* Buy Extra Key */}
                   {!isAdmin(user) && (
-                    <div className="bg-[#0b0b11] border border-white/10 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+                    <div className="rounded-2xl sm:rounded-3xl border border-white/10 bg-[#0c0c14] p-5 sm:p-7 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
                       <div>
-                        <h3 className="font-bold text-white">Buy an Extra Invite</h3>
-                        <p className="text-xs text-slate-400 mt-1">
-                          Costs <span className="text-violet-300 font-bold">{INVITE_COST.toLocaleString()} AP</span> — you have <span className="text-white font-semibold">{(user?.arisePoints || 0).toLocaleString()}</span>.
+                        <h4 className="font-fell text-base font-bold uppercase tracking-wider text-white">Purchase Extra Key</h4>
+                        <p className="text-xs font-mono text-slate-400 mt-1">
+                          Costs <span className="text-violet-300 font-bold">{INVITE_COST.toLocaleString()} AP</span> — Balance: <span className="text-white font-semibold">{(user?.arisePoints || 0).toLocaleString()} AP</span>
                         </p>
                       </div>
                       <button
                         onClick={buyInvite}
                         disabled={buyingInvite || (user?.arisePoints || 0) < INVITE_COST}
-                        className="bg-white/10 hover:bg-white/20 border border-violet-500/40 disabled:opacity-50 text-white font-bold py-2 px-4 rounded-xl transition flex items-center gap-2 whitespace-nowrap"
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 font-mono text-xs font-bold text-white transition hover:bg-white/10 disabled:opacity-40 whitespace-nowrap"
                       >
-                        <Key className="w-4 h-4" />
-                        {buyingInvite ? "Buying…" : `Buy — ${INVITE_COST.toLocaleString()} AP`}
+                        <Sparkles className="h-4 w-4 text-violet-400" />
+                        <span>{buyingInvite ? "Purchasing…" : `Buy for ${INVITE_COST} AP`}</span>
                       </button>
                     </div>
                   )}
 
-                  {invites.length > 0 ? (
-                    <div className="space-y-3 mt-4">
-                      <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-2">Your Keys</h4>
-                      {invites.map(invite => (
-                        <div key={invite.id} className="bg-[#0b0b11] border border-white/10 rounded-xl p-4 flex items-center justify-between">
-                          <div>
-                            <p className="font-mono font-bold text-emerald-400 tracking-wider text-lg">{invite.code}</p>
-                            <p className="text-xs text-slate-500 mt-1">{invite.isUsed ? `Used by ${invite.usedByUser?.username || 'Unknown'}` : 'Unused'}</p>
-                          </div>
-                          <button 
-                            onClick={() => {
-                              navigator.clipboard.writeText(invite.code);
-                              toast("Copied to clipboard!", "success");
-                            }}
-                            className="p-2 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition"
-                            title="Copy Code"
+                  {/* Keys List */}
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-400">Generated Keys</h4>
+                    {invites.length > 0 ? (
+                      <div className="grid grid-cols-1 gap-2.5">
+                        {invites.map(invite => (
+                          <div
+                            key={invite.id}
+                            className="flex items-center justify-between rounded-xl border border-white/10 bg-[#0c0c14] p-4 transition hover:border-white/20"
                           >
-                            <Copy className="w-5 h-5" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-slate-500">
-                      <Key className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                      <p>No invite keys generated yet.</p>
-                    </div>
-                  )}
+                            <div>
+                              <p className="font-mono text-base font-black tracking-widest text-emerald-400">{invite.code}</p>
+                              <p className="text-[10px] font-mono text-slate-500 mt-0.5">
+                                {invite.isUsed ? `Claimed by ${invite.usedByUser?.username || 'user'}` : 'Unused · Ready to share'}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(invite.code);
+                                setCopiedKey(invite.code);
+                                setTimeout(() => setCopiedKey(null), 2000);
+                                toast("Invite key copied to clipboard!", "success");
+                              }}
+                              className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 font-mono text-xs font-bold text-slate-300 transition hover:bg-white/10 hover:text-white"
+                            >
+                              {copiedKey === invite.code ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                              <span>{copiedKey === invite.code ? "Copied" : "Copy"}</span>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-2xl border border-white/5 bg-black/30 py-10 text-center font-mono text-xs text-slate-500">
+                        <Key className="h-8 w-8 mx-auto mb-2 opacity-30 text-violet-400" />
+                        <p>No invite keys generated yet.</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
+
             </div>
           </motion.div>
         </motion.div>
       </AnimatePresence>
+
+      {/* Wipe Watchlist Confirmation Modal */}
+      {showWipeConfirm && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
+          <div className="w-full max-w-md rounded-3xl border border-red-500/40 bg-[#0c0c14] p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-red-400">
+              <AlertCircle className="h-6 w-6" />
+              <h4 className="font-fell text-lg font-bold uppercase tracking-wider">Confirm Library Wipe</h4>
+            </div>
+            <p className="text-xs font-mono leading-relaxed text-slate-300">
+              Are you sure you want to completely wipe your Da Vinci watchlist? All your tracked anime, scores, and progress will be permanently erased.
+            </p>
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={handleWipe}
+                className="flex-1 rounded-xl border border-red-500/50 bg-red-600/30 py-2.5 font-mono text-xs font-bold text-red-200 transition hover:bg-red-600/50"
+              >
+                Yes, Wipe Everything
+              </button>
+              <button
+                onClick={() => setShowWipeConfirm(false)}
+                className="rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 font-mono text-xs font-bold text-slate-300 transition hover:bg-white/10"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Image Cropper Modal */}
       {cropModalData && (
