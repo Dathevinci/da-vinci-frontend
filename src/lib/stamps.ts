@@ -545,9 +545,19 @@ export async function fetchStamp(
   signal?: AbortSignal,
 ): Promise<StampProfile> {
   const qs = !getAuthToken() && viewerId ? `?viewer=${encodeURIComponent(viewerId)}` : "";
+  /**
+   * A READ THAT NEVER ANSWERS IS WORSE THAN ONE THAT FAILS. On a phone with a
+   * weak connection — or against a backend still waking up — this request can
+   * hang indefinitely, and callers that show a spinner or gate a control on it
+   * then wait forever with nothing to click and nothing to read. Twelve seconds
+   * is past any healthy answer, and an abort surfaces as a normal failure the
+   * callers already handle.
+   */
   const r = await fetch(`${API_URL}/api/stamps/${encodeURIComponent(userId)}${qs}`, {
     headers: authHeaders(),
-    signal,
+    signal: signal ?? (typeof AbortSignal !== "undefined" && "timeout" in AbortSignal
+      ? AbortSignal.timeout(12000)
+      : undefined),
   });
   const d = await r.json().catch(() => null);
   if (!r.ok || !d?.success || !d.data) {

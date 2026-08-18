@@ -249,7 +249,7 @@ export default function StampThis({ mediaType, mediaId, title, cover, className 
                 </div>
               </div>
 
-              {loading ? (
+              {loading && !stamp ? (
                 <p className="py-16 text-center text-xs text-slate-500">Reading your stamp…</p>
               ) : needsSignIn ? (
                 /* ── NO SESSION TOKEN ── stamping is token-only now, so this is
@@ -396,7 +396,23 @@ export default function StampThis({ mediaType, mediaId, title, cover, className 
                 {!mine && !needsSignIn && (
                   <button
                     type="button"
-                    disabled={saving || loading || blockedByFull}
+                    /**
+                     * NOT GATED ON `loading`, deliberately.
+                     *
+                     * The read below only decorates the sheet with slot counts;
+                     * the SERVER is the authority on whether a stamp lands, and
+                     * the catch in load() already says so ("don't block the
+                     * action — a 409 will tell us the truth"). Gating the button
+                     * on it contradicted that, and did so INVISIBLY: the label
+                     * still read "Stamp it" while the button refused every
+                     * press. A desktop shows a not-allowed cursor and a hover
+                     * change, so people there realise it is refusing; a phone
+                     * has neither, so the same state is indistinguishable from
+                     * a dead app — which is exactly how it was reported, and
+                     * why it looked mobile-only. The read has a timeout now
+                     * too, but the real fix is not needing it to finish.
+                     */
+                    disabled={saving || blockedByFull}
                     onClick={submit}
                     className="rounded-xl border border-amber-400/40 bg-amber-500/15 px-4 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-amber-200 transition hover:bg-amber-500/25 disabled:cursor-not-allowed disabled:opacity-40"
                   >
