@@ -8,8 +8,7 @@ import {
   ArrowLeft, ArrowRight, RotateCw, Home, X, Search, LogOut, SlidersHorizontal,
   Tv, BookOpen, Feather, Layers, Swords,
   Store, Users, Trophy, ShoppingBag, Megaphone,
-  Compass, Activity, Calendar, Clock, HelpCircle, Heart, Terminal, LayoutGrid,
-} from "lucide-react";
+  Compass, Activity, Calendar, Clock, HelpCircle, Heart, Terminal, LayoutGrid, Stamp } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { isLeadDev } from "@/lib/admin";
 // The dock avatar is 36px; serve it at that scale instead of the original
@@ -53,6 +52,7 @@ const PAGES: { href: string; label: string; Icon: any; tint: string }[] = [
   { href: "/quests",      label: "Daily Quests",     Icon: Trophy,       tint: "#fb923c" },
   { href: "/shop",        label: "Shop",             Icon: ShoppingBag,  tint: "#e879f9" },
   { href: "/leaderboard", label: "Leaderboard",      Icon: Trophy,       tint: "#7dd3fc" },
+  { href: "/stamps",      label: "Stamps",           Icon: Stamp,        tint: "#fbbf24" },
   { href: "/upcoming",    label: "Upcoming",         Icon: Clock,        tint: "#c4b5fd" },
   { href: "/updates",     label: "Updates",          Icon: Megaphone,    tint: "#94a3b8" },
   { href: "/faq",         label: "FAQ",              Icon: HelpCircle,   tint: "#93c5fd" },

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut, Users, Palette, ShoppingBag, Menu, X, Settings, Heart, ChevronDown, Tv, BookMarked, BookOpen, Swords, Terminal, Layers, Trophy, Gamepad2 } from 'lucide-react';
+import { Search, Compass, Calendar, Activity, User as UserIcon, LogOut, Users, Palette, ShoppingBag, Menu, X, Settings, Heart, ChevronDown, Tv, BookMarked, BookOpen, Swords, Terminal, Layers, Trophy, Gamepad2, Stamp } from 'lucide-react';
 import { isAdmin, isLeadDev } from "@/lib/admin";
 import { warmBackend } from "@/lib/warmBackend";
 // The nav avatar is 24px; serve it at that scale instead of the original
@@ -231,6 +231,7 @@ export default function Navbar() {
                     <Link href="/cards" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><Layers className="w-4 h-4" /> Arise Cards</Link>
                     <Link href="/duels" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><Swords className="w-4 h-4" /> Card Duels</Link>
                     <Link href="/leaderboard" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><Trophy className="w-4 h-4" /> Leaderboard</Link>
+                    <Link href="/stamps" className={`px-4 py-2 hover:bg-white/5 ${accentHover} transition flex items-center gap-2`}><Stamp className="w-4 h-4" /> Stamps</Link>
                     <div className="my-1.5 border-t border-white/10" />
 
                     <Link href="/support" className="px-4 py-2 hover:bg-white/5 text-[#ff5e5b] hover:text-[#ff4542] transition flex items-center gap-2"><Heart className="w-4 h-4" /> Support Us</Link>

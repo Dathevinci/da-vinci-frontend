@@ -6,8 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   Home, Compass, Activity, Calendar, Users, Layers, Swords, Trophy,
   ShoppingBag, Search, Bell, Settings, LogOut, Terminal, BookMarked, BookOpen, Tv,
-  ChevronDown, Store, Newspaper, ScrollText, Clock, HelpCircle, LifeBuoy, MoreHorizontal, Gamepad2,
-} from "lucide-react";
+  ChevronDown, Store, Newspaper, ScrollText, Clock, HelpCircle, LifeBuoy, MoreHorizontal, Gamepad2, Stamp } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { useAppMode } from "@/components/providers/AppModeProvider";
 import { isLeadDev } from "@/lib/admin";
@@ -79,6 +78,7 @@ const PLAY: Dest[] = [
   { href: "/cards", label: "Arise Cards", Icon: Layers },
   { href: "/duels", label: "Card Duels", Icon: Swords },
   { href: "/leaderboard", label: "Leaderboard", Icon: Trophy },
+  { href: "/stamps", label: "Stamps", Icon: Stamp },
   { href: "/marketplace", label: "Marketplace", Icon: Store },
 ];
 

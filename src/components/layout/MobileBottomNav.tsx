@@ -6,8 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   Home, Compass, Users, User as UserIcon, Megaphone, BookOpen,
   MoreHorizontal, X, Store, Layers, Swords, ShoppingBag, Target, HelpCircle, Heart, Sparkles,
-  Trophy, Gamepad2,
-} from "lucide-react";
+  Trophy, Gamepad2, Stamp } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { useAppMode } from "@/components/providers/AppModeProvider";
 
@@ -71,6 +70,7 @@ export default function MobileBottomNav() {
     { label: "Arise Shop", href: "/shop", icon: ShoppingBag, hint: "Frames and effects" },
     { label: "Quests", href: "/quests", icon: Target, hint: "Daily rewards" },
     { label: "Leaderboard", href: "/leaderboard", icon: Trophy, hint: "Who is winning" },
+    { label: "Stamps", href: "/stamps", icon: Stamp, hint: "Whose taste to trust" },
     { label: "Updates", href: "/updates", icon: Megaphone, hint: "What changed" },
     { label: "Upcoming", href: "/upcoming", icon: Sparkles, hint: "What's next" },
     { label: "FAQ", href: "/faq", icon: HelpCircle, hint: "How things work" },
