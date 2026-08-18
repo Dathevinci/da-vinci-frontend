@@ -23,38 +23,39 @@ type Section = {
   label: string;
   desc: string;
   Icon: any;
+  tint: string;
   category: CategoryId;
   badge?: string;
 };
 
 const SECTIONS: Section[] = [
   // Media Realm
-  { href: "/", label: "Anime", desc: "Watch latest episodes and ongoing simulcasts.", Icon: Tv, category: "media" },
-  { href: "/manhwa", label: "Manhwa", desc: "Read latest chapters, webtoons, and manga.", Icon: BookOpen, category: "media" },
-  { href: "/novel", label: "Novels", desc: "Light novels, web serials, and epubs.", Icon: Feather, category: "media" },
-  { href: "/explore", label: "Explore Anime", desc: "Filter by genre, season, and popularity.", Icon: Compass, category: "media" },
-  { href: "/manhwa/explore", label: "Explore Comics", desc: "Search across all manhwa, manga and manhua sources.", Icon: Compass, category: "media" },
-  { href: "/novel/explore", label: "Explore Novels", desc: "Search novels by genre, tags, and status.", Icon: Compass, category: "media" },
+  { href: "/", label: "Anime", desc: "Watch latest episodes and ongoing simulcasts.", Icon: Tv, tint: "#a855f7", category: "media" },
+  { href: "/manhwa", label: "Manhwa", desc: "Read latest chapters, webtoons, and manga.", Icon: BookOpen, tint: "#38bdf8", category: "media" },
+  { href: "/novel", label: "Novels", desc: "Light novels, web serials, and epubs.", Icon: Feather, tint: "#fbbf24", category: "media" },
+  { href: "/explore", label: "Explore Anime", desc: "Filter by genre, season, and popularity.", Icon: Compass, tint: "#818cf8", category: "media" },
+  { href: "/manhwa/explore", label: "Explore Comics", desc: "Search across all manhwa, manga and manhua sources.", Icon: Compass, tint: "#38bdf8", category: "media" },
+  { href: "/novel/explore", label: "Explore Novels", desc: "Search novels by genre, tags, and status.", Icon: Compass, tint: "#fbbf24", category: "media" },
 
   // Combat & Collectibles
-  { href: "/cards", label: "Arise Cards", desc: "Binder collection, shard crafting, and packs.", Icon: Layers, category: "games" },
-  { href: "/duels", label: "Card Duels", desc: "PvP card battles with real stakes.", Icon: Swords, category: "games" },
-  { href: "/raid", label: "World Boss Raid", desc: "Weekly server-wide raid battles.", Icon: Flame, category: "games", badge: "Boss Active" },
-  { href: "/marketplace", label: "Marketplace", desc: "Trade cards, rare wears, and serial numbers.", Icon: Store, category: "games" },
+  { href: "/cards", label: "Arise Cards", desc: "Binder collection, shard crafting, and packs.", Icon: Layers, tint: "#c084fc", category: "games" },
+  { href: "/duels", label: "Card Duels", desc: "PvP card battles with real stakes.", Icon: Swords, tint: "#f43f5e", category: "games" },
+  { href: "/raid", label: "World Boss Raid", desc: "Weekly server-wide raid battles.", Icon: Flame, tint: "#f87171", category: "games", badge: "Boss Active" },
+  { href: "/marketplace", label: "Marketplace", desc: "Trade cards, rare wears, and serial numbers.", Icon: Store, tint: "#22d3ee", category: "games" },
 
   // Community & Guilds
-  { href: "/guilds", label: "Guilds", desc: "Team up, pool XP, raid bosses, and climb.", Icon: Shield, category: "community" },
-  { href: "/community", label: "Community", desc: "Forums, discussions, recommendations, and lore.", Icon: Users, category: "community" },
-  { href: "/leaderboard", label: "Leaderboard", desc: "Top ranks across XP, duels, and collections.", Icon: Crown, category: "community" },
+  { href: "/guilds", label: "Guilds", desc: "Team up, pool XP, raid bosses, and climb.", Icon: Shield, tint: "#10b981", category: "community" },
+  { href: "/community", label: "Community", desc: "Forums, discussions, recommendations, and lore.", Icon: Users, tint: "#34d399", category: "community" },
+  { href: "/leaderboard", label: "Leaderboard", desc: "Top ranks across XP, duels, and collections.", Icon: Crown, tint: "#7dd3fc", category: "community" },
 
   // Progression & Curation
-  { href: "/quests", label: "Daily Quests", desc: "Complete tasks to earn daily Arise Points.", Icon: Trophy, category: "rewards" },
-  { href: "/shop", label: "Flair Shop", desc: "Profile frames, glowing auras, and banner items.", Icon: ShoppingBag, category: "rewards" },
-  { href: "/stamps", label: "Stamps", desc: "Weekly member stamps and activity feed.", Icon: Stamp, category: "rewards" },
-  { href: "#gems", label: "Hidden Gems", desc: "Weekly community-curated highlights.", Icon: Gem, category: "rewards" },
+  { href: "/quests", label: "Daily Quests", desc: "Complete tasks to earn daily Arise Points.", Icon: Trophy, tint: "#fb923c", category: "rewards" },
+  { href: "/shop", label: "Flair Shop", desc: "Profile frames, glowing auras, and banner items.", Icon: ShoppingBag, tint: "#e879f9", category: "rewards" },
+  { href: "/stamps", label: "Stamps", desc: "Weekly member stamps and activity feed.", Icon: Stamp, tint: "#fbbf24", category: "rewards" },
+  { href: "#gems", label: "Hidden Gems", desc: "Weekly community-curated highlights.", Icon: Gem, tint: "#a78bfa", category: "rewards" },
 
   // Platform
-  { href: "/updates", label: "Changelog", desc: "Platform release notes and roadmap updates.", Icon: Megaphone, category: "system" },
+  { href: "/updates", label: "Changelog", desc: "Platform release notes and roadmap updates.", Icon: Megaphone, tint: "#94a3b8", category: "system" },
 ];
 
 const CATEGORIES: { id: CategoryId; label: string }[] = [
@@ -75,7 +76,7 @@ export default function HubPage() {
   const staff = isLeadDev(user) || isAdmin(user);
   const allSections: Section[] = useMemo(() => {
     return isLeadDev(user)
-      ? [...SECTIONS, { href: "/console", label: "Lead Dev Console", desc: "System control panel and admin tools.", Icon: Terminal, category: "system" as CategoryId }]
+      ? [...SECTIONS, { href: "/console", label: "Lead Dev Console", desc: "System control panel and admin tools.", Icon: Terminal, tint: "#a3e635", category: "system" as CategoryId }]
       : SECTIONS;
   }, [user]);
 
@@ -91,7 +92,7 @@ export default function HubPage() {
     });
   }, [allSections, activeCategory, searchQuery]);
 
-  if (!user) return <div className="min-h-screen bg-black" />;
+  if (!user) return <div className="min-h-screen bg-[#070709]" />;
 
   const xp = (user as any).xp ?? 0;
   const level = staff ? MAX_LEVEL : calculateLevel(xp);
@@ -100,88 +101,64 @@ export default function HubPage() {
   const roleBadge = isLeadDev(user) ? "Lead Dev" : isAdmin(user) ? "Admin" : "Member";
 
   return (
-    <div className="min-h-screen bg-black px-4 pb-36 pt-12 sm:px-6 lg:px-10 font-sans text-white">
-      {/* Subtle monochrome ambient light */}
+    <div className="min-h-screen bg-[#070709] px-4 pb-36 pt-12 sm:px-6 lg:px-10 font-sans text-white">
+      {/* Background ambient lighting */}
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-x-0 top-0 h-[500px] bg-[radial-gradient(ellipse_60%_50%_at_50%_-10%,rgba(255,255,255,0.08),transparent_70%)]"
+        className="pointer-events-none fixed inset-x-0 top-0 h-[600px] bg-[radial-gradient(ellipse_60%_60%_at_50%_-10%,rgba(139,92,246,0.14),transparent_70%)]"
       />
 
-      <div className="relative mx-auto max-w-6xl space-y-8">
-
-        {/* ── 1-WEEK NOIR PROTOCOL EVENT BANNER & VOX REPLAY ── */}
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/20 bg-gradient-to-r from-neutral-950 via-[#111111] to-neutral-950 px-5 py-3 shadow-md">
-          <div className="flex items-center gap-3">
-            <span className="bg-[#ffe600] text-black px-2 py-0.5 text-[10px] font-black uppercase tracking-tight shadow-sm">
-              VOX EVENT
-            </span>
-            <div className="flex items-center gap-2 text-xs font-mono font-bold text-white">
-              <span className="h-2 w-2 rounded-full bg-[#ffe600] animate-pulse shadow-[0_0_8px_#ffe600]" />
-              <span>THE 1-WEEK NOIR PROTOCOL // DAYS LEFT: 7</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => window.dispatchEvent(new CustomEvent("open_noir_vox_intro"))}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-mono font-bold uppercase tracking-wider text-white hover:bg-[#ffe600] hover:text-black hover:border-[#ffe600] transition"
-            >
-              <Play className="h-3 w-3 fill-current" />
-              <span>WATCH VOX INTRO</span>
-            </button>
-          </div>
-        </div>
+      <div className="relative mx-auto max-w-6xl space-y-10">
 
         {/* ── COMMAND DECK & USER PASSPORT ── */}
-        <section className="relative overflow-hidden rounded-3xl border border-white/15 bg-gradient-to-b from-[#111111] via-[#090909] to-[#000000] p-6 sm:p-8 lg:p-10 shadow-[0_20px_50px_rgba(0,0,0,0.9),_0_0_30px_rgba(255,255,255,0.03)]">
+        <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#120c24]/90 via-[#0d091a]/95 to-[#07050e]/95 p-6 sm:p-8 lg:p-10 shadow-[0_15px_50px_rgba(0,0,0,0.85)]">
           <div className="grid gap-8 lg:grid-cols-[1.3fr_0.9fr] lg:items-center">
             
             {/* Left: Hub Title & Quick Jump */}
             <div>
               <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-white shadow-[0_0_8px_#ffffff]" />
-                <span className="text-xs font-mono font-bold uppercase tracking-widest text-neutral-400">
-                  Da Vinci Portal // Monochrome Edition
+                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
+                <span className="text-xs font-mono font-bold uppercase tracking-widest text-slate-400">
+                  Da Vinci Universe Portal
                 </span>
               </div>
 
               <h1 className="mt-3 font-fell text-3xl font-extrabold text-white sm:text-4xl lg:text-5xl tracking-wide">
-                Welcome, <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-neutral-200 to-neutral-400">{user.username}</span>
+                Welcome, <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-violet-200 to-white">{user.username}</span>
               </h1>
 
-              <p className="mt-3 max-w-lg text-sm sm:text-base leading-relaxed text-neutral-400 font-sans">
-                Explore anime broadcasts, manhwa webtoons, light novels, and participate in community duels, guild raids, and daily quests.
+              <p className="mt-3 max-w-lg text-sm sm:text-base leading-relaxed text-slate-300">
+                Explore anime, manhwa, novels, and participate in community card battles, guild raids, and daily quests.
               </p>
 
-              {/* Quick Jump Buttons (High Contrast Monochrome) */}
+              {/* Quick Jump Buttons */}
               <div className="mt-6 flex flex-wrap items-center gap-2.5">
                 <Link
                   href="/"
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider text-white hover:bg-white hover:text-black transition shadow-sm"
+                  className="inline-flex items-center gap-2 rounded-xl border border-violet-500/30 bg-violet-500/15 px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider text-violet-200 hover:bg-violet-500/25 transition shadow-sm"
                 >
-                  <Play className="h-3.5 w-3.5 fill-current" />
+                  <Play className="h-3.5 w-3.5 text-violet-400" />
                   Watch Anime
                 </Link>
                 <Link
                   href="/manhwa"
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider text-white hover:bg-white hover:text-black transition shadow-sm"
+                  className="inline-flex items-center gap-2 rounded-xl border border-sky-500/30 bg-sky-500/15 px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider text-sky-200 hover:bg-sky-500/25 transition shadow-sm"
                 >
-                  <BookOpen className="h-3.5 w-3.5" />
+                  <BookOpen className="h-3.5 w-3.5 text-sky-400" />
                   Read Manhwa
                 </Link>
                 <Link
                   href="/novel"
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider text-white hover:bg-white hover:text-black transition shadow-sm"
+                  className="inline-flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/15 px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider text-amber-200 hover:bg-amber-500/25 transition shadow-sm"
                 >
-                  <Feather className="h-3.5 w-3.5" />
+                  <Feather className="h-3.5 w-3.5 text-amber-400" />
                   Light Novels
                 </Link>
               </div>
             </div>
 
             {/* Right: User Passport Card */}
-            <div className="rounded-2xl border border-white/15 bg-neutral-950/80 p-5 backdrop-blur-md shadow-lg">
+            <div className="rounded-2xl border border-white/10 bg-black/40 p-5 backdrop-blur-md">
               <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="relative h-12 w-12 shrink-0">
@@ -189,10 +166,10 @@ export default function HubPage() {
                       <img
                         src={cloudinaryFit(user.avatar, 120)}
                         alt=""
-                        className="relative z-10 h-12 w-12 rounded-2xl object-cover ring-2 ring-white/30"
+                        className="relative z-10 h-12 w-12 rounded-2xl object-cover ring-2 ring-white/15"
                       />
                     ) : (
-                      <span className="relative z-10 grid h-12 w-12 place-items-center rounded-2xl bg-neutral-800 font-bold text-lg text-white ring-2 ring-white/20">
+                      <span className="relative z-10 grid h-12 w-12 place-items-center rounded-2xl bg-violet-800 font-bold text-lg text-white">
                         {(user.username || "?")[0]?.toUpperCase()}
                       </span>
                     )}
@@ -202,11 +179,11 @@ export default function HubPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <p className="truncate text-base font-bold text-white">{user.username}</p>
-                      <span className="rounded-md border border-white/30 bg-white/10 px-2 py-0.5 text-[9px] font-mono font-black uppercase tracking-wider text-white">
+                      <span className="rounded-md border border-violet-400/40 bg-violet-500/20 px-2 py-0.5 text-[9px] font-mono font-black uppercase tracking-wider text-violet-200">
                         {roleBadge}
                       </span>
                     </div>
-                    <p className="truncate text-xs font-mono text-neutral-400">
+                    <p className="truncate text-xs font-mono text-slate-400">
                       {rankInfo.name}
                     </p>
                   </div>
@@ -214,7 +191,7 @@ export default function HubPage() {
 
                 <Link
                   href={`/user/${encodeURIComponent(user.username)}`}
-                  className="shrink-0 text-neutral-400 hover:text-white transition p-1"
+                  className="shrink-0 text-slate-400 hover:text-white transition p-1"
                   title="View Profile"
                 >
                   <ArrowRight className="h-4 w-4" />
@@ -223,16 +200,16 @@ export default function HubPage() {
 
               {/* Stats Grid */}
               <div className="mt-4 grid grid-cols-2 gap-2.5">
-                <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
-                  <span className="flex items-center gap-1 text-[10px] font-mono font-bold uppercase tracking-wider text-neutral-400">
-                    <Sparkles className="h-3 w-3 text-neutral-300" /> Level
+                <div className="rounded-xl border border-white/5 bg-white/[0.03] p-3">
+                  <span className="flex items-center gap-1 text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
+                    <Sparkles className="h-3 w-3 text-amber-400" /> Level
                   </span>
                   <p className="mt-1 font-mono text-xl font-black text-white">{level}</p>
                 </div>
 
-                <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
-                  <span className="flex items-center gap-1 text-[10px] font-mono font-bold uppercase tracking-wider text-neutral-400">
-                    <Diamond className="h-3 w-3 text-neutral-300" /> Arise Points
+                <div className="rounded-xl border border-white/5 bg-white/[0.03] p-3">
+                  <span className="flex items-center gap-1 text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
+                    <Diamond className="h-3 w-3 text-cyan-400" /> Arise Points
                   </span>
                   <p className="mt-1 font-mono text-xl font-black text-white">{displayArisePoints(user)}</p>
                 </div>
@@ -240,13 +217,13 @@ export default function HubPage() {
 
               {/* XP Progress Bar */}
               <div className="mt-3.5">
-                <div className="flex items-center justify-between text-[10px] font-mono font-bold text-neutral-400">
-                  <span className="flex items-center gap-1"><Zap className="h-3 w-3 text-white" /> XP Progress</span>
-                  <span className="text-neutral-300 font-mono">{level >= MAX_LEVEL ? "MAX RANK" : `${Math.round(progress)}%`}</span>
+                <div className="flex items-center justify-between text-[10px] font-mono font-bold text-slate-400">
+                  <span className="flex items-center gap-1"><Zap className="h-3 w-3 text-violet-400" /> XP Progress</span>
+                  <span>{level >= MAX_LEVEL ? "MAX RANK" : `${Math.round(progress)}%`}</span>
                 </div>
-                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-neutral-800">
+                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-neutral-400 to-white transition-all duration-700 shadow-[0_0_10px_#ffffff]"
+                    className="h-full rounded-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-amber-400 transition-all duration-700"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
@@ -256,38 +233,38 @@ export default function HubPage() {
           </div>
         </section>
 
-        {/* ── THE BIG 3 MEDIA GATEWAYS (HERO TRIAD) ── */}
+        {/* ── THE BIG 3 REALMS (HERO GATEWAYS) ── */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-fell text-2xl font-bold text-white">Media Gateways</h2>
-            <span className="text-xs font-mono text-neutral-500">Core Libraries</span>
+            <span className="text-xs font-mono text-slate-500">Core Libraries</span>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
             {/* Anime Card */}
-            <div className="group relative overflow-hidden rounded-3xl border border-white/15 bg-gradient-to-b from-[#141414] via-[#0a0a0a] to-[#020202] p-6 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-white/40 hover:shadow-[0_0_30px_rgba(255,255,255,0.1)]">
+            <div className="group relative overflow-hidden rounded-3xl border border-violet-500/25 bg-gradient-to-b from-violet-950/40 via-[#0d091b]/90 to-[#07050f] p-6 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-violet-500/50 hover:shadow-[0_0_30px_rgba(139,92,246,0.2)]">
               <div className="flex items-center justify-between">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white shadow-sm">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-violet-400/30 bg-violet-500/15 text-violet-300">
                   <Tv className="h-6 w-6" />
                 </div>
-                <span className="rounded-full border border-white/20 bg-white/5 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-neutral-300">
+                <span className="rounded-full border border-violet-400/30 bg-violet-500/10 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-violet-300">
                   Streaming
                 </span>
               </div>
               <h3 className="mt-4 text-xl font-bold text-white">Anime Realm</h3>
-              <p className="mt-1.5 text-xs leading-relaxed text-neutral-400 font-sans">
+              <p className="mt-1.5 text-xs leading-relaxed text-slate-400">
                 Stream ongoing simulcasts, sub & dub releases, and classic anime archives.
               </p>
-              <div className="mt-5 flex items-center gap-2 pt-3 border-t border-white/10">
+              <div className="mt-5 flex items-center gap-2 pt-3 border-t border-white/5">
                 <Link
                   href="/"
-                  className="flex-1 rounded-xl bg-white px-3.5 py-2 text-center text-xs font-mono font-bold uppercase tracking-wider text-black hover:bg-neutral-200 transition shadow-md"
+                  className="flex-1 rounded-xl bg-violet-600 px-3.5 py-2 text-center text-xs font-mono font-bold uppercase tracking-wider text-white hover:bg-violet-500 transition shadow-md"
                 >
                   Watch Now
                 </Link>
                 <Link
                   href="/explore"
-                  className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-mono text-neutral-300 hover:text-white hover:bg-white/10 transition"
+                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-mono text-slate-300 hover:text-white hover:bg-white/10 transition"
                   title="Explore Anime Catalog"
                 >
                   <Compass className="h-4 w-4" />
@@ -296,29 +273,29 @@ export default function HubPage() {
             </div>
 
             {/* Manhwa Card */}
-            <div className="group relative overflow-hidden rounded-3xl border border-white/15 bg-gradient-to-b from-[#141414] via-[#0a0a0a] to-[#020202] p-6 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-white/40 hover:shadow-[0_0_30px_rgba(255,255,255,0.1)]">
+            <div className="group relative overflow-hidden rounded-3xl border border-sky-500/25 bg-gradient-to-b from-sky-950/40 via-[#09101b]/90 to-[#05090f] p-6 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-sky-500/50 hover:shadow-[0_0_30px_rgba(56,189,248,0.2)]">
               <div className="flex items-center justify-between">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white shadow-sm">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-sky-400/30 bg-sky-500/15 text-sky-300">
                   <BookOpen className="h-6 w-6" />
                 </div>
-                <span className="rounded-full border border-white/20 bg-white/5 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-neutral-300">
+                <span className="rounded-full border border-sky-400/30 bg-sky-500/10 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-sky-300">
                   Comics & Manga
                 </span>
               </div>
               <h3 className="mt-4 text-xl font-bold text-white">Manhwa & Comics</h3>
-              <p className="mt-1.5 text-xs leading-relaxed text-neutral-400 font-sans">
+              <p className="mt-1.5 text-xs leading-relaxed text-slate-400">
                 High-definition scans for Korean manhwa, Japanese manga, and Chinese manhua.
               </p>
-              <div className="mt-5 flex items-center gap-2 pt-3 border-t border-white/10">
+              <div className="mt-5 flex items-center gap-2 pt-3 border-t border-white/5">
                 <Link
                   href="/manhwa"
-                  className="flex-1 rounded-xl bg-white px-3.5 py-2 text-center text-xs font-mono font-bold uppercase tracking-wider text-black hover:bg-neutral-200 transition shadow-md"
+                  className="flex-1 rounded-xl bg-sky-600 px-3.5 py-2 text-center text-xs font-mono font-bold uppercase tracking-wider text-white hover:bg-sky-500 transition shadow-md"
                 >
                   Read Now
                 </Link>
                 <Link
                   href="/manhwa/explore"
-                  className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-mono text-neutral-300 hover:text-white hover:bg-white/10 transition"
+                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-mono text-slate-300 hover:text-white hover:bg-white/10 transition"
                   title="Explore Comics Catalog"
                 >
                   <Compass className="h-4 w-4" />
@@ -327,29 +304,29 @@ export default function HubPage() {
             </div>
 
             {/* Light Novels Card */}
-            <div className="group relative overflow-hidden rounded-3xl border border-white/15 bg-gradient-to-b from-[#141414] via-[#0a0a0a] to-[#020202] p-6 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-white/40 hover:shadow-[0_0_30px_rgba(255,255,255,0.1)]">
+            <div className="group relative overflow-hidden rounded-3xl border border-amber-500/25 bg-gradient-to-b from-amber-950/40 via-[#151009]/90 to-[#0d0a06] p-6 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-amber-500/50 hover:shadow-[0_0_30px_rgba(251,191,36,0.2)]">
               <div className="flex items-center justify-between">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white shadow-sm">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-amber-400/30 bg-amber-500/15 text-amber-300">
                   <Feather className="h-6 w-6" />
                 </div>
-                <span className="rounded-full border border-white/20 bg-white/5 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-neutral-300">
+                <span className="rounded-full border border-amber-400/30 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-amber-300">
                   Web Serials
                 </span>
               </div>
               <h3 className="mt-4 text-xl font-bold text-white">Light Novels</h3>
-              <p className="mt-1.5 text-xs leading-relaxed text-neutral-400 font-sans">
+              <p className="mt-1.5 text-xs leading-relaxed text-slate-400">
                 Immersive reader for serialized light novels, translated web novels, and epubs.
               </p>
-              <div className="mt-5 flex items-center gap-2 pt-3 border-t border-white/10">
+              <div className="mt-5 flex items-center gap-2 pt-3 border-t border-white/5">
                 <Link
                   href="/novel"
-                  className="flex-1 rounded-xl bg-white px-3.5 py-2 text-center text-xs font-mono font-bold uppercase tracking-wider text-black hover:bg-neutral-200 transition shadow-md"
+                  className="flex-1 rounded-xl bg-amber-600 px-3.5 py-2 text-center text-xs font-mono font-bold uppercase tracking-wider text-white hover:bg-amber-500 transition shadow-md"
                 >
                   Read Now
                 </Link>
                 <Link
                   href="/novel/explore"
-                  className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-mono text-neutral-300 hover:text-white hover:bg-white/10 transition"
+                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-mono text-slate-300 hover:text-white hover:bg-white/10 transition"
                   title="Explore Novels Catalog"
                 >
                   <Compass className="h-4 w-4" />
@@ -363,17 +340,17 @@ export default function HubPage() {
         <section className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="relative min-w-[14rem] flex-1 sm:max-w-md">
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
               <input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search hub destinations…"
-                className="h-11 w-full rounded-2xl border border-white/15 bg-neutral-900/90 pl-10 pr-9 text-xs sm:text-sm text-white placeholder:text-neutral-600 outline-none focus:border-white/50 transition"
+                className="h-11 w-full rounded-2xl border border-white/10 bg-[#0d091a]/80 pl-10 pr-9 text-xs sm:text-sm text-white placeholder:text-slate-600 outline-none focus:border-violet-500/60 transition"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -390,8 +367,8 @@ export default function HubPage() {
                     onClick={() => setActiveCategory(cat.id)}
                     className={`rounded-xl border px-3 py-1.5 text-xs font-mono font-bold uppercase tracking-wider transition ${
                       active
-                        ? "border-white bg-white text-black shadow-[0_0_12px_rgba(255,255,255,0.3)]"
-                        : "border-white/10 bg-white/[0.03] text-neutral-400 hover:bg-white/10 hover:text-white"
+                        ? "border-violet-400/60 bg-violet-500/20 text-violet-100 shadow-[0_0_12px_rgba(139,92,246,0.25)]"
+                        : "border-white/5 bg-white/[0.02] text-slate-400 hover:bg-white/5 hover:text-white"
                     }`}
                   >
                     {cat.label}
@@ -403,29 +380,32 @@ export default function HubPage() {
 
           {/* ── ALL SECTIONS GRID ── */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredSections.map(({ href, label, desc, Icon, badge }) => {
+            {filteredSections.map(({ href, label, desc, Icon, tint, badge }) => {
               const content = (
-                <div className="group relative flex h-full flex-col justify-between rounded-2xl border border-white/10 bg-[#0d0d0d] p-5 transition-all duration-200 hover:-translate-y-1 hover:border-white/30 hover:bg-[#141414] shadow-lg">
+                <div className="group relative flex h-full flex-col justify-between rounded-2xl border border-white/10 bg-[#0c0818]/80 p-5 transition-all duration-200 hover:-translate-y-1 hover:border-white/20 hover:bg-[#120d22] shadow-lg">
                   <div>
                     <div className="flex items-start justify-between">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white shadow-sm">
-                        <Icon className="h-5 w-5" />
+                      <div
+                        className="flex h-11 w-11 items-center justify-center rounded-xl"
+                        style={{ background: `${tint}15`, border: `1px solid ${tint}30` }}
+                      >
+                        <Icon className="h-5 w-5" style={{ color: tint }} />
                       </div>
 
                       <div className="flex items-center gap-2">
                         {badge && (
-                          <span className="rounded-full border border-white/30 bg-white/15 px-2 py-0.5 text-[9px] font-mono font-black uppercase text-white">
+                          <span className="rounded-full border border-rose-500/40 bg-rose-500/15 px-2 py-0.5 text-[9px] font-mono font-black uppercase text-rose-300">
                             {badge}
                           </span>
                         )}
-                        <ArrowUpRight className="h-4 w-4 text-neutral-600 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-white" />
+                        <ArrowUpRight className="h-4 w-4 text-slate-600 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-white" />
                       </div>
                     </div>
 
-                    <h4 className="mt-4 text-base font-bold text-white transition group-hover:text-neutral-200">
+                    <h4 className="mt-4 text-base font-bold text-white transition group-hover:text-violet-200">
                       {label}
                     </h4>
-                    <p className="mt-1 text-xs leading-relaxed text-neutral-400 font-sans">
+                    <p className="mt-1 text-xs leading-relaxed text-slate-400 font-sans">
                       {desc}
                     </p>
                   </div>
@@ -463,26 +443,26 @@ export default function HubPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/75 backdrop-blur-sm"
               onClick={() => setGemsOpen(false)}
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="relative w-full max-w-sm rounded-3xl border border-white/20 bg-neutral-950 p-6 shadow-2xl"
+              className="relative w-full max-w-sm rounded-3xl border border-white/10 bg-[#0d091a] p-6 shadow-2xl"
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h3 className="font-fell text-2xl font-bold text-white">Select Gems Mode</h3>
-                  <p className="mt-1 text-xs text-neutral-400 font-sans">
+                  <p className="mt-1 text-xs text-slate-400 font-sans">
                     Weekly community curations and top rated hidden gems.
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setGemsOpen(false)}
-                  className="grid h-8 w-8 place-items-center rounded-full text-neutral-400 hover:bg-white/10 hover:text-white transition"
+                  className="grid h-8 w-8 place-items-center rounded-full text-slate-400 hover:bg-white/10 hover:text-white transition"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -490,21 +470,24 @@ export default function HubPage() {
 
               <div className="mt-5 space-y-2.5">
                 {[
-                  { href: "/gems/anime", label: "Anime Gems", Icon: Tv },
-                  { href: "/gems/manhwa", label: "Manhwa Gems", Icon: BookOpen },
-                  { href: "/gems/novel", label: "Novel Gems", Icon: Feather },
-                ].map(({ href, label, Icon }) => (
+                  { href: "/gems/anime", label: "Anime Gems", Icon: Tv, tint: "#a855f7" },
+                  { href: "/gems/manhwa", label: "Manhwa Gems", Icon: BookOpen, tint: "#38bdf8" },
+                  { href: "/gems/novel", label: "Novel Gems", Icon: Feather, tint: "#fbbf24" },
+                ].map(({ href, label, Icon, tint }) => (
                   <Link
                     key={href}
                     href={href}
                     onClick={() => setGemsOpen(false)}
-                    className="group flex items-center gap-3 rounded-2xl border border-white/15 bg-white/[0.04] p-3.5 transition hover:border-white/40 hover:bg-white/10"
+                    className="group flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3.5 transition hover:border-violet-500/40 hover:bg-violet-500/10"
                   >
-                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/20 bg-white/10 text-white">
-                      <Icon className="h-5 w-5" />
+                    <span
+                      className="grid h-10 w-10 shrink-0 place-items-center rounded-xl"
+                      style={{ background: `${tint}15`, border: `1px solid ${tint}30` }}
+                    >
+                      <Icon className="h-5 w-5" style={{ color: tint }} />
                     </span>
                     <span className="flex-1 font-mono text-sm font-bold text-white">{label}</span>
-                    <ArrowRight className="h-4 w-4 text-neutral-500 transition group-hover:translate-x-0.5 group-hover:text-white" />
+                    <ArrowRight className="h-4 w-4 text-slate-600 transition group-hover:translate-x-0.5 group-hover:text-violet-300" />
                   </Link>
                 ))}
               </div>
@@ -515,6 +498,4 @@ export default function HubPage() {
     </div>
   );
 }
-
-
 
