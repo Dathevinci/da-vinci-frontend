@@ -121,21 +121,14 @@ export function AvatarDecoration({
             className={`pointer-events-none absolute rounded-full z-0 ${size === "lg" ? "-inset-[4px]" : "-inset-[3px]"}`}
             style={{ boxShadow: `0 0 ${size === "lg" ? 10 : 6}px ${ring.glow}` }}
           />
-          <motion.span
+          <span
             aria-hidden
-            // A 3px band reads as a thick collar around a 32-40px avatar. Kept
-            // full width on the profile, hairline on dense surfaces — the ring
-            // is the bought cosmetic and must stay visible either way.
             className={`pointer-events-none absolute rounded-full z-0 ${size === "lg" ? "-inset-[4px]" : "-inset-[3px]"}`}
-            // will-change promotes the spinning ring onto its own compositor
-            // layer. Weak mobile GPUs (Mali on EMUI phones especially) can
-            // smear a continuously-rotating element that shares a layer with
-            // its siblings — a red/white vertical streak where the avatar
-            // should be, on exactly one device class, invisible everywhere
-            // else. An isolated layer is the standard cure.
-            style={{ background: ring.ring, willChange: "transform" }}
-            animate={{ rotate: 360 }}
-            transition={{ duration: ring.speed, repeat: Infinity, ease: "linear" }}
+            style={{
+              background: ring.ring,
+              willChange: "transform",
+              animation: still ? "none" : `spin ${ring.speed}s linear infinite`,
+            }}
           />
         </>
       )}
@@ -220,25 +213,20 @@ const glowFor = (frames: string[], size: "sm" | "lg") =>
 function EffectLayer({ effect, size = "sm", still = false }: { effect: string; size?: "sm" | "lg"; still?: boolean }) {
   // On any small/dense surface, a heavy effect becomes a single cheap glow —
   // no canvas, no blur, no per-avatar animation loop.
-  if (size !== "lg" && HEAVY_EFFECTS.has(effect)) {
-    const frames = glowFor(LITE_GLOW[effect] || [], "sm");
-    // Performance Mode: freeze the pulse at its mid (brightest) keyframe so
-    // the cosmetic stays visible without the per-frame box-shadow repaint.
-    if (still) {
-      return (
-        <span
-          aria-hidden
-          className="pointer-events-none absolute -inset-px rounded-full z-0"
-          style={{ boxShadow: frames[1] }}
-        />
-      );
-    }
+  if (size !== "lg" && (HEAVY_EFFECTS.has(effect) || effect === "effect_ascension")) {
+    const frames = glowFor(
+      LITE_GLOW[effect] || [
+        "0 0 8px 1px rgba(168,85,247,0.5)",
+        "0 0 16px 4px rgba(216,180,254,0.75)",
+        "0 0 8px 1px rgba(168,85,247,0.5)",
+      ],
+      "sm"
+    );
     return (
-      <motion.span
+      <span
         aria-hidden
-        className="pointer-events-none absolute -inset-px rounded-full z-0"
-        animate={{ boxShadow: frames }}
-        transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
+        className={`pointer-events-none absolute -inset-px rounded-full z-0 ${still ? "" : "animate-pulse"}`}
+        style={{ boxShadow: frames[1] || frames[0], willChange: "opacity" }}
       />
     );
   }
@@ -432,10 +420,8 @@ function EffectLayer({ effect, size = "sm", still = false }: { effect: string; s
   const top: [string, string] = isSnow ? ["-14%", "114%"] : ["114%", "-14%"];
   const xs = [12, 30, 48, 66, 84, 22, 58];
 
-  // Performance Mode: a frozen snapshot of the particle field. The travel
-  // (top/x) is transform-gated by MotionConfig, but the opacity loop would keep
-  // tweening forever — so render plain dots scattered mid-fall instead.
-  if (still) {
+  // Performance Mode or small avatar: render lightweight static dots.
+  if (still || size !== "lg") {
     const stillTops = [18, 64, 36, 78, 52, 8, 70];
     return (
       <span aria-hidden className="pointer-events-none absolute -inset-2 z-20">
