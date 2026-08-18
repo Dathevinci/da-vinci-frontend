@@ -4,9 +4,8 @@ import { useEffect, useState } from "react";
 
 /**
  * Reader customization for the novel chapter reader — theme (background + text
- * colour), font family, size, line spacing, column width and justification.
- * Persisted as one JSON blob in localStorage so it follows the reader across
- * every chapter and novel. Migrates the old standalone `novel-font` key.
+ * colour), font family, size, line spacing, column width, justification,
+ * and custom wallpaper styling.
  */
 
 export interface ReaderTheme {
@@ -28,8 +27,6 @@ export const READER_THEMES: ReaderTheme[] = [
   { id: "paper", name: "Paper", bg: "#fbfaf7", panel: "#efece5", text: "#262626", muted: "#6a6a6a", border: "rgba(0,0,0,0.10)", dark: false },
 ];
 
-// ids "serif"/"sans"/"mono" are kept for back-compat with saved prefs; the
-// display names are the real font names now that there's a whole shelf of them.
 export const READER_FONTS = [
   { id: "serif", name: "Garamond", css: "var(--font-garamond), Georgia, 'Times New Roman', serif" },
   { id: "lora", name: "Lora", css: "var(--font-lora), Georgia, serif" },
@@ -65,6 +62,8 @@ export interface ReaderPrefs {
   customBg?: string | null;
   customBgOpacity?: number;
   customBgBlur?: number;
+  customBgCardStyle?: "card" | "seamless";
+  customBgCardOpacity?: number;
 }
 
 export const READER_DEFAULTS: ReaderPrefs = {
@@ -75,8 +74,10 @@ export const READER_DEFAULTS: ReaderPrefs = {
   width: "normal",
   justify: false,
   customBg: null,
-  customBgOpacity: 0.25,
-  customBgBlur: 0,
+  customBgOpacity: 0.65,
+  customBgBlur: 2,
+  customBgCardStyle: "card",
+  customBgCardOpacity: 0.82,
 };
 
 export const themeById = (id: string) => READER_THEMES.find((t) => t.id === id) || READER_THEMES[0];
@@ -97,11 +98,9 @@ export function useNovelReaderPrefs() {
       if (raw) {
         init = { ...init, ...JSON.parse(raw) };
       } else {
-        // Migrate the old font-size-only key so long-time readers keep their size.
         const oldF = Number(localStorage.getItem("novel-font"));
         if (oldF >= SIZE_MIN && oldF <= SIZE_MAX) init.size = oldF;
       }
-      // Guard against a stale saved id no longer in the option lists.
       init.size = Math.min(SIZE_MAX, Math.max(SIZE_MIN, Number(init.size) || READER_DEFAULTS.size));
     } catch {
       /* ignore */

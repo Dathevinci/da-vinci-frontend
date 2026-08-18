@@ -163,38 +163,48 @@ export default function NovelReaderPage() {
       {prefs.customBg && (
         <>
           <div
-            className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center bg-no-repeat transition-all duration-300"
+            className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center bg-no-repeat transition-all duration-500"
             style={{
               backgroundImage: `url(${prefs.customBg})`,
-              opacity: prefs.customBgOpacity ?? 0.25,
-              filter: prefs.customBgBlur ? `blur(${prefs.customBgBlur}px)` : undefined,
-              transform: prefs.customBgBlur ? "scale(1.05)" : undefined,
+              opacity: prefs.customBgOpacity ?? 0.7,
+              filter: (prefs.customBgBlur ?? 2) > 0 ? `blur(${prefs.customBgBlur}px)` : undefined,
+              transform: (prefs.customBgBlur ?? 2) > 0 ? "scale(1.05)" : undefined,
             }}
           />
+          {/* Subtle Ambient Vignette Scrim */}
           <div
-            className="fixed inset-0 pointer-events-none z-0 transition-colors"
-            style={{ backgroundColor: t.bg, opacity: 0.75 }}
+            className="fixed inset-0 pointer-events-none z-0 bg-gradient-to-b from-black/60 via-transparent to-black/80"
           />
         </>
       )}
 
       {/* Top bar */}
-      {/* Solid panel bg, no backdrop-filter: a blur on a sticky bar re-blurs on
-          every scrolled frame of the chapter — the one workload this page is for. */}
-      <div className="sticky top-0 z-30 border-b relative" style={{ backgroundColor: t.panel, borderColor: t.border }}>
+      <div
+        className="sticky top-0 z-30 border-b relative transition-colors backdrop-blur-md"
+        style={{
+          backgroundColor: prefs.customBg ? "rgba(11, 11, 15, 0.85)" : t.panel,
+          borderColor: prefs.customBg ? "rgba(255, 255, 255, 0.1)" : t.border,
+        }}
+      >
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
           <div className="flex items-center gap-1 min-w-0">
             <button
               onClick={() => router.push(browseAnchorHref("/novel"))}
               className="flex items-center justify-center h-9 w-9 shrink-0 rounded-lg hover:bg-pink-500/10 hover:text-pink-400 transition"
-              style={{ color: t.muted }}
+              style={{ color: prefs.customBg ? "#e2e8f0" : t.muted }}
               title="Back to browsing"
             >
               <Home className="w-4 h-4" />
             </button>
 
-            <Link href={`/novel/${encodeURIComponent(id)}`} replace className="flex items-center gap-2 hover:text-pink-400 transition text-sm font-bold min-w-0" style={{ color: t.muted }}>
-              <ArrowLeft className="w-4 h-4 shrink-0" /> <span className="hidden sm:inline line-clamp-1">{novel?.title || "Back"}</span>
+            <Link
+              href={`/novel/${encodeURIComponent(id)}`}
+              replace
+              className="flex items-center gap-2 hover:text-pink-400 transition text-sm font-bold min-w-0"
+              style={{ color: prefs.customBg ? "#e2e8f0" : t.muted }}
+            >
+              <ArrowLeft className="w-4 h-4 shrink-0" />
+              <span className="hidden sm:inline line-clamp-1">{novel?.title || "Back"}</span>
             </Link>
           </div>
           <div className="flex items-center gap-1">
@@ -202,7 +212,7 @@ export default function NovelReaderPage() {
               <div className="relative group mr-2">
                 <div 
                   className="flex items-center gap-1.5 px-2 h-9 rounded-lg hover:bg-pink-500/10 hover:text-pink-400 transition cursor-pointer"
-                  style={{ color: t.muted }}
+                  style={{ color: prefs.customBg ? "#e2e8f0" : t.muted }}
                   title="Switch Server"
                 >
                   <Server className="w-4 h-4" />
@@ -231,12 +241,17 @@ export default function NovelReaderPage() {
             <button
               onClick={() => setShowSettings(true)}
               className="flex items-center gap-1.5 px-3 h-9 rounded-lg hover:bg-pink-500/10 hover:text-pink-400 transition font-black"
-              style={{ color: t.muted }}
+              style={{ color: prefs.customBg ? "#f8fafc" : t.muted }}
               title="Reading settings"
             >
               <span className="font-serif text-[15px] leading-none">Aa</span>
             </button>
-            <button onClick={() => setShowChapters(true)} className="p-2 rounded-lg hover:bg-pink-500/10 hover:text-pink-400 transition" style={{ color: t.muted }} title="Chapters">
+            <button
+              onClick={() => setShowChapters(true)}
+              className="p-2 rounded-lg hover:bg-pink-500/10 hover:text-pink-400 transition"
+              style={{ color: prefs.customBg ? "#f8fafc" : t.muted }}
+              title="Chapters"
+            >
               <List className="w-5 h-5" />
             </button>
           </div>
@@ -261,55 +276,90 @@ export default function NovelReaderPage() {
           </button>
         </div>
       ) : (
-        <article className={`${widthCls} mx-auto px-5 sm:px-8 py-10`} style={{ fontFamily: fontCss }}>
-          {/* ONE chapter, the one that was asked for. */}
-          <h1 className="text-2xl font-black mb-8 text-center" style={{ color: t.text }}>{chapter.title}</h1>
-          <div className="space-y-5" style={{ fontSize: prefs.size, lineHeight, textAlign: prefs.justify ? "justify" : "left" }}>
-            {(chapter.content || []).map((p, i) => (
-              <p key={i}>{p}</p>
-            ))}
-          </div>
+        <article className={`${widthCls} mx-auto px-4 sm:px-6 py-8 sm:py-12`} style={{ fontFamily: fontCss }}>
+          {/* Reading Card Container */}
+          <div
+            className={
+              prefs.customBg && prefs.customBgCardStyle !== "seamless"
+                ? "rounded-3xl border border-white/10 p-6 sm:p-10 shadow-[0_25px_60px_rgba(0,0,0,0.7)] backdrop-blur-xl transition-all"
+                : "transition-all"
+            }
+            style={{
+              backgroundColor:
+                prefs.customBg && prefs.customBgCardStyle !== "seamless"
+                  ? `rgba(11, 11, 15, ${prefs.customBgCardOpacity ?? 0.85})`
+                  : undefined,
+              color: prefs.customBg ? "#f8fafc" : t.text,
+            }}
+          >
+            <h1
+              className="text-2xl sm:text-3xl font-black mb-8 text-center tracking-tight"
+              style={{ color: prefs.customBg ? "#ffffff" : t.text }}
+            >
+              {chapter.title}
+            </h1>
+            <div
+              className="space-y-6 leading-relaxed"
+              style={{
+                fontSize: prefs.size,
+                lineHeight,
+                textAlign: prefs.justify ? "justify" : "left",
+                textShadow:
+                  prefs.customBg && prefs.customBgCardStyle === "seamless"
+                    ? "0 2px 4px rgba(0,0,0,0.9), 0 0 12px rgba(0,0,0,0.8)"
+                    : undefined,
+              }}
+            >
+              {(chapter.content || []).map((p, i) => (
+                <p key={i}>{p}</p>
+              ))}
+            </div>
 
-          {/* Bottom nav */}
-          <div className="mt-8 flex flex-col gap-4">
-            <div className="flex items-center justify-between gap-3">
-              <button
-                onClick={() => go(prevId)}
-                disabled={!prevId}
-                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border disabled:opacity-30 hover:border-pink-500/40 transition font-bold text-sm"
-                style={{ backgroundColor: t.panel, borderColor: t.border, color: t.text }}
-              >
-                <ChevronLeft className="w-5 h-5" /> Previous
-              </button>
-              <button onClick={() => setShowChapters(true)} className="p-3 rounded-xl border hover:border-pink-500/40 transition" style={{ backgroundColor: t.panel, borderColor: t.border, color: t.text }} title="Chapters">
-                <List className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => go(initialNextId)}
-                disabled={!initialNextId}
-                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-pink-500 text-black disabled:opacity-30 hover:bg-pink-400 transition font-bold text-sm"
-              >
-                Next Chapter <ChevronRight className="w-5 h-5" />
-              </button>
+            {/* Bottom nav */}
+            <div className="mt-10 flex flex-col gap-4 pt-6 border-t border-white/5">
+              <div className="flex items-center justify-between gap-3">
+                <button
+                  onClick={() => go(prevId)}
+                  disabled={!prevId}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border disabled:opacity-30 hover:border-pink-500/40 transition font-bold text-sm"
+                  style={{
+                    backgroundColor: prefs.customBg ? "rgba(255,255,255,0.05)" : t.panel,
+                    borderColor: prefs.customBg ? "rgba(255,255,255,0.1)" : t.border,
+                    color: prefs.customBg ? "#ffffff" : t.text,
+                  }}
+                >
+                  <ChevronLeft className="w-5 h-5" /> Previous
+                </button>
+                <button
+                  onClick={() => setShowChapters(true)}
+                  className="p-3 rounded-xl border hover:border-pink-500/40 transition"
+                  style={{
+                    backgroundColor: prefs.customBg ? "rgba(255,255,255,0.05)" : t.panel,
+                    borderColor: prefs.customBg ? "rgba(255,255,255,0.1)" : t.border,
+                    color: prefs.customBg ? "#ffffff" : t.text,
+                  }}
+                  title="Chapters"
+                >
+                  <List className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => go(initialNextId)}
+                  disabled={!initialNextId}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-pink-500 text-black disabled:opacity-30 hover:bg-pink-400 transition font-bold text-sm shadow-lg shadow-pink-500/20"
+                >
+                  Next Chapter <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Per-chapter discussion. The manhwa reader has always had this;
-              the novel reader was the one surface with no comments at all.
-
-              It gets its OWN dark surface and resets the inherited reading
-              serif: the feed is hardcoded dark (white headings, white-on-
-              translucent inputs), and this reader can be set to Sepia or
-              Paper — on those, the section's chrome rendered white on cream
-              and you couldn't see what you were typing. */}
+          {/* Per-chapter discussion */}
           <div
-            className="mt-14 rounded-2xl bg-[#070709] px-3 py-4 sm:px-5"
+            className="mt-12 rounded-3xl border border-white/10 bg-[#070709]/95 px-4 py-5 sm:px-6 shadow-xl backdrop-blur-md"
             style={{ fontFamily: "var(--font-geist-sans, ui-sans-serif, system-ui)", color: "#e2e8f0" }}
           >
             <CommunityFeed
               novelId={id}
-              // never persist the URL slug as a display title — the global
-              // feed would render "nf:overlord-ln" as the novel's name
               novelTitle={novel?.title || undefined}
               chapterId={chapterId}
               chapterTitle={chapter.title}

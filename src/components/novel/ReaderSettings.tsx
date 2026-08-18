@@ -193,7 +193,7 @@ export default function ReaderSettings({
         {/* Custom Background Photo / Wallpaper */}
         <div className="border-t pt-4" style={{ borderColor: t.border }}>
           <div className="flex items-center justify-between mb-2">
-            <Label>Custom Background Photo</Label>
+            <Label>Custom Background Wallpaper</Label>
             {prefs.customBg && (
               <button
                 onClick={() => update({ customBg: null })}
@@ -206,7 +206,7 @@ export default function ReaderSettings({
 
           {!prefs.customBg ? (
             <label
-              className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl border-2 border-dashed cursor-pointer transition hover:opacity-80"
+              className="flex items-center justify-center gap-2 w-full py-3.5 px-4 rounded-xl border-2 border-dashed cursor-pointer transition hover:border-pink-500 hover:text-pink-400"
               style={{ borderColor: t.border, color: t.muted }}
             >
               <ImagePlus className="w-4 h-4 text-pink-500" />
@@ -219,7 +219,15 @@ export default function ReaderSettings({
                   if (!file || !file.type.startsWith("image/")) return;
                   const reader = new FileReader();
                   reader.onload = () => {
-                    if (reader.result) update({ customBg: String(reader.result) });
+                    if (reader.result) {
+                      update({
+                        customBg: String(reader.result),
+                        customBgOpacity: 0.7,
+                        customBgCardStyle: "card",
+                        customBgCardOpacity: 0.85,
+                        customBgBlur: 2,
+                      });
+                    }
                   };
                   reader.readAsDataURL(file);
                 }}
@@ -227,9 +235,9 @@ export default function ReaderSettings({
               />
             </label>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <div className="relative w-16 h-12 rounded-lg overflow-hidden border" style={{ borderColor: t.border }}>
+                <div className="relative w-20 h-14 rounded-xl overflow-hidden border shadow-md" style={{ borderColor: t.border }}>
                   <img
                     src={prefs.customBg}
                     alt="Custom Wallpaper"
@@ -238,7 +246,7 @@ export default function ReaderSettings({
                 </div>
                 <div className="flex-1">
                   <label
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold cursor-pointer transition hover:opacity-80"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border text-xs font-bold cursor-pointer transition hover:border-pink-500 hover:text-pink-400"
                     style={{ borderColor: t.border, color: t.text }}
                   >
                     <Upload className="w-3.5 h-3.5 text-pink-500" />
@@ -261,39 +269,86 @@ export default function ReaderSettings({
                 </div>
               </div>
 
-              {/* Opacity slider */}
+              {/* Reading Card Style */}
+              <div>
+                <div className="text-xs font-bold mb-1.5" style={{ color: t.muted }}>
+                  Reading Style
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => update({ customBgCardStyle: "card" })}
+                    className={`${chipBase} py-2 text-xs flex items-center justify-center gap-1.5 ${
+                      prefs.customBgCardStyle !== "seamless" ? activeCls : "hover:opacity-80"
+                    }`}
+                    style={prefs.customBgCardStyle !== "seamless" ? undefined : inactive}
+                  >
+                    Frosted Card (Recommended)
+                  </button>
+                  <button
+                    onClick={() => update({ customBgCardStyle: "seamless" })}
+                    className={`${chipBase} py-2 text-xs flex items-center justify-center gap-1.5 ${
+                      prefs.customBgCardStyle === "seamless" ? activeCls : "hover:opacity-80"
+                    }`}
+                    style={prefs.customBgCardStyle === "seamless" ? undefined : inactive}
+                  >
+                    Seamless Floating
+                  </button>
+                </div>
+              </div>
+
+              {/* Reading Card Darkness / Opacity (when Card style is active) */}
+              {prefs.customBgCardStyle !== "seamless" && (
+                <div>
+                  <div className="flex items-center justify-between text-xs font-bold mb-1" style={{ color: t.muted }}>
+                    <span>Card Backdrop Darkness</span>
+                    <span className="tabular-nums font-mono">{Math.round((prefs.customBgCardOpacity ?? 0.85) * 100)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={20}
+                    max={98}
+                    step={2}
+                    value={Math.round((prefs.customBgCardOpacity ?? 0.85) * 100)}
+                    onChange={(e) => update({ customBgCardOpacity: Number(e.target.value) / 100 })}
+                    className="w-full accent-pink-500"
+                    aria-label="Card Backdrop Darkness"
+                  />
+                </div>
+              )}
+
+              {/* Photo Brightness */}
               <div>
                 <div className="flex items-center justify-between text-xs font-bold mb-1" style={{ color: t.muted }}>
-                  <span>Photo Opacity</span>
-                  <span className="tabular-nums font-mono">{Math.round((prefs.customBgOpacity ?? 0.25) * 100)}%</span>
+                  <span>Wallpaper Brightness</span>
+                  <span className="tabular-nums font-mono">{Math.round((prefs.customBgOpacity ?? 0.7) * 100)}%</span>
                 </div>
                 <input
                   type="range"
-                  min={5}
-                  max={95}
+                  min={15}
+                  max={100}
                   step={5}
-                  value={Math.round((prefs.customBgOpacity ?? 0.25) * 100)}
+                  value={Math.round((prefs.customBgOpacity ?? 0.7) * 100)}
                   onChange={(e) => update({ customBgOpacity: Number(e.target.value) / 100 })}
                   className="w-full accent-pink-500"
-                  aria-label="Background Opacity"
+                  aria-label="Wallpaper Brightness"
                 />
               </div>
 
               {/* Blur slider */}
               <div>
                 <div className="flex items-center justify-between text-xs font-bold mb-1" style={{ color: t.muted }}>
-                  <span>Background Blur</span>
-                  <span className="tabular-nums font-mono">{prefs.customBgBlur ?? 0}px</span>
+                  <span>Wallpaper Blur</span>
+                  <span className="tabular-nums font-mono">{prefs.customBgBlur ?? 2}px</span>
                 </div>
                 <input
                   type="range"
                   min={0}
                   max={16}
                   step={1}
-                  value={prefs.customBgBlur ?? 0}
+                  value={prefs.customBgBlur ?? 2}
                   onChange={(e) => update({ customBgBlur: Number(e.target.value) })}
                   className="w-full accent-pink-500"
-                  aria-label="Background Blur"
+                  aria-label="Wallpaper Blur"
                 />
               </div>
             </div>
