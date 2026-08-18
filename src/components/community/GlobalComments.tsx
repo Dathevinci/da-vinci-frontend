@@ -298,49 +298,51 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
         {/* ── CONTROLS TOOLBAR: CATEGORIES, SEARCH & SORT ── */}
         <div className="mb-6 space-y-3 font-mono">
           {/* Top Row: Category Pills & Sort Toggle */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
             {/* Category Pills - Horizontal Swipeable on Mobile */}
-            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-0.5 max-w-full">
-              {SOURCES.map(({ key, label, Icon, tint, bg, border }) => {
-                const on = source === key;
-                return (
-                  <button
-                    key={key}
-                    onClick={() => setSource(key)}
-                    className={`shrink-0 flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold tracking-wide transition-all touch-manipulation min-h-[36px] ${
-                      on
-                        ? `${border} ${bg} ${tint} shadow-md shadow-violet-500/10`
-                        : "border-white/10 bg-white/[0.03] text-slate-400 hover:bg-white/[0.06] hover:text-white"
-                    }`}
-                  >
-                    <Icon className="h-3.5 w-3.5" />
-                    <span className="whitespace-nowrap">{label}</span>
-                  </button>
-                );
-              })}
+            <div className="min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-1">
+              <div className="flex items-center gap-2">
+                {SOURCES.map(({ key, label, Icon, tint, bg, border }) => {
+                  const on = source === key;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setSource(key)}
+                      className={`shrink-0 flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold tracking-wide transition-all touch-manipulation min-h-[36px] ${
+                        on
+                          ? `${border} ${bg} ${tint} shadow-md shadow-violet-500/10`
+                          : "border-white/10 bg-[#0b0b11]/90 text-slate-400 hover:border-white/20 hover:bg-[#0e0e16] hover:text-white"
+                      }`}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      <span className="whitespace-nowrap">{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Segmented Sort Controls */}
-            <div className="inline-flex items-center gap-1 self-end sm:self-auto rounded-full border border-white/10 bg-black/40 p-1 shrink-0">
+            <div className="shrink-0 self-end sm:self-auto inline-flex items-center justify-center gap-1 rounded-full border border-white/10 bg-[#0b0b11]/90 p-1 backdrop-blur-xl shadow-lg">
               <button
                 onClick={() => setSort("newest")}
-                className={`flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-bold transition-all ${
+                className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
                   sort === "newest"
                     ? "bg-violet-500/20 text-violet-200 border border-violet-400/40 shadow-sm"
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                <Clock className="h-3 w-3" /> Recent
+                <Clock className="h-3.5 w-3.5" /> Recent
               </button>
               <button
                 onClick={() => setSort("top")}
-                className={`flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-bold transition-all ${
+                className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
                   sort === "top"
                     ? "bg-violet-500/20 text-violet-200 border border-violet-400/40 shadow-sm"
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                <Flame className="h-3 w-3" /> Most Loved
+                <Flame className="h-3.5 w-3.5" /> Most Loved
               </button>
             </div>
           </div>
