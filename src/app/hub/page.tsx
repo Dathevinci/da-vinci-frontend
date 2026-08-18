@@ -73,18 +73,12 @@ export default function HubPage() {
   const [activeCategory, setActiveCategory] = useState<CategoryId>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  if (!user) return <div className="min-h-screen bg-[#070709]" />;
-
   const staff = isLeadDev(user) || isAdmin(user);
-  const allSections: Section[] = isLeadDev(user)
-    ? [...SECTIONS, { href: "/console", label: "Lead Dev Console", desc: "System control panel and admin tools.", Icon: Terminal, tint: "#a3e635", category: "system" }]
-    : SECTIONS;
-
-  const xp = (user as any).xp ?? 0;
-  const level = staff ? MAX_LEVEL : calculateLevel(xp);
-  const progress = staff ? 100 : calculateProgressPercent(xp);
-  const rankInfo = getHeartRank(level);
-  const roleBadge = isLeadDev(user) ? "Lead Dev" : isAdmin(user) ? "Admin" : "Member";
+  const allSections: Section[] = useMemo(() => {
+    return isLeadDev(user)
+      ? [...SECTIONS, { href: "/console", label: "Lead Dev Console", desc: "System control panel and admin tools.", Icon: Terminal, tint: "#a3e635", category: "system" as CategoryId }]
+      : SECTIONS;
+  }, [user]);
 
   // Filter sections by category and search
   const filteredSections = useMemo(() => {
@@ -97,6 +91,14 @@ export default function HubPage() {
       return matchCat && matchQuery;
     });
   }, [allSections, activeCategory, searchQuery]);
+
+  if (!user) return <div className="min-h-screen bg-[#070709]" />;
+
+  const xp = (user as any).xp ?? 0;
+  const level = staff ? MAX_LEVEL : calculateLevel(xp);
+  const progress = staff ? 100 : calculateProgressPercent(xp);
+  const rankInfo = getHeartRank(level);
+  const roleBadge = isLeadDev(user) ? "Lead Dev" : isAdmin(user) ? "Admin" : "Member";
 
   return (
     <div className="min-h-screen bg-[#070709] px-4 pb-36 pt-12 sm:px-6 lg:px-10 font-sans text-white">
