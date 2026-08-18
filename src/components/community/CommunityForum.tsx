@@ -496,56 +496,64 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
               </div>
             </div>
 
-            {/* ── FILTER & SORT CONTROLS ── */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 font-mono">
-              
-              {/* Horizontal swipeable topic categories */}
-              <div className="min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-1">
-                <div className="flex items-center gap-2">
-                  {["All", ...TAGS].map((t) => {
-                    const on = tag === t;
-                    return (
-                      <button
-                        key={t}
-                        onClick={() => setTag(t)}
-                        className={`shrink-0 flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold tracking-wide transition-all touch-manipulation min-h-[36px] ${
-                          on
-                            ? "border-violet-400/50 bg-violet-500/20 text-violet-200 shadow-md shadow-violet-500/10"
-                            : "border-white/10 bg-[#0b0b11]/90 text-slate-400 hover:border-white/20 hover:bg-[#0e0e16] hover:text-white"
-                        }`}
-                      >
-                        {t !== "All" && (
-                          <span className={`h-2 w-2 rounded-full ${TAG_STYLE[t]?.dot || "bg-slate-400"}`} />
-                        )}
-                        <span className="whitespace-nowrap">{t === "All" ? "All Discussions" : t}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+            {/* ── TOPIC CHANNELS & SORT CONTROLS ── */}
+            <div className="space-y-4 font-mono">
+              {/* All 9 Topic Channels - fully visible & wrap naturally */}
+              <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+                {["All", ...TAGS].map((t) => {
+                  const on = tag === t;
+                  return (
+                    <button
+                      key={t}
+                      onClick={() => setTag(t)}
+                      className={`flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold tracking-wide transition-all duration-200 touch-manipulation min-h-[36px] ${
+                        on
+                          ? "border-violet-400/60 bg-gradient-to-r from-violet-600/30 to-purple-600/30 text-violet-100 shadow-md shadow-violet-500/20 scale-[1.02]"
+                          : "border-white/10 bg-[#0b0b11]/90 text-slate-400 hover:border-white/25 hover:bg-[#12121c] hover:text-white hover:scale-[1.02]"
+                      }`}
+                    >
+                      {t !== "All" && (
+                        <span className={`h-2 w-2 rounded-full ${TAG_STYLE[t]?.dot || "bg-slate-400"}`} />
+                      )}
+                      <span>{t === "All" ? "All Discussions" : t}</span>
+                    </button>
+                  );
+                })}
               </div>
 
-              {/* Sort segmented toggle */}
-              <div className="shrink-0 self-end sm:self-auto inline-flex items-center justify-center gap-1 rounded-full border border-white/10 bg-[#0b0b11]/90 p-1 backdrop-blur-xl shadow-lg">
-                <button
-                  onClick={() => setSort("newest")}
-                  className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
-                    sort === "newest"
-                      ? "bg-violet-500/20 text-violet-200 border border-violet-400/40 shadow-sm"
-                      : "text-slate-400 hover:text-white"
-                  }`}
-                >
-                  <Clock className="h-3.5 w-3.5" /> Recent
-                </button>
-                <button
-                  onClick={() => setSort("top")}
-                  className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
-                    sort === "top"
-                      ? "bg-violet-500/20 text-violet-200 border border-violet-400/40 shadow-sm"
-                      : "text-slate-400 hover:text-white"
-                  }`}
-                >
-                  <Flame className="h-3.5 w-3.5" /> Top
-                </button>
+              {/* Sub-bar: Active Topic Count & Sort segmented toggle */}
+              <div className="flex items-center justify-between gap-3 border-b border-white/5 pb-3">
+                <div className="flex items-center gap-2 text-xs text-slate-400 font-bold">
+                  <Hash className="h-3.5 w-3.5 text-violet-400" />
+                  <span>
+                    {tag === "All" ? "All Topics" : `#${tag}`} •{" "}
+                    <span className="text-white">{ranked.length}</span> {ranked.length === 1 ? "discussion" : "discussions"}
+                  </span>
+                </div>
+
+                {/* Sort segmented toggle */}
+                <div className="inline-flex items-center justify-center gap-1 rounded-full border border-white/10 bg-[#0b0b11]/90 p-1 backdrop-blur-xl shadow-lg">
+                  <button
+                    onClick={() => setSort("newest")}
+                    className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
+                      sort === "newest"
+                        ? "bg-violet-500/20 text-violet-200 border border-violet-400/40 shadow-sm"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    <Clock className="h-3.5 w-3.5" /> Recent
+                  </button>
+                  <button
+                    onClick={() => setSort("top")}
+                    className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
+                      sort === "top"
+                        ? "bg-violet-500/20 text-violet-200 border border-violet-400/40 shadow-sm"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    <Flame className="h-3.5 w-3.5" /> Top
+                  </button>
+                </div>
               </div>
             </div>
 

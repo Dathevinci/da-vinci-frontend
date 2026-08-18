@@ -296,30 +296,46 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
         </div>
 
         {/* ── CONTROLS TOOLBAR: CATEGORIES, SEARCH & SORT ── */}
-        <div className="mb-6 space-y-3 font-mono">
-          {/* Top Row: Category Pills & Sort Toggle */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
-            {/* Category Pills - Horizontal Swipeable on Mobile */}
-            <div className="min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-1">
-              <div className="flex items-center gap-2">
-                {SOURCES.map(({ key, label, Icon, tint, bg, border }) => {
-                  const on = source === key;
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => setSource(key)}
-                      className={`shrink-0 flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold tracking-wide transition-all touch-manipulation min-h-[36px] ${
-                        on
-                          ? `${border} ${bg} ${tint} shadow-md shadow-violet-500/10`
-                          : "border-white/10 bg-[#0b0b11]/90 text-slate-400 hover:border-white/20 hover:bg-[#0e0e16] hover:text-white"
-                      }`}
-                    >
-                      <Icon className="h-3.5 w-3.5" />
-                      <span className="whitespace-nowrap">{label}</span>
-                    </button>
-                  );
-                })}
-              </div>
+        <div className="mb-6 space-y-4 font-mono">
+          {/* Category Pills - Wrap naturally so none are hidden */}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+            {SOURCES.map(({ key, label, Icon, tint, bg, border }) => {
+              const on = source === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => setSource(key)}
+                  className={`flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold tracking-wide transition-all duration-200 touch-manipulation min-h-[36px] ${
+                    on
+                      ? `${border} ${bg} ${tint} shadow-md shadow-violet-500/20 scale-[1.02]`
+                      : "border-white/10 bg-[#0b0b11]/90 text-slate-400 hover:border-white/25 hover:bg-[#12121c] hover:text-white hover:scale-[1.02]"
+                  }`}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  <span>{label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Search Filter Input & Sort Toggle in one clean responsive row */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+              <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search comments by keyword, user, series, or chapter..."
+                className="w-full rounded-2xl border border-white/10 bg-[#0b0b11]/90 py-2.5 pl-10 pr-10 text-xs font-bold text-white placeholder:text-slate-500 outline-none transition focus:border-violet-500/50 focus:bg-[#12121c] shadow-inner"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:bg-white/10 hover:text-white"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
 
             {/* Segmented Sort Controls */}
@@ -345,25 +361,6 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
                 <Flame className="h-3.5 w-3.5" /> Most Loved
               </button>
             </div>
-          </div>
-
-          {/* Bottom Row: Realtime Search Filter Input */}
-          <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-            <input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search comments by keyword, user, series, or chapter..."
-              className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-2.5 pl-10 pr-10 text-xs font-bold text-white placeholder:text-slate-500 outline-none transition focus:border-violet-500/50 focus:bg-white/[0.06] shadow-inner"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:bg-white/10 hover:text-white"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
           </div>
         </div>
 
