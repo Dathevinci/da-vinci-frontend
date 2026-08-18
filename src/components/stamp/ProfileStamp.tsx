@@ -238,16 +238,14 @@ export default function ProfileStamp({ userId, username, isSelf, className = "" 
   return (
     <section className={`font-mono ${className}`}>
       {/* ═══ THE PLAQUE ═══ */}
-      <div className="relative overflow-hidden rounded-2xl border border-amber-400/20 bg-[#0b0b11]">
+      <div className="relative overflow-hidden rounded-3xl border border-amber-400/20 bg-[#0b0b11]/90 shadow-xl backdrop-blur-xl">
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,rgba(245,158,11,0.12),rgba(11,11,17,0.92)_45%,rgba(245,158,11,0.06))]"
+          className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,rgba(245,158,11,0.14),rgba(11,11,17,0.94)_45%,rgba(245,158,11,0.08))]"
         />
 
-        <div className="relative flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:gap-6 sm:p-6">
-          {/* the seal itself — one instance on the page, so the sheen is
-              allowed here (it still yields to Performance Mode inside the
-              component). Never in the grid below. */}
+        <div className="relative flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:gap-8 sm:p-7">
+          {/* the seal itself */}
           <div className="flex shrink-0 items-center justify-center sm:justify-start">
             <StampSeal
               username={username}
@@ -259,46 +257,45 @@ export default function ProfileStamp({ userId, username, isSelf, className = "" 
           </div>
 
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-500/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-amber-300">
-                <Stamp className="h-3 w-3" /> Grade {stamp.grade}
+            <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-500/15 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-amber-300 shadow-sm">
+                <Stamp className="h-3.5 w-3.5" /> Grade {stamp.grade}
               </span>
               {stamp.weeklyRank !== null && (
                 <Link
                   href="/stamps"
-                  className="inline-flex items-center gap-1.5 rounded-full border border-violet-400/30 bg-violet-500/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-violet-200 transition hover:bg-violet-500/20"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-violet-400/30 bg-violet-500/15 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-violet-200 transition hover:bg-violet-500/25 shadow-sm"
                 >
-                  <TrendingUp className="h-3 w-3" /> #{stamp.weeklyRank} this week
+                  <TrendingUp className="h-3.5 w-3.5" /> #{stamp.weeklyRank} this week
                 </Link>
               )}
               {stamp.topThreeRank !== null && (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-amber-200">
-                  <Trophy className="h-3 w-3" /> Last week&rsquo;s #{stamp.topThreeRank} seal
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/20 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-amber-200 shadow-sm">
+                  <Trophy className="h-3.5 w-3.5" /> Last week&rsquo;s #{stamp.topThreeRank} seal
                 </span>
               )}
             </div>
 
-            {/* THE SPLIT. One total, and immediately underneath it exactly
-                where that total came from. */}
+            {/* THE SPLIT */}
             <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <span className="text-3xl font-black tabular-nums text-white">
+              <span className="font-fell text-4xl sm:text-5xl font-black tabular-nums text-white drop-shadow-md">
                 {stamp.score.toLocaleString()}
               </span>
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+              <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
                 stamp score
               </span>
             </div>
 
-            <div className="mt-2.5 flex h-2 w-full max-w-md overflow-hidden rounded-full border border-white/10 bg-black/40">
+            <div className="mt-3 flex h-2.5 w-full max-w-lg overflow-hidden rounded-full border border-white/10 bg-black/50 shadow-inner">
               {total > 0 ? (
                 <>
                   <span
-                    className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400"
+                    className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
                     style={{ width: `${earnedPct}%` }}
                     aria-hidden
                   />
                   <span
-                    className="h-full bg-gradient-to-r from-amber-500 to-amber-300"
+                    className="h-full bg-gradient-to-r from-amber-500 to-amber-300 shadow-[0_0_8px_rgba(245,158,11,0.5)]"
                     style={{ width: `${boostPct}%` }}
                     aria-hidden
                   />
@@ -308,26 +305,26 @@ export default function ProfileStamp({ userId, username, isSelf, className = "" 
               )}
             </div>
 
-            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
-              <span className="flex items-center gap-1.5 text-emerald-300">
-                <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                <b className="font-black tabular-nums">{earned.toLocaleString()}</b>
-                <span className="text-slate-500">earned</span>
+            <div className="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs sm:text-sm">
+              <span className="flex items-center gap-1.5 text-emerald-300 font-medium">
+                <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+                <b className="font-black tabular-nums text-white">{earned.toLocaleString()}</b>
+                <span className="text-slate-400">earned</span>
               </span>
-              <span className="flex items-center gap-1.5 text-amber-300">
-                <span className="h-2 w-2 rounded-full bg-amber-400" />
-                <b className="font-black tabular-nums">{boosted.toLocaleString()}</b>
-                <span className="text-slate-500">boosted</span>
+              <span className="flex items-center gap-1.5 text-amber-300 font-medium">
+                <span className="h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.8)]" />
+                <b className="font-black tabular-nums text-white">{boosted.toLocaleString()}</b>
+                <span className="text-slate-400">boosted</span>
               </span>
               {next && (
-                <span className="text-slate-500">
-                  · <b className="font-black text-slate-300 tabular-nums">{next.needed}</b> to{" "}
-                  {next.next}
+                <span className="text-slate-400">
+                  · <b className="font-black text-amber-200 tabular-nums">{next.needed}</b> to{" "}
+                  <span className="font-bold text-white">{next.next}</span>
                 </span>
               )}
             </div>
 
-            <p className="mt-2 max-w-lg text-[10px] leading-relaxed text-slate-500">
+            <p className="mt-2.5 max-w-lg text-xs leading-relaxed text-slate-400">
               Boosts are capped at the earned score, with the first{" "}
               {BOOST_FLOOR} open to every stamp
               {atCeiling ? (
@@ -335,7 +332,7 @@ export default function ProfileStamp({ userId, username, isSelf, className = "" 
               ) : (
                 <>
                   {" "}
-                  — <b className="text-slate-400">{headroom.toLocaleString()}</b> of boost still
+                  — <b className="text-slate-300">{headroom.toLocaleString()}</b> of boost still
                   fits.
                 </>
               )}
