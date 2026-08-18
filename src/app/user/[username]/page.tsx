@@ -507,10 +507,10 @@ export default function PublicProfilePage() {
             <ProfileEffect effect={showcaseOpen ? null : effectiveEffect} />
 
             {/* Compact Centered Container */}
-            <div className="relative z-20 mx-auto flex max-w-3xl flex-col items-center px-4 pt-6 pb-6 text-center sm:pt-8 sm:pb-8">
+            <div className="relative z-20 mx-auto flex max-w-3xl flex-col items-center px-3 sm:px-4 pt-5 pb-5 text-center sm:pt-8 sm:pb-8">
               
               {/* Avatar + Frames + Level Badge + Audio Player */}
-              <div className="relative mb-2.5 flex flex-col items-center">
+              <div className="relative mb-2 flex flex-col items-center">
                 <div
                   className="relative w-fit cursor-pointer group"
                   onClick={() => profileUser.avatar && setPreviewImage(profileUser.avatar)}
@@ -520,11 +520,11 @@ export default function PublicProfilePage() {
                       src={cloudinaryFit(profileUser.avatar, 300)}
                       alt="Avatar"
                       decoding="async"
-                      className={`relative z-10 h-28 w-28 sm:h-32 sm:w-32 rounded-full border-4 bg-[#141414] object-cover shadow-[0_10px_40px_rgba(0,0,0,0.8)] transition-all duration-300 group-hover:scale-105 ${avatarBorderClass}`}
+                      className={`relative z-10 h-24 w-24 sm:h-28 sm:w-28 md:h-32 md:w-32 rounded-full border-4 bg-[#141414] object-cover shadow-[0_10px_40px_rgba(0,0,0,0.8)] transition-all duration-300 group-hover:scale-105 ${avatarBorderClass}`}
                     />
                   ) : (
                     <div
-                      className={`relative z-10 grid h-28 w-28 sm:h-32 sm:w-32 place-items-center rounded-full border-4 bg-violet-700 text-4xl font-black transition-all duration-300 group-hover:scale-105 ${avatarBorderClass}`}
+                      className={`relative z-10 grid h-24 w-24 sm:h-28 sm:w-28 md:h-32 md:w-32 place-items-center rounded-full border-4 bg-violet-700 text-3xl sm:text-4xl font-black transition-all duration-300 group-hover:scale-105 ${avatarBorderClass}`}
                     >
                       {profileUser.username.charAt(0).toUpperCase()}
                     </div>
@@ -543,14 +543,14 @@ export default function PublicProfilePage() {
                       <LevelBadge
                         xp={isProfileLeadDev ? Infinity : isProfileAdmin ? MAX_LEVEL_XP : profileUser.xp || 0}
                         size="sm"
-                        className="border-[#070709] shadow-lg"
+                        className="border-[#070709] shadow-lg scale-90 sm:scale-100"
                       />
                     </div>
                   )}
 
                   {/* Soundtrack Player */}
                   {songSrc && (
-                    <div className="absolute -bottom-1 -left-2 z-20">
+                    <div className="absolute -bottom-1 -left-1 sm:-left-2 z-20 scale-90 sm:scale-100">
                       <ProfileSong src={songSrc} />
                     </div>
                   )}
@@ -558,9 +558,9 @@ export default function PublicProfilePage() {
               </div>
 
               {/* Username & Guild Tag */}
-              <div className="mt-1 flex max-w-[92vw] flex-wrap items-center justify-center gap-2">
+              <div className="mt-1 flex max-w-[94vw] flex-wrap items-center justify-center gap-1.5 sm:gap-2">
                 <h1
-                  className={`min-w-0 break-words font-fell text-3xl sm:text-4xl md:text-5xl font-bold uppercase tracking-[0.05em] leading-tight drop-shadow-lg ${
+                  className={`min-w-0 break-words font-fell text-2xl sm:text-4xl md:text-5xl font-bold uppercase tracking-[0.05em] leading-tight drop-shadow-lg ${
                     profileUser.activeFont === "font_cyber" ? "font-mono tracking-widest" : ""
                   } ${profileUser.activeFont === "font_pixel" ? "font-serif tracking-tight" : ""} ${
                     isCrimson
@@ -621,29 +621,29 @@ export default function PublicProfilePage() {
               </div>
 
               {/* Titles & Custom Badges Ribbon */}
-              <div className="mt-1.5 flex flex-wrap items-center justify-center gap-1.5">
+              <div className="mt-1.5 flex max-w-full flex-wrap items-center justify-center gap-1 sm:gap-1.5">
                 {rankTheme.title &&
                   !isHeartRankName(rankTheme.title) &&
                   (!isProfileLeadDev || !(profileUser as any).hideLeadRole) && (
                     <div
                       className={`shrink-0 ${
-                        isProfileLeadDev ? "px-3 py-1 min-h-[28px]" : "px-2.5 py-0.5"
+                        isProfileLeadDev ? "px-2.5 sm:px-3 py-1 min-h-[26px] sm:min-h-[28px]" : "px-2 sm:px-2.5 py-0.5"
                       } rounded-full flex items-center gap-1.5 ${rankTheme.badgeClass} shadow-sm`}
                     >
                       {isProfileLeadDev ? (
                         <img
                           src="/icons/lucifer-gojo.png"
                           alt="Lucifer"
-                          className="h-5 w-5 object-contain -my-1 shrink-0 drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]"
+                          className="h-4 w-4 sm:h-5 sm:w-5 object-contain -my-1 shrink-0 drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]"
                         />
                       ) : (
-                        RankIcon && <RankIcon className="w-3.5 h-3.5" />
+                        RankIcon && <RankIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                       )}
                       <span
                         className={`${
                           isProfileLeadDev
-                            ? "text-[11px] text-transparent bg-clip-text bg-gradient-to-r from-[#f3e8ff] via-[#d8b4fe] to-[#c084fc] drop-shadow-[0_0_10px_rgba(192,132,252,0.9)]"
-                            : "text-[10px]"
+                            ? "text-[10px] sm:text-[11px] text-transparent bg-clip-text bg-gradient-to-r from-[#f3e8ff] via-[#d8b4fe] to-[#c084fc] drop-shadow-[0_0_10px_rgba(192,132,252,0.9)]"
+                            : "text-[9px] sm:text-[10px]"
                         } font-black tracking-wider uppercase font-mono`}
                       >
                         {rankTheme.title}
@@ -655,14 +655,14 @@ export default function PublicProfilePage() {
                   const heart = getHeartRank(currentLevel);
                   return (
                     <div
-                      className={`shrink-0 px-3 py-0.5 rounded-full flex items-center gap-1 cursor-help ${heart.badgeClass} shadow-sm`}
+                      className={`shrink-0 px-2.5 sm:px-3 py-0.5 rounded-full flex items-center gap-1 cursor-help ${heart.badgeClass} shadow-sm`}
                       title={heartRankTooltip(heart)}
                     >
                       <span className="text-xs leading-none">{heart.emoji}</span>
-                      <span className="text-[10px] font-black tracking-wider uppercase font-mono">
+                      <span className="text-[9px] sm:text-[10px] font-black tracking-wider uppercase font-mono">
                         {heart.name} · {heart.numeral}
                       </span>
-                      <span className="text-[9px] font-bold opacity-75">{heart.hanzi}</span>
+                      <span className="text-[8px] sm:text-[9px] font-bold opacity-75">{heart.hanzi}</span>
                     </div>
                   );
                 })()}
@@ -670,18 +670,18 @@ export default function PublicProfilePage() {
                 {((profileUser as any).purchasedTags?.includes("tag_supporter") ||
                   (profileUser as any).purchasedEffects?.includes("effect_crimson")) && (
                   <div
-                    className="shrink-0 px-2.5 py-0.5 rounded-full flex items-center gap-1 border border-amber-400/40 bg-amber-500/15 text-amber-300 shadow-sm"
+                    className="shrink-0 px-2 sm:px-2.5 py-0.5 rounded-full flex items-center gap-1 border border-amber-400/40 bg-amber-500/15 text-amber-300 shadow-sm"
                     title="Supported Da Vinci"
                   >
                     <Heart className="w-3 h-3 fill-current" />
-                    <span className="text-[10px] font-black tracking-wider uppercase font-mono">Supporter</span>
+                    <span className="text-[9px] sm:text-[10px] font-black tracking-wider uppercase font-mono">Supporter</span>
                   </div>
                 )}
 
                 {profileUser.activeRole === "role_watcher" && (
-                  <div className="shrink-0 px-2.5 py-0.5 rounded-full flex items-center gap-1 bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                  <div className="shrink-0 px-2 sm:px-2.5 py-0.5 rounded-full flex items-center gap-1 bg-purple-500/20 text-purple-300 border border-purple-500/30">
                     <Shield className="w-3 h-3" />
-                    <span className="text-[10px] font-black tracking-wider uppercase font-mono">Watcher</span>
+                    <span className="text-[9px] sm:text-[10px] font-black tracking-wider uppercase font-mono">Watcher</span>
                   </div>
                 )}
 
@@ -693,21 +693,21 @@ export default function PublicProfilePage() {
               </div>
 
               {/* Compact Stats Row */}
-              <div className="mt-2 flex flex-wrap items-center justify-center gap-2 font-mono text-[11px]">
-                <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-slate-300">
-                  <Clock className="h-3 w-3 text-slate-400" />
-                  <span>
+              <div className="mt-2 flex max-w-full flex-wrap items-center justify-center gap-1.5 sm:gap-2 font-mono text-[10px] sm:text-[11px]">
+                <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 sm:px-3 text-slate-300">
+                  <Clock className="h-3 w-3 text-slate-400 shrink-0" />
+                  <span className="whitespace-nowrap">
                     <b className="text-white">{hoursWatched.toLocaleString()}</b> hrs
                   </span>
                 </div>
 
                 <button
                   onClick={() => setShowPointHistory(true)}
-                  className="flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-amber-200 hover:bg-amber-500/20 transition"
+                  className="flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 sm:px-3 text-amber-200 hover:bg-amber-500/20 transition touch-manipulation"
                   title="Arise Points"
                 >
-                  <Sparkles className="h-3 w-3 text-amber-300" />
-                  <span>
+                  <Sparkles className="h-3 w-3 text-amber-300 shrink-0" />
+                  <span className="whitespace-nowrap">
                     <b className="text-white">{displayArisePoints(profileUser)}</b> Arise
                   </span>
                 </button>
@@ -719,10 +719,10 @@ export default function PublicProfilePage() {
                       users: (profileUser.followers || []).map((f: any) => f.follower),
                     })
                   }
-                  className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-slate-300 hover:bg-white/[0.08] hover:text-white transition"
+                  className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 sm:px-3 text-slate-300 hover:bg-white/[0.08] hover:text-white transition touch-manipulation"
                 >
-                  <Users className="h-3 w-3 text-violet-300" />
-                  <span>
+                  <Users className="h-3 w-3 text-violet-300 shrink-0" />
+                  <span className="whitespace-nowrap">
                     <b className="text-white">{(profileUser.followers || []).length.toLocaleString()}</b> followers
                   </span>
                 </button>
@@ -734,24 +734,24 @@ export default function PublicProfilePage() {
                       users: (profileUser.following || []).map((f: any) => f.following),
                     })
                   }
-                  className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-slate-300 hover:bg-white/[0.08] hover:text-white transition"
+                  className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 sm:px-3 text-slate-300 hover:bg-white/[0.08] hover:text-white transition touch-manipulation"
                 >
-                  <UserIcon className="h-3 w-3 text-violet-300" />
-                  <span>
+                  <UserIcon className="h-3 w-3 text-violet-300 shrink-0" />
+                  <span className="whitespace-nowrap">
                     <b className="text-white">{(profileUser.following || []).length.toLocaleString()}</b> following
                   </span>
                 </button>
               </div>
 
               {/* Slim Level Progress Strip */}
-              <div className="mt-2 w-full max-w-sm rounded-2xl border border-white/10 bg-[#0b0b11]/80 px-3.5 py-2 backdrop-blur-md shadow-md">
+              <div className="mt-2 w-full max-w-[290px] sm:max-w-sm rounded-2xl border border-white/10 bg-[#0b0b11]/80 px-3 sm:px-3.5 py-2 backdrop-blur-md shadow-md">
                 <div className="flex items-center justify-between gap-2 font-mono text-[10px] mb-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-bold text-violet-300">Lv {currentLevel}</span>
-                    <span className="text-white/40">·</span>
-                    <span className="text-slate-400 truncate max-w-[130px]">{getHeartRank(currentLevel).name}</span>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="font-bold text-violet-300 shrink-0">Lv {currentLevel}</span>
+                    <span className="text-white/40 shrink-0">·</span>
+                    <span className="text-slate-400 truncate max-w-[110px] sm:max-w-[150px]">{getHeartRank(currentLevel).name}</span>
                   </div>
-                  <span className="font-bold text-amber-300">
+                  <span className="font-bold text-amber-300 shrink-0">
                     {isStaffLevel ? "PINNED CAP" : `${currentXp.toLocaleString()} XP`}
                   </span>
                 </div>
@@ -766,7 +766,7 @@ export default function PublicProfilePage() {
 
               {/* Bio Quote */}
               {cleanBio && (
-                <div className="mt-2 max-w-xl">
+                <div className="mt-2 max-w-xl px-2">
                   <BioRenderer
                     bio={cleanBio}
                     className="text-xs sm:text-sm font-medium text-slate-300 leading-relaxed italic"
@@ -775,11 +775,11 @@ export default function PublicProfilePage() {
               )}
 
               {/* Action Buttons */}
-              <div className="mt-3 flex items-center justify-center gap-2.5">
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-2 w-full max-w-xs sm:max-w-none">
                 {isSelf ? (
                   <button
                     onClick={() => setShowSettings(true)}
-                    className="flex items-center gap-1.5 rounded-full border border-violet-400/40 bg-gradient-to-r from-violet-600 to-purple-700 px-5 py-2 font-mono text-xs font-bold uppercase tracking-wider text-white shadow-md transition hover:scale-105 active:scale-95"
+                    className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 rounded-full border border-violet-400/40 bg-gradient-to-r from-violet-600 to-purple-700 px-4 sm:px-5 py-2 font-mono text-xs font-bold uppercase tracking-wider text-white shadow-md transition hover:scale-105 active:scale-95 touch-manipulation min-h-[38px]"
                   >
                     <Settings className="h-3.5 w-3.5" />
                     <span>Edit Profile</span>
@@ -787,7 +787,7 @@ export default function PublicProfilePage() {
                 ) : currentUser ? (
                   <button
                     onClick={handleFollowToggle}
-                    className={`flex items-center gap-1.5 rounded-full px-5 py-2 font-mono text-xs font-bold uppercase tracking-wider transition hover:scale-105 active:scale-95 ${
+                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 rounded-full px-4 sm:px-5 py-2 font-mono text-xs font-bold uppercase tracking-wider transition hover:scale-105 active:scale-95 touch-manipulation min-h-[38px] ${
                       isFollowing
                         ? "border border-red-500/40 bg-red-500/20 text-red-200"
                         : "border border-violet-400/40 bg-gradient-to-r from-violet-600 to-purple-700 text-white shadow-md"
@@ -809,7 +809,7 @@ export default function PublicProfilePage() {
                   <button
                     onClick={() => setShowcaseOpen(true)}
                     title="View effect full screen"
-                    className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-slate-200 backdrop-blur-md transition hover:bg-white/[0.1] hover:text-white"
+                    className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-3.5 sm:px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-slate-200 backdrop-blur-md transition hover:bg-white/[0.1] hover:text-white touch-manipulation min-h-[38px]"
                   >
                     <Maximize2 className="h-3.5 w-3.5" />
                     <span>Showcase</span>
@@ -821,7 +821,7 @@ export default function PublicProfilePage() {
           </div>
 
           {/* ═══ COMMUNITY & PROFILE BENTO PLATES ═══ */}
-          <div className="mx-auto w-full max-w-[1500px] px-4 pt-6 md:px-8 space-y-5">
+          <div className="mx-auto w-full max-w-[1500px] px-3 sm:px-4 md:px-8 space-y-4 sm:space-y-5">
             <GuildCard userId={profileUser.id} />
             <ProfileStamp
               userId={profileUser.id}
@@ -845,14 +845,14 @@ export default function PublicProfilePage() {
 
           {/* Daily Quests (Personal on Self-View) */}
           {selfView && (
-            <div className="mx-auto w-full max-w-[1500px] px-4 pt-6 md:px-8">
+            <div className="mx-auto w-full max-w-[1500px] px-3 sm:px-4 md:px-8">
               <DailyQuests />
             </div>
           )}
 
           {/* ═══ STICKY MEDIA LIBRARY TABS ═══ */}
-          <div className="sticky top-0 z-40 border-b border-white/10 bg-[#070709]/95 backdrop-blur-md mt-8">
-            <div className="mx-auto flex max-w-[1500px] items-center justify-center gap-2 overflow-x-auto px-4 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden font-mono">
+          <div className="sticky top-0 z-40 border-b border-white/10 bg-[#070709]/95 backdrop-blur-md mt-6 sm:mt-8">
+            <div className="mx-auto flex max-w-[1500px] items-center justify-start sm:justify-center gap-1.5 sm:gap-2 overflow-x-auto px-3 sm:px-4 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden font-mono">
               {(
                 [
                   { key: "anime", label: "Anime Streams", count: watchlist.length, Icon: Tv },
@@ -866,7 +866,7 @@ export default function PublicProfilePage() {
                   <button
                     key={t.key}
                     onClick={() => setActiveTab(t.key)}
-                    className={`flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition-all ${
+                    className={`shrink-0 flex items-center gap-1.5 sm:gap-2 rounded-full border px-3 sm:px-4 py-1.5 text-[11px] sm:text-xs font-bold uppercase tracking-wider transition-all touch-manipulation min-h-[36px] ${
                       on
                         ? "border-violet-400/50 bg-violet-500/20 text-violet-200 shadow-md shadow-violet-500/10"
                         : "border-transparent text-slate-400 hover:bg-white/[0.04] hover:text-white"
@@ -875,7 +875,7 @@ export default function PublicProfilePage() {
                     <Icon className={`h-3.5 w-3.5 ${on ? "text-violet-300" : "text-slate-500"}`} />
                     <span>{t.label}</span>
                     <span
-                      className={`ml-1 rounded-full px-2 py-0.2 text-[10px] font-black ${
+                      className={`ml-0.5 rounded-full px-1.5 sm:px-2 py-0.2 text-[9px] sm:text-[10px] font-black ${
                         on ? "bg-violet-400/30 text-white" : "bg-white/5 text-slate-500"
                       }`}
                     >
