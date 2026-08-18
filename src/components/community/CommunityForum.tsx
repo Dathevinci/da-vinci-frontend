@@ -7,12 +7,13 @@ import {
   Pin, Plus, X, ImagePlus, Hash, Heart, ThumbsDown, MessageSquare, Loader2,
   CornerDownRight, Send, MoreHorizontal, Pencil, Trash2,
   BarChart3, Sparkles, Clock, Flame, Search, BookOpen, Users, ShieldCheck,
-  Share2, Check, HelpCircle, MessagesSquare, Calendar
+  Share2, Check, HelpCircle, MessagesSquare, Calendar, Layers
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { authHeaders } from "@/lib/authToken";
 import { useToast } from "@/components/ui/Toast";
 import { isAdmin, isLeadDev } from "@/lib/admin";
+import { nameColorClass } from "@/lib/cosmetics";
 import UserLink from "@/components/profile/UserLink";
 import UserBadges, { UserBadgesCompact } from "@/components/profile/UserBadges";
 import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
@@ -44,6 +45,7 @@ type Author = {
   id: string; username: string; avatar?: string | null;
   activeRole?: string | null; activeTag?: string | null;
   activeEffect?: string | null; activeFrame?: string | null;
+  activeColor?: string | null; activeFont?: string | null;
   role?: string | null;
   xp?: number | null;
   equippedTitles?: string[] | null;
@@ -95,29 +97,41 @@ function TagChip({ tag, size = "sm" }: { tag: string; size?: "xs" | "sm" }) {
 
 function AuthorLine({ user, blessed }: { user?: Author; blessed?: boolean }) {
   if (!user) return <span className="font-mono text-sm font-bold text-slate-400">Anonymous</span>;
+  const isDejavuh = isLeadDev(user);
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <div className="relative h-9 w-9 shrink-0">
+      <div className="relative h-9 w-9 sm:h-10 sm:w-10 shrink-0">
         {user.avatar ? (
           <img
             src={cloudinaryFit(user.avatar, 100)}
             alt=""
-            className="relative z-10 h-9 w-9 rounded-full object-cover ring-1 ring-white/10"
+            className={`relative z-10 h-9 w-9 sm:h-10 sm:w-10 rounded-full object-cover ring-1 ring-white/10 ${
+              isDejavuh ? "ring-2 ring-fuchsia-500 ring-offset-1 ring-offset-[#0f0f11] shadow-[0_0_15px_rgba(217,70,239,0.6)]" : ""
+            }`}
           />
         ) : (
-          <span className="relative z-10 grid h-9 w-9 place-items-center rounded-full bg-violet-700 font-mono text-xs font-black text-white ring-1 ring-white/10">
+          <span className="relative z-10 grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-full bg-violet-700 font-mono text-xs sm:text-sm font-black text-white ring-1 ring-white/10">
             {(user.username || "?")[0]?.toUpperCase()}
           </span>
         )}
         <AvatarDecoration frame={user.activeFrame} effect={user.activeEffect} size="md" />
       </div>
 
-      <div className="flex min-w-0 items-center gap-1.5 font-mono">
+      <div className="flex flex-wrap items-center gap-1.5 font-mono min-w-0 max-w-full">
         <UserLink
           username={user.username}
-          className="truncate text-sm font-bold text-white hover:text-violet-300 transition-colors"
+          className={`truncate text-sm font-black transition-colors ${
+            user.activeFont === "font_cyber" ? "font-mono tracking-widest" : ""
+          } ${user.activeFont === "font_pixel" ? "font-serif tracking-tight" : ""} ${
+            nameColorClass(user.activeColor) ||
+            (isDejavuh
+              ? "text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-fuchsia-400 drop-shadow-[0_0_8px_rgba(192,132,252,0.85)]"
+              : "text-white hover:text-violet-300")
+          }`}
         >
-          {user.username}
+          <span className="truncate max-w-[120px] sm:max-w-none inline-block">
+            {user.username}
+          </span>
         </UserLink>
         <GuildTag userId={user.id} size="sm" />
         <UserBadges user={user as any} blessed={blessed} size="sm" showHeart={false} maxTitles={1} />
@@ -498,6 +512,21 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
 
             {/* ── TOPIC CHANNELS & SORT CONTROLS ── */}
             <div className="space-y-4 font-mono">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-violet-400" />
+                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-300">Channels & Topics</h3>
+                </div>
+                {tag !== "All" && (
+                  <button
+                    onClick={() => setTag("All")}
+                    className="text-[11px] font-bold text-violet-400 hover:text-violet-300 underline underline-offset-2"
+                  >
+                    Clear Filter
+                  </button>
+                )}
+              </div>
+
               {/* All 9 Topic Channels - fully visible & wrap naturally */}
               <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
                 {["All", ...TAGS].map((t) => {
@@ -508,12 +537,14 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                       onClick={() => setTag(t)}
                       className={`flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold tracking-wide transition-all duration-200 touch-manipulation min-h-[36px] ${
                         on
-                          ? "border-violet-400/60 bg-gradient-to-r from-violet-600/30 to-purple-600/30 text-violet-100 shadow-md shadow-violet-500/20 scale-[1.02]"
-                          : "border-white/10 bg-[#0b0b11]/90 text-slate-400 hover:border-white/25 hover:bg-[#12121c] hover:text-white hover:scale-[1.02]"
+                          ? "border-violet-400/70 bg-gradient-to-r from-violet-600/35 via-purple-600/30 to-violet-600/35 text-white shadow-lg shadow-violet-500/25 scale-[1.03]"
+                          : "border-white/10 bg-[#0b0b11]/90 text-slate-400 hover:border-white/30 hover:bg-[#141420] hover:text-white hover:scale-[1.02]"
                       }`}
                     >
-                      {t !== "All" && (
-                        <span className={`h-2 w-2 rounded-full ${TAG_STYLE[t]?.dot || "bg-slate-400"}`} />
+                      {t !== "All" ? (
+                        <span className={`h-2 w-2 rounded-full ${TAG_STYLE[t]?.dot || "bg-slate-400"} shadow-sm`} />
+                      ) : (
+                        <Layers className="h-3.5 w-3.5 text-violet-400" />
                       )}
                       <span>{t === "All" ? "All Discussions" : t}</span>
                     </button>
@@ -583,20 +614,36 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                   const up = p.upvotes || 0;
                   const down = p.downvotes || 0;
                   const totalVotes = up + down;
-                  const positivePercent = totalVotes > 0 ? Math.round((up / totalVotes) * 100) : 0;
+                  const isDejavuh = isLeadDev(p.user);
 
                   return (
                     <motion.article
                       key={p.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="flex flex-col rounded-3xl border border-white/10 bg-[#0b0b11]/90 p-5 sm:p-6 shadow-xl transition-all duration-200 hover:border-violet-500/30 hover:bg-[#0e0e16] backdrop-blur-xl"
+                      className="relative"
                     >
-                      {/* Post Header */}
-                      <div className="flex items-center justify-between gap-3 border-b border-white/5 pb-3">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <AuthorLine user={p.user} blessed={p.blessed} />
-                        </div>
+                      {/* Supreme Glow for Dejavuh */}
+                      {isDejavuh && (
+                        <div className="absolute -inset-[2px] bg-gradient-to-r from-fuchsia-500 via-purple-600 to-purple-500 rounded-3xl blur-[6px] opacity-75 animate-pulse pointer-events-none" />
+                      )}
+                      {/* Golden aura for a comment that received a Divine Blessing */}
+                      {p.blessed && !isDejavuh && (
+                        <div className="absolute -inset-[2px] bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-400 rounded-3xl blur-[6px] opacity-50 pointer-events-none" />
+                      )}
+
+                      <div className={`relative z-10 flex flex-col rounded-3xl p-5 sm:p-6 shadow-xl transition-all duration-200 backdrop-blur-xl ${
+                        isDejavuh
+                          ? 'border border-purple-500/50 bg-[#120e18]/95'
+                          : p.isPinned
+                            ? 'border border-amber-400/40 bg-gradient-to-br from-amber-500/[0.08] to-[#0b0b11]'
+                            : 'border border-white/10 bg-[#0b0b11]/90 hover:border-violet-500/30 hover:bg-[#0e0e16]'
+                      }`}>
+                        {/* Post Header */}
+                        <div className="flex items-center justify-between gap-3 border-b border-white/5 pb-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <AuthorLine user={p.user} blessed={p.blessed} />
+                          </div>
 
                         <div className="flex items-center gap-2 shrink-0">
                           {p.isPinned && (
@@ -846,6 +893,7 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                           </motion.div>
                         )}
                       </AnimatePresence>
+                      </div>
                     </motion.article>
                   );
                 })}

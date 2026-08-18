@@ -394,6 +394,7 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
               const o = origin(c);
               const uVote = c.userVote || 0;
               const currentScore = c.score ?? ((c.upvotes || 0) - (c.downvotes || 0));
+              const isDejavuh = isLeadDev(c.user);
 
               return (
                 <motion.article
@@ -401,97 +402,117 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.2 }}
-                  className="group relative overflow-hidden rounded-3xl border border-white/10 bg-[#0b0b11]/90 p-5 sm:p-6 shadow-xl transition-all duration-200 hover:border-violet-500/30 hover:bg-[#0e0e16] font-mono backdrop-blur-xl"
+                  className="relative font-mono"
                 >
-                  {/* Top Origin Ribbon: Which Series & Episode/Chapter */}
-                  {o && (
-                    <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-3">
-                      <Link
-                        href={o.href}
-                        className="group/origin inline-flex max-w-full items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3.5 py-1.5 transition-all hover:border-violet-400/40 hover:bg-violet-500/10 shadow-sm"
-                      >
-                        <span
-                          className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider ${o.badgeColor}`}
-                        >
-                          <o.Icon className="h-3 w-3" />
-                          <span>{o.kind}</span>
-                        </span>
-
-                        <span className="truncate text-xs font-bold text-slate-200 group-hover/origin:text-white transition-colors">
-                          {o.label}
-                        </span>
-
-                        {o.where && (
-                          <>
-                            <span className="text-white/20 text-xs">·</span>
-                            <span className="shrink-0 text-xs font-black text-violet-300">
-                              {o.where}
-                            </span>
-                          </>
-                        )}
-
-                        <ArrowRight className="h-3 w-3 shrink-0 text-slate-400 transition-transform group-hover/origin:translate-x-0.5 group-hover/origin:text-white" />
-                      </Link>
-
-                      <span className="text-[11px] text-slate-500">
-                        {ago(c.createdAt)}
-                      </span>
-                    </div>
+                  {/* Supreme Glow for Dejavuh */}
+                  {isDejavuh && (
+                    <div className="absolute -inset-[2px] bg-gradient-to-r from-fuchsia-500 via-purple-600 to-purple-500 rounded-3xl blur-[6px] opacity-75 animate-pulse pointer-events-none" />
+                  )}
+                  {/* Golden aura for a comment that received a Divine Blessing */}
+                  {c.blessed && !isDejavuh && (
+                    <div className="absolute -inset-[2px] bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-400 rounded-3xl blur-[6px] opacity-50 pointer-events-none" />
                   )}
 
-                  {/* Main Comment Card Body */}
-                  <div className="flex items-start gap-3 sm:gap-4">
-                    {/* User Avatar with Frame/Decoration */}
-                    <div className="relative h-10 w-10 sm:h-11 sm:w-11 shrink-0">
-                      <UserLink username={c.user?.username || "unknown"}>
-                        {c.user?.avatar ? (
-                          <img
-                            src={cloudinaryFit(c.user.avatar, 100)}
-                            alt=""
-                            className="relative z-10 h-10 w-10 sm:h-11 sm:w-11 rounded-full object-cover ring-2 ring-white/10"
-                          />
-                        ) : (
-                          <span className="relative z-10 grid h-10 w-10 sm:h-11 sm:w-11 place-items-center rounded-full bg-violet-700 text-xs sm:text-sm font-black text-white ring-2 ring-white/10">
-                            {(c.user?.username || "?")[0]?.toUpperCase()}
-                          </span>
-                        )}
-                      </UserLink>
-                      <AvatarDecoration
-                        frame={c.user?.activeFrame}
-                        effect={c.user?.activeEffect}
-                        size="md"
-                      />
-                    </div>
-
-                    {/* Author Meta & Content */}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                        {c.user?.username ? (
-                          <UserLink
-                            username={c.user.username}
-                            className={`min-w-0 truncate text-sm font-black text-white hover:text-violet-300 transition-colors ${
-                              nameColorClass(c.user.activeColor) || ""
-                            }`}
+                  <div className={`relative z-10 overflow-hidden rounded-3xl p-5 sm:p-6 shadow-xl transition-all duration-200 backdrop-blur-xl ${
+                    isDejavuh
+                      ? "border border-purple-500/50 bg-[#120e18]/95"
+                      : "border border-white/10 bg-[#0b0b11]/90 hover:border-violet-500/30 hover:bg-[#0e0e16]"
+                  }`}>
+                    {/* Top Origin Ribbon: Which Series & Episode/Chapter */}
+                    {o && (
+                      <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-3">
+                        <Link
+                          href={o.href}
+                          className="group/origin inline-flex max-w-full items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3.5 py-1.5 transition-all hover:border-violet-400/40 hover:bg-violet-500/10 shadow-sm"
+                        >
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider ${o.badgeColor}`}
                           >
-                            {c.user.username}
-                          </UserLink>
-                        ) : (
-                          <span className="text-sm font-black text-slate-400">Someone</span>
-                        )}
+                            <o.Icon className="h-3 w-3" />
+                            <span>{o.kind}</span>
+                          </span>
 
-                        {/* Guild Tag */}
-                        {c.user?.id && <GuildTag userId={c.user.id} size="sm" />}
+                          <span className="truncate text-xs font-bold text-slate-200 group-hover/origin:text-white transition-colors">
+                            {o.label}
+                          </span>
 
-                        {/* Full User Badges (Lucifer title, Staff, Worn Titles) */}
-                        <UserBadges user={c.user as any} size="sm" showHeart={false} maxTitles={1} />
+                          {o.where && (
+                            <>
+                              <span className="text-white/20 text-xs">·</span>
+                              <span className="shrink-0 text-xs font-black text-violet-300">
+                                {o.where}
+                              </span>
+                            </>
+                          )}
+
+                          <ArrowRight className="h-3 w-3 shrink-0 text-slate-400 transition-transform group-hover/origin:translate-x-0.5 group-hover/origin:text-white" />
+                        </Link>
+
+                        <span className="text-[11px] text-slate-500">
+                          {ago(c.createdAt)}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Main Comment Card Body */}
+                    <div className="flex items-start gap-3 sm:gap-4">
+                      {/* User Avatar with Frame/Decoration */}
+                      <div className="relative h-10 w-10 sm:h-11 sm:w-11 shrink-0">
+                        <UserLink username={c.user?.username || "unknown"}>
+                          {c.user?.avatar ? (
+                            <img
+                              src={cloudinaryFit(c.user.avatar, 100)}
+                              alt=""
+                              className={`relative z-10 h-10 w-10 sm:h-11 sm:w-11 rounded-full object-cover ring-1 ring-white/10 ${
+                                isDejavuh ? "ring-2 ring-fuchsia-500 ring-offset-1 ring-offset-[#0f0f11] shadow-[0_0_15px_rgba(217,70,239,0.6)]" : ""
+                              }`}
+                            />
+                          ) : (
+                            <span className="relative z-10 grid h-10 w-10 sm:h-11 sm:w-11 place-items-center rounded-full bg-violet-700 text-xs sm:text-sm font-black text-white ring-1 ring-white/10">
+                              {(c.user?.username || "?")[0]?.toUpperCase()}
+                            </span>
+                          )}
+                        </UserLink>
+                        <AvatarDecoration
+                          frame={c.user?.activeFrame}
+                          effect={c.user?.activeEffect}
+                          size="md"
+                        />
                       </div>
 
-                      {/* Comment Message Text */}
-                      {c.content && (
-                        <p className="mt-2.5 whitespace-pre-wrap break-words font-sans text-sm sm:text-[15px] leading-relaxed text-slate-200">
-                          <MentionText text={c.content} />
-                        </p>
-                      )}
+                      {/* Author Meta & Content */}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                          {c.user?.username ? (
+                            <UserLink
+                              username={c.user.username}
+                              className={`min-w-0 truncate text-sm font-black transition-colors ${
+                                c.user?.activeFont === "font_cyber" ? "font-mono tracking-widest" : ""
+                              } ${c.user?.activeFont === "font_pixel" ? "font-serif tracking-tight" : ""} ${
+                                nameColorClass(c.user.activeColor) ||
+                                (isDejavuh
+                                  ? "text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-fuchsia-400 drop-shadow-[0_0_8px_rgba(192,132,252,0.85)]"
+                                  : "text-white hover:text-violet-300")
+                              }`}
+                            >
+                              <span className="truncate max-w-[120px] sm:max-w-none inline-block">
+                                {c.user.username}
+                              </span>
+                            </UserLink>
+                          ) : (
+                            <span className="text-sm font-black text-slate-400">Someone</span>
+                          )}
+
+                          <GuildTag userId={c.user?.id} size="sm" />
+                          <UserBadges user={c.user as any} size="sm" showHeart={false} maxTitles={1} />
+                        </div>
+
+                        {/* Comment Message Text */}
+                        {c.content && (
+                          <p className="mt-2.5 whitespace-pre-wrap break-words font-sans text-sm sm:text-[15px] leading-relaxed text-slate-200">
+                            <MentionText text={c.content} />
+                          </p>
+                        )}
 
                       {/* Media Image */}
                       {c.mediaUrl && (
@@ -555,6 +576,7 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
                       </div>
                     </div>
                   </div>
+                </div>
                 </motion.article>
               );
             })}

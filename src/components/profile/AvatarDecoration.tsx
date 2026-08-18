@@ -118,15 +118,15 @@ export function AvatarDecoration({
               light with none of the compositor's failure modes. */}
           <span
             aria-hidden
-            className={`pointer-events-none absolute rounded-full z-0 ${size === "lg" ? "-inset-[3px]" : "-inset-[2px]"}`}
-            style={{ boxShadow: `0 0 ${size === "lg" ? 6 : 3}px ${ring.glow}` }}
+            className={`pointer-events-none absolute rounded-full z-0 ${size === "lg" ? "-inset-[4px]" : "-inset-[3px]"}`}
+            style={{ boxShadow: `0 0 ${size === "lg" ? 10 : 6}px ${ring.glow}` }}
           />
           <motion.span
             aria-hidden
             // A 3px band reads as a thick collar around a 32-40px avatar. Kept
             // full width on the profile, hairline on dense surfaces — the ring
             // is the bought cosmetic and must stay visible either way.
-            className={`pointer-events-none absolute rounded-full z-0 ${size === "lg" ? "-inset-[3px]" : "-inset-[2px]"}`}
+            className={`pointer-events-none absolute rounded-full z-0 ${size === "lg" ? "-inset-[4px]" : "-inset-[3px]"}`}
             // will-change promotes the spinning ring onto its own compositor
             // layer. Weak mobile GPUs (Mali on EMUI phones especially) can
             // smear a continuously-rotating element that shares a layer with
@@ -145,8 +145,8 @@ export function AvatarDecoration({
 }
 
 // Effects whose full form is a <canvas>, blur filters, or dense particle fields.
-// Rendered at full fidelity only on the large profile avatar; a cheap glow stands
-// in everywhere else so lists of avatars don't melt the page.
+// Rendered at full fidelity only on the large profile avatar; a bright optimized glow stands
+// in everywhere else so lists of avatars glow beautifully and smoothly.
 const HEAVY_EFFECTS = new Set([
   "effect_blackhole",
   "effect_froggie",
@@ -174,6 +174,14 @@ const HEAVY_EFFECTS = new Set([
   "effect_dandadan",
   "effect_grandline",
 ]);
+
+/** Proportional, bright glow on comment avatars so effects are clearly visible. */
+const tighten = (shadow: string) =>
+  shadow.replace(
+    /(\d+)px\s+(\d+)px/,
+    (_m, blur: string, spread: string) =>
+      `${Math.max(6, Math.round(Number(blur) * 0.75))}px ${Math.max(2, Math.round(Number(spread) * 0.8))}px`
+  );
 
 const LITE_GLOW: Record<string, string[]> = {
   effect_blackhole: ["0 0 8px 1px rgba(251,146,60,0.5)", "0 0 18px 5px rgba(168,85,247,0.6)", "0 0 8px 1px rgba(251,146,60,0.5)"],
@@ -204,25 +212,6 @@ const LITE_GLOW: Record<string, string[]> = {
 };
 
 import { BlackHoleEffect } from "./BlackHoleEffect";
-
-/**
- * A 40px avatar cannot wear a 90px halo.
- *
- * These glows were written for the big profile avatar and then reused verbatim
- * on every dense surface. On a comment composer the spread ended up wider than
- * the picture itself, bleeding across the text beside it and reading as a
- * smear rather than a cosmetic. Same colours; blur and spread pulled in
- * proportionally so the effect stays legible as a ring of light around a small
- * avatar instead of a cloud over its neighbours.
- */
-const tighten = (shadow: string) =>
-  shadow.replace(
-    /(\d+)px\s+(\d+)px/,
-    // Blur to ~30% and spread to ZERO. The first pass at this kept a third of
-    // the spread and the halo still read as a smear beside 14px text — on a
-    // 40px avatar any positive spread pushes the glow onto the neighbours.
-    (_m, blur: string) => `${Math.max(2, Math.round(Number(blur) * 0.3))}px 0px`
-  );
 
 /** Full-size glow on the profile avatar; a proportional one everywhere else. */
 const glowFor = (frames: string[], size: "sm" | "lg") =>

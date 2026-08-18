@@ -21,7 +21,7 @@ export type BadgeUser = {
 export type BadgeSize = "sm" | "md";
 
 const SIZING: Record<BadgeSize, { pad: string; text: string; icon: string; gap: string }> = {
-  sm: { pad: "px-2 py-0.5", text: "text-[9px] sm:text-[10px]", icon: "h-2.5 w-2.5 shrink-0", gap: "gap-1" },
+  sm: { pad: "px-2.5 py-0.5", text: "text-[9px] sm:text-[10px]", icon: "h-3 w-3 shrink-0", gap: "gap-1.5" },
   md: { pad: "px-3.5 py-1", text: "text-[11px] sm:text-xs", icon: "h-3.5 w-3.5 shrink-0", gap: "gap-1.5" },
 };
 
@@ -61,19 +61,19 @@ export function TitleChips({
             <span
               key={t}
               className={`inline-flex max-w-full items-center gap-1.5 sm:gap-2 rounded-full ${
-                size === "md" ? "px-3.5 sm:px-4 py-1 sm:py-1.5 min-h-[30px] sm:min-h-[34px]" : "px-2 sm:px-2.5 py-0.5 sm:py-1 min-h-[22px] sm:min-h-[26px]"
-              } font-black tracking-wider whitespace-nowrap border border-pink-400/40 bg-pink-950/20 backdrop-blur-md text-pink-100 shadow-[0_0_16px_rgba(244,63,94,0.25)] transition-all duration-200 hover:scale-105 hover:bg-pink-950/30 hover:border-pink-300/70`}
+                size === "md" ? "px-3.5 sm:px-4 py-1 sm:py-1.5 min-h-[30px] sm:min-h-[34px]" : "px-2.5 py-1 min-h-[24px] sm:min-h-[26px]"
+              } font-black tracking-wider whitespace-nowrap border border-pink-400/50 bg-gradient-to-r from-pink-950/40 via-rose-950/30 to-pink-950/40 backdrop-blur-md text-pink-100 shadow-[0_0_18px_rgba(244,63,94,0.35)] transition-all duration-200 hover:scale-105 hover:border-pink-300/80 hover:shadow-[0_0_24px_rgba(244,63,94,0.5)]`}
               title="Bug Detective"
             >
               <img
                 src="/icons/bug-detective.png"
                 alt="Bug Detective Icon"
-                className={size === "md" ? "h-6 w-6 sm:h-7 sm:w-7 object-contain -my-1.5 shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" : "h-4 w-4 sm:h-5 sm:w-5 object-contain -my-1 shrink-0"}
+                className={size === "md" ? "h-6 w-6 sm:h-7 sm:w-7 object-contain -my-1.5 shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" : "h-4 w-4 sm:h-5 sm:w-5 object-contain -my-1 shrink-0 drop-shadow-[0_0_6px_rgba(244,63,94,0.6)]"}
               />
               <img
                 src="/titles/bug-detective-wordmark.png"
                 alt="Bug Detective"
-                className={size === "md" ? "h-4 sm:h-5.5 max-w-[120px] sm:max-w-none object-contain drop-shadow-[0_0_10px_rgba(255,105,180,0.6)]" : "h-3 sm:h-4 max-w-[90px] sm:max-w-none object-contain drop-shadow-[0_0_8px_rgba(255,105,180,0.5)]"}
+                className={size === "md" ? "h-4 sm:h-5.5 max-w-[120px] sm:max-w-none object-contain drop-shadow-[0_0_10px_rgba(255,105,180,0.6)]" : "h-3.5 sm:h-4 max-w-[95px] sm:max-w-none object-contain drop-shadow-[0_0_8px_rgba(255,105,180,0.6)]"}
               />
             </span>
           );
@@ -84,14 +84,14 @@ export function TitleChips({
             <span
               key={t}
               className={`inline-flex max-w-full items-center gap-1.5 sm:gap-2 rounded-full ${
-                size === "md" ? "px-3.5 sm:px-4 py-1 sm:py-1.5 min-h-[30px] sm:min-h-[34px] text-xs" : "px-2 sm:px-2.5 py-0.5 sm:py-1 min-h-[22px] sm:min-h-[26px] text-[9px] sm:text-[10px]"
-              } font-black tracking-wider whitespace-nowrap border border-purple-400/60 bg-gradient-to-r from-[#200536]/60 via-[#380b5c]/50 to-[#1b042e]/60 backdrop-blur-md text-purple-100 shadow-[0_0_22px_rgba(168,85,247,0.5),0_0_40px_rgba(192,132,252,0.25)] transition-all duration-200 hover:scale-105 hover:border-purple-300 hover:shadow-[0_0_30px_rgba(168,85,247,0.7)]`}
+                size === "md" ? "px-3.5 sm:px-4 py-1 sm:py-1.5 min-h-[30px] sm:min-h-[34px] text-xs" : "px-2.5 py-1 min-h-[24px] sm:min-h-[26px] text-[9px] sm:text-[10px]"
+              } font-black tracking-wider whitespace-nowrap border border-purple-400/60 bg-gradient-to-r from-[#200536]/80 via-[#380b5c]/70 to-[#1b042e]/80 backdrop-blur-md text-purple-100 shadow-[0_0_22px_rgba(168,85,247,0.55),0_0_40px_rgba(192,132,252,0.3)] transition-all duration-200 hover:scale-105 hover:border-purple-300 hover:shadow-[0_0_30px_rgba(168,85,247,0.8)]`}
               title="Lucifer,the fallen angel"
             >
               <img
                 src="/icons/lucifer-gojo.png"
                 alt="Lucifer, the fallen angel"
-                className={size === "md" ? "h-6 w-6 sm:h-7 sm:w-7 object-contain -my-1.5 shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" : "h-4 w-4 sm:h-5 sm:w-5 object-contain -my-1 shrink-0"}
+                className={size === "md" ? "h-6 w-6 sm:h-7 sm:w-7 object-contain -my-1.5 shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" : "h-4 w-4 sm:h-5 sm:w-5 object-contain -my-1 shrink-0 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]"}
               />
               <span className="truncate max-w-[120px] sm:max-w-none text-transparent bg-clip-text bg-gradient-to-r from-[#f3e8ff] via-[#d8b4fe] to-[#c084fc] drop-shadow-[0_0_12px_rgba(192,132,252,0.85)] font-black tracking-wider uppercase">
                 Lucifer,the fallen angel
@@ -99,18 +99,21 @@ export function TitleChips({
             </span>
           );
         }
+        const isLeader = i === 0;
         return (
           <span
             key={t}
-            className={`inline-flex max-w-full items-center ${S.gap} rounded-full ${S.pad} ${S.text} font-black uppercase tracking-wider whitespace-nowrap ${
-              i === 0
-                ? "border border-amber-400/45 bg-amber-500/15 text-amber-200"
-                : "border border-violet-400/35 bg-violet-500/15 text-violet-200"
+            className={`inline-flex max-w-full items-center ${S.gap} rounded-full ${S.pad} ${S.text} font-black uppercase tracking-wider whitespace-nowrap transition-all duration-200 hover:scale-105 ${
+              isLeader
+                ? "border border-amber-400/60 bg-gradient-to-r from-amber-500/25 via-yellow-500/20 to-amber-500/25 text-amber-200 shadow-[0_0_14px_rgba(251,191,36,0.4)]"
+                : "border border-violet-400/50 bg-gradient-to-r from-violet-600/25 via-purple-600/20 to-violet-600/25 text-violet-200 shadow-[0_0_12px_rgba(168,85,247,0.3)]"
             }`}
-            title="Earned title"
+            title={`Earned Title · ${t}`}
           >
-            <Crown className={S.icon} />
-            <span className="truncate max-w-[110px] sm:max-w-none">{t}</span>
+            <Crown className={`${S.icon} ${isLeader ? "text-amber-300 drop-shadow-[0_0_6px_rgba(251,191,36,0.8)]" : "text-violet-300 drop-shadow-[0_0_6px_rgba(168,85,247,0.8)]"}`} />
+            <span className={`truncate max-w-[110px] sm:max-w-none ${isLeader ? "text-transparent bg-clip-text bg-gradient-to-r from-amber-100 via-amber-200 to-yellow-300 drop-shadow-[0_0_6px_rgba(251,191,36,0.4)]" : "text-violet-100"}`}>
+              {t}
+            </span>
           </span>
         );
       })}
@@ -126,8 +129,8 @@ function IconBadge({ icon: Icon, tint, label }: { icon: any; tint: string; label
     <span
       title={label}
       aria-label={label}
-      className="grid h-5 w-5 shrink-0 place-items-center rounded-md"
-      style={{ background: `${tint}22`, boxShadow: `inset 0 0 0 1px ${tint}77`, color: tint }}
+      className="grid h-5 w-5 shrink-0 place-items-center rounded-md transition-all duration-200 hover:scale-110"
+      style={{ background: `${tint}22`, boxShadow: `inset 0 0 0 1px ${tint}77, 0 0 8px ${tint}44`, color: tint }}
     >
       <Icon className="h-3 w-3" />
     </span>
@@ -223,7 +226,7 @@ export default function UserBadges({
 }) {
   if (!user) return null;
   const S = SIZING[size];
-  const chip = `inline-flex max-w-full items-center ${S.gap} rounded-full ${S.pad} ${S.text} font-black uppercase tracking-wider whitespace-nowrap`;
+  const chip = `inline-flex max-w-full items-center ${S.gap} rounded-full ${S.pad} ${S.text} font-black uppercase tracking-wider whitespace-nowrap transition-all duration-200 hover:scale-105`;
 
   const lead = isLeadDev(user);
   const admin = !lead && isAdmin(user);
@@ -237,46 +240,46 @@ export default function UserBadges({
       {lead && !(user as any)?.hideLeadRole ? (
         <span
           className={`inline-flex max-w-full items-center gap-1.5 sm:gap-2 rounded-full ${
-            size === "md" ? "px-3.5 sm:px-4 py-1 sm:py-1.5 min-h-[30px] sm:min-h-[34px] text-xs" : "px-2 sm:px-2.5 py-0.5 sm:py-1 min-h-[22px] sm:min-h-[26px] text-[9px] sm:text-[10px]"
-          } font-black tracking-wider whitespace-nowrap border border-purple-400/60 bg-gradient-to-r from-[#200536]/60 via-[#380b5c]/50 to-[#1b042e]/60 backdrop-blur-md text-purple-100 shadow-[0_0_22px_rgba(168,85,247,0.5),0_0_40px_rgba(192,132,252,0.25)] transition-all duration-200 hover:scale-105 hover:border-purple-300 hover:shadow-[0_0_30px_rgba(168,85,247,0.7)] ${className}`}
+            size === "md" ? "px-3.5 sm:px-4 py-1 sm:py-1.5 min-h-[30px] sm:min-h-[34px] text-xs" : "px-2.5 py-1 min-h-[24px] sm:min-h-[26px] text-[9px] sm:text-[10px]"
+          } font-black tracking-wider whitespace-nowrap border border-purple-400/60 bg-gradient-to-r from-[#200536]/80 via-[#380b5c]/70 to-[#1b042e]/80 backdrop-blur-md text-purple-100 shadow-[0_0_22px_rgba(168,85,247,0.55),0_0_40px_rgba(192,132,252,0.3)] transition-all duration-200 hover:scale-105 hover:border-purple-300 hover:shadow-[0_0_30px_rgba(168,85,247,0.8)] ${className}`}
           title="Lead Dev · Lucifer,the fallen angel"
         >
           <img
             src="/icons/lucifer-gojo.png"
             alt="Lucifer, the fallen angel"
-            className={size === "md" ? "h-6 w-6 sm:h-7 sm:w-7 object-contain -my-1.5 shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" : "h-4 w-4 sm:h-5 sm:w-5 object-contain -my-1 shrink-0"}
+            className={size === "md" ? "h-6 w-6 sm:h-7 sm:w-7 object-contain -my-1.5 shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" : "h-4 w-4 sm:h-5 sm:w-5 object-contain -my-1 shrink-0 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]"}
           />
           <span className="truncate max-w-[120px] sm:max-w-none text-transparent bg-clip-text bg-gradient-to-r from-[#f3e8ff] via-[#d8b4fe] to-[#c084fc] drop-shadow-[0_0_12px_rgba(192,132,252,0.85)] font-black tracking-wider uppercase">
             Lucifer,the fallen angel
           </span>
         </span>
       ) : admin ? (
-        <span className={`${chip} border border-amber-400/40 bg-amber-500/15 text-amber-300 ${className}`}>
-          <Shield className={S.icon} /> <span>Staff</span>
+        <span className={`${chip} border border-amber-400/50 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-300 shadow-[0_0_10px_rgba(251,191,36,0.3)] ${className}`}>
+          <Shield className={`${S.icon} text-amber-300`} /> <span>Staff</span>
         </span>
       ) : user.activeRole === "role_watcher" ? (
-        <span className={`${chip} border border-purple-500/30 bg-purple-500/20 text-purple-300 ${className}`}>
-          <Shield className={S.icon} /> <span>Watcher</span>
+        <span className={`${chip} border border-purple-500/40 bg-gradient-to-r from-purple-600/25 to-violet-600/25 text-purple-300 shadow-[0_0_10px_rgba(168,85,247,0.3)] ${className}`}>
+          <Shield className={`${S.icon} text-purple-300`} /> <span>Watcher</span>
         </span>
       ) : user.activeRole === "role_elite" ? (
-        <span className={`${chip} border border-yellow-500/30 bg-yellow-500/20 text-yellow-300 ${className}`}>
-          <Star className={S.icon} /> <span>Elite</span>
+        <span className={`${chip} border border-yellow-500/40 bg-gradient-to-r from-yellow-500/25 to-amber-500/25 text-yellow-300 shadow-[0_0_10px_rgba(234,179,8,0.3)] ${className}`}>
+          <Star className={`${S.icon} text-yellow-300`} /> <span>Elite</span>
         </span>
       ) : null}
 
       {user.activeTag === "tag_og" && (
-        <span className={`${chip} bg-red-500/20 text-red-300`}>
-          <Zap className={S.icon} /> <span>OG</span>
+        <span className={`${chip} border border-red-500/40 bg-gradient-to-r from-red-600/25 to-rose-600/25 text-red-300 shadow-[0_0_10px_rgba(239,68,68,0.3)]`}>
+          <Zap className={`${S.icon} text-red-300`} /> <span>OG</span>
         </span>
       )}
       {user.activeTag === "tag_weeb" && (
-        <span className={`${chip} bg-pink-500/20 text-pink-300`}>
-          <Sparkles className={S.icon} /> <span>Weeb Lord</span>
+        <span className={`${chip} border border-pink-500/40 bg-gradient-to-r from-pink-600/25 to-fuchsia-600/25 text-pink-300 shadow-[0_0_10px_rgba(236,72,153,0.3)]`}>
+          <Sparkles className={`${S.icon} text-pink-300`} /> <span>Weeb Lord</span>
         </span>
       )}
       {blessed && (
-        <span className={`${chip} border border-amber-400/40 bg-amber-400/20 text-amber-300`}>
-          <Sparkles className={S.icon} /> <span>Blessed</span>
+        <span className={`${chip} border border-amber-400/50 bg-gradient-to-r from-amber-400/25 to-yellow-400/25 text-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.4)]`}>
+          <Sparkles className={`${S.icon} text-amber-300`} /> <span>Blessed</span>
         </span>
       )}
 
@@ -293,19 +296,19 @@ export default function UserBadges({
             <span
               key={t}
               className={`inline-flex max-w-full items-center gap-1.5 sm:gap-2 rounded-full ${
-                size === "md" ? "px-3.5 sm:px-4 py-1 sm:py-1.5 min-h-[30px] sm:min-h-[34px]" : "px-2 sm:px-2.5 py-0.5 sm:py-1 min-h-[22px] sm:min-h-[26px]"
-              } font-black tracking-wider whitespace-nowrap border border-pink-400/40 bg-pink-950/20 backdrop-blur-md text-pink-100 shadow-[0_0_16px_rgba(244,63,94,0.25)] transition-all duration-200 hover:scale-105 hover:bg-pink-950/30 hover:border-pink-300/70 ${className}`}
+                size === "md" ? "px-3.5 sm:px-4 py-1 sm:py-1.5 min-h-[30px] sm:min-h-[34px]" : "px-2.5 py-1 min-h-[24px] sm:min-h-[26px]"
+              } font-black tracking-wider whitespace-nowrap border border-pink-400/50 bg-gradient-to-r from-pink-950/40 via-rose-950/30 to-pink-950/40 backdrop-blur-md text-pink-100 shadow-[0_0_18px_rgba(244,63,94,0.35)] transition-all duration-200 hover:scale-105 hover:bg-pink-950/30 hover:border-pink-300/80 ${className}`}
               title="Bug Detective"
             >
               <img
                 src="/icons/bug-detective.png"
                 alt="Bug Detective Icon"
-                className={size === "md" ? "h-6 w-6 sm:h-7 sm:w-7 object-contain -my-1.5 shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" : "h-4 w-4 sm:h-5 sm:w-5 object-contain -my-1 shrink-0"}
+                className={size === "md" ? "h-6 w-6 sm:h-7 sm:w-7 object-contain -my-1.5 shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" : "h-4 w-4 sm:h-5 sm:w-5 object-contain -my-1 shrink-0 drop-shadow-[0_0_6px_rgba(244,63,94,0.6)]"}
               />
               <img
                 src="/titles/bug-detective-wordmark.png"
                 alt="Bug Detective"
-                className={size === "md" ? "h-4 sm:h-5.5 max-w-[120px] sm:max-w-none object-contain drop-shadow-[0_0_10px_rgba(255,105,180,0.6)]" : "h-3 sm:h-4 max-w-[90px] sm:max-w-none object-contain drop-shadow-[0_0_8px_rgba(255,105,180,0.5)]"}
+                className={size === "md" ? "h-4 sm:h-5.5 max-w-[120px] sm:max-w-none object-contain drop-shadow-[0_0_10px_rgba(255,105,180,0.6)]" : "h-3.5 sm:h-4 max-w-[95px] sm:max-w-none object-contain drop-shadow-[0_0_8px_rgba(255,105,180,0.6)]"}
               />
             </span>
           );
@@ -316,14 +319,14 @@ export default function UserBadges({
             <span
               key={t}
               className={`inline-flex max-w-full items-center gap-1.5 sm:gap-2 rounded-full ${
-                size === "md" ? "px-3.5 sm:px-4 py-1 sm:py-1.5 min-h-[30px] sm:min-h-[34px] text-xs" : "px-2 sm:px-2.5 py-0.5 sm:py-1 min-h-[22px] sm:min-h-[26px] text-[9px] sm:text-[10px]"
-              } font-black tracking-wider whitespace-nowrap border border-purple-400/60 bg-gradient-to-r from-[#200536]/60 via-[#380b5c]/50 to-[#1b042e]/60 backdrop-blur-md text-purple-100 shadow-[0_0_22px_rgba(168,85,247,0.5),0_0_40px_rgba(192,132,252,0.25)] transition-all duration-200 hover:scale-105 hover:border-purple-300 hover:shadow-[0_0_30px_rgba(168,85,247,0.7)] ${className}`}
+                size === "md" ? "px-3.5 sm:px-4 py-1 sm:py-1.5 min-h-[30px] sm:min-h-[34px] text-xs" : "px-2.5 py-1 min-h-[24px] sm:min-h-[26px] text-[9px] sm:text-[10px]"
+              } font-black tracking-wider whitespace-nowrap border border-purple-400/60 bg-gradient-to-r from-[#200536]/80 via-[#380b5c]/70 to-[#1b042e]/80 backdrop-blur-md text-purple-100 shadow-[0_0_22px_rgba(168,85,247,0.55),0_0_40px_rgba(192,132,252,0.3)] transition-all duration-200 hover:scale-105 hover:border-purple-300 hover:shadow-[0_0_30px_rgba(168,85,247,0.8)] ${className}`}
               title="Lucifer,the fallen angel"
             >
               <img
                 src="/icons/lucifer-gojo.png"
                 alt="Lucifer, the fallen angel"
-                className={size === "md" ? "h-6 w-6 sm:h-7 sm:w-7 object-contain -my-1.5 shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" : "h-4 w-4 sm:h-5 sm:w-5 object-contain -my-1 shrink-0"}
+                className={size === "md" ? "h-6 w-6 sm:h-7 sm:w-7 object-contain -my-1.5 shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" : "h-4 w-4 sm:h-5 sm:w-5 object-contain -my-1 shrink-0 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]"}
               />
               <span className="truncate max-w-[120px] sm:max-w-none text-transparent bg-clip-text bg-gradient-to-r from-[#f3e8ff] via-[#d8b4fe] to-[#c084fc] drop-shadow-[0_0_12px_rgba(192,132,252,0.85)] font-black tracking-wider uppercase">
                 Lucifer,the fallen angel
@@ -331,16 +334,21 @@ export default function UserBadges({
             </span>
           );
         }
+        const isLeader = i === 0;
         return (
           <span
             key={t}
-            className={`${chip} ${i === 0
-              ? "border border-amber-400/45 bg-amber-500/15 text-amber-200"
-              : "border border-violet-400/35 bg-violet-500/15 text-violet-200"}`}
-            title="Earned title"
+            className={`${chip} ${
+              isLeader
+                ? "border border-amber-400/60 bg-gradient-to-r from-amber-500/25 via-yellow-500/20 to-amber-500/25 text-amber-200 shadow-[0_0_14px_rgba(251,191,36,0.4)]"
+                : "border border-violet-400/50 bg-gradient-to-r from-violet-600/25 via-purple-600/20 to-violet-600/25 text-violet-200 shadow-[0_0_12px_rgba(168,85,247,0.3)]"
+            }`}
+            title={`Earned Title · ${t}`}
           >
-            <Crown className={S.icon} />
-            <span className="truncate max-w-[110px] sm:max-w-none">{t}</span>
+            <Crown className={`${S.icon} ${isLeader ? "text-amber-300 drop-shadow-[0_0_6px_rgba(251,191,36,0.8)]" : "text-violet-300 drop-shadow-[0_0_6px_rgba(168,85,247,0.8)]"}`} />
+            <span className={`truncate max-w-[110px] sm:max-w-none ${isLeader ? "text-transparent bg-clip-text bg-gradient-to-r from-amber-100 via-amber-200 to-yellow-300 drop-shadow-[0_0_6px_rgba(251,191,36,0.4)]" : "text-violet-100"}`}>
+              {t}
+            </span>
           </span>
         );
       })}
