@@ -213,6 +213,7 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
   const [composing, setComposing] = useState(false);
   const [openThread, setOpenThread] = useState<string | null>(null);
   const [replies, setReplies] = useState<Record<string, Post[]>>({});
+  const [replyText, setReplyText] = useState<Record<string, string>>({});
 
   const [editing, setEditing] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
@@ -418,6 +419,36 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
     } catch {}
   };
 
+  const submitReply = async (postId: string) => {
+    const text = replyText[postId]?.trim();
+    if (!user) return toast("Please log in to reply.", "error");
+    if (!text) return;
+    try {
+      const r = await fetch(`${API_URL}/api/comments`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          userId: user.id,
+          content: text,
+          parentId: postId,
+        }),
+      });
+      const d = await r.json();
+      if (d.success) {
+        setReplyText((prev) => ({ ...prev, [postId]: "" }));
+        setReplies((prev) => ({
+          ...prev,
+          [postId]: [...(prev[postId] || []), d.data],
+        }));
+        toast("Reply posted.", "success");
+      } else {
+        toast(d.message || "Failed to reply.", "error");
+      }
+    } catch {
+      toast("Failed to reply.", "error");
+    }
+  };
+
   return (
     <div className={`relative text-white pb-32 ${embedded ? "" : "min-h-screen px-4 pt-24"}`}>
       <div className={embedded ? "" : "mx-auto max-w-6xl"}>
@@ -614,6 +645,7 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                   const up = p.upvotes || 0;
                   const down = p.downvotes || 0;
                   const totalVotes = up + down;
+                  const positivePercent = totalVotes > 0 ? Math.round((up / totalVotes) * 100) : 0;
                   const isDejavuh = isLeadDev(p.user);
 
                   return (

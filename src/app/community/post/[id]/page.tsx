@@ -9,6 +9,8 @@ import LoadingScreen from "@/components/ui/LoadingScreen";
 import { useUser } from "@/hooks/useUser";
 import { useToast } from "@/components/ui/Toast";
 import { authHeaders } from "@/lib/authToken";
+import { isLeadDev } from "@/lib/admin";
+import { nameColorClass } from "@/lib/cosmetics";
 import UserLink from "@/components/profile/UserLink";
 import UserBadges from "@/components/profile/UserBadges";
 import GuildTag from "@/components/guild/GuildTag";
@@ -32,7 +34,11 @@ import { PollCard, type PollData } from "@/components/community/Poll";
 
 type Author = {
   id: string; username: string; avatar?: string | null;
+  activeRole?: string | null; activeTag?: string | null;
   activeEffect?: string | null; activeFrame?: string | null;
+  activeColor?: string | null; activeFont?: string | null;
+  role?: string | null; xp?: number | null;
+  equippedTitles?: string[] | null; cardTitle?: string | null;
 };
 
 type Post = {
@@ -175,9 +181,15 @@ export default function PostPage() {
             <div className="flex items-start gap-3.5">
               <span className="relative h-12 w-12 shrink-0">
                 {post.user?.avatar ? (
-                  <img src={cloudinaryFit(post.user.avatar, 100)} alt="" className="relative z-10 h-12 w-12 rounded-full object-cover ring-2 ring-white/10 shadow-md" />
+                  <img
+                    src={cloudinaryFit(post.user.avatar, 100)}
+                    alt=""
+                    className={`relative z-10 h-12 w-12 rounded-full object-cover ring-1 ring-white/10 shadow-md ${
+                      isLeadDev(post.user) ? "ring-2 ring-fuchsia-500 ring-offset-1 ring-offset-[#0f0f11] shadow-[0_0_15px_rgba(217,70,239,0.6)]" : ""
+                    }`}
+                  />
                 ) : (
-                  <span className="relative z-10 grid h-12 w-12 place-items-center rounded-full bg-violet-700 font-mono text-sm font-black text-white ring-2 ring-white/10">
+                  <span className="relative z-10 grid h-12 w-12 place-items-center rounded-full bg-violet-700 font-mono text-sm font-black text-white ring-1 ring-white/10">
                     {(post.user?.username || "?")[0]?.toUpperCase()}
                   </span>
                 )}
@@ -186,7 +198,17 @@ export default function PostPage() {
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                   {post.user ? (
-                    <UserLink username={post.user.username} className="min-w-0 truncate font-mono text-sm font-black text-white hover:text-violet-300 transition-colors">
+                    <UserLink
+                      username={post.user.username}
+                      className={`min-w-0 truncate font-mono text-sm font-black transition-colors ${
+                        post.user.activeFont === "font_cyber" ? "tracking-widest" : ""
+                      } ${post.user.activeFont === "font_pixel" ? "font-serif tracking-tight" : ""} ${
+                        nameColorClass(post.user.activeColor) ||
+                        (isLeadDev(post.user)
+                          ? "text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-fuchsia-400 drop-shadow-[0_0_8px_rgba(192,132,252,0.85)]"
+                          : "text-white hover:text-violet-300")
+                      }`}
+                    >
                       {post.user.username}
                     </UserLink>
                   ) : (
