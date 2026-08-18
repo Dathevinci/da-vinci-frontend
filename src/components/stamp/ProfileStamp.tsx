@@ -473,7 +473,13 @@ export default function ProfileStamp({ userId, username, isSelf, className = "" 
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          /* CAPPED, because the covers are 2:3 and the row is only ever three
+             cards wide. Left to fill a wide profile, each column reached ~600px
+             and the poster under it ~900px tall — three recommendations were
+             taller than everything else on the page combined. The cap only
+             binds on desktop: on a phone the container is already narrower than
+             it, so the two-column layout is untouched. */
+          <div className="grid max-w-xl grid-cols-2 gap-4 sm:grid-cols-3">
             {active.map((rec) => (
               <RecCard
                 /**
