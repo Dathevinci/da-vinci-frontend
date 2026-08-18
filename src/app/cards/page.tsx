@@ -852,168 +852,229 @@ export default function CardsPage() {
           {/* open a pack — only on your OWN binder */}
           {catalog && isMine && (
             <Rise delay={0.08}>
-            <Panel tone="gold" size={30} className="mb-8" sheen>
-              <div className="relative overflow-hidden">
-                {/* layered light — the banner glow every gacha summon screen has */}
-                <div aria-hidden className="pointer-events-none absolute inset-0"
-                  style={{ background: "radial-gradient(70% 130% at 78% 20%, rgba(168,110,255,.30), transparent 62%), radial-gradient(55% 110% at 18% 90%, rgba(162,116,255,.18), transparent 65%)" }} />
-                <div aria-hidden className="pointer-events-none absolute inset-0 opacity-30"
-                  style={{ backgroundImage: "repeating-linear-gradient(72deg, transparent 0 26px, rgba(255,255,255,.55) 26px 27px)", maskImage: "linear-gradient(100deg, transparent 35%, black 75%, transparent)" }} />
-                {/* glints twinkling out of phase — the banner is never still */}
-                <Twinkles count={8} />
+              <div className="relative mb-8 overflow-hidden rounded-3xl border border-violet-500/25 bg-gradient-to-br from-[#130b2b]/95 via-[#0d071d]/95 to-[#070412]/95 p-6 sm:p-8 shadow-[0_15px_50px_rgba(0,0,0,0.85),_0_0_35px_rgba(139,92,246,0.12)]">
+                {/* Ambient Top/Right Nebula Glow */}
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute -right-20 -top-20 h-96 w-96 rounded-full bg-[radial-gradient(circle,_var(--tw-gradient-stops))] from-violet-600/25 via-purple-600/10 to-transparent blur-3xl"
+                />
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute -left-20 -bottom-20 h-80 w-80 rounded-full bg-[radial-gradient(circle,_var(--tw-gradient-stops))] from-amber-500/15 via-transparent to-transparent blur-3xl"
+                />
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 opacity-[0.03]"
+                  style={{
+                    backgroundImage: "radial-gradient(#ffffff 1px, transparent 1px)",
+                    backgroundSize: "20px 20px",
+                  }}
+                />
 
-                <div className="relative grid gap-6 p-6 sm:p-8 lg:grid-cols-[1fr_auto] lg:items-center">
+                <div className="relative grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+                  {/* Left Column: Banner Header & Odds */}
                   <div className="min-w-0">
-                    <span className="inline-block px-3 py-1 text-[10px] font-black uppercase tracking-[0.32em]"
-                      style={{ clipPath: "polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)", background: `linear-gradient(100deg, ${ACCENT_LIT}, ${ACCENT})`, color: "#1a1206" }}>
-                      Standard Banner
-                    </span>
-                    <h2 className="mt-3 font-fell text-3xl font-bold uppercase tracking-[0.08em] text-white sm:text-4xl">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-gradient-to-r from-amber-500/20 to-yellow-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.25em] text-amber-200 shadow-[0_0_12px_rgba(251,191,36,0.2)]">
+                        <Sparkles className="h-3 w-3 text-amber-400" />
+                        Standard Banner
+                      </span>
+                      <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
+                        Permanent Archive
+                      </span>
+                    </div>
+
+                    <h2 className="mt-3 font-fell text-3xl font-extrabold uppercase tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-100 via-amber-200 to-yellow-400 sm:text-4xl lg:text-5xl drop-shadow-[0_0_25px_rgba(251,191,36,0.25)]">
                       Arise Pack
                     </h2>
-                    {/* Named for what it actually contains. It was "Ascension
-                        Pack", but the pool is every non-event card across every
-                        set — so the name promised one set and delivered five. */}
-                    <p className="mt-2 max-w-md text-sm leading-relaxed text-slate-400">
-                      Every set in the archive, one pool — the same odds on every card, every size.
-                      A duplicate is never a loss: dust it into shards.
+
+                    <p className="mt-2.5 max-w-lg text-xs sm:text-sm leading-relaxed text-slate-300">
+                      Every set in the archive, one pool — identical odds on every card across every summon size.
+                      Duplicates automatically convert into shards for targeted crafting.
                     </p>
+
                     {sets.length > 0 && (
-                      <p className="mt-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
-                        {sets.map((s) => s.set).join(" · ")}
-                      </p>
+                      <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500 mr-1">
+                          Sets:
+                        </span>
+                        {sets.map((s) => (
+                          <span
+                            key={s.set}
+                            className="rounded-lg border border-white/10 bg-black/40 px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-violet-300"
+                          >
+                            {s.set}
+                          </span>
+                        ))}
+                      </div>
                     )}
 
-                    {/* rarity ladder WITH the printed odds — same display-only
-                        mirror of RARITY_WEIGHTS the Pull Stats modal uses, so
-                        the banner says its chances out loud instead of hinting. */}
-                    <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
-                      {(["legendary", "epic", "rare", "common"] as const).map((r) => {
-                        // FROM THE SERVER, never a literal. These were written
-                        // out by hand and said 0.6 / 8 / 27.4 / 64 long after
-                        // the roll had been retuned to 0.4 / 4.6 / 17 / 78 —
-                        // the banner advertised odds nobody was being given.
-                        // pullRates is derived from RARITY_WEIGHTS itself, so
-                        // the number here and the number rolled cannot drift.
-                        const pct = catalog?.pullRates?.[r] ?? pullStats?.rates?.[r];
-                        if (pct == null) return null;
-                        return (
-                          <span key={r} className="inline-flex items-center gap-1.5">
-                            <Stars rarity={r as CardRarity} size={11} />
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{RARITY_META[r as CardRarity]?.label ?? r}</span>
-                            <span className="font-mono text-[11px] font-bold" style={{ color: RARITY_META[r as CardRarity]?.gem || "#cbd5e1" }}>{pct}%</span>
-                          </span>
-                        );
-                      })}
+                    {/* Live Rarity Odds Ribbon */}
+                    <div className="mt-5 rounded-2xl border border-white/10 bg-black/40 p-3.5 backdrop-blur-md">
+                      <p className="mb-2 text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400">
+                        Summon Odds Per Card
+                      </p>
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        {(["common", "rare", "epic", "legendary"] as const).map((r) => {
+                          const pct = catalog?.pullRates?.[r] ?? pullStats?.rates?.[r];
+                          if (pct == null) return null;
+                          const meta = RARITY_META[r as CardRarity];
+                          const gemColor = meta?.gem || "#cbd5e1";
+                          return (
+                            <div
+                              key={r}
+                              className="flex items-center gap-2 rounded-xl border border-white/5 bg-white/[0.02] px-2.5 py-1.5"
+                            >
+                              <span
+                                className="h-2 w-2 rounded-full shrink-0 shadow-sm"
+                                style={{ background: gemColor, boxShadow: `0 0 6px ${gemColor}` }}
+                              />
+                              <div className="min-w-0 flex-1">
+                                <span className="block truncate text-[9px] font-black uppercase tracking-wider text-slate-400">
+                                  {meta?.label ?? r}
+                                </span>
+                                <span className="font-mono text-xs font-bold" style={{ color: gemColor }}>
+                                  {pct}%
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex flex-col items-stretch gap-2.5 lg:w-[300px]">
-                    {/* Pull sizes come from the server so the price shown is
-                        the price charged — and so a client can't invent one. */}
-                    {/* 2 columns up to four options; 3 columns once the x16
-                        and x32 join — six buttons two-across is a tower.
-                        gap-y-3 + pt-2 give the name-ribbons room to sit
-                        above their buttons instead of being clipped. */}
-                    {/* The six pull tiles deal in one after another rather than
-                        appearing as a block — 50ms apart, the system default.
-                        This is the cheapest quality signal there is and it is
-                        the whole reason lib/motion.ts exists. */}
-                    <Stagger className={`grid gap-x-2 gap-y-3 pt-2 ${(catalog.pullSizes?.length ?? 3) > 4 ? "grid-cols-3" : "grid-cols-2"}`}>
+                  {/* Right Column: Summon Tickets Matrix & Relic Button */}
+                  <div className="flex flex-col items-stretch gap-3">
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-400">
+                        Select Summon Size
+                      </span>
+                      {skipPullConfirm ? (
+                        <button
+                          onClick={() => { setSkip(false); toast("Pull confirms are back on.", "success"); }}
+                          className="text-[10px] font-mono text-amber-400 hover:underline"
+                        >
+                          Confirms: OFF (Turn On)
+                        </button>
+                      ) : (
+                        <span className="text-[10px] font-mono text-slate-500">
+                          Confirms: Active
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Pull Matrix Grid */}
+                    <Stagger className={`grid gap-2.5 ${(catalog.pullSizes?.length ?? 3) > 4 ? "grid-cols-3" : "grid-cols-2"}`}>
                       {(catalog.pullSizes ?? [catalog.packSize]).map((n) => {
                         const price = catalog.pullPrices?.[n] ?? catalog.packPrice;
                         const headline = n === catalog.packSize;
                         const allIn = n === 32;
                         return (
                           <StaggerItem key={n} y={10}>
-                          <button onClick={() => askPull(n)} disabled={opening}
-                            title={`${n} card${n === 1 ? "" : "s"} · ${(price / n) % 1 === 0 ? price / n : (price / n).toFixed(1)} AP per card`}
-                            className={`group relative flex flex-col items-center gap-0.5 px-2 py-3 transition hover:-translate-y-0.5 hover:brightness-115 disabled:opacity-40 ${
-                              headline ? "text-[#160b2b]" : "text-slate-200"}`}
-                            style={{
-                              clipPath: notch(10),
-                              background: headline
-                                ? `linear-gradient(140deg, ${ACCENT_LIT}, ${ACCENT})`
-                                : "rgba(255,255,255,.05)",
-                              // The headline size wears a halo — the eye should
-                              // land on the pull the banner wants you to make.
-                              boxShadow: headline ? `0 0 16px ${ACCENT}99, 0 0 34px ${ACCENT}44`
-                                : allIn ? `inset 0 0 0 1px ${ACCENT}66` : "inset 0 0 0 1px rgba(255,255,255,.12)",
-                            }}>
-                            {/* the two spins with a NAME get a little ribbon */}
-                            {(headline || allIn) && (
-                              <span className="pointer-events-none absolute -top-1.5 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-[1.5px] text-[7px] font-black uppercase tracking-[0.22em]"
-                                style={{
-                                  clipPath: "polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%)",
-                                  background: headline ? "#160b2b" : `linear-gradient(100deg, ${ACCENT_LIT}, ${ACCENT})`,
-                                  color: headline ? ACCENT_LIT : "#160b2b",
-                                }}>
-                                {headline ? "The Pack" : "All In"}
+                            <button
+                              onClick={() => askPull(n)}
+                              disabled={opening}
+                              title={`${n} card${n === 1 ? "" : "s"} · ${(price / n) % 1 === 0 ? price / n : (price / n).toFixed(1)} AP per card`}
+                              className={`group relative flex flex-col items-center justify-center rounded-2xl border p-3 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl disabled:opacity-40 ${
+                                headline
+                                  ? "border-amber-400/80 bg-gradient-to-b from-amber-400/20 via-amber-500/10 to-transparent text-white shadow-[0_0_20px_rgba(251,191,36,0.25)] ring-1 ring-amber-400/30"
+                                  : allIn
+                                  ? "border-purple-400/80 bg-gradient-to-b from-purple-500/20 via-purple-600/10 to-transparent text-white shadow-[0_0_20px_rgba(168,85,247,0.25)] ring-1 ring-purple-400/30"
+                                  : "border-white/10 bg-white/[0.04] text-slate-200 hover:border-violet-500/40 hover:bg-violet-500/10"
+                              }`}
+                            >
+                              {/* Pill Ribbon for special packs */}
+                              {headline && (
+                                <span className="absolute -top-2.5 rounded-full border border-amber-300 bg-amber-400 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider text-black shadow-md">
+                                  Standard
+                                </span>
+                              )}
+                              {allIn && (
+                                <span className="absolute -top-2.5 rounded-full border border-purple-300 bg-purple-500 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider text-white shadow-md">
+                                  All In
+                                </span>
+                              )}
+
+                              <span className="font-mono text-xl sm:text-2xl font-black leading-none group-hover:scale-105 transition-transform">
+                                ×{n}
                               </span>
-                            )}
-                            <span className="text-lg font-black leading-none">×{n}</span>
-                            {/* legibility: prices were slate-500 ghosts — the
-                                one number a buy button exists to say */}
-                            <span className={`text-[11px] font-black uppercase tracking-[0.12em] ${headline ? "text-[#160b2b]/80" : "text-slate-300"}`}>
-                              {price.toLocaleString()} AP
-                            </span>
-                          </button>
+                              <span
+                                className={`mt-1 font-mono text-xs font-extrabold tracking-wide ${
+                                  headline ? "text-amber-200" : allIn ? "text-purple-200" : "text-slate-400 group-hover:text-white"
+                                }`}
+                              >
+                                {price.toLocaleString()} <span className="text-[10px] font-bold">AP</span>
+                              </span>
+                            </button>
                           </StaggerItem>
                         );
                       })}
                     </Stagger>
-                    {/* THE WAY BACK. Only rendered while confirms are off, so
-                        it costs nothing normally and is impossible to miss when
-                        it matters. Without this the skip would be one-way, and a
-                        preference you cannot undo is just a trap with a nice
-                        label on it. */}
-                    {skipPullConfirm && (
-                      <button
-                        onClick={() => { setSkip(false); toast("Pull confirms are back on.", "success"); }}
-                        className="mx-auto block rounded-lg px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500 transition hover:bg-white/[0.05] hover:text-slate-300"
-                      >
-                        Confirms off · turn back on
-                      </button>
-                    )}
+
                     {opening && (
-                      <p className="text-center text-[10px] font-black uppercase tracking-[0.3em]" style={{ color: ACCENT }}>
-                        Opening…
-                      </p>
+                      <div className="flex items-center justify-center gap-2 py-1">
+                        <Sparkles className="h-4 w-4 animate-spin text-amber-400" />
+                        <span className="text-xs font-mono font-bold uppercase tracking-widest text-amber-300">
+                          Summoning Cards…
+                        </span>
+                      </div>
                     )}
-                    <GachaButton tone="jade" onClick={openRelic}
-                      disabled={shards < catalog.relicPackShards}
-                      title={shards < catalog.relicPackShards ? "Not enough shards yet" : "Guaranteed Epic or better"}
-                      className="!py-3.5 !text-[13px]">
-                      <Gem className="h-4 w-4" /> Relic · {catalog.relicPackShards.toLocaleString()}
-                    </GachaButton>
-                    <p className="mt-0.5 text-center text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                      Epic or better. Every time.
-                    </p>
+
+                    {/* Guaranteed Relic Summon Button */}
+                    <div className="mt-1 space-y-1.5">
+                      <button
+                        onClick={openRelic}
+                        disabled={shards < catalog.relicPackShards || opening}
+                        title={shards < catalog.relicPackShards ? "Not enough shards yet" : "Guaranteed Epic or better"}
+                        className="group relative flex w-full items-center justify-center gap-2.5 rounded-2xl border border-emerald-400/50 bg-gradient-to-r from-emerald-600/30 via-teal-600/30 to-cyan-600/30 px-5 py-3.5 font-mono text-sm font-black uppercase tracking-wider text-emerald-100 shadow-[0_0_20px_rgba(52,211,153,0.2)] transition-all hover:border-emerald-300 hover:brightness-110 hover:shadow-[0_0_30px_rgba(52,211,153,0.35)] disabled:opacity-40"
+                      >
+                        <Gem className="h-4 w-4 text-emerald-300 group-hover:scale-110 transition-transform" />
+                        <span>Relic Summon · {catalog.relicPackShards.toLocaleString()} Shards</span>
+                      </button>
+                      <p className="text-center text-[10px] font-mono font-bold uppercase tracking-widest text-emerald-400/80">
+                        ✦ Guaranteed Epic or Better Card ✦
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </Panel>
             </Rise>
           )}
 
-
           {/* ── what shards do ── */}
           {catalog && (
-            <div className="mb-8 grid gap-2.5 sm:grid-cols-3">
+            <div className="mb-8 grid gap-3 sm:grid-cols-3">
               {[
-                { Icon: Recycle, t: "Dust", d: "Duplicates melt into shards — the rarer the dupe, the richer the dust. One tap on Dust Dupes clears the lot." },
-                { Icon: Hammer, t: "Craft & Foil", d: "Shards build the exact card luck keeps withholding — or foil one you love to fight 20% harder." },
-                { Icon: Gem, t: "Relic Packs", d: "Shards buy certainty: a Relic pack is Epic or better, every single time." },
-              ].map(({ Icon, t, d }, i) => (
-                <Rise key={t} delay={0.1 + i * 0.07}>
-                <div className="relative flex items-start gap-3 px-4 py-3.5 transition hover:-translate-y-0.5"
-                  style={{ clipPath: notch(13), background: "rgba(167,139,250,.045)", boxShadow: "inset 0 0 0 1px rgba(167,139,250,.16)" }}>
-                  <Icon className="mt-0.5 h-4 w-4 shrink-0 text-cyan-300" />
-                  <div>
-                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-200">{t}</p>
-                    <p className="mt-1 text-xs leading-relaxed text-slate-400">{d}</p>
+                {
+                  Icon: Recycle,
+                  t: "Dusting",
+                  d: "Duplicates melt into shards — the rarer the dupe, the richer the dust. Clear all in 1 tap.",
+                  theme: "text-emerald-300 bg-emerald-500/10 border-emerald-500/20",
+                },
+                {
+                  Icon: Hammer,
+                  t: "Craft & Foil",
+                  d: "Use shards to craft missing cards directly, or foil your favorites for +20% power in combat.",
+                  theme: "text-amber-300 bg-amber-500/10 border-amber-500/20",
+                },
+                {
+                  Icon: Gem,
+                  t: "Relic Packs",
+                  d: "Shards guarantee rare rewards: Relic summons yield an Epic, Legendary, or Mythic every time.",
+                  theme: "text-cyan-300 bg-cyan-500/10 border-cyan-500/20",
+                },
+              ].map(({ Icon, t, d, theme }, i) => (
+                <Rise key={t} delay={0.1 + i * 0.06}>
+                  <div className="relative flex items-start gap-3.5 rounded-2xl border border-white/10 bg-[#0c081a]/70 p-4 backdrop-blur-md transition hover:-translate-y-1 hover:border-violet-500/30 hover:bg-[#100b22]/90 shadow-lg">
+                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${theme} shadow-md`}>
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-wider text-white">{t}</p>
+                      <p className="mt-1 text-xs leading-relaxed text-slate-400">{d}</p>
+                    </div>
                   </div>
-                </div>
                 </Rise>
               ))}
             </div>
@@ -1024,24 +1085,17 @@ export default function CardsPage() {
             <div className="py-20 text-center text-slate-500">Loading your collection…</div>
           ) : (
             <div className="space-y-10">
-              {/* ── ASLEEP ── surfaced at the TOP rather than left to be hunted.
-                  A fallen card sits wherever its set happens to be, so with 69
-                  cards across six sets the only way to find one was to scroll
-                  the whole collection looking for a blue tint. Click one to
-                  open its sheet, where the Wake button lives. */}
+              {/* ── ASLEEP ── surfaced at the TOP rather than left to be hunted. */}
               {(() => {
                 const fallen = catalog?.cards?.filter((c: CardDef) => asleep[c.id]) || [];
                 if (!fallen.length) return null;
                 return (
-                  <div
-                    className="px-4 py-3"
-                    style={{ clipPath: notch(12), background: "rgba(56,120,200,.10)", boxShadow: "inset 0 0 0 1px rgba(125,211,252,.35)" }}
-                  >
+                  <div className="rounded-2xl border border-sky-400/30 bg-sky-500/10 p-4 shadow-lg">
                     <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-                      <span className="text-[11px] font-black uppercase tracking-[0.22em] text-sky-200">
+                      <span className="text-xs font-mono font-black uppercase tracking-wider text-sky-200">
                         {fallen.length} card{fallen.length === 1 ? "" : "s"} asleep
                       </span>
-                      <span className="text-[11px] text-slate-400">
+                      <span className="text-xs text-slate-400">
                         Fell in a duel you lost — wake with shards, or pull another copy free.
                       </span>
                     </div>
@@ -1050,7 +1104,7 @@ export default function CardsPage() {
                         <button
                           key={c.id}
                           onClick={() => setSelected(c)}
-                          className="rounded-lg border border-sky-400/35 bg-sky-500/10 px-3 py-1.5 text-xs font-bold text-sky-100 transition hover:bg-sky-500/20"
+                          className="rounded-xl border border-sky-400/40 bg-sky-500/15 px-3 py-1.5 text-xs font-bold text-sky-100 transition hover:bg-sky-500/25"
                         >
                           {c.name}
                         </button>
@@ -1060,98 +1114,147 @@ export default function CardsPage() {
                 );
               })()}
 
-              {/* ── VIEW TOGGLE + SEARCH ── one toolbar: how to read the
-                  binder, and how to cut straight through it. */}
-              <div className="flex flex-wrap items-center gap-2">
-                {/* Codex removed with the card reset — it catalogued tiers
-                    that no longer exist. Dropped from the tab list so it is
-                    unreachable; its render block is dead and can go with a
-                    tidy pass. */}
-                {([["sets", "By Set"], ["inv", "Inventory"]] as const).map(([v, label]) => (
-                  <button key={v} onClick={() => setView(v)}
-                    className={`px-5 py-2 text-[11px] font-black uppercase tracking-[0.18em] transition ${view === v ? "text-white" : "text-slate-500 hover:text-slate-300"}`}
-                    style={{
-                      clipPath: "polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%)",
-                      background: view === v ? "linear-gradient(100deg, rgba(162,116,255,.35), rgba(124,58,237,.22))" : "rgba(255,255,255,.04)",
-                      boxShadow: `inset 0 0 0 1px ${view === v ? "rgba(196,164,255,.55)" : "rgba(255,255,255,.08)"}`,
-                    }}>
-                    {label}
-                  </button>
-                ))}
-                <input
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder="Search cards…"
-                  className="min-w-[10rem] flex-1 bg-black/40 px-3.5 py-2 text-sm text-white outline-none placeholder:text-slate-600 sm:max-w-xs"
-                  style={{ clipPath: notch(9), boxShadow: "inset 0 0 0 1px rgba(255,255,255,.12)" }}
-                />
-                <div className="flex gap-1">
-                  {/* S and G are CLASS filters sitting among the rarity ones.
-                      Tinted to match their own plates (cyan for supports,
-                      orange for grounds) rather than borrowing a rarity colour,
-                      so it stays visible that they are a different question. */}
+              {/* ── VIEW TOGGLE + SEARCH ── Modern Toolbar */}
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[#0d081c]/80 p-3 sm:p-4 backdrop-blur-xl shadow-xl">
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Segmented View Switch */}
+                  <div className="flex rounded-xl border border-white/10 bg-black/40 p-1">
+                    {([["sets", "By Set"], ["inv", "Inventory"]] as const).map(([v, label]) => (
+                      <button
+                        key={v}
+                        onClick={() => setView(v)}
+                        className={`rounded-lg px-4 py-1.5 text-xs font-mono font-bold uppercase tracking-wider transition ${
+                          view === v
+                            ? "bg-violet-600 text-white shadow-[0_0_12px_rgba(139,92,246,0.5)]"
+                            : "text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Search Input */}
+                  <div className="relative min-w-[12rem] sm:min-w-[16rem]">
+                    <input
+                      value={q}
+                      onChange={(e) => setQ(e.target.value)}
+                      placeholder="Search cards by name…"
+                      className="w-full rounded-xl border border-white/10 bg-black/50 px-3.5 py-2 font-mono text-xs text-white placeholder:text-slate-600 outline-none focus:border-violet-500/60 transition"
+                    />
+                    {q && (
+                      <button
+                        onClick={() => setQ("")}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Rarity and Class Filter Pills */}
+                <div className="flex flex-wrap items-center gap-1.5">
                   {(["all", "common", "rare", "epic", "legendary", "mythic", "support", "ground"] as const).map((r) => {
                     const on = rarFilter === r;
-                    const tint = r === "all" ? "#cbd5e1"
-                      : r === "support" ? "#67e8f9"
-                      : r === "ground" ? "#fdba74"
-                      : RARITY_META[r as CardRarity]?.gem || "#cbd5e1";
-                    const label = r === "all" ? "Every rarity"
-                      : r === "support" ? "Support cards — played, never fielded"
-                      : r === "ground" ? "Ground cards — laid for a whole set"
-                      : RARITY_META[r as CardRarity]?.label;
+                    const tint =
+                      r === "all"
+                        ? "#cbd5e1"
+                        : r === "support"
+                        ? "#67e8f9"
+                        : r === "ground"
+                        ? "#fdba74"
+                        : RARITY_META[r as CardRarity]?.gem || "#cbd5e1";
+                    const label =
+                      r === "all"
+                        ? "All Rarities"
+                        : r === "support"
+                        ? "Support cards"
+                        : r === "ground"
+                        ? "Ground cards"
+                        : RARITY_META[r as CardRarity]?.label;
                     return (
-                      <button key={r} onClick={() => setRarFilter(on && r !== "all" ? "all" : r)}
+                      <button
+                        key={r}
+                        onClick={() => setRarFilter(on && r !== "all" ? "all" : r)}
                         title={label}
-                        className="px-2.5 py-2 text-[10px] font-black uppercase tracking-[0.1em] transition"
-                        style={{
-                          clipPath: notch(7),
-                          color: on ? tint : "#64748b",
-                          background: on ? "rgba(255,255,255,.09)" : "rgba(255,255,255,.03)",
-                          boxShadow: `inset 0 0 0 1px ${on ? `${tint}66` : "rgba(255,255,255,.07)"}`,
-                        }}>
-                        {r === "all" ? "All" : r.slice(0, 1)}
+                        className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-[11px] font-mono font-bold uppercase tracking-wider transition ${
+                          on
+                            ? "border-violet-400/60 bg-violet-500/20 text-white shadow-[0_0_12px_rgba(139,92,246,0.25)]"
+                            : "border-white/10 bg-white/[0.03] text-slate-400 hover:bg-white/5 hover:text-white"
+                        }`}
+                      >
+                        <span
+                          className="h-1.5 w-1.5 rounded-full"
+                          style={{ background: tint, boxShadow: on ? `0 0 6px ${tint}` : undefined }}
+                        />
+                        <span>{r === "all" ? "All" : r === "support" ? "Support" : r === "ground" ? "Ground" : r.slice(0, 1).toUpperCase()}</span>
                       </button>
                     );
                   })}
                 </div>
-                <button onClick={openStats} title="Packs opened and the printed odds"
-                  className="flex items-center gap-1.5 px-3.5 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-amber-200/90 transition hover:text-amber-100"
-                  style={{ clipPath: notch(7), background: "rgba(251,191,36,.08)", boxShadow: "inset 0 0 0 1px rgba(251,191,36,.30)" }}>
-                  <BarChart3 className="h-3.5 w-3.5" /> Pull Stats
-                </button>
-                {isMine && isLeadDev(user) && (
+
+                {/* Action Buttons */}
+                <div className="flex flex-wrap items-center gap-2">
                   <button
-                    onClick={async () => {
-                      if (!user) return;
-                      try {
-                        const r = await fetch(`${API_URL}/api/cards/grant-all`, {
-                          method: "POST", headers: authHeaders(), body: JSON.stringify({ userId: user.id }),
-                        });
-                        const d = await r.json();
-                        if (!r.ok || !d.success) return toast(d.message || "Couldn't grant.", "error");
-                        toast(d.data.granted > 0 ? `The whole catalog: ${d.data.granted} new cards granted.` : "You already hold every card.", "success");
-                        await loadCollection();
-                      } catch { toast("Couldn't grant.", "error"); }
-                    }}
-                    title="Lead dev only — grant one copy of every card you don't hold"
-                    className="flex items-center gap-1.5 px-3.5 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-fuchsia-300/90 transition hover:text-fuchsia-200"
-                    style={{ clipPath: notch(7), background: "rgba(217,70,239,.08)", boxShadow: "inset 0 0 0 1px rgba(217,70,239,.30)" }}>
-                    <Sparkles className="h-3.5 w-3.5" /> Claim Catalog
+                    onClick={openStats}
+                    title="Packs opened and the printed odds"
+                    className="flex items-center gap-1.5 rounded-xl border border-amber-400/40 bg-amber-500/10 px-3.5 py-1.5 text-xs font-mono font-bold uppercase tracking-wider text-amber-200 transition hover:bg-amber-500/20 hover:text-white"
+                  >
+                    <BarChart3 className="h-3.5 w-3.5 text-amber-400" />
+                    <span>Pull Stats</span>
                   </button>
-                )}
-                {isMine && (
-                  <button onClick={() => setDustAllOpen(true)} disabled={dustPreview.copies === 0}
-                    title={dustPreview.copies === 0 ? "No duplicates to dust" : `${dustPreview.copies} duplicate cop${dustPreview.copies === 1 ? "y" : "ies"} → ${dustPreview.gain.toLocaleString()} shards`}
-                    className="flex items-center gap-1.5 px-3.5 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-200/90 transition hover:text-cyan-100 disabled:opacity-35"
-                    style={{ clipPath: notch(7), background: "rgba(34,211,238,.08)", boxShadow: "inset 0 0 0 1px rgba(34,211,238,.30)" }}>
-                    <Recycle className="h-3.5 w-3.5" /> Dust Dupes{dustPreview.copies > 0 ? ` · ${dustPreview.copies}` : ""}
-                  </button>
-                )}
+
+                  {isMine && isLeadDev(user) && (
+                    <button
+                      onClick={async () => {
+                        if (!user) return;
+                        try {
+                          const r = await fetch(`${API_URL}/api/cards/grant-all`, {
+                            method: "POST",
+                            headers: authHeaders(),
+                            body: JSON.stringify({ userId: user.id }),
+                          });
+                          const d = await r.json();
+                          if (!r.ok || !d.success) return toast(d.message || "Couldn't grant.", "error");
+                          toast(
+                            d.data.granted > 0 ? `The whole catalog: ${d.data.granted} new cards granted.` : "You already hold every card.",
+                            "success"
+                          );
+                          await loadCollection();
+                        } catch {
+                          toast("Couldn't grant.", "error");
+                        }
+                      }}
+                      title="Lead dev only — grant one copy of every card you don't hold"
+                      className="flex items-center gap-1.5 rounded-xl border border-fuchsia-400/40 bg-fuchsia-500/10 px-3.5 py-1.5 text-xs font-mono font-bold uppercase tracking-wider text-fuchsia-200 transition hover:bg-fuchsia-500/20 hover:text-white shadow-[0_0_12px_rgba(217,70,239,0.2)]"
+                    >
+                      <Sparkles className="h-3.5 w-3.5 text-fuchsia-400" />
+                      <span>Claim Catalog</span>
+                    </button>
+                  )}
+
+                  {isMine && (
+                    <button
+                      onClick={() => setDustAllOpen(true)}
+                      disabled={dustPreview.copies === 0}
+                      title={
+                        dustPreview.copies === 0
+                          ? "No duplicates to dust"
+                          : `${dustPreview.copies} duplicate cop${dustPreview.copies === 1 ? "y" : "ies"} → ${dustPreview.gain.toLocaleString()} shards`
+                      }
+                      className="flex items-center gap-1.5 rounded-xl border border-cyan-400/40 bg-cyan-500/10 px-3.5 py-1.5 text-xs font-mono font-bold uppercase tracking-wider text-cyan-200 transition hover:bg-cyan-500/20 hover:text-white disabled:opacity-35"
+                    >
+                      <Recycle className="h-3.5 w-3.5 text-cyan-400" />
+                      <span>Dust Dupes{dustPreview.copies > 0 ? ` (${dustPreview.copies})` : ""}</span>
+                    </button>
+                  )}
+                </div>
+
                 {filtering && (
-                  <span className="text-[11px] font-bold text-slate-500">
+                  <div className="w-full sm:w-auto text-right text-[11px] font-mono font-bold text-slate-400">
                     {sets.reduce((n, s) => n + s.cards.length, 0)} match{sets.reduce((n, s) => n + s.cards.length, 0) === 1 ? "" : "es"}
-                  </span>
+                  </div>
                 )}
               </div>
 
