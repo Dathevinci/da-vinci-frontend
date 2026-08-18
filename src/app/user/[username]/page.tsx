@@ -504,7 +504,7 @@ export default function PublicProfilePage() {
             </div>
 
             {/* Profile Canvas Effect Overlay — Centered directly on Avatar */}
-            <ProfileEffect effect={(showcaseOpen || settingsOpen || showPointHistory || modalData || previewImage) ? null : effectiveEffect} />
+            <ProfileEffect effect={(showcaseOpen || showSettings || showPointHistory || modalData || previewImage) ? null : effectiveEffect} />
 
             {/* Grand Centered Hero Stage */}
             <div className="relative z-20 mx-auto flex max-w-4xl flex-col items-center px-4 pt-10 pb-10 text-center sm:pt-14 sm:pb-14">
