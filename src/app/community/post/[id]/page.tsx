@@ -10,6 +10,7 @@ import { useUser } from "@/hooks/useUser";
 import { useToast } from "@/components/ui/Toast";
 import { authHeaders } from "@/lib/authToken";
 import UserLink from "@/components/profile/UserLink";
+import UserBadges from "@/components/profile/UserBadges";
 import GuildTag from "@/components/guild/GuildTag";
 import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
 import CommunityFeed from "@/components/community/CommunityFeed";
@@ -193,6 +194,7 @@ export default function PostPage() {
                     <span className="font-mono text-sm font-black text-white">someone</span>
                   )}
                   {post.user ? <GuildTag userId={post.user.id} size="sm" /> : null}
+                  {post.user ? <UserBadges user={post.user as any} size="sm" showHeart={false} maxTitles={1} /> : null}
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-2">
                   {post.isPinned && (

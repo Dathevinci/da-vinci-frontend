@@ -116,7 +116,9 @@ function AuthorLine({ user, blessed }: { user?: Author; blessed?: boolean }) {
         <UserLink
           username={user.username}
           className="truncate text-sm font-bold text-white hover:text-violet-300 transition-colors"
-        />
+        >
+          {user.username}
+        </UserLink>
         <GuildTag userId={user.id} size="sm" />
         <UserBadges user={user as any} blessed={blessed} size="sm" showHeart={false} maxTitles={1} />
       </div>

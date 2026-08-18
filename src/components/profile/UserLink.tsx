@@ -19,7 +19,7 @@ export default function UserLink({
 }: {
   username: string;
   className?: string;
-  children: React.ReactNode;
+  children?: React.ReactNode;
   stopPropagation?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -33,7 +33,7 @@ export default function UserLink({
         }}
         className={className}
       >
-        {children}
+        {children || username}
       </button>
       {open && <UserProfileModal username={username} onClose={() => setOpen(false)} />}
     </>
