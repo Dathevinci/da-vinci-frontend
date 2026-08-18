@@ -21,6 +21,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
+import { useToast } from "@/components/ui/Toast";
+import { authHeaders } from "@/lib/authToken";
 import UserLink from "@/components/profile/UserLink";
 import UserBadges from "@/components/profile/UserBadges";
 import GuildTag from "@/components/guild/GuildTag";
@@ -48,6 +50,7 @@ type Row = {
   novelTitle?: string | null;
   upvotes?: number;
   downvotes?: number;
+  userVote?: number;
   chapterId?: string | null;
   chapterTitle?: string | null;
   episodeNo?: number | null;
@@ -173,6 +176,7 @@ function origin(c: Row) {
 
 export default function GlobalComments({ embedded = false }: { embedded?: boolean }) {
   const { user } = useUser();
+  const { toast } = useToast();
   const [rows, setRows] = useState<Row[]>([]);
   const [source, setSource] = useState<Source>("all");
   const [sort, setSort] = useState<"newest" | "top">("newest");
@@ -214,6 +218,40 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
     load();
   }, [load]);
 
+  const vote = async (c: Row, value: number) => {
+    if (!user) return toast("Sign in to vote.", "error");
+    const next = c.userVote === value ? 0 : value;
+    const prevVote = c.userVote || 0;
+    const diff = next - prevVote;
+    const prevRows = [...rows];
+
+    setRows((list) =>
+      list.map((x) =>
+        x.id === c.id
+          ? {
+              ...x,
+              userVote: next,
+              score: (x.score ?? 0) + diff,
+              upvotes: Math.max(0, (x.upvotes || 0) - (prevVote === 1 ? 1 : 0) + (next === 1 ? 1 : 0)),
+              downvotes: Math.max(0, (x.downvotes || 0) - (prevVote === -1 ? 1 : 0) + (next === -1 ? 1 : 0)),
+            }
+          : x
+      )
+    );
+
+    try {
+      const res = await fetch(`${API_URL}/api/comments/${c.id}/vote`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ userId: user.id, value: next }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      setRows(prevRows);
+      toast("Failed to record vote", "error");
+    }
+  };
+
   // Client-side search filtering
   const filteredRows = useMemo(() => {
     if (!searchQuery.trim()) return rows;
@@ -230,7 +268,7 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
   }, [rows, searchQuery]);
 
   return (
-    <div className={`relative text-white font-mono ${embedded ? "" : "min-h-screen px-4 pb-36 pt-24"}`}>
+    <div className={`relative text-white font-mono ${embedded ? "" : "min-h-screen px-3 sm:px-6 md:px-12 pb-36 pt-20 sm:pt-24"}`}>
       <div className={embedded ? "" : "mx-auto max-w-5xl"}>
         
         {/* ── HEADER ── */}
@@ -244,14 +282,14 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
               <Globe className="h-7 w-7 shrink-0 text-violet-400" />
               <span>Global Comments</span>
             </h1>
-            <p className="mt-1 text-xs text-white/50 font-mono">
+            <p className="mt-1 text-xs text-slate-400 font-mono">
               Live discussion stream across all anime episodes, manhwa chapters, and light novels.
             </p>
           </div>
 
           {/* Quick Counter */}
           <div className="flex items-center gap-2">
-            <span className="rounded-full border border-white/10 bg-white/[0.03] px-3.5 py-1.5 text-xs font-bold text-white/70">
+            <span className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-xs font-bold text-slate-300 shadow-sm">
               <b className="text-white">{filteredRows.length}</b> Live Comments
             </span>
           </div>
@@ -355,6 +393,9 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
           <div className="space-y-4 sm:space-y-5">
             {filteredRows.map((c) => {
               const o = origin(c);
+              const uVote = c.userVote || 0;
+              const currentScore = c.score ?? ((c.upvotes || 0) - (c.downvotes || 0));
+
               return (
                 <motion.article
                   key={c.id}
@@ -473,32 +514,32 @@ export default function GlobalComments({ embedded = false }: { embedded?: boolea
                               onClick={() => vote(c, 1)}
                               aria-label="Upvote"
                               className={`flex h-7 w-7 items-center justify-center rounded-full transition ${
-                                userVote === 1
+                                uVote === 1
                                   ? "bg-violet-500/30 text-violet-200"
                                   : "text-slate-400 hover:bg-white/10 hover:text-white"
                               }`}
                             >
-                              <Heart className="h-3.5 w-3.5" fill={userVote === 1 ? "currentColor" : "none"} />
+                              <Heart className="h-3.5 w-3.5" fill={uVote === 1 ? "currentColor" : "none"} />
                             </button>
 
                             <span
                               className={`px-1.5 text-xs font-bold tabular-nums ${
-                                score > 0 ? "text-violet-300" : score < 0 ? "text-rose-400" : "text-slate-400"
+                                currentScore > 0 ? "text-violet-300" : currentScore < 0 ? "text-rose-400" : "text-slate-400"
                               }`}
                             >
-                              {score}
+                              {currentScore}
                             </span>
 
                             <button
                               onClick={() => vote(c, -1)}
                               aria-label="Dislike"
                               className={`flex h-7 w-7 items-center justify-center rounded-full transition ${
-                                userVote === -1
+                                uVote === -1
                                   ? "bg-rose-500/30 text-rose-200"
                                   : "text-slate-400 hover:bg-white/10 hover:text-white"
                               }`}
                             >
-                              <ThumbsDown className="h-3.5 w-3.5" fill={userVote === -1 ? "currentColor" : "none"} />
+                              <ThumbsDown className="h-3.5 w-3.5" fill={uVote === -1 ? "currentColor" : "none"} />
                             </button>
                           </div>
                         </div>
