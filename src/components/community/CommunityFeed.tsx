@@ -233,35 +233,33 @@ const CommentThread = ({
       
       {/* Supreme Glow for Dejavuh */}
       {isDejavuh && (
-        <div className="absolute -inset-[2px] bg-gradient-to-r from-fuchsia-500 via-purple-600 to-purple-500 rounded-xl blur-[6px] opacity-80 animate-pulse pointer-events-none" />
+        <div className="absolute -inset-[2px] bg-gradient-to-r from-fuchsia-500 via-purple-600 to-purple-500 rounded-3xl blur-[6px] opacity-75 animate-pulse pointer-events-none" />
       )}
       {/* Golden aura for a comment that received a Divine Blessing */}
       {node.blessed && !isDejavuh && (
-        <div className="absolute -inset-[2px] bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-400 rounded-xl blur-[6px] opacity-50 pointer-events-none" />
+        <div className="absolute -inset-[2px] bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-400 rounded-3xl blur-[6px] opacity-50 pointer-events-none" />
       )}
 
-      {/* Solid surfaces — a backdrop-blur on every card down a long feed is a
-          real scroll-jank source, and the blur was invisible over the flat
-          page background anyway. */}
-      <div className={`relative z-10 flex flex-col overflow-hidden rounded-2xl p-4 transition-colors duration-200 sm:p-5 ${
+      {/* Modern Glass Card Container */}
+      <div className={`relative z-10 flex flex-col overflow-hidden rounded-2xl sm:rounded-3xl p-4 sm:p-5 transition-all duration-200 shadow-xl ${
         isDejavuh
-          ? 'border border-purple-500/50 bg-[#141018]'
+          ? 'border border-purple-500/50 bg-[#120e18]/95'
           : node.isPinned
-            ? 'border border-amber-500/30 bg-gradient-to-br from-amber-500/[0.07] to-[#121214]'
-            : 'border border-white/[0.07] bg-[#121214] hover:border-white/[0.14]'
+            ? 'border border-amber-500/40 bg-gradient-to-br from-amber-500/[0.08] to-[#0c0c10]'
+            : 'border border-white/10 bg-[#0b0b11]/90 hover:border-violet-500/30 hover:bg-[#0e0e16]'
       }`}>
         
         {/* Pinned Badge */}
         {node.isPinned && (
-          <div className="flex items-center gap-1 text-xs font-bold text-amber-400 mb-2">
-            <Pin className="w-3 h-3 fill-amber-400" /> Pinned by Admin
+          <div className="inline-flex items-center gap-1.5 self-start rounded-full border border-amber-400/40 bg-amber-400/10 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-300 mb-3">
+            <Pin className="w-3 h-3 fill-amber-400" /> Pinned by Staff
           </div>
         )}
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-3">
-          <UserLink username={node.user?.username || 'unknown'} className="flex items-center gap-3 group">
-            <div className="relative">
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <UserLink username={node.user?.username || 'unknown'} className="flex items-center gap-3 group min-w-0">
+            <div className="relative shrink-0">
               {node.user?.activeEffect === 'effect_sparkles' && (
                 <div className="absolute -inset-3 z-0 pointer-events-none overflow-hidden">
                   <div className="absolute w-1.5 h-1.5 bg-yellow-300 rounded-full animate-ping left-1 top-0"></div>
@@ -270,14 +268,11 @@ const CommentThread = ({
                   <div className="absolute w-1 h-1 bg-white rounded-full animate-pulse right-1 bottom-0"></div>
                 </div>
               )}
-              <img src={cloudinaryFit(node.user?.avatar || 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=100&q=80', 80)} loading="lazy" decoding="async" className={`relative z-10 w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover ${isDejavuh && !nodeHasRing ? 'ring-2 ring-fuchsia-500 ring-offset-1 ring-offset-[#0f0f11] shadow-[0_0_15px_rgba(217,70,239,0.5)]' : ''}`} />
-              <AvatarDecoration frame={(node.user as any)?.activeFrame} effect={node.user?.activeEffect} />
+              <img src={cloudinaryFit(node.user?.avatar || 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=100&q=80', 80)} loading="lazy" decoding="async" className={`relative z-10 w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover ring-1 ring-white/10 ${isDejavuh && !nodeHasRing ? 'ring-2 ring-fuchsia-500 ring-offset-1 ring-offset-[#0f0f11] shadow-[0_0_15px_rgba(217,70,239,0.5)]' : ''}`} />
+              <AvatarDecoration frame={(node.user as any)?.activeFrame} effect={node.user?.activeEffect} size="md" />
             </div>
             <div className="flex flex-col min-w-0">
-              <div className="flex items-center gap-2 min-w-0">
-                {/* min-w-0 + truncate: the guild chip that follows is shrink-0,
-                    so on a phone the NAME is what has to give way — otherwise
-                    the header row pushes the card sideways. */}
+              <div className="flex flex-wrap items-center gap-1.5 min-w-0">
                 <span className={`min-w-0 truncate font-bold text-sm sm:text-base transition
                   ${node.user?.activeFont === 'font_cyber' ? 'font-mono tracking-widest' : ''}
                   ${node.user?.activeFont === 'font_pixel' ? 'font-serif tracking-tight' : ''}
@@ -292,15 +287,15 @@ const CommentThread = ({
                 {/* Badges, Staff/Lead Dev custom titles (e.g. Lucifer,the fallen angel), and worn titles */}
                 <UserBadges user={node.user} blessed={node.blessed} size="sm" showHeart={false} maxTitles={1} />
               </div>
-              <span className="text-[10px] sm:text-xs text-slate-500">{timeAgo(node.createdAt)}</span>
+              <span className="text-[10px] sm:text-xs text-white/40 font-mono">{timeAgo(node.createdAt)}</span>
             </div>
           </UserLink>
           
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1 shrink-0">
             {isViewerDev && !isDejavuh && !node.blessed && (
               <button
                 onClick={() => handleBless(node.id, node.user?.username || 'Unknown')}
-                className="text-amber-400 hover:text-amber-300 p-1 sm:p-1.5 rounded hover:bg-amber-400/10 transition flex items-center gap-1 text-xs font-bold"
+                className="text-amber-400 hover:text-amber-300 p-1.5 rounded-lg hover:bg-amber-400/10 transition flex items-center gap-1 text-xs font-bold"
                 title="Grant a Divine Blessing (+500 Arise Points)"
               >
                 <Sparkles className="w-4 h-4" />
@@ -311,7 +306,7 @@ const CommentThread = ({
               <>
                 <button 
                   onClick={() => setIsEditing(!isEditing)}
-                  className="text-slate-500 hover:text-purple-400 p-1 sm:p-1.5 rounded hover:bg-purple-500/10 transition"
+                  className="text-slate-400 hover:text-purple-300 p-1.5 rounded-lg hover:bg-purple-500/10 transition"
                   title="Edit Post"
                 >
                   <Edit className="w-4 h-4" />
@@ -319,7 +314,7 @@ const CommentThread = ({
                 {isViewerDev && (
                   <button 
                     onClick={() => handlePin(node.id)}
-                    className={`p-1 sm:p-1.5 rounded transition flex items-center gap-1 text-xs font-bold ${node.isPinned ? "text-amber-400 hover:text-amber-300 hover:bg-amber-400/10" : "text-slate-500 hover:text-amber-400 hover:bg-amber-400/10"}`}
+                    className={`p-1.5 rounded-lg transition flex items-center gap-1 text-xs font-bold ${node.isPinned ? "text-amber-400 hover:text-amber-300 hover:bg-amber-400/10" : "text-slate-400 hover:text-amber-400 hover:bg-amber-400/10"}`}
                     title={node.isPinned ? "Unpin Post" : "Pin Post"}
                   >
                     <Pin className={`w-4 h-4 ${node.isPinned ? 'fill-amber-400' : ''}`} />
@@ -327,7 +322,7 @@ const CommentThread = ({
                 )}
                 <button 
                   onClick={() => handleDelete(node.id)}
-                  className={`p-1 sm:p-1.5 rounded transition flex items-center gap-1 text-xs font-bold ${(!isAuthor && isViewerDev) ? "text-red-500 hover:text-red-400 hover:bg-red-500/10" : "text-slate-500 hover:text-red-500 hover:bg-red-500/10"}`}
+                  className={`p-1.5 rounded-lg transition flex items-center gap-1 text-xs font-bold ${(!isAuthor && isViewerDev) ? "text-red-400 hover:text-red-300 hover:bg-red-500/10" : "text-slate-400 hover:text-red-400 hover:bg-red-500/10"}`}
                   title={!isAuthor ? "Nuke Post" : "Delete Post"}
                 >
                   {(!isAuthor && isViewerDev) ? <Flame className="w-4 h-4" /> : <Trash2 className="w-4 h-4" />}
@@ -1189,128 +1184,143 @@ export default function CommunityFeed({
       </AnimatePresence>
 
       {/* ── header: the count, the sort, the community's score ── */}
-      <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 px-2 sm:px-0">
-        <h2 className="flex items-center gap-2.5 font-mono text-2xl font-black tracking-tight text-white">
-          <MessageSquare className="h-6 w-6 text-slate-400" />
-          Comments
-          <span className="text-slate-500">({rootCount})</span>
-        </h2>
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-2 sm:px-0 border-b border-white/10 pb-4">
+        <div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-violet-300 mb-1.5">
+            <Sparkles className="h-3 w-3" />
+            <span>Community Discussion</span>
+          </div>
+          <h2 className="flex items-center gap-2.5 font-fell text-2xl sm:text-3xl font-bold uppercase tracking-[0.06em] text-white">
+            <MessageSquare className="h-6 w-6 text-violet-400" />
+            Comments
+            <span className="text-white/40 text-xl font-normal font-mono">({rootCount})</span>
+          </h2>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {rating.average != null && (
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-500/10 px-3.5 py-1.5 font-mono text-xs font-black text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.15)]"
+              title={`${rating.count} member${rating.count === 1 ? "" : "s"} rated this`}
+            >
+              <Star className="h-3.5 w-3.5 fill-current" />
+              <span>{rating.average}</span>
+              <span className="text-white/30 text-[10px]">/ 10</span>
+            </span>
+          )}
+        </div>
       </div>
 
-      <div className="mb-5 flex flex-wrap items-center gap-2 px-2 sm:px-0">
-        <div className="flex items-center gap-0.5 rounded-xl border border-white/10 bg-white/[0.04] p-1">
-          {([
-            { key: "newest", label: "Newest", Icon: Clock },
-            { key: "top", label: "Top", Icon: TrendingUp },
-          ] as const).map((opt) => (
+      {/* ── TOOLBAR: SORT, SCOPE, MEDIA TOGGLE & SEARCH ── */}
+      <div className="mb-5 space-y-3 px-2 sm:px-0">
+        <div className="flex flex-wrap items-center justify-between gap-2.5">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Sort Segments */}
+            <div className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] p-1">
+              {([
+                { key: "newest", label: "Recent", Icon: Clock },
+                { key: "top", label: "Top", Icon: TrendingUp },
+              ] as const).map((opt) => (
+                <button
+                  key={opt.key}
+                  onClick={() => setSortBy(opt.key)}
+                  className={`flex items-center gap-1.5 rounded-full px-3.5 py-1 font-mono text-xs font-bold transition-all ${
+                    sortBy === opt.key
+                      ? "bg-violet-500/20 text-violet-200 border border-violet-400/30 shadow-sm"
+                      : "text-white/40 hover:text-white"
+                  }`}
+                >
+                  <opt.Icon className="h-3 w-3" /> {opt.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Episode Scope if applicable */}
+            {hasEpisodeScope && (
+              <div className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] p-1">
+                {([
+                  { key: "episode", label: `Ep ${episodeNo}` },
+                  { key: "all", label: "All eps" },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.key}
+                    onClick={() => setEpScope(opt.key)}
+                    className={`rounded-full px-3.5 py-1 font-mono text-xs font-bold transition-all ${
+                      epScope === opt.key
+                        ? "bg-violet-500/20 text-violet-200 border border-violet-400/30"
+                        : "text-white/40 hover:text-white"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
             <button
-              key={opt.key}
-              onClick={() => setSortBy(opt.key)}
-              className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 font-mono text-xs font-bold transition-colors ${
-                sortBy === opt.key ? "bg-white/10 text-white" : "text-slate-500 hover:text-slate-300"
+              onClick={() => setMediaOnly(!mediaOnly)}
+              title="Only show posts with images"
+              className={`flex items-center gap-2 rounded-full border px-3.5 py-1.5 font-mono text-xs font-bold transition-all ${
+                mediaOnly
+                  ? "border-violet-400/50 bg-violet-500/20 text-violet-200 shadow-md shadow-violet-500/10"
+                  : "border-white/10 bg-white/[0.03] text-white/50 hover:bg-white/[0.06] hover:text-white"
               }`}
             >
-              <opt.Icon className="h-3.5 w-3.5" /> {opt.label}
+              <ImageIcon className="h-3.5 w-3.5" />
+              <span>Media Only</span>
             </button>
-          ))}
-        </div>
-
-        {hasEpisodeScope && (
-          <div className="flex items-center gap-0.5 rounded-xl border border-white/10 bg-white/[0.04] p-1">
-            {([
-              { key: "episode", label: `Ep ${episodeNo}` },
-              { key: "all", label: "All eps" },
-            ] as const).map((opt) => (
-              <button
-                key={opt.key}
-                onClick={() => setEpScope(opt.key)}
-                className={`rounded-lg px-3.5 py-2 font-mono text-xs font-bold transition-colors ${
-                  epScope === opt.key ? "bg-white/10 text-white" : "text-slate-500 hover:text-slate-300"
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
           </div>
-        )}
-
-        {rating.average != null && (
-          <span
-            className="flex items-center gap-1.5 rounded-xl px-3 py-2 font-mono text-sm font-black text-amber-300"
-            title={`${rating.count} member${rating.count === 1 ? "" : "s"} rated this`}
-          >
-            <Star className="h-4 w-4 fill-current" />
-            {rating.average}<span className="text-slate-500">/10</span>
-          </span>
-        )}
-
-        <div className="ml-auto flex items-center gap-2">
-          <button
-            onClick={() => setMediaOnly(!mediaOnly)}
-            title="Only show posts with images"
-            className={`flex items-center gap-2 rounded-xl border px-3 py-2 font-mono text-xs font-bold transition-colors ${
-              mediaOnly
-                ? "border-purple-500/50 bg-purple-500/15 text-purple-300"
-                : "border-white/10 bg-white/[0.04] text-slate-400 hover:text-white"
-            }`}
-          >
-            <ImageIcon className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Media</span>
-          </button>
         </div>
-      </div>
 
-      {/* Search. HIDDEN on a single thread — the permalink endpoint returns
-          that post's replies whole, with no server-side search or media
-          filter to apply, so the box would look functional and do nothing. */}
-      {!postId && (
-        <div className="mx-2 mb-5 flex flex-col gap-3 sm:mx-0 sm:flex-row sm:items-center">
-          <div className="group flex flex-1 items-center rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5 transition-colors focus-within:border-purple-500/50 focus-within:bg-purple-500/[0.06]">
-            <Search className="mr-2.5 h-4 w-4 shrink-0 text-slate-500 transition-colors group-focus-within:text-purple-400" />
+        {/* Search Bar */}
+        {!postId && (
+          <div className="relative">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
             <input
               type="text"
-              placeholder="Search the feed…"
+              placeholder="Search comments by keyword or username…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && (setPage(1), fetchComments(1, false))}
-              className="w-full bg-transparent text-sm text-white placeholder-slate-500 outline-none"
+              className="w-full rounded-2xl border border-white/10 bg-white/[0.03] py-2.5 pl-10 pr-10 text-xs font-bold text-white placeholder:text-white/30 outline-none transition focus:border-violet-500/50 focus:bg-white/[0.05]"
             />
             {searchQuery && (
               <button
                 onClick={() => { setSearchQuery(""); setPage(1); fetchComments(1, false, ""); }}
                 aria-label="Clear search"
-                className="ml-2 shrink-0 rounded-full p-1 text-slate-500 transition hover:bg-white/10 hover:text-white"
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-white/40 hover:bg-white/10 hover:text-white"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
             )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
+      {/* ── MAIN COMPOSER ── */}
       {user ? (
-        <div className="mx-2 mb-6 rounded-2xl border border-white/10 bg-[#121214] transition-colors focus-within:border-purple-500/40 sm:mx-0">
-          <div className="flex gap-3 p-4">
+        <div className="mx-2 mb-8 rounded-2xl sm:rounded-3xl border border-white/10 bg-[#0b0b11]/90 shadow-xl transition-all focus-within:border-violet-500/40 focus-within:bg-[#0e0e16] sm:mx-0 overflow-hidden">
+          <div className="flex gap-3.5 p-4 sm:p-5">
             <div className="relative h-10 w-10 shrink-0">
               <img
                 src={cloudinaryFit(user.avatar || "https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=100&q=80", 80)}
                 alt=""
                 loading="lazy"
                 decoding="async"
-                className="relative z-10 h-10 w-10 rounded-full object-cover"
+                className="relative z-10 h-10 w-10 rounded-full object-cover ring-1 ring-white/10"
               />
-              <AvatarDecoration frame={(user as any)?.activeFrame} effect={(user as any)?.activeEffect} />
+              <AvatarDecoration frame={(user as any)?.activeFrame} effect={(user as any)?.activeEffect} size="md" />
             </div>
 
             <div className="min-w-0 flex-1">
-              {/* Collapsed until focused — an always-open empty box pushed the
-                  actual feed below the fold. */}
               {!composerOpen && !newComment ? (
                 <button
                   onClick={() => setComposerOpen(true)}
-                  className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-left text-sm text-slate-500 transition hover:border-white/20 hover:bg-white/[0.06] hover:text-slate-400"
+                  className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-left text-xs sm:text-sm text-white/40 transition hover:border-violet-400/30 hover:bg-white/[0.05] hover:text-white/70"
                 >
-                  Share your views, @mention someone…
+                  Share your thoughts on this chapter, drop a theory, or @mention someone…
                 </button>
               ) : (
                 <>
@@ -1318,7 +1328,6 @@ export default function CommunityFeed({
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                     onKeyDown={(e: any) => {
-                      // ⌘/Ctrl+Enter posts, Escape collapses an empty composer
                       if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && (newComment.trim() || newMediaUrl.trim()) && !isPosting) {
                         handlePost(null, newComment, newMediaUrl);
                       } else if (e.key === "Escape" && !newComment.trim()) {
@@ -1327,36 +1336,33 @@ export default function CommunityFeed({
                       }
                     }}
                     autoFocus
-                    placeholder="Share your views, @mention someone…"
-                    className="min-h-[76px] w-full resize-none bg-transparent text-sm text-white placeholder-slate-500 outline-none sm:text-base"
+                    placeholder="Share your thoughts on this chapter, drop a theory, or @mention someone…"
+                    className="min-h-[85px] w-full resize-none bg-transparent text-sm text-white placeholder:text-white/30 outline-none sm:text-base font-sans"
                   />
 
                   {showMediaInput && (
-                    <>
-                      <div className="mt-2 flex items-center gap-2.5 rounded-xl border border-white/10 bg-black/40 px-3 py-2 transition-colors focus-within:border-purple-500/50">
-                        <ImageIcon className="h-4 w-4 shrink-0 text-slate-500" />
-                        <input
-                          type="url"
-                          autoFocus
-                          placeholder="Paste an image or GIF link…"
-                          value={newMediaUrl}
-                          onChange={(e) => setNewMediaUrl(e.target.value)}
-                          className="w-full bg-transparent text-sm text-white placeholder-slate-500 outline-none"
-                        />
-                        <button
-                          onClick={() => { setNewMediaUrl(""); setShowMediaInput(false); }}
-                          aria-label="Remove attachment"
-                          className="shrink-0 rounded-full p-1 text-slate-500 transition hover:bg-white/10 hover:text-white"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </>
+                    <div className="mt-3 flex items-center gap-2.5 rounded-xl border border-white/10 bg-black/40 px-3.5 py-2 transition-colors focus-within:border-violet-500/50">
+                      <ImageIcon className="h-4 w-4 shrink-0 text-slate-400" />
+                      <input
+                        type="url"
+                        autoFocus
+                        placeholder="Paste an image or GIF link…"
+                        value={newMediaUrl}
+                        onChange={(e) => setNewMediaUrl(e.target.value)}
+                        className="w-full bg-transparent text-xs sm:text-sm text-white placeholder:text-white/30 outline-none"
+                      />
+                      <button
+                        onClick={() => { setNewMediaUrl(""); setShowMediaInput(false); }}
+                        aria-label="Remove attachment"
+                        className="shrink-0 rounded-full p-1 text-slate-400 transition hover:bg-white/10 hover:text-white"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   )}
 
-                  {/* live preview so a bad link is obvious before posting */}
                   {newMediaUrl.trim() && (
-                    <div className="mt-2 overflow-hidden rounded-xl border border-white/10 bg-black/40">
+                    <div className="mt-3 overflow-hidden rounded-2xl border border-white/10 bg-black/40 max-w-fit">
                       <img
                         src={newMediaUrl}
                         alt="Attachment preview"
@@ -1365,23 +1371,16 @@ export default function CommunityFeed({
                       />
                     </div>
                   )}
-
                 </>
               )}
             </div>
           </div>
 
-          {/* ── rating + actions, FULL card width ──
-              These used to live inside the column beside the avatar, which on
-              a phone is ~280px: the ten stars wrapped, the buttons stacked
-              three rows deep, and the avatar floated over the ragged pile —
-              the whole card read as broken. Out here they get the card's
-              entire width on every screen. */}
           {(composerOpen || !!newComment || !!newMediaUrl) && (
-            <div className="px-4 pb-4">
+            <div className="px-4 sm:px-5 pb-4 sm:pb-5">
               {targetKey && (
-                <div className="mb-3 flex flex-wrap items-center gap-2">
-                  <span className="font-mono text-xs text-slate-400">Rate this {subject}:</span>
+                <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-white/5 bg-white/[0.02] p-2.5">
+                  <span className="font-mono text-xs text-white/50">Rate this {subject}:</span>
                   <span className="flex items-center gap-0.5" onMouseLeave={() => setHoverStar(0)}>
                     {Array.from({ length: 10 }).map((_, i) => {
                       const n = i + 1;
@@ -1397,14 +1396,14 @@ export default function CommunityFeed({
                           className="p-0.5 transition disabled:opacity-50"
                         >
                           <Star
-                            className={`h-4 w-4 transition-colors ${lit ? "fill-amber-400 text-amber-400" : "text-slate-600 hover:text-slate-400"}`}
+                            className={`h-4 w-4 transition-colors ${lit ? "fill-amber-400 text-amber-400" : "text-white/20 hover:text-white/50"}`}
                           />
                         </button>
                       );
                     })}
                   </span>
                   {rating.mine != null && (
-                    <span className="font-mono text-xs font-bold text-amber-300">{rating.mine}/10</span>
+                    <span className="font-mono text-xs font-bold text-amber-300 ml-1">{rating.mine}/10</span>
                   )}
                 </div>
               )}
@@ -1416,33 +1415,33 @@ export default function CommunityFeed({
                   <button
                     onClick={() => setShowMediaInput((v) => !v)}
                     title="Paste an image or GIF link"
-                    className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-[11px] font-bold transition-colors ${
+                    className={`flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 font-mono text-[11px] font-bold transition-all ${
                       showMediaInput || newMediaUrl
-                        ? "border-purple-500/40 bg-purple-500/15 text-purple-300"
-                        : "border-white/10 bg-white/[0.05] text-slate-300 hover:bg-white/10 hover:text-white"
+                        ? "border-violet-400/40 bg-violet-500/20 text-violet-200"
+                        : "border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.08] hover:text-white"
                     }`}
                   >
-                    <ImageIcon className="h-3.5 w-3.5" /> Link
+                    <ImageIcon className="h-3.5 w-3.5" /> <span>Link</span>
                   </button>
                 </div>
 
                 <div className="flex items-center gap-3">
                   {newComment.length > 0 && (
-                    <span className={`font-mono text-xs tabular-nums ${newComment.length > 1000 ? "text-red-400" : "text-slate-500"}`}>
-                      {newComment.length}
+                    <span className={`font-mono text-xs tabular-nums ${newComment.length > 1000 ? "text-rose-400" : "text-white/40"}`}>
+                      {newComment.length}/1000
                     </span>
                   )}
                   <button
                     onClick={() => handlePost(null, newComment, newMediaUrl)}
                     disabled={isPosting || (!newComment.trim() && !newMediaUrl.trim())}
-                    className="flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 font-mono text-sm font-black text-black transition hover:bg-white/85 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="flex items-center gap-2 rounded-full border border-violet-400/40 bg-gradient-to-r from-violet-600 to-purple-600 px-5 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-violet-600/30 transition-all hover:scale-105 hover:brightness-110 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
                   >
                     {isPosting ? (
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-black/30 border-t-black" />
+                      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                     ) : (
-                      <Send className="h-4 w-4" />
+                      <Send className="h-3.5 w-3.5" />
                     )}
-                    {isPosting ? "Posting…" : "Post Comment"}
+                    <span>{isPosting ? "Posting…" : "Post Comment"}</span>
                   </button>
                 </div>
               </div>
@@ -1450,8 +1449,8 @@ export default function CommunityFeed({
           )}
         </div>
       ) : (
-        <div className="mx-2 mb-6 rounded-2xl border border-purple-500/20 bg-purple-600/10 p-5 text-center sm:mx-0">
-          <p className="text-sm font-medium text-purple-200">Log in to share your views with the community.</p>
+        <div className="mx-2 mb-8 rounded-2xl sm:rounded-3xl border border-violet-500/30 bg-gradient-to-r from-violet-950/30 to-[#0b0b11] p-6 text-center sm:mx-0 shadow-xl">
+          <p className="text-xs sm:text-sm font-bold text-violet-200">Sign in to join the chapter discussion and share your thoughts.</p>
         </div>
       )}
 
