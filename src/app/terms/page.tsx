@@ -1,95 +1,162 @@
-import React from 'react';
-import Link from 'next/link';
-import { ArrowLeft, Scale } from 'lucide-react';
+"use client";
+
+import React from "react";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import {
+  Scale,
+  ArrowLeft,
+  Shield,
+  FileCheck,
+  CheckCircle2,
+  Lock,
+  ShieldAlert,
+  HelpCircle,
+  Clock,
+  ExternalLink,
+} from "lucide-react";
+import PageTransition from "@/components/layout/PageTransition";
+
+const SECTIONS = [
+  {
+    id: "1",
+    title: "1. Acceptance of Terms",
+    content:
+      "By accessing and using Da Vinci, you agree to be bound by these Terms of Service, all applicable laws and regulations, and agree that you are responsible for compliance with any applicable local laws. If you do not agree with any of these terms, you are prohibited from using or accessing this site.",
+  },
+  {
+    id: "2",
+    title: "2. Description of Service",
+    content:
+      "Da Vinci acts solely as an interactive media catalog, metadata index, and community discovery hub. We do not host, store, or upload media files to our servers. All video streams, comics, and light novel pages are embedded from third-party services and open-access networks.",
+  },
+  {
+    id: "3",
+    title: "3. User Conduct & Community Standards",
+    content:
+      "You agree to use our services exclusively for lawful purposes. You are strictly prohibited from attempting to disrupt or compromise system security, deploying automated scrapers/bots without permission, engaging in abusive or defamatory behavior, or attempting unauthorized access to accounts.",
+  },
+  {
+    id: "4",
+    title: "4. Virtual Economy & Arise Points",
+    content:
+      "Arise Points (AP), XP, collectible cards, titles, frames, and other virtual goods on Da Vinci are virtual entertainment items with no real-world monetary value. They cannot be redeemed for fiat currency and remain bound to the platform ecosystem.",
+  },
+  {
+    id: "5",
+    title: "5. Disclaimer of Warranties",
+    content:
+      "The materials on Da Vinci are provided on an 'as is' and 'as available' basis. We make no warranties, expressed or implied, and hereby disclaim all warranties including without limitation, implied warranties of merchantability, fitness for a particular purpose, or non-infringement.",
+  },
+  {
+    id: "6",
+    title: "6. Modifications & Policy Updates",
+    content:
+      "Da Vinci reserves the right to revise and update these Terms of Service at any time without prior notice. By continuing to use the service following any revisions, you agree to be bound by the updated version.",
+  },
+];
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-slate-300 py-20 px-6 sm:px-12 relative overflow-hidden">
-      {/* Background elements */}
-      <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-blue-500/10 to-transparent pointer-events-none" />
-      <div className="absolute -top-[200px] -right-[200px] w-[600px] h-[600px] bg-blue-500/10 blur-[120px] rounded-full pointer-events-none" />
+    <PageTransition>
+      <div className="relative min-h-screen bg-[#07070a] text-slate-300 pb-36 pt-8 sm:pt-12 overflow-hidden selection:bg-blue-500/30 selection:text-blue-200">
+        {/* Subtle Ambient Background Gradients */}
+        <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-gradient-to-b from-blue-900/15 via-indigo-950/10 to-transparent blur-[140px]" />
+        <div className="pointer-events-none absolute top-1/3 -right-60 w-[500px] h-[500px] bg-blue-950/10 blur-[130px] rounded-full" />
+        <div className="pointer-events-none absolute bottom-20 -left-60 w-[500px] h-[500px] bg-indigo-950/10 blur-[130px] rounded-full" />
 
-      <div className="max-w-4xl mx-auto relative z-10">
-        <Link href="/" className="inline-flex items-center text-blue-400 hover:text-blue-300 font-medium mb-12 transition-colors">
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Home
-        </Link>
+        <div className="relative z-10 mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+          {/* Top Navigation Row */}
+          <div className="mb-8 flex items-center justify-between">
+            <Link
+              href="/"
+              className="group inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-300 backdrop-blur-md transition-all hover:border-blue-400/40 hover:bg-blue-500/10 hover:text-white"
+            >
+              <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
+              <span>Back to Home</span>
+            </Link>
 
-        <div className="flex items-center gap-4 mb-8">
-          <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
-            <Scale className="w-6 h-6 text-blue-400" />
+            <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wider text-blue-300">
+              <FileCheck className="h-3.5 w-3.5" />
+              <span>User Agreement</span>
+            </div>
           </div>
-          <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tight">Terms of Service</h1>
-        </div>
 
-        <div className="prose prose-invert prose-blue max-w-none prose-p:leading-relaxed prose-headings:text-white prose-a:text-blue-400 hover:prose-a:text-blue-300">
-          <p className="text-lg text-slate-400 mb-12">
-            Last updated: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-          </p>
+          {/* Hero Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="mb-12"
+          >
+            <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-gradient-to-r from-blue-500/15 via-blue-500/5 to-indigo-500/10 px-4 py-1.5 text-xs font-black uppercase tracking-[0.18em] text-blue-300 shadow-[0_0_16px_rgba(59,130,246,0.15)] mb-4">
+              <Scale className="h-4 w-4 text-blue-400" />
+              <span>Platform Terms & Guidelines</span>
+            </div>
 
-          <section className="mb-12 bg-white/5 border border-white/10 rounded-2xl p-8">
-            <h2 className="text-2xl font-bold mb-4">1. Acceptance of Terms</h2>
-            <p>
-              By accessing and using this website, you accept and agree to be bound by the terms and provision of this agreement.
-              If you do not agree to abide by these terms, please do not use our service.
-            </p>
-          </section>
+            <h1 className="font-fell text-4xl sm:text-5xl md:text-6xl font-bold uppercase tracking-[0.06em] text-white drop-shadow-md">
+              Terms of Service
+            </h1>
 
-          <section className="mb-12 bg-white/5 border border-white/10 rounded-2xl p-8">
-            <h2 className="text-2xl font-bold mb-4">2. Description of Service</h2>
-            <p>
-              Da-Vinci acts as an index and database of anime content. We provide a platform for users to discover, track, and watch anime.
-              <strong> Important:</strong> We do not host any video files on our own servers. All video content is embedded from third-party hosting services.
+            <p className="mt-4 text-base sm:text-lg leading-relaxed text-slate-400 max-w-2xl">
+              Please review the following rules and regulations governing your access to and use of the Da Vinci platform.
             </p>
-          </section>
+          </motion.div>
 
-          <section className="mb-12 bg-white/5 border border-white/10 rounded-2xl p-8">
-            <h2 className="text-2xl font-bold mb-4">3. User Conduct</h2>
-            <p>
-              You agree to use our service only for lawful purposes. You are prohibited from:
-            </p>
-            <ul className="list-disc pl-6 space-y-2 mt-4 text-slate-300">
-              <li>Attempting to hack, disrupt, or interfere with the website's servers or network.</li>
-              <li>Using automated scripts, bots, or scraping tools without our explicit permission.</li>
-              <li>Harassing or abusing other users in community sections.</li>
-            </ul>
-          </section>
+          {/* ── SECTIONS LIST ── */}
+          <div className="space-y-6 mb-12">
+            {SECTIONS.map((sec, idx) => (
+              <motion.section
+                key={sec.id}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: idx * 0.04 }}
+                className="overflow-hidden rounded-3xl border border-white/10 bg-[#0c0a10]/85 p-6 sm:p-8 backdrop-blur-xl shadow-xl transition hover:border-white/20"
+              >
+                <h2 className="font-fell text-xl sm:text-2xl font-bold uppercase tracking-wider text-white mb-3">
+                  {sec.title}
+                </h2>
+                <p className="text-sm sm:text-base leading-relaxed text-slate-300">
+                  {sec.content}
+                </p>
+              </motion.section>
+            ))}
+          </div>
 
-          <section className="mb-12 bg-white/5 border border-white/10 rounded-2xl p-8">
-            <h2 className="text-2xl font-bold mb-4">4. Intellectual Property Rights</h2>
-            
-            <h3 className="text-xl font-bold mb-2 text-white">4.1 Ownership</h3>
-            <p className="mb-6">
-              All content, trademarks, and intellectual property on Da-Vinci, including but not limited to logos, graphics, text, software, and audiovisual materials, are owned by or licensed to Da-Vinci. Unauthorized use of such materials is strictly prohibited.
+          {/* ── FOOTER & RELATED LEGAL LINKS ── */}
+          <div className="pt-6 border-t border-white/10 flex flex-wrap items-center justify-between gap-4">
+            <p className="text-xs text-slate-500">
+              © {new Date().getFullYear()} Da Vinci. All rights reserved.
             </p>
 
-            <h3 className="text-xl font-bold mb-2 text-white">4.2 Anime Content</h3>
-            <p className="uppercase text-slate-300 font-bold tracking-wide leading-relaxed border-l-4 border-purple-500 pl-4 mb-4">
-              DA-VINCI DOES NOT OWN THE RIGHTS TO PROVIDE THE CONTENT YOU SEE ON THE SITE. The content is provided by third-party anime sources, open-access databases, and other open-access websites. WE DO NOT OWN NOR CONTROL THE CONTENT ON THE WEBSITE. WE SIMPLY PROVIDE LINKS TO IT.
-            </p>
-            <p className="uppercase text-slate-300 font-bold tracking-wide leading-relaxed border-l-4 border-red-500 pl-4">
-              IF BY ANY MEANS YOU ARE AN OWNER OF A WORK SHOWN ON OUR WEBSITE AND YOU LEGALLY OWN THE RIGHTS TO THAT CONTENT, PLEASE IMMEDIATELY CONTACT US VIA THE DMCA PAGE FOUND AT THE BOTTOM OF THE WEBSITE.
-            </p>
-          </section>
+            <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href="/privacy"
+                className="flex items-center gap-1.5 rounded-full border border-white/5 bg-white/[0.02] px-3.5 py-1.5 text-xs font-medium text-slate-400 transition hover:border-white/20 hover:text-white"
+              >
+                <Lock className="h-3 w-3" />
+                <span>Privacy Policy</span>
+              </Link>
 
-          <section className="mb-12 bg-white/5 border border-white/10 rounded-2xl p-8">
-            <h2 className="text-2xl font-bold mb-4">5. Modifications to Terms</h2>
-            <p>
-              We reserve the right to modify these terms at any time. Your continued use of the service after any such changes constitutes your acceptance of the new Terms of Service.
-            </p>
-          </section>
+              <Link
+                href="/dmca"
+                className="flex items-center gap-1.5 rounded-full border border-white/5 bg-white/[0.02] px-3.5 py-1.5 text-xs font-medium text-slate-400 transition hover:border-white/20 hover:text-white"
+              >
+                <ShieldAlert className="h-3 w-3" />
+                <span>DMCA Policy</span>
+              </Link>
 
-          <section className="bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/30 rounded-2xl p-8">
-            <h2 className="text-2xl font-bold mb-4 text-white">6. Contact & Copyright Claims</h2>
-            <p className="text-slate-300">
-              For any questions regarding these terms, or to submit a DMCA takedown request regarding embedded content, please contact us at:
-            </p>
-            <a href="mailto:Luc1lfeer@yandex.com" className="inline-flex items-center gap-2 mt-6 px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg font-medium transition-colors border border-white/10">
-              Luc1lfeer@yandex.com
-            </a>
-          </section>
+              <Link
+                href="/faq"
+                className="flex items-center gap-1.5 rounded-full border border-white/5 bg-white/[0.02] px-3.5 py-1.5 text-xs font-medium text-slate-400 transition hover:border-white/20 hover:text-white"
+              >
+                <HelpCircle className="h-3 w-3" />
+                <span>FAQ</span>
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </PageTransition>
   );
 }
