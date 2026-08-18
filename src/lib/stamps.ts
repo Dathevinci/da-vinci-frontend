@@ -263,6 +263,19 @@ export function hasStampSession(): boolean {
 const GRADES: StampGrade[] = ["D", "C", "B", "A", "S", "SS", "SSS"];
 
 /**
+ * The boost headroom every stamp has before it has earned anything — the
+ * SERVER's BOOST_FLOOR, mirrored here so the profile can say what a boost will
+ * do before spending anyone's points.
+ *
+ * MUST equal combine()'s BOOST_FLOOR in the backend's stamp.controller.ts. It
+ * is mirrored rather than fetched because it is copy, not a computation: the
+ * grade a stamp WEARS still comes only from the server. If the two ever drift,
+ * the profile promises movement the server refuses to count — and the points
+ * are already gone by the time anyone notices.
+ */
+export const BOOST_FLOOR = 25;
+
+/**
  * The published bands, for EXPLAINER COPY AND HINTS ONLY.
  *
  * `min` is inclusive, `max` is the last score still inside the band (null on

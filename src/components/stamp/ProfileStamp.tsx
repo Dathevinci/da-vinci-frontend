@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/Toast";
 import { useUser } from "@/hooks/useUser";
 import { isLeadDev, displayArisePoints } from "@/lib/admin";
 import {
+  BOOST_FLOOR,
   EMPTY_STAMP,
   StampProfile,
   StampRequestError,
@@ -151,9 +152,15 @@ export default function ProfileStamp({ userId, username, isSelf, className = "" 
   /* ── the split, drawn exactly as the numbers stand ── */
   const earned = stamp.organic;
   const boosted = stamp.boosted;
-  const ceiling = Math.max(0, earned);
+  /**
+   * MIRRORS THE SERVER'S combine() EXACTLY, including BOOST_FLOOR. If these
+   * two formulas drift, the button promises movement the server will refuse
+   * to count — which is worse than no button at all, because the points are
+   * already spent by the time anyone notices.
+   */
+  const ceiling = Math.max(BOOST_FLOOR, earned);
   const headroom = Math.max(0, ceiling - boosted);
-  const atCeiling = ceiling > 0 && headroom === 0;
+  const atCeiling = headroom === 0;
   const total = Math.max(0, stamp.score);
   const earnedPct = total > 0 ? (Math.max(0, earned) / total) * 100 : 0;
   const boostPct = total > 0 ? (boosted / total) * 100 : 0;
@@ -168,18 +175,16 @@ export default function ProfileStamp({ userId, username, isSelf, className = "" 
   /**
    * WHEN A BOOST CANNOT DO ANYTHING, THE BUTTON SAYS SO AND STAYS DOWN.
    *
-   * `boosted` is min(everything sent, max(0, organic)). Two states therefore
-   * take Arise Points for provably zero movement of the grade, on the weekly
-   * board as much as the lifetime one (the week's boost is capped by the week's
-   * own organic by the same rule):
-   *   ceiling === 0 — nothing earned yet, so nothing can be bought.
-   *   atCeiling     — already pinned at the earned score; more AP raises only
-   *                   the uncounted raw total.
-   * The first was already refused. The second was refused only in prose while
-   * the button stayed live, which is the version of this rule that costs
-   * somebody 500 AP to learn.
+   * `boosted` is min(everything sent, max(BOOST_FLOOR, organic)). A stamp
+   * pinned at that ceiling takes Arise Points for provably zero movement of
+   * the grade — on the weekly board as much as the lifetime one, since the
+   * week's boost is capped by the week's own organic under the same rule.
+   *
+   * The floor means "earned nothing yet" is no longer a blocked state: a brand
+   * new stamp has 25 points of headroom, which is what makes boosting usable
+   * on day one instead of waiting for the first votes to exist.
    */
-  const boostBlocked = ceiling === 0 || atCeiling;
+  const boostBlocked = atCeiling;
 
   /**
    * NO CONTRIBUTION PREVIEW, ON PURPOSE.
@@ -323,19 +328,16 @@ export default function ProfileStamp({ userId, username, isSelf, className = "" 
             </div>
 
             <p className="mt-2 max-w-lg text-[10px] leading-relaxed text-slate-500">
-              Boosts are capped at the earned score
-              {ceiling > 0 ? (
-                atCeiling ? (
-                  <> — this one is at its ceiling until the recs earn more.</>
-                ) : (
-                  <>
-                    {" "}
-                    — <b className="text-slate-400">{headroom.toLocaleString()}</b> of boost still
-                    fits.
-                  </>
-                )
+              Boosts are capped at the earned score, with the first{" "}
+              {BOOST_FLOOR} open to every stamp
+              {atCeiling ? (
+                <> — this one is at its ceiling until the recs earn more.</>
               ) : (
-                <> — nothing earned yet, so points spent here would do nothing.</>
+                <>
+                  {" "}
+                  — <b className="text-slate-400">{headroom.toLocaleString()}</b> of boost still
+                  fits.
+                </>
               )}
             </p>
           </div>
@@ -408,21 +410,17 @@ export default function ProfileStamp({ userId, username, isSelf, className = "" 
                       ? "Sending…"
                       : atCeiling
                         ? "At its ceiling"
-                        : ceiling === 0
-                          ? "Nothing to boost yet"
-                          : "Boost this stamp"}
+                        : "Boost this stamp"}
                   </button>
 
                   {/* The reason, in the order that matters: a spend that cannot
                       move anything outranks one you cannot afford. */}
                   <p className="mt-2 text-[9px] leading-relaxed text-slate-600">
-                    {ceiling === 0
-                      ? "Nothing earned yet — a boost would add zero."
-                      : atCeiling
-                        ? `Boosts are capped at the earned score and this stamp is already there (${boosted.toLocaleString()} of ${ceiling.toLocaleString()}). More points would change nothing until the recs earn more.`
-                        : !rich
-                          ? "Not enough Arise Points."
-                          : `${headroom.toLocaleString()} of boost still fits. Each booster's weight grows with the square root of everything they've sent, so one wallet can't own the board.`}
+                    {atCeiling
+                      ? `Boosts are capped at the earned score — plus a starting ${BOOST_FLOOR} every stamp gets — and this one is already there (${boosted.toLocaleString()} of ${ceiling.toLocaleString()}). More points would change nothing until the recs earn more.`
+                      : !rich
+                        ? "Not enough Arise Points."
+                        : `${headroom.toLocaleString()} of boost still fits. Each booster's weight grows with the square root of everything they've sent, so one wallet can't own the board.`}
                   </p>
                 </>
               )}
