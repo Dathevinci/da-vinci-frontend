@@ -15,6 +15,8 @@ import CommunityFeed from "@/components/community/CommunityFeed";
 import HeroBackdrop from "@/components/ui/HeroBackdrop";
 import CloseViewButton from "@/components/ui/CloseViewButton";
 import { manhwaSourceLabel } from "@/lib/manhwa/ids";
+import StampThis from "@/components/stamp/StampThis";
+import CoverSeal from "@/components/stamp/CoverSeal";
 
 /**
  * MANHWA DETAIL — the reference layout: the series' own blurred cover as
@@ -208,6 +210,11 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
                 <BookOpen className="h-12 w-12 text-slate-700" />
               </div>
             )}
+            {/* A podium curator's seal, on the poster of the thing they
+                recommended. One instance on the page, so it takes the larger
+                size — but still never animated, so a reader meets the same seal
+                here as on the grid they arrived from. */}
+            <CoverSeal mediaType="manhwa" mediaId={manhwa.id ?? id} size="md" className="absolute bottom-2 right-2 z-10" />
           </motion.div>
 
           <div className="mt-7 flex flex-wrap items-center justify-center gap-2 font-mono text-[11px] font-black uppercase tracking-wide">
@@ -258,6 +265,16 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
               </Link>
             ) : null}
             <ManhwaTrackerButton manhwa={manhwa} />
+            {/* Recommend it with your stamp. The RAW source cover is stored —
+                the same URL shape every other stamp surface re-proxies for
+                display — and `manhwa.id ?? id` keeps the stored mediaId the
+                one this route actually resolves. */}
+            <StampThis
+              mediaType="manhwa"
+              mediaId={manhwa.id ?? id}
+              title={manhwa.title}
+              cover={manhwa.image || null}
+            />
           </div>
         </div>
       </div>

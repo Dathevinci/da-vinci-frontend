@@ -17,6 +17,8 @@ import CommunityFeed from "@/components/community/CommunityFeed";
 import HeroBackdrop from "@/components/ui/HeroBackdrop";
 import CloseViewButton from "@/components/ui/CloseViewButton";
 import { featuredFor } from "@/lib/novel/featured";
+import StampThis from "@/components/stamp/StampThis";
+import CoverSeal from "@/components/stamp/CoverSeal";
 import { PurpleAuraStyles, AuraPlumes, AuraRing, AuraOverlays, AuraEmbers, coverGlow, titleStyle } from "@/components/novel/PurpleAura";
 
 /**
@@ -171,6 +173,12 @@ export default function NovelDetailPage() {
               )}
               {feat && <AuraOverlays p={feat.palette} />}
             </div>
+            {/* A podium curator's seal, on the poster of the thing they
+                recommended. Outside the clipped cover box so the featured
+                novel's aura layers cannot crop it, and outside any link or
+                button — it navigates to the curator itself. One instance on the
+                page, so it takes the larger size, and still never animated. */}
+            <CoverSeal mediaType="novel" mediaId={id} size="md" className="absolute bottom-2 right-2 z-10" />
             {feat && <AuraEmbers p={feat.palette} />}
           </motion.div>
 
@@ -262,6 +270,16 @@ export default function NovelDetailPage() {
             <div className="w-full sm:w-48">
               <NovelTrackerButton novel={{ id, title: novel.title, cover: novel.cover }} />
             </div>
+            {/* Recommend it with your stamp. The RAW scraper cover is stored,
+                exactly as the tracker beside it stores one — every stamp
+                surface re-proxies novel art through /api/novel-image on the
+                way out, because those hosts referer-gate hotlinks. */}
+            <StampThis
+              mediaType="novel"
+              mediaId={id}
+              title={novel.title}
+              cover={novel.cover || null}
+            />
           </div>
         </div>
       </div>

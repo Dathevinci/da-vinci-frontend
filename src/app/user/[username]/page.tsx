@@ -53,6 +53,7 @@ import RecentComments from "@/components/profile/RecentComments";
 import ActivityHistory from "@/components/profile/ActivityHistory";
 import GuildCard from "@/components/profile/GuildCard";
 import GuildTag from "@/components/guild/GuildTag";
+import ProfileStamp from "@/components/stamp/ProfileStamp";
 
 function formatTrackerStatus(status?: string): string {
   if (!status) return "Reading";
@@ -700,6 +701,18 @@ export default function PublicProfilePage() {
               at every breakpoint. Margin rides on the card itself, so a
               guildless profile (which renders nothing) leaves no stray gap. */}
           <GuildCard userId={profileUser.id} className="mb-6" />
+          {/* THE STAMP — what this profile is willing to put its name on.
+              Self-contained like the plaque above it: it fetches its own
+              stamp and renders nothing for a stranger who has never stamped
+              anything, so a profile does not grow an empty box. On your own
+              profile it always shows, because that is where you learn the
+              feature exists and where the three slots are managed. */}
+          <ProfileStamp
+            userId={profileUser.id}
+            username={profileUser.username}
+            isSelf={isSelf}
+            className="mb-6"
+          />
           {/* onChange keeps the hero strip and this rack in agreement. The
               rack is the one that actually knows — it fetches the titles
               endpoint — so it feeds the page rather than the other way round. */}

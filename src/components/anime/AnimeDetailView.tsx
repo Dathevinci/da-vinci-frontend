@@ -6,6 +6,7 @@ import { Play, Info, Clapperboard, Star, MessagesSquare, ChevronRight } from "lu
 import { Anime } from "@tutkli/jikan-ts";
 
 import TrackerButton from "@/components/anime/TrackerButton";
+import StampThis from "@/components/stamp/StampThis";
 import { useAnimeModal, type AnimeModalOptions } from "@/components/providers/AnimeModalProvider";
 import {
   getAnimeDetails, getAnimeCharacters, getAnimeRecommendations,
@@ -215,6 +216,21 @@ export default function AnimeDetailView({
               Watch Now
             </button>
             <TrackerButton anime={displayAnime} variant="full" />
+            {/* THE ANIME ENTRY POINT FOR STAMPS. AnimeCard already presses a
+                curator's seal onto anime covers, but nothing could CREATE an
+                anime recommendation — the branch was half-built and the seal
+                could never fire. This lives in the shared detail VIEW rather
+                than the route, so the modal gets it too.
+
+                mediaId is mal_id because that is the id AnimeCard looks the
+                endorsement up by; a stamp keyed on anything else would never
+                match a cover. */}
+            <StampThis
+              mediaType="anime"
+              mediaId={String(displayAnime.mal_id)}
+              title={displayAnime.title}
+              cover={posterUrl || null}
+            />
           </motion.div>
         </div>
       </div>

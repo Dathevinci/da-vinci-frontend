@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { IMangaResult } from "@/lib/asura/models";
 import { MediaHoverPreview } from "@/components/anime/HoverPreview";
+import CoverSeal from "@/components/stamp/CoverSeal";
 import { canDeriveChapterId, manhwaSourceLabel } from "@/lib/manhwa/ids";
 
 /**
@@ -54,46 +55,56 @@ export default function ManhwaCard({ manhwa }: { manhwa: IMangaResult }) {
       ]}
     >
       <div className="group relative flex h-full flex-col bg-transparent">
-        <button
-          onClick={open}
-          className="relative block w-full overflow-hidden rounded-lg text-left shadow-md transition-transform duration-300 hover:scale-[1.03] aspect-[2/3]"
-        >
-          {cover ? (
-            <img
-              src={cover}
-              alt={manhwa.title}
-              loading="lazy"
-              decoding="async"
-              referrerPolicy="no-referrer"
-              className="hq-image h-full w-full object-cover"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center bg-[#151518] text-slate-600">No Image</div>
-          )}
-          {isOngoing && (
-            <div className="absolute right-1 top-1 rounded bg-green-500 px-1.5 py-0.5 text-[9px] font-black tracking-wide text-white shadow-sm">ONGOING</div>
-          )}
-          {hasRating && (
-            <div className="absolute left-1 top-1 flex items-center gap-1 rounded border border-[#2a2a32] bg-black/80 px-1.5 py-0.5 text-[10px] font-bold text-yellow-500 backdrop-blur-md">
-              ★ {displayRating}
-            </div>
-          )}
-          {/* OFFICIAL EDITION EXISTS — a hint, and worded as one.
-              It marks that the publisher has an English release, which is the
-              only licensing signal available without a chapter-feed request
-              per result. It does NOT claim the title is unreadable here: many
-              series carry an official edition and fan translations at the same
-              time, so "licensed, links out" would be wrong on a lot of them.
-              Sits bottom-left, away from the rating and the ongoing pill. */}
-          {(manhwa as any).officialUrl && (
-            <div
-              title="An official English edition exists — some chapters may open at the publisher"
-              className="absolute bottom-1 left-1 rounded border border-emerald-400/30 bg-black/80 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-emerald-300 backdrop-blur-md"
-            >
-              Official
-            </div>
-          )}
-        </button>
+        {/* The cover box, wrapped so the curator's seal can sit ON the art
+            without living INSIDE the cover's own <button> — a button nested in
+            a button is invalid HTML and rewritten by the parser, which shows up
+            as a hydration mismatch and nowhere else. */}
+        <div className="relative">
+          <button
+            onClick={open}
+            className="relative block w-full overflow-hidden rounded-lg text-left shadow-md transition-transform duration-300 hover:scale-[1.03] aspect-[2/3]"
+          >
+            {cover ? (
+              <img
+                src={cover}
+                alt={manhwa.title}
+                loading="lazy"
+                decoding="async"
+                referrerPolicy="no-referrer"
+                className="hq-image h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-[#151518] text-slate-600">No Image</div>
+            )}
+            {isOngoing && (
+              <div className="absolute right-1 top-1 rounded bg-green-500 px-1.5 py-0.5 text-[9px] font-black tracking-wide text-white shadow-sm">ONGOING</div>
+            )}
+            {hasRating && (
+              <div className="absolute left-1 top-1 flex items-center gap-1 rounded border border-[#2a2a32] bg-black/80 px-1.5 py-0.5 text-[10px] font-bold text-yellow-500 backdrop-blur-md">
+                ★ {displayRating}
+              </div>
+            )}
+            {/* OFFICIAL EDITION EXISTS — a hint, and worded as one.
+                It marks that the publisher has an English release, which is the
+                only licensing signal available without a chapter-feed request
+                per result. It does NOT claim the title is unreadable here: many
+                series carry an official edition and fan translations at the same
+                time, so "licensed, links out" would be wrong on a lot of them.
+                Sits bottom-left, away from the rating and the ongoing pill. */}
+            {(manhwa as any).officialUrl && (
+              <div
+                title="An official English edition exists — some chapters may open at the publisher"
+                className="absolute bottom-1 left-1 rounded border border-emerald-400/30 bg-black/80 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-emerald-300 backdrop-blur-md"
+              >
+                Official
+              </div>
+            )}
+          </button>
+          {/* BOTTOM-RIGHT is this card's only free corner: the rating sits
+              top-left, the ONGOING pill top-right, the Official hint
+              bottom-left, and the title lives below the art entirely. */}
+          <CoverSeal mediaType="manhwa" mediaId={manhwa.id} />
+        </div>
 
         <div className="flex flex-1 flex-col bg-[#0b0b0c] pt-2">
           <button onClick={open} className="w-full text-left">

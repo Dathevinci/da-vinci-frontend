@@ -4,6 +4,7 @@ import { Anime } from '@tutkli/jikan-ts';
 import AnimeStatusBadge from './AnimeStatusBadge';
 import HoverPreview from './HoverPreview';
 import { useAnimeModal } from '@/components/providers/AnimeModalProvider';
+import CoverSeal from '@/components/stamp/CoverSeal';
 import { usePreferences } from '@/hooks/usePreferences';
 
 interface AnimeCardProps {
@@ -46,6 +47,11 @@ export default function AnimeCard({ anime }: AnimeCardProps) {
             )}
           </div>
         </button>
+        {/* A SIBLING of the cover button, not a child: nesting a button in a
+            button is invalid HTML and only shows itself as a hydration
+            mismatch. The status badge and the score share the top row, and this
+            card has no text below the art, so bottom-right is the free corner. */}
+        <CoverSeal mediaType="anime" mediaId={anime.mal_id} />
       </div>
     </HoverPreview>
   );

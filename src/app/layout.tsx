@@ -84,6 +84,10 @@ import ManhwaModalProvider from "@/components/providers/ManhwaModalProvider";
 import NovelModalProvider from "@/components/providers/NovelModalProvider";
 
 import { AppModeProvider } from "@/components/providers/AppModeProvider";
+// The podium curators' seals, fetched ONCE per session and read by media id.
+// It lives at the root because a cover can appear anywhere — grids, carousels,
+// detail pages — and the alternative to one shared map is a request per card.
+import { StampEndorsementProvider } from "@/components/providers/StampEndorsementProvider";
 
 export const metadata: Metadata = {
   title: "Da Vinci",
@@ -122,6 +126,7 @@ export default function RootLayout({
               <AnimeModalProvider>
                 <ManhwaModalProvider>
                   <NovelModalProvider>
+                  <StampEndorsementProvider>
                   <Suspense fallback={null}>
                     <AuthSync />
                   </Suspense>
@@ -145,6 +150,7 @@ export default function RootLayout({
                     <Footer />
                     <MobileBottomNav />
                   </InviteOnlyGuard>
+                  </StampEndorsementProvider>
                   </NovelModalProvider>
                 </ManhwaModalProvider>
               </AnimeModalProvider>

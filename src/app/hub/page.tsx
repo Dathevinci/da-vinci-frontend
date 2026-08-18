@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import {
   Tv, BookOpen, Feather, Compass, Users, Layers, Swords,
   Store, Trophy, ShoppingBag, Crown, Megaphone,
-  Terminal, ArrowUpRight, Sparkles, Diamond, Zap, Gem, X,
+  Terminal, ArrowUpRight, Sparkles, Diamond, Zap, Gem, X, Stamp,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { isAdmin, isLeadDev, displayArisePoints } from "@/lib/admin";
@@ -49,6 +49,9 @@ const SECTIONS: Section[] = [
   // "#gems" is a sentinel, not a route — the map renders this one tile as a
   // button that opens the mode-picker modal instead of navigating.
   { href: "#gems",        label: "Gems",             desc: "Vote the community's weekly hidden gems.",         Icon: Gem,          tint: "#a78bfa" },
+  // One route, no mode picker: a stamp is GLOBAL — one per person across
+  // anime, manhwa and novels — so unlike Gems there is nothing to choose.
+  { href: "/stamps",      label: "Stamps",           desc: "Weekly curation rankings and your follower feed.", Icon: Stamp,        tint: "#fbbf24" },
   { href: "/updates",     label: "Updates",          desc: "What changed, and what's coming.",                 Icon: Megaphone,    tint: "#94a3b8" },
 ];
 

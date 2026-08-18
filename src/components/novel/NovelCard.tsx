@@ -4,6 +4,7 @@ import { BookOpen } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { NovelResult } from "@/lib/novel/ReadNovelFull";
 import { MediaHoverPreview } from "@/components/anime/HoverPreview";
+import CoverSeal from "@/components/stamp/CoverSeal";
 
 import { useNovelCover } from "@/lib/novel/useNovelCover";
 
@@ -38,26 +39,35 @@ export default function NovelCard({ novel }: { novel: NovelResult }) {
       ]}
     >
       <div className="group relative flex h-full flex-col bg-transparent">
-        <button onClick={open} className="relative block w-full overflow-hidden rounded-lg text-left shadow-md transition-transform duration-300 hover:scale-[1.03] aspect-[2/3]">
-          <span className="absolute top-2 left-2 z-10 rounded-md bg-black/75 px-2 py-0.5 text-[10px] font-black text-pink-400 backdrop-blur-md border border-pink-500/20 uppercase tracking-wider shadow-lg">
-            {badgeLabel}
-          </span>
-          {cover ? (
-            <img
-              src={cover}
-              alt={novel.title}
-              loading="lazy"
-              decoding="async"
-              referrerPolicy="no-referrer"
-              onError={onCoverError}
-              className="hq-image h-full w-full object-cover"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center bg-[#151518] text-slate-600">
-              <BookOpen className="h-10 w-10" />
-            </div>
-          )}
-        </button>
+        {/* The cover box, wrapped so the curator's seal can sit ON the art
+            without living INSIDE the cover's own <button> — a button nested in
+            a button is invalid HTML and rewritten by the parser, which shows up
+            as a hydration mismatch and nowhere else. */}
+        <div className="relative">
+          <button onClick={open} className="relative block w-full overflow-hidden rounded-lg text-left shadow-md transition-transform duration-300 hover:scale-[1.03] aspect-[2/3]">
+            <span className="absolute top-2 left-2 z-10 rounded-md bg-black/75 px-2 py-0.5 text-[10px] font-black text-pink-400 backdrop-blur-md border border-pink-500/20 uppercase tracking-wider shadow-lg">
+              {badgeLabel}
+            </span>
+            {cover ? (
+              <img
+                src={cover}
+                alt={novel.title}
+                loading="lazy"
+                decoding="async"
+                referrerPolicy="no-referrer"
+                onError={onCoverError}
+                className="hq-image h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-[#151518] text-slate-600">
+                <BookOpen className="h-10 w-10" />
+              </div>
+            )}
+          </button>
+          {/* BOTTOM-RIGHT: the source badge holds top-left, and the title and
+              chapter label are below the art, so this corner is free. */}
+          <CoverSeal mediaType="novel" mediaId={novel.id} />
+        </div>
 
         <div className="flex flex-1 flex-col pt-2">
           <button onClick={open} className="w-full text-left">
