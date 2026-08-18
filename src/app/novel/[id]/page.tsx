@@ -18,6 +18,7 @@ import HeroBackdrop from "@/components/ui/HeroBackdrop";
 import CloseViewButton from "@/components/ui/CloseViewButton";
 import { featuredFor } from "@/lib/novel/featured";
 import StampThis from "@/components/stamp/StampThis";
+import StampersRow from "@/components/stamp/StampersRow";
 import CoverSeal from "@/components/stamp/CoverSeal";
 import { PurpleAuraStyles, AuraPlumes, AuraRing, AuraOverlays, AuraEmbers, coverGlow, titleStyle } from "@/components/novel/PurpleAura";
 
@@ -281,6 +282,13 @@ export default function NovelDetailPage() {
               cover={novel.cover || null}
             />
           </div>
+
+          {/* WHO ELSE PUT THEIR NAME ON IT — directly under the button that
+              asks whether you will, keyed on the SAME id StampThis writes with
+              (novel ids carry a source prefix like "nf:slug", so the client
+              encodes it and the server decodes it back). Draws nothing at all
+              when no one has stamped this. */}
+          <StampersRow mediaType="novel" mediaId={id} className="relative z-20 mt-6" />
         </div>
       </div>
 

@@ -1,19 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  Stamp, Trophy, CalendarDays, ChevronLeft, ChevronRight, Users, Sparkles, LogIn,
+  Stamp, Trophy, CalendarDays, ChevronLeft, ChevronRight, Users, Sparkles, LogIn, Globe,
 } from "lucide-react";
 import { StampSeal } from "@/components/stamp/StampSeal";
 import RecCard from "@/components/stamp/RecCard";
 import PageTransition from "@/components/layout/PageTransition";
 import { useUser } from "@/hooks/useUser";
 import {
+  StampFeedType,
   StampRankingEntry,
   StampRec,
+  StampRequestError,
   GRADE_BANDS,
   daysUntilMonday,
+  fetchRecentStamps,
   fetchStampFeed,
   fetchStampRankings,
   hasStampSession,
@@ -22,7 +25,15 @@ import {
 } from "@/lib/stamps";
 
 /**
- * THE STAMP BOARD — weekly rankings, and the feed of people you follow.
+ * THE STAMP BOARD — weekly rankings, everyone's recommendations, and the feed
+ * of the people you follow.
+ *
+ * THREE TABS, AND THE MIDDLE ONE IS THE PLAIN ONE. "Top 100" ranks curators and
+ * "Following" needs you to already follow somebody, which left no way at all to
+ * ask "who has stamped what?" — the only answers were opening profiles one at a
+ * time. "All stamps" is that answer: every live recommendation on the site,
+ * newest first, filterable by mode, with the curator's name and seal on each
+ * card. It is deliberately the least clever name on the row.
  *
  * The board ranks by score EARNED WITHIN the ISO week: votes cast and boosts
  * sent between Monday and Monday, not the all-time total. That is what keeps
@@ -43,7 +54,19 @@ import {
  * the people who hold the podium today, not a podium being promised.
  */
 
-type Tab = "board" | "feed";
+type Tab = "board" | "all" | "feed";
+
+/** ?tab= values that may open a tab directly. Anything else lands on the
+ *  board, so a mistyped or stale link degrades to the page's own default. */
+const TAB_PARAM: Record<string, Tab> = { board: "board", all: "all", feed: "feed" };
+
+/** The mode filter on the browse tab, in the order it reads across. */
+const MODE_FILTERS: { key: StampFeedType; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "anime", label: "Anime" },
+  { key: "manhwa", label: "Manhwa" },
+  { key: "novel", label: "Novels" },
+];
 
 const chip = (active: boolean) =>
   `inline-flex items-center gap-2 rounded-xl border px-5 py-2 font-mono text-[11px] font-black uppercase tracking-[0.18em] transition ${
@@ -51,6 +74,40 @@ const chip = (active: boolean) =>
       ? "border-amber-400/40 bg-amber-500/15 text-amber-200"
       : "border-white/10 bg-white/[0.04] text-slate-500 hover:bg-white/[0.08] hover:text-slate-300"
   }`;
+
+/** The mode filter's own, smaller chip — a rank below the tab chips on purpose,
+ *  so at 375px the two rows of controls stay tellable apart. */
+const modeChip = (active: boolean) =>
+  `rounded-lg border px-3 py-1.5 font-mono text-[10px] font-black uppercase tracking-[0.14em] transition ${
+    active
+      ? "border-violet-400/40 bg-violet-500/15 text-violet-200"
+      : "border-white/10 bg-white/[0.03] text-slate-500 hover:bg-white/[0.07] hover:text-slate-300"
+  }`;
+
+/**
+ * "YOUR SESSION CAN'T VOTE" — said once above a list, never once per card.
+ *
+ * Hoisted out of the feed so the browse tab can say the identical thing: the
+ * two lists are the same cards with the same thumbs, and a warning that
+ * appeared on one of them and not the other would read as a bug in whichever
+ * tab was missing it.
+ */
+function SessionWarning() {
+  return (
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-400/25 bg-amber-500/[0.07] px-4 py-3">
+      <p className="text-[11px] leading-relaxed text-amber-100/90">
+        Your session can&rsquo;t cast votes any more. Sign in again and the thumbs come
+        back — nothing you have already voted on is lost.
+      </p>
+      <Link
+        href="/login"
+        className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-amber-400/40 bg-amber-500/15 px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-amber-200 transition hover:bg-amber-500/25"
+      >
+        <LogIn className="h-3.5 w-3.5" /> Sign in again
+      </Link>
+    </div>
+  );
+}
 
 /**
  * THE THREE TREATMENTS. Gold, silver, bronze — the same order the seal's own
@@ -231,6 +288,22 @@ export default function StampsPage() {
   const [feed, setFeed] = useState<StampRec[]>([]);
   const [feedLoaded, setFeedLoaded] = useState(false);
 
+  /* ── "All stamps": everything anyone has stamped, cursor-paged ── */
+  const [browseType, setBrowseType] = useState<StampFeedType>("all");
+  const [browse, setBrowse] = useState<StampRec[]>([]);
+  const [browseCursor, setBrowseCursor] = useState<string | null>(null);
+  const [browseLoaded, setBrowseLoaded] = useState(false);
+  const [browsingMore, setBrowsingMore] = useState(false);
+  const [browseFailed, setBrowseFailed] = useState(false);
+  /**
+   * WHICH FIRST-PAGE REQUEST IS STILL THE LIVE ONE. Switching Manhwa → Novels
+   * quickly leaves two flights racing, and without this the slower (older) one
+   * wins the state and the list ends up showing the mode the reader just left.
+   * The same token also protects "load more": a page that comes back after the
+   * filter changed is dropped instead of being appended to a different list.
+   */
+  const browseRun = useRef(0);
+
   /**
    * Signed in by the cached user, but with no session token — so every thumb
    * on this page would come back 401. Read in an effect, once for the whole
@@ -260,8 +333,11 @@ export default function StampsPage() {
   }, [weekAgo]);
 
   useEffect(() => {
-    loadBoard();
-  }, [loadBoard]);
+    // Gated like the other two tabs. The board is the heaviest read in the
+    // system, and the detail pages now link straight to ?tab=all — arriving
+    // there was fetching the whole Top 100 and discarding it unrendered.
+    if (tab === "board") loadBoard();
+  }, [tab, loadBoard]);
 
   /* ── the follower feed ── */
   const loadFeed = useCallback(async () => {
@@ -287,6 +363,94 @@ export default function StampsPage() {
   useEffect(() => {
     if (tab === "feed") loadFeed();
   }, [tab, loadFeed]);
+
+  /* ── everyone's stamps ── */
+  const loadBrowse = useCallback(async () => {
+    const run = ++browseRun.current;
+    setBrowseLoaded(false);
+    setBrowseFailed(false);
+    setBrowse([]);
+    setBrowseCursor(null);
+    try {
+      // ONE REQUEST FOR THE PAGE, like the feed: every rec already carries its
+      // owner's username, grade and podium seal, so nothing here fans out per
+      // curator to draw a name or a seal.
+      const page = await fetchRecentStamps({ type: browseType, viewer: viewerId });
+      if (run !== browseRun.current) return;
+      setBrowse(page.recs);
+      setBrowseCursor(page.nextCursor);
+    } catch {
+      if (run !== browseRun.current) return;
+      setBrowse([]);
+      setBrowseCursor(null);
+      // "Nothing has been stamped in this mode" and "the read failed" want
+      // opposite words — an outage told as an empty shelf sends the reader off
+      // to stamp something to fix a server.
+      setBrowseFailed(true);
+    } finally {
+      if (run === browseRun.current) setBrowseLoaded(true);
+    }
+  }, [browseType, viewerId]);
+
+  useEffect(() => {
+    if (tab === "all") loadBrowse();
+  }, [tab, loadBrowse]);
+
+  /**
+   * THE NEXT PAGE, APPENDED. A button rather than a scroll observer: this list
+   * is the one people leave to open a title and then come back to, and an
+   * observer that keeps appending while the browser is restoring a scroll
+   * position fights it every time.
+   */
+  const loadMoreBrowse = useCallback(async () => {
+    if (!browseCursor || browsingMore) return;
+    const run = browseRun.current;
+    setBrowsingMore(true);
+    try {
+      const page = await fetchRecentStamps({
+        type: browseType,
+        cursor: browseCursor,
+        viewer: viewerId,
+      });
+      if (run !== browseRun.current) return; // the filter moved under us
+      setBrowse((prev) => {
+        // De-duped by rec id. The cursor is stable under INSERTS, but a rec
+        // retired between two pages shifts the window back by one and can hand
+        // the same rec twice — and React answers duplicate keys by dropping a
+        // card, so the reader loses a recommendation rather than seeing two.
+        const seen = new Set(prev.map((r) => r.id));
+        return [...prev, ...page.recs.filter((r) => !seen.has(r.id))];
+      });
+      setBrowseCursor(page.nextCursor);
+    } catch (e) {
+      // BAD_CURSOR is the one failure here that is not a retry: the server has
+      // never heard of this cursor, so pressing again can only fail again. It
+      // means the list on screen is from a database this one no longer is, and
+      // the only honest recovery is to read page one afresh.
+      if (e instanceof StampRequestError && e.code === "BAD_CURSOR") {
+        loadBrowse();
+        return;
+      }
+      // Everything else keeps what is on screen AND keeps the button: a failed
+      // page is a retry, not a reason to throw away thirty cards mid-read.
+    } finally {
+      setBrowsingMore(false);
+    }
+  }, [browseCursor, browsingMore, browseType, viewerId, loadBrowse]);
+
+  /**
+   * ?tab=all OPENS THE BROWSE TAB — the link the detail pages point at.
+   *
+   * Read from window.location in an effect, NOT with useSearchParams: a
+   * page-level useSearchParams without a Suspense boundary fails the
+   * production build, and a build that fails leaves the last good deploy
+   * serving, so the bug looks like "the code didn't ship". The initial state is
+   * the same on both paints, so this cannot mismatch on hydration either.
+   */
+  useEffect(() => {
+    const wanted = TAB_PARAM[new URLSearchParams(window.location.search).get("tab") || ""];
+    if (wanted) setTab(wanted);
+  }, []);
 
   const week = serverWeek || (weekAgo === 0 ? isoWeekKey() : weekKeyAgo(weekAgo));
   const daysLeft = daysUntilMonday();
@@ -338,6 +502,12 @@ export default function StampsPage() {
           <div className="mt-8 flex flex-wrap gap-2">
             <button type="button" onClick={() => setTab("board")} className={chip(tab === "board")}>
               <Trophy className="h-3.5 w-3.5" /> Top {BOARD_SIZE}
+            </button>
+            {/* THE PLAIN ONE. Not "Discover", not "Explore" — the tab has to be
+                recognisable as "show me what everyone stamped" from the word
+                alone, by someone who came here asking exactly that. */}
+            <button type="button" onClick={() => setTab("all")} className={chip(tab === "all")}>
+              <Globe className="h-3.5 w-3.5" /> All stamps
             </button>
             <button type="button" onClick={() => setTab("feed")} className={chip(tab === "feed")}>
               <Users className="h-3.5 w-3.5" /> Following
@@ -472,6 +642,112 @@ export default function StampsPage() {
             </>
           )}
 
+          {/* ═════════════════ ALL STAMPS ═════════════════ */}
+          {/* Every live recommendation on the site, newest first. No follow, no
+              account and no profile-hopping required — this is the surface that
+              answers "who stamped this manhwa?" from the other direction. */}
+          {tab === "all" && (
+            <div className="mt-5">
+              {/* the mode filter — one row, wraps at 375px instead of scrolling
+                  sideways, so nothing important sits off the edge of a phone */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="mr-1 text-[10px] font-black uppercase tracking-[0.16em] text-slate-600">
+                  Mode
+                </span>
+                {MODE_FILTERS.map((m) => (
+                  <button
+                    key={m.key}
+                    type="button"
+                    onClick={() => setBrowseType(m.key)}
+                    aria-pressed={browseType === m.key}
+                    className={modeChip(browseType === m.key)}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+
+              <p className="mt-3 text-[11px] leading-relaxed text-slate-500">
+                Everything the whole site is recommending right now, newest first — the
+                curator&rsquo;s name and seal are on every card, and a tap on either opens
+                their stamp.
+              </p>
+
+              <div className="mt-4">
+                {!browseLoaded ? (
+                  /* Static blocks the height of a feed card, not a centred
+                     line: the list is already tall by the time a filter is
+                     tapped, and collapsing to one sentence made every tap
+                     throw the page's whole height away and put it back. */
+                  <div>
+                    <p className="text-center text-sm text-slate-500">Reading the stamps…</p>
+                    <div className="mt-4 space-y-3" aria-hidden>
+                      {[0, 1, 2, 3].map((i) => (
+                        <div key={i} className="h-40 rounded-2xl border border-white/[0.06] bg-[#0b0b11]" />
+                      ))}
+                    </div>
+                  </div>
+                ) : browseFailed ? (
+                  <div className="rounded-3xl border border-white/10 bg-[#0b0b11] px-6 py-16 text-center">
+                    <Globe className="mx-auto h-8 w-8 text-slate-600" />
+                    <p className="mt-4 text-sm text-slate-400">
+                      Couldn&rsquo;t read the recommendations just now.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={loadBrowse}
+                      className="mt-5 rounded-xl border border-amber-400/40 bg-amber-500/15 px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-amber-200 transition hover:bg-amber-500/25"
+                    >
+                      Try again
+                    </button>
+                  </div>
+                ) : browse.length === 0 ? (
+                  <div className="rounded-3xl border border-white/10 bg-[#0b0b11] px-6 py-16 text-center">
+                    <Stamp className="mx-auto h-8 w-8 text-slate-600" />
+                    <p className="mt-4 text-sm text-slate-400">
+                      {browseType === "all"
+                        ? "Nobody has stamped anything yet — the first three are yours to take."
+                        : "Nothing stamped in this mode yet."}
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {needsSignIn && <SessionWarning />}
+                    <div className="space-y-3">
+                      {browse.map((rec) => (
+                        <RecCard
+                          key={rec.id}
+                          rec={rec}
+                          variant="feed"
+                          viewerId={viewerId}
+                          needsSignIn={needsSignIn}
+                          showOwner
+                        />
+                      ))}
+                    </div>
+
+                    <div className="mt-6 text-center">
+                      {browseCursor ? (
+                        <button
+                          type="button"
+                          onClick={loadMoreBrowse}
+                          disabled={browsingMore}
+                          className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-5 py-3 text-[11px] font-black uppercase tracking-[0.16em] text-slate-300 transition hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
+                        >
+                          {browsingMore ? "Loading…" : "Load more"}
+                        </button>
+                      ) : (
+                        <p className="text-[10px] text-slate-600">
+                          That&rsquo;s all {browse.length} of them.
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* ═══════════════════ FEED ═══════════════════ */}
           {tab === "feed" && (
             <div className="mt-5">
@@ -497,6 +773,16 @@ export default function StampsPage() {
                     >
                       Find people
                     </Link>
+                    {/* The way OUT of an empty follower feed: you cannot follow
+                        curators you have never seen, and this is where you see
+                        them. It is the same reason the tab exists. */}
+                    <button
+                      type="button"
+                      onClick={() => setTab("all")}
+                      className="rounded-xl border border-violet-400/40 bg-violet-500/15 px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-violet-200 transition hover:bg-violet-500/25"
+                    >
+                      Browse all stamps
+                    </button>
                     <button
                       type="button"
                       onClick={() => setTab("board")}
@@ -511,20 +797,7 @@ export default function StampsPage() {
                   {/* Said once, above the list, rather than sixty times inside
                       it — but each card still refuses to offer a thumb it
                       cannot deliver. */}
-                  {needsSignIn && (
-                    <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-400/25 bg-amber-500/[0.07] px-4 py-3">
-                      <p className="text-[11px] leading-relaxed text-amber-100/90">
-                        Your session can&rsquo;t cast votes any more. Sign in again and the
-                        thumbs come back — nothing you have already voted on is lost.
-                      </p>
-                      <Link
-                        href="/login"
-                        className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-amber-400/40 bg-amber-500/15 px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-amber-200 transition hover:bg-amber-500/25"
-                      >
-                        <LogIn className="h-3.5 w-3.5" /> Sign in again
-                      </Link>
-                    </div>
-                  )}
+                  {needsSignIn && <SessionWarning />}
                   <div className="space-y-3">
                     {feed.map((rec) => (
                       <RecCard

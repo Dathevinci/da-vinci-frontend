@@ -167,6 +167,10 @@ export type StampErrorCode =
   // reads
   | "BAD_WEEK"
   | "MISSING_VIEWER"
+  /** A cursor the /recent endpoint never handed out. Distinct from a plain
+   *  failure: the LIST is fine and re-reading page one recovers it, which is
+   *  not true of anything else in this group. */
+  | "BAD_CURSOR"
   // client-side
   | "NETWORK"
   | "UNKNOWN";
@@ -192,6 +196,7 @@ const KNOWN_CODES = new Set<string>([
   "INSUFFICIENT_POINTS",
   "BAD_WEEK",
   "MISSING_VIEWER",
+  "BAD_CURSOR",
 ]);
 
 /** Reads throw; writes answer with this so each `code` can be handled. */
@@ -558,6 +563,126 @@ export async function fetchStampFeed(viewerId: string, signal?: AbortSignal): Pr
     );
   }
   return Array.isArray(d.data) ? d.data.map(normalizeRec) : [];
+}
+
+/* ──────────────────── browsing: everyone, and per title ──────────────────── */
+
+/**
+ * The mode filter on the browse surface. "all" is not a media type — it means
+ * "don't filter", and it is left OFF the query string entirely rather than sent
+ * as `type=all`, so the server's default path and the filter's default are the
+ * same request and cannot drift apart.
+ */
+export type StampFeedType = "all" | StampMediaType;
+
+/** One page of the site-wide list, plus the key for the page after it. */
+export type StampRecentPage = {
+  recs: StampRec[];
+  /** null means there is nothing after this page. */
+  nextCursor: string | null;
+};
+
+/**
+ * EVERY ACTIVE RECOMMENDATION ON THE SITE, NEWEST FIRST — the answer to "who
+ * stamped what" without having to already follow the person.
+ *
+ * CURSOR, NOT OFFSET, and the reason is the sort order: this list is newest
+ * first and new stamps land at the TOP of it. With `?skip=30`, one stamp
+ * created between page 1 and page 2 pushes the whole window down by one, so the
+ * 30th rec is served twice and something further down is never served at all.
+ * The cursor names a REC, so the next page starts after that exact row no
+ * matter what was inserted above it.
+ *
+ * `viewer` is the READER, and — exactly as fetchStamp does — it only goes on
+ * the URL when there is no JWT to send: the server prefers the token and falls
+ * back to the query. Without it a tokenless reader gets `opened:false,
+ * myVote:0` on every card, so their own cast votes read as uncast and the vote
+ * gate re-locks on every reload.
+ */
+export async function fetchRecentStamps(
+  opts: {
+    type?: StampFeedType;
+    cursor?: string | null;
+    viewer?: string | null;
+    signal?: AbortSignal;
+  } = {},
+): Promise<StampRecentPage> {
+  const qs = new URLSearchParams();
+  if (opts.type && opts.type !== "all") qs.set("type", opts.type);
+  if (opts.cursor) qs.set("cursor", opts.cursor);
+  if (!getAuthToken() && opts.viewer) qs.set("viewer", opts.viewer);
+  const query = qs.toString();
+
+  const r = await fetch(`${API_URL}/api/stamps/recent${query ? `?${query}` : ""}`, {
+    headers: authHeaders(),
+    signal: opts.signal,
+  });
+  const d = await r.json().catch(() => null);
+  if (!r.ok || !d?.success || !d.data) {
+    throw new StampRequestError(
+      str(d?.message) || "Couldn't read the recommendations.",
+      r.status,
+      normalizeCode(d?.code, r.status),
+    );
+  }
+
+  const next = typeof d.data.nextCursor === "string" && d.data.nextCursor ? d.data.nextCursor : null;
+  return {
+    recs: Array.isArray(d.data.recs) ? d.data.recs.map(normalizeRec) : [],
+    // A cursor that points at the page we just asked for is not a next page —
+    // it is a server that ignored the parameter, and following it appends the
+    // same thirty rows for as long as the reader keeps pressing. Treated as the
+    // end of the list, which is the one reading that cannot loop.
+    nextCursor: next && next === opts.cursor ? null : next,
+  };
+}
+
+/**
+ * THE REVERSE LOOKUP: everyone who has this exact title among their live three,
+ * best curator first (last week's podium, then grade, then newest).
+ *
+ * ONE REQUEST PER TITLE VIEW, and the shape is deliberate — the whole list
+ * arrives in a single answer, already ordered, already carrying each curator's
+ * grade and seal, so a page of stampers costs exactly one call no matter how
+ * many people are on it. An empty array is the ordinary case and the caller is
+ * expected to render nothing for it.
+ *
+ * `mediaId` is encoded here because ids are not all URL-safe — a novel's
+ * "nf:some-slug" carries a colon — and the server decodes it back.
+ *
+ * IT SENDS NO IDENTITY AT ALL, and that is the point: this list draws no
+ * thumbs, so the two extra queries that personalise myVote/opened would be
+ * paid for nothing. Omitting `?viewer=` was not enough — the server prefers
+ * the TOKEN and only falls back to the query param, so sending auth headers
+ * here quietly re-bought the personalisation this comment claimed to avoid.
+ * The endpoint is public, so an anonymous read returns the same list.
+ */
+export async function fetchStampersFor(
+  mediaType: StampMediaType,
+  mediaId: string,
+  viewer?: string | null,
+  signal?: AbortSignal,
+): Promise<StampRec[]> {
+  // Nothing identifies the title yet (a detail page mid-hydration) — that is
+  // not a request worth making, and "" would ask the server about a title that
+  // cannot exist.
+  if (!mediaId) return [];
+
+  const qs = viewer ? `?viewer=${encodeURIComponent(viewer)}` : "";
+  const r = await fetch(
+    `${API_URL}/api/stamps/for/${encodeURIComponent(mediaType)}/${encodeURIComponent(mediaId)}${qs}`,
+    // No Authorization header on purpose — see the note above.
+    { signal },
+  );
+  const d = await r.json().catch(() => null);
+  if (!r.ok || !d?.success || !d.data) {
+    throw new StampRequestError(
+      str(d?.message) || "Couldn't read who stamped this.",
+      r.status,
+      normalizeCode(d?.code, r.status),
+    );
+  }
+  return Array.isArray(d.data.stampers) ? d.data.stampers.map(normalizeRec) : [];
 }
 
 /* ────────────────────────────── writes ────────────────────────────── */

@@ -7,6 +7,7 @@ import { Anime } from "@tutkli/jikan-ts";
 
 import TrackerButton from "@/components/anime/TrackerButton";
 import StampThis from "@/components/stamp/StampThis";
+import StampersRow from "@/components/stamp/StampersRow";
 import { useAnimeModal, type AnimeModalOptions } from "@/components/providers/AnimeModalProvider";
 import {
   getAnimeDetails, getAnimeCharacters, getAnimeRecommendations,
@@ -232,6 +233,18 @@ export default function AnimeDetailView({
               cover={posterUrl || null}
             />
           </motion.div>
+
+          {/* WHO ELSE PUT THEIR NAME ON IT. mal_id, the same id StampThis
+              writes with and AnimeCard looks endorsements up by — anything else
+              would query a title nobody stamped. NOT wrapped in motion: it
+              appears only when the fetch lands, and a fade firing mid-read
+              draws the eye away from whatever the reader was already on. Draws
+              nothing at all when no one has stamped this. */}
+          <StampersRow
+            mediaType="anime"
+            mediaId={String(displayAnime.mal_id)}
+            className="relative z-20 mt-6"
+          />
         </div>
       </div>
 

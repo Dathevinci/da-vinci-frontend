@@ -16,6 +16,7 @@ import HeroBackdrop from "@/components/ui/HeroBackdrop";
 import CloseViewButton from "@/components/ui/CloseViewButton";
 import { manhwaSourceLabel } from "@/lib/manhwa/ids";
 import StampThis from "@/components/stamp/StampThis";
+import StampersRow from "@/components/stamp/StampersRow";
 import CoverSeal from "@/components/stamp/CoverSeal";
 
 /**
@@ -276,6 +277,12 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
               cover={manhwa.image || null}
             />
           </div>
+
+          {/* WHO ELSE PUT THEIR NAME ON IT — directly under the button that
+              asks whether you will. The SAME mediaId StampThis writes with, or
+              the row would look up an id nobody ever stamped. Draws nothing at
+              all when no one has. */}
+          <StampersRow mediaType="manhwa" mediaId={manhwa.id ?? id} className="relative z-20 mt-6" />
         </div>
       </div>
 
