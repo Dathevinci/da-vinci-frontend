@@ -23,39 +23,38 @@ type Section = {
   label: string;
   desc: string;
   Icon: any;
-  tint: string;
   category: CategoryId;
   badge?: string;
 };
 
 const SECTIONS: Section[] = [
   // Media Realm
-  { href: "/", label: "Anime", desc: "Watch latest episodes and ongoing simulcasts.", Icon: Tv, tint: "#a855f7", category: "media" },
-  { href: "/manhwa", label: "Manhwa", desc: "Read latest chapters, webtoons, and manga.", Icon: BookOpen, tint: "#38bdf8", category: "media" },
-  { href: "/novel", label: "Novels", desc: "Light novels, web serials, and epubs.", Icon: Feather, tint: "#fbbf24", category: "media" },
-  { href: "/explore", label: "Explore Anime", desc: "Filter by genre, season, and popularity.", Icon: Compass, tint: "#818cf8", category: "media" },
-  { href: "/manhwa/explore", label: "Explore Comics", desc: "Search across all manhwa, manga and manhua sources.", Icon: Compass, tint: "#38bdf8", category: "media" },
-  { href: "/novel/explore", label: "Explore Novels", desc: "Search novels by genre, tags, and status.", Icon: Compass, tint: "#fbbf24", category: "media" },
+  { href: "/", label: "Anime Realm", desc: "Stream latest episodes, ongoing simulcasts, and cinema.", Icon: Tv, category: "media" },
+  { href: "/manhwa", label: "Manhwa & Comics", desc: "Read latest chapters, serialized webtoons, and manga.", Icon: BookOpen, category: "media" },
+  { href: "/novel", label: "Light Novels", desc: "Light novels, translated web serials, and epubs.", Icon: Feather, category: "media" },
+  { href: "/explore", label: "Explore Anime", desc: "Filter by genre, season, studio, and popularity.", Icon: Compass, category: "media" },
+  { href: "/manhwa/explore", label: "Explore Comics", desc: "Search across all manhwa, manga and manhua sources.", Icon: Compass, category: "media" },
+  { href: "/novel/explore", label: "Explore Novels", desc: "Search novels by genre, tags, and status.", Icon: Compass, category: "media" },
 
   // Combat & Collectibles
-  { href: "/cards", label: "Arise Cards", desc: "Binder collection, shard crafting, and packs.", Icon: Layers, tint: "#c084fc", category: "games" },
-  { href: "/duels", label: "Card Duels", desc: "PvP card battles with real stakes.", Icon: Swords, tint: "#f43f5e", category: "games" },
-  { href: "/raid", label: "World Boss Raid", desc: "Weekly server-wide raid battles.", Icon: Flame, tint: "#f87171", category: "games", badge: "Boss Active" },
-  { href: "/marketplace", label: "Marketplace", desc: "Trade cards, rare wears, and serial numbers.", Icon: Store, tint: "#22d3ee", category: "games" },
+  { href: "/cards", label: "Arise Cards", desc: "Binder collection, shard crafting, and gacha packs.", Icon: Layers, category: "games" },
+  { href: "/duels", label: "Card Duels", desc: "PvP battle arena with live staked cards.", Icon: Swords, category: "games" },
+  { href: "/raid", label: "World Boss Raid", desc: "Weekly server-wide raid battles.", Icon: Flame, category: "games", badge: "Boss Active" },
+  { href: "/marketplace", label: "Marketplace", desc: "Trade cards, rare wears, and serial numbers.", Icon: Store, category: "games" },
 
   // Community & Guilds
-  { href: "/guilds", label: "Guilds", desc: "Team up, pool XP, raid bosses, and climb.", Icon: Shield, tint: "#10b981", category: "community" },
-  { href: "/community", label: "Community", desc: "Forums, discussions, recommendations, and lore.", Icon: Users, tint: "#34d399", category: "community" },
-  { href: "/leaderboard", label: "Leaderboard", desc: "Top ranks across XP, duels, and collections.", Icon: Crown, tint: "#7dd3fc", category: "community" },
+  { href: "/guilds", label: "Guilds & Factions", desc: "Team up, pool XP, raid bosses, and climb.", Icon: Shield, category: "community" },
+  { href: "/community", label: "Community BBS", desc: "Forums, discussions, recommendations, and lore.", Icon: Users, category: "community" },
+  { href: "/leaderboard", label: "Hall of Fame", desc: "Top ranks across XP, duels, and collections.", Icon: Crown, category: "community" },
 
   // Progression & Curation
-  { href: "/quests", label: "Daily Quests", desc: "Complete tasks to earn daily Arise Points.", Icon: Trophy, tint: "#fb923c", category: "rewards" },
-  { href: "/shop", label: "Flair Shop", desc: "Profile frames, glowing auras, and banner items.", Icon: ShoppingBag, tint: "#e879f9", category: "rewards" },
-  { href: "/stamps", label: "Stamps", desc: "Weekly member stamps and activity feed.", Icon: Stamp, tint: "#fbbf24", category: "rewards" },
-  { href: "#gems", label: "Hidden Gems", desc: "Weekly community-curated highlights.", Icon: Gem, tint: "#a78bfa", category: "rewards" },
+  { href: "/quests", label: "Daily Quests", desc: "Complete tasks to earn daily Arise Points.", Icon: Trophy, category: "rewards" },
+  { href: "/shop", label: "Flair Shop", desc: "Profile frames, glowing auras, and banner items.", Icon: ShoppingBag, category: "rewards" },
+  { href: "/stamps", label: "Stamps", desc: "Weekly member stamps and activity feed.", Icon: Stamp, category: "rewards" },
+  { href: "#gems", label: "Hidden Gems", desc: "Weekly community-curated highlights.", Icon: Gem, category: "rewards" },
 
   // Platform
-  { href: "/updates", label: "Changelog", desc: "Platform release notes and roadmap updates.", Icon: Megaphone, tint: "#94a3b8", category: "system" },
+  { href: "/updates", label: "Changelog", desc: "Platform release notes and roadmap updates.", Icon: Megaphone, category: "system" },
 ];
 
 const CATEGORIES: { id: CategoryId; label: string }[] = [
@@ -67,6 +66,32 @@ const CATEGORIES: { id: CategoryId; label: string }[] = [
   { id: "system", label: "Platform" },
 ];
 
+// Smooth container spring variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05,
+      delayChildren: 0.08,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 16, scale: 0.98 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      type: "spring",
+      stiffness: 380,
+      damping: 26,
+    },
+  },
+};
+
 export default function HubPage() {
   const { user } = useUser();
   const [gemsOpen, setGemsOpen] = useState(false);
@@ -76,7 +101,7 @@ export default function HubPage() {
   const staff = isLeadDev(user) || isAdmin(user);
   const allSections: Section[] = useMemo(() => {
     return isLeadDev(user)
-      ? [...SECTIONS, { href: "/console", label: "Lead Dev Console", desc: "System control panel and admin tools.", Icon: Terminal, tint: "#a3e635", category: "system" as CategoryId }]
+      ? [...SECTIONS, { href: "/console", label: "Lead Dev Console", desc: "System control panel and admin tools.", Icon: Terminal, category: "system" as CategoryId }]
       : SECTIONS;
   }, [user]);
 
@@ -92,7 +117,7 @@ export default function HubPage() {
     });
   }, [allSections, activeCategory, searchQuery]);
 
-  if (!user) return <div className="min-h-screen bg-[#070709]" />;
+  if (!user) return <div className="min-h-screen bg-black" />;
 
   const xp = (user as any).xp ?? 0;
   const level = staff ? MAX_LEVEL : calculateLevel(xp);
@@ -101,64 +126,88 @@ export default function HubPage() {
   const roleBadge = isLeadDev(user) ? "Lead Dev" : isAdmin(user) ? "Admin" : "Member";
 
   return (
-    <div className="min-h-screen bg-[#070709] px-4 pb-36 pt-12 sm:px-6 lg:px-10 font-sans text-white">
-      {/* Background ambient lighting */}
+    <div className="min-h-screen bg-black px-4 pb-36 pt-12 sm:px-6 lg:px-10 font-sans text-white selection:bg-white selection:text-black">
+      {/* ── Subtle Atmospheric Silver Backlight ── */}
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-x-0 top-0 h-[600px] bg-[radial-gradient(ellipse_60%_60%_at_50%_-10%,rgba(139,92,246,0.14),transparent_70%)]"
+        className="pointer-events-none fixed inset-x-0 top-0 h-[600px] bg-[radial-gradient(ellipse_60%_50%_at_50%_-10%,rgba(255,255,255,0.07),transparent_75%)]"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 opacity-[0.03] bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]"
       />
 
-      <div className="relative mx-auto max-w-6xl space-y-10">
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+        className="relative mx-auto max-w-6xl space-y-10"
+      >
 
         {/* ── COMMAND DECK & USER PASSPORT ── */}
-        <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#120c24]/90 via-[#0d091a]/95 to-[#07050e]/95 p-6 sm:p-8 lg:p-10 shadow-[0_15px_50px_rgba(0,0,0,0.85)]">
+        <motion.section
+          variants={itemVariants}
+          className="relative overflow-hidden rounded-3xl border border-white/15 bg-gradient-to-b from-[#141414] via-[#090909] to-[#010101] p-6 sm:p-8 lg:p-10 shadow-[0_20px_50px_rgba(0,0,0,0.95),_0_0_30px_rgba(255,255,255,0.02)]"
+        >
           <div className="grid gap-8 lg:grid-cols-[1.3fr_0.9fr] lg:items-center">
             
             {/* Left: Hub Title & Quick Jump */}
             <div>
               <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
-                <span className="text-xs font-mono font-bold uppercase tracking-widest text-slate-400">
-                  Da Vinci Universe Portal
+                <span className="h-2 w-2 rounded-full bg-white shadow-[0_0_8px_#ffffff] animate-pulse" />
+                <span className="text-xs font-mono font-bold uppercase tracking-widest text-neutral-400">
+                  Da Vinci Universe Deck
                 </span>
               </div>
 
               <h1 className="mt-3 font-fell text-3xl font-extrabold text-white sm:text-4xl lg:text-5xl tracking-wide">
-                Welcome, <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-violet-200 to-white">{user.username}</span>
+                Welcome, <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-neutral-200 to-neutral-400">{user.username}</span>
               </h1>
 
-              <p className="mt-3 max-w-lg text-sm sm:text-base leading-relaxed text-slate-300">
-                Explore anime, manhwa, novels, and participate in community card battles, guild raids, and daily quests.
+              <p className="mt-3 max-w-lg text-sm sm:text-base leading-relaxed text-neutral-400 font-sans">
+                Explore anime broadcasts, manhwa webtoons, light novels, and participate in community card battles, guild raids, and daily quests.
               </p>
 
-              {/* Quick Jump Buttons */}
+              {/* Quick Jump Buttons (Fluid Hover Springs) */}
               <div className="mt-6 flex flex-wrap items-center gap-2.5">
-                <Link
-                  href="/"
-                  className="inline-flex items-center gap-2 rounded-xl border border-violet-500/30 bg-violet-500/15 px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider text-violet-200 hover:bg-violet-500/25 transition shadow-sm"
-                >
-                  <Play className="h-3.5 w-3.5 text-violet-400" />
-                  Watch Anime
-                </Link>
-                <Link
-                  href="/manhwa"
-                  className="inline-flex items-center gap-2 rounded-xl border border-sky-500/30 bg-sky-500/15 px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider text-sky-200 hover:bg-sky-500/25 transition shadow-sm"
-                >
-                  <BookOpen className="h-3.5 w-3.5 text-sky-400" />
-                  Read Manhwa
-                </Link>
-                <Link
-                  href="/novel"
-                  className="inline-flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/15 px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider text-amber-200 hover:bg-amber-500/25 transition shadow-sm"
-                >
-                  <Feather className="h-3.5 w-3.5 text-amber-400" />
-                  Light Novels
-                </Link>
+                <motion.div whileHover={{ y: -2, scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Link
+                    href="/"
+                    className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider text-white hover:bg-white hover:text-black transition-colors duration-200 shadow-sm"
+                  >
+                    <Play className="h-3.5 w-3.5 fill-current" />
+                    Watch Anime
+                  </Link>
+                </motion.div>
+
+                <motion.div whileHover={{ y: -2, scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Link
+                    href="/manhwa"
+                    className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider text-white hover:bg-white hover:text-black transition-colors duration-200 shadow-sm"
+                  >
+                    <BookOpen className="h-3.5 w-3.5" />
+                    Read Manhwa
+                  </Link>
+                </motion.div>
+
+                <motion.div whileHover={{ y: -2, scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Link
+                    href="/novel"
+                    className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider text-white hover:bg-white hover:text-black transition-colors duration-200 shadow-sm"
+                  >
+                    <Feather className="h-3.5 w-3.5" />
+                    Light Novels
+                  </Link>
+                </motion.div>
               </div>
             </div>
 
             {/* Right: User Passport Card */}
-            <div className="rounded-2xl border border-white/10 bg-black/40 p-5 backdrop-blur-md">
+            <motion.div
+              whileHover={{ y: -2 }}
+              transition={{ type: "spring", stiffness: 350, damping: 24 }}
+              className="rounded-2xl border border-white/15 bg-neutral-950/90 p-5 backdrop-blur-md shadow-xl"
+            >
               <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="relative h-12 w-12 shrink-0">
@@ -166,10 +215,10 @@ export default function HubPage() {
                       <img
                         src={cloudinaryFit(user.avatar, 120)}
                         alt=""
-                        className="relative z-10 h-12 w-12 rounded-2xl object-cover ring-2 ring-white/15"
+                        className="relative z-10 h-12 w-12 rounded-2xl object-cover ring-2 ring-white/30 shadow-[0_0_12px_rgba(255,255,255,0.15)]"
                       />
                     ) : (
-                      <span className="relative z-10 grid h-12 w-12 place-items-center rounded-2xl bg-violet-800 font-bold text-lg text-white">
+                      <span className="relative z-10 grid h-12 w-12 place-items-center rounded-2xl bg-neutral-800 font-bold text-lg text-white ring-2 ring-white/20">
                         {(user.username || "?")[0]?.toUpperCase()}
                       </span>
                     )}
@@ -179,37 +228,39 @@ export default function HubPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <p className="truncate text-base font-bold text-white">{user.username}</p>
-                      <span className="rounded-md border border-violet-400/40 bg-violet-500/20 px-2 py-0.5 text-[9px] font-mono font-black uppercase tracking-wider text-violet-200">
+                      <span className="rounded-md border border-white/30 bg-white/10 px-2 py-0.5 text-[9px] font-mono font-black uppercase tracking-wider text-white">
                         {roleBadge}
                       </span>
                     </div>
-                    <p className="truncate text-xs font-mono text-slate-400">
+                    <p className="truncate text-xs font-mono text-neutral-400">
                       {rankInfo.name}
                     </p>
                   </div>
                 </div>
 
-                <Link
-                  href={`/user/${encodeURIComponent(user.username)}`}
-                  className="shrink-0 text-slate-400 hover:text-white transition p-1"
-                  title="View Profile"
-                >
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
+                <motion.div whileHover={{ scale: 1.15, x: 2 }} whileTap={{ scale: 0.95 }}>
+                  <Link
+                    href={`/user/${encodeURIComponent(user.username)}`}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 text-neutral-400 hover:border-white/30 hover:bg-white hover:text-black transition-colors"
+                    title="View Profile"
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </motion.div>
               </div>
 
               {/* Stats Grid */}
               <div className="mt-4 grid grid-cols-2 gap-2.5">
-                <div className="rounded-xl border border-white/5 bg-white/[0.03] p-3">
-                  <span className="flex items-center gap-1 text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
-                    <Sparkles className="h-3 w-3 text-amber-400" /> Level
+                <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
+                  <span className="flex items-center gap-1 text-[10px] font-mono font-bold uppercase tracking-wider text-neutral-400">
+                    <Sparkles className="h-3 w-3 text-neutral-300" /> Level
                   </span>
                   <p className="mt-1 font-mono text-xl font-black text-white">{level}</p>
                 </div>
 
-                <div className="rounded-xl border border-white/5 bg-white/[0.03] p-3">
-                  <span className="flex items-center gap-1 text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
-                    <Diamond className="h-3 w-3 text-cyan-400" /> Arise Points
+                <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
+                  <span className="flex items-center gap-1 text-[10px] font-mono font-bold uppercase tracking-wider text-neutral-400">
+                    <Diamond className="h-3 w-3 text-neutral-300" /> Arise Points
                   </span>
                   <p className="mt-1 font-mono text-xl font-black text-white">{displayArisePoints(user)}</p>
                 </div>
@@ -217,225 +268,260 @@ export default function HubPage() {
 
               {/* XP Progress Bar */}
               <div className="mt-3.5">
-                <div className="flex items-center justify-between text-[10px] font-mono font-bold text-slate-400">
-                  <span className="flex items-center gap-1"><Zap className="h-3 w-3 text-violet-400" /> XP Progress</span>
-                  <span>{level >= MAX_LEVEL ? "MAX RANK" : `${Math.round(progress)}%`}</span>
+                <div className="flex items-center justify-between text-[10px] font-mono font-bold text-neutral-400">
+                  <span className="flex items-center gap-1"><Zap className="h-3 w-3 text-white" /> XP Progress</span>
+                  <span className="text-neutral-300 font-mono">{level >= MAX_LEVEL ? "MAX RANK" : `${Math.round(progress)}%`}</span>
                 </div>
-                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-amber-400 transition-all duration-700"
-                    style={{ width: `${progress}%` }}
+                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-neutral-800 border border-white/5">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progress}%` }}
+                    transition={{ duration: 1, ease: "easeOut" }}
+                    className="h-full rounded-full bg-gradient-to-r from-neutral-400 via-white to-neutral-200 shadow-[0_0_10px_rgba(255,255,255,0.4)]"
                   />
                 </div>
               </div>
-            </div>
+            </motion.div>
 
           </div>
-        </section>
+        </motion.section>
 
-        {/* ── THE BIG 3 REALMS (HERO GATEWAYS) ── */}
-        <section className="space-y-4">
+        {/* ── THE BIG 3 MEDIA GATEWAYS (HERO TRIAD) ── */}
+        <motion.section variants={itemVariants} className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-fell text-2xl font-bold text-white">Media Gateways</h2>
-            <span className="text-xs font-mono text-slate-500">Core Libraries</span>
+            <span className="text-xs font-mono text-neutral-500 uppercase tracking-wider">Primary Archives</span>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
             {/* Anime Card */}
-            <div className="group relative overflow-hidden rounded-3xl border border-violet-500/25 bg-gradient-to-b from-violet-950/40 via-[#0d091b]/90 to-[#07050f] p-6 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-violet-500/50 hover:shadow-[0_0_30px_rgba(139,92,246,0.2)]">
+            <motion.div
+              whileHover={{ y: -6, transition: { type: "spring", stiffness: 350, damping: 22 } }}
+              className="group relative overflow-hidden rounded-3xl border border-white/15 bg-gradient-to-b from-[#141414] via-[#090909] to-[#010101] p-6 backdrop-blur-md shadow-lg hover:border-white/40 hover:shadow-[0_0_30px_rgba(255,255,255,0.08)] transition-colors duration-300"
+            >
               <div className="flex items-center justify-between">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-violet-400/30 bg-violet-500/15 text-violet-300">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white shadow-sm transition-transform duration-300 group-hover:scale-110">
                   <Tv className="h-6 w-6" />
                 </div>
-                <span className="rounded-full border border-violet-400/30 bg-violet-500/10 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-violet-300">
+                <span className="rounded-full border border-white/20 bg-white/5 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-neutral-300">
                   Streaming
                 </span>
               </div>
               <h3 className="mt-4 text-xl font-bold text-white">Anime Realm</h3>
-              <p className="mt-1.5 text-xs leading-relaxed text-slate-400">
+              <p className="mt-1.5 text-xs leading-relaxed text-neutral-400 font-sans">
                 Stream ongoing simulcasts, sub & dub releases, and classic anime archives.
               </p>
-              <div className="mt-5 flex items-center gap-2 pt-3 border-t border-white/5">
+              <div className="mt-5 flex items-center gap-2 pt-3 border-t border-white/10">
                 <Link
                   href="/"
-                  className="flex-1 rounded-xl bg-violet-600 px-3.5 py-2 text-center text-xs font-mono font-bold uppercase tracking-wider text-white hover:bg-violet-500 transition shadow-md"
+                  className="flex-1 rounded-xl bg-white px-3.5 py-2 text-center text-xs font-mono font-bold uppercase tracking-wider text-black hover:bg-neutral-200 transition-all duration-200 shadow-md hover:shadow-[0_0_15px_rgba(255,255,255,0.3)]"
                 >
                   Watch Now
                 </Link>
                 <Link
                   href="/explore"
-                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-mono text-slate-300 hover:text-white hover:bg-white/10 transition"
+                  className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-mono text-neutral-300 hover:text-white hover:bg-white/15 transition"
                   title="Explore Anime Catalog"
                 >
                   <Compass className="h-4 w-4" />
                 </Link>
               </div>
-            </div>
+            </motion.div>
 
             {/* Manhwa Card */}
-            <div className="group relative overflow-hidden rounded-3xl border border-sky-500/25 bg-gradient-to-b from-sky-950/40 via-[#09101b]/90 to-[#05090f] p-6 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-sky-500/50 hover:shadow-[0_0_30px_rgba(56,189,248,0.2)]">
+            <motion.div
+              whileHover={{ y: -6, transition: { type: "spring", stiffness: 350, damping: 22 } }}
+              className="group relative overflow-hidden rounded-3xl border border-white/15 bg-gradient-to-b from-[#141414] via-[#090909] to-[#010101] p-6 backdrop-blur-md shadow-lg hover:border-white/40 hover:shadow-[0_0_30px_rgba(255,255,255,0.08)] transition-colors duration-300"
+            >
               <div className="flex items-center justify-between">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-sky-400/30 bg-sky-500/15 text-sky-300">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white shadow-sm transition-transform duration-300 group-hover:scale-110">
                   <BookOpen className="h-6 w-6" />
                 </div>
-                <span className="rounded-full border border-sky-400/30 bg-sky-500/10 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-sky-300">
+                <span className="rounded-full border border-white/20 bg-white/5 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-neutral-300">
                   Comics & Manga
                 </span>
               </div>
               <h3 className="mt-4 text-xl font-bold text-white">Manhwa & Comics</h3>
-              <p className="mt-1.5 text-xs leading-relaxed text-slate-400">
+              <p className="mt-1.5 text-xs leading-relaxed text-neutral-400 font-sans">
                 High-definition scans for Korean manhwa, Japanese manga, and Chinese manhua.
               </p>
-              <div className="mt-5 flex items-center gap-2 pt-3 border-t border-white/5">
+              <div className="mt-5 flex items-center gap-2 pt-3 border-t border-white/10">
                 <Link
                   href="/manhwa"
-                  className="flex-1 rounded-xl bg-sky-600 px-3.5 py-2 text-center text-xs font-mono font-bold uppercase tracking-wider text-white hover:bg-sky-500 transition shadow-md"
+                  className="flex-1 rounded-xl bg-white px-3.5 py-2 text-center text-xs font-mono font-bold uppercase tracking-wider text-black hover:bg-neutral-200 transition-all duration-200 shadow-md hover:shadow-[0_0_15px_rgba(255,255,255,0.3)]"
                 >
                   Read Now
                 </Link>
                 <Link
                   href="/manhwa/explore"
-                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-mono text-slate-300 hover:text-white hover:bg-white/10 transition"
+                  className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-mono text-neutral-300 hover:text-white hover:bg-white/15 transition"
                   title="Explore Comics Catalog"
                 >
                   <Compass className="h-4 w-4" />
                 </Link>
               </div>
-            </div>
+            </motion.div>
 
             {/* Light Novels Card */}
-            <div className="group relative overflow-hidden rounded-3xl border border-amber-500/25 bg-gradient-to-b from-amber-950/40 via-[#151009]/90 to-[#0d0a06] p-6 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-amber-500/50 hover:shadow-[0_0_30px_rgba(251,191,36,0.2)]">
+            <motion.div
+              whileHover={{ y: -6, transition: { type: "spring", stiffness: 350, damping: 22 } }}
+              className="group relative overflow-hidden rounded-3xl border border-white/15 bg-gradient-to-b from-[#141414] via-[#090909] to-[#010101] p-6 backdrop-blur-md shadow-lg hover:border-white/40 hover:shadow-[0_0_30px_rgba(255,255,255,0.08)] transition-colors duration-300"
+            >
               <div className="flex items-center justify-between">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-amber-400/30 bg-amber-500/15 text-amber-300">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white shadow-sm transition-transform duration-300 group-hover:scale-110">
                   <Feather className="h-6 w-6" />
                 </div>
-                <span className="rounded-full border border-amber-400/30 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-amber-300">
+                <span className="rounded-full border border-white/20 bg-white/5 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-neutral-300">
                   Web Serials
                 </span>
               </div>
               <h3 className="mt-4 text-xl font-bold text-white">Light Novels</h3>
-              <p className="mt-1.5 text-xs leading-relaxed text-slate-400">
-                Immersive reader for serialized light novels, translated web novels, and epubs.
+              <p className="mt-1.5 text-xs leading-relaxed text-neutral-400 font-sans">
+                Immersive reader for serialized light novels, translated web serials, and epubs.
               </p>
-              <div className="mt-5 flex items-center gap-2 pt-3 border-t border-white/5">
+              <div className="mt-5 flex items-center gap-2 pt-3 border-t border-white/10">
                 <Link
                   href="/novel"
-                  className="flex-1 rounded-xl bg-amber-600 px-3.5 py-2 text-center text-xs font-mono font-bold uppercase tracking-wider text-white hover:bg-amber-500 transition shadow-md"
+                  className="flex-1 rounded-xl bg-white px-3.5 py-2 text-center text-xs font-mono font-bold uppercase tracking-wider text-black hover:bg-neutral-200 transition-all duration-200 shadow-md hover:shadow-[0_0_15px_rgba(255,255,255,0.3)]"
                 >
                   Read Now
                 </Link>
                 <Link
                   href="/novel/explore"
-                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-mono text-slate-300 hover:text-white hover:bg-white/10 transition"
+                  className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-mono text-neutral-300 hover:text-white hover:bg-white/15 transition"
                   title="Explore Novels Catalog"
                 >
                   <Compass className="h-4 w-4" />
                 </Link>
               </div>
-            </div>
+            </motion.div>
           </div>
-        </section>
+        </motion.section>
 
-        {/* ── SEARCH & CATEGORY FILTER ── */}
-        <section className="space-y-4">
+        {/* ── SEARCH & CATEGORY FILTER WITH FLUID LAYOUT ── */}
+        <motion.section variants={itemVariants} className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            {/* Search Input */}
             <div className="relative min-w-[14rem] flex-1 sm:max-w-md">
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
               <input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search hub destinations…"
-                className="h-11 w-full rounded-2xl border border-white/10 bg-[#0d091a]/80 pl-10 pr-9 text-xs sm:text-sm text-white placeholder:text-slate-600 outline-none focus:border-violet-500/60 transition"
+                className="h-11 w-full rounded-2xl border border-white/15 bg-neutral-900/90 pl-10 pr-9 text-xs sm:text-sm text-white placeholder:text-neutral-600 outline-none focus:border-white/50 focus:shadow-[0_0_15px_rgba(255,255,255,0.1)] transition-all duration-200"
               />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
+              <AnimatePresence>
+                {searchQuery && (
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white transition-colors"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </motion.button>
+                )}
+              </AnimatePresence>
             </div>
 
-            {/* Category Pills */}
+            {/* Monochrome Category Selector with Fluid Pill Highlight */}
             <div className="flex flex-wrap items-center gap-1.5">
               {CATEGORIES.map((cat) => {
                 const active = activeCategory === cat.id;
                 return (
-                  <button
+                  <motion.button
                     key={cat.id}
                     onClick={() => setActiveCategory(cat.id)}
-                    className={`rounded-xl border px-3 py-1.5 text-xs font-mono font-bold uppercase tracking-wider transition ${
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    className={`relative rounded-xl border px-3 py-1.5 text-xs font-mono font-bold uppercase tracking-wider transition-all duration-200 ${
                       active
-                        ? "border-violet-400/60 bg-violet-500/20 text-violet-100 shadow-[0_0_12px_rgba(139,92,246,0.25)]"
-                        : "border-white/5 bg-white/[0.02] text-slate-400 hover:bg-white/5 hover:text-white"
+                        ? "border-white bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.25)]"
+                        : "border-white/10 bg-white/[0.03] text-neutral-400 hover:border-white/20 hover:text-white"
                     }`}
                   >
                     {cat.label}
-                  </button>
+                  </motion.button>
                 );
               })}
             </div>
           </div>
 
-          {/* ── ALL SECTIONS GRID ── */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredSections.map(({ href, label, desc, Icon, tint, badge }) => {
-              const content = (
-                <div className="group relative flex h-full flex-col justify-between rounded-2xl border border-white/10 bg-[#0c0818]/80 p-5 transition-all duration-200 hover:-translate-y-1 hover:border-white/20 hover:bg-[#120d22] shadow-lg">
-                  <div>
-                    <div className="flex items-start justify-between">
-                      <div
-                        className="flex h-11 w-11 items-center justify-center rounded-xl"
-                        style={{ background: `${tint}15`, border: `1px solid ${tint}30` }}
-                      >
-                        <Icon className="h-5 w-5" style={{ color: tint }} />
+          {/* ── ALL SECTIONS GRID WITH FLUID LAYOUT REORDERING ── */}
+          <motion.div
+            layout
+            className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+          >
+            <AnimatePresence mode="popLayout">
+              {filteredSections.map(({ href, label, desc, Icon, badge }) => {
+                const content = (
+                  <motion.div
+                    layout
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    whileHover={{ y: -4, transition: { type: "spring", stiffness: 350, damping: 22 } }}
+                    className="group relative flex h-full flex-col justify-between rounded-2xl border border-white/10 bg-[#0d0d0d] p-5 transition-all duration-200 hover:border-white/30 hover:bg-[#141414] shadow-lg"
+                  >
+                    <div>
+                      <div className="flex items-start justify-between">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white shadow-sm transition-transform duration-300 group-hover:scale-110">
+                          <Icon className="h-5 w-5" />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {badge && (
+                            <span className="rounded-full border border-white/30 bg-white/15 px-2 py-0.5 text-[9px] font-mono font-black uppercase text-white shadow-[0_0_8px_rgba(255,255,255,0.2)]">
+                              {badge}
+                            </span>
+                          )}
+                          <ArrowUpRight className="h-4 w-4 text-neutral-600 transition-all duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-white" />
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        {badge && (
-                          <span className="rounded-full border border-rose-500/40 bg-rose-500/15 px-2 py-0.5 text-[9px] font-mono font-black uppercase text-rose-300">
-                            {badge}
-                          </span>
-                        )}
-                        <ArrowUpRight className="h-4 w-4 text-slate-600 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-white" />
-                      </div>
+                      <h4 className="mt-4 text-base font-bold text-white transition-colors group-hover:text-neutral-200">
+                        {label}
+                      </h4>
+                      <p className="mt-1 text-xs leading-relaxed text-neutral-400 font-sans">
+                        {desc}
+                      </p>
                     </div>
+                  </motion.div>
+                );
 
-                    <h4 className="mt-4 text-base font-bold text-white transition group-hover:text-violet-200">
-                      {label}
-                    </h4>
-                    <p className="mt-1 text-xs leading-relaxed text-slate-400 font-sans">
-                      {desc}
-                    </p>
-                  </div>
-                </div>
-              );
+                return (
+                  <motion.div
+                    layout
+                    key={href}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {href === "#gems" ? (
+                      <button
+                        type="button"
+                        onClick={() => setGemsOpen(true)}
+                        className="w-full text-left h-full"
+                      >
+                        {content}
+                      </button>
+                    ) : (
+                      <Link href={href} className="block h-full">
+                        {content}
+                      </Link>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          </motion.div>
+        </motion.section>
 
-              return (
-                <div key={href}>
-                  {href === "#gems" ? (
-                    <button
-                      type="button"
-                      onClick={() => setGemsOpen(true)}
-                      className="w-full text-left h-full"
-                    >
-                      {content}
-                    </button>
-                  ) : (
-                    <Link href={href} className="block h-full">
-                      {content}
-                    </Link>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </section>
+      </motion.div>
 
-      </div>
-
-      {/* ── GEMS SELECTION MODAL ── */}
+      {/* ── GEMS SELECTION MODAL (ULTRA-FLUID MOTION) ── */}
       <AnimatePresence>
         {gemsOpen && (
           <div className="fixed inset-0 z-[120] grid place-items-center p-4">
@@ -443,52 +529,53 @@ export default function HubPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
               onClick={() => setGemsOpen(false)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              initial={{ opacity: 0, scale: 0.94, y: 12 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="relative w-full max-w-sm rounded-3xl border border-white/10 bg-[#0d091a] p-6 shadow-2xl"
+              exit={{ opacity: 0, scale: 0.94, y: 12 }}
+              transition={{ type: "spring", stiffness: 400, damping: 28 }}
+              className="relative w-full max-w-sm rounded-3xl border border-white/20 bg-neutral-950 p-6 shadow-2xl"
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h3 className="font-fell text-2xl font-bold text-white">Select Gems Mode</h3>
-                  <p className="mt-1 text-xs text-slate-400 font-sans">
+                  <p className="mt-1 text-xs text-neutral-400 font-sans">
                     Weekly community curations and top rated hidden gems.
                   </p>
                 </div>
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
                   type="button"
                   onClick={() => setGemsOpen(false)}
-                  className="grid h-8 w-8 place-items-center rounded-full text-slate-400 hover:bg-white/10 hover:text-white transition"
+                  className="grid h-8 w-8 place-items-center rounded-full text-neutral-400 hover:bg-white/10 hover:text-white transition"
                 >
                   <X className="h-4 w-4" />
-                </button>
+                </motion.button>
               </div>
 
               <div className="mt-5 space-y-2.5">
                 {[
-                  { href: "/gems/anime", label: "Anime Gems", Icon: Tv, tint: "#a855f7" },
-                  { href: "/gems/manhwa", label: "Manhwa Gems", Icon: BookOpen, tint: "#38bdf8" },
-                  { href: "/gems/novel", label: "Novel Gems", Icon: Feather, tint: "#fbbf24" },
-                ].map(({ href, label, Icon, tint }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    onClick={() => setGemsOpen(false)}
-                    className="group flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3.5 transition hover:border-violet-500/40 hover:bg-violet-500/10"
-                  >
-                    <span
-                      className="grid h-10 w-10 shrink-0 place-items-center rounded-xl"
-                      style={{ background: `${tint}15`, border: `1px solid ${tint}30` }}
+                  { href: "/gems/anime", label: "Anime Gems", Icon: Tv },
+                  { href: "/gems/manhwa", label: "Manhwa Gems", Icon: BookOpen },
+                  { href: "/gems/novel", label: "Novel Gems", Icon: Feather },
+                ].map(({ href, label, Icon }) => (
+                  <motion.div key={href} whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }}>
+                    <Link
+                      href={href}
+                      onClick={() => setGemsOpen(false)}
+                      className="group flex items-center gap-3 rounded-2xl border border-white/15 bg-white/[0.04] p-3.5 transition-colors hover:border-white/40 hover:bg-white/10"
                     >
-                      <Icon className="h-5 w-5" style={{ color: tint }} />
-                    </span>
-                    <span className="flex-1 font-mono text-sm font-bold text-white">{label}</span>
-                    <ArrowRight className="h-4 w-4 text-slate-600 transition group-hover:translate-x-0.5 group-hover:text-violet-300" />
-                  </Link>
+                      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/20 bg-white/10 text-white transition-transform group-hover:scale-105">
+                        <Icon className="h-5 w-5" />
+                      </span>
+                      <span className="flex-1 font-mono text-sm font-bold text-white">{label}</span>
+                      <ArrowRight className="h-4 w-4 text-neutral-500 transition-all duration-200 group-hover:translate-x-1 group-hover:text-white" />
+                    </Link>
+                  </motion.div>
                 ))}
               </div>
             </motion.div>
@@ -498,4 +585,5 @@ export default function HubPage() {
     </div>
   );
 }
+
 
