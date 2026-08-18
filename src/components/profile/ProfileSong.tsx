@@ -1,21 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Volume2, VolumeX } from "lucide-react";
+import { Volume2, VolumeX, Music } from "lucide-react";
+import { motion } from "framer-motion";
 
-/**
- * THE PROFILE SONG — one page on the platform has a soundtrack.
- *
- * Renders as a speaker button beside the avatar. The song loops at HALF
- * volume by design — it is atmosphere, not an ambush — and the button is
- * the whole contract: tap to play, tap to silence.
- *
- * Autoplay is ATTEMPTED on arrival and almost always refused (browsers
- * require a gesture before audible playback), and that refusal is this
- * button's reason to exist: when the attempt bounces, the speaker simply
- * waits in its muted state. Playback always stops on unmount — the song
- * belongs to the profile, not to the app.
- */
 export default function ProfileSong({ src }: { src: string }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -27,11 +15,14 @@ export default function ProfileSong({ src }: { src: string }) {
     el.preload = "auto";
     audioRef.current = el;
     el.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
-    return () => { el.pause(); el.src = ""; audioRef.current = null; };
+    return () => {
+      el.pause();
+      el.src = "";
+      audioRef.current = null;
+    };
   }, [src]);
 
   const toggle = (e: React.MouseEvent) => {
-    // The avatar behind this opens an image preview on click.
     e.stopPropagation();
     const el = audioRef.current;
     if (!el) return;
@@ -47,16 +38,26 @@ export default function ProfileSong({ src }: { src: string }) {
   return (
     <button
       onClick={toggle}
-      aria-label={playing ? "Mute the profile song" : "Play the profile song"}
-      title={playing ? "Playing — tap to mute" : "This profile has a song — tap to play"}
-      className="relative grid h-10 w-10 place-items-center rounded-full border-2 border-[#0b0b12] bg-black/85 text-purple-200 shadow-[0_4px_20px_rgba(0,0,0,0.8)] transition hover:text-white"
+      aria-label={playing ? "Mute soundtrack" : "Play soundtrack"}
+      title={playing ? "Soundtrack Playing (Tap to Mute)" : "Play Soundtrack"}
+      className="group relative flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/20 bg-black/85 text-violet-300 shadow-[0_8px_25px_rgba(0,0,0,0.8)] backdrop-blur-xl transition-all duration-300 hover:scale-110 hover:border-violet-400 hover:text-white"
     >
       {playing && (
-        <span aria-hidden className="absolute inset-0 animate-ping rounded-full bg-purple-500/30" />
+        <span
+          aria-hidden
+          className="absolute inset-0 animate-ping rounded-full bg-violet-500/30"
+        />
       )}
-      {playing
-        ? <Volume2 className="relative h-4 w-4" />
-        : <VolumeX className="relative h-4 w-4 opacity-80" />}
+      
+      {playing ? (
+        <div className="flex items-end gap-0.5 h-3.5">
+          <span className="w-1 bg-violet-400 rounded-full animate-[pulse_0.6s_ease-in-out_infinite] h-3" />
+          <span className="w-1 bg-fuchsia-400 rounded-full animate-[pulse_0.4s_ease-in-out_infinite_0.2s] h-4" />
+          <span className="w-1 bg-violet-300 rounded-full animate-[pulse_0.7s_ease-in-out_infinite_0.4s] h-2" />
+        </div>
+      ) : (
+        <VolumeX className="h-4 w-4 opacity-75 group-hover:opacity-100" />
+      )}
     </button>
   );
 }

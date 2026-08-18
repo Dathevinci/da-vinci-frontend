@@ -2,8 +2,43 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, MapPin, Calendar, Clock, Star, TrendingUp, Compass, Settings, Check, X, Shield, Users, Zap, User as UserIcon, Code2, Sparkles, Crown, Feather, Flame, Leaf, UserPlus, UserMinus, Eye, Heart, ListFilter } from 'lucide-react';
-import BioRenderer from '@/components/profile/BioRenderer';
+import {
+  ArrowLeft,
+  MapPin,
+  Calendar,
+  Clock,
+  Star,
+  TrendingUp,
+  Compass,
+  Settings,
+  Check,
+  X,
+  Shield,
+  Users,
+  Zap,
+  User as UserIcon,
+  Code2,
+  Sparkles,
+  Crown,
+  Feather,
+  Flame,
+  Leaf,
+  UserPlus,
+  UserMinus,
+  Eye,
+  Heart,
+  ListFilter,
+  ChevronDown,
+  Maximize2,
+  Tv,
+  BookMarked,
+  BookOpen,
+  Award,
+  Layers,
+  Activity,
+  FlameKindling,
+} from "lucide-react";
+import BioRenderer from "@/components/profile/BioRenderer";
 import { parseBio } from "@/lib/bioUtils";
 import { useUser, User } from "@/hooks/useUser";
 import FollowListModal from "@/components/profile/FollowListModal";
@@ -17,7 +52,15 @@ import ProfileSong from "@/components/profile/ProfileSong";
 import { cloudinaryFit } from "@/lib/cloudinary";
 import { ProfileEffect } from "@/components/profile/ProfileEffect";
 import ProfileShowcase from "@/components/profile/ProfileShowcase";
-import { calculateLevel, calculateProgressPercent, xpIntoLevel, xpToNextLevel, levelCost, MAX_LEVEL, MAX_LEVEL_XP } from "@/lib/levels";
+import {
+  calculateLevel,
+  calculateProgressPercent,
+  xpIntoLevel,
+  xpToNextLevel,
+  levelCost,
+  MAX_LEVEL,
+  MAX_LEVEL_XP,
+} from "@/lib/levels";
 import { isAdmin, isLeadDev, displayArisePoints } from "@/lib/admin";
 import { nameColorClass } from "@/lib/cosmetics";
 import { resolveActiveEffect } from "@/components/profile/CrimsonRealm";
@@ -27,15 +70,38 @@ import { getHeartRank, heartRankTooltip, isHeartRankName } from "@/lib/heartRank
 import { manhwaCoverSrc } from "@/lib/manhwa/coverProxy";
 import { effectNameClass } from "@/lib/effectTheme";
 import { usePreferences } from "@/hooks/usePreferences";
-import { Code2 as IconCode2, ShieldAlert, Sparkles as IconSparkles, Crown as IconCrown, Flame as IconFlame, Zap as IconZap, Compass as IconCompass, Leaf as IconLeaf, ArrowUpRight, Feather as IconFeather, Eye as IconEye } from "lucide-react";
-const ICON_MAP: Record<string, any> = { Code2: IconCode2, ShieldAlert, Sparkles: IconSparkles, Crown: IconCrown, Flame: IconFlame, Zap: IconZap, Compass: IconCompass, Leaf: IconLeaf, ArrowUpRight, Feather: IconFeather, Eye: IconEye };
+import {
+  Code2 as IconCode2,
+  ShieldAlert,
+  Sparkles as IconSparkles,
+  Crown as IconCrown,
+  Flame as IconFlame,
+  Zap as IconZap,
+  Compass as IconCompass,
+  Leaf as IconLeaf,
+  ArrowUpRight,
+  Feather as IconFeather,
+  Eye as IconEye,
+} from "lucide-react";
+const ICON_MAP: Record<string, any> = {
+  Code2: IconCode2,
+  ShieldAlert,
+  Sparkles: IconSparkles,
+  Crown: IconCrown,
+  Flame: IconFlame,
+  Zap: IconZap,
+  Compass: IconCompass,
+  Leaf: IconLeaf,
+  ArrowUpRight,
+  Feather: IconFeather,
+  Eye: IconEye,
+};
 import { useToast } from "@/components/ui/Toast";
 import PageTransition from "@/components/layout/PageTransition";
 import QuickViewModal from "@/components/ui/QuickViewModal";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 import TrailerModal from "@/components/ui/TrailerModal";
 import { getYouTubeId, getAnimeDetailsAniList } from "@/lib/jikan";
-import { ChevronDown, Maximize2 } from "lucide-react";
 import AnimeStatusBadge from "@/components/anime/AnimeStatusBadge";
 import TrackerButton from "@/components/anime/TrackerButton";
 import { useAnimeStatus } from "@/hooks/useAnimeStatus";
@@ -72,13 +138,9 @@ export default function PublicProfilePage() {
   const { user: currentUser, isLoaded: currentUserLoaded, followUser, unfollowUser } = useUser();
   const { preferences } = usePreferences();
   const { toast } = useToast();
-  
+
   const [profileUser, setProfileUser] = useState<User | null>(null);
-  /** Worn titles, owned by TitleRack. `null` until it has answered — the hero
-   *  falls back to the profile payload in the meantime rather than flashing
-   *  an empty strip on every load. */
   const [activeWornTitles, setActiveWornTitles] = useState<string[] | null>(null);
-  /** Bumped when settings equips titles, so the rack below refetches too. */
   const [titleVersion, setTitleVersion] = useState(0);
   const [watchlist, setWatchlist] = useState<any[]>([]);
   const [manhwaWatchlist, setManhwaWatchlist] = useState<any[]>([]);
@@ -91,17 +153,12 @@ export default function PublicProfilePage() {
   const [showSettings, setShowSettings] = useState(false);
   const [showcaseOpen, setShowcaseOpen] = useState(false);
 
-  // Which tracker sections are expanded ("See all").
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
 
-  // Live tracker for the current user, so status edits on your own profile
-  // re-file cards into the right section immediately.
   const { tracked: liveTracked, wipeWatchlist } = useAnimeStatus();
   const { tracked: liveTrackedManhwa, clearAllTracking: clearManhwaTracking } = useManhwaStatus();
   const { tracked: liveTrackedNovel, clearAllTracking: clearNovelTracking } = useNovelStatus();
 
-  // Manhwa/novel cards navigate straight to their detail pages now — the
-  // quick-view popups are retired by the owner's ask.
   const router = useRouter();
 
   const [activeAnime, setActiveAnime] = useState<any | null>(null);
@@ -109,7 +166,6 @@ export default function PublicProfilePage() {
   const [showTrailer, setShowTrailer] = useState(false);
   const [loadingAnimeId, setLoadingAnimeId] = useState<number | null>(null);
 
-  // Toggle between Anime, Manhwa and Novel tabs
   const [activeTab, setActiveTab] = useState<"anime" | "manhwa" | "novel">("anime");
 
   const handleOpenQuickView = async (e: React.MouseEvent, id: number) => {
@@ -121,8 +177,6 @@ export default function PublicProfilePage() {
     }
     setLoadingAnimeId(id);
     try {
-      // These IDs are AniList IDs, so query AniList directly (Jikan/MAL uses
-      // different IDs and rate-limits our production traffic).
       const data = await getAnimeDetailsAniList(id);
       if (data) {
         setActiveAnime(data);
@@ -138,15 +192,15 @@ export default function PublicProfilePage() {
     }
   };
 
-
   useEffect(() => {
-    // Only fetch once currentUserLoaded is true, so we don't fetch without currentUserId
     if (!currentUserLoaded) return;
-    
+
     const fetchUser = async () => {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
       try {
-        const url = currentUser ? `${API_URL}/api/users/username/${username}?currentUserId=${currentUser.id}` : `${API_URL}/api/users/username/${username}`;
+        const url = currentUser
+          ? `${API_URL}/api/users/username/${username}?currentUserId=${currentUser.id}`
+          : `${API_URL}/api/users/username/${username}`;
         const res = await fetch(url);
         const data = await res.json();
         if (data.success) {
@@ -166,19 +220,19 @@ export default function PublicProfilePage() {
 
   const selfView = !!currentUser && currentUser.id === profileUser?.id;
 
-  // Group the tracker by status (Watching / Watched / Waiting / Interested).
-  // This MUST run before the early returns below — otherwise the hook count
-  // changes between the loading and loaded renders, which crashes with
-  // "Rendered more hooks than during the previous render."
   const activeItems = watchlist;
   const groupedItems = useMemo(() => {
     const SECTION_FOR: Record<string, string> = {
-      WATCHING: "Watching", WATCHED: "Watched", FINISHED: "Watched",
-      WAITING: "Waiting", INTERESTED: "Interested", DROPPED: "Dropped",
+      WATCHING: "Watching",
+      WATCHED: "Watched",
+      FINISHED: "Watched",
+      WAITING: "Waiting",
+      INTERESTED: "Interested",
+      DROPPED: "Dropped",
     };
 
     const groups: Record<string, typeof activeItems> = {};
-    activeItems.forEach(item => {
+    activeItems.forEach((item) => {
       const raw = (selfView && liveTracked[item.anilistId]?.status) || item.status || "";
       const section = SECTION_FOR[String(raw).toUpperCase()] || "Other";
       if (!groups[section]) groups[section] = [];
@@ -186,54 +240,78 @@ export default function PublicProfilePage() {
     });
 
     const order = ["Watching", "Watched", "Waiting", "Interested", "Dropped", "Other"];
-    const rank = (s: string) => { const i = order.indexOf(s); return i === -1 ? 99 : i; };
+    const rank = (s: string) => {
+      const i = order.indexOf(s);
+      return i === -1 ? 99 : i;
+    };
     return Object.entries(groups).sort((a, b) => rank(a[0]) - rank(b[0]));
   }, [activeItems, liveTracked, selfView]);
 
   const activeManhwaItems = manhwaWatchlist;
   const groupedManhwaItems = useMemo(() => {
     const SECTION_FOR_MANHWA: Record<string, string> = {
-      READING: "Reading", COMPLETED: "Completed", FINISHED: "Completed",
-      WAITING: "Waiting", "ON-HOLD": "On-Hold", ON_HOLD: "On-Hold", ONHOLD: "On-Hold",
-      INTERESTED: "Interested", DROPPED: "Dropped", PLAN_TO_READ: "Plan to Read"
+      READING: "Reading",
+      COMPLETED: "Completed",
+      FINISHED: "Completed",
+      WAITING: "Waiting",
+      "ON-HOLD": "On-Hold",
+      ON_HOLD: "On-Hold",
+      ONHOLD: "On-Hold",
+      INTERESTED: "Interested",
+      DROPPED: "Dropped",
+      PLAN_TO_READ: "Plan to Read",
     };
     const groups: Record<string, typeof activeManhwaItems> = {};
-    activeManhwaItems.forEach(item => {
+    activeManhwaItems.forEach((item) => {
       const raw = (selfView && liveTrackedManhwa[item.mangaId]?.status) || item.status || "READING";
-      const section = SECTION_FOR_MANHWA[String(raw).toUpperCase().replace(/_/g, "-")] || SECTION_FOR_MANHWA[String(raw).toUpperCase()] || "Other";
+      const section =
+        SECTION_FOR_MANHWA[String(raw).toUpperCase().replace(/_/g, "-")] ||
+        SECTION_FOR_MANHWA[String(raw).toUpperCase()] ||
+        "Other";
       if (!groups[section]) groups[section] = [];
       groups[section].push(item);
     });
 
     const order = ["Reading", "Completed", "Waiting", "On-Hold", "Interested", "Plan to Read", "Dropped", "Other"];
-    const rank = (s: string) => { const i = order.indexOf(s); return i === -1 ? 99 : i; };
+    const rank = (s: string) => {
+      const i = order.indexOf(s);
+      return i === -1 ? 99 : i;
+    };
     return Object.entries(groups).sort((a, b) => rank(a[0]) - rank(b[0]));
   }, [activeManhwaItems, liveTrackedManhwa, selfView]);
 
   const activeNovelItems = novelWatchlist;
   const groupedNovelItems = useMemo(() => {
     const SECTION_FOR_NOVEL: Record<string, string> = {
-      READING: "Reading", FINISHED: "Finished", COMPLETED: "Finished",
-      WAITING: "Waiting", "ON-HOLD": "On-Hold", ON_HOLD: "On-Hold", ONHOLD: "On-Hold",
-      INTERESTED: "Interested", DROPPED: "Dropped",
+      READING: "Reading",
+      FINISHED: "Finished",
+      COMPLETED: "Finished",
+      WAITING: "Waiting",
+      "ON-HOLD": "On-Hold",
+      ON_HOLD: "On-Hold",
+      ONHOLD: "On-Hold",
+      INTERESTED: "Interested",
+      DROPPED: "Dropped",
     };
     const groups: Record<string, typeof activeNovelItems> = {};
-    activeNovelItems.forEach(item => {
+    activeNovelItems.forEach((item) => {
       const raw = (selfView && liveTrackedNovel[item.novelId]?.status) || item.status || "READING";
-      const section = SECTION_FOR_NOVEL[String(raw).toUpperCase().replace(/_/g, "-")] || SECTION_FOR_NOVEL[String(raw).toUpperCase()] || "Other";
+      const section =
+        SECTION_FOR_NOVEL[String(raw).toUpperCase().replace(/_/g, "-")] ||
+        SECTION_FOR_NOVEL[String(raw).toUpperCase()] ||
+        "Other";
       if (!groups[section]) groups[section] = [];
       groups[section].push(item);
     });
 
     const order = ["Reading", "Finished", "Waiting", "On-Hold", "Interested", "Dropped", "Other"];
-    const rank = (s: string) => { const i = order.indexOf(s); return i === -1 ? 99 : i; };
+    const rank = (s: string) => {
+      const i = order.indexOf(s);
+      return i === -1 ? 99 : i;
+    };
     return Object.entries(groups).sort((a, b) => rank(a[0]) - rank(b[0]));
   }, [activeNovelItems, liveTrackedNovel, selfView]);
 
-  // Hours actually spent watching — the summed runtime of everything FINISHED.
-  // Runtime metadata is backfilled server-side, so this covers old entries too;
-  // anything we still don't know the length of simply doesn't count.
-  // Like the memo above, this MUST sit before the early returns (hook order).
   const hoursWatched = useMemo(() => {
     const minutes = activeItems.reduce((sum: number, it: any) => {
       const s = String(it.status || "").toUpperCase();
@@ -246,7 +324,12 @@ export default function PublicProfilePage() {
   }, [activeItems]);
 
   if (loading || !currentUserLoaded) return <LoadingScreen message="Loading profile" />;
-  if (!profileUser) return <div className="min-h-screen bg-[#09090b] flex items-center justify-center text-white">User not found</div>;
+  if (!profileUser)
+    return (
+      <div className="min-h-screen bg-[#070709] flex items-center justify-center font-mono text-white">
+        User not found
+      </div>
+    );
 
   const isFollowing = currentUser?.following?.some((f: any) => f.followingId === profileUser.id);
   const isSelf = currentUser?.id === profileUser.id;
@@ -257,15 +340,15 @@ export default function PublicProfilePage() {
       return;
     }
     if (isFollowing) {
-      // Optimistic: drop the follower count now; the button flips via useUser.
-      // The network call runs in the background (no await = no UI stall).
-      setProfileUser(prev => prev ? { ...prev, followers: prev.followers?.filter((f: any) => f.followerId !== currentUser.id) } : prev);
+      setProfileUser((prev) =>
+        prev ? { ...prev, followers: prev.followers?.filter((f: any) => f.followerId !== currentUser.id) } : prev
+      );
       unfollowUser(profileUser.id);
     } else {
-      // Optimistic follower count + instant button; sync in the background.
-      setProfileUser(prev => prev ? { ...prev, followers: [...(prev.followers || []), { followerId: currentUser.id }] } : prev);
+      setProfileUser((prev) =>
+        prev ? { ...prev, followers: [...(prev.followers || []), { followerId: currentUser.id }] } : prev
+      );
 
-      // TRIGGER UNLIMITED VOID FOR LEAD DEV
       if (isLeadDev(profileUser)) {
         setShowDomainExpansion(true);
       }
@@ -276,13 +359,10 @@ export default function PublicProfilePage() {
 
   const rankTheme = getRankTheme(profileUser.xp || 0, profileUser.username);
   const RankIcon = rankTheme.badgeIcon ? ICON_MAP[rankTheme.badgeIcon] : null;
-  const { cleanBio, backgroundUrl } = profileUser ? parseBio(profileUser.bio || "", profileUser.arisePoints || 0, profileUser.username) : { cleanBio: "", backgroundUrl: null };
+  const { cleanBio } = profileUser
+    ? parseBio(profileUser.bio || "", profileUser.arisePoints || 0, profileUser.username)
+    : { cleanBio: "", backgroundUrl: null };
 
-  // Level is driven by XP (separate from the Arise Points currency).
-  // Lead Dev and Admins are pinned to the cap — MAX_LEVEL, never a literal, so
-  // this strip cannot drift from lib/levels.ts the way "10" did when the cap
-  // moved to 100. Every number below comes from that one module: a second copy
-  // of the curve living in this file is exactly how the old bar went wrong.
   const currentXp = profileUser.xp || 0;
   const isProfileAdmin = isAdmin(profileUser);
   const isProfileLeadDev = isLeadDev(profileUser);
@@ -290,965 +370,1028 @@ export default function PublicProfilePage() {
   const currentLevel = isStaffLevel ? MAX_LEVEL : calculateLevel(currentXp);
   const atMaxLevel = currentLevel >= MAX_LEVEL;
   const progressPercent = isStaffLevel ? 100 : calculateProgressPercent(currentXp);
-  // XP banked into the current level, and what's left to the next one.
   const intoLevel = isStaffLevel ? 0 : xpIntoLevel(currentXp);
   const toNextLevel = isStaffLevel ? 0 : xpToNextLevel(currentXp);
 
-  // Banner style: "cover" = a header strip on the card (Twitter-style);
-  // anything else = the full-screen background image. Chosen by the profile owner.
   const coverMode = (profileUser as any).bannerStyle === "cover" && !!profileUser.bannerUrl;
-  // Donor-exclusive: "Māna-Yood-Sushāī" wears the Crimson Realm BY DEFAULT, but
-  // may equip any shop effect she owns instead (or silence the realm) — she just
-  // never loses it. Nobody else can ever wear it. See resolveActiveEffect.
   const effectiveEffect = resolveActiveEffect(profileUser, profileUser.activeEffect);
   const isCrimson = effectiveEffect === "effect_crimson";
-  const crimsonName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#fecaca,#ef4444,#8b0000,#ef4444,#fecaca)] drop-shadow-[0_0_10px_rgba(255,0,0,0.6)]";
-  // The rare Déjà vu Card turns the whole profile amethyst-purple.
-  // The extreme-rare Voltaic Ascension turns the whole profile amethyst-purple.
+  const crimsonName =
+    "text-transparent bg-clip-text bg-[linear-gradient(to_right,#fecaca,#ef4444,#8b0000,#ef4444,#fecaca)] drop-shadow-[0_0_10px_rgba(255,0,0,0.6)]";
   const isDejaVu = effectiveEffect === "effect_ascension";
-  // The extreme-rare Monarch's Tempest drenches it in storm blue instead.
   const isTempest = effectiveEffect === "effect_tempest";
-  const tempestName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#bae6fd,#38bdf8,#818cf8,#38bdf8,#bae6fd)] drop-shadow-[0_0_10px_rgba(56,189,248,0.6)]";
-  // The extreme-rare Fog of History crowns it in mist-grey and cosmic gold.
+  const tempestName =
+    "text-transparent bg-clip-text bg-[linear-gradient(to_right,#bae6fd,#38bdf8,#818cf8,#38bdf8,#bae6fd)] drop-shadow-[0_0_10px_rgba(56,189,248,0.6)]";
   const isFool = effectiveEffect === "effect_fool";
-  const foolName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#e2e8f0,#fde68a,#f59e0b,#fde68a,#e2e8f0)] drop-shadow-[0_0_10px_rgba(245,158,11,0.55)]";
-  // The extreme-rare Evernight's Blessing bathes it in crimson-moon twilight.
+  const foolName =
+    "text-transparent bg-clip-text bg-[linear-gradient(to_right,#e2e8f0,#fde68a,#f59e0b,#fde68a,#e2e8f0)] drop-shadow-[0_0_10px_rgba(245,158,11,0.55)]";
   const isEvernight = effectiveEffect === "effect_evernight";
-  const evernightName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#e2e8f0,#fda4af,#e11d48,#fda4af,#e2e8f0)] drop-shadow-[0_0_10px_rgba(225,29,72,0.55)]";
-  // The extreme-rare Wheel of Adaptation clads it in divine gold and bronze.
+  const evernightName =
+    "text-transparent bg-clip-text bg-[linear-gradient(to_right,#e2e8f0,#fda4af,#e11d48,#fda4af,#e2e8f0)] drop-shadow-[0_0_10px_rgba(225,29,72,0.55)]";
   const isMahoraga = effectiveEffect === "effect_mahoraga";
-  const mahoragaName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#fff7d6,#FFD700,#B8860B,#FFD700,#fff7d6)] drop-shadow-[0_0_10px_rgba(255,215,0,0.6)]";
-  // The SSS-grade summoning ritual bleaches it in bone-white and abyssal black.
+  const mahoragaName =
+    "text-transparent bg-clip-text bg-[linear-gradient(to_right,#fff7d6,#FFD700,#B8860B,#FFD700,#fff7d6)] drop-shadow-[0_0_10px_rgba(255,215,0,0.6)]";
   const isRitual = effectiveEffect === "effect_ritual";
-  const ritualName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#ffffff,#cbd5e1,#64748b,#e8e4d8,#ffffff)] drop-shadow-[0_0_12px_rgba(255,255,255,0.7)]";
-  // The unique Heart of the Forest wreathes it in emerald and sunlight.
+  const ritualName =
+    "text-transparent bg-clip-text bg-[linear-gradient(to_right,#ffffff,#cbd5e1,#64748b,#e8e4d8,#ffffff)] drop-shadow-[0_0_12px_rgba(255,255,255,0.7)]";
   const isCanopy = effectiveEffect === "effect_canopy";
-  const canopyName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#d9f99d,#34d399,#166534,#a3e635,#d9f99d)] drop-shadow-[0_0_10px_rgba(52,211,153,0.6)]";
-  // The extreme-rare Ghost Samurai sheathes it in pale steel and crimson.
+  const canopyName =
+    "text-transparent bg-clip-text bg-[linear-gradient(to_right,#d9f99d,#34d399,#166534,#a3e635,#d9f99d)] drop-shadow-[0_0_10px_rgba(52,211,153,0.6)]";
   const isSamurai = effectiveEffect === "effect_samurai";
-  const samuraiName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#e2e8f0,#f87171,#dc2626,#f87171,#e2e8f0)] drop-shadow-[0_0_10px_rgba(220,38,38,0.6)]";
-  // The SSS-grade Silent Himalayas wraps it in moonlit ice and twilight blue.
+  const samuraiName =
+    "text-transparent bg-clip-text bg-[linear-gradient(to_right,#e2e8f0,#f87171,#dc2626,#f87171,#e2e8f0)] drop-shadow-[0_0_10px_rgba(220,38,38,0.6)]";
   const isHimalaya = effectiveEffect === "effect_himalaya";
-  const himalayaName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#f1f5f9,#bae6fd,#38bdf8,#bae6fd,#f1f5f9)] drop-shadow-[0_0_10px_rgba(191,219,254,0.6)]";
-  // The extreme-rare Sacred Lotus Pond blooms it in lotus-pink, jade and gold.
+  const himalayaName =
+    "text-transparent bg-clip-text bg-[linear-gradient(to_right,#f1f5f9,#bae6fd,#38bdf8,#bae6fd,#f1f5f9)] drop-shadow-[0_0_10px_rgba(191,219,254,0.6)]";
   const isLotus = effectiveEffect === "effect_lotus";
-  const lotusName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#fbcfe8,#34d399,#fde68a,#34d399,#fbcfe8)] drop-shadow-[0_0_10px_rgba(52,211,153,0.55)]";
-  // The extreme-rare Mango Loco blasts it in mango orange, hot pink and lime.
+  const lotusName =
+    "text-transparent bg-clip-text bg-[linear-gradient(to_right,#fbcfe8,#34d399,#fde68a,#34d399,#fbcfe8)] drop-shadow-[0_0_10px_rgba(52,211,153,0.55)]";
   const isMango = effectiveEffect === "effect_mango";
-  const mangoName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#ff8c00,#ffd700,#ff1493,#32cd32,#ff8c00)] drop-shadow-[0_0_10px_rgba(255,140,0,0.6)]";
-  // The extreme-rare Ancient Jungle wreathes it in emerald, moss and gold light.
+  const mangoName =
+    "text-transparent bg-clip-text bg-[linear-gradient(to_right,#ff8c00,#ffd700,#ff1493,#32cd32,#ff8c00)] drop-shadow-[0_0_10px_rgba(255,140,0,0.6)]";
   const isJungle = effectiveEffect === "effect_jungle";
-  const jungleName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#3fae5a,#7a9b3a,#ffe196,#3fae5a,#1f6b38)] drop-shadow-[0_0_10px_rgba(63,174,90,0.6)]";
-  // The SSS-grade Unblinking inks it in parchment, ash and bleeding crimson.
+  const jungleName =
+    "text-transparent bg-clip-text bg-[linear-gradient(to_right,#3fae5a,#7a9b3a,#ffe196,#3fae5a,#1f6b38)] drop-shadow-[0_0_10px_rgba(63,174,90,0.6)]";
   const isUnblinking = effectiveEffect === "effect_unblinking";
-  const unblinkingName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#f2ead8,#9ca3af,#8b0000,#9ca3af,#f2ead8)] drop-shadow-[0_0_10px_rgba(139,0,0,0.6)]";
-  // The SSS-grade Infinite Void drowns it in starlight cyan and deep-space indigo.
+  const unblinkingName =
+    "text-transparent bg-clip-text bg-[linear-gradient(to_right,#f2ead8,#9ca3af,#8b0000,#9ca3af,#f2ead8)] drop-shadow-[0_0_10px_rgba(139,0,0,0.6)]";
   const isVoid = effectiveEffect === "effect_void";
-  const voidName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#e0f2fe,#67e8f9,#6366f1,#67e8f9,#e0f2fe)] drop-shadow-[0_0_10px_rgba(34,211,238,0.6)]";
-  // The LIMITED SSS Dejavu: Temporal Echo — phantom white, ash grey, crimson, quantum cyan.
-  // (Not to be confused with the legacy isDejaVu var, which belongs to effect_ascension.)
+  const voidName =
+    "text-transparent bg-clip-text bg-[linear-gradient(to_right,#e0f2fe,#67e8f9,#6366f1,#67e8f9,#e0f2fe)] drop-shadow-[0_0_10px_rgba(34,211,238,0.6)]";
   const isDejavuEcho = effectiveEffect === "effect_dejavu";
-  const dejavuEchoName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#f9fafb,#9ca3af,#8b0000,#00ffff,#f9fafb)] drop-shadow-[0_0_10px_rgba(139,0,0,0.55)]";
-  // The SSS-grade Hollow Purple fuses cobalt and crimson into imaginary mass.
+  const dejavuEchoName =
+    "text-transparent bg-clip-text bg-[linear-gradient(to_right,#f9fafb,#9ca3af,#8b0000,#00ffff,#f9fafb)] drop-shadow-[0_0_10px_rgba(139,0,0,0.55)]";
   const isHollow = effectiveEffect === "effect_hollow";
-  const hollowName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#93c5fd,#a855f7,#c724f0,#f87171,#93c5fd)] drop-shadow-[0_0_10px_rgba(167,36,240,0.65)]";
-  // The SSS-grade Outer God drowns it in abyssal teal and mutated magenta.
+  const hollowName =
+    "text-transparent bg-clip-text bg-[linear-gradient(to_right,#93c5fd,#a855f7,#c724f0,#f87171,#93c5fd)] drop-shadow-[0_0_10px_rgba(167,36,240,0.65)]";
   const isOuterGod = effectiveEffect === "effect_outergod";
-  const outerGodName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#99f6e4,#14b8a6,#d81fb4,#14b8a6,#99f6e4)] drop-shadow-[0_0_10px_rgba(13,148,136,0.6)]";
-  // The unique Gate & Key burns it in ultraviolet, white and corrupted gold.
+  const outerGodName =
+    "text-transparent bg-clip-text bg-[linear-gradient(to_right,#99f6e4,#14b8a6,#d81fb4,#14b8a6,#99f6e4)] drop-shadow-[0_0_10px_rgba(13,148,136,0.6)]";
   const isGateway = effectiveEffect === "effect_gateway";
-  const gatewayName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#e2beff,#8a2be2,#ffffff,#ffd700,#e2beff)] drop-shadow-[0_0_10px_rgba(138,43,226,0.65)]";
-  // The SSS Web-Slinger nets it in titanium white, cyan and crimson.
+  const gatewayName =
+    "text-transparent bg-clip-text bg-[linear-gradient(to_right,#e2beff,#8a2be2,#ffffff,#ffd700,#e2beff)] drop-shadow-[0_0_10px_rgba(138,43,226,0.65)]";
   const isWebSlinger = effectiveEffect === "effect_webslinger";
-  // Keep in step with effectTheme.ts's effect_webslinger case — the shimmer
-  // animation is what makes the SSS name read as part of the effect.
-  const webSlingerName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#f8fafc,#22d3ee,#ef4444,#22d3ee,#f8fafc)] bg-[length:200%_100%] animate-[web-shimmer_3.5s_linear_infinite] drop-shadow-[0_0_10px_rgba(34,211,238,0.6)]";
-  // Dimension C-137 dips the name in acid — keep in step with effectTheme.ts.
+  const webSlingerName =
+    "text-transparent bg-clip-text bg-[linear-gradient(to_right,#f8fafc,#22d3ee,#ef4444,#22d3ee,#f8fafc)] bg-[length:200%_100%] animate-[web-shimmer_3.5s_linear_infinite] drop-shadow-[0_0_10px_rgba(34,211,238,0.6)]";
   const isPortal = effectiveEffect === "effect_portal";
-  const portalName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#d9f99d,#39ff14,#22d3ee,#e879f9,#d9f99d)] bg-[length:200%_100%] animate-[web-shimmer_3.5s_linear_infinite] drop-shadow-[0_0_10px_rgba(57,255,20,0.55)]";
+  const portalName =
+    "text-transparent bg-clip-text bg-[linear-gradient(to_right,#d9f99d,#39ff14,#22d3ee,#e879f9,#d9f99d)] bg-[length:200%_100%] animate-[web-shimmer_3.5s_linear_infinite] drop-shadow-[0_0_10px_rgba(57,255,20,0.55)]";
   const isBankai = effectiveEffect === "effect_bankai";
-  const bankaiName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#ffffff,#ff9dcc,#ff1493,#cdd6e4,#ffffff)] bg-[length:200%_100%] animate-[web-shimmer_3.5s_linear_infinite] drop-shadow-[0_0_10px_rgba(255,20,147,0.55)]";
+  const bankaiName =
+    "text-transparent bg-clip-text bg-[linear-gradient(to_right,#ffffff,#ff9dcc,#ff1493,#cdd6e4,#ffffff)] bg-[length:200%_100%] animate-[web-shimmer_3.5s_linear_infinite] drop-shadow-[0_0_10px_rgba(255,20,147,0.55)]";
   const isDandadan = effectiveEffect === "effect_dandadan";
-  const dandadanName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#39ff14,#00ffff,#ffffff,#ff00ff,#ff0000,#39ff14)] bg-[length:200%_100%] animate-[web-shimmer_3.5s_linear_infinite] drop-shadow-[0_0_10px_rgba(255,0,255,0.55)]";
+  const dandadanName =
+    "text-transparent bg-clip-text bg-[linear-gradient(to_right,#39ff14,#00ffff,#ffffff,#ff00ff,#ff0000,#39ff14)] bg-[length:200%_100%] animate-[web-shimmer_3.5s_linear_infinite] drop-shadow-[0_0_10px_rgba(255,0,255,0.55)]";
   const isGrandline = effectiveEffect === "effect_grandline";
-  const grandlineName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#ffd700,#ffb347,#ffffff,#2ba3c9,#ffd700)] bg-[length:200%_100%] animate-[web-shimmer_3.5s_linear_infinite] drop-shadow-[0_0_10px_rgba(255,183,71,0.55)]";
-  // When a bought frame (or the Voltaic ring) is equipped, drop the rank/role
-  // border + glow so it doesn't override the frame the user chose.
+  const grandlineName =
+    "text-transparent bg-clip-text bg-[linear-gradient(to_right,#ffd700,#ffb347,#ffffff,#2ba3c9,#ffd700)] bg-[length:200%_100%] animate-[web-shimmer_3.5s_linear_infinite] drop-shadow-[0_0_10px_rgba(255,183,71,0.55)]";
   const ringOverridesRank = hasFrameRing((profileUser as any).activeFrame, effectiveEffect);
-  const avatarBorderClass = ringOverridesRank ? "border-[#141414]" : `${rankTheme.borderClass} ${rankTheme.glowClass}`;
-  const dejaVuName = "text-transparent bg-clip-text bg-[linear-gradient(to_right,#ddd6fe,#a855f7,#e879f9,#a855f7,#ddd6fe)] drop-shadow-[0_0_10px_rgba(168,85,247,0.6)]";
+  const avatarBorderClass = ringOverridesRank
+    ? "border-[#141414]"
+    : `${rankTheme.borderClass} ${rankTheme.glowClass}`;
+  const dejaVuName =
+    "text-transparent bg-clip-text bg-[linear-gradient(to_right,#ddd6fe,#a855f7,#e879f9,#a855f7,#ddd6fe)] drop-shadow-[0_0_10px_rgba(168,85,247,0.6)]";
+
+  const songSrc =
+    (profileUser as any).profileSong ||
+    (isProfileLeadDev ? "/audio/heartbreaker.mp3" : null);
 
   return (
     <PageTransition>
-      {/* overflow-CLIP, not hidden: `hidden` makes this a scroll container,
-          which silently kills the STICKY TABS BAR below (the anime/manhwa/
-          novel tabs). `clip` contains the glow blobs without that side
-          effect (same fix the shop toolbar needed). */}
-      {/* No top padding: the pt-24 reserved space for a top navbar that
-          signed-in users no longer have (the dock lives at the bottom).
-          The hero starts at the viewport's very first pixel, guild-style. */}
-      <div className="relative min-h-screen pb-12 text-white overflow-clip">
-
-      {/* Full-screen banner background (only in "full" mode) */}
-      <div className="fixed inset-0 z-0 bg-[#09090b] overflow-hidden">
-        {profileUser?.bannerUrl && !coverMode ? (
-          <>
-            <motion.img
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.9 }}
-              transition={{ duration: 1.2, ease: "easeOut" }}
-              src={cloudinaryFit(profileUser.bannerUrl, 1920)}
-              alt="Background Banner"
-              decoding="async"
-              style={{ objectPosition: `center ${(profileUser as any).bannerPosition ?? 50}%` }}
-              className="w-full h-full object-cover"
-            />
-            {/* Gentle darken toward the bottom so lower content stays readable */}
-            <div className="absolute inset-0 bg-gradient-to-b from-[#09090b]/5 via-[#09090b]/25 to-[#09090b]/85"></div>
-          </>
-        ) : (
-          <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-purple-500/10 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/4"></div>
-        )}
-      </div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        // FULL-BLEED, not a centered box: the hero/banner spans the whole
-        // viewport (the guild pages set the reference) and every section
-        // below carries its own max-width + centering instead.
-        className="relative z-10 w-full"
-      >
-        {/* Channel layout: a full-bleed hero the effect actually fits in, then
-            sticky tabs, then the collection at full width. The old two-column
-            card gave effects a 420px portrait slot — nine of them are
-            landscapes (mountain ridgelines, overhead cloud banks, a sky/river
-            split at 70% height) and read as a smudge in that shape. */}
-        <div>
-
-        {/* ═══ HERO — the effect's stage ═══ */}
-        <div className="relative overflow-hidden border-b border-white/10">
-          <div className="absolute inset-0 z-[1]">
-            {profileUser.bannerUrl ? (
-              /* Same transformed src as the fixed layer above, deliberately:
-                 one identical url = one fetch and one shared decode. */
-              <img
+      <div className="relative min-h-screen pb-36 text-white overflow-clip bg-[#070709] selection:bg-purple-500/30">
+        
+        {/* Full-Screen Ambient Banner Backdrop */}
+        <div className="fixed inset-0 z-0 bg-[#070709] overflow-hidden pointer-events-none">
+          {profileUser?.bannerUrl && !coverMode ? (
+            <>
+              <motion.img
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.8 }}
+                transition={{ duration: 1.2, ease: "easeOut" }}
                 src={cloudinaryFit(profileUser.bannerUrl, 1920)}
-                alt=""
+                alt="Background Banner"
                 decoding="async"
                 style={{ objectPosition: `center ${(profileUser as any).bannerPosition ?? 50}%` }}
-                className="h-full w-full object-cover opacity-70"
+                className="w-full h-full object-cover filter brightness-[0.7]"
               />
-            ) : (
-              <div className="h-full w-full bg-[radial-gradient(120%_130%_at_50%_0%,rgba(147,51,234,0.35),transparent_60%),linear-gradient(120deg,#1a0b2e,#3b0764_45%,#4a044e)]" />
-            )}
-            {/* fade the stage into the collection so the band reads as
-                continuous without the canvas having to paint down there */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-[#09090b]/70 to-[#09090b]" />
-          </div>
+              <div className="absolute inset-0 bg-gradient-to-b from-[#070709]/30 via-[#070709]/60 to-[#070709]" />
+            </>
+          ) : (
+            <div className="absolute top-0 right-0 w-[900px] h-[900px] bg-purple-600/10 blur-[150px] rounded-full -translate-y-1/2 translate-x-1/4" />
+          )}
+        </div>
 
-          {/* the effect, with the full width of the page to perform in */}
-          <ProfileEffect effect={showcaseOpen ? null : effectiveEffect} />
-
-          <div className="relative z-20 mx-auto flex max-w-4xl flex-col items-center gap-3 px-4 py-10 text-center md:py-12">
-            <div
-              className="relative w-fit cursor-pointer"
-              onClick={() => profileUser.avatar && setPreviewImage(profileUser.avatar)}
-            >
-              {profileUser.avatar ? (
-                /* No layoutId: it had no counterpart anywhere, so it animated
-                   nothing — but framer still mounted the layout feature, and
-                   that walks the whole projection tree on EVERY render of this
-                   1000-line page. Plain elements now. */
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          className="relative z-10 w-full"
+        >
+          {/* ═══ HERO STAGE ═══ */}
+          <div className="relative overflow-hidden border-b border-white/10">
+            <div className="absolute inset-0 z-[1]">
+              {profileUser.bannerUrl ? (
                 <img
-                  src={cloudinaryFit(profileUser.avatar, 400)}
-                  alt="Avatar"
+                  src={cloudinaryFit(profileUser.bannerUrl, 1920)}
+                  alt=""
                   decoding="async"
-                  className={`relative z-10 h-32 w-32 rounded-full border-4 bg-[#141414] object-cover shadow-[0_12px_50px_rgba(0,0,0,0.75)] transition-all duration-300 md:h-40 md:w-40 ${avatarBorderClass}`}
+                  style={{ objectPosition: `center ${(profileUser as any).bannerPosition ?? 50}%` }}
+                  className="h-full w-full object-cover opacity-60"
                 />
               ) : (
+                <div className="h-full w-full bg-[radial-gradient(120%_130%_at_50%_0%,rgba(147,51,234,0.35),transparent_60%),linear-gradient(120deg,#140727,#2e054e_45%,#3b0764)]" />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-[#070709]/80 to-[#070709]" />
+            </div>
+
+            {/* Profile Canvas Effect Overlay */}
+            <ProfileEffect effect={showcaseOpen ? null : effectiveEffect} />
+
+            <div className="relative z-20 mx-auto flex max-w-5xl flex-col items-center px-4 pt-12 pb-10 text-center md:pt-16 md:pb-12">
+              
+              {/* Avatar, Frame, Soundtrack & Level Badge */}
+              <div className="relative mb-4 flex flex-col items-center">
                 <div
-                  className={`relative z-10 grid h-32 w-32 place-items-center rounded-full border-4 bg-violet-700 text-4xl font-black transition-all duration-300 md:h-40 md:w-40 ${avatarBorderClass}`}
+                  className="relative w-fit cursor-pointer group"
+                  onClick={() => profileUser.avatar && setPreviewImage(profileUser.avatar)}
                 >
-                  {profileUser.username.charAt(0).toUpperCase()}
-                </div>
-              )}
-              <AvatarDecoration frame={(profileUser as any).activeFrame} effect={effectiveEffect} size="lg" />
-              {profileUser.arisePoints !== undefined && (
-                <div className="absolute -bottom-1 -right-1 z-20">
-                  {/* MAX_LEVEL_XP, not the old hardcoded 511000 — that number
-                      was the level-10 total under the exponential curve and now
-                      just means "somewhere past the cap". */}
-                  <LevelBadge xp={isProfileLeadDev ? Infinity : (isProfileAdmin ? MAX_LEVEL_XP : (profileUser.xp || 0))} size="lg" className="border-[#0b0b12] shadow-[0_4px_20px_rgba(0,0,0,0.8)]" />
-                </div>
-              )}
-              {/* A profile can carry a soundtrack. Anyone may set their own in
-                  Settings → Profile (host/format-gated audio). The lead dev keeps
-                  the built-in track as a fallback — keyed off the ROLE via
-                  isLeadDev, never the username, because names change hands. */}
-              {(() => {
-                const songSrc =
-                  (profileUser as any).profileSong ||
-                  (isProfileLeadDev ? "/audio/heartbreaker.mp3" : null);
-                return songSrc ? (
-                  <div className="absolute -bottom-1 -left-1 z-20">
-                    <ProfileSong src={songSrc} />
-                  </div>
-                ) : null;
-              })()}
-            </div>
-
-            {/* The hero name, with a quiet guild chip beside it. The full
-                plaque still lives further down (GuildCard) — this is only the
-                "who do they stand with" glance you get from the name itself.
-                min-w-0 lets the name wrap rather than push the chip off a
-                phone: the chip is shrink-0 and never wraps. */}
-            <div className="flex max-w-[92vw] flex-wrap items-center justify-center gap-1.5">
-            <h1 className={`min-w-0 break-words pb-1 text-4xl font-black leading-tight tracking-tight drop-shadow-lg md:text-5xl
-              ${profileUser.activeFont === 'font_cyber' ? 'font-mono tracking-widest' : ''}
-              ${profileUser.activeFont === 'font_pixel' ? 'font-serif tracking-tight' : ''}
-              ${isCrimson ? crimsonName : isDejaVu ? dejaVuName : isTempest ? tempestName : isFool ? foolName : isEvernight ? evernightName : isMahoraga ? mahoragaName : isRitual ? ritualName : isCanopy ? canopyName : isSamurai ? samuraiName : isHimalaya ? himalayaName : isLotus ? lotusName : isMango ? mangoName : isJungle ? jungleName : isUnblinking ? unblinkingName : isVoid ? voidName : isDejavuEcho ? dejavuEchoName : isHollow ? hollowName : isOuterGod ? outerGodName : isGateway ? gatewayName : isWebSlinger ? webSlingerName : isPortal ? portalName : isBankai ? bankaiName : isDandadan ? dandadanName : isGrandline ? grandlineName : (nameColorClass(profileUser.activeColor) || rankTheme.textGradient)}`}>
-              {profileUser.username}
-            </h1>
-            <GuildTag userId={profileUser.id} size="sm" />
-            </div>
-
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              {/* Set membership, not equality against this level's rank: the
-                  two disagree for a role-column admin, whose level is 10 by
-                  isAdmin() but their XP level by getRankTheme(), so the
-                  equality check passed and printed a stale lower title beside
-                  the correct one. Any Opening name belongs to the heart chip. */}
-              {rankTheme.title && !isHeartRankName(rankTheme.title) && (!isProfileLeadDev || !(profileUser as any).hideLeadRole) && (
-                <div className={`shrink-0 ${isProfileLeadDev ? "px-4 py-1.5 min-h-[34px]" : "px-3 py-1"} rounded-full flex items-center gap-2 ${rankTheme.badgeClass} transition-all duration-200 hover:scale-105`}>
-                  {isProfileLeadDev ? (
-                    <img src="/icons/lucifer-gojo.png" alt="Lucifer, the fallen angel" className="h-7 w-7 object-contain -my-1.5 shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
+                  {profileUser.avatar ? (
+                    <img
+                      src={cloudinaryFit(profileUser.avatar, 400)}
+                      alt="Avatar"
+                      decoding="async"
+                      className={`relative z-10 h-32 w-32 md:h-40 md:w-40 rounded-full border-4 bg-[#141414] object-cover shadow-[0_15px_60px_rgba(0,0,0,0.8)] transition-all duration-300 group-hover:scale-105 ${avatarBorderClass}`}
+                    />
                   ) : (
-                    RankIcon && <RankIcon className="w-4 h-4" />
+                    <div
+                      className={`relative z-10 grid h-32 w-32 md:h-40 md:w-40 place-items-center rounded-full border-4 bg-violet-700 text-4xl font-black transition-all duration-300 group-hover:scale-105 ${avatarBorderClass}`}
+                    >
+                      {profileUser.username.charAt(0).toUpperCase()}
+                    </div>
                   )}
-                  <span className={`${isProfileLeadDev ? "text-xs md:text-sm text-transparent bg-clip-text bg-gradient-to-r from-[#f3e8ff] via-[#d8b4fe] to-[#c084fc] drop-shadow-[0_0_14px_rgba(192,132,252,0.9)]" : "text-xs"} font-black tracking-wider uppercase`}>
-                    {rankTheme.title}
-                  </span>
-                </div>
-              )}
-              {(() => {
-                const heart = getHeartRank(currentLevel);
-                return (
-                  <div className={`shrink-0 px-3 py-1 rounded-full flex items-center gap-1.5 cursor-help ${heart.badgeClass}`} title={heartRankTooltip(heart)}>
-                    <span className="text-sm leading-none">{heart.emoji}</span>
-                    <span className="text-xs font-black tracking-wider uppercase">{heart.name} · {heart.numeral}</span>
-                    <span className="text-[10px] font-bold opacity-70">{heart.hanzi}</span>
-                  </div>
-                );
-              })()}
-              {((profileUser as any).purchasedTags?.includes('tag_supporter') || (profileUser as any).purchasedEffects?.includes('effect_crimson')) && (
-                <div className="shrink-0 px-3 py-1 rounded-full flex items-center gap-1.5 border border-amber-400/40 bg-gradient-to-r from-amber-500/20 via-rose-500/15 to-amber-500/20 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.25)] cursor-help" title="Supported Da Vinci — thank you 💛">
-                  <Heart className="w-3.5 h-3.5 fill-current" />
-                  <span className="text-xs font-black tracking-wider uppercase">Supporter</span>
-                </div>
-              )}
-              {profileUser.activeRole === 'role_watcher' && (
-                <div className="shrink-0 px-3 py-1 rounded-full flex items-center gap-1 bg-purple-500/20 text-purple-400 border border-purple-500/30">
-                  <Shield className="w-4 h-4" />
-                  <span className="text-xs font-black tracking-wider uppercase">The Watcher</span>
-                </div>
-              )}
-              {profileUser.activeRole === 'role_elite' && (
-                <div className="shrink-0 px-3 py-1 rounded-full flex items-center gap-1 bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
-                  <Star className="w-4 h-4" />
-                  <span className="text-xs font-black tracking-wider uppercase">Elite</span>
-                </div>
-              )}
-              {profileUser.activeTag === 'tag_og' && (
-                <div className="shrink-0 px-3 py-1 rounded-full flex items-center gap-1 bg-red-500/20 text-red-400">
-                  <Zap className="w-4 h-4" />
-                  <span className="text-xs font-black tracking-wider uppercase">OG</span>
-                </div>
-              )}
-              {profileUser.activeTag === 'tag_weeb' && (
-                <div className="shrink-0 px-3 py-1 rounded-full flex items-center gap-1 bg-pink-500/20 text-pink-400">
-                  <Sparkles className="w-4 h-4" />
-                  <span className="text-xs font-black tracking-wider uppercase">Weeb Lord</span>
-                </div>
-              )}
-              {/* WORN TITLES, beside the role and the rank at last.
-                  This row drew everything a profile could say about someone
-                  EXCEPT the one thing they actually chose. Titles lived only in
-                  the rack further down the page, so they now appeared on every
-                  comment and forum post while being absent from the profile
-                  those comments link back to.
-                  All three are shown, not one: this row has the width, and the
-                  rack right below it is where the wearer picks them — a hero
-                  that showed fewer than the rack would look like a bug in the
-                  rack. */}
-              {/* Seeded from the profile payload so the strip paints on first
-                  render, then kept live by the rack below. `null` means the
-                  rack has not answered yet — falling back to profileUser then
-                  avoids a flash of no titles on load. */}
-              <TitleChips
-                user={activeWornTitles !== null ? { ...profileUser, equippedTitles: activeWornTitles } : profileUser}
-                size="md"
-                max={3}
-              />
-            </div>
 
-            {/* one line of facts, channel-style — four stat boxes read as a
-                dashboard, which is not what this is */}
-            <div className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1.5 text-sm text-slate-300 [font-variant-numeric:tabular-nums]">
-              <span><b className="font-black text-white">{hoursWatched.toLocaleString()}</b> {hoursWatched === 1 ? "hr" : "hrs"} watched</span>
-              <span className="text-white/25">·</span>
-              <span><b className="font-black text-white">{displayArisePoints(profileUser)}</b> Arise</span>
-              <span className="text-white/25">·</span>
-              <button
-                onClick={() => setModalData({ title: 'Followers', users: (profileUser.followers || []).map((f: any) => f.follower) })}
-                className="transition hover:text-white"
-              >
-                <b className="font-black text-white">{(profileUser.followers || []).length.toLocaleString()}</b> followers
-              </button>
-              <span className="text-white/25">·</span>
-              <button
-                onClick={() => setModalData({ title: 'Following', users: (profileUser.following || []).map((f: any) => f.following) })}
-                className="transition hover:text-white"
-              >
-                <b className="font-black text-white">{(profileUser.following || []).length.toLocaleString()}</b> following
-              </button>
-            </div>
+                  <AvatarDecoration
+                    frame={(profileUser as any).activeFrame}
+                    effect={effectiveEffect}
+                    size="lg"
+                  />
 
-            {/* THE LEVEL STRIP.
-                Reads levels.ts and nothing else. It shows the level you are on,
-                the band title you wear at it, and how far along the CURRENT
-                level you are — a bar filled by (xp into level / cost of level)
-                rather than by raw lifetime XP against a cumulative total, which
-                is what made it look frozen at the bottom for everybody.
-                Only a level-100 account says MAX.
-                min-w-0 + truncate on the title so a long band name shrinks
-                instead of pushing the level chip off a 360px screen. */}
-            <div className="w-full max-w-sm">
-              <div className="mb-1 flex items-center gap-2">
-                <span className="shrink-0 rounded-full border border-violet-400/30 bg-violet-500/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-violet-200 tabular-nums">
-                  Lv {currentLevel}
-                </span>
-                <span className="min-w-0 flex-1 truncate text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  {getHeartRank(currentLevel).name}
-                </span>
-                <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-slate-500 tabular-nums">
-                  {atMaxLevel ? "MAX" : `Lv ${currentLevel + 1}`}
-                </span>
+                  {/* Level Badge Pill (bottom centered on avatar ring) */}
+                  {profileUser.arisePoints !== undefined && (
+                    <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-20">
+                      <LevelBadge
+                        xp={isProfileLeadDev ? Infinity : isProfileAdmin ? MAX_LEVEL_XP : profileUser.xp || 0}
+                        size="md"
+                        className="border-[#070709] shadow-xl"
+                      />
+                    </div>
+                  )}
+
+                  {/* Soundtrack Button */}
+                  {songSrc && (
+                    <div className="absolute -bottom-1 -left-2 z-20">
+                      <ProfileSong src={songSrc} />
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="relative h-2 w-full overflow-hidden rounded-full border border-white/10 bg-black/40">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-400 shadow-[0_0_10px_rgba(139,92,246,0.5)] transition-all duration-1000 ease-out"
-                  style={{ width: `${progressPercent}%` }}
+
+              {/* Username & Guild Badge */}
+              <div className="mt-2 flex max-w-[92vw] flex-wrap items-center justify-center gap-2">
+                <h1
+                  className={`min-w-0 break-words pb-1 font-fell text-4xl sm:text-5xl md:text-6xl font-bold uppercase tracking-[0.06em] leading-tight drop-shadow-xl ${
+                    profileUser.activeFont === "font_cyber" ? "font-mono tracking-widest" : ""
+                  } ${profileUser.activeFont === "font_pixel" ? "font-serif tracking-tight" : ""} ${
+                    isCrimson
+                      ? crimsonName
+                      : isDejaVu
+                        ? dejaVuName
+                        : isTempest
+                          ? tempestName
+                          : isFool
+                            ? foolName
+                            : isEvernight
+                              ? evernightName
+                              : isMahoraga
+                                ? mahoragaName
+                                : isRitual
+                                  ? ritualName
+                                  : isCanopy
+                                    ? canopyName
+                                    : isSamurai
+                                      ? samuraiName
+                                      : isHimalaya
+                                        ? himalayaName
+                                        : isLotus
+                                          ? lotusName
+                                          : isMango
+                                            ? mangoName
+                                            : isJungle
+                                              ? jungleName
+                                              : isUnblinking
+                                                ? unblinkingName
+                                                : isVoid
+                                                  ? voidName
+                                                  : isDejavuEcho
+                                                    ? dejavuEchoName
+                                                    : isHollow
+                                                      ? hollowName
+                                                      : isOuterGod
+                                                        ? outerGodName
+                                                        : isGateway
+                                                          ? gatewayName
+                                                          : isWebSlinger
+                                                            ? webSlingerName
+                                                            : isPortal
+                                                              ? portalName
+                                                              : isBankai
+                                                                ? bankaiName
+                                                                : isDandadan
+                                                                  ? dandadanName
+                                                                  : isGrandline
+                                                                    ? grandlineName
+                                                                    : nameColorClass(profileUser.activeColor) ||
+                                                                      rankTheme.textGradient
+                  }`}
+                >
+                  {profileUser.username}
+                </h1>
+                <GuildTag userId={profileUser.id} size="md" />
+              </div>
+
+              {/* Custom Titles & Special Badges Ribbon */}
+              <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+                {rankTheme.title &&
+                  !isHeartRankName(rankTheme.title) &&
+                  (!isProfileLeadDev || !(profileUser as any).hideLeadRole) && (
+                    <div
+                      className={`shrink-0 ${
+                        isProfileLeadDev ? "px-4 py-1.5 min-h-[34px]" : "px-3 py-1"
+                      } rounded-full flex items-center gap-2 ${rankTheme.badgeClass} transition-all duration-200 hover:scale-105 shadow-md`}
+                    >
+                      {isProfileLeadDev ? (
+                        <img
+                          src="/icons/lucifer-gojo.png"
+                          alt="Lucifer, the fallen angel"
+                          className="h-7 w-7 object-contain -my-1.5 shrink-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]"
+                        />
+                      ) : (
+                        RankIcon && <RankIcon className="w-4 h-4" />
+                      )}
+                      <span
+                        className={`${
+                          isProfileLeadDev
+                            ? "text-xs md:text-sm text-transparent bg-clip-text bg-gradient-to-r from-[#f3e8ff] via-[#d8b4fe] to-[#c084fc] drop-shadow-[0_0_14px_rgba(192,132,252,0.9)]"
+                            : "text-xs"
+                        } font-black tracking-wider uppercase font-mono`}
+                      >
+                        {rankTheme.title}
+                      </span>
+                    </div>
+                  )}
+
+                {(() => {
+                  const heart = getHeartRank(currentLevel);
+                  return (
+                    <div
+                      className={`shrink-0 px-3.5 py-1 rounded-full flex items-center gap-1.5 cursor-help ${heart.badgeClass} shadow-md`}
+                      title={heartRankTooltip(heart)}
+                    >
+                      <span className="text-sm leading-none">{heart.emoji}</span>
+                      <span className="text-xs font-black tracking-wider uppercase font-mono">
+                        {heart.name} · {heart.numeral}
+                      </span>
+                      <span className="text-[10px] font-bold opacity-75">{heart.hanzi}</span>
+                    </div>
+                  );
+                })()}
+
+                {((profileUser as any).purchasedTags?.includes("tag_supporter") ||
+                  (profileUser as any).purchasedEffects?.includes("effect_crimson")) && (
+                  <div
+                    className="shrink-0 px-3 py-1 rounded-full flex items-center gap-1.5 border border-amber-400/40 bg-gradient-to-r from-amber-500/20 via-rose-500/15 to-amber-500/20 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.25)] cursor-help"
+                    title="Supported Da Vinci — thank you 💛"
+                  >
+                    <Heart className="w-3.5 h-3.5 fill-current" />
+                    <span className="text-xs font-black tracking-wider uppercase font-mono">Supporter</span>
+                  </div>
+                )}
+
+                {profileUser.activeRole === "role_watcher" && (
+                  <div className="shrink-0 px-3 py-1 rounded-full flex items-center gap-1 bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                    <Shield className="w-3.5 h-3.5" />
+                    <span className="text-xs font-black tracking-wider uppercase font-mono">The Watcher</span>
+                  </div>
+                )}
+
+                {profileUser.activeRole === "role_elite" && (
+                  <div className="shrink-0 px-3 py-1 rounded-full flex items-center gap-1 bg-yellow-500/20 text-yellow-300 border border-yellow-500/30">
+                    <Star className="w-3.5 h-3.5" />
+                    <span className="text-xs font-black tracking-wider uppercase font-mono">Elite</span>
+                  </div>
+                )}
+
+                {profileUser.activeTag === "tag_og" && (
+                  <div className="shrink-0 px-3 py-1 rounded-full flex items-center gap-1 bg-red-500/20 text-red-300 border border-red-500/30">
+                    <Zap className="w-3.5 h-3.5" />
+                    <span className="text-xs font-black tracking-wider uppercase font-mono">OG</span>
+                  </div>
+                )}
+
+                <TitleChips
+                  user={activeWornTitles !== null ? { ...profileUser, equippedTitles: activeWornTitles } : profileUser}
+                  size="md"
+                  max={3}
                 />
               </div>
-              <div className="mt-1 flex justify-between gap-2 px-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                <span className="min-w-0 truncate tabular-nums">{isStaffLevel ? "MAX LEVEL" : `${currentXp.toLocaleString()} XP`}</span>
-                <span className="shrink-0 tabular-nums">
-                  {atMaxLevel
-                    ? `Lv ${MAX_LEVEL} (MAX)`
-                    : `${intoLevel.toLocaleString()} / ${levelCost(currentLevel).toLocaleString()} · ${toNextLevel.toLocaleString()} to go`}
-                </span>
-              </div>
-            </div>
 
-            <BioRenderer bio={cleanBio || "No bio set."} className="max-w-2xl text-sm font-medium text-purple-200 drop-shadow-md" />
-
-            <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
-              {isSelf ? (
-                <button
-                  onClick={() => setShowSettings(true)}
-                  className="flex items-center justify-center gap-2 rounded-full border border-violet-400/30 bg-violet-500/15 px-6 py-2.5 font-bold text-violet-200 shadow-xl transition hover:border-violet-400/60 hover:bg-violet-500/25"
-                >
-                  <Settings className="h-4 w-4" /> Edit Profile
-                </button>
-              ) : currentUser ? (
-                <button
-                  onClick={handleFollowToggle}
-                  className={`flex items-center justify-center gap-2 rounded-full px-6 py-2.5 font-bold shadow-xl transition ${isFollowing ? "bg-white/10 text-white hover:bg-red-500/20 hover:text-red-400" : "border border-violet-400/30 bg-violet-500/15 text-violet-200 hover:border-violet-400/60 hover:bg-violet-500/25"}`}
-                >
-                  {isFollowing ? (
-                    <><UserMinus className="h-4 w-4" /> Unfollow</>
-                  ) : profileUser?.following?.some((f: any) => f.followingId === currentUser.id) ? (
-                    <><UserPlus className="h-4 w-4" /> Follow Back</>
-                  ) : (
-                    <><UserPlus className="h-4 w-4" /> Follow</>
-                  )}
-                </button>
-              ) : null}
-
-              {effectiveEffect && !preferences.reducedMotion && (
-                <button
-                  onClick={() => setShowcaseOpen(true)}
-                  title="View this profile effect full screen"
-                  className="flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-5 py-2.5 font-bold text-slate-200 backdrop-blur transition hover:border-violet-400/40 hover:bg-white/[0.1] hover:text-white"
-                >
-                  <Maximize2 className="h-4 w-4" /> Showcase
-                </button>
-              )}
-            </div>
-          </div>
-
-        </div>
-
-        {/* ═══ SHOWCASE + RECENT COMMENTS ═══
-            Both components are self-contained: they fetch their own data and
-            render nothing when there is nothing worth showing, so a quiet
-            profile does not grow empty boxes and a failed fetch degrades to an
-            absent section rather than a broken page. */}
-        <div className="mx-auto w-full max-w-[1500px] px-4 pt-6 md:px-8">
-          {/* THE GUILD PLAQUE — one full-width bar leading the content column
-              at every breakpoint. Margin rides on the card itself, so a
-              guildless profile (which renders nothing) leaves no stray gap. */}
-          <GuildCard userId={profileUser.id} className="mb-6" />
-          {/* THE STAMP — what this profile is willing to put its name on.
-              Self-contained like the plaque above it: it fetches its own
-              stamp and renders nothing for a stranger who has never stamped
-              anything, so a profile does not grow an empty box. On your own
-              profile it always shows, because that is where you learn the
-              feature exists and where the three slots are managed. */}
-          <ProfileStamp
-            userId={profileUser.id}
-            username={profileUser.username}
-            isSelf={isSelf}
-            className="mb-6"
-          />
-          {/* onChange keeps the hero strip and this rack in agreement. The
-              rack is the one that actually knows — it fetches the titles
-              endpoint — so it feeds the page rather than the other way round. */}
-          <TitleRack userId={profileUser.id} isMine={isSelf} onChange={setActiveWornTitles} version={titleVersion} />
-          <ShowcaseCards
-            userId={profileUser.id}
-            isMine={isSelf}
-            initial={(profileUser as any).showcaseCards || []}
-          />
-          {/* What they've been doing, between what they show off and what they
-              say. Self-contained like its neighbours — it fetches its own data
-              and renders its own card, so it carries the same mb-6 rhythm and
-              simply isn't there when there's nothing to show. */}
-          <ActivityHistory userId={profileUser.id} className="mb-6" />
-          <RecentComments userId={profileUser.id} />
-        </div>
-
-        {/* ═══ TABS — stick flush to the viewport top at every width ═══
-            Signed-in users have no top bar anywhere (the dock is at the
-            bottom, and profiles are signed-in-only), so the old 64px mobile
-            offset just left the stuck tabs floating with content scrolling
-            through the gap above them. */}
-        {/* OPAQUE, no backdrop-blur. A backdrop-filter on a sticky strip is
-            re-blurred every scroll frame (it can't be cached — the backdrop
-            moves), and going full-bleed made that region ~50% wider. The base
-            layer behind it is the same #09090b, so 95% over that colour was
-            already this exact colour: opaque costs nothing to look at and
-            skips the per-frame readback entirely. */}
-        {/* Daily quests live on YOUR profile now (the /quests page redirects
-            here) — visible only to the owner, since progress and claims are
-            personal. Placed above the collection so a visit to claim never
-            requires scrolling past three shelves. */}
-        {selfView && (
-          <div className="mx-auto w-full max-w-[1500px] px-4 pb-8 md:px-8">
-            <DailyQuests />
-          </div>
-        )}
-
-        <div className="sticky top-0 z-40 border-b border-white/10 bg-[#09090b]">
-          <div className="mx-auto flex max-w-[1500px] items-center justify-center gap-1 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {([
-              { key: "anime", label: "Anime", count: watchlist.length },
-              { key: "manhwa", label: "Manhwa", count: manhwaWatchlist.length },
-              { key: "novel", label: "Novels", count: novelWatchlist.length },
-            ] as const).map((t) => (
-              <button
-                key={t.key}
-                onClick={() => setActiveTab(t.key)}
-                className={`shrink-0 border-b-2 px-5 py-3.5 text-sm font-bold transition ${
-                  activeTab === t.key
-                    ? "border-violet-400 text-white"
-                    : "border-transparent text-slate-400 hover:text-white"
-                }`}
-              >
-                {t.label}
-                <span className={`ml-1.5 text-[11px] font-black ${activeTab === t.key ? "text-violet-300" : "text-slate-600"}`}>
-                  {t.count}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* ═══ COLLECTION — full width ═══ */}
-        <div className="mx-auto w-full max-w-[1500px] px-4 pt-8 md:px-8">
-
-        {/*
-          CLEAR-ALL FOR THE ACTIVE TAB. Rendered per tab so the action can only
-          ever empty the library the reader is looking at — a single control
-          wired to "whatever is active" is one state bug away from clearing the
-          wrong shelf. `selfView` gates all three, and the button hides itself
-          when there is nothing to clear.
-
-          Each handler also empties this page's own list state, because these
-          shelves render from the profile fetch rather than from the live
-          tracking store; without it the rows would sit there looking untouched
-          until a reload.
-        */}
-        {selfView && (
-          <div className="mb-6 flex justify-end">
-            {activeTab === "anime" && (
-              <ClearTrackingButton
-                kind="anime"
-                count={watchlist.length}
-                selfView={selfView}
-                onClear={async () => {
-                  await wipeWatchlist();
-                  setWatchlist([]);
-                }}
-              />
-            )}
-            {activeTab === "manhwa" && (
-              <ClearTrackingButton
-                kind="manhwa"
-                count={manhwaWatchlist.length}
-                selfView={selfView}
-                onClear={async () => {
-                  const result = await clearManhwaTracking();
-                  setManhwaWatchlist([]);
-                  return result;
-                }}
-              />
-            )}
-            {activeTab === "novel" && (
-              <ClearTrackingButton
-                kind="novel"
-                count={novelWatchlist.length}
-                selfView={selfView}
-                onClear={async () => {
-                  const result = await clearNovelTracking();
-                  setNovelWatchlist([]);
-                  return result;
-                }}
-              />
-            )}
-          </div>
-        )}
-
-        {activeTab === "anime" && (
-          <>
-            {activeItems.length === 0 ? (
-              <div className="text-center py-20 text-slate-500 font-medium bg-white/5 rounded-2xl border border-white/10">
-                This user hasn't tracked any anime yet!
-              </div>
-            ) : (
-          <div className="space-y-10">
-            {groupedItems.map(([section, items]) => {
-              const isExpanded = !!expandedSections[section];
-              const displayedItems = isExpanded ? items : items.slice(0, 6);
-              const hasMore = items.length > 6;
-
-              return (
-                <div key={section} className="space-y-4">
-                  {/* Section title (tracker status) with count */}
-                  <div className="flex items-center space-x-3 mb-2">
-                    <h3 className="text-xl font-bold text-white tracking-wide">{section}</h3>
-                    <span className="text-xs font-bold bg-white/10 text-slate-300 px-2 py-0.5 rounded-full">{items.length}</span>
-                  </div>
-
-                  {/* Uniform poster grid (all cards are 2:3, so a real grid
-                      animates far more smoothly than CSS multi-column).
-                      MONOTONIC ladder — the count only ever climbs. The old
-                      one went 2/3/4 then DROPPED to 3 at lg, so a laptop drew
-                      bigger covers than a tablet. Keep all three tracker
-                      grids on this exact ladder. */}
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-3">
-                    <AnimatePresence>
-                      {displayedItems.map((item, i) => {
-                        // On expand, only the newly-revealed cards cascade in;
-                        // the first 6 keep their keys and never re-animate.
-                        const revealIndex = isExpanded ? Math.max(0, i - 6) : i;
-                        return (
-                        <motion.div
-                          initial={{ opacity: 0, y: 12, scale: 0.98 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.15 } }}
-                          transition={{ duration: 0.35, delay: Math.min(revealIndex * 0.035, 0.35), ease: [0.16, 1, 0.3, 1] }}
-                          key={item.id}
-                          className="relative group rounded-xl overflow-hidden shadow-lg border border-white/10 cursor-pointer block text-left bg-white/5 w-full"
-                          onClick={(e) => handleOpenQuickView(e, item.anilistId)}
-                        >
-                          <div className="w-full aspect-[2/3] relative">
-                            <img 
-                              src={(item.coverImage || "https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=500&q=80")} 
-                              alt={item.title || "Anime"} 
-                              loading="lazy" 
-                              className="w-full h-full object-cover"
-                            />
-                            
-                            {/* Status: editable picker on your own profile, read-only badge otherwise */}
-                            {/* The chip is scaled, not restyled: the tracker
-                                button and the status badge are shared
-                                components used at full size elsewhere, so the
-                                card shrinks them locally. origin-top-left
-                                keeps it pinned to the corner, and the widest
-                                label ("Interested") still clears the card at
-                                360px, where three columns leaves ~95px. */}
-                            <div className="absolute top-1.5 left-1.5 z-20 origin-top-left scale-[0.85] sm:scale-[0.9] md:scale-90" onClick={(e) => e.stopPropagation()}>
-                              {isSelf ? (
-                                <TrackerButton
-                                  anime={{
-                                    mal_id: item.anilistId,
-                                    title: item.title,
-                                    images: { jpg: { large_image_url: item.coverImage, image_url: item.coverImage, small_image_url: item.coverImage } },
-                                    genres: item.genre ? [{ name: item.genre }] : [],
-                                  } as any}
-                                  variant="compact"
-                                />
-                              ) : (
-                                <AnimeStatusBadge status={item.status || "Unknown"} />
-                              )}
-                            </div>
-
-                            {/* Hover Overlay. Padding and type both drop a
-                                step for the denser grid — break-words so a
-                                single long unspaced title can't push past the
-                                card edge before line-clamp-2 cuts it. */}
-                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-2">
-                              <h3 className="text-white font-bold text-[11px] sm:text-xs leading-snug break-words drop-shadow-md line-clamp-2">
-                                {item.title || "Unknown Anime"}
-                              </h3>
-                            </div>
-                            
-                            {/* Quick View Button */}
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleOpenQuickView(e, item.anilistId); }}
-                              className="absolute top-1.5 right-1.5 w-7 h-7 bg-black/60 backdrop-blur-sm border border-white/20 text-white flex items-center justify-center rounded-full hover:bg-white hover:text-black transition-colors z-20 opacity-0 group-hover:opacity-100"
-                            >
-                              {loadingAnimeId === item.anilistId ? (
-                                <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                              ) : (
-                                <ChevronDown className="w-3.5 h-3.5" />
-                              )}
-                            </button>
-                          </div>
-                        </motion.div>
-                        );
-                      })}
-                    </AnimatePresence>
-                  </div>
-
-                  {/* See More Button */}
-                  {hasMore && (
-                    <div className="flex justify-center mt-6">
-                      <button
-                        onClick={() => setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }))}
-                        className="flex items-center space-x-2 px-6 py-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 transition-colors text-sm font-medium text-slate-300 hover:text-white"
-                      >
-                        <span>{isExpanded ? "Show Less" : `See All ${items.length}`}</span>
-                        <motion.div animate={{ rotate: isExpanded ? 180 : 0 }}>
-                          <ChevronDown className="w-4 h-4" />
-                        </motion.div>
-                      </button>
-                    </div>
-                  )}
+              {/* Bento Stat Pill Counters */}
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
+                <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-xs font-mono backdrop-blur-md">
+                  <Clock className="h-3.5 w-3.5 text-slate-400" />
+                  <span>
+                    <b className="font-bold text-white">{hoursWatched.toLocaleString()}</b>{" "}
+                    <span className="text-slate-400">{hoursWatched === 1 ? "hr" : "hrs"} watched</span>
+                  </span>
                 </div>
-              );
-            })}
+
+                <button
+                  onClick={() => setShowPointHistory(true)}
+                  className="flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-xs font-mono text-amber-200 backdrop-blur-md hover:bg-amber-500/20 transition"
+                  title="View Arise Points History"
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+                  <span>
+                    <b className="font-bold text-white">{displayArisePoints(profileUser)}</b>{" "}
+                    <span className="text-amber-300/80">Arise</span>
+                  </span>
+                </button>
+
+                <button
+                  onClick={() =>
+                    setModalData({
+                      title: "Followers",
+                      users: (profileUser.followers || []).map((f: any) => f.follower),
+                    })
+                  }
+                  className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-xs font-mono backdrop-blur-md hover:bg-white/[0.08] hover:text-white transition"
+                >
+                  <Users className="h-3.5 w-3.5 text-violet-300" />
+                  <span>
+                    <b className="font-bold text-white">{(profileUser.followers || []).length.toLocaleString()}</b>{" "}
+                    <span className="text-slate-400">followers</span>
+                  </span>
+                </button>
+
+                <button
+                  onClick={() =>
+                    setModalData({
+                      title: "Following",
+                      users: (profileUser.following || []).map((f: any) => f.following),
+                    })
+                  }
+                  className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-xs font-mono backdrop-blur-md hover:bg-white/[0.08] hover:text-white transition"
+                >
+                  <UserIcon className="h-3.5 w-3.5 text-violet-300" />
+                  <span>
+                    <b className="font-bold text-white">{(profileUser.following || []).length.toLocaleString()}</b>{" "}
+                    <span className="text-slate-400">following</span>
+                  </span>
+                </button>
+              </div>
+
+              {/* Elevated XP & Level Progress Plaque */}
+              <div className="mt-6 w-full max-w-md rounded-3xl border border-white/10 bg-[#0b0b11]/80 p-4.5 backdrop-blur-xl shadow-xl">
+                <div className="mb-2 flex items-center justify-between gap-2 font-mono">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="rounded-full border border-violet-400/40 bg-violet-500/20 px-2.5 py-0.5 text-[11px] font-black uppercase tracking-wider text-violet-200">
+                      Lv {currentLevel}
+                    </span>
+                    <span className="truncate text-xs font-bold uppercase tracking-wider text-slate-300">
+                      {getHeartRank(currentLevel).name}
+                    </span>
+                  </div>
+                  <span className="shrink-0 text-xs font-bold uppercase tracking-wider text-amber-300/90">
+                    {atMaxLevel ? "MAX LEVEL" : `Lv ${currentLevel + 1}`}
+                  </span>
+                </div>
+
+                {/* Shimmering Liquid Progress Bar */}
+                <div className="relative h-2.5 w-full overflow-hidden rounded-full border border-white/10 bg-black/60">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-amber-400 shadow-[0_0_12px_rgba(217,70,239,0.6)] transition-all duration-1000 ease-out"
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+
+                <div className="mt-2 flex justify-between gap-2 font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  <span>{isStaffLevel ? "PINNED CAP" : `${currentXp.toLocaleString()} XP`}</span>
+                  <span>
+                    {atMaxLevel
+                      ? `Lv ${MAX_LEVEL} (MAX)`
+                      : `${intoLevel.toLocaleString()} / ${levelCost(currentLevel).toLocaleString()} XP`}
+                  </span>
+                </div>
+              </div>
+
+              {/* Bio Renderer */}
+              <div className="mt-5 max-w-2xl">
+                <BioRenderer
+                  bio={cleanBio || "No bio set."}
+                  className="text-sm sm:text-base font-medium text-slate-200 drop-shadow-md leading-relaxed"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                {isSelf ? (
+                  <button
+                    onClick={() => setShowSettings(true)}
+                    className="flex items-center justify-center gap-2 rounded-full border border-violet-400/40 bg-gradient-to-r from-violet-600 to-purple-700 px-7 py-3 font-mono text-xs font-black uppercase tracking-wider text-white shadow-[0_0_25px_rgba(147,51,234,0.35)] transition-all hover:scale-105 hover:brightness-110 active:scale-95"
+                  >
+                    <Settings className="h-4 w-4" />
+                    <span>Edit Profile & Theme</span>
+                  </button>
+                ) : currentUser ? (
+                  <button
+                    onClick={handleFollowToggle}
+                    className={`flex items-center justify-center gap-2 rounded-full px-7 py-3 font-mono text-xs font-black uppercase tracking-wider shadow-xl transition-all hover:scale-105 active:scale-95 ${
+                      isFollowing
+                        ? "border border-red-500/40 bg-red-500/20 text-red-200 hover:bg-red-500/30"
+                        : "border border-violet-400/40 bg-gradient-to-r from-violet-600 to-purple-700 text-white shadow-[0_0_20px_rgba(147,51,234,0.35)]"
+                    }`}
+                  >
+                    {isFollowing ? (
+                      <>
+                        <UserMinus className="h-4 w-4" /> Unfollow
+                      </>
+                    ) : profileUser?.following?.some((f: any) => f.followingId === currentUser.id) ? (
+                      <>
+                        <UserPlus className="h-4 w-4" /> Follow Back
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="h-4 w-4" /> Follow
+                      </>
+                    )}
+                  </button>
+                ) : null}
+
+                {effectiveEffect && !preferences.reducedMotion && (
+                  <button
+                    onClick={() => setShowcaseOpen(true)}
+                    title="View this profile effect full screen"
+                    className="flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-6 py-3 font-mono text-xs font-black uppercase tracking-wider text-slate-200 backdrop-blur-md transition-all hover:scale-105 hover:border-violet-400/50 hover:bg-white/[0.1] hover:text-white active:scale-95"
+                  >
+                    <Maximize2 className="h-4 w-4" />
+                    <span>Showcase Effect</span>
+                  </button>
+                )}
+              </div>
+
+            </div>
           </div>
-        )}
-          </>
-        )}
 
-        {activeTab === "manhwa" && (
-          <>
-            {activeManhwaItems.length === 0 ? (
-              <div className="text-center py-20 text-slate-500 font-medium bg-white/5 rounded-2xl border border-white/10">
-                This user hasn't tracked any manhwa yet!
-              </div>
-            ) : (
-              <div className="space-y-10">
-                {groupedManhwaItems.map(([section, items]) => {
-                  const isExpanded = !!expandedSections[`manhwa-${section}`];
-                  const displayedItems = isExpanded ? items : items.slice(0, 6);
-                  const hasMore = items.length > 6;
+          {/* ═══ COMMUNITY & PROFILE BENTO PLATES ═══ */}
+          <div className="mx-auto w-full max-w-[1500px] px-4 pt-8 md:px-8 space-y-6">
+            <GuildCard userId={profileUser.id} />
+            <ProfileStamp
+              userId={profileUser.id}
+              username={profileUser.username}
+              isSelf={isSelf}
+            />
+            <TitleRack
+              userId={profileUser.id}
+              isMine={isSelf}
+              onChange={setActiveWornTitles}
+              version={titleVersion}
+            />
+            <ShowcaseCards
+              userId={profileUser.id}
+              isMine={isSelf}
+              initial={(profileUser as any).showcaseCards || []}
+            />
+            <ActivityHistory userId={profileUser.id} />
+            <RecentComments userId={profileUser.id} />
+          </div>
 
-                  return (
-                    <div key={section} className="space-y-4">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-xl font-bold text-white tracking-wide">{section}</h3>
-                        <span className="text-xs font-bold bg-white/10 text-slate-300 px-2 py-0.5 rounded-full">{items.length}</span>
-                      </div>
+          {/* Daily Quests (Personal on Self-View) */}
+          {selfView && (
+            <div className="mx-auto w-full max-w-[1500px] px-4 pt-8 md:px-8">
+              <DailyQuests />
+            </div>
+          )}
 
-                      {/* MONOTONIC ladder — the count only ever climbs. The
-                          old one went 2/3/4 then DROPPED to 3 at lg, so a
-                          laptop drew bigger covers than a tablet. Keep all
-                          three tracker grids on this exact ladder. */}
-                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-3">
-                        <AnimatePresence>
-                          {displayedItems.map((item, i) => {
-                            const revealIndex = isExpanded ? Math.max(0, i - 6) : i;
-                            return (
-                            <motion.div
-                              initial={{ opacity: 0, y: 12, scale: 0.98 }}
-                              animate={{ opacity: 1, y: 0, scale: 1 }}
-                              exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.15 } }}
-                              transition={{ duration: 0.35, delay: Math.min(revealIndex * 0.035, 0.35), ease: [0.16, 1, 0.3, 1] }}
-                              key={item.id}
-                              className="relative group rounded-xl overflow-hidden shadow-lg border border-white/10 cursor-pointer block text-left bg-white/5 w-full"
-                              onClick={() => router.push(`/manhwa/${encodeURIComponent(item.mangaId)}`)}
-                            >
-                                <div className="w-full aspect-[2/3] relative">
-                                  {item.coverImage ? (
-                                    <img
-                                      // Proxied when the host referer-blocks —
-                                      // tracked rows store the raw source URL,
-                                      // and manhwaCoverSrc is what knows which
-                                      // of the source CDNs need coaxing.
-                                      src={manhwaCoverSrc(item.coverImage) || item.coverImage}
-                                      alt={item.title}
-                                      loading="lazy"
-                                      className="w-full h-full object-cover"
-                                    />
-                                  ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-[#151518]">
-                                      <span className="text-slate-600 font-bold">No Image</span>
-                                    </div>
-                                  )}
+          {/* ═══ STICKY MEDIA LIBRARY TABS ═══ */}
+          <div className="sticky top-0 z-40 border-b border-white/10 bg-[#070709]/95 backdrop-blur-md mt-10">
+            <div className="mx-auto flex max-w-[1500px] items-center justify-center gap-2 overflow-x-auto px-4 py-2.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden font-mono">
+              {(
+                [
+                  { key: "anime", label: "Anime Streams", count: watchlist.length, Icon: Tv },
+                  { key: "manhwa", label: "Manhwa & Comics", count: manhwaWatchlist.length, Icon: BookMarked },
+                  { key: "novel", label: "Light Novels", count: novelWatchlist.length, Icon: BookOpen },
+                ] as const
+              ).map((t) => {
+                const on = activeTab === t.key;
+                const Icon = t.Icon;
+                return (
+                  <button
+                    key={t.key}
+                    onClick={() => setActiveTab(t.key)}
+                    className={`flex items-center gap-2 rounded-full border px-5 py-2 text-xs font-bold uppercase tracking-wider transition-all ${
+                      on
+                        ? "border-violet-400/50 bg-violet-500/20 text-violet-200 shadow-md shadow-violet-500/10"
+                        : "border-transparent text-slate-400 hover:bg-white/[0.04] hover:text-white"
+                    }`}
+                  >
+                    <Icon className={`h-4 w-4 ${on ? "text-violet-300" : "text-slate-500"}`} />
+                    <span>{t.label}</span>
+                    <span
+                      className={`ml-1 rounded-full px-2 py-0.5 text-[10px] font-black ${
+                        on ? "bg-violet-400/30 text-white" : "bg-white/5 text-slate-500"
+                      }`}
+                    >
+                      {t.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-                                  {/* Status Tracker — scaled, not restyled,
-                                      exactly as in the anime grid above: the
-                                      tracker button is a shared component used
-                                      at full size elsewhere, so the card
-                                      shrinks it locally. */}
-                                  <div className="absolute top-1.5 left-1.5 z-20 origin-top-left scale-[0.85] sm:scale-[0.9] md:scale-90" onClick={(e) => e.stopPropagation()}>
-                                    {isSelf ? (
-                                      <ManhwaTrackerButton
-                                        manhwa={{ id: item.mangaId, title: item.title, image: item.coverImage }}
-                                        variant="compact"
-                                      />
-                                    ) : (
-                                      <span className="px-1.5 py-0.5 text-[10px] font-bold tracking-wider rounded shadow-md border border-white/10 bg-white/10 text-white">
-                                        {formatTrackerStatus(item.status)}
-                                      </span>
-                                    )}
-                                  </div>
-
-                                  {/* Padding and type both drop a step for the
-                                      denser grid — break-words so a single
-                                      long unspaced title can't push past the
-                                      card edge before line-clamp-2 cuts it. */}
-                                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-2">
-                                    <h3 className="text-white font-bold text-[11px] sm:text-xs leading-snug break-words drop-shadow-md line-clamp-2">
-                                      {item.title}
-                                    </h3>
-                                  </div>
-                                </div>
-                            </motion.div>
-                            );
-                          })}
-                        </AnimatePresence>
-                      </div>
-
-                      {hasMore && (
-                        <div className="flex justify-center mt-6">
-                          <button
-                            onClick={() => setExpandedSections(prev => ({ ...prev, [`manhwa-${section}`]: !prev[`manhwa-${section}`] }))}
-                            className="flex items-center space-x-2 px-6 py-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 transition-colors text-sm font-medium text-slate-300 hover:text-white"
-                          >
-                            <span>{isExpanded ? "Show Less" : `See All ${items.length}`}</span>
-                            <motion.div animate={{ rotate: isExpanded ? 180 : 0 }}>
-                              <ChevronDown className="w-4 h-4" />
-                            </motion.div>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </>
-        )}
-
-        {activeTab === "novel" && (
-          <>
-            {activeNovelItems.length === 0 ? (
-              <div className="text-center py-20 text-slate-500 font-medium bg-white/5 rounded-2xl border border-white/10">
-                This user hasn't tracked any novels yet!
-              </div>
-            ) : (
-              <div className="space-y-10">
-                {groupedNovelItems.map(([section, items]) => {
-                  const isExpanded = !!expandedSections[`novel-${section}`];
-                  const displayedItems = isExpanded ? items : items.slice(0, 6);
-                  const hasMore = items.length > 6;
-
-                  return (
-                    <div key={section} className="space-y-4">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-xl font-bold text-white tracking-wide">{section}</h3>
-                        <span className="text-xs font-bold bg-white/10 text-slate-300 px-2 py-0.5 rounded-full">{items.length}</span>
-                      </div>
-
-                      {/* MONOTONIC ladder — the count only ever climbs. The
-                          old one went 2/3/4 then DROPPED to 3 at lg, so a
-                          laptop drew bigger covers than a tablet. Keep all
-                          three tracker grids on this exact ladder. */}
-                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-3">
-                        <AnimatePresence>
-                          {displayedItems.map((item, i) => {
-                            const revealIndex = isExpanded ? Math.max(0, i - 6) : i;
-                            const cover = novelCover(item.coverImage);
-                            return (
-                            <motion.div
-                              initial={{ opacity: 0, y: 12, scale: 0.98 }}
-                              animate={{ opacity: 1, y: 0, scale: 1 }}
-                              exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.15 } }}
-                              transition={{ duration: 0.35, delay: Math.min(revealIndex * 0.035, 0.35), ease: [0.16, 1, 0.3, 1] }}
-                              key={item.id}
-                              className="relative group rounded-xl overflow-hidden shadow-lg border border-white/10 cursor-pointer block text-left bg-white/5 w-full"
-                              onClick={() => router.push(`/novel/${encodeURIComponent(item.novelId)}`)}
-                            >
-                                <div className="w-full aspect-[2/3] relative">
-                                  {cover ? (
-                                    <img
-                                      src={cover}
-                                      alt={item.title}
-                                      loading="lazy"
-                                      className="w-full h-full object-cover"
-                                    />
-                                  ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-[#151518]">
-                                      <span className="text-slate-600 font-bold">No Image</span>
-                                    </div>
-                                  )}
-
-                                  {/* Status Tracker — scaled, not restyled,
-                                      exactly as in the anime grid above: the
-                                      tracker button is a shared component used
-                                      at full size elsewhere, so the card
-                                      shrinks it locally. */}
-                                  <div className="absolute top-1.5 left-1.5 z-20 origin-top-left scale-[0.85] sm:scale-[0.9] md:scale-90" onClick={(e) => e.stopPropagation()}>
-                                    {isSelf ? (
-                                      <NovelTrackerButton
-                                        novel={{ id: item.novelId, title: item.title, coverImage: item.coverImage }}
-                                        variant="compact"
-                                      />
-                                    ) : (
-                                      <span className="px-1.5 py-0.5 text-[10px] font-bold tracking-wider rounded shadow-md border border-white/10 bg-white/10 text-white">
-                                        {formatTrackerStatus(item.status)}
-                                      </span>
-                                    )}
-                                  </div>
-
-                                  {/* Padding and type both drop a step for the
-                                      denser grid — break-words so a single
-                                      long unspaced title can't push past the
-                                      card edge before line-clamp-2 cuts it. */}
-                                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-2">
-                                    <h3 className="text-white font-bold text-[11px] sm:text-xs leading-snug break-words drop-shadow-md line-clamp-2">
-                                      {item.title}
-                                    </h3>
-                                  </div>
-                                </div>
-                            </motion.div>
-                            );
-                          })}
-                        </AnimatePresence>
-                      </div>
-
-                      {hasMore && (
-                        <div className="flex justify-center mt-6">
-                          <button
-                            onClick={() => setExpandedSections(prev => ({ ...prev, [`novel-${section}`]: !prev[`novel-${section}`] }))}
-                            className="flex items-center space-x-2 px-6 py-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 transition-colors text-sm font-medium text-slate-300 hover:text-white"
-                          >
-                            <span>{isExpanded ? "Show Less" : `See All ${items.length}`}</span>
-                            <motion.div animate={{ rotate: isExpanded ? 180 : 0 }}>
-                              <ChevronDown className="w-4 h-4" />
-                            </motion.div>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+          {/* ═══ COLLECTION POSTER GRIDS ═══ */}
+          <div className="mx-auto w-full max-w-[1500px] px-4 pt-8 md:px-8">
+            
+            {/* Clear All Shelf Controls */}
+            {selfView && (
+              <div className="mb-6 flex justify-end">
+                {activeTab === "anime" && (
+                  <ClearTrackingButton
+                    kind="anime"
+                    count={watchlist.length}
+                    selfView={selfView}
+                    onClear={async () => {
+                      await wipeWatchlist();
+                      setWatchlist([]);
+                    }}
+                  />
+                )}
+                {activeTab === "manhwa" && (
+                  <ClearTrackingButton
+                    kind="manhwa"
+                    count={manhwaWatchlist.length}
+                    selfView={selfView}
+                    onClear={async () => {
+                      const result = await clearManhwaTracking();
+                      setManhwaWatchlist([]);
+                      return result;
+                    }}
+                  />
+                )}
+                {activeTab === "novel" && (
+                  <ClearTrackingButton
+                    kind="novel"
+                    count={novelWatchlist.length}
+                    selfView={selfView}
+                    onClear={async () => {
+                      const result = await clearNovelTracking();
+                      setNovelWatchlist([]);
+                      return result;
+                    }}
+                  />
+                )}
               </div>
             )}
-          </>
+
+            {/* TAB 1: ANIME */}
+            {activeTab === "anime" && (
+              <>
+                {activeItems.length === 0 ? (
+                  <div className="rounded-3xl border border-white/10 bg-[#0b0b11] p-16 text-center shadow-xl">
+                    <Tv className="mx-auto h-10 w-10 text-white/20" />
+                    <p className="mt-4 font-fell text-xl font-bold uppercase text-white/80">No Anime Tracked Yet</p>
+                    <p className="mt-1 text-xs text-white/40 font-mono">Watch episodes to build your anime library!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-12">
+                    {groupedItems.map(([section, items]) => {
+                      const isExpanded = !!expandedSections[section];
+                      const displayedItems = isExpanded ? items : items.slice(0, 8);
+                      const hasMore = items.length > 8;
+
+                      return (
+                        <div key={section} className="space-y-4">
+                          <div className="flex items-center gap-3 border-b border-white/10 pb-3">
+                            <h3 className="font-fell text-xl sm:text-2xl font-bold uppercase tracking-wider text-white">
+                              {section}
+                            </h3>
+                            <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-0.5 font-mono text-xs font-bold text-violet-300">
+                              {items.length}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-4">
+                            <AnimatePresence>
+                              {displayedItems.map((item, i) => {
+                                const revealIndex = isExpanded ? Math.max(0, i - 8) : i;
+                                return (
+                                  <motion.div
+                                    initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.15 } }}
+                                    transition={{
+                                      duration: 0.35,
+                                      delay: Math.min(revealIndex * 0.03, 0.3),
+                                      ease: [0.16, 1, 0.3, 1],
+                                    }}
+                                    key={item.id}
+                                    className="group relative rounded-2xl overflow-hidden shadow-lg border border-white/10 cursor-pointer block text-left bg-white/5 w-full hover:border-violet-400/50 hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]"
+                                    onClick={(e) => handleOpenQuickView(e, item.anilistId)}
+                                  >
+                                    <div className="w-full aspect-[2/3] relative">
+                                      <img
+                                        src={
+                                          item.coverImage ||
+                                          "https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=500&q=80"
+                                        }
+                                        alt={item.title || "Anime"}
+                                        loading="lazy"
+                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                      />
+
+                                      <div
+                                        className="absolute top-2 left-2 z-20 origin-top-left scale-[0.85] sm:scale-90"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        {isSelf ? (
+                                          <TrackerButton
+                                            anime={
+                                              {
+                                                mal_id: item.anilistId,
+                                                title: item.title,
+                                                images: {
+                                                  jpg: {
+                                                    large_image_url: item.coverImage,
+                                                    image_url: item.coverImage,
+                                                    small_image_url: item.coverImage,
+                                                  },
+                                                },
+                                                genres: item.genre ? [{ name: item.genre }] : [],
+                                              } as any
+                                            }
+                                            variant="compact"
+                                          />
+                                        ) : (
+                                          <AnimeStatusBadge status={item.status || "Unknown"} />
+                                        )}
+                                      </div>
+
+                                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-2.5">
+                                        <h4 className="text-white font-bold text-xs leading-snug break-words drop-shadow-md line-clamp-2">
+                                          {item.title || "Unknown Anime"}
+                                        </h4>
+                                      </div>
+
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleOpenQuickView(e, item.anilistId);
+                                        }}
+                                        className="absolute top-2 right-2 w-7 h-7 bg-black/70 backdrop-blur-sm border border-white/20 text-white flex items-center justify-center rounded-full hover:bg-white hover:text-black transition-colors z-20 opacity-0 group-hover:opacity-100"
+                                      >
+                                        {loadingAnimeId === item.anilistId ? (
+                                          <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                        ) : (
+                                          <ChevronDown className="w-3.5 h-3.5" />
+                                        )}
+                                      </button>
+                                    </div>
+                                  </motion.div>
+                                );
+                              })}
+                            </AnimatePresence>
+                          </div>
+
+                          {hasMore && (
+                            <div className="flex justify-center pt-4">
+                              <button
+                                onClick={() =>
+                                  setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }))
+                                }
+                                className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 font-mono text-xs font-bold uppercase tracking-wider text-slate-300 hover:text-white transition-all"
+                              >
+                                <span>{isExpanded ? "Show Less" : `See All ${items.length}`}</span>
+                                <motion.div animate={{ rotate: isExpanded ? 180 : 0 }}>
+                                  <ChevronDown className="w-4 h-4" />
+                                </motion.div>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* TAB 2: MANHWA */}
+            {activeTab === "manhwa" && (
+              <>
+                {activeManhwaItems.length === 0 ? (
+                  <div className="rounded-3xl border border-white/10 bg-[#0b0b11] p-16 text-center shadow-xl">
+                    <BookMarked className="mx-auto h-10 w-10 text-white/20" />
+                    <p className="mt-4 font-fell text-xl font-bold uppercase text-white/80">No Manhwa Tracked Yet</p>
+                    <p className="mt-1 text-xs text-white/40 font-mono">Read chapters to add titles to your shelf!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-12">
+                    {groupedManhwaItems.map(([section, items]) => {
+                      const isExpanded = !!expandedSections[`manhwa-${section}`];
+                      const displayedItems = isExpanded ? items : items.slice(0, 8);
+                      const hasMore = items.length > 8;
+
+                      return (
+                        <div key={section} className="space-y-4">
+                          <div className="flex items-center gap-3 border-b border-white/10 pb-3">
+                            <h3 className="font-fell text-xl sm:text-2xl font-bold uppercase tracking-wider text-white">
+                              {section}
+                            </h3>
+                            <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-0.5 font-mono text-xs font-bold text-violet-300">
+                              {items.length}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-4">
+                            <AnimatePresence>
+                              {displayedItems.map((item, i) => {
+                                const revealIndex = isExpanded ? Math.max(0, i - 8) : i;
+                                return (
+                                  <motion.div
+                                    initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.15 } }}
+                                    transition={{
+                                      duration: 0.35,
+                                      delay: Math.min(revealIndex * 0.03, 0.3),
+                                      ease: [0.16, 1, 0.3, 1],
+                                    }}
+                                    key={item.id}
+                                    className="group relative rounded-2xl overflow-hidden shadow-lg border border-white/10 cursor-pointer block text-left bg-white/5 w-full hover:border-violet-400/50 hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]"
+                                    onClick={() => router.push(`/manhwa/${encodeURIComponent(item.mangaId)}`)}
+                                  >
+                                    <div className="w-full aspect-[2/3] relative">
+                                      {item.coverImage ? (
+                                        <img
+                                          src={manhwaCoverSrc(item.coverImage) || item.coverImage}
+                                          alt={item.title}
+                                          loading="lazy"
+                                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                        />
+                                      ) : (
+                                        <div className="w-full h-full flex items-center justify-center bg-[#151518]">
+                                          <span className="text-slate-600 font-bold font-mono text-xs">No Image</span>
+                                        </div>
+                                      )}
+
+                                      <div
+                                        className="absolute top-2 left-2 z-20 origin-top-left scale-[0.85] sm:scale-90"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        {isSelf ? (
+                                          <ManhwaTrackerButton
+                                            manhwa={{ id: item.mangaId, title: item.title, image: item.coverImage }}
+                                            variant="compact"
+                                          />
+                                        ) : (
+                                          <span className="px-2 py-0.5 font-mono text-[10px] font-bold tracking-wider rounded-md shadow-md border border-white/10 bg-black/60 backdrop-blur-sm text-white">
+                                            {formatTrackerStatus(item.status)}
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-2.5">
+                                        <h4 className="text-white font-bold text-xs leading-snug break-words drop-shadow-md line-clamp-2">
+                                          {item.title}
+                                        </h4>
+                                      </div>
+                                    </div>
+                                  </motion.div>
+                                );
+                              })}
+                            </AnimatePresence>
+                          </div>
+
+                          {hasMore && (
+                            <div className="flex justify-center pt-4">
+                              <button
+                                onClick={() =>
+                                  setExpandedSections((prev) => ({
+                                    ...prev,
+                                    [`manhwa-${section}`]: !prev[`manhwa-${section}`],
+                                  }))
+                                }
+                                className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 font-mono text-xs font-bold uppercase tracking-wider text-slate-300 hover:text-white transition-all"
+                              >
+                                <span>{isExpanded ? "Show Less" : `See All ${items.length}`}</span>
+                                <motion.div animate={{ rotate: isExpanded ? 180 : 0 }}>
+                                  <ChevronDown className="w-4 h-4" />
+                                </motion.div>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* TAB 3: NOVELS */}
+            {activeTab === "novel" && (
+              <>
+                {activeNovelItems.length === 0 ? (
+                  <div className="rounded-3xl border border-white/10 bg-[#0b0b11] p-16 text-center shadow-xl">
+                    <BookOpen className="mx-auto h-10 w-10 text-white/20" />
+                    <p className="mt-4 font-fell text-xl font-bold uppercase text-white/80">No Novels Tracked Yet</p>
+                    <p className="mt-1 text-xs text-white/40 font-mono">Bookmark light novels to build your library!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-12">
+                    {groupedNovelItems.map(([section, items]) => {
+                      const isExpanded = !!expandedSections[`novel-${section}`];
+                      const displayedItems = isExpanded ? items : items.slice(0, 8);
+                      const hasMore = items.length > 8;
+
+                      return (
+                        <div key={section} className="space-y-4">
+                          <div className="flex items-center gap-3 border-b border-white/10 pb-3">
+                            <h3 className="font-fell text-xl sm:text-2xl font-bold uppercase tracking-wider text-white">
+                              {section}
+                            </h3>
+                            <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-0.5 font-mono text-xs font-bold text-violet-300">
+                              {items.length}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-4">
+                            <AnimatePresence>
+                              {displayedItems.map((item, i) => {
+                                const revealIndex = isExpanded ? Math.max(0, i - 8) : i;
+                                const cover = novelCover(item.coverImage);
+                                return (
+                                  <motion.div
+                                    initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.15 } }}
+                                    transition={{
+                                      duration: 0.35,
+                                      delay: Math.min(revealIndex * 0.03, 0.3),
+                                      ease: [0.16, 1, 0.3, 1],
+                                    }}
+                                    key={item.id}
+                                    className="group relative rounded-2xl overflow-hidden shadow-lg border border-white/10 cursor-pointer block text-left bg-white/5 w-full hover:border-violet-400/50 hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]"
+                                    onClick={() => router.push(`/novel/${encodeURIComponent(item.novelId)}`)}
+                                  >
+                                    <div className="w-full aspect-[2/3] relative">
+                                      {cover ? (
+                                        <img
+                                          src={cover}
+                                          alt={item.title}
+                                          loading="lazy"
+                                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                        />
+                                      ) : (
+                                        <div className="w-full h-full flex items-center justify-center bg-[#151518]">
+                                          <span className="text-slate-600 font-bold font-mono text-xs">No Image</span>
+                                        </div>
+                                      )}
+
+                                      <div
+                                        className="absolute top-2 left-2 z-20 origin-top-left scale-[0.85] sm:scale-90"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        {isSelf ? (
+                                          <NovelTrackerButton
+                                            novel={{ id: item.novelId, title: item.title, coverImage: item.coverImage }}
+                                            variant="compact"
+                                          />
+                                        ) : (
+                                          <span className="px-2 py-0.5 font-mono text-[10px] font-bold tracking-wider rounded-md shadow-md border border-white/10 bg-black/60 backdrop-blur-sm text-white">
+                                            {formatTrackerStatus(item.status)}
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-2.5">
+                                        <h4 className="text-white font-bold text-xs leading-snug break-words drop-shadow-md line-clamp-2">
+                                          {item.title}
+                                        </h4>
+                                      </div>
+                                    </div>
+                                  </motion.div>
+                                );
+                              })}
+                            </AnimatePresence>
+                          </div>
+
+                          {hasMore && (
+                            <div className="flex justify-center pt-4">
+                              <button
+                                onClick={() =>
+                                  setExpandedSections((prev) => ({
+                                    ...prev,
+                                    [`novel-${section}`]: !prev[`novel-${section}`],
+                                  }))
+                                }
+                                className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 font-mono text-xs font-bold uppercase tracking-wider text-slate-300 hover:text-white transition-all"
+                              >
+                                <span>{isExpanded ? "Show Less" : `See All ${items.length}`}</span>
+                                <motion.div animate={{ rotate: isExpanded ? 180 : 0 }}>
+                                  <ChevronDown className="w-4 h-4" />
+                                </motion.div>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            )}
+
+          </div>
+        </motion.div>
+
+        {/* Trailer Modal */}
+        <TrailerModal
+          videoId={showTrailer && activeAnime ? getYouTubeId(activeAnime.trailer) : null}
+          onClose={() => setShowTrailer(false)}
+        />
+
+        {/* Quick View Modal */}
+        {showQuickView && activeAnime && (
+          <QuickViewModal
+            anime={activeAnime}
+            onClose={() => setShowQuickView(false)}
+            onPlayTrailer={() => setShowTrailer(true)}
+          />
         )}
-        </div>{/* ═══ end RIGHT column ═══ */}
-        </div>{/* ═══ end two-column ═══ */}
-      </motion.div>
 
-      {/* Trailer Modal */}
-      <TrailerModal 
-        videoId={showTrailer && activeAnime ? getYouTubeId(activeAnime.trailer) : null} 
-        onClose={() => setShowTrailer(false)} 
-      />
+        {modalData && (
+          <FollowListModal
+            title={modalData.title}
+            users={modalData.users}
+            onClose={() => setModalData(null)}
+          />
+        )}
 
-      {/* Quick View Modal */}
-      {showQuickView && activeAnime && (
-        <QuickViewModal 
-          anime={activeAnime} 
-          onClose={() => setShowQuickView(false)} 
-          onPlayTrailer={() => setShowTrailer(true)} 
+        {previewImage && (
+          <ImagePreviewModal
+            imageUrl={previewImage}
+            altText={`${profileUser.username}'s Avatar`}
+            onClose={() => setPreviewImage(null)}
+          />
+        )}
+
+        <ProfileShowcase
+          open={showcaseOpen}
+          onClose={() => setShowcaseOpen(false)}
+          username={profileUser.username}
+          avatar={profileUser.avatar}
+          effect={effectiveEffect}
+          frame={(profileUser as any).activeFrame}
+          nameClass={effectNameClass(effectiveEffect)}
+          subtitle={getHeartRank(currentLevel).name}
         />
-      )}
 
-      {modalData && (
-        <FollowListModal
-          title={modalData.title}
-          users={modalData.users}
-          onClose={() => setModalData(null)}
-        />
-      )}
+        {showPointHistory && (
+          <ArisePointHistoryModal
+            userId={profileUser.id}
+            onClose={() => setShowPointHistory(false)}
+          />
+        )}
 
-      {previewImage && (
-        <ImagePreviewModal
-          imageUrl={previewImage}
-          altText={`${profileUser.username}'s Avatar`}
-          onClose={() => setPreviewImage(null)}
-        />
-      )}
+        {showSettings && (
+          <SettingsModal
+            user={profileUser}
+            onClose={() => setShowSettings(false)}
+            onUpdate={(data: any) => {
+              if (Array.isArray(data.equippedTitles)) {
+                setActiveWornTitles(data.equippedTitles);
+                setTitleVersion((v) => v + 1);
+              }
+              setProfileUser((prev) => (prev ? { ...prev, ...data } : prev));
+            }}
+          />
+        )}
 
-      {/* The equipped effect, full screen. Mounted unconditionally so its
-          enter/exit animation can play; it renders nothing until `open`. */}
-      <ProfileShowcase
-        open={showcaseOpen}
-        onClose={() => setShowcaseOpen(false)}
-        username={profileUser.username}
-        avatar={profileUser.avatar}
-        effect={effectiveEffect}
-        frame={(profileUser as any).activeFrame}
-        nameClass={effectNameClass(effectiveEffect)}
-        subtitle={getHeartRank(currentLevel).name}
-      />
-
-      {showPointHistory && (
-        <ArisePointHistoryModal
-          userId={profileUser.id}
-          onClose={() => setShowPointHistory(false)}
-        />
-      )}
-
-      {showSettings && (
-        <SettingsModal
-          user={profileUser}
-          onClose={() => setShowSettings(false)}
-          onUpdate={(data: any) => {
-            // Titles equipped from settings: update the hero strip immediately
-            // and nudge the rack below to refetch, so all three views agree.
-            if (Array.isArray(data.equippedTitles)) {
-              setActiveWornTitles(data.equippedTitles);
-              setTitleVersion(v => v + 1);
-            }
-            setProfileUser(prev => (prev ? { ...prev, ...data } : prev));
-          }}
-        />
-      )}
-
-      {showDomainExpansion && (
-        <UnlimitedVoid onComplete={() => setShowDomainExpansion(false)} />
-      )}
-    </div>
+        {showDomainExpansion && (
+          <UnlimitedVoid onComplete={() => setShowDomainExpansion(false)} />
+        )}
+      </div>
     </PageTransition>
   );
 }
