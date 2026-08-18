@@ -51,11 +51,13 @@ function thumbUrl(g: KlipyGif): string | null {
 
 export default function MediaPicker({
   value,
+  url,
   onChange,
   userId,
   hideUpload = false,
 }: {
-  value: string;
+  value?: string;
+  url?: string;
   onChange: (url: string) => void;
   /** Stable id for KLIPY's customer_id — keeps their recents/ranking sane. */
   userId?: string | number;
@@ -64,6 +66,7 @@ export default function MediaPicker({
 }) {
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
+  const mediaValue = value || url || "";
   // The whole control row — the GIF panel's outside-click test must treat
   // the toggle button as INSIDE, or mousedown closes the panel and the
   // click that follows immediately reopens it: a toggle that can't close.
@@ -113,10 +116,10 @@ export default function MediaPicker({
             type="button"
             onClick={() => fileRef.current?.click()}
             disabled={uploading}
-            className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.05] px-3 py-1.5 font-mono text-[11px] font-bold text-slate-300 transition hover:bg-white/10 hover:text-white disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.05] px-3.5 py-2 font-mono text-xs font-bold text-slate-300 transition hover:bg-white/10 hover:text-white disabled:opacity-50"
           >
-            {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" />}
-            {uploading ? "Uploading…" : "Upload"}
+            {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin text-violet-400" /> : <ImagePlus className="h-3.5 w-3.5 text-violet-300" />}
+            <span>{uploading ? "Uploading…" : "Upload"}</span>
           </button>
         )}
         <button
@@ -126,19 +129,25 @@ export default function MediaPicker({
             setAnchorRect(rootRef.current?.getBoundingClientRect() || null);
             setGifOpen(true);
           }}
-          className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-[11px] font-black transition ${
+          className={`flex items-center gap-1.5 rounded-xl border px-3.5 py-2 font-mono text-xs font-black transition ${
             gifOpen
-              ? "border-violet-400/50 bg-violet-500/15 text-violet-200"
+              ? "border-violet-400/50 bg-violet-500/20 text-violet-200 shadow-[0_0_12px_rgba(139,92,246,0.3)]"
               : "border-white/10 bg-white/[0.05] text-slate-300 hover:bg-white/10 hover:text-white"
           }`}
         >
-          <Clapperboard className="h-3.5 w-3.5" /> GIF
+          <Clapperboard className="h-3.5 w-3.5 text-violet-400" />
+          <span>GIF</span>
         </button>
-        {value && (
-          <span className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.05] py-1 pl-1 pr-2">
-            <img src={value} alt="" className="h-7 w-10 rounded object-cover" />
-            <button type="button" onClick={() => onChange("")} aria-label="Remove attachment"
-              className="text-slate-500 transition hover:text-white">
+        {mediaValue && (
+          <span className="flex items-center gap-2 rounded-xl border border-violet-400/40 bg-violet-500/15 py-1 pl-1.5 pr-2.5 shadow-[0_0_10px_rgba(139,92,246,0.15)]">
+            <img src={mediaValue} alt="Attached" className="h-7 w-10 rounded-lg object-cover ring-1 ring-white/20" />
+            <span className="text-[11px] font-mono font-bold text-violet-200">Attached</span>
+            <button
+              type="button"
+              onClick={() => onChange("")}
+              aria-label="Remove attachment"
+              className="text-slate-400 transition hover:text-red-400"
+            >
               <X className="h-3.5 w-3.5" />
             </button>
           </span>

@@ -7,7 +7,7 @@ import {
   Pin, Plus, X, ImagePlus, Hash, Heart, ThumbsDown, MessageSquare, Loader2,
   CornerDownRight, Send, MoreHorizontal, Pencil, Trash2,
   BarChart3, Sparkles, Clock, Flame, Search, BookOpen, Users, ShieldCheck,
-  Share2, Check, HelpCircle, MessagesSquare, Calendar, Layers
+  Share2, Check, HelpCircle, MessagesSquare, Calendar, Layers, Clapperboard, ImageIcon
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { authHeaders } from "@/lib/authToken";
@@ -1143,91 +1143,140 @@ function Composer({ onClose, onPosted }: { onClose: () => void; onPosted: () => 
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={onClose} />
+  const isGifMedia = mediaUrl.toLowerCase().includes(".gif") || mediaUrl.includes("klipy");
 
-      <div className="relative w-full max-w-xl overflow-hidden rounded-3xl border border-white/10 bg-[#0b0b11] p-6 shadow-2xl font-mono">
-        <div className="flex items-center justify-between border-b border-white/10 pb-4">
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+      <div className="absolute inset-0 bg-black/85 backdrop-blur-md" onClick={onClose} />
+
+      <div className="relative w-full max-w-xl overflow-hidden rounded-2xl sm:rounded-3xl border border-white/10 bg-[#0c0c14] p-5 sm:p-7 shadow-2xl font-mono">
+        {/* Ambient Top Glow */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-violet-600/25 via-transparent to-transparent"
+        />
+
+        {/* Modal Header */}
+        <div className="relative flex items-center justify-between border-b border-white/10 pb-4">
           <div className="flex items-center gap-2.5">
-            <Sparkles className="h-5 w-5 text-violet-400" />
-            <h3 className="font-fell text-xl font-bold uppercase tracking-[0.06em] text-white">Create New Discussion</h3>
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-violet-500/20 text-violet-300 border border-violet-500/30">
+              <Sparkles className="h-4 w-4" />
+            </div>
+            <div>
+              <h3 className="font-fell text-lg sm:text-xl font-bold uppercase tracking-[0.06em] text-white">Create Discussion</h3>
+              <p className="text-[10px] font-mono text-slate-400">Share theories, art, or start a debate</p>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-white/50 hover:bg-white/10 hover:text-white transition"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-slate-400 hover:bg-white/15 hover:text-white transition"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="mt-4 space-y-4 max-h-[75vh] overflow-y-auto pr-1">
-          {/* Topic Picker */}
+        <div className="mt-4 space-y-4 max-h-[70vh] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10">
+          {/* Category Selector */}
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-white/40 mb-1.5">
-              Select Category
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 font-mono">
+              Topic Category
             </label>
             <div className="flex flex-wrap gap-1.5">
-              {TAGS.map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setTag(t)}
-                  className={`rounded-full border px-3 py-1 text-xs font-bold transition ${
-                    tag === t
-                      ? "border-violet-400/50 bg-violet-500/20 text-violet-200"
-                      : "border-white/10 bg-white/5 text-white/50 hover:text-white"
-                  }`}
-                >
-                  {t}
-                </button>
-              ))}
+              {TAGS.map((t) => {
+                const style = TAG_STYLE[t] || TAG_STYLE.General;
+                const isSelected = tag === t;
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setTag(t)}
+                    className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold font-mono transition-all ${
+                      isSelected
+                        ? "border-violet-400/60 bg-violet-500/25 text-violet-200 shadow-[0_0_12px_rgba(139,92,246,0.25)] scale-105"
+                        : "border-white/10 bg-white/[0.03] text-slate-400 hover:bg-white/5 hover:text-white"
+                    }`}
+                  >
+                    <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
+                    <span>{t}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Title */}
+          {/* Title Field */}
           <div>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value.slice(0, 100))}
-              placeholder="Discussion Title"
-              className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-base font-bold text-white placeholder:text-white/30 outline-none focus:border-violet-500"
+              placeholder="Discussion Title (optional)"
+              className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 font-mono text-sm sm:text-base font-bold text-white placeholder:text-slate-600 outline-none focus:border-violet-500/60 transition"
             />
           </div>
 
-          {/* Content Body */}
+          {/* Content Body Field */}
           <div>
             <MentionsTextarea
               value={content}
               onChange={(e) => setContent(e.target.value.slice(0, 3000))}
               placeholder="What are your thoughts? Use @ to mention users…"
               rows={5}
-              className="w-full rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white placeholder:text-white/30 outline-none focus:border-violet-500 font-sans"
+              className="w-full rounded-xl border border-white/10 bg-white/[0.03] p-4 text-xs sm:text-sm text-white placeholder:text-slate-600 outline-none focus:border-violet-500/60 font-sans leading-relaxed"
             />
           </div>
 
-          {/* Media Attach */}
-          <MediaPicker url={mediaUrl} onChange={setMediaUrl} />
+          {/* Media Attach Control */}
+          <div className="space-y-2">
+            <MediaPicker value={mediaUrl} url={mediaUrl} onChange={setMediaUrl} userId={user?.id} />
+
+            {/* LIVE ATTACHED MEDIA PREVIEW BOX */}
+            {mediaUrl && (
+              <div className="relative overflow-hidden rounded-2xl border border-violet-500/40 bg-black/60 p-3 shadow-[0_0_20px_rgba(139,92,246,0.15)] group animate-in fade-in duration-200">
+                <div className="flex items-center justify-between pb-2 border-b border-white/10 text-xs font-mono">
+                  <span className="flex items-center gap-2 font-bold text-violet-300">
+                    <Clapperboard className="h-4 w-4 text-violet-400" />
+                    <span>{isGifMedia ? "Attached GIF Animation" : "Attached Image"}</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setMediaUrl("")}
+                    className="flex items-center gap-1 text-[11px] font-bold text-red-400 hover:text-red-300 transition bg-red-500/10 px-2 py-0.5 rounded-lg border border-red-500/20"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                    <span>Remove</span>
+                  </button>
+                </div>
+                <div className="mt-2.5 relative max-h-64 overflow-hidden rounded-xl bg-black/40 flex items-center justify-center border border-white/5">
+                  <img
+                    src={mediaUrl}
+                    alt="Attached Media Preview"
+                    className="max-h-60 w-auto rounded-xl object-contain shadow-lg"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Poll Builder */}
           <PollBuilder value={poll} onChange={setPoll} onRemove={() => setPoll(null)} />
         </div>
 
-        <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-4">
-          <span className="text-xs text-white/40">
+        {/* Footer Actions */}
+        <div className="mt-5 flex items-center justify-between border-t border-white/10 pt-4">
+          <span className="text-[11px] font-mono text-slate-500">
             {content.length}/3000 chars
           </span>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             <button
               onClick={onClose}
-              className="rounded-full border border-white/10 bg-white/5 px-5 py-2 text-xs font-bold text-white/70 hover:bg-white/10 transition"
+              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-slate-400 hover:bg-white/10 hover:text-white transition"
             >
               Cancel
             </button>
             <button
               onClick={submit}
               disabled={!canPost}
-              className="flex items-center gap-2 rounded-full border border-violet-400/40 bg-violet-600 px-6 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-violet-600/30 transition hover:bg-violet-500 disabled:opacity-40"
+              className="flex items-center gap-2 rounded-xl border border-violet-400/40 bg-gradient-to-r from-violet-600 to-purple-600 px-5 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-[0_0_15px_rgba(139,92,246,0.3)] transition hover:brightness-110 disabled:opacity-40"
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Publish Post"}
             </button>
