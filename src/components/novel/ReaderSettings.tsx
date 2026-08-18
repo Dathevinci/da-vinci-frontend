@@ -1,6 +1,6 @@
 "use client";
 
-import { X, Minus, Plus, AlignLeft, AlignJustify, RotateCcw } from "lucide-react";
+import { X, Minus, Plus, AlignLeft, AlignJustify, RotateCcw, Trash2, ImagePlus, Upload } from "lucide-react";
 import {
   READER_THEMES, READER_FONTS, READER_SPACING, READER_WIDTHS,
   SIZE_MIN, SIZE_MAX, themeById,

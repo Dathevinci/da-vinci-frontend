@@ -81,7 +81,7 @@ export function AvatarDecoration({
   // preview, which shows one distinct effect per card). "sm" = dense surfaces
   // (comments, directory, lists, nav) where heavy effects collapse to a cheap
   // glow so a page full of avatars stays smooth.
-  size?: "sm" | "lg";
+  size?: "sm" | "md" | "lg";
 }) {
   // Performance Mode gate. MotionConfig reducedMotion="always" only stops
   // framer's transform/layout tweens — box-shadow/opacity keyframe loops keep

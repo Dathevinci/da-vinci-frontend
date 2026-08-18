@@ -137,15 +137,11 @@ export default function NovelReaderPage() {
   const retryChapter = () => {
     setLoading(true);
     setChapter(null);
-    setLoadedSections([]);
     fetch(`/api/novels/${encodeURIComponent(id)}/chapter/${encodeURIComponent(chapterId)}`)
       .then((r) => r.json())
       .then((data) => {
         const ch = data && data.error ? null : data;
         setChapter(ch);
-        if (ch && ch.content?.length) {
-          setLoadedSections([{ id: chapterId, title: ch.title, content: ch.content }]);
-        }
         setLoading(false);
       })
       .catch(() => setLoading(false));
