@@ -23,6 +23,7 @@ import {
 import { useUser } from "@/hooks/useUser";
 import { useToast } from "@/components/ui/Toast";
 import { authHeaders } from "@/lib/authToken";
+import { isLeadDev } from "@/lib/admin";
 import UserLink from "@/components/profile/UserLink";
 import UserBadges from "@/components/profile/UserBadges";
 import GuildTag from "@/components/guild/GuildTag";
