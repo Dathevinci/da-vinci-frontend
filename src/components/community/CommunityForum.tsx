@@ -496,37 +496,39 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
               </div>
             </div>
 
-            {/* ── UNIFIED FILTER & SORT TOOLBAR ── */}
-            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 rounded-2xl sm:rounded-3xl border border-white/10 bg-[#0b0b11]/90 p-3 sm:p-3.5 shadow-xl backdrop-blur-xl">
+            {/* ── FILTER & SORT CONTROLS ── */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 font-mono">
               
               {/* Horizontal swipeable topic categories */}
-              <div className="min-w-0 flex-1 flex items-center gap-1.5 sm:gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-0.5">
-                {["All", ...TAGS].map((t) => {
-                  const on = tag === t;
-                  return (
-                    <button
-                      key={t}
-                      onClick={() => setTag(t)}
-                      className={`shrink-0 flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-bold tracking-wide transition-all touch-manipulation min-h-[34px] ${
-                        on
-                          ? "border-violet-400/50 bg-violet-500/20 text-violet-200 shadow-sm"
-                          : "border-white/10 bg-white/[0.02] text-slate-400 hover:bg-white/[0.06] hover:text-white"
-                      }`}
-                    >
-                      {t !== "All" && (
-                        <span className={`h-1.5 w-1.5 rounded-full ${TAG_STYLE[t]?.dot || "bg-slate-400"}`} />
-                      )}
-                      <span>{t === "All" ? "All Posts" : t}</span>
-                    </button>
-                  );
-                })}
+              <div className="min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-1">
+                <div className="flex items-center gap-2">
+                  {["All", ...TAGS].map((t) => {
+                    const on = tag === t;
+                    return (
+                      <button
+                        key={t}
+                        onClick={() => setTag(t)}
+                        className={`shrink-0 flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold tracking-wide transition-all touch-manipulation min-h-[36px] ${
+                          on
+                            ? "border-violet-400/50 bg-violet-500/20 text-violet-200 shadow-md shadow-violet-500/10"
+                            : "border-white/10 bg-[#0b0b11]/90 text-slate-400 hover:border-white/20 hover:bg-[#0e0e16] hover:text-white"
+                        }`}
+                      >
+                        {t !== "All" && (
+                          <span className={`h-2 w-2 rounded-full ${TAG_STYLE[t]?.dot || "bg-slate-400"}`} />
+                        )}
+                        <span className="whitespace-nowrap">{t === "All" ? "All Discussions" : t}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Sort segmented toggle */}
-              <div className="shrink-0 inline-flex items-center justify-center gap-1 rounded-full border border-white/10 bg-black/50 p-1 self-end md:self-auto">
+              <div className="shrink-0 self-end sm:self-auto inline-flex items-center justify-center gap-1 rounded-full border border-white/10 bg-[#0b0b11]/90 p-1 backdrop-blur-xl shadow-lg">
                 <button
                   onClick={() => setSort("newest")}
-                  className={`flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-bold transition-all ${
+                  className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
                     sort === "newest"
                       ? "bg-violet-500/20 text-violet-200 border border-violet-400/40 shadow-sm"
                       : "text-slate-400 hover:text-white"
@@ -536,7 +538,7 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                 </button>
                 <button
                   onClick={() => setSort("top")}
-                  className={`flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-bold transition-all ${
+                  className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
                     sort === "top"
                       ? "bg-violet-500/20 text-violet-200 border border-violet-400/40 shadow-sm"
                       : "text-slate-400 hover:text-white"

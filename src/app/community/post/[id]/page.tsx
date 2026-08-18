@@ -13,6 +13,7 @@ import UserLink from "@/components/profile/UserLink";
 import UserBadges from "@/components/profile/UserBadges";
 import GuildTag from "@/components/guild/GuildTag";
 import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
+import { cloudinaryFit } from "@/lib/cloudinary";
 import CommunityFeed from "@/components/community/CommunityFeed";
 import MentionText from "@/components/ui/MentionText";
 import { PollCard, type PollData } from "@/components/community/Poll";
@@ -154,7 +155,7 @@ export default function PostPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#070709] px-3 sm:px-6 md:px-12 pb-36 pt-20 sm:pt-24 text-white">
+    <div className="min-h-screen bg-[#070709] px-3 sm:px-6 md:px-12 pb-44 pt-28 sm:pt-32 text-white">
       <div className="mx-auto max-w-5xl">
         <button
           onClick={() => router.back()}
