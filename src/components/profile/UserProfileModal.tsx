@@ -199,8 +199,13 @@ function PopoutCard({
               strictly the richer of the two: it carries the tier and the
               tooltip, so it is the one that stays. */}
           {rankTheme.title && !isHeartRankName(rankTheme.title) && (
-            <span className={`shrink-0 px-2.5 py-1 rounded-full text-[10px] font-black tracking-wider uppercase ${rankTheme.badgeClass}`}>
-              {rankTheme.title}
+            <span className={`shrink-0 px-2.5 py-1 rounded-full flex items-center gap-1.5 text-[10px] font-black tracking-wider uppercase ${rankTheme.badgeClass}`}>
+              {isProfileLeadDev && (
+                <img src="/icons/lucifer-gojo.png" alt="" className="h-4 w-4 object-contain -my-0.5 shrink-0 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]" />
+              )}
+              <span className={isProfileLeadDev ? "text-transparent bg-clip-text bg-gradient-to-r from-[#f3e8ff] via-[#d8b4fe] to-[#c084fc] drop-shadow-[0_0_10px_rgba(192,132,252,0.85)]" : ""}>
+                {rankTheme.title}
+              </span>
             </span>
           )}
           <span className={`shrink-0 px-2.5 py-1 rounded-full flex items-center gap-1 cursor-help text-[10px] font-black tracking-wider uppercase ${heart.badgeClass}`} title={heartRankTooltip(heart)}>

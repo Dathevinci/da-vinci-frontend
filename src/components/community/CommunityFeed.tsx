@@ -14,7 +14,7 @@ import { nameColorClass } from "@/lib/cosmetics";
 import { cloudinaryFit } from "@/lib/cloudinary";
 import { AvatarDecoration, hasFrameRing } from "@/components/profile/AvatarDecoration";
 import UserLink from "@/components/profile/UserLink";
-import { TitleChips } from "@/components/profile/UserBadges";
+import UserBadges, { TitleChips } from "@/components/profile/UserBadges";
 import GuildTag from "@/components/guild/GuildTag";
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import HeartExplosion from '@/components/ui/HeartExplosion';
@@ -289,56 +289,8 @@ const CommentThread = ({
                     titles are decoration and follow it. */}
                 <GuildTag userId={node.user?.id} size="sm" />
 
-                {isDejavuh ? (
-                  <div className="hidden sm:flex px-2 py-0.5 rounded-full items-center gap-1 bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.6)]">
-                    <Crown className="w-3 h-3" />
-                    <span className="text-[10px] font-black tracking-wider uppercase">Lead Developer</span>
-                  </div>
-                ) : isAdmin(node.user) && rankTheme.title ? (
-                  <div className={`hidden sm:flex px-2 py-0.5 rounded-full items-center gap-1 ${rankTheme.badgeClass}`}>
-                    {RankIcon && <RankIcon className="w-3 h-3" />}
-                    <span className="text-[10px] font-black tracking-wider uppercase">{rankTheme.title}</span>
-                  </div>
-                ) : node.user?.activeRole === 'role_watcher' ? (
-                  <div className="hidden sm:flex px-2 py-0.5 rounded-full items-center gap-1 bg-purple-500/20 text-purple-400 border border-purple-500/30">
-                    <Shield className="w-3 h-3" />
-                    <span className="text-[10px] font-black tracking-wider uppercase">The Watcher</span>
-                  </div>
-                ) : node.user?.activeRole === 'role_elite' ? (
-                  <div className="hidden sm:flex px-2 py-0.5 rounded-full items-center gap-1 bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
-                    <Star className="w-3 h-3" />
-                    <span className="text-[10px] font-black tracking-wider uppercase">Elite</span>
-                  </div>
-                ) : rankTheme.title ? (
-                  <div className={`hidden sm:flex px-2 py-0.5 rounded-full items-center gap-1 ${rankTheme.badgeClass}`}>
-                    {RankIcon && <RankIcon className="w-3 h-3" />}
-                    <span className="text-[10px] font-black tracking-wider uppercase">{rankTheme.title}</span>
-                  </div>
-                ) : null}
-
-                {node.user?.activeTag === 'tag_og' && (
-                  <div className="hidden sm:flex px-2 py-0.5 rounded-full items-center gap-1 bg-red-500/20 text-red-400">
-                    <Zap className="w-3 h-3" />
-                    <span className="text-[10px] font-black tracking-wider uppercase">OG</span>
-                  </div>
-                )}
-                {node.user?.activeTag === 'tag_weeb' && (
-                  <div className="hidden sm:flex px-2 py-0.5 rounded-full items-center gap-1 bg-pink-500/20 text-pink-400">
-                    <Sparkles className="w-3 h-3" />
-                    <span className="text-[10px] font-black tracking-wider uppercase">Weeb Lord</span>
-                  </div>
-                )}
-                {node.blessed && (
-                  <div className="flex px-2 py-0.5 rounded-full items-center gap-1 bg-gradient-to-r from-amber-400/25 to-yellow-500/20 text-amber-300 border border-amber-400/40 shadow-[0_0_10px_rgba(251,191,36,0.35)]" title="Blessed with Arise Points by an admin">
-                    <Sparkles className="w-3 h-3" />
-                    <span className="text-[10px] font-black tracking-wider uppercase">Divine Blessing</span>
-                  </div>
-                )}
-                {/* The one thing a user actually CHOOSES to wear. Everything
-                    above is a role or an XP rank; this is the title they earned
-                    and picked. Capped at one here — an author line has a
-                    fraction of the room a profile panel does. */}
-                <TitleChips user={node.user} size="sm" max={1} />
+                {/* Badges, Staff/Lead Dev custom titles (e.g. Lucifer,the fallen angel), and worn titles */}
+                <UserBadges user={node.user} blessed={node.blessed} size="sm" showHeart={false} maxTitles={1} />
               </div>
               <span className="text-[10px] sm:text-xs text-slate-500">{timeAgo(node.createdAt)}</span>
             </div>

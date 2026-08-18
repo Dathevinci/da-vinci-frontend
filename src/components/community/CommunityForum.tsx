@@ -14,7 +14,7 @@ import { authHeaders } from "@/lib/authToken";
 import { useToast } from "@/components/ui/Toast";
 import { isAdmin, isLeadDev } from "@/lib/admin";
 import UserLink from "@/components/profile/UserLink";
-import { UserBadgesCompact } from "@/components/profile/UserBadges";
+import UserBadges, { UserBadgesCompact } from "@/components/profile/UserBadges";
 import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
 import GuildTag from "@/components/guild/GuildTag";
 import MediaPicker from "@/components/community/MediaPicker";
@@ -118,7 +118,7 @@ function AuthorLine({ user, blessed }: { user?: Author; blessed?: boolean }) {
           className="truncate text-sm font-bold text-white hover:text-violet-300 transition-colors"
         />
         <GuildTag userId={user.id} size="sm" />
-        <UserBadgesCompact user={user as any} />
+        <UserBadges user={user as any} blessed={blessed} size="sm" showHeart={false} maxTitles={1} />
       </div>
     </div>
   );
