@@ -73,6 +73,7 @@ import SupportUsModal from "@/components/layout/SupportUsModal";
 import AuthSync from "@/components/providers/AuthSync";
 import MaintenanceOverlay from "@/components/ui/MaintenanceOverlay";
 import ServiceNotice from "@/components/ui/ServiceNotice";
+import NoirVoxIntro from "@/components/ui/NoirVoxIntro";
 import InviteOnlyGuard from "@/components/layout/InviteOnlyGuard";
 import { Suspense } from "react";
 
@@ -130,6 +131,9 @@ export default function RootLayout({
                   <Suspense fallback={null}>
                     <AuthSync />
                   </Suspense>
+
+                  {/* 1-Week Noir Protocol Vox Intro & Monochrome Mode */}
+                  <NoirVoxIntro />
 
                   {/* Frontend-only outage notice — shows even when the backend
                       is down, and for signed-out visitors on the gate. */}

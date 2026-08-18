@@ -107,7 +107,31 @@ export default function HubPage() {
         className="pointer-events-none fixed inset-x-0 top-0 h-[500px] bg-[radial-gradient(ellipse_60%_50%_at_50%_-10%,rgba(255,255,255,0.08),transparent_70%)]"
       />
 
-      <div className="relative mx-auto max-w-6xl space-y-10">
+      <div className="relative mx-auto max-w-6xl space-y-8">
+
+        {/* ── 1-WEEK NOIR PROTOCOL EVENT BANNER & VOX REPLAY ── */}
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/20 bg-gradient-to-r from-neutral-950 via-[#111111] to-neutral-950 px-5 py-3 shadow-md">
+          <div className="flex items-center gap-3">
+            <span className="bg-[#ffe600] text-black px-2 py-0.5 text-[10px] font-black uppercase tracking-tight shadow-sm">
+              VOX EVENT
+            </span>
+            <div className="flex items-center gap-2 text-xs font-mono font-bold text-white">
+              <span className="h-2 w-2 rounded-full bg-[#ffe600] animate-pulse shadow-[0_0_8px_#ffe600]" />
+              <span>THE 1-WEEK NOIR PROTOCOL // DAYS LEFT: 7</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent("open_noir_vox_intro"))}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-mono font-bold uppercase tracking-wider text-white hover:bg-[#ffe600] hover:text-black hover:border-[#ffe600] transition"
+            >
+              <Play className="h-3 w-3 fill-current" />
+              <span>WATCH VOX INTRO</span>
+            </button>
+          </div>
+        </div>
 
         {/* ── COMMAND DECK & USER PASSPORT ── */}
         <section className="relative overflow-hidden rounded-3xl border border-white/15 bg-gradient-to-b from-[#111111] via-[#090909] to-[#000000] p-6 sm:p-8 lg:p-10 shadow-[0_20px_50px_rgba(0,0,0,0.9),_0_0_30px_rgba(255,255,255,0.03)]">
