@@ -486,7 +486,7 @@ export default function PublicProfilePage() {
           transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
           className="relative z-10 w-full"
         >
-          {/* ═══ COMPACT HIGH-IMPACT HERO ═══ */}
+          {/* ═══ COMPACT HIGH-IMPACT CENTERED HERO ═══ */}
           <div className="relative overflow-hidden border-b border-white/10">
             <div className="absolute inset-0 z-[1]">
               {profileUser.bannerUrl ? (
@@ -503,328 +503,318 @@ export default function PublicProfilePage() {
               <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-[#070709]/85 to-[#070709]" />
             </div>
 
-            {/* Profile Canvas Effect Overlay */}
+            {/* Profile Canvas Effect Overlay — Centered directly on Avatar */}
             <ProfileEffect effect={showcaseOpen ? null : effectiveEffect} />
 
-            {/* Compact Container */}
-            <div className="relative z-20 mx-auto max-w-5xl px-4 pt-6 pb-6 sm:pt-8 sm:pb-8">
+            {/* Compact Centered Container */}
+            <div className="relative z-20 mx-auto flex max-w-3xl flex-col items-center px-4 pt-6 pb-6 text-center sm:pt-8 sm:pb-8">
               
-              {/* Dual-Pillar Layout on md+ screens */}
-              <div className="flex flex-col md:flex-row items-center md:items-start gap-5 sm:gap-6 text-center md:text-left">
-                
-                {/* Left: Avatar + Badge + Audio */}
-                <div className="relative shrink-0 flex flex-col items-center">
-                  <div
-                    className="relative w-fit cursor-pointer group"
-                    onClick={() => profileUser.avatar && setPreviewImage(profileUser.avatar)}
-                  >
-                    {profileUser.avatar ? (
-                      <img
-                        src={cloudinaryFit(profileUser.avatar, 300)}
-                        alt="Avatar"
-                        decoding="async"
-                        className={`relative z-10 h-24 w-24 sm:h-28 sm:w-28 rounded-full border-4 bg-[#141414] object-cover shadow-[0_10px_40px_rgba(0,0,0,0.8)] transition-all duration-300 group-hover:scale-105 ${avatarBorderClass}`}
-                      />
-                    ) : (
-                      <div
-                        className={`relative z-10 grid h-24 w-24 sm:h-28 sm:w-28 place-items-center rounded-full border-4 bg-violet-700 text-3xl font-black transition-all duration-300 group-hover:scale-105 ${avatarBorderClass}`}
-                      >
-                        {profileUser.username.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-
-                    <AvatarDecoration
-                      frame={(profileUser as any).activeFrame}
-                      effect={effectiveEffect}
-                      size="md"
+              {/* Avatar + Frames + Level Badge + Audio Player */}
+              <div className="relative mb-2.5 flex flex-col items-center">
+                <div
+                  className="relative w-fit cursor-pointer group"
+                  onClick={() => profileUser.avatar && setPreviewImage(profileUser.avatar)}
+                >
+                  {profileUser.avatar ? (
+                    <img
+                      src={cloudinaryFit(profileUser.avatar, 300)}
+                      alt="Avatar"
+                      decoding="async"
+                      className={`relative z-10 h-28 w-28 sm:h-32 sm:w-32 rounded-full border-4 bg-[#141414] object-cover shadow-[0_10px_40px_rgba(0,0,0,0.8)] transition-all duration-300 group-hover:scale-105 ${avatarBorderClass}`}
                     />
-
-                    {/* Level Badge Pill */}
-                    {profileUser.arisePoints !== undefined && (
-                      <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 z-20">
-                        <LevelBadge
-                          xp={isProfileLeadDev ? Infinity : isProfileAdmin ? MAX_LEVEL_XP : profileUser.xp || 0}
-                          size="sm"
-                          className="border-[#070709] shadow-lg scale-90 sm:scale-100"
-                        />
-                      </div>
-                    )}
-
-                    {/* Soundtrack Button */}
-                    {songSrc && (
-                      <div className="absolute -bottom-1 -left-1.5 z-20">
-                        <ProfileSong src={songSrc} />
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Center / Right: Main Identity, Stats & Progress */}
-                <div className="flex-1 min-w-0 flex flex-col items-center md:items-start gap-2.5">
-                  
-                  {/* Name + Guild Tag + Actions in one responsive row */}
-                  <div className="flex flex-wrap items-center justify-center md:justify-between gap-3 w-full">
-                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-                      <h1
-                        className={`min-w-0 break-words font-fell text-3xl sm:text-4xl md:text-5xl font-bold uppercase tracking-[0.05em] leading-tight drop-shadow-lg ${
-                          profileUser.activeFont === "font_cyber" ? "font-mono tracking-widest" : ""
-                        } ${profileUser.activeFont === "font_pixel" ? "font-serif tracking-tight" : ""} ${
-                          isCrimson
-                            ? crimsonName
-                            : isDejaVu
-                              ? dejaVuName
-                              : isTempest
-                                ? tempestName
-                                : isFool
-                                  ? foolName
-                                  : isEvernight
-                                    ? evernightName
-                                    : isMahoraga
-                                      ? mahoragaName
-                                      : isRitual
-                                        ? ritualName
-                                        : isCanopy
-                                          ? canopyName
-                                          : isSamurai
-                                            ? samuraiName
-                                            : isHimalaya
-                                              ? himalayaName
-                                              : isLotus
-                                                ? lotusName
-                                                : isMango
-                                                  ? mangoName
-                                                  : isJungle
-                                                    ? jungleName
-                                                    : isUnblinking
-                                                      ? unblinkingName
-                                                      : isVoid
-                                                        ? voidName
-                                                        : isDejavuEcho
-                                                          ? dejavuEchoName
-                                                          : isHollow
-                                                            ? hollowName
-                                                            : isOuterGod
-                                                              ? outerGodName
-                                                              : isGateway
-                                                                ? gatewayName
-                                                                : isWebSlinger
-                                                                  ? webSlingerName
-                                                                  : isPortal
-                                                                    ? portalName
-                                                                    : isBankai
-                                                                      ? bankaiName
-                                                                      : isDandadan
-                                                                        ? dandadanName
-                                                                        : isGrandline
-                                                                          ? grandlineName
-                                                                          : nameColorClass(profileUser.activeColor) ||
-                                                                            rankTheme.textGradient
-                        }`}
-                      >
-                        {profileUser.username}
-                      </h1>
-                      <GuildTag userId={profileUser.id} size="sm" />
-                    </div>
-
-                    {/* Action buttons (Right-aligned on md+) */}
-                    <div className="flex items-center gap-2">
-                      {isSelf ? (
-                        <button
-                          onClick={() => setShowSettings(true)}
-                          className="flex items-center gap-1.5 rounded-full border border-violet-400/40 bg-gradient-to-r from-violet-600 to-purple-700 px-4 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-white shadow-md transition hover:scale-105 active:scale-95"
-                        >
-                          <Settings className="h-3.5 w-3.5" />
-                          <span>Edit</span>
-                        </button>
-                      ) : currentUser ? (
-                        <button
-                          onClick={handleFollowToggle}
-                          className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider transition hover:scale-105 active:scale-95 ${
-                            isFollowing
-                              ? "border border-red-500/40 bg-red-500/20 text-red-200"
-                              : "border border-violet-400/40 bg-gradient-to-r from-violet-600 to-purple-700 text-white shadow-md"
-                          }`}
-                        >
-                          {isFollowing ? (
-                            <>
-                              <UserMinus className="h-3.5 w-3.5" /> Unfollow
-                            </>
-                          ) : (
-                            <>
-                              <UserPlus className="h-3.5 w-3.5" /> Follow
-                            </>
-                          )}
-                        </button>
-                      ) : null}
-
-                      {effectiveEffect && !preferences.reducedMotion && (
-                        <button
-                          onClick={() => setShowcaseOpen(true)}
-                          title="View effect full screen"
-                          className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-3.5 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-slate-200 backdrop-blur-md transition hover:bg-white/[0.1] hover:text-white"
-                        >
-                          <Maximize2 className="h-3.5 w-3.5" />
-                          <span className="hidden sm:inline">Showcase</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Titles & Custom Badges */}
-                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-1.5">
-                    {rankTheme.title &&
-                      !isHeartRankName(rankTheme.title) &&
-                      (!isProfileLeadDev || !(profileUser as any).hideLeadRole) && (
-                        <div
-                          className={`shrink-0 ${
-                            isProfileLeadDev ? "px-3 py-1 min-h-[28px]" : "px-2.5 py-0.5"
-                          } rounded-full flex items-center gap-1.5 ${rankTheme.badgeClass} shadow-sm`}
-                        >
-                          {isProfileLeadDev ? (
-                            <img
-                              src="/icons/lucifer-gojo.png"
-                              alt="Lucifer"
-                              className="h-5 w-5 object-contain -my-1 shrink-0 drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]"
-                            />
-                          ) : (
-                            RankIcon && <RankIcon className="w-3.5 h-3.5" />
-                          )}
-                          <span
-                            className={`${
-                              isProfileLeadDev
-                                ? "text-[11px] text-transparent bg-clip-text bg-gradient-to-r from-[#f3e8ff] via-[#d8b4fe] to-[#c084fc] drop-shadow-[0_0_10px_rgba(192,132,252,0.9)]"
-                                : "text-[10px]"
-                            } font-black tracking-wider uppercase font-mono`}
-                          >
-                            {rankTheme.title}
-                          </span>
-                        </div>
-                      )}
-
-                    {(() => {
-                      const heart = getHeartRank(currentLevel);
-                      return (
-                        <div
-                          className={`shrink-0 px-3 py-0.5 rounded-full flex items-center gap-1 cursor-help ${heart.badgeClass} shadow-sm`}
-                          title={heartRankTooltip(heart)}
-                        >
-                          <span className="text-xs leading-none">{heart.emoji}</span>
-                          <span className="text-[10px] font-black tracking-wider uppercase font-mono">
-                            {heart.name} · {heart.numeral}
-                          </span>
-                          <span className="text-[9px] font-bold opacity-75">{heart.hanzi}</span>
-                        </div>
-                      );
-                    })()}
-
-                    {((profileUser as any).purchasedTags?.includes("tag_supporter") ||
-                      (profileUser as any).purchasedEffects?.includes("effect_crimson")) && (
-                      <div
-                        className="shrink-0 px-2.5 py-0.5 rounded-full flex items-center gap-1 border border-amber-400/40 bg-amber-500/15 text-amber-300 shadow-sm"
-                        title="Supported Da Vinci"
-                      >
-                        <Heart className="w-3 h-3 fill-current" />
-                        <span className="text-[10px] font-black tracking-wider uppercase font-mono">Supporter</span>
-                      </div>
-                    )}
-
-                    {profileUser.activeRole === "role_watcher" && (
-                      <div className="shrink-0 px-2.5 py-0.5 rounded-full flex items-center gap-1 bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                        <Shield className="w-3 h-3" />
-                        <span className="text-[10px] font-black tracking-wider uppercase font-mono">Watcher</span>
-                      </div>
-                    )}
-
-                    <TitleChips
-                      user={activeWornTitles !== null ? { ...profileUser, equippedTitles: activeWornTitles } : profileUser}
-                      size="sm"
-                      max={3}
-                    />
-                  </div>
-
-                  {/* Compact Stats Row */}
-                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 pt-1 font-mono text-[11px]">
-                    <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-slate-300">
-                      <Clock className="h-3 w-3 text-slate-400" />
-                      <span>
-                        <b className="text-white">{hoursWatched.toLocaleString()}</b> hrs
-                      </span>
-                    </div>
-
-                    <button
-                      onClick={() => setShowPointHistory(true)}
-                      className="flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-amber-200 hover:bg-amber-500/20 transition"
-                      title="Arise Points"
+                  ) : (
+                    <div
+                      className={`relative z-10 grid h-28 w-28 sm:h-32 sm:w-32 place-items-center rounded-full border-4 bg-violet-700 text-4xl font-black transition-all duration-300 group-hover:scale-105 ${avatarBorderClass}`}
                     >
-                      <Sparkles className="h-3 w-3 text-amber-300" />
-                      <span>
-                        <b className="text-white">{displayArisePoints(profileUser)}</b> Arise
-                      </span>
-                    </button>
-
-                    <button
-                      onClick={() =>
-                        setModalData({
-                          title: "Followers",
-                          users: (profileUser.followers || []).map((f: any) => f.follower),
-                        })
-                      }
-                      className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-slate-300 hover:bg-white/[0.08] hover:text-white transition"
-                    >
-                      <Users className="h-3 w-3 text-violet-300" />
-                      <span>
-                        <b className="text-white">{(profileUser.followers || []).length.toLocaleString()}</b> followers
-                      </span>
-                    </button>
-
-                    <button
-                      onClick={() =>
-                        setModalData({
-                          title: "Following",
-                          users: (profileUser.following || []).map((f: any) => f.following),
-                        })
-                      }
-                      className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-slate-300 hover:bg-white/[0.08] hover:text-white transition"
-                    >
-                      <UserIcon className="h-3 w-3 text-violet-300" />
-                      <span>
-                        <b className="text-white">{(profileUser.following || []).length.toLocaleString()}</b> following
-                      </span>
-                    </button>
-                  </div>
-
-                  {/* Slim Level Progress Strip */}
-                  <div className="w-full max-w-xl rounded-2xl border border-white/10 bg-[#0b0b11]/80 px-3.5 py-2 backdrop-blur-md shadow-md mt-1">
-                    <div className="flex items-center justify-between gap-2 font-mono text-[10px] mb-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-violet-300">Lv {currentLevel}</span>
-                        <span className="text-white/40">·</span>
-                        <span className="text-slate-400 truncate max-w-[160px]">{getHeartRank(currentLevel).name}</span>
-                      </div>
-                      <span className="font-bold text-amber-300">
-                        {isStaffLevel ? "PINNED CAP" : `${currentXp.toLocaleString()} XP`}
-                      </span>
+                      {profileUser.username.charAt(0).toUpperCase()}
                     </div>
+                  )}
 
-                    <div className="relative h-1.5 w-full overflow-hidden rounded-full border border-white/10 bg-black/60">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-amber-400 shadow-[0_0_8px_rgba(217,70,239,0.5)] transition-all duration-1000 ease-out"
-                        style={{ width: `${progressPercent}%` }}
-                      />
-                    </div>
-                  </div>
+                  {/* High-Fidelity Avatar Decoration & Anchor Registration */}
+                  <AvatarDecoration
+                    frame={(profileUser as any).activeFrame}
+                    effect={effectiveEffect}
+                    size="lg"
+                  />
 
-                  {/* Clean Bio Quote */}
-                  {cleanBio && (
-                    <div className="max-w-2xl pt-1">
-                      <BioRenderer
-                        bio={cleanBio}
-                        className="text-xs sm:text-sm font-medium text-slate-300 leading-relaxed italic"
+                  {/* Level Badge Pill */}
+                  {profileUser.arisePoints !== undefined && (
+                    <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 z-20">
+                      <LevelBadge
+                        xp={isProfileLeadDev ? Infinity : isProfileAdmin ? MAX_LEVEL_XP : profileUser.xp || 0}
+                        size="sm"
+                        className="border-[#070709] shadow-lg"
                       />
                     </div>
                   )}
 
+                  {/* Soundtrack Player */}
+                  {songSrc && (
+                    <div className="absolute -bottom-1 -left-2 z-20">
+                      <ProfileSong src={songSrc} />
+                    </div>
+                  )}
                 </div>
+              </div>
+
+              {/* Username & Guild Tag */}
+              <div className="mt-1 flex max-w-[92vw] flex-wrap items-center justify-center gap-2">
+                <h1
+                  className={`min-w-0 break-words font-fell text-3xl sm:text-4xl md:text-5xl font-bold uppercase tracking-[0.05em] leading-tight drop-shadow-lg ${
+                    profileUser.activeFont === "font_cyber" ? "font-mono tracking-widest" : ""
+                  } ${profileUser.activeFont === "font_pixel" ? "font-serif tracking-tight" : ""} ${
+                    isCrimson
+                      ? crimsonName
+                      : isDejaVu
+                        ? dejaVuName
+                        : isTempest
+                          ? tempestName
+                          : isFool
+                            ? foolName
+                            : isEvernight
+                              ? evernightName
+                              : isMahoraga
+                                ? mahoragaName
+                                : isRitual
+                                  ? ritualName
+                                  : isCanopy
+                                    ? canopyName
+                                    : isSamurai
+                                      ? samuraiName
+                                      : isHimalaya
+                                        ? himalayaName
+                                        : isLotus
+                                          ? lotusName
+                                          : isMango
+                                            ? mangoName
+                                            : isJungle
+                                              ? jungleName
+                                              : isUnblinking
+                                                ? unblinkingName
+                                                : isVoid
+                                                  ? voidName
+                                                  : isDejavuEcho
+                                                    ? dejavuEchoName
+                                                    : isHollow
+                                                      ? hollowName
+                                                      : isOuterGod
+                                                        ? outerGodName
+                                                        : isGateway
+                                                          ? gatewayName
+                                                          : isWebSlinger
+                                                            ? webSlingerName
+                                                            : isPortal
+                                                              ? portalName
+                                                              : isBankai
+                                                                ? bankaiName
+                                                                : isDandadan
+                                                                  ? dandadanName
+                                                                  : isGrandline
+                                                                    ? grandlineName
+                                                                    : nameColorClass(profileUser.activeColor) ||
+                                                                      rankTheme.textGradient
+                  }`}
+                >
+                  {profileUser.username}
+                </h1>
+                <GuildTag userId={profileUser.id} size="sm" />
+              </div>
+
+              {/* Titles & Custom Badges Ribbon */}
+              <div className="mt-1.5 flex flex-wrap items-center justify-center gap-1.5">
+                {rankTheme.title &&
+                  !isHeartRankName(rankTheme.title) &&
+                  (!isProfileLeadDev || !(profileUser as any).hideLeadRole) && (
+                    <div
+                      className={`shrink-0 ${
+                        isProfileLeadDev ? "px-3 py-1 min-h-[28px]" : "px-2.5 py-0.5"
+                      } rounded-full flex items-center gap-1.5 ${rankTheme.badgeClass} shadow-sm`}
+                    >
+                      {isProfileLeadDev ? (
+                        <img
+                          src="/icons/lucifer-gojo.png"
+                          alt="Lucifer"
+                          className="h-5 w-5 object-contain -my-1 shrink-0 drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]"
+                        />
+                      ) : (
+                        RankIcon && <RankIcon className="w-3.5 h-3.5" />
+                      )}
+                      <span
+                        className={`${
+                          isProfileLeadDev
+                            ? "text-[11px] text-transparent bg-clip-text bg-gradient-to-r from-[#f3e8ff] via-[#d8b4fe] to-[#c084fc] drop-shadow-[0_0_10px_rgba(192,132,252,0.9)]"
+                            : "text-[10px]"
+                        } font-black tracking-wider uppercase font-mono`}
+                      >
+                        {rankTheme.title}
+                      </span>
+                    </div>
+                  )}
+
+                {(() => {
+                  const heart = getHeartRank(currentLevel);
+                  return (
+                    <div
+                      className={`shrink-0 px-3 py-0.5 rounded-full flex items-center gap-1 cursor-help ${heart.badgeClass} shadow-sm`}
+                      title={heartRankTooltip(heart)}
+                    >
+                      <span className="text-xs leading-none">{heart.emoji}</span>
+                      <span className="text-[10px] font-black tracking-wider uppercase font-mono">
+                        {heart.name} · {heart.numeral}
+                      </span>
+                      <span className="text-[9px] font-bold opacity-75">{heart.hanzi}</span>
+                    </div>
+                  );
+                })()}
+
+                {((profileUser as any).purchasedTags?.includes("tag_supporter") ||
+                  (profileUser as any).purchasedEffects?.includes("effect_crimson")) && (
+                  <div
+                    className="shrink-0 px-2.5 py-0.5 rounded-full flex items-center gap-1 border border-amber-400/40 bg-amber-500/15 text-amber-300 shadow-sm"
+                    title="Supported Da Vinci"
+                  >
+                    <Heart className="w-3 h-3 fill-current" />
+                    <span className="text-[10px] font-black tracking-wider uppercase font-mono">Supporter</span>
+                  </div>
+                )}
+
+                {profileUser.activeRole === "role_watcher" && (
+                  <div className="shrink-0 px-2.5 py-0.5 rounded-full flex items-center gap-1 bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                    <Shield className="w-3 h-3" />
+                    <span className="text-[10px] font-black tracking-wider uppercase font-mono">Watcher</span>
+                  </div>
+                )}
+
+                <TitleChips
+                  user={activeWornTitles !== null ? { ...profileUser, equippedTitles: activeWornTitles } : profileUser}
+                  size="sm"
+                  max={3}
+                />
+              </div>
+
+              {/* Compact Stats Row */}
+              <div className="mt-2 flex flex-wrap items-center justify-center gap-2 font-mono text-[11px]">
+                <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-slate-300">
+                  <Clock className="h-3 w-3 text-slate-400" />
+                  <span>
+                    <b className="text-white">{hoursWatched.toLocaleString()}</b> hrs
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => setShowPointHistory(true)}
+                  className="flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-amber-200 hover:bg-amber-500/20 transition"
+                  title="Arise Points"
+                >
+                  <Sparkles className="h-3 w-3 text-amber-300" />
+                  <span>
+                    <b className="text-white">{displayArisePoints(profileUser)}</b> Arise
+                  </span>
+                </button>
+
+                <button
+                  onClick={() =>
+                    setModalData({
+                      title: "Followers",
+                      users: (profileUser.followers || []).map((f: any) => f.follower),
+                    })
+                  }
+                  className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-slate-300 hover:bg-white/[0.08] hover:text-white transition"
+                >
+                  <Users className="h-3 w-3 text-violet-300" />
+                  <span>
+                    <b className="text-white">{(profileUser.followers || []).length.toLocaleString()}</b> followers
+                  </span>
+                </button>
+
+                <button
+                  onClick={() =>
+                    setModalData({
+                      title: "Following",
+                      users: (profileUser.following || []).map((f: any) => f.following),
+                    })
+                  }
+                  className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-slate-300 hover:bg-white/[0.08] hover:text-white transition"
+                >
+                  <UserIcon className="h-3 w-3 text-violet-300" />
+                  <span>
+                    <b className="text-white">{(profileUser.following || []).length.toLocaleString()}</b> following
+                  </span>
+                </button>
+              </div>
+
+              {/* Slim Level Progress Strip */}
+              <div className="mt-2 w-full max-w-sm rounded-2xl border border-white/10 bg-[#0b0b11]/80 px-3.5 py-2 backdrop-blur-md shadow-md">
+                <div className="flex items-center justify-between gap-2 font-mono text-[10px] mb-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-violet-300">Lv {currentLevel}</span>
+                    <span className="text-white/40">·</span>
+                    <span className="text-slate-400 truncate max-w-[130px]">{getHeartRank(currentLevel).name}</span>
+                  </div>
+                  <span className="font-bold text-amber-300">
+                    {isStaffLevel ? "PINNED CAP" : `${currentXp.toLocaleString()} XP`}
+                  </span>
+                </div>
+
+                <div className="relative h-1.5 w-full overflow-hidden rounded-full border border-white/10 bg-black/60">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-amber-400 shadow-[0_0_8px_rgba(217,70,239,0.5)] transition-all duration-1000 ease-out"
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Bio Quote */}
+              {cleanBio && (
+                <div className="mt-2 max-w-xl">
+                  <BioRenderer
+                    bio={cleanBio}
+                    className="text-xs sm:text-sm font-medium text-slate-300 leading-relaxed italic"
+                  />
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="mt-3 flex items-center justify-center gap-2.5">
+                {isSelf ? (
+                  <button
+                    onClick={() => setShowSettings(true)}
+                    className="flex items-center gap-1.5 rounded-full border border-violet-400/40 bg-gradient-to-r from-violet-600 to-purple-700 px-5 py-2 font-mono text-xs font-bold uppercase tracking-wider text-white shadow-md transition hover:scale-105 active:scale-95"
+                  >
+                    <Settings className="h-3.5 w-3.5" />
+                    <span>Edit Profile</span>
+                  </button>
+                ) : currentUser ? (
+                  <button
+                    onClick={handleFollowToggle}
+                    className={`flex items-center gap-1.5 rounded-full px-5 py-2 font-mono text-xs font-bold uppercase tracking-wider transition hover:scale-105 active:scale-95 ${
+                      isFollowing
+                        ? "border border-red-500/40 bg-red-500/20 text-red-200"
+                        : "border border-violet-400/40 bg-gradient-to-r from-violet-600 to-purple-700 text-white shadow-md"
+                    }`}
+                  >
+                    {isFollowing ? (
+                      <>
+                        <UserMinus className="h-3.5 w-3.5" /> Unfollow
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="h-3.5 w-3.5" /> Follow
+                      </>
+                    )}
+                  </button>
+                ) : null}
+
+                {effectiveEffect && !preferences.reducedMotion && (
+                  <button
+                    onClick={() => setShowcaseOpen(true)}
+                    title="View effect full screen"
+                    className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-slate-200 backdrop-blur-md transition hover:bg-white/[0.1] hover:text-white"
+                  >
+                    <Maximize2 className="h-3.5 w-3.5" />
+                    <span>Showcase</span>
+                  </button>
+                )}
               </div>
 
             </div>
