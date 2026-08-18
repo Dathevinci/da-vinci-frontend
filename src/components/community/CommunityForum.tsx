@@ -408,21 +408,21 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
     <div className={`relative text-white pb-32 ${embedded ? "" : "min-h-screen px-4 pt-24"}`}>
       <div className={embedded ? "" : "mx-auto max-w-6xl"}>
         
-        {/* ══ HEADER (Activity History typography: font-fell display headline) ══ */}
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-white/10 pb-6">
+        {/* ══ HEADER ══ */}
+        <div className="mb-6 sm:mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-white/10 pb-5 sm:pb-6">
           <div>
-            <h1 className="flex items-center gap-3 font-fell text-3xl font-bold uppercase tracking-[0.08em] text-white sm:text-4xl">
-              <MessagesSquare className="h-7 w-7 shrink-0 text-violet-400" />
+            <h1 className="flex items-center gap-3 font-fell text-2xl sm:text-4xl font-bold uppercase tracking-[0.08em] text-white">
+              <MessagesSquare className="h-6 w-6 sm:h-8 sm:w-8 shrink-0 text-violet-400" />
               Community Forum
             </h1>
-            <p className="mt-1 font-mono text-[11px] leading-relaxed text-white/40 sm:text-xs">
+            <p className="mt-1 font-mono text-xs text-slate-400">
               {total} active discussions across {topics.length || TAGS.length} categories
             </p>
           </div>
 
           <button
             onClick={() => (user ? setComposing(true) : toast("Sign in to post.", "error"))}
-            className="flex items-center gap-2 rounded-full border border-violet-400/40 bg-violet-500/20 px-5 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-violet-200 shadow-lg shadow-violet-500/20 transition hover:bg-violet-500/30 hover:scale-[1.02] active:scale-[0.98]"
+            className="flex items-center justify-center gap-2 rounded-full border border-violet-400/40 bg-gradient-to-r from-violet-600 to-purple-700 px-6 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-violet-600/25 transition hover:scale-105 active:scale-95 touch-manipulation min-h-[40px]"
           >
             <Plus className="h-4 w-4" /> New Discussion
           </button>
@@ -440,12 +440,12 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                   <Pin className="h-3.5 w-3.5 text-amber-400" />
                   Pinned Announcements
                 </div>
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-2">
                   {pinned.map((p) => (
                     <Link
                       key={p.id}
                       href={`/community/post/${p.id}`}
-                      className="group relative overflow-hidden rounded-2xl border border-amber-400/30 bg-[#0b0b11] p-5 transition hover:border-amber-400/60 hover:bg-amber-500/[0.04]"
+                      className="group relative overflow-hidden rounded-3xl border border-amber-400/30 bg-[#0b0b11]/90 p-5 transition-all duration-200 hover:border-amber-400/60 hover:bg-[#0e0e16] shadow-xl backdrop-blur-xl"
                     >
                       <div className="flex items-center justify-between gap-2">
                         {p.tag && <TagChip tag={p.tag} size="xs" />}
@@ -453,11 +453,11 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
                           <Pin className="h-2.5 w-2.5" /> Pinned
                         </span>
                       </div>
-                      <h3 className="mt-3 truncate font-fell text-lg font-bold uppercase tracking-[0.04em] text-white group-hover:text-amber-200 transition-colors">
+                      <h3 className="mt-3 truncate font-fell text-lg sm:text-xl font-bold uppercase tracking-[0.04em] text-white group-hover:text-amber-200 transition-colors">
                         {p.title || "Untitled Announcement"}
                       </h3>
-                      <p className="mt-1 text-xs text-white/40">
-                        by <span className="font-bold text-white/80">{p.user?.username || "Admin"}</span> • {ago(p.createdAt)}
+                      <p className="mt-1 text-xs text-slate-400">
+                        by <span className="font-bold text-slate-200">{p.user?.username || "Admin"}</span> • {ago(p.createdAt)}
                       </p>
                     </Link>
                   ))}
@@ -466,7 +466,7 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
             )}
 
             {/* ── QUICK COMPOSER BAR ── */}
-            <div className="rounded-2xl border border-white/10 bg-[#0b0b11] p-4 shadow-xl">
+            <div className="rounded-3xl border border-white/10 bg-[#0b0b11]/90 p-4 sm:p-5 shadow-xl backdrop-blur-xl">
               <div className="flex items-center gap-3">
                 <div className="relative h-10 w-10 shrink-0">
                   {user?.avatar ? (
@@ -481,14 +481,14 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
 
                 <button
                   onClick={() => (user ? setComposing(true) : toast("Sign in to post.", "error"))}
-                  className="flex-1 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-left text-xs font-bold text-white/40 transition hover:border-white/20 hover:bg-white/[0.06] hover:text-white/80"
+                  className="flex-1 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2.5 text-left text-xs font-bold text-slate-400 transition hover:border-white/20 hover:bg-white/[0.06] hover:text-white truncate"
                 >
                   Start a discussion, share a theory, or create a poll…
                 </button>
 
                 <button
                   onClick={() => (user ? setComposing(true) : toast("Sign in to post.", "error"))}
-                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-white/50 transition hover:bg-white/10 hover:text-white"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-slate-400 transition hover:bg-white/10 hover:text-white"
                   title="Attach Media"
                 >
                   <ImagePlus className="h-4 w-4" />
@@ -497,10 +497,10 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
             </div>
 
             {/* ── UNIFIED FILTER & SORT TOOLBAR ── */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[#0b0b11]/90 p-3 sm:p-3.5 shadow-xl backdrop-blur-xl">
+            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 rounded-2xl sm:rounded-3xl border border-white/10 bg-[#0b0b11]/90 p-3 sm:p-3.5 shadow-xl backdrop-blur-xl">
               
               {/* Horizontal swipeable topic categories */}
-              <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-0.5 max-w-full">
+              <div className="min-w-0 flex-1 flex items-center gap-1.5 sm:gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-0.5">
                 {["All", ...TAGS].map((t) => {
                   const on = tag === t;
                   return (
@@ -523,26 +523,26 @@ export default function CommunityForum({ embedded = false }: { embedded?: boolea
               </div>
 
               {/* Sort segmented toggle */}
-              <div className="inline-flex items-center justify-center gap-1 rounded-full border border-white/10 bg-black/40 p-1 shrink-0 self-end sm:self-auto">
+              <div className="shrink-0 inline-flex items-center justify-center gap-1 rounded-full border border-white/10 bg-black/50 p-1 self-end md:self-auto">
                 <button
                   onClick={() => setSort("newest")}
-                  className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition-all ${
+                  className={`flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-bold transition-all ${
                     sort === "newest"
                       ? "bg-violet-500/20 text-violet-200 border border-violet-400/40 shadow-sm"
                       : "text-slate-400 hover:text-white"
                   }`}
                 >
-                  <Clock className="h-3 w-3" /> Recent
+                  <Clock className="h-3.5 w-3.5" /> Recent
                 </button>
                 <button
                   onClick={() => setSort("top")}
-                  className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition-all ${
+                  className={`flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-bold transition-all ${
                     sort === "top"
                       ? "bg-violet-500/20 text-violet-200 border border-violet-400/40 shadow-sm"
                       : "text-slate-400 hover:text-white"
                   }`}
                 >
-                  <Flame className="h-3 w-3" /> Top
+                  <Flame className="h-3.5 w-3.5" /> Top
                 </button>
               </div>
             </div>

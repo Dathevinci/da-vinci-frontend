@@ -187,7 +187,7 @@ export default function CommunityPage() {
 
   return (
     <PageTransition>
-      <div className="bg-[#070709] min-h-screen pt-20 sm:pt-24 pb-40 px-3 sm:px-6 md:px-12 text-white">
+      <div className="bg-[#070709] min-h-screen pt-28 sm:pt-32 pb-44 px-3 sm:px-6 md:px-12 text-white">
         <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8">
           
           {/* ── RESPONSIVE TAB NAVIGATION DOCK ── */}
