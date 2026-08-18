@@ -999,11 +999,11 @@ function Composer({ onClose, onPosted }: { onClose: () => void; onPosted: () => 
           content: content.trim(),
           tag,
           mediaUrl: mediaUrl.trim() || undefined,
-          poll: pollIsValid(poll)
+          poll: poll && pollIsValid(poll)
             ? {
-                question: poll!.question.trim(),
-                options: poll!.options.map((o) => o.trim()).filter(Boolean),
-                closesInHours: poll!.closesInHours,
+                question: poll.question.trim(),
+                options: poll.options.map((o) => o.trim()).filter(Boolean),
+                closesInHours: poll.closesInHours || 0,
               }
             : undefined,
         }),
@@ -1086,7 +1086,7 @@ function Composer({ onClose, onPosted }: { onClose: () => void; onPosted: () => 
           <MediaPicker url={mediaUrl} onChange={setMediaUrl} />
 
           {/* Poll Builder */}
-          <PollBuilder value={poll} onChange={setPoll} />
+          <PollBuilder value={poll} onChange={setPoll} onRemove={() => setPoll(null)} />
         </div>
 
         <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-4">

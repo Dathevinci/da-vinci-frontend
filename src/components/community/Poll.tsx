@@ -47,12 +47,26 @@ export function PollBuilder({
   onRemove,
   onInsert,
 }: {
-  value: PollDraft;
+  value: PollDraft | null;
   onChange: (p: PollDraft) => void;
   onRemove: () => void;
   onInsert?: () => void;
 }) {
   const [unit, setUnit] = useState<"hours" | "days">("hours");
+
+  if (!value) {
+    return (
+      <button
+        type="button"
+        onClick={() => onChange({ question: "", options: ["", ""], closesInHours: 0 })}
+        className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 bg-white/[0.02] p-3 text-xs font-bold text-white/50 transition hover:border-violet-400/40 hover:bg-violet-500/10 hover:text-violet-200"
+      >
+        <BarChart3 className="h-4 w-4" />
+        <span>Attach a Community Poll (Optional)</span>
+      </button>
+    );
+  }
+
   const rawDuration = unit === "days" ? value.closesInHours / 24 : value.closesInHours;
 
   const setDuration = (n: number, u: "hours" | "days") => {
