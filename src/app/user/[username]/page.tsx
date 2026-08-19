@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import {
   ArrowLeft,
   MapPin,
@@ -44,7 +45,23 @@ import FollowListModal from "@/components/profile/FollowListModal";
 import ImagePreviewModal from "@/components/ui/ImagePreviewModal";
 import ArisePointHistoryModal from "@/components/profile/ArisePointHistoryModal";
 import UnlimitedVoid from "@/components/ui/UnlimitedVoid";
-import SettingsModal from "@/components/profile/SettingsModal";
+/**
+ * EDIT PROFILE IS LAZY, AND PRELOADED.
+ *
+ * SettingsModal is ~1,400 lines and drags in the image cropper, the crop
+ * library and the MAL client behind it. As a static import all of that sat in
+ * the profile page's own bundle — parsed on every profile view, by everyone,
+ * including visitors who cannot edit the profile they are looking at. That is
+ * weight on the page load AND a stall on the click that mounts it.
+ *
+ * next/dynamic moves it into its own chunk. The catch with lazy modals is that
+ * the first click then waits for a network round-trip, which trades one stall
+ * for another — so the effect below fetches the chunk during idle time, well
+ * before anyone reaches for the button. Load gets lighter, click stays instant.
+ *
+ * ssr:false because it is a dialog: it never renders on the server.
+ */
+const SettingsModal = dynamic(() => import("@/components/profile/SettingsModal"), { ssr: false });
 import LevelBadge from "@/components/profile/LevelBadge";
 import { AvatarDecoration, hasFrameRing } from "@/components/profile/AvatarDecoration";
 import ProfileSong from "@/components/profile/ProfileSong";
@@ -151,6 +168,33 @@ export default function PublicProfilePage() {
   const [showDomainExpansion, setShowDomainExpansion] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showcaseOpen, setShowcaseOpen] = useState(false);
+
+  /**
+   * Warm the Edit Profile chunk while nobody is waiting on it.
+   *
+   * SettingsModal is lazy now (see the dynamic import at the top), which takes
+   * ~1,400 lines plus the image cropper out of this page's bundle. Left alone,
+   * that would move the delay rather than remove it: the first click would sit
+   * through a chunk fetch. requestIdleCallback pulls it down after the page has
+   * settled, so by the time anyone presses the button it is already in memory.
+   *
+   * Deliberately not gated on "is this my profile" — visiting someone else's
+   * page and then your own is common, and an idle prefetch of one chunk is far
+   * cheaper than the stall it prevents. Failure is silent: if the fetch never
+   * happens, the dynamic import simply loads on click as it otherwise would.
+   */
+  useEffect(() => {
+    const warm = () => { void import("@/components/profile/SettingsModal").catch(() => {}); };
+    const ric = (window as any).requestIdleCallback as
+      | ((cb: () => void, opts?: { timeout: number }) => number)
+      | undefined;
+    if (ric) {
+      const handle = ric(warm, { timeout: 4000 });
+      return () => (window as any).cancelIdleCallback?.(handle);
+    }
+    const t = window.setTimeout(warm, 2500);
+    return () => window.clearTimeout(t);
+  }, []);
 
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
 

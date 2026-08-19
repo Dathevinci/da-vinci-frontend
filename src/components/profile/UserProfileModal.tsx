@@ -40,8 +40,8 @@ export default function UserProfileModal({ username, onClose }: { username: stri
     (async () => {
       try {
         const url = currentUser
-          ? `${API_URL}/api/users/username/${username}?currentUserId=${currentUser.id}`
-          : `${API_URL}/api/users/username/${username}`;
+          ? `${API_URL}/api/users/username/${username}?light=1&currentUserId=${currentUser.id}`
+          : `${API_URL}/api/users/username/${username}?light=1`;
         const res = await fetch(url);
         const data = await res.json();
         if (!alive) return;

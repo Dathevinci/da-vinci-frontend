@@ -40,7 +40,8 @@ function useStaffProfiles(enabled: boolean): Record<string, StaffProfile> {
     let live = true;
     Promise.allSettled(
       STAFF.map(async (s) => {
-        const res = await fetch(`${API_URL}/api/users/username/${s.u}`);
+        // ?light=1 — this draws an avatar and a frame, not a library.
+        const res = await fetch(`${API_URL}/api/users/username/${s.u}?light=1`);
         const d = await res.json();
         return [s.u, {
           avatar: d?.data?.avatar || undefined,

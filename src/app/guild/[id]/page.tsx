@@ -554,7 +554,8 @@ export default function GuildHomePage() {
     if (!name || busy) return false;
     setBusy(true);
     try {
-      const ur = await fetch(`${API_URL}/api/users/username/${encodeURIComponent(name)}`);
+      // ?light=1 — the hall shows identity, never the member's library.
+      const ur = await fetch(`${API_URL}/api/users/username/${encodeURIComponent(name)}?light=1`);
       const ud = await ur.json().catch(() => null);
       const targetId = ud?.data?.id ? String(ud.data.id) : "";
       if (!targetId) {

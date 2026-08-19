@@ -135,7 +135,7 @@ export default function DuelsPage() {
         fetch(`${API_URL}/api/duels/mine/${user.id}`).then((r) => r.json()),
         fetch(`${API_URL}/api/duels/leaderboard`).then((r) => r.json()),
         fetch(`${API_URL}/api/cards/collection/${user.id}`).then((r) => r.json()),
-        fetch(`${API_URL}/api/users/${user.id}`).then((r) => r.json()).catch(() => null),
+        fetch(`${API_URL}/api/users/${user.id}?light=1`).then((r) => r.json()).catch(() => null),
       ]);
       /**
        * Every setter bails when the data is UNCHANGED. The poll runs every two
