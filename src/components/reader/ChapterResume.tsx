@@ -18,14 +18,21 @@ import type { ReadingKind } from "@/lib/readingProgress";
  * One hook and one bar, shared by the manhwa and novel readers — both scroll
  * the window, so neither needs its own copy of this.
  *
- * ── The bug this is written around ─────────────────────────────────────────
- * Every reader opens at the top, which is a scroll position of ~0. A naive
- * save-on-scroll therefore fires at 0% the instant the page mounts and DELETES
- * the very point it is meant to offer (saveResume retires anything below the
- * dead-zone floor, by design). So saving is ARMED rather than automatic: not a
- * single write happens until this session has seen the reader genuinely pass
- * the floor, or until the reader chooses Resume or Start fresh. Arriving and
- * leaving without reading changes nothing.
+ * ── Two bugs this is written around ────────────────────────────────────────
+ * ONE: every reader opens at the top. A naive save-on-scroll fires at the top
+ * the instant the page mounts, and a position at the top must retire a saved
+ * point — so it would DELETE the very thing it exists to offer. Saving is
+ * therefore ARMED rather than automatic: nothing is written until this session
+ * has genuinely read past the first screen, or the reader presses one of the
+ * two buttons. Arriving and leaving changes nothing.
+ *
+ * TWO: the first version judged "worth resuming" as a PERCENTAGE, with a 4%
+ * floor. That silently broke the feature on the content it matters most for.
+ * A manhwa chapter is 40-80 full-width images — 50,000-100,000px — so reading
+ * past the first page is about 2% of it. Every real position fell inside the
+ * floor and was discarded, and nothing was ever offered. Distance is measured
+ * in SCREENS now (see worthKeeping), which means the same felt distance on a
+ * three-screen novel chapter and a fifty-screen manhwa one.
  *
  * ── Restoring into a page that is still growing ────────────────────────────
  * A manhwa chapter is images that load progressively, so the document is
@@ -34,6 +41,22 @@ import type { ReadingKind } from "@/lib/readingProgress";
  * settles, then stops — the same lesson ScrollReset learned about restoring
  * against content that has not finished arriving.
  */
+
+/**
+ * WORTH-RESUMING IS MEASURED IN SCREENS, NOT PERCENT.
+ *
+ * A novel chapter is a few screens; a manhwa chapter is fifty. A single
+ * percentage cannot mean "past the first page" for both — at 60 images, one
+ * page is ~2%, which the first version discarded as noise and so saved
+ * nothing at all for exactly the readers this is for.
+ *
+ * ARM_SCREENS: how far past the top counts as real reading.
+ * END_SCREENS:  how close to the bottom counts as finished, where the useful
+ *               action is the next chapter rather than a jump to this one's
+ *               last screen.
+ */
+const ARM_SCREENS = 1.1;
+const END_SCREENS = 1.2;
 
 const SAVE_EVERY_MS = 700;
 /** How long the restore keeps correcting itself while images land. */
@@ -46,6 +69,14 @@ const scrollableHeight = () =>
   Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
 
 const currentPct = () => window.scrollY / scrollableHeight();
+
+/** Past the first screen, and not already at the end. */
+const worthKeeping = () => {
+  const vh = window.innerHeight || 1;
+  const y = window.scrollY;
+  const remaining = scrollableHeight() - y;
+  return y > vh * ARM_SCREENS && remaining > vh * END_SCREENS;
+};
 
 export function useChapterResume(opts: {
   kind: ReadingKind;
@@ -66,7 +97,8 @@ export function useChapterResume(opts: {
   const flush = useCallback(() => {
     const { seriesId: s, chapterId: c } = idsRef.current;
     if (!armedRef.current || !s || !c) return;
-    saveResume(kind, s, c, currentPct());
+    if (worthKeeping()) saveResume(kind, s, c, currentPct());
+    else clearResume(kind, s, c);
   }, [kind]);
 
   /* Offer the stored point once, when the chapter is actually measurable. */
@@ -83,15 +115,18 @@ export function useChapterResume(opts: {
 
     const onScroll = () => {
       if (!armedRef.current) {
-        // Arm only once real reading has happened. Until then the stored point
-        // is left untouched, so opening a chapter can never erase it.
-        if (currentPct() > 0.05) armedRef.current = true;
-        else return;
+        // Arm only once real reading has happened — measured in SCREENS, so a
+        // 60-image chapter arms at the same felt distance as a short one.
+        // Until armed, the stored point is untouched: opening a chapter and
+        // sitting at the top can never erase what it is about to offer.
+        if (!worthKeeping()) return;
+        armedRef.current = true;
       }
       const now = Date.now();
       if (now - lastSaveRef.current < SAVE_EVERY_MS) return;
       lastSaveRef.current = now;
-      saveResume(kind, seriesId, chapterId, currentPct());
+      if (worthKeeping()) saveResume(kind, seriesId, chapterId, currentPct());
+      else clearResume(kind, seriesId, chapterId);
     };
 
     /* pagehide fires where unload does not (bfcache, iOS Safari), and

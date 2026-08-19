@@ -40,13 +40,20 @@ const KEY = (owner: string, kind: ReadingKind, seriesId: string, chapterId: stri
 const PREFIX = "dv-resume:";
 
 /**
- * THE DEAD ZONES. Below MIN there is nothing worth returning to — the reader
- * opens at the top anyway, and offering to "resume" 2% in is noise. Above MAX
- * the chapter is effectively finished, and the useful next action is the next
- * chapter, not a jump to the last screen of this one.
+ * SANITY BOUNDS ONLY — NOT a judgement about what is worth resuming.
+ *
+ * The first version put dead zones here at 4% and 93%, which quietly broke the
+ * whole feature on the content it matters most for. A manhwa chapter is 40-80
+ * full-width images: the document runs 50,000-100,000px, so reading "past the
+ * first page" is about 2% of it. Every real reading position landed inside the
+ * floor and was thrown away.
+ *
+ * Percentages cannot express "past the first screen" — only the viewport can,
+ * and this module never sees one. So the decision moved to useChapterResume,
+ * which measures in SCREENS, and what is left here is arithmetic validity.
  */
-const MIN_PCT = 0.04;
-const MAX_PCT = 0.93;
+const MIN_PCT = 0.0005;
+const MAX_PCT = 0.9995;
 
 /** Points older than this are not offered — a month-old scroll offset is a
  *  guess about a chapter someone has almost certainly re-read or abandoned. */
@@ -68,9 +75,9 @@ export function saveResume(
   try {
     const key = KEY(currentOwner(), kind, seriesId, chapterId);
     if (pct < MIN_PCT || pct > MAX_PCT) {
-      // Scrolling back to the top, or reaching the end, RETIRES the point.
-      // Leaving a stale one behind would offer to resume a chapter the reader
-      // has already finished with.
+      // Only the degenerate ends (the literal top, the literal bottom) retire a
+      // point here. "Too early to bother" and "close enough to finished" are
+      // the hook's calls, because they depend on the size of the screen.
       localStorage.removeItem(key);
       return;
     }
