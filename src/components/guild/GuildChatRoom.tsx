@@ -160,6 +160,11 @@ export type ChatMessage = {
   editedAt?: string | null;
   replyToId?: string | null;
   replyTo?: ChatReplyPreview | null;
+  /** CLIENT-ONLY, never sent by the server: this row is on screen but the POST
+   *  has not answered yet. The server round-trip measures 300-600ms even for a
+   *  149-byte response, and waiting that long before your own words appear is
+   *  what made sending feel slow. */
+  pending?: boolean;
 };
 
 /* ═══════════════ THE MERGE — where an edit lives or dies ═══════════════
@@ -503,6 +508,58 @@ export default function GuildChatRoom({
     const media = mediaUrl.trim();
     if ((!content && !media) || sending) return;
     const target = replyTarget;
+
+    /* OPTIMISTIC. The message goes on screen NOW, with a temporary id, and the
+       composer clears in the same beat — chat that waits half a second for a
+       server before showing your own sentence feels broken even when nothing
+       is wrong. The temp id is deliberately unlike a server id, and the poll
+       cursor (lastIdRef) is only ever advanced by the poll, so a pending row
+       can never become the "after=" anchor and hide real messages. */
+    const tempId = `pending-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const optimistic: ChatMessage = {
+      id: tempId,
+      userId: user.id,
+      content: content || null,
+      mediaUrl: media || null,
+      createdAt: new Date().toISOString(),
+      author: {
+        id: user.id,
+        username: user.username,
+        avatar: (user as any).avatar ?? null,
+        role: (user as any).role ?? null,
+        activeEffect: (user as any).activeEffect ?? null,
+        activeColor: (user as any).activeColor ?? null,
+        activeFont: (user as any).activeFont ?? null,
+      },
+      replyToId: target?.id ?? null,
+      replyTo: target ? previewOf(target) : null,
+      pending: true,
+    };
+    stickRef.current = true; // your own message always brings you to it
+    setMessages((cur) => mergeRows(cur, [optimistic]));
+
+    /* The composer empties immediately too. If the send fails we put every
+       part of it back below, so nothing a member typed is ever lost. */
+    const sentDraft = draft;
+    const sentMedia = mediaUrl;
+    setDraft("");
+    setMediaUrl("");
+    setReplyTarget(null);
+    {
+      const el = taRef.current;
+      if (el) { el.value = ""; autoGrow(); }
+    }
+
+    /** Take the pending row back off and hand the member their text again. */
+    const rollback = () => {
+      setMessages((cur) => cur.filter((m) => m.id !== tempId));
+      setDraft(sentDraft);
+      setMediaUrl(sentMedia);
+      setReplyTarget(target);
+      const el = taRef.current;
+      if (el) { el.value = sentDraft; autoGrow(); }
+    };
+
     setSending(true);
     try {
       const r = await fetch(`${API_URL}/api/guilds/${encodeURIComponent(guildId)}/messages`, {
@@ -516,6 +573,7 @@ export default function GuildChatRoom({
       });
       const d = await r.json().catch(() => null);
       if (!r.ok || !d?.success) {
+        rollback();
         if (r.status === 429) toast("Easy — one message every couple of seconds.", "error");
         else toast(d?.message || "Couldn't send that.", "error");
         return;
@@ -527,18 +585,13 @@ export default function GuildChatRoom({
       const msg: ChatMessage = target
         ? { ...raw, replyToId: raw.replyToId || target.id, replyTo: raw.replyTo || previewOf(target) }
         : raw;
-      stickRef.current = true; // your own message always brings you to it
-      setMessages((cur) => mergeRows(cur, [msg]));
-      setDraft("");
-      setMediaUrl("");
-      setReplyTarget(null);
-      // Shrink NOW rather than a frame later: the [draft] effect would do it
-      // after the next paint, and clearing the node first makes the
-      // measurement agree with the state we have just set (they never diverge,
-      // so React has nothing to reconcile against).
-      const el = taRef.current;
-      if (el) { el.value = ""; autoGrow(); }
+      /* Swap the pending row for the server's. Dropping the temp id in the
+         same update is what stops the message appearing twice — mergeRows
+         keys by id, and these two ids are different by design. */
+      stickRef.current = true;
+      setMessages((cur) => mergeRows(cur.filter((m) => m.id !== tempId), [msg]));
     } catch {
+      rollback();
       toast("Couldn't reach the server.", "error");
     } finally {
       setSending(false);
@@ -918,6 +971,9 @@ export default function GuildChatRoom({
                             : showTouchActions
                               ? "bg-white/[0.04]"
                               : "hover:bg-white/[0.03]";
+                          /* In flight: present and readable, visibly not landed
+                             yet. It resolves within a few hundred ms. */
+                          const inFlight = m.pending ? " opacity-60" : "";
                           return (
                             <div
                               key={m.id}
@@ -930,7 +986,7 @@ export default function GuildChatRoom({
                                 if (!coarse || editing) return;
                                 setOpenActionsId((cur) => (cur === m.id ? null : m.id));
                               }}
-                              className={`group/msg relative -mx-1.5 rounded-md px-1.5 py-px transition ${tone}`}
+                              className={`group/msg relative -mx-1.5 rounded-md px-1.5 py-px transition ${tone}${inFlight}`}
                             >
                               {quoting && (
                                 <button type="button"
