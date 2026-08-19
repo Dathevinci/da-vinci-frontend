@@ -64,7 +64,7 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
 
   const user = initialUser || authUser;
 
-  const [activeTab, setActiveTab] = useState<'profile' | 'account' | 'preferences' | 'integrations' | 'invites'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'account' | 'preferences' | 'integrations'>('profile');
 
   // Profile State
   const [isPrivate, setIsPrivate] = useState(user?.isPrivate || false);
@@ -120,23 +120,10 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
   // Integrations State
   const [anilistUsername, setAnilistUsername] = useState("");
 
-  // Invites State
-  const [invites, setInvites] = useState<any[]>([]);
-  const [isGeneratingInvite, setIsGeneratingInvite] = useState(false);
-  const [buyingInvite, setBuyingInvite] = useState(false);
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const INVITE_COST = 1000;
-
   // Danger Zone Confirmation
   const [showWipeConfirm, setShowWipeConfirm] = useState(false);
 
   useLockBodyScroll();
-
-  useEffect(() => {
-    if (activeTab === 'invites') {
-      fetchInvites();
-    }
-  }, [activeTab]);
 
   const equipDecor = async (patch: { activeFrame?: string | null; activeEffect?: string | null }) => {
     setEquipping(true);
@@ -281,83 +268,6 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
       toast("Profile audio removed.", "success");
     } finally {
       setSavingSong(false);
-    }
-  };
-
-  const fetchInvites = async () => {
-    try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-      const token = localStorage.getItem("davinci_token");
-      const res = await fetch(`${API_URL}/api/invites`, {
-        headers: { Authorization: `Bearer ${token || user?.id}` }
-      });
-      const data = await res.json();
-      if (data.success) {
-        setInvites(data.data);
-      } else {
-        toast(data.message || "Couldn't load your invite keys.", "error");
-      }
-    } catch (err) {
-      console.error("Failed to fetch invites", err);
-      toast("Couldn't load your invite keys.", "error");
-    }
-  };
-
-  const generateInvite = async () => {
-    setIsGeneratingInvite(true);
-    try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-      const token = localStorage.getItem("davinci_token");
-      const res = await fetch(`${API_URL}/api/invites`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token || user?.id}` }
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast("Invite key generated successfully!", "success");
-        fetchInvites();
-      } else {
-        toast(data.message || "Failed to generate invite", "error");
-      }
-    } catch (err) {
-      toast("Error generating invite", "error");
-    } finally {
-      setIsGeneratingInvite(false);
-    }
-  };
-
-  const buyInvite = async () => {
-    setBuyingInvite(true);
-    try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-      const token = localStorage.getItem("davinci_token");
-      const res = await fetch(`${API_URL}/api/invites/purchase`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token || user?.id}` },
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast(data.cost > 0 ? `Invite bought for ${data.cost.toLocaleString()} Arise Points!` : "Invite generated!", "success");
-        fetchInvites();
-        if (typeof data.arisePoints === "number") {
-          const stored = localStorage.getItem("davinci_user");
-          if (stored) {
-            try {
-              const u = JSON.parse(stored);
-              u.arisePoints = data.arisePoints;
-              localStorage.setItem("davinci_user", JSON.stringify(u));
-              window.dispatchEvent(new Event("davinci_user_updated"));
-            } catch {}
-          }
-          onUpdate?.({ arisePoints: data.arisePoints });
-        }
-      } else {
-        toast(data.message || "Couldn't buy invite.", "error");
-      }
-    } catch (err) {
-      toast("Error buying invite.", "error");
-    } finally {
-      setBuyingInvite(false);
     }
   };
 
@@ -563,7 +473,6 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
     { key: "account", label: "Account", Icon: ShieldCheck },
     { key: "preferences", label: "Preferences", Icon: SlidersHorizontal },
     { key: "integrations", label: "Integrations", Icon: Database },
-    { key: "invites", label: "Invite Keys", Icon: Key },
   ] as const;
 
   return (
@@ -1465,92 +1374,6 @@ export default function SettingsModal({ user: initialUser, onClose, onUpdate }: 
                 </div>
               )}
 
-              {/* ──────────────── TAB: INVITES ──────────────── */}
-              {activeTab === 'invites' && (
-                <div className="space-y-5 animate-in fade-in duration-200">
-                  {/* Header Banner */}
-                  <div className="rounded-2xl sm:rounded-3xl border border-violet-500/30 bg-violet-950/20 p-5 sm:p-7 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
-                    <div>
-                      <div className="flex items-center gap-2 text-violet-300 font-bold">
-                        <Key className="h-5 w-5" />
-                        <h4 className="font-fell text-lg uppercase tracking-wider">Invite Keys</h4>
-                      </div>
-                      <p className="text-xs font-mono text-violet-300/70 mt-1">
-                        {isAdmin(user)
-                          ? "Staff Override Active — generate unlimited registration keys."
-                          : "Generate invite keys for your friends to join Da Vinci."}
-                      </p>
-                    </div>
-                    <button
-                      onClick={generateInvite}
-                      disabled={isGeneratingInvite || (!isAdmin(user) && invites.length >= 1)}
-                      className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl border border-violet-400/40 bg-gradient-to-r from-violet-600 to-purple-600 px-5 py-2.5 font-mono text-xs font-bold text-white shadow-lg transition hover:brightness-110 disabled:opacity-40 whitespace-nowrap"
-                    >
-                      <Key className="h-4 w-4" />
-                      <span>{isGeneratingInvite ? "Generating…" : "Generate Free Key"}</span>
-                    </button>
-                  </div>
-
-                  {/* Buy Extra Key */}
-                  {!isAdmin(user) && (
-                    <div className="rounded-2xl sm:rounded-3xl border border-white/10 bg-[#0c0c14] p-5 sm:p-7 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
-                      <div>
-                        <h4 className="font-fell text-base font-bold uppercase tracking-wider text-white">Purchase Extra Key</h4>
-                        <p className="text-xs font-mono text-slate-400 mt-1">
-                          Costs <span className="text-violet-300 font-bold">{INVITE_COST.toLocaleString()} AP</span> — Balance: <span className="text-white font-semibold">{(user?.arisePoints || 0).toLocaleString()} AP</span>
-                        </p>
-                      </div>
-                      <button
-                        onClick={buyInvite}
-                        disabled={buyingInvite || (user?.arisePoints || 0) < INVITE_COST}
-                        className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 font-mono text-xs font-bold text-white transition hover:bg-white/10 disabled:opacity-40 whitespace-nowrap"
-                      >
-                        <Sparkles className="h-4 w-4 text-violet-400" />
-                        <span>{buyingInvite ? "Purchasing…" : `Buy for ${INVITE_COST} AP`}</span>
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Keys List */}
-                  <div className="space-y-3">
-                    <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-400">Generated Keys</h4>
-                    {invites.length > 0 ? (
-                      <div className="grid grid-cols-1 gap-2.5">
-                        {invites.map(invite => (
-                          <div
-                            key={invite.id}
-                            className="flex items-center justify-between rounded-xl border border-white/10 bg-[#0c0c14] p-4 transition hover:border-white/20"
-                          >
-                            <div>
-                              <p className="font-mono text-base font-black tracking-widest text-emerald-400">{invite.code}</p>
-                              <p className="text-[10px] font-mono text-slate-500 mt-0.5">
-                                {invite.isUsed ? `Claimed by ${invite.usedByUser?.username || 'user'}` : 'Unused · Ready to share'}
-                              </p>
-                            </div>
-                            <button
-                              onClick={() => {
-                                navigator.clipboard.writeText(invite.code);
-                                setCopiedKey(invite.code);
-                                setTimeout(() => setCopiedKey(null), 2000);
-                                toast("Invite key copied to clipboard!", "success");
-                              }}
-                              className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 font-mono text-xs font-bold text-slate-300 transition hover:bg-white/10 hover:text-white"
-                            >
-                              {copiedKey === invite.code ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-                              <span>{copiedKey === invite.code ? "Copied" : "Copy"}</span>
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="rounded-2xl border border-white/5 bg-black/30 py-10 text-center font-mono text-xs text-slate-500">
-                        <Key className="h-8 w-8 mx-auto mb-2 opacity-30 text-violet-400" />
-                        <p>No invite keys generated yet.</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
 
             </div>
           </motion.div>

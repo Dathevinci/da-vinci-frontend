@@ -147,14 +147,16 @@ export function useUser() {
     };
   }, []);
 
-  const signup = async (username: string, email: string, password: string, inviteCode: string) => {
+  /** Registration is open — no invite code. The server stopped requiring one
+   *  on 2026-08-19; sending a fourth argument here would just be ignored. */
+  const signup = async (username: string, email: string, password: string) => {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-    
+
     try {
       const res = await fetch(`${API_URL}/api/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, email, password, inviteCode })
+        body: JSON.stringify({ username, email, password })
       });
       const data = await res.json();
 
@@ -193,14 +195,17 @@ export function useUser() {
     }
   };
 
-  const loginOrRegister = async (username: string, email: string, avatar?: string, inviteCode?: string) => {
+  /** The Discord door. No invite code, and no `requires_invite` branch — the
+   *  server no longer answers 403 with it, so a caller checking that flag
+   *  would be waiting for a reply that never comes. */
+  const loginOrRegister = async (username: string, email: string, avatar?: string) => {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-    
+
     try {
       const res = await fetch(`${API_URL}/api/users`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, email, avatar, inviteCode })
+        body: JSON.stringify({ username, email, avatar })
       });
       const data = await res.json();
 
@@ -209,9 +214,6 @@ export function useUser() {
         broadcastUpdate(data.data);
         return { success: true, user: data.data };
       } else {
-        if (data.requires_invite) {
-           return { success: false, requires_invite: true, message: data.message };
-        }
         return { success: false, message: data.message };
       }
     } catch (err) {

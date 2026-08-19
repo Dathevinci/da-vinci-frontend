@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
 import { DISCORD_INVITE } from "@/lib/links";
 import {
-  Lock, Play, ArrowRight, Tv, BookMarked, BookOpen,
+  DoorOpen, Play, ArrowRight, Tv, BookMarked, BookOpen,
   Library, Users, Zap, MonitorPlay, Layers, Swords, Gem, Palette, MonitorSmartphone,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -220,8 +220,8 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
             className="mb-8 flex flex-wrap items-center justify-center gap-2"
           >
             <span className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-black/50 px-3.5 py-1.5 backdrop-blur">
-              <Lock className="h-3 w-3 text-emerald-300" strokeWidth={2.5} />
-              <span className="font-mono text-[11px] font-bold tracking-wide text-slate-200">invitation only</span>
+              <DoorOpen className="h-3 w-3 text-emerald-300" strokeWidth={2.5} />
+              <span className="font-mono text-[11px] font-bold tracking-wide text-slate-200">open to everyone</span>
             </span>
             <span className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-black/50 px-3.5 py-1.5 backdrop-blur">
               <span className="h-1.5 w-1.5 rounded-full bg-violet-400" />
@@ -308,7 +308,7 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
             className="mx-auto mt-8 mb-10 max-w-2xl font-mono text-base leading-relaxed text-slate-400 md:text-lg"
           >
             The anime, manhwa &amp; light-novel atelier that&apos;s{" "}
-            <strong className="font-bold text-white">invitation-only</strong>,{" "}
+            <strong className="font-bold text-white">free to join</strong>,{" "}
             <strong className="font-bold text-white">ad-free</strong>, and{" "}
             <strong className="font-bold text-white">beautiful</strong>.
           </motion.p>
@@ -394,7 +394,7 @@ export default function InviteOnlyGuard({ children }: { children: React.ReactNod
         <div className="relative z-10 mx-auto grid max-w-5xl grid-cols-2 gap-4 px-4 py-20 lg:grid-cols-4">
           {[
             { Icon: Library, big: "20,000+", small: "Titles inside" },
-            { Icon: Users, big: "Invite", small: "Only members" },
+            { Icon: Users, big: "Free", small: "To join, always" },
             { Icon: Zap, big: "Zero", small: "Ads, ever" },
             { Icon: MonitorPlay, big: "HD", small: "Max quality" },
           ].map(({ Icon, big, small }) => (

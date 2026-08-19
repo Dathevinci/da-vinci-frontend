@@ -6,7 +6,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   MessageSquare, CheckCircle2, Award, MessagesSquare, Layers,
-  Eye, EyeOff, Loader2, KeyRound, Check, X as XIcon,
+  Eye, EyeOff, Loader2, Check, X as XIcon,
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { useToast } from "@/components/ui/Toast";
@@ -17,8 +17,8 @@ import LoadingScreen from "@/components/ui/LoadingScreen";
 /**
  * THE DOOR — sign in and sign up as a real page rather than a modal.
  *
- * Left: what's behind the door. Right: the form. Invite code is required to
- * sign up because the whole site is invite-only; Discord sits on both tabs
+ * Left: what's behind the door. Right: the form. Registration is OPEN as of
+ * 2026-08-19 — no invite code on either path — and Discord sits on both tabs
  * because that's how most people actually get in.
  */
 
@@ -87,7 +87,6 @@ function LoginPageInner() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [inviteCode, setInviteCode] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -108,7 +107,7 @@ function LoginPageInner() {
     try {
       const res = mode === "login"
         ? await login(identifier, password)
-        : await signup(username, email, password, inviteCode);
+        : await signup(username, email, password);
 
       if (res.success) {
         if (mode === "login") {
@@ -159,7 +158,7 @@ function LoginPageInner() {
           <p className="mx-auto mt-4 max-w-lg font-mono text-sm leading-relaxed text-slate-400 sm:text-base">
             {mode === "login"
               ? "Enter your details to access your account and continue watching"
-              : "Bring your invite code and make yourself at home"}
+              : "Make yourself at home — anyone can join"}
           </p>
         </motion.div>
       </div>
@@ -307,26 +306,6 @@ function LoginPageInner() {
               )}
             </div>
 
-            {mode === "signup" && (
-              <div>
-                <label className={label} htmlFor="invite">
-                  Invite Code
-                  <span className="ml-2 font-normal text-slate-500">— Da Vinci is invitation only</span>
-                </label>
-                <div className="relative">
-                  <KeyRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />
-                  <input
-                    id="invite"
-                    required
-                    value={inviteCode}
-                    onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                    placeholder="A1B2C3D4"
-                    className={`${field} pl-11 tracking-[0.2em]`}
-                  />
-                </div>
-              </div>
-            )}
-
             <button
               type="submit"
               disabled={loading}
@@ -348,12 +327,6 @@ function LoginPageInner() {
           </div>
 
           <DiscordButton label={mode === "login" ? "Login with Discord" : "Sign up with Discord"} />
-
-          {mode === "signup" && (
-            <p className="mt-3 text-center font-mono text-xs leading-relaxed text-slate-600">
-              Signing up with Discord still asks for your invite code.
-            </p>
-          )}
 
           {mode === "login" && (
             <p className="mt-6 text-center font-mono text-xs text-slate-500">

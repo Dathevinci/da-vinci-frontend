@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useUser } from '@/hooks/useUser';
 import { useToast } from "@/components/ui/Toast";
 import { isAdmin, isLeadDev } from "@/lib/admin";
-import DiscordInviteModal from '@/components/layout/DiscordInviteModal';
 
 export default function AuthSync() {
   const searchParams = useSearchParams();
@@ -13,8 +12,6 @@ export default function AuthSync() {
   const { loginOrRegister } = useUser();
   const { toast } = useToast();
   const syncAttempted = useRef(false);
-  const [discordData, setDiscordData] = useState<{ username: string; email: string; avatar?: string } | null>(null);
-  const [showInviteModal, setShowInviteModal] = useState(false);
 
   useEffect(() => {
     const authSuccess = searchParams.get('discord_auth');
@@ -38,10 +35,10 @@ export default function AuthSync() {
         // Sync with backend
         loginOrRegister(username, email, avatar || undefined)
           .then((res) => {
-            if (res.requires_invite) {
-              setDiscordData({ username, email, avatar: avatar || undefined });
-              setShowInviteModal(true);
-            } else if (res.success) {
+            /* Registration is open, so a first-time Discord sign-in simply
+               becomes an account. There is no invite-code detour any more —
+               the server stopped answering `requires_invite` entirely. */
+            if (res.success) {
               const uName = (res.user?.username || username).toLowerCase();
               if (uName === 'xhackerdevil') toast('Welcome Bug Founder 🐞', "success");
               else if (isLeadDev(uName)) toast('Welcome Back, Lead Developer 👑', "success");
@@ -63,18 +60,6 @@ export default function AuthSync() {
       }
     }
   }, [searchParams, router, loginOrRegister]);
-
-  if (showInviteModal && discordData) {
-    return (
-      <DiscordInviteModal 
-        username={discordData.username}
-        email={discordData.email}
-        avatar={discordData.avatar}
-        onClose={() => { setShowInviteModal(false); router.replace('/'); }}
-        onSuccess={() => { setShowInviteModal(false); router.replace('/'); }}
-      />
-    );
-  }
 
   return null;
 }
