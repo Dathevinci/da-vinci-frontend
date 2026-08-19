@@ -14,6 +14,7 @@ import { isAdmin, isLeadDev, displayArisePoints } from "@/lib/admin";
 import { calculateLevel, calculateProgressPercent, MAX_LEVEL } from "@/lib/levels";
 import { getHeartRank } from "@/lib/heartRanks";
 import { cloudinaryFit } from "@/lib/cloudinary";
+import HubBackdrop from "@/components/hub/HubBackdrop";
 import { AvatarDecoration } from "@/components/profile/AvatarDecoration";
 
 type CategoryId = "all" | "media" | "games" | "community" | "rewards" | "system";
@@ -127,6 +128,11 @@ export default function HubPage() {
 
   return (
     <div className="min-h-screen bg-black px-4 pb-36 pt-6 sm:px-6 lg:px-10 font-sans text-white selection:bg-violet-500 selection:text-white">
+      {/* The title film, behind everything. Renders nothing on Data Saver,
+          Reduced Motion, a metered link or a phone-width screen — see the
+          component. Delete this one line to take it back out. */}
+      <HubBackdrop />
+
       {/* ── Subtle Atmospheric Violet Backlight ── */}
       <div
         aria-hidden
