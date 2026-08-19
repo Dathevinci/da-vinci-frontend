@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useChapterResume, ResumeBar } from "@/components/reader/ChapterResume";
 import Link from "next/link";
 import { Loader2, ChevronLeft, ChevronRight, List, ArrowLeft, Home, X, Server } from "lucide-react";
 import type { NovelInfo, ChapterContent } from "@/lib/novel/ReadNovelFull";
@@ -64,6 +65,14 @@ export default function NovelReaderPage() {
 
     if (typeof window !== "undefined") window.scrollTo(0, 0);
   }, [id, chapterId]);
+
+  /* Where this reader stopped last time, if anywhere. */
+  const { offer: resumeOffer, resume, startFresh } = useChapterResume({
+    kind: "novel",
+    seriesId: id,
+    chapterId,
+    ready: !loading,
+  });
 
   // Fetch the novel once for the chapter list + reliable prev/next.
   useEffect(() => {
@@ -421,6 +430,7 @@ export default function NovelReaderPage() {
           </div>
         </>
       )}
+      <ResumeBar offer={resumeOffer} onResume={resume} onStartFresh={startFresh} />
     </div>
   );
 }

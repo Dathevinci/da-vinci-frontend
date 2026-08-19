@@ -14,6 +14,7 @@ import { writeLocalProgress, pushProgress } from "@/lib/readingProgress";
 import { useManhwaStatus } from "@/hooks/useManhwaStatus";
 import { useToast } from "@/components/ui/Toast";
 import ReaderNavigation from "@/components/reading/ReaderNavigation";
+import { useChapterResume, ResumeBar } from "@/components/reader/ChapterResume";
 import ChapterSelectorModal from "@/components/reading/ChapterSelectorModal";
 import ManhwaReaderSettings from "@/components/reading/ManhwaReaderSettings";
 import { loadManhwaPrefs, saveManhwaPrefs, themeById, ManhwaReaderPrefs } from "@/lib/manhwa/readerPrefs";
@@ -34,6 +35,7 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
   const [pageMeta, setPageMeta] = useState<{ rescuedFrom?: string; lockedOn?: string; unlockTime?: string; donorsChecked?: boolean }>({});
   const [manhwa, setManhwa] = useState<IMangaInfo | null>(null);
   const [loading, setLoading] = useState(true);
+
   const { user } = useUser();
   const { setStatus, isTracked } = useManhwaStatus();
   const { toast } = useToast();
@@ -162,6 +164,15 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
       });
     return () => { active = false; };
   }, [id, chapterId]);
+
+  /* Where this reader stopped last time, if anywhere. Ready only once the
+     pages exist: percentages are meaningless against an empty document. */
+  const { offer: resumeOffer, resume, startFresh } = useChapterResume({
+    kind: "manhwa",
+    seriesId: id,
+    chapterId,
+    ready: !loading && pages.length > 0,
+  });
 
   // Figure out prev/next chapter
   let prevChapterId: string | null = null;
@@ -709,6 +720,8 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
       />
+
+      <ResumeBar offer={resumeOffer} onResume={resume} onStartFresh={startFresh} />
 
       {manhwa?.chapters && (
         <ChapterSelectorModal
