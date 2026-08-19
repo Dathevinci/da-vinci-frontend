@@ -128,7 +128,7 @@ export default function ConsolePage() {
     <PageTransition>
       {/* overflow-clip, not overflow-hidden — the latter creates a scroll
           container that kills the md:sticky rail. */}
-      <div className="relative min-h-screen overflow-clip bg-[#050505] pt-24 pb-28 text-white md:pb-24">
+      <div className="relative min-h-screen overflow-clip bg-[#050505] pt-6 pb-28 text-white md:pb-24">
         <div className="pointer-events-none absolute -top-40 left-1/2 h-[560px] w-[560px] -translate-x-1/2 rounded-full bg-fuchsia-600/10 blur-[160px]" />
         <div className="pointer-events-none absolute top-64 right-0 h-[420px] w-[420px] translate-x-1/3 rounded-full bg-purple-600/10 blur-[150px]" />
 

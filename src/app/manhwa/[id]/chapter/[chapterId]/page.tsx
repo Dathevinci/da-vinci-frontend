@@ -637,7 +637,7 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
       {prefs.sideChat && !showSideChat && (
         <button
           onClick={() => setShowSideChat(true)}
-          className="fixed bottom-20 right-4 z-40 p-3 rounded-full bg-pink-600 text-white shadow-xl hover:bg-pink-500 transition flex items-center gap-2 font-bold text-sm"
+          className="fixed bottom-20 right-4 z-40 p-3 rounded-full bg-purple-600 text-white shadow-xl hover:bg-purple-500 transition flex items-center gap-2 font-bold text-sm"
         >
           <MessageSquare className="w-5 h-5" />
           Comments
@@ -649,7 +649,7 @@ export default function ManhwaChapterPage({ params }: { params: Promise<{ id: st
         <div className="fixed inset-y-0 right-0 z-50 w-full sm:w-[450px] bg-[#09090b] border-l border-white/10 shadow-2xl flex flex-col">
           <div className="p-4 border-b border-white/10 flex items-center justify-between">
             <h3 className="font-bold flex items-center gap-2">
-              <MessageSquare className="w-5 h-5 text-pink-500" />
+              <MessageSquare className="w-5 h-5 text-purple-500" />
               Chapter Comments
             </h3>
             <button onClick={() => setShowSideChat(false)} className="p-1 hover:bg-white/10 rounded-full text-white/50 hover:text-white">

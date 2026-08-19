@@ -54,7 +54,7 @@ export default async function CalendarPage() {
   const sortedDays = [...days.slice(dayIndex), ...days.slice(0, dayIndex)];
 
   return (
-    <div className="bg-[#09090b] min-h-screen pt-24 pb-12 px-4 md:px-12 text-white">
+    <div className="bg-[#09090b] min-h-screen pt-6 pb-12 px-4 md:px-12 text-white">
       <div className="max-w-5xl mx-auto">
         <h1 className="text-4xl font-black mb-2 flex items-center gap-3 text-purple-400">
           Airing Calendar

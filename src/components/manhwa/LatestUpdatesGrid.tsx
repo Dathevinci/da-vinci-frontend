@@ -45,7 +45,7 @@ export default function LatestUpdatesGrid({
   items,
   title = "Latest Updates",
   subtitle = "Freshly uploaded chapters",
-  accent = "#dc2626",
+  accent = "#9333ea",
 }: {
   items: IMangaResult[];
   title?: string;

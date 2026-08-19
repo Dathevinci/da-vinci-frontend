@@ -228,7 +228,7 @@ function ManhwaPageInner() {
   const vtxItems = dedupeById([...trending, ...latestUpdates].filter((m) => m.id.startsWith("vtx:")));
 
   return (
-    <div className="bg-[#0b0b0c] min-h-screen pt-16 pb-16 text-white font-sans selection:bg-red-500/30">
+    <div className="bg-[#0b0b0c] min-h-screen pt-6 pb-16 text-white font-sans selection:bg-purple-500/30">
       <AnimatePresence mode="wait">
         {loading ? (
           // Zero-duration exit: when the pre-paint restore flips `loading`
@@ -271,7 +271,7 @@ function ManhwaPageInner() {
               {/* SLICED. The merged latest list runs ~190 rows, and the rail
                   is newest-first — so its far end is the oldest thing any
                   source still publishes. */}
-              <ManhwaCarousel title="Recently Added" icon={<Clock className="w-6 h-6 text-[#dc2626]" />} items={latestUpdates.slice(0, 30)}
+              <ManhwaCarousel title="Recently Added" icon={<Clock className="w-6 h-6 text-[#9333ea]" />} items={latestUpdates.slice(0, 30)}
                 seeAllLink="/manhwa/explore" />
               {topRated.length > 0 && (
                 <ManhwaCarousel title="Top Rated" icon={<Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />} items={topRated}
@@ -323,7 +323,7 @@ function ManhwaPageInner() {
               <div className="flex justify-center pt-4 pb-2 pl-4 md:pl-12">
                 <button
                   onClick={() => router.push("/manhwa/explore")}
-                  className="flex items-center gap-2 px-8 py-3 bg-[#dc2626] hover:bg-[#ef4444] text-white font-bold rounded-full shadow-[0_0_20px_rgba(220,38,38,0.3)] transition-colors"
+                  className="flex items-center gap-2 px-8 py-3 bg-[#9333ea] hover:bg-[#a855f7] text-white font-bold rounded-full shadow-[0_0_20px_rgba(147,51,234,0.3)] transition-colors"
                 >
                   <BookMarked className="w-5 h-5" /> Browse All Comics
                 </button>
@@ -333,10 +333,10 @@ function ManhwaPageInner() {
         ) : data.length > 0 ? (
           <motion.div key="grid" initial={restored.current ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }} className="max-w-[1400px] mx-auto px-4 md:px-8">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 bg-[#151518] border border-[#2a2a32] p-6 rounded-xl shadow-lg relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#dc2626] to-red-600"></div>
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#9333ea] to-purple-600"></div>
               <div>
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="w-12 h-12 rounded-xl bg-[#dc2626]/10 flex items-center justify-center text-[#dc2626] border border-[#dc2626]/20">
+                  <div className="w-12 h-12 rounded-xl bg-[#9333ea]/10 flex items-center justify-center text-[#9333ea] border border-[#9333ea]/20">
                     <BookMarked className="w-6 h-6" />
                   </div>
                   <div>
@@ -359,7 +359,7 @@ function ManhwaPageInner() {
               </div>
             </div>
             <div className="flex items-center gap-2 mb-6 border-b border-[#2a2a32] pb-3">
-              <BookMarked className="w-5 h-5 text-[#dc2626]" />
+              <BookMarked className="w-5 h-5 text-[#9333ea]" />
               <h2 className="text-xl font-black uppercase tracking-wider text-white">
                 {query ? `Search: ${query}` : `Browse Series`}
               </h2>
@@ -415,7 +415,7 @@ function ManhwaPageInner() {
           </span>
           
           {hasNext ? (
-            <Link href={buildUrl(page + 1)} className="px-6 py-3 bg-[#dc2626] hover:bg-[#ef4444] text-white border border-[#dc2626]/50 rounded-lg transition shadow-[0_0_15px_rgba(220,38,38,0.2)] flex items-center gap-2">
+            <Link href={buildUrl(page + 1)} className="px-6 py-3 bg-[#9333ea] hover:bg-[#a855f7] text-white border border-[#9333ea]/50 rounded-lg transition shadow-[0_0_15px_rgba(147,51,234,0.2)] flex items-center gap-2">
               Next <ChevronRight className="w-4 h-4" />
             </Link>
           ) : (

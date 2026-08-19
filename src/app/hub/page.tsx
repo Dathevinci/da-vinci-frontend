@@ -126,11 +126,11 @@ export default function HubPage() {
   const roleBadge = isLeadDev(user) ? "Lead Dev" : isAdmin(user) ? "Admin" : "Member";
 
   return (
-    <div className="min-h-screen bg-black px-4 pb-36 pt-12 sm:px-6 lg:px-10 font-sans text-white selection:bg-white selection:text-black">
-      {/* ── Subtle Atmospheric Silver Backlight ── */}
+    <div className="min-h-screen bg-black px-4 pb-36 pt-6 sm:px-6 lg:px-10 font-sans text-white selection:bg-violet-500 selection:text-white">
+      {/* ── Subtle Atmospheric Violet Backlight ── */}
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-x-0 top-0 h-[600px] bg-[radial-gradient(ellipse_60%_50%_at_50%_-10%,rgba(255,255,255,0.07),transparent_75%)]"
+        className="pointer-events-none fixed inset-x-0 top-0 h-[600px] bg-[radial-gradient(ellipse_60%_50%_at_50%_-10%,rgba(139,92,246,0.14),transparent_75%)]"
       />
       <div
         aria-hidden
@@ -147,21 +147,21 @@ export default function HubPage() {
         {/* ── COMMAND DECK & USER PASSPORT ── */}
         <motion.section
           variants={itemVariants}
-          className="relative overflow-hidden rounded-3xl border border-white/15 bg-gradient-to-b from-[#141414] via-[#090909] to-[#010101] p-6 sm:p-8 lg:p-10 shadow-[0_20px_50px_rgba(0,0,0,0.95),_0_0_30px_rgba(255,255,255,0.02)]"
+          className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-gradient-to-b from-[#141414] via-[#090909] to-[#010101] p-6 sm:p-8 lg:p-10 shadow-[0_20px_50px_rgba(0,0,0,0.95),_0_0_30px_rgba(139,92,246,0.08)]"
         >
           <div className="grid gap-8 lg:grid-cols-[1.3fr_0.9fr] lg:items-center">
             
             {/* Left: Hub Title & Quick Jump */}
             <div>
               <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-white shadow-[0_0_8px_#ffffff] animate-pulse" />
+                <span className="h-2 w-2 rounded-full bg-violet-400 shadow-[0_0_8px_#a78bfa] animate-pulse" />
                 <span className="text-xs font-mono font-bold uppercase tracking-widest text-neutral-400">
                   Da Vinci Universe Deck
                 </span>
               </div>
 
               <h1 className="mt-3 font-fell text-3xl font-extrabold text-white sm:text-4xl lg:text-5xl tracking-wide">
-                Welcome, <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-neutral-200 to-neutral-400">{user.username}</span>
+                Welcome, <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-violet-200 to-violet-400">{user.username}</span>
               </h1>
 
               <p className="mt-3 max-w-lg text-sm sm:text-base leading-relaxed text-neutral-400 font-sans">
@@ -173,7 +173,7 @@ export default function HubPage() {
                 <motion.div whileHover={{ y: -2, scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                   <Link
                     href="/"
-                    className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider text-white hover:bg-white hover:text-black transition-colors duration-200 shadow-sm"
+                    className="inline-flex items-center gap-2 rounded-xl border border-violet-400/30 bg-violet-500/10 px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider text-violet-100 hover:bg-violet-500 hover:text-white transition-colors duration-200 shadow-sm"
                   >
                     <Play className="h-3.5 w-3.5 fill-current" />
                     Watch Anime
@@ -183,7 +183,7 @@ export default function HubPage() {
                 <motion.div whileHover={{ y: -2, scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                   <Link
                     href="/manhwa"
-                    className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider text-white hover:bg-white hover:text-black transition-colors duration-200 shadow-sm"
+                    className="inline-flex items-center gap-2 rounded-xl border border-purple-400/30 bg-purple-500/10 px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider text-purple-100 hover:bg-purple-500 hover:text-white transition-colors duration-200 shadow-sm"
                   >
                     <BookOpen className="h-3.5 w-3.5" />
                     Read Manhwa
@@ -193,7 +193,7 @@ export default function HubPage() {
                 <motion.div whileHover={{ y: -2, scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                   <Link
                     href="/novel"
-                    className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider text-white hover:bg-white hover:text-black transition-colors duration-200 shadow-sm"
+                    className="inline-flex items-center gap-2 rounded-xl border border-fuchsia-400/30 bg-fuchsia-500/10 px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider text-fuchsia-100 hover:bg-fuchsia-500 hover:text-white transition-colors duration-200 shadow-sm"
                   >
                     <Feather className="h-3.5 w-3.5" />
                     Light Novels
@@ -206,7 +206,7 @@ export default function HubPage() {
             <motion.div
               whileHover={{ y: -2 }}
               transition={{ type: "spring", stiffness: 350, damping: 24 }}
-              className="rounded-2xl border border-white/15 bg-neutral-950/90 p-5 backdrop-blur-md shadow-xl"
+              className="rounded-2xl border border-violet-500/20 bg-neutral-950/90 p-5 backdrop-blur-md shadow-xl"
             >
               <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4">
                 <div className="flex items-center gap-3 min-w-0">
@@ -215,10 +215,10 @@ export default function HubPage() {
                       <img
                         src={cloudinaryFit(user.avatar, 120)}
                         alt=""
-                        className="relative z-10 h-12 w-12 rounded-2xl object-cover ring-2 ring-white/30 shadow-[0_0_12px_rgba(255,255,255,0.15)]"
+                        className="relative z-10 h-12 w-12 rounded-2xl object-cover ring-2 ring-violet-400/40 shadow-[0_0_12px_rgba(139,92,246,0.25)]"
                       />
                     ) : (
-                      <span className="relative z-10 grid h-12 w-12 place-items-center rounded-2xl bg-neutral-800 font-bold text-lg text-white ring-2 ring-white/20">
+                      <span className="relative z-10 grid h-12 w-12 place-items-center rounded-2xl bg-neutral-800 font-bold text-lg text-white ring-2 ring-violet-400/30">
                         {(user.username || "?")[0]?.toUpperCase()}
                       </span>
                     )}
@@ -228,7 +228,7 @@ export default function HubPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <p className="truncate text-base font-bold text-white">{user.username}</p>
-                      <span className="rounded-md border border-white/30 bg-white/10 px-2 py-0.5 text-[9px] font-mono font-black uppercase tracking-wider text-white">
+                      <span className="rounded-md border border-violet-400/40 bg-violet-500/15 px-2 py-0.5 text-[9px] font-mono font-black uppercase tracking-wider text-violet-200">
                         {roleBadge}
                       </span>
                     </div>
@@ -241,7 +241,7 @@ export default function HubPage() {
                 <motion.div whileHover={{ scale: 1.15, x: 2 }} whileTap={{ scale: 0.95 }}>
                   <Link
                     href={`/user/${encodeURIComponent(user.username)}`}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 text-neutral-400 hover:border-white/30 hover:bg-white hover:text-black transition-colors"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-violet-500/15 text-neutral-400 hover:border-violet-400/40 hover:bg-violet-500 hover:text-white transition-colors"
                     title="View Profile"
                   >
                     <ArrowRight className="h-4 w-4" />
@@ -251,16 +251,16 @@ export default function HubPage() {
 
               {/* Stats Grid */}
               <div className="mt-4 grid grid-cols-2 gap-2.5">
-                <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
+                <div className="rounded-xl border border-violet-500/15 bg-violet-500/[0.06] p-3">
                   <span className="flex items-center gap-1 text-[10px] font-mono font-bold uppercase tracking-wider text-neutral-400">
-                    <Sparkles className="h-3 w-3 text-neutral-300" /> Level
+                    <Sparkles className="h-3 w-3 text-violet-300" /> Level
                   </span>
                   <p className="mt-1 font-mono text-xl font-black text-white">{level}</p>
                 </div>
 
-                <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
+                <div className="rounded-xl border border-violet-500/15 bg-violet-500/[0.06] p-3">
                   <span className="flex items-center gap-1 text-[10px] font-mono font-bold uppercase tracking-wider text-neutral-400">
-                    <Diamond className="h-3 w-3 text-neutral-300" /> Arise Points
+                    <Diamond className="h-3 w-3 text-violet-300" /> Arise Points
                   </span>
                   <p className="mt-1 font-mono text-xl font-black text-white">{displayArisePoints(user)}</p>
                 </div>
@@ -269,7 +269,7 @@ export default function HubPage() {
               {/* XP Progress Bar */}
               <div className="mt-3.5">
                 <div className="flex items-center justify-between text-[10px] font-mono font-bold text-neutral-400">
-                  <span className="flex items-center gap-1"><Zap className="h-3 w-3 text-white" /> XP Progress</span>
+                  <span className="flex items-center gap-1"><Zap className="h-3 w-3 text-violet-300" /> XP Progress</span>
                   <span className="text-neutral-300 font-mono">{level >= MAX_LEVEL ? "MAX RANK" : `${Math.round(progress)}%`}</span>
                 </div>
                 <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-neutral-800 border border-white/5">
@@ -277,7 +277,7 @@ export default function HubPage() {
                     initial={{ width: 0 }}
                     animate={{ width: `${progress}%` }}
                     transition={{ duration: 1, ease: "easeOut" }}
-                    className="h-full rounded-full bg-gradient-to-r from-neutral-400 via-white to-neutral-200 shadow-[0_0_10px_rgba(255,255,255,0.4)]"
+                    className="h-full rounded-full bg-gradient-to-r from-violet-600 via-violet-400 to-violet-200 shadow-[0_0_10px_rgba(139,92,246,0.5)]"
                   />
                 </div>
               </div>
@@ -297,13 +297,13 @@ export default function HubPage() {
             {/* Anime Card */}
             <motion.div
               whileHover={{ y: -6, transition: { type: "spring", stiffness: 350, damping: 22 } }}
-              className="group relative overflow-hidden rounded-3xl border border-white/15 bg-gradient-to-b from-[#141414] via-[#090909] to-[#010101] p-6 backdrop-blur-md shadow-lg hover:border-white/40 hover:shadow-[0_0_30px_rgba(255,255,255,0.08)] transition-colors duration-300"
+              className="group relative overflow-hidden rounded-3xl border border-violet-500/20 bg-gradient-to-b from-[#141414] via-[#090909] to-[#010101] p-6 backdrop-blur-md shadow-lg hover:border-violet-400/50 hover:shadow-[0_0_30px_rgba(139,92,246,0.18)] transition-colors duration-300"
             >
               <div className="flex items-center justify-between">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white shadow-sm transition-transform duration-300 group-hover:scale-110">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-violet-400/30 bg-violet-500/10 text-violet-200 shadow-sm transition-transform duration-300 group-hover:scale-110">
                   <Tv className="h-6 w-6" />
                 </div>
-                <span className="rounded-full border border-white/20 bg-white/5 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-neutral-300">
+                <span className="rounded-full border border-violet-400/30 bg-violet-500/10 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-violet-200">
                   Streaming
                 </span>
               </div>
@@ -314,13 +314,13 @@ export default function HubPage() {
               <div className="mt-5 flex items-center gap-2 pt-3 border-t border-white/10">
                 <Link
                   href="/"
-                  className="flex-1 rounded-xl bg-white px-3.5 py-2 text-center text-xs font-mono font-bold uppercase tracking-wider text-black hover:bg-neutral-200 transition-all duration-200 shadow-md hover:shadow-[0_0_15px_rgba(255,255,255,0.3)]"
+                  className="flex-1 rounded-xl bg-violet-500 px-3.5 py-2 text-center text-xs font-mono font-bold uppercase tracking-wider text-white hover:bg-violet-400 transition-all duration-200 shadow-md hover:shadow-[0_0_15px_rgba(139,92,246,0.45)]"
                 >
                   Watch Now
                 </Link>
                 <Link
                   href="/explore"
-                  className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-mono text-neutral-300 hover:text-white hover:bg-white/15 transition"
+                  className="rounded-xl border border-violet-500/20 bg-violet-500/5 px-3 py-2 text-xs font-mono text-violet-300 hover:text-white hover:bg-violet-500/20 transition"
                   title="Explore Anime Catalog"
                 >
                   <Compass className="h-4 w-4" />
@@ -331,13 +331,13 @@ export default function HubPage() {
             {/* Manhwa Card */}
             <motion.div
               whileHover={{ y: -6, transition: { type: "spring", stiffness: 350, damping: 22 } }}
-              className="group relative overflow-hidden rounded-3xl border border-white/15 bg-gradient-to-b from-[#141414] via-[#090909] to-[#010101] p-6 backdrop-blur-md shadow-lg hover:border-white/40 hover:shadow-[0_0_30px_rgba(255,255,255,0.08)] transition-colors duration-300"
+              className="group relative overflow-hidden rounded-3xl border border-purple-500/20 bg-gradient-to-b from-[#141414] via-[#090909] to-[#010101] p-6 backdrop-blur-md shadow-lg hover:border-purple-400/50 hover:shadow-[0_0_30px_rgba(168,85,247,0.18)] transition-colors duration-300"
             >
               <div className="flex items-center justify-between">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white shadow-sm transition-transform duration-300 group-hover:scale-110">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-purple-400/30 bg-purple-500/10 text-purple-200 shadow-sm transition-transform duration-300 group-hover:scale-110">
                   <BookOpen className="h-6 w-6" />
                 </div>
-                <span className="rounded-full border border-white/20 bg-white/5 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-neutral-300">
+                <span className="rounded-full border border-purple-400/30 bg-purple-500/10 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-purple-200">
                   Comics & Manga
                 </span>
               </div>
@@ -348,13 +348,13 @@ export default function HubPage() {
               <div className="mt-5 flex items-center gap-2 pt-3 border-t border-white/10">
                 <Link
                   href="/manhwa"
-                  className="flex-1 rounded-xl bg-white px-3.5 py-2 text-center text-xs font-mono font-bold uppercase tracking-wider text-black hover:bg-neutral-200 transition-all duration-200 shadow-md hover:shadow-[0_0_15px_rgba(255,255,255,0.3)]"
+                  className="flex-1 rounded-xl bg-purple-500 px-3.5 py-2 text-center text-xs font-mono font-bold uppercase tracking-wider text-white hover:bg-purple-400 transition-all duration-200 shadow-md hover:shadow-[0_0_15px_rgba(168,85,247,0.45)]"
                 >
                   Read Now
                 </Link>
                 <Link
                   href="/manhwa/explore"
-                  className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-mono text-neutral-300 hover:text-white hover:bg-white/15 transition"
+                  className="rounded-xl border border-purple-500/20 bg-purple-500/5 px-3 py-2 text-xs font-mono text-purple-300 hover:text-white hover:bg-purple-500/20 transition"
                   title="Explore Comics Catalog"
                 >
                   <Compass className="h-4 w-4" />
@@ -365,13 +365,13 @@ export default function HubPage() {
             {/* Light Novels Card */}
             <motion.div
               whileHover={{ y: -6, transition: { type: "spring", stiffness: 350, damping: 22 } }}
-              className="group relative overflow-hidden rounded-3xl border border-white/15 bg-gradient-to-b from-[#141414] via-[#090909] to-[#010101] p-6 backdrop-blur-md shadow-lg hover:border-white/40 hover:shadow-[0_0_30px_rgba(255,255,255,0.08)] transition-colors duration-300"
+              className="group relative overflow-hidden rounded-3xl border border-fuchsia-500/20 bg-gradient-to-b from-[#141414] via-[#090909] to-[#010101] p-6 backdrop-blur-md shadow-lg hover:border-fuchsia-400/50 hover:shadow-[0_0_30px_rgba(217,70,239,0.18)] transition-colors duration-300"
             >
               <div className="flex items-center justify-between">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white shadow-sm transition-transform duration-300 group-hover:scale-110">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-fuchsia-400/30 bg-fuchsia-500/10 text-fuchsia-200 shadow-sm transition-transform duration-300 group-hover:scale-110">
                   <Feather className="h-6 w-6" />
                 </div>
-                <span className="rounded-full border border-white/20 bg-white/5 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-neutral-300">
+                <span className="rounded-full border border-fuchsia-400/30 bg-fuchsia-500/10 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-fuchsia-200">
                   Web Serials
                 </span>
               </div>
@@ -382,13 +382,13 @@ export default function HubPage() {
               <div className="mt-5 flex items-center gap-2 pt-3 border-t border-white/10">
                 <Link
                   href="/novel"
-                  className="flex-1 rounded-xl bg-white px-3.5 py-2 text-center text-xs font-mono font-bold uppercase tracking-wider text-black hover:bg-neutral-200 transition-all duration-200 shadow-md hover:shadow-[0_0_15px_rgba(255,255,255,0.3)]"
+                  className="flex-1 rounded-xl bg-fuchsia-500 px-3.5 py-2 text-center text-xs font-mono font-bold uppercase tracking-wider text-white hover:bg-fuchsia-400 transition-all duration-200 shadow-md hover:shadow-[0_0_15px_rgba(217,70,239,0.45)]"
                 >
                   Read Now
                 </Link>
                 <Link
                   href="/novel/explore"
-                  className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-mono text-neutral-300 hover:text-white hover:bg-white/15 transition"
+                  className="rounded-xl border border-fuchsia-500/20 bg-fuchsia-500/5 px-3 py-2 text-xs font-mono text-fuchsia-300 hover:text-white hover:bg-fuchsia-500/20 transition"
                   title="Explore Novels Catalog"
                 >
                   <Compass className="h-4 w-4" />
@@ -408,7 +408,7 @@ export default function HubPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search hub destinations…"
-                className="h-11 w-full rounded-2xl border border-white/15 bg-neutral-900/90 pl-10 pr-9 text-xs sm:text-sm text-white placeholder:text-neutral-600 outline-none focus:border-white/50 focus:shadow-[0_0_15px_rgba(255,255,255,0.1)] transition-all duration-200"
+                className="h-11 w-full rounded-2xl border border-violet-500/20 bg-neutral-900/90 pl-10 pr-9 text-xs sm:text-sm text-white placeholder:text-neutral-600 outline-none focus:border-violet-400/60 focus:shadow-[0_0_15px_rgba(139,92,246,0.25)] transition-all duration-200"
               />
               <AnimatePresence>
                 {searchQuery && (
@@ -417,7 +417,7 @@ export default function HubPage() {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.8 }}
                     onClick={() => setSearchQuery("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-violet-300 transition-colors"
                   >
                     <X className="h-3.5 w-3.5" />
                   </motion.button>
@@ -425,7 +425,7 @@ export default function HubPage() {
               </AnimatePresence>
             </div>
 
-            {/* Monochrome Category Selector with Fluid Pill Highlight */}
+            {/* Violet Category Selector with Fluid Pill Highlight */}
             <div className="flex flex-wrap items-center gap-1.5">
               {CATEGORIES.map((cat) => {
                 const active = activeCategory === cat.id;
@@ -437,8 +437,8 @@ export default function HubPage() {
                     whileTap={{ scale: 0.97 }}
                     className={`relative rounded-xl border px-3 py-1.5 text-xs font-mono font-bold uppercase tracking-wider transition-all duration-200 ${
                       active
-                        ? "border-white bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.25)]"
-                        : "border-white/10 bg-white/[0.03] text-neutral-400 hover:border-white/20 hover:text-white"
+                        ? "border-violet-400 bg-violet-500 text-white shadow-[0_0_15px_rgba(139,92,246,0.4)]"
+                        : "border-violet-500/15 bg-violet-500/[0.04] text-neutral-400 hover:border-violet-400/40 hover:text-violet-200"
                     }`}
                   >
                     {cat.label}
@@ -462,25 +462,25 @@ export default function HubPage() {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
                     whileHover={{ y: -4, transition: { type: "spring", stiffness: 350, damping: 22 } }}
-                    className="group relative flex h-full flex-col justify-between rounded-2xl border border-white/10 bg-[#0d0d0d] p-5 transition-all duration-200 hover:border-white/30 hover:bg-[#141414] shadow-lg"
+                    className="group relative flex h-full flex-col justify-between rounded-2xl border border-violet-500/15 bg-[#0d0d0d] p-5 transition-all duration-200 hover:border-violet-400/40 hover:bg-[#141414] shadow-lg"
                   >
                     <div>
                       <div className="flex items-start justify-between">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white shadow-sm transition-transform duration-300 group-hover:scale-110">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-violet-500/20 bg-violet-500/10 text-violet-200 shadow-sm transition-transform duration-300 group-hover:scale-110">
                           <Icon className="h-5 w-5" />
                         </div>
 
                         <div className="flex items-center gap-2">
                           {badge && (
-                            <span className="rounded-full border border-white/30 bg-white/15 px-2 py-0.5 text-[9px] font-mono font-black uppercase text-white shadow-[0_0_8px_rgba(255,255,255,0.2)]">
+                            <span className="rounded-full border border-violet-400/40 bg-violet-500/20 px-2 py-0.5 text-[9px] font-mono font-black uppercase text-violet-100 shadow-[0_0_8px_rgba(139,92,246,0.3)]">
                               {badge}
                             </span>
                           )}
-                          <ArrowUpRight className="h-4 w-4 text-neutral-600 transition-all duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-white" />
+                          <ArrowUpRight className="h-4 w-4 text-neutral-600 transition-all duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-violet-300" />
                         </div>
                       </div>
 
-                      <h4 className="mt-4 text-base font-bold text-white transition-colors group-hover:text-neutral-200">
+                      <h4 className="mt-4 text-base font-bold text-white transition-colors group-hover:text-violet-200">
                         {label}
                       </h4>
                       <p className="mt-1 text-xs leading-relaxed text-neutral-400 font-sans">
@@ -537,7 +537,7 @@ export default function HubPage() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.94, y: 12 }}
               transition={{ type: "spring", stiffness: 400, damping: 28 }}
-              className="relative w-full max-w-sm rounded-3xl border border-white/20 bg-neutral-950 p-6 shadow-2xl"
+              className="relative w-full max-w-sm rounded-3xl border border-violet-500/25 bg-neutral-950 p-6 shadow-2xl"
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -551,7 +551,7 @@ export default function HubPage() {
                   whileTap={{ scale: 0.9 }}
                   type="button"
                   onClick={() => setGemsOpen(false)}
-                  className="grid h-8 w-8 place-items-center rounded-full text-neutral-400 hover:bg-white/10 hover:text-white transition"
+                  className="grid h-8 w-8 place-items-center rounded-full text-neutral-400 hover:bg-violet-500/15 hover:text-violet-200 transition"
                 >
                   <X className="h-4 w-4" />
                 </motion.button>
@@ -567,13 +567,13 @@ export default function HubPage() {
                     <Link
                       href={href}
                       onClick={() => setGemsOpen(false)}
-                      className="group flex items-center gap-3 rounded-2xl border border-white/15 bg-white/[0.04] p-3.5 transition-colors hover:border-white/40 hover:bg-white/10"
+                      className="group flex items-center gap-3 rounded-2xl border border-violet-500/20 bg-violet-500/[0.06] p-3.5 transition-colors hover:border-violet-400/50 hover:bg-violet-500/15"
                     >
-                      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/20 bg-white/10 text-white transition-transform group-hover:scale-105">
+                      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-violet-400/30 bg-violet-500/10 text-violet-200 transition-transform group-hover:scale-105">
                         <Icon className="h-5 w-5" />
                       </span>
                       <span className="flex-1 font-mono text-sm font-bold text-white">{label}</span>
-                      <ArrowRight className="h-4 w-4 text-neutral-500 transition-all duration-200 group-hover:translate-x-1 group-hover:text-white" />
+                      <ArrowRight className="h-4 w-4 text-neutral-500 transition-all duration-200 group-hover:translate-x-1 group-hover:text-violet-300" />
                     </Link>
                   </motion.div>
                 ))}

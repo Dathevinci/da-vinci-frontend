@@ -195,7 +195,7 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
           {/* ambient bloom behind the poster — the reference's themed halo */}
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-6 h-[460px] bg-[radial-gradient(ellipse_45%_60%_at_50%_40%,rgba(56,189,248,0.13),transparent_70%)]"
+            className="pointer-events-none absolute inset-x-0 top-6 h-[460px] bg-[radial-gradient(ellipse_45%_60%_at_50%_40%,rgba(192,132,252,0.13),transparent_70%)]"
           />
           <motion.div
             initial={{ opacity: 0, y: 18 }}
@@ -248,7 +248,7 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
           {(manhwa.genres?.length || 0) > 0 && (
             <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
               {manhwa.genres!.slice(0, 6).map((g) => (
-                <span key={g} className="rounded-lg border border-sky-400/25 bg-sky-400/[0.06] px-3 py-1 font-mono text-xs font-bold text-sky-100/90">
+                <span key={g} className="rounded-lg border border-purple-400/25 bg-purple-400/[0.06] px-3 py-1 font-mono text-xs font-bold text-purple-100/90">
                   {g}
                 </span>
               ))}
@@ -437,14 +437,14 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
                         const inner = (
                           <>
                             <div className="flex min-w-0 items-center gap-3">
-                              <span className={`w-9 shrink-0 text-right font-mono text-xs font-black ${isCurrent ? "text-pink-300" : isLocked ? "text-slate-700" : "text-slate-600 group-hover:text-white"}`}>
+                              <span className={`w-9 shrink-0 text-right font-mono text-xs font-black ${isCurrent ? "text-purple-300" : isLocked ? "text-slate-700" : "text-slate-600 group-hover:text-white"}`}>
                                 {number}
                               </span>
-                              <span className={`flex min-w-0 items-center gap-2 truncate font-mono text-sm font-bold ${isCurrent ? "text-pink-100" : isLocked ? "text-slate-600" : "text-slate-200 group-hover:text-white"}`}>
+                              <span className={`flex min-w-0 items-center gap-2 truncate font-mono text-sm font-bold ${isCurrent ? "text-purple-100" : isLocked ? "text-slate-600" : "text-slate-200 group-hover:text-white"}`}>
                                 {isLocked && <Lock className="h-3.5 w-3.5 shrink-0 text-slate-600" />}
                                 <span className="truncate">{chap.title}</span>
                                 {isCurrent && (
-                                  <span className="shrink-0 rounded-full bg-pink-500/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-pink-300">
+                                  <span className="shrink-0 rounded-full bg-purple-500/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-purple-300">
                                     You&rsquo;re here
                                   </span>
                                 )}
@@ -457,7 +457,7 @@ export default function ManhwaDetailPage({ params }: { params: Promise<{ id: str
                             )}
                           </>
                         );
-                        const cls = `group flex items-center justify-between px-4 py-3 transition-colors odd:bg-white/[0.02]${isCurrent ? " bg-pink-500/[0.07] shadow-[inset_2px_0_0_rgba(236,72,153,0.7)]" : ""}`;
+                        const cls = `group flex items-center justify-between px-4 py-3 transition-colors odd:bg-white/[0.02]${isCurrent ? " bg-purple-500/[0.07] shadow-[inset_2px_0_0_rgba(168,85,247,0.7)]" : ""}`;
                         /**
                          * OFFICIALLY LICENSED — send them to the publisher.
                          *

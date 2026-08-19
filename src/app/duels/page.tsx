@@ -401,7 +401,7 @@ export default function DuelsPage() {
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-[#050505] px-4 pb-24 pt-24 text-white">
+      <div className="min-h-screen bg-[#050505] px-4 pb-24 pt-6 text-white">
         <div className="mx-auto max-w-5xl">
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <div>

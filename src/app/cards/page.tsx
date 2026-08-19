@@ -688,7 +688,7 @@ export default function CardsPage() {
 
   return (
     <PageTransition>
-      <div className="relative min-h-screen overflow-x-hidden px-4 pb-24 pt-24 text-white"
+      <div className="relative min-h-screen overflow-x-hidden px-4 pb-24 pt-6 text-white"
         style={{
           background:
             "radial-gradient(85% 50% at 12% -5%, rgba(120,86,196,.20), transparent 60%)," +

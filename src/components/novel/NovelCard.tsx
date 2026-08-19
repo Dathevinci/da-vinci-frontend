@@ -45,7 +45,7 @@ export default function NovelCard({ novel }: { novel: NovelResult }) {
             as a hydration mismatch and nowhere else. */}
         <div className="relative">
           <button onClick={open} className="relative block w-full overflow-hidden rounded-lg text-left shadow-md transition-transform duration-300 hover:scale-[1.03] aspect-[2/3]">
-            <span className="absolute top-2 left-2 z-10 rounded-md bg-black/75 px-2 py-0.5 text-[10px] font-black text-pink-400 backdrop-blur-md border border-pink-500/20 uppercase tracking-wider shadow-lg">
+            <span className="absolute top-2 left-2 z-10 rounded-md bg-black/75 px-2 py-0.5 text-[10px] font-black text-fuchsia-400 backdrop-blur-md border border-fuchsia-500/20 uppercase tracking-wider shadow-lg">
               {badgeLabel}
             </span>
             {cover ? (
@@ -71,7 +71,7 @@ export default function NovelCard({ novel }: { novel: NovelResult }) {
 
         <div className="flex flex-1 flex-col pt-2">
           <button onClick={open} className="w-full text-left">
-            <h3 className="mb-1 line-clamp-2 text-[13px] font-bold leading-tight text-[#e2e8f0] transition-colors hover:text-pink-400">
+            <h3 className="mb-1 line-clamp-2 text-[13px] font-bold leading-tight text-[#e2e8f0] transition-colors hover:text-fuchsia-400">
               {novel.title}
             </h3>
           </button>

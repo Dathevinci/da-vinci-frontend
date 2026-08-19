@@ -31,18 +31,18 @@ import GuildChatDock from "@/components/guild/GuildChatDock";
 const PAGES: { href: string; label: string; Icon: any; tint: string }[] = [
   { href: "/hub",         label: "The Hub",          Icon: LayoutGrid,   tint: "#8b5cf6" },
   { href: "/",            label: "Anime Home",       Icon: Tv,           tint: "#a274ff" },
-  { href: "/manhwa",      label: "Manhwa Home",      Icon: BookOpen,     tint: "#38bdf8" },
-  { href: "/novel",       label: "Novel Home",       Icon: Feather,      tint: "#fbbf24" },
+  { href: "/manhwa",      label: "Manhwa Home",      Icon: BookOpen,     tint: "#c084fc" },
+  { href: "/novel",       label: "Novel Home",       Icon: Feather,      tint: "#e879f9" },
   // One row per mode's own explore. The dock is a flat list of every
   // destination rather than a mode-aware menu, so all three are listed —
   // previously only anime's was here, which made the comics and novel
   // explores unreachable for anyone signed in (the mode-aware bar below is
   // guests-only).
-  { href: "/explore",         label: "Explore Anime",    Icon: Compass,      tint: "#818cf8" },
-  { href: "/manhwa/explore",  label: "Explore Comics",   Icon: Compass,      tint: "#38bdf8" },
-  { href: "/novel/explore",   label: "Explore Novels",   Icon: Compass,      tint: "#fbbf24" },
+  { href: "/explore",         label: "Explore Anime",    Icon: Compass,      tint: "#a274ff" },
+  { href: "/manhwa/explore",  label: "Explore Comics",   Icon: Compass,      tint: "#c084fc" },
+  { href: "/novel/explore",   label: "Explore Novels",   Icon: Compass,      tint: "#e879f9" },
   { href: "/airing",      label: "Airing Now",       Icon: Activity,     tint: "#4ade80" },
-  { href: "/calendar",    label: "Schedule",         Icon: Calendar,     tint: "#f472b6" },
+  { href: "/calendar",    label: "Schedule",         Icon: Calendar,     tint: "#d8b4fe" },
   { href: "/cards",       label: "Arise Cards",      Icon: Layers,       tint: "#c084fc" },
   { href: "/duels",       label: "Card Duels",       Icon: Swords,       tint: "#f43f5e" },
   { href: "/raid",        label: "World Raid",       Icon: Swords,       tint: "#f87171" },
@@ -50,13 +50,13 @@ const PAGES: { href: string; label: string; Icon: any; tint: string }[] = [
   { href: "/marketplace", label: "Marketplace",      Icon: Store,        tint: "#22d3ee" },
   { href: "/community",   label: "Community",        Icon: Users,        tint: "#34d399" },
   { href: "/quests",      label: "Daily Quests",     Icon: Trophy,       tint: "#fb923c" },
-  { href: "/shop",        label: "Shop",             Icon: ShoppingBag,  tint: "#e879f9" },
+  { href: "/shop",        label: "Shop",             Icon: ShoppingBag,  tint: "#f5d0fe" },
   { href: "/leaderboard", label: "Leaderboard",      Icon: Trophy,       tint: "#7dd3fc" },
   { href: "/stamps",      label: "Stamps",           Icon: Stamp,        tint: "#fbbf24" },
   { href: "/upcoming",    label: "Upcoming",         Icon: Clock,        tint: "#c4b5fd" },
   { href: "/updates",     label: "Updates",          Icon: Megaphone,    tint: "#94a3b8" },
   { href: "/faq",         label: "FAQ",              Icon: HelpCircle,   tint: "#93c5fd" },
-  { href: "/support",     label: "Support Us",       Icon: Heart,        tint: "#fda4af" },
+  { href: "/support",     label: "Support Us",       Icon: Heart,        tint: "#f0abfc" },
 ];
 
 /**

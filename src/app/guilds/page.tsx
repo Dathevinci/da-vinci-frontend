@@ -240,7 +240,7 @@ export default function GuildsPage() {
 
   return (
     <PageTransition>
-      <div className="relative min-h-screen overflow-x-hidden bg-[#070709] px-4 pb-36 pt-16 font-mono text-white">
+      <div className="relative min-h-screen overflow-x-hidden bg-[#070709] px-4 pb-36 pt-6 font-mono text-white">
         {/* Ambient Top Emerald Glow */}
         <div
           aria-hidden

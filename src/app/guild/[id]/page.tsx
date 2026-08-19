@@ -996,7 +996,7 @@ export default function GuildHomePage() {
 
   return (
     <PageTransition>
-      <div className="relative min-h-screen bg-[#070709] px-4 pb-32 pt-14 font-mono text-white">
+      <div className="relative min-h-screen bg-[#070709] px-4 pb-32 pt-6 font-mono text-white">
         {guild?.banner ? (
           /* FULL-SCREEN banner: fixed, so the art holds the entire viewport
              while the hall scrolls over it. The veil + fade to the page black

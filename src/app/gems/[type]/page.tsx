@@ -169,7 +169,7 @@ export default function GemsPage() {
   if (!valid) {
     return (
       <PageTransition>
-        <div className="relative min-h-screen bg-[#070709] px-4 pb-24 pt-14 font-mono text-white">
+        <div className="relative min-h-screen bg-[#070709] px-4 pb-24 pt-6 font-mono text-white">
           <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[500px] bg-[radial-gradient(ellipse_50%_80%_at_50%_-20%,rgba(139,92,246,0.22),transparent_70%)]" />
           <div className="relative mx-auto max-w-md pt-16 text-center">
             <Gem className="mx-auto h-10 w-10 text-violet-300" />
@@ -206,7 +206,7 @@ export default function GemsPage() {
 
   return (
     <PageTransition>
-      <div className="relative min-h-screen bg-[#070709] px-4 pb-24 pt-14 font-mono text-white">
+      <div className="relative min-h-screen bg-[#070709] px-4 pb-24 pt-6 font-mono text-white">
         {/* the Lunar top glow — same radial as the hub and leaderboard */}
         <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[500px] bg-[radial-gradient(ellipse_50%_80%_at_50%_-20%,rgba(139,92,246,0.22),transparent_70%)]" />
 

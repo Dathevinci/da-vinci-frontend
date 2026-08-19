@@ -108,11 +108,11 @@ export default function ManhwaCard({ manhwa }: { manhwa: IMangaResult }) {
 
         <div className="flex flex-1 flex-col bg-[#0b0b0c] pt-2">
           <button onClick={open} className="w-full text-left">
-            <h3 className="mb-1 line-clamp-2 text-[13px] font-bold leading-tight text-[#e2e8f0] transition-colors hover:text-[#dc2626]">
+            <h3 className="mb-1 line-clamp-2 text-[13px] font-bold leading-tight text-[#e2e8f0] transition-colors hover:text-[#9333ea]">
               {manhwa.title}
             </h3>
           </button>
-          <Link href={chapterHref} className="mb-1 w-fit text-[11px] font-bold text-[#a3a3a3] transition-colors hover:text-[#dc2626]">
+          <Link href={chapterHref} className="mb-1 w-fit text-[11px] font-bold text-[#a3a3a3] transition-colors hover:text-[#9333ea]">
             {/* "Chapter ?" looked like breakage and was reported as such —
                 some sources' listings (WeebCentral) publish no chapter at
                 all. When it's unknown, say what the link actually does. */}

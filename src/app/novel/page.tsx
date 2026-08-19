@@ -160,7 +160,7 @@ function NovelInner() {
     }));
 
   return (
-    <div className="bg-[#0b0b0c] min-h-screen pt-16 pb-16 text-white selection:bg-pink-500/30">
+    <div className="bg-[#0b0b0c] min-h-screen pt-6 pb-16 text-white selection:bg-fuchsia-500/30">
       <AnimatePresence mode="wait">
         {loading ? (
           // Zero-duration exit: when the pre-paint restore flips `loading`
@@ -198,7 +198,7 @@ function NovelInner() {
               {trending.length > 0 && (
                 <NovelCarousel
                   title="Trending Now"
-                  icon={<Flame className="w-6 h-6 text-rose-500" />}
+                  icon={<Flame className="w-6 h-6 text-fuchsia-500" />}
                   items={trending}
                   seeAllLink="/novel/explore?list=popular"
                 />
@@ -244,7 +244,7 @@ function NovelInner() {
                 <DiscoverRail
                   title="Discover Novels"
                   subtitle="Human-translated web novels and original English fiction"
-                  accent="#ec4899"
+                  accent="#d946ef"
                   tabs={[
                     { key: "translated", label: "Translated", icon: "top", items: toDiscover(translatedNovels) },
                     { key: "original", label: "Original English", icon: "popular", items: toDiscover(originalFiction) },
@@ -254,14 +254,14 @@ function NovelInner() {
               </div>
 
               <div className="pt-6">
-                <HiddenGems source="novel" accent="#ec4899" />
+                <HiddenGems source="novel" accent="#d946ef" />
               </div>
 
               <div className="pt-6">
                 <RecentMediaComments
                   source="novel"
                   title="Recent Novel Comments"
-                  accent="#ec4899"
+                  accent="#d946ef"
                   chipLabel="Novel"
                 />
               </div>
@@ -269,7 +269,7 @@ function NovelInner() {
               <div className="flex justify-center pt-4 pb-2 pl-4 md:pl-12">
                 <button
                   onClick={() => router.push("/novel/explore")}
-                  className="flex items-center gap-2 px-8 py-3 bg-pink-500 hover:bg-pink-400 text-white font-bold rounded-full shadow-[0_0_20px_rgba(236,72,153,0.3)] transition-colors"
+                  className="flex items-center gap-2 px-8 py-3 bg-fuchsia-500 hover:bg-fuchsia-400 text-white font-bold rounded-full shadow-[0_0_20px_rgba(217,70,239,0.3)] transition-colors"
                 >
                   <BookMarked className="w-5 h-5" /> Browse All Light Novels
                 </button>
@@ -279,7 +279,7 @@ function NovelInner() {
         ) : (
           <motion.div key="browse" initial={restored.current ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }} className="max-w-[1500px] mx-auto px-4 md:px-8">
             <div className="flex items-center gap-3 mb-8 pt-4">
-              <div className="w-12 h-12 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400">
+              <div className="w-12 h-12 rounded-xl bg-fuchsia-500/10 border border-fuchsia-500/20 flex items-center justify-center text-fuchsia-400">
                 <BookOpen className="w-6 h-6" />
               </div>
               <div>
@@ -298,12 +298,12 @@ function NovelInner() {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {data.map((n) => (
                 <div key={n.id} className="aspect-[2/3]">
-                  <a href={`/novel/${encodeURIComponent(n.id)}`} className="block w-full h-full group relative overflow-hidden rounded-xl bg-white/[0.03] border border-white/10 hover:border-pink-500/40 transition-all">
+                  <a href={`/novel/${encodeURIComponent(n.id)}`} className="block w-full h-full group relative overflow-hidden rounded-xl bg-white/[0.03] border border-white/10 hover:border-fuchsia-500/40 transition-all">
                     {n.cover && (
                       <img src={novelCover(n.cover) || n.cover} alt={n.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex flex-col justify-end p-3">
-                      <span className="text-[10px] font-mono font-bold text-pink-400 uppercase tracking-wider">{n.tag || "Light Novel"}</span>
+                      <span className="text-[10px] font-mono font-bold text-fuchsia-400 uppercase tracking-wider">{n.tag || "Light Novel"}</span>
                       <h3 className="text-xs font-bold text-white line-clamp-2 leading-tight mt-0.5">{n.title}</h3>
                       {n.latestChapter && <p className="text-[10px] text-slate-400 mt-1 line-clamp-1">{n.latestChapter}</p>}
                     </div>

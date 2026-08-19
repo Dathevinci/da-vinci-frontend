@@ -140,7 +140,7 @@ export default function ForgePage() {
 
   return (
     <PageTransition>
-      <div className="relative min-h-screen overflow-x-hidden pb-24 pt-24 text-white" style={{ background: "linear-gradient(180deg, #0c0508 0%, #08040c 60%, #050308 100%)" }}>
+      <div className="relative min-h-screen overflow-x-hidden pb-24 pt-6 text-white" style={{ background: "linear-gradient(180deg, #0c0508 0%, #08040c 60%, #050308 100%)" }}>
         {/* ── LAB AMBIENCE ── the room is part of the machine: pipework down
             both walls, floor grating, hazard tape, gauges, breathing lamps
             and steam. All static gradients or transform/opacity loops. */}

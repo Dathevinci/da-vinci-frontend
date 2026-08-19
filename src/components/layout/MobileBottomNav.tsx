@@ -33,13 +33,13 @@ export default function MobileBottomNav() {
   // who have no dock and still need somewhere to tap.
   if (user) return null;
 
-  const accentColor = mode === "anime" ? "text-purple-400" : mode === "manhwa" ? "text-red-500" : "text-pink-400";
+  const accentColor = mode === "anime" ? "text-violet-400" : mode === "manhwa" ? "text-purple-400" : "text-fuchsia-400";
   const bgBadge =
     mode === "anime"
-      ? "bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.8)]"
+      ? "bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.8)]"
       : mode === "manhwa"
-      ? "bg-red-600 shadow-[0_0_10px_rgba(220,38,38,0.8)]"
-      : "bg-pink-500 shadow-[0_0_10px_rgba(236,72,153,0.8)]";
+      ? "bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.8)]"
+      : "bg-fuchsia-500 shadow-[0_0_10px_rgba(217,70,239,0.8)]";
 
   const home =
     mode === "anime"

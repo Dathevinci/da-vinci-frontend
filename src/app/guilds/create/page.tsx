@@ -176,7 +176,7 @@ export default function CreateGuildPage() {
 
   return (
     <PageTransition>
-      <div className="relative min-h-screen overflow-x-hidden bg-[#070709] px-4 pb-32 pt-14 font-mono text-white">
+      <div className="relative min-h-screen overflow-x-hidden bg-[#070709] px-4 pb-32 pt-6 font-mono text-white">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-x-0 top-0 h-[500px] bg-[radial-gradient(ellipse_50%_80%_at_50%_-20%,rgba(16,185,129,0.16),transparent_70%)]"

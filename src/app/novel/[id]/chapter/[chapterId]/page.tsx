@@ -153,7 +153,7 @@ export default function NovelReaderPage() {
 
   return (
     <div
-      className="relative min-h-screen selection:bg-pink-500/30 transition-colors"
+      className="relative min-h-screen selection:bg-fuchsia-500/30 transition-colors"
       style={{
         backgroundColor: prefs.customBg ? "transparent" : t.bg,
         color: t.text,
@@ -190,7 +190,7 @@ export default function NovelReaderPage() {
           <div className="flex items-center gap-1 min-w-0">
             <button
               onClick={() => router.push(browseAnchorHref("/novel"))}
-              className="flex items-center justify-center h-9 w-9 shrink-0 rounded-lg hover:bg-pink-500/10 hover:text-pink-400 transition"
+              className="flex items-center justify-center h-9 w-9 shrink-0 rounded-lg hover:bg-fuchsia-500/10 hover:text-fuchsia-400 transition"
               style={{ color: prefs.customBg ? "#e2e8f0" : t.muted }}
               title="Back to browsing"
             >
@@ -200,7 +200,7 @@ export default function NovelReaderPage() {
             <Link
               href={`/novel/${encodeURIComponent(id)}`}
               replace
-              className="flex items-center gap-2 hover:text-pink-400 transition text-sm font-bold min-w-0"
+              className="flex items-center gap-2 hover:text-fuchsia-400 transition text-sm font-bold min-w-0"
               style={{ color: prefs.customBg ? "#e2e8f0" : t.muted }}
             >
               <ArrowLeft className="w-4 h-4 shrink-0" />
@@ -211,7 +211,7 @@ export default function NovelReaderPage() {
             {novel?.alternativeServers && novel.alternativeServers.length > 1 && (
               <div className="relative group mr-2">
                 <div 
-                  className="flex items-center gap-1.5 px-2 h-9 rounded-lg hover:bg-pink-500/10 hover:text-pink-400 transition cursor-pointer"
+                  className="flex items-center gap-1.5 px-2 h-9 rounded-lg hover:bg-fuchsia-500/10 hover:text-fuchsia-400 transition cursor-pointer"
                   style={{ color: prefs.customBg ? "#e2e8f0" : t.muted }}
                   title="Switch Server"
                 >
@@ -227,7 +227,7 @@ export default function NovelReaderPage() {
                       href={`/novel/${encodeURIComponent(s.id)}`}
                       className={`block px-4 py-3 text-sm transition-colors ${
                         s.id === id 
-                          ? "bg-pink-500/10 text-pink-400 font-bold" 
+                          ? "bg-fuchsia-500/10 text-fuchsia-400 font-bold" 
                           : "hover:bg-white/5"
                       }`}
                       style={s.id === id ? {} : { color: t.muted }}
@@ -240,7 +240,7 @@ export default function NovelReaderPage() {
             )}
             <button
               onClick={() => setShowSettings(true)}
-              className="flex items-center gap-1.5 px-3 h-9 rounded-lg hover:bg-pink-500/10 hover:text-pink-400 transition font-black"
+              className="flex items-center gap-1.5 px-3 h-9 rounded-lg hover:bg-fuchsia-500/10 hover:text-fuchsia-400 transition font-black"
               style={{ color: prefs.customBg ? "#f8fafc" : t.muted }}
               title="Reading settings"
             >
@@ -248,7 +248,7 @@ export default function NovelReaderPage() {
             </button>
             <button
               onClick={() => setShowChapters(true)}
-              className="p-2 rounded-lg hover:bg-pink-500/10 hover:text-pink-400 transition"
+              className="p-2 rounded-lg hover:bg-fuchsia-500/10 hover:text-fuchsia-400 transition"
               style={{ color: prefs.customBg ? "#f8fafc" : t.muted }}
               title="Chapters"
             >
@@ -260,7 +260,7 @@ export default function NovelReaderPage() {
 
       {loading ? (
         <div className="py-40 flex justify-center">
-          <Loader2 className="w-10 h-10 text-pink-500 animate-spin" />
+          <Loader2 className="w-10 h-10 text-fuchsia-500 animate-spin" />
         </div>
       ) : !chapter || !chapter.content?.length || (chapter as any).error ? (
         <div className="py-32 px-4 text-center" style={{ color: t.muted }}>
@@ -270,7 +270,7 @@ export default function NovelReaderPage() {
           </p>
           <button
             onClick={retryChapter}
-            className="px-6 py-2.5 bg-pink-500 hover:bg-pink-400 text-black font-bold rounded-xl transition text-sm shadow-lg shadow-pink-500/20"
+            className="px-6 py-2.5 bg-fuchsia-500 hover:bg-fuchsia-400 text-black font-bold rounded-xl transition text-sm shadow-lg shadow-fuchsia-500/20"
           >
             Retry Loading
           </button>
@@ -321,7 +321,7 @@ export default function NovelReaderPage() {
                 <button
                   onClick={() => go(prevId)}
                   disabled={!prevId}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border disabled:opacity-30 hover:border-pink-500/40 transition font-bold text-sm"
+                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border disabled:opacity-30 hover:border-fuchsia-500/40 transition font-bold text-sm"
                   style={{
                     backgroundColor: prefs.customBg ? "rgba(255,255,255,0.05)" : t.panel,
                     borderColor: prefs.customBg ? "rgba(255,255,255,0.1)" : t.border,
@@ -332,7 +332,7 @@ export default function NovelReaderPage() {
                 </button>
                 <button
                   onClick={() => setShowChapters(true)}
-                  className="p-3 rounded-xl border hover:border-pink-500/40 transition"
+                  className="p-3 rounded-xl border hover:border-fuchsia-500/40 transition"
                   style={{
                     backgroundColor: prefs.customBg ? "rgba(255,255,255,0.05)" : t.panel,
                     borderColor: prefs.customBg ? "rgba(255,255,255,0.1)" : t.border,
@@ -345,7 +345,7 @@ export default function NovelReaderPage() {
                 <button
                   onClick={() => go(initialNextId)}
                   disabled={!initialNextId}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-pink-500 text-black disabled:opacity-30 hover:bg-pink-400 transition font-bold text-sm shadow-lg shadow-pink-500/20"
+                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-fuchsia-500 text-black disabled:opacity-30 hover:bg-fuchsia-400 transition font-bold text-sm shadow-lg shadow-fuchsia-500/20"
                 >
                   Next Chapter <ChevronRight className="w-5 h-5" />
                 </button>
@@ -381,7 +381,7 @@ export default function NovelReaderPage() {
                 <h3 className="font-black">Chapters</h3>
                 <p className="text-xs mt-0.5" style={{ color: t.muted }}>{chapters.length} total</p>
               </div>
-              <button onClick={() => setShowChapters(false)} className="p-2 rounded-full hover:bg-pink-500/10 hover:text-pink-400" style={{ color: t.muted }}>
+              <button onClick={() => setShowChapters(false)} className="p-2 rounded-full hover:bg-fuchsia-500/10 hover:text-fuchsia-400" style={{ color: t.muted }}>
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -396,13 +396,13 @@ export default function NovelReaderPage() {
                       setShowChapters(false);
                       go(c.id);
                     }}
-                    className={`w-full text-left px-5 py-3 border-b text-sm transition ${active ? "bg-pink-500/15 text-pink-300 font-bold" : "hover:bg-pink-500/5"}`}
+                    className={`w-full text-left px-5 py-3 border-b text-sm transition ${active ? "bg-fuchsia-500/15 text-fuchsia-300 font-bold" : "hover:bg-fuchsia-500/5"}`}
                     style={{ borderColor: t.border, color: active ? undefined : t.muted }}
                   >
                     <span className="flex items-center gap-2">
                       <span className="min-w-0 flex-1 truncate">{c.title}</span>
                       {active && (
-                        <span className="shrink-0 rounded-full bg-pink-500/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-pink-300">
+                        <span className="shrink-0 rounded-full bg-fuchsia-500/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-fuchsia-300">
                           Reading
                         </span>
                       )}
@@ -413,7 +413,7 @@ export default function NovelReaderPage() {
               <Link
                 href={`/novel/${encodeURIComponent(id)}`}
                 onClick={() => setShowChapters(false)}
-                className="block text-center text-pink-400 text-xs font-bold py-4 hover:underline"
+                className="block text-center text-fuchsia-400 text-xs font-bold py-4 hover:underline"
               >
                 View all chapters →
               </Link>

@@ -23,7 +23,7 @@ export default function ReaderSettings({
   // Chip styling adapts to the active theme (so the panel previews it live).
   const chipBase = "rounded-lg text-sm font-bold border transition disabled:opacity-40";
   const inactive = { borderColor: t.border, color: t.muted, backgroundColor: "transparent" };
-  const activeCls = "bg-pink-500 border-pink-500 text-white";
+  const activeCls = "bg-fuchsia-500 border-fuchsia-500 text-white";
 
   const Label = ({ children }: { children: React.ReactNode }) => (
     <p className="text-[11px] font-black uppercase tracking-[0.14em] mb-2" style={{ color: t.muted }}>
@@ -72,7 +72,7 @@ export default function ReaderSettings({
                   key={th.id}
                   onClick={() => update({ theme: th.id })}
                   title={th.name}
-                  className={`relative h-12 w-12 rounded-xl border-2 flex items-center justify-center font-serif text-base font-bold transition ${on ? "border-pink-500 scale-105" : ""}`}
+                  className={`relative h-12 w-12 rounded-xl border-2 flex items-center justify-center font-serif text-base font-bold transition ${on ? "border-fuchsia-500 scale-105" : ""}`}
                   style={{ background: th.bg, color: th.text, borderColor: on ? undefined : th.border }}
                 >
                   Aa
@@ -123,7 +123,7 @@ export default function ReaderSettings({
                 max={SIZE_MAX}
                 value={prefs.size}
                 onChange={(e) => update({ size: Number(e.target.value) })}
-                className="flex-1 accent-pink-500"
+                className="flex-1 accent-fuchsia-500"
                 aria-label="Text size"
               />
             </div>
@@ -206,10 +206,10 @@ export default function ReaderSettings({
 
           {!prefs.customBg ? (
             <label
-              className="flex items-center justify-center gap-2 w-full py-3.5 px-4 rounded-xl border-2 border-dashed cursor-pointer transition hover:border-pink-500 hover:text-pink-400"
+              className="flex items-center justify-center gap-2 w-full py-3.5 px-4 rounded-xl border-2 border-dashed cursor-pointer transition hover:border-fuchsia-500 hover:text-fuchsia-400"
               style={{ borderColor: t.border, color: t.muted }}
             >
-              <ImagePlus className="w-4 h-4 text-pink-500" />
+              <ImagePlus className="w-4 h-4 text-fuchsia-500" />
               <span className="text-xs font-bold">Upload Custom Photo / Wallpaper</span>
               <input
                 type="file"
@@ -246,10 +246,10 @@ export default function ReaderSettings({
                 </div>
                 <div className="flex-1">
                   <label
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border text-xs font-bold cursor-pointer transition hover:border-pink-500 hover:text-pink-400"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border text-xs font-bold cursor-pointer transition hover:border-fuchsia-500 hover:text-fuchsia-400"
                     style={{ borderColor: t.border, color: t.text }}
                   >
-                    <Upload className="w-3.5 h-3.5 text-pink-500" />
+                    <Upload className="w-3.5 h-3.5 text-fuchsia-500" />
                     <span>Change Photo</span>
                     <input
                       type="file"
@@ -310,7 +310,7 @@ export default function ReaderSettings({
                     step={2}
                     value={Math.round((prefs.customBgCardOpacity ?? 0.85) * 100)}
                     onChange={(e) => update({ customBgCardOpacity: Number(e.target.value) / 100 })}
-                    className="w-full accent-pink-500"
+                    className="w-full accent-fuchsia-500"
                     aria-label="Card Backdrop Darkness"
                   />
                 </div>
@@ -329,7 +329,7 @@ export default function ReaderSettings({
                   step={5}
                   value={Math.round((prefs.customBgOpacity ?? 0.7) * 100)}
                   onChange={(e) => update({ customBgOpacity: Number(e.target.value) / 100 })}
-                  className="w-full accent-pink-500"
+                  className="w-full accent-fuchsia-500"
                   aria-label="Wallpaper Brightness"
                 />
               </div>
@@ -347,7 +347,7 @@ export default function ReaderSettings({
                   step={1}
                   value={prefs.customBgBlur ?? 2}
                   onChange={(e) => update({ customBgBlur: Number(e.target.value) })}
-                  className="w-full accent-pink-500"
+                  className="w-full accent-fuchsia-500"
                   aria-label="Wallpaper Blur"
                 />
               </div>

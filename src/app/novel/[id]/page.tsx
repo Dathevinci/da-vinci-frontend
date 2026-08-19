@@ -117,7 +117,7 @@ export default function NovelDetailPage() {
   if (!novel || !novel.title)
     return (
       <div className="min-h-screen bg-[#070709] pt-32 text-center font-mono text-slate-400">
-        Novel not found. <Link href="/novel" className="text-pink-400 underline">Back to library</Link>
+        Novel not found. <Link href="/novel" className="text-fuchsia-400 underline">Back to library</Link>
       </div>
     );
 
@@ -134,14 +134,14 @@ export default function NovelDetailPage() {
 
         <div className="relative mx-auto flex max-w-4xl flex-col items-center px-4 pb-10 pt-20 text-center sm:pt-24">
           {/* ambient bloom behind the poster — the reference's themed halo;
-              the featured title breathes violet instead of amber */}
+              the featured title breathes violet instead of fuchsia */}
           <div
             aria-hidden
             className="pointer-events-none absolute inset-x-0 top-6 h-[460px]"
             style={{
               background: feat
                 ? `radial-gradient(ellipse 45% 60% at 50% 40%, rgba(${feat.palette.rgb},0.26), transparent 70%)`
-                : "radial-gradient(ellipse 45% 60% at 50% 40%, rgba(251,191,36,0.14), transparent 70%)",
+                : "radial-gradient(ellipse 45% 60% at 50% 40%, rgba(232,121,249,0.14), transparent 70%)",
             }}
           />
           {featured && <PurpleAuraStyles />}
@@ -188,7 +188,7 @@ export default function NovelDetailPage() {
             <span className="rounded-lg border border-white/10 bg-white/[0.05] px-2.5 py-1 text-slate-300">{chapters.length} Chapters</span>
             {novel.status && (
               <span className={`rounded-lg border px-2.5 py-1 ${
-                isDone ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300" : "border-pink-400/40 bg-pink-400/10 text-pink-300"
+                isDone ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300" : "border-fuchsia-400/40 bg-fuchsia-400/10 text-fuchsia-300"
               }`}>
                 {novel.status}
               </span>
@@ -197,7 +197,7 @@ export default function NovelDetailPage() {
 
           {/* THE TITLE — a book spine, not a terminal. Each mode wears its own
               face now: novels in literary Garamond with the last word lit in
-              amber italic (the reference treatment), manhwa in an Anton
+              fuchsia italic (the reference treatment), manhwa in an Anton
               masthead, anime in the atelier's Fell serif.
 
               THE FEATURED NOVEL wears its own lettering instead: the Pirata
@@ -222,10 +222,10 @@ export default function NovelDetailPage() {
                 const head = words.slice(0, -1).join(" ");
                 return head ? (
                   <>
-                    {head} <em className="italic text-amber-300">{tail}</em>
+                    {head} <em className="italic text-fuchsia-300">{tail}</em>
                   </>
                 ) : (
-                  <em className="italic text-amber-300">{tail}</em>
+                  <em className="italic text-fuchsia-300">{tail}</em>
                 );
               })()}
             </h1>
@@ -246,9 +246,9 @@ export default function NovelDetailPage() {
                           boxShadow: `0 0 12px rgba(${feat.palette.rgb},0.25)`,
                         }
                       : {
-                          borderColor: "rgba(251,191,36,0.25)",
-                          background: "rgba(251,191,36,0.06)",
-                          color: "rgba(254,243,199,0.9)",
+                          borderColor: "rgba(232,121,249,0.25)",
+                          background: "rgba(232,121,249,0.06)",
+                          color: "rgba(250,232,255,0.9)",
                         }
                   }
                 >
@@ -364,7 +364,7 @@ export default function NovelDetailPage() {
                         onClick={() => setServerOpen((o) => !o)}
                         className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 font-mono text-xs font-bold text-slate-300 transition hover:bg-white/10"
                       >
-                        <Server className="h-3.5 w-3.5 text-pink-400" />
+                        <Server className="h-3.5 w-3.5 text-fuchsia-400" />
                         {novel.alternativeServers.find((s) => s.id === id)?.name || "Server"}
                       </button>
                       {serverOpen && (
@@ -375,7 +375,7 @@ export default function NovelDetailPage() {
                               href={`/novel/${encodeURIComponent(s.id)}`}
                               onClick={() => setServerOpen(false)}
                               className={`block px-4 py-3 font-mono text-xs transition-colors ${
-                                s.id === id ? "bg-pink-500/10 font-bold text-pink-300" : "text-slate-300 hover:bg-white/5"
+                                s.id === id ? "bg-fuchsia-500/10 font-bold text-fuchsia-300" : "text-slate-300 hover:bg-white/5"
                               }`}
                             >
                               {s.name}
@@ -416,14 +416,14 @@ export default function NovelDetailPage() {
                       href={`/novel/${encodeURIComponent(id)}/chapter/${encodeURIComponent(ch.id)}`}
                       className={`group flex items-center justify-between rounded-xl border p-3 transition-colors ${
                         lastRead === ch.id
-                          ? "border-pink-500/40 bg-pink-500/10"
+                          ? "border-fuchsia-500/40 bg-fuchsia-500/10"
                           : "border-white/5 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06]"
                       }`}
                     >
-                      <span className={`line-clamp-1 font-mono text-sm ${lastRead === ch.id ? "text-pink-100" : "text-slate-300 group-hover:text-white"}`}>{ch.title}</span>
+                      <span className={`line-clamp-1 font-mono text-sm ${lastRead === ch.id ? "text-fuchsia-100" : "text-slate-300 group-hover:text-white"}`}>{ch.title}</span>
                       <span className="flex shrink-0 items-center gap-2">
                         {lastRead === ch.id && (
-                          <span className="rounded-full bg-pink-500/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-pink-300">
+                          <span className="rounded-full bg-fuchsia-500/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-fuchsia-300">
                             You&rsquo;re here
                           </span>
                         )}

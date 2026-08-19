@@ -391,7 +391,7 @@ export default function LeaderboardPage() {
 
   return (
     <PageTransition>
-      <div className="relative min-h-screen bg-[#09090b] px-4 pb-36 pt-24 font-mono text-white">
+      <div className="relative min-h-screen bg-[#09090b] px-4 pb-36 pt-6 font-mono text-white">
         {/* Subtle top ambient radial glow */}
         <div
           aria-hidden
