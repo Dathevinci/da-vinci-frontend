@@ -15,10 +15,10 @@ import type { ReadingKind } from "@/lib/readingProgress";
 /**
  * "Continue where you left off?" for a chapter you closed halfway.
  *
- * One hook and one bar, shared by the manhwa and novel readers — both scroll
- * the window, so neither needs its own copy of this.
+ * One hook and one bar, shared by the manhwa and novel readers. It does not
+ * assume WHAT scrolls — see metricsOf below; that assumption was bug three.
  *
- * ── Two bugs this is written around ────────────────────────────────────────
+ * ── Three bugs this is written around ──────────────────────────────────────
  * ONE: every reader opens at the top. A naive save-on-scroll fires at the top
  * the instant the page mounts, and a position at the top must retire a saved
  * point — so it would DELETE the very thing it exists to offer. Saving is
@@ -65,18 +65,44 @@ const SETTLE_TICK_MS = 180;
 /** The offer withdraws itself; staying put IS "start fresh". */
 const OFFER_TIMEOUT_MS = 15000;
 
-const scrollableHeight = () =>
-  Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+/**
+ * WHICHEVER THING IS ACTUALLY SCROLLING.
+ *
+ * The first version assumed the window. That holds for the default vertical
+ * reader, but these readers also have a one-page mode and a horizontal mode,
+ * and a chapter can be laid out inside its own scrolling box — in which case
+ * window.scrollY never moves, no listener ever fires, and nothing is saved.
+ * Rather than guess which layout a reader is in, metrics are read off whatever
+ * element the browser says produced the scroll.
+ */
+type Metrics = { y: number; vh: number; scrollable: number };
 
-const currentPct = () => window.scrollY / scrollableHeight();
+/** Position and size of a scroll event target, whatever kind it is. */
+function metricsOf(target: EventTarget | null): Metrics {
+  const doc = typeof document === "undefined" ? null : document;
+  if (!doc || !target || target === doc || target === window || target === doc.documentElement) {
+    return {
+      y: window.scrollY,
+      vh: window.innerHeight || 1,
+      scrollable: Math.max(1, document.documentElement.scrollHeight - window.innerHeight),
+    };
+  }
+  const el = target as HTMLElement;
+  if (typeof el.scrollTop !== "number") {
+    return { y: window.scrollY, vh: window.innerHeight || 1, scrollable: 1 };
+  }
+  return {
+    y: el.scrollTop,
+    vh: el.clientHeight || 1,
+    scrollable: Math.max(1, el.scrollHeight - el.clientHeight),
+  };
+}
+
+const pctOf = (m: Metrics) => m.y / m.scrollable;
 
 /** Past the first screen, and not already at the end. */
-const worthKeeping = () => {
-  const vh = window.innerHeight || 1;
-  const y = window.scrollY;
-  const remaining = scrollableHeight() - y;
-  return y > vh * ARM_SCREENS && remaining > vh * END_SCREENS;
-};
+const worthKeepingIn = (m: Metrics) =>
+  m.y > m.vh * ARM_SCREENS && m.scrollable - m.y > m.vh * END_SCREENS;
 
 export function useChapterResume(opts: {
   kind: ReadingKind;
@@ -93,11 +119,14 @@ export function useChapterResume(opts: {
   const lastSaveRef = useRef(0);
   const idsRef = useRef({ seriesId, chapterId });
   idsRef.current = { seriesId, chapterId };
+  /** The element the browser last reported scrolling — window until then. */
+  const scrollerRef = useRef<EventTarget | null>(null);
 
   const flush = useCallback(() => {
     const { seriesId: s, chapterId: c } = idsRef.current;
     if (!armedRef.current || !s || !c) return;
-    if (worthKeeping()) saveResume(kind, s, c, currentPct());
+    const m = metricsOf(scrollerRef.current);
+    if (worthKeepingIn(m)) saveResume(kind, s, c, pctOf(m));
     else clearResume(kind, s, c);
   }, [kind]);
 
@@ -113,19 +142,25 @@ export function useChapterResume(opts: {
   useEffect(() => {
     if (!ready || !seriesId || !chapterId) return;
 
-    const onScroll = () => {
+    const onScroll = (ev: Event) => {
+      const m = metricsOf(ev.target);
+      // A box that cannot scroll is not the reader — ignore it, so a stray
+      // inner container never becomes the remembered scroller.
+      if (m.scrollable <= 1) return;
+      scrollerRef.current = ev.target;
+
       if (!armedRef.current) {
         // Arm only once real reading has happened — measured in SCREENS, so a
         // 60-image chapter arms at the same felt distance as a short one.
         // Until armed, the stored point is untouched: opening a chapter and
         // sitting at the top can never erase what it is about to offer.
-        if (!worthKeeping()) return;
+        if (!worthKeepingIn(m)) return;
         armedRef.current = true;
       }
       const now = Date.now();
       if (now - lastSaveRef.current < SAVE_EVERY_MS) return;
       lastSaveRef.current = now;
-      if (worthKeeping()) saveResume(kind, seriesId, chapterId, currentPct());
+      if (worthKeepingIn(m)) saveResume(kind, seriesId, chapterId, pctOf(m));
       else clearResume(kind, seriesId, chapterId);
     };
 
@@ -134,11 +169,15 @@ export function useChapterResume(opts: {
        "closed it midway" case this feature exists for. */
     const onHide = () => { if (document.visibilityState === "hidden") flush(); };
 
-    window.addEventListener("scroll", onScroll, { passive: true });
+    /* CAPTURE, on document. Scroll events do NOT bubble, so a listener bound to
+       window hears the page scrolling and nothing else — which is how this
+       feature came to save nothing for a chapter that scrolls inside its own
+       container. Capture hears both, with one listener and no DOM walking. */
+    document.addEventListener("scroll", onScroll, { capture: true, passive: true });
     window.addEventListener("pagehide", flush);
     document.addEventListener("visibilitychange", onHide);
     return () => {
-      window.removeEventListener("scroll", onScroll);
+      document.removeEventListener("scroll", onScroll, { capture: true } as EventListenerOptions);
       window.removeEventListener("pagehide", flush);
       document.removeEventListener("visibilitychange", onHide);
       flush(); // leaving the chapter counts as closing it
@@ -152,15 +191,29 @@ export function useChapterResume(opts: {
     if (!point) return;
     armedRef.current = true;
 
-    const go = () => window.scrollTo({ top: point.pct * scrollableHeight(), behavior: "auto" });
+    /* Restore into the same thing that was scrolling. Nothing has scrolled yet
+       on a fresh open, so this falls back to the window — right for the default
+       vertical reader, and corrected on the first real scroll for any other. */
+    const target = scrollerRef.current;
+    const isWindow =
+      !target || target === document || target === window || target === document.documentElement;
+    const el = isWindow ? null : (target as HTMLElement);
+
+    const go = () => {
+      const m = metricsOf(target);
+      const top = point.pct * m.scrollable;
+      if (el) el.scrollTop = top;
+      else window.scrollTo({ top, behavior: "auto" });
+    };
     go();
 
     const started = Date.now();
     const timer = window.setInterval(() => {
-      const want = point.pct * scrollableHeight();
+      const m = metricsOf(target);
+      const want = point.pct * m.scrollable;
       // Only correct a drift worth correcting, and never fight the reader:
       // once they have scrolled away from the landing spot, stop.
-      if (Math.abs(window.scrollY - want) > 40 && Date.now() - started < SETTLE_MS) go();
+      if (Math.abs(m.y - want) > 40 && Date.now() - started < SETTLE_MS) go();
       if (Date.now() - started >= SETTLE_MS) window.clearInterval(timer);
     }, SETTLE_TICK_MS);
   }, [offer]);
