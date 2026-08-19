@@ -88,6 +88,33 @@
     scroll-behavior: auto !important;
   }
 
+  /**
+   * THE BIGGEST GPU COST IN THE APP, AND IT IS NOT AN ANIMATION.
+   *
+   * `backdrop-filter` is used 151 times — the frosted-glass look on the dock,
+   * navs, sheets, modals and cards. Every one of them makes the compositor
+   * re-blur whatever sits behind it, and it re-blurs while you SCROLL, not
+   * only while something animates. So the two switches Performance Mode
+   * already throws (CSS durations above, framer transforms via
+   * AppMotionConfig) never touched the thing most responsible for a phone
+   * feeling slow: neither of them is an animation.
+   *
+   * Turning it off here costs the blur and keeps the surface — those panels
+   * already carry their own translucent background colour, so they stay
+   * readable, just flat instead of frosted. Anyone who has not opted into
+   * Performance Mode sees exactly the design they see today.
+   *
+   * -webkit- included: Safari still needs the prefix, and leaving it out
+   * would silently keep the whole effect alive on iPhones, which is the
+   * hardware that needs this most.
+   */
+  body.reduced-motion *,
+  body.reduced-motion *::before,
+  body.reduced-motion *::after {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
   /* Video Subtitles (::cue) styling */
   video::cue {
     background-color: rgba(0, 0, 0, 0.7) !important;
