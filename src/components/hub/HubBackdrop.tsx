@@ -98,6 +98,9 @@ export default function HubBackdrop() {
            it invisible on a black page. */
         className="h-full w-full object-cover opacity-[0.45]"
       >
+        {/* webm first — it is the smaller of the two and every browser that
+            can play it prefers it; the mp4 is the Safari/older fallback. */}
+        <source src="/title-font.webm" type="video/webm" />
         <source src="/title-font.mp4" type="video/mp4" />
       </video>
 
