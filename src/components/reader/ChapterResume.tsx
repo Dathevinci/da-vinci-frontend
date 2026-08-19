@@ -121,13 +121,25 @@ export function useChapterResume(opts: {
   idsRef.current = { seriesId, chapterId };
   /** The element the browser last reported scrolling — window until then. */
   const scrollerRef = useRef<EventTarget | null>(null);
+  /**
+   * The last position that was worth keeping, remembered as it happened.
+   *
+   * WHY THIS EXISTS: flush used to MEASURE at flush time. That is fine for
+   * pagehide, where the document is still standing, but on unmount — leaving
+   * the chapter through the app rather than closing the tab — the scroll
+   * container is already being torn down. Measuring it returns zero, zero is
+   * not worth keeping, and the else branch then DELETED the point. Which is
+   * exactly the reported symptom: it only survived if you closed the whole tab.
+   */
+  const lastGoodRef = useRef<number | null>(null);
 
   const flush = useCallback(() => {
     const { seriesId: s, chapterId: c } = idsRef.current;
     if (!armedRef.current || !s || !c) return;
-    const m = metricsOf(scrollerRef.current);
-    if (worthKeepingIn(m)) saveResume(kind, s, c, pctOf(m));
-    else clearResume(kind, s, c);
+    const pct = lastGoodRef.current;
+    // Only ever WRITE here. Teardown is not evidence that a reader finished a
+    // chapter, so it must never be a reason to throw their place away.
+    if (pct !== null) saveResume(kind, s, c, pct);
   }, [kind]);
 
   /* Offer the stored point once, when the chapter is actually measurable. */
@@ -142,12 +154,27 @@ export function useChapterResume(opts: {
   useEffect(() => {
     if (!ready || !seriesId || !chapterId) return;
 
-    const onScroll = (ev: Event) => {
-      const m = metricsOf(ev.target);
+    /**
+     * MEASURE AT MOST ONCE A FRAME.
+     *
+     * metricsOf reads scrollHeight/clientHeight, which forces the browser to
+     * lay out. Doing that inside the scroll event itself meant a forced layout
+     * per event, on the longest documents in the app — a reader scrolling a
+     * 60-image chapter paid for it continuously. The event now only records
+     * its target and asks for a frame; all reading happens inside that frame.
+     */
+    let pendingTarget: EventTarget | null = null;
+    let frame = 0;
+
+    const measure = () => {
+      frame = 0;
+      const target = pendingTarget;
+      pendingTarget = null;
+      const m = metricsOf(target);
       // A box that cannot scroll is not the reader — ignore it, so a stray
       // inner container never becomes the remembered scroller.
       if (m.scrollable <= 1) return;
-      scrollerRef.current = ev.target;
+      scrollerRef.current = target;
 
       if (!armedRef.current) {
         // Arm only once real reading has happened — measured in SCREENS, so a
@@ -157,11 +184,21 @@ export function useChapterResume(opts: {
         if (!worthKeepingIn(m)) return;
         armedRef.current = true;
       }
+
+      // Remembered every frame, written rarely. flush() needs a value it can
+      // trust after the DOM is gone; localStorage does not need one per frame.
+      if (worthKeepingIn(m)) lastGoodRef.current = pctOf(m);
+
       const now = Date.now();
       if (now - lastSaveRef.current < SAVE_EVERY_MS) return;
       lastSaveRef.current = now;
       if (worthKeepingIn(m)) saveResume(kind, seriesId, chapterId, pctOf(m));
       else clearResume(kind, seriesId, chapterId);
+    };
+
+    const onScroll = (ev: Event) => {
+      pendingTarget = ev.target;
+      if (!frame) frame = window.requestAnimationFrame(measure);
     };
 
     /* pagehide fires where unload does not (bfcache, iOS Safari), and
@@ -180,6 +217,7 @@ export function useChapterResume(opts: {
       document.removeEventListener("scroll", onScroll, { capture: true } as EventListenerOptions);
       window.removeEventListener("pagehide", flush);
       document.removeEventListener("visibilitychange", onHide);
+      if (frame) window.cancelAnimationFrame(frame);
       flush(); // leaving the chapter counts as closing it
     };
   }, [ready, kind, seriesId, chapterId, flush]);
@@ -199,22 +237,54 @@ export function useChapterResume(opts: {
       !target || target === document || target === window || target === document.documentElement;
     const el = isWindow ? null : (target as HTMLElement);
 
+    /** Where the last correction put them, so a move BY the reader is
+     *  distinguishable from the page growing underneath them. */
+    let placedAt = 0;
+
     const go = () => {
       const m = metricsOf(target);
       const top = point.pct * m.scrollable;
       if (el) el.scrollTop = top;
       else window.scrollTo({ top, behavior: "auto" });
+      placedAt = top;
     };
     go();
 
+    /**
+     * THE SETTLE LOOP, WHICH USED TO FIGHT THE READER.
+     *
+     * It re-applied whenever the position drifted more than 40px from target —
+     * but scrolling away IS drift, so the moment anyone moved, it dragged them
+     * back, every 180ms, for two and a half seconds. That is the reported lag
+     * after pressing Continue, and it is the opposite of what its own comment
+     * promised.
+     *
+     * Correcting is now only for the page GROWING: it re-applies when the
+     * reader is still where we put them and the target has moved because more
+     * images landed. Any touch, wheel or key ends it immediately — they have
+     * taken over, and nothing should pull against that.
+     */
     const started = Date.now();
-    const timer = window.setInterval(() => {
+    let timer = 0;
+    const stop = () => {
+      if (timer) { window.clearInterval(timer); timer = 0; }
+      window.removeEventListener("wheel", stop);
+      window.removeEventListener("touchstart", stop);
+      window.removeEventListener("keydown", stop);
+    };
+    window.addEventListener("wheel", stop, { passive: true, once: true });
+    window.addEventListener("touchstart", stop, { passive: true, once: true });
+    window.addEventListener("keydown", stop, { once: true });
+
+    timer = window.setInterval(() => {
+      if (Date.now() - started >= SETTLE_MS) { stop(); return; }
       const m = metricsOf(target);
+      // Moved by the READER — hands off for good.
+      if (Math.abs(m.y - placedAt) > 60) { stop(); return; }
+      // Still where we left them, but the target has shifted because the
+      // document grew. That is ours to correct.
       const want = point.pct * m.scrollable;
-      // Only correct a drift worth correcting, and never fight the reader:
-      // once they have scrolled away from the landing spot, stop.
-      if (Math.abs(m.y - want) > 40 && Date.now() - started < SETTLE_MS) go();
-      if (Date.now() - started >= SETTLE_MS) window.clearInterval(timer);
+      if (Math.abs(want - m.y) > 40) go();
     }, SETTLE_TICK_MS);
   }, [offer]);
 
