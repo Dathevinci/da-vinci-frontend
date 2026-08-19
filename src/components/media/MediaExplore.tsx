@@ -1050,6 +1050,42 @@ export default function MediaExplore({ mode }: { mode: Mode }) {
               Try again
             </button>
           </div>
+        ) : items.length === 0 && page > 1 ? (
+          /**
+           * PAST THE END IS NOT "NOTHING MATCHED".
+           *
+           * These sources do not report a page count, so the pager cannot grey
+           * out pages that turn out not to exist — it offers a window of
+           * numbers around wherever you are, and landing on one past the tail
+           * returns an empty page. Printing "Nothing matched that" there blamed
+           * the reader's SEARCH for the source running out, and offered to
+           * clear filters, which cannot help: the filters were never the
+           * reason. Page 120 of a source with 40 pages is simply past the end.
+           *
+           * The useful actions are backwards, so those are the ones offered.
+           */
+          <div className="px-4 py-24 text-center">
+            <p className="font-mono text-sm text-slate-300">That&rsquo;s past the end.</p>
+            <p className="mx-auto mt-1.5 max-w-sm font-mono text-[11px] leading-relaxed text-slate-500">
+              Page {page} came back empty. This source doesn&rsquo;t publish how many pages it
+              has, so the pager can&rsquo;t hide the ones that don&rsquo;t exist yet — nothing is
+              missing, the {cfg.noun} are behind you.
+            </p>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              <button
+                onClick={() => goToPage(page - 1)}
+                className="rounded-xl border border-white/15 bg-white/[0.06] px-4 py-2 font-mono text-xs font-black text-white transition hover:bg-white/10"
+              >
+                Back to page {page - 1}
+              </button>
+              <button
+                onClick={() => goToPage(1)}
+                className="rounded-xl px-4 py-2 font-mono text-xs font-black text-violet-300 transition hover:text-violet-200"
+              >
+                First page
+              </button>
+            </div>
+          </div>
         ) : items.length === 0 ? (
           <div className="py-24 text-center">
             <p className="font-mono text-sm text-slate-500">Nothing matched that.</p>
